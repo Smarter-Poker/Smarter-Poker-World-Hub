@@ -1,6 +1,6 @@
 /**
  * POKER NEAR ME - Unified Search for Venues, Tours, Series, and Daily Events
- * Complete poker discovery platform
+ * Complete poker discovery platform with interactive map and geofence alerts
  */
 
 import Head from 'next/head';
@@ -61,13 +61,26 @@ function formatDate(dateStr) {
 
 function formatMoney(amount) {
     if (!amount) return '';
-    if (amount >= 1000000) return `$${(amount / 1000000).toFixed(0)}M`;
-    if (amount >= 1000) return `$${(amount / 1000).toFixed(0)}K`;
-    return `$${amount.toLocaleString()}`;
+    if (amount >= 1000000) return '$' + (amount / 1000000).toFixed(0) + 'M';
+    if (amount >= 1000) return '$' + (amount / 1000).toFixed(0) + 'K';
+    return '$' + amount.toLocaleString();
 }
 
 function getCurrentDay() {
     return DAYS_OF_WEEK[new Date().getDay()];
+}
+
+// Geofence radii by venue type (meters)
+const GEOFENCE_RADII = {
+    casino: 500,
+    card_room: 300,
+    poker_club: 200,
+    charity: 200,
+};
+const DEFAULT_GEOFENCE_RADIUS = 300;
+
+function getGeofenceRadius(venueType) {
+    return GEOFENCE_RADII[venueType] || DEFAULT_GEOFENCE_RADIUS;
 }
 
 // Tour Badge Component
@@ -84,7 +97,7 @@ function TourBadge({ tourCode, size = 'normal' }) {
             padding,
             borderRadius: '6px',
             background: style.bg,
-            border: `1px solid ${style.border}`,
+            border: '1px solid ' + style.border,
             minWidth: size === 'small' ? '50px' : '70px'
         }}>
             <span style={{ color: style.text, fontSize, fontWeight: 800, letterSpacing: '0.5px' }}>
@@ -94,6 +107,301 @@ function TourBadge({ tourCode, size = 'normal' }) {
     );
 }
 
+// ---- Geofence Alert Banner (bottom of screen) ----------------------------
+function GeofenceAlertBanner({ venue, onCheckin, onReview, onDismiss }) {
+    const [visible, setVisible] = useState(true);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setVisible(false);
+            if (onDismiss) onDismiss();
+        }, 30000);
+        return () => clearTimeout(timer);
+    }, [onDismiss]);
+
+    if (!visible || !venue) return null;
+
+    return (
+        <div style={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            zIndex: 9999,
+            padding: '0 16px 16px',
+            pointerEvents: 'none',
+        }}>
+            <div style={{
+                maxWidth: 560,
+                margin: '0 auto',
+                background: 'rgba(15, 23, 42, 0.95)',
+                backdropFilter: 'blur(16px)',
+                border: '1px solid rgba(212, 168, 83, 0.4)',
+                borderRadius: 14,
+                padding: '16px 20px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 16,
+                boxShadow: '0 -4px 24px rgba(0,0,0,0.5)',
+                pointerEvents: 'auto',
+            }}>
+                {/* Venue icon */}
+                <div style={{
+                    width: 44, height: 44, borderRadius: 10,
+                    background: 'rgba(212,168,83,0.15)',
+                    border: '1px solid rgba(212,168,83,0.3)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
+                        <circle cx="12" cy="10" r="3" />
+                    </svg>
+                </div>
+
+                <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: '#d4a853', marginBottom: 2 }}>
+                        You are near a poker venue!
+                    </div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {venue.name}
+                    </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                    <button onClick={onCheckin} style={{
+                        padding: '8px 14px', borderRadius: 8,
+                        background: 'linear-gradient(135deg, #d4a853, #b8860b)',
+                        border: 'none', color: '#000', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                    }}>Check In</button>
+                    <button onClick={onReview} style={{
+                        padding: '8px 14px', borderRadius: 8,
+                        background: 'rgba(255,255,255,0.1)',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        color: '#fff', fontSize: 13, fontWeight: 500, cursor: 'pointer',
+                    }}>Review</button>
+                    <button onClick={() => { setVisible(false); if (onDismiss) onDismiss(); }} style={{
+                        padding: '6px', borderRadius: 6,
+                        background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.4)',
+                        cursor: 'pointer', display: 'flex', alignItems: 'center',
+                    }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ---- Leaflet Map Component (client-side only) ----------------------------
+function VenueMap({ venues, userLocation }) {
+    const mapContainerRef = useRef(null);
+    const mapInstanceRef = useRef(null);
+    const userMarkerRef = useRef(null);
+    const [mapReady, setMapReady] = useState(false);
+
+    // Wait for Leaflet scripts to be available
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        const check = () => {
+            if (window.L && window.L.markerClusterGroup) {
+                setMapReady(true);
+            } else {
+                setTimeout(check, 200);
+            }
+        };
+        check();
+    }, []);
+
+    // Initialize map once Leaflet is ready
+    useEffect(() => {
+        if (!mapReady || !mapContainerRef.current) return;
+        if (mapInstanceRef.current) return; // already initialized
+
+        const L = window.L;
+
+        const defaultCenter = [39.8283, -98.5795]; // US center
+        const defaultZoom = 4;
+
+        const map = L.map(mapContainerRef.current, {
+            center: defaultCenter,
+            zoom: defaultZoom,
+            zoomControl: true,
+            attributionControl: true,
+        });
+
+        // Dark tile layer
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 19,
+        }).addTo(map);
+
+        mapInstanceRef.current = map;
+
+        // Add venue markers
+        const goldIcon = L.divIcon({
+            className: 'venue-map-marker',
+            html: '<div style="width:14px;height:14px;border-radius:50%;background:#d4a853;border:2px solid #fff;box-shadow:0 0 8px rgba(212,168,83,0.6);"></div>',
+            iconSize: [18, 18],
+            iconAnchor: [9, 9],
+            popupAnchor: [0, -12],
+        });
+
+        const clusterGroup = L.markerClusterGroup({
+            maxClusterRadius: 50,
+            iconCreateFunction: function (cluster) {
+                const count = cluster.getChildCount();
+                let size = 36;
+                if (count > 50) size = 48;
+                else if (count > 20) size = 42;
+                return L.divIcon({
+                    html: '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;background:rgba(212,168,83,0.85);border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#000;box-shadow:0 2px 10px rgba(0,0,0,0.4);">' + count + '</div>',
+                    className: 'venue-cluster-icon',
+                    iconSize: [size, size],
+                });
+            },
+        });
+
+        const validVenues = (venues || []).filter(function(v) { return v.latitude && v.longitude; });
+
+        validVenues.forEach(function(venue) {
+            const trust = getTrustLevel(venue.trust_score);
+            const typeBadge = VENUE_TYPE_LABELS[venue.venue_type] || venue.venue_type || '';
+
+            const popupHtml = '<div style="font-family:Inter,-apple-system,sans-serif;min-width:200px;max-width:280px;">' +
+                '<div style="font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:4px;">' + (venue.name || '') + '</div>' +
+                '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">' +
+                    '<span style="padding:2px 8px;border-radius:4px;background:#eef2ff;color:#4338ca;font-size:11px;font-weight:600;">' + typeBadge + '</span>' +
+                    '<span style="font-size:12px;color:#666;">' + (venue.city || '') + ', ' + (venue.state || '') + '</span>' +
+                '</div>' +
+                '<div style="font-size:12px;color:' + trust.color + ';font-weight:600;margin-bottom:8px;">Trust: ' + trust.label + ' (' + (venue.trust_score || '-') + '/5)</div>' +
+                '<div style="display:flex;gap:6px;">' +
+                    '<a href="/hub/venues/' + venue.id + '" style="padding:6px 12px;border-radius:6px;background:#d4a853;color:#000;text-decoration:none;font-size:12px;font-weight:600;">View Details</a>' +
+                    '<a href="/hub/venues/' + venue.id + '?action=checkin" style="padding:6px 12px;border-radius:6px;background:#1e40af;color:#fff;text-decoration:none;font-size:12px;font-weight:600;">Check In</a>' +
+                    '<a href="/hub/venues/' + venue.id + '?action=review" style="padding:6px 12px;border-radius:6px;background:#374151;color:#fff;text-decoration:none;font-size:12px;font-weight:600;">Review</a>' +
+                '</div>' +
+            '</div>';
+
+            const marker = L.marker([venue.latitude, venue.longitude], { icon: goldIcon })
+                .bindPopup(popupHtml, { maxWidth: 300, className: 'venue-popup' });
+
+            // Geofence circle
+            const radius = getGeofenceRadius(venue.venue_type);
+            const circle = L.circle([venue.latitude, venue.longitude], {
+                radius: radius,
+                color: '#d4a853',
+                weight: 1,
+                opacity: 0.35,
+                fillColor: '#d4a853',
+                fillOpacity: 0.08,
+            });
+
+            marker._venueCircle = circle;
+            marker._venueData = venue;
+
+            clusterGroup.addLayer(marker);
+        });
+
+        map.addLayer(clusterGroup);
+
+        // Show / hide geofence circles based on zoom
+        const circlesGroup = L.layerGroup();
+        circlesGroup.addTo(map);
+
+        function updateCircles() {
+            circlesGroup.clearLayers();
+            const zoom = map.getZoom();
+            if (zoom >= 11) {
+                clusterGroup.eachLayer(function(marker) {
+                    if (marker._venueCircle) {
+                        circlesGroup.addLayer(marker._venueCircle);
+                    }
+                });
+            }
+        }
+
+        map.on('zoomend', updateCircles);
+        updateCircles();
+
+        // Center on user if available
+        if (userLocation) {
+            map.setView([userLocation.lat, userLocation.lng], 12);
+        }
+
+        // Cleanup
+        return () => {
+            map.remove();
+            mapInstanceRef.current = null;
+        };
+    }, [mapReady]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Update user location marker when it changes
+    useEffect(() => {
+        if (!mapReady || !mapInstanceRef.current) return;
+        const L = window.L;
+        const map = mapInstanceRef.current;
+
+        if (userMarkerRef.current) {
+            map.removeLayer(userMarkerRef.current);
+            userMarkerRef.current = null;
+        }
+
+        if (userLocation) {
+            const userIcon = L.divIcon({
+                className: 'user-location-dot',
+                html: '<div style="position:relative;width:18px;height:18px;">' +
+                    '<div style="position:absolute;inset:0;border-radius:50%;background:rgba(59,130,246,0.3);animation:userPulse 2s ease-in-out infinite;"></div>' +
+                    '<div style="position:absolute;top:4px;left:4px;width:10px;height:10px;border-radius:50%;background:#3b82f6;border:2px solid #fff;box-shadow:0 0 6px rgba(59,130,246,0.8);"></div>' +
+                '</div>',
+                iconSize: [18, 18],
+                iconAnchor: [9, 9],
+            });
+
+            userMarkerRef.current = L.marker([userLocation.lat, userLocation.lng], { icon: userIcon, zIndexOffset: 1000 })
+                .addTo(map)
+                .bindPopup('<b style="color:#1a1a2e;">Your Location</b>');
+
+            map.setView([userLocation.lat, userLocation.lng], Math.max(map.getZoom(), 12));
+        }
+    }, [userLocation, mapReady]);
+
+    return (
+        <div style={{ position: 'relative' }}>
+            {!mapReady && (
+                <div style={{
+                    height: 'calc(100vh - 200px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexDirection: 'column', gap: 12,
+                    color: 'rgba(255,255,255,0.5)',
+                }}>
+                    <div style={{
+                        width: 40, height: 40, border: '3px solid rgba(255,255,255,0.1)',
+                        borderTopColor: '#d4a853', borderRadius: '50%',
+                        animation: 'spin 1s linear infinite',
+                    }} />
+                    <span>Loading map...</span>
+                </div>
+            )}
+            <div
+                ref={mapContainerRef}
+                style={{
+                    height: 'calc(100vh - 200px)',
+                    minHeight: 400,
+                    width: '100%',
+                    borderRadius: 12,
+                    overflow: 'hidden',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    display: mapReady ? 'block' : 'none',
+                }}
+            />
+        </div>
+    );
+}
+
+
 export default function PokerNearMe() {
     const router = useRouter();
     // Active tab state
@@ -101,6 +409,7 @@ export default function PokerNearMe() {
 
     // Data states
     const [venues, setVenues] = useState([]);
+    const [allVenuesForMap, setAllVenuesForMap] = useState([]);
     const [tours, setTours] = useState([]);
     const [series, setSeries] = useState([]);
     const [dailyTournaments, setDailyTournaments] = useState([]);
@@ -114,8 +423,11 @@ export default function PokerNearMe() {
     const [selectedCity, setSelectedCity] = useState(null);
     const [nearestDistance, setNearestDistance] = useState(null);
 
-    // 🎬 INTRO VIDEO STATE - Video plays while page loads in background
-    // Only show once per session (not on every reload)
+    // Geofence alert state
+    const [geofenceAlert, setGeofenceAlert] = useState(null);
+    const geofenceRef = useRef(null);
+
+    // Intro video state - only show once per session
     const [showIntro, setShowIntro] = useState(() => {
         if (typeof window !== 'undefined') {
             return !sessionStorage.getItem('poker-near-me-intro-seen');
@@ -124,13 +436,11 @@ export default function PokerNearMe() {
     });
     const introVideoRef = useRef(null);
 
-    // Mark intro as seen when it ends
     const handleIntroEnd = useCallback(() => {
         sessionStorage.setItem('poker-near-me-intro-seen', 'true');
         setShowIntro(false);
     }, []);
 
-    // Attempt to unmute video after it starts playing
     const handleIntroPlay = useCallback(() => {
         if (introVideoRef.current) {
             introVideoRef.current.muted = false;
@@ -139,26 +449,77 @@ export default function PokerNearMe() {
 
     // Filter states
     const [filters, setFilters] = useState({
-        // Venue filters
         venueType: 'all',
         hasNLH: false,
         hasPLO: false,
         hasMixed: false,
-        // Tour filters
         tourType: 'all',
-        // Series filters
         seriesTimeframe: 90,
         seriesType: 'all',
-        // Daily tournament filters
         selectedDay: getCurrentDay(),
         minBuyin: '',
         maxBuyin: ''
     });
 
+    // Load all venues for the map (from static JSON) on mount
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        fetch('/data/all-venues.json')
+            .then(function(r) { return r.json(); })
+            .then(function(json) {
+                var v = json.venues || json.data || json || [];
+                setAllVenuesForMap(Array.isArray(v) ? v : []);
+            })
+            .catch(function() { setAllVenuesForMap([]); });
+    }, []);
+
     // Fetch all data on mount and when filters change
     useEffect(() => {
         fetchAllData();
-    }, [selectedCity, userLocation]);
+    }, [selectedCity, userLocation]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // ---------- Geofence monitoring ----------
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        if (!userLocation) return;
+        if (allVenuesForMap.length === 0) return;
+
+        var gfService = null;
+
+        // Dynamic import to keep SSR safe
+        import('../../src/lib/geofence').then(function(mod) {
+            var GeofenceService = mod.default;
+            gfService = new GeofenceService();
+
+            // Also try requesting push permission
+            import('../../src/lib/pushAlerts').then(function(pushMod) {
+                pushMod.requestPermission();
+
+                gfService.start(allVenuesForMap, function(venue) {
+                    // Try browser notification first
+                    pushMod.showVenueAlert(venue, 'checkin');
+                    // Also show in-app banner
+                    setGeofenceAlert(venue);
+                });
+            }).catch(function() {
+                // Fallback: just in-app alerts
+                gfService.start(allVenuesForMap, function(venue) {
+                    setGeofenceAlert(venue);
+                });
+            });
+
+            geofenceRef.current = gfService;
+        }).catch(function(err) {
+            console.warn('[PokerNearMe] Could not load GeofenceService:', err);
+        });
+
+        return function() {
+            if (geofenceRef.current) {
+                geofenceRef.current.stop();
+                geofenceRef.current = null;
+            }
+        };
+    }, [userLocation, allVenuesForMap]);
 
     const requestGpsLocation = () => {
         if (!navigator.geolocation) {
@@ -206,21 +567,22 @@ export default function PokerNearMe() {
                 params.set('search', searchQuery);
             }
 
-            const res = await fetch(`/api/poker/venues?${params}`);
-            const { data } = await res.json();
+            const res = await fetch('/api/poker/venues?' + params);
+            const json = await res.json();
+            const data = json.data;
             let filteredData = data || [];
 
             if (filters.venueType !== 'all') {
                 filteredData = filteredData.filter(v => v.venue_type === filters.venueType);
             }
             if (filters.hasNLH) {
-                filteredData = filteredData.filter(v => v.games_offered?.includes('NLH'));
+                filteredData = filteredData.filter(v => v.games_offered && v.games_offered.includes('NLH'));
             }
             if (filters.hasPLO) {
-                filteredData = filteredData.filter(v => v.games_offered?.includes('PLO'));
+                filteredData = filteredData.filter(v => v.games_offered && v.games_offered.includes('PLO'));
             }
             if (filters.hasMixed) {
-                filteredData = filteredData.filter(v => v.games_offered?.includes('Mixed'));
+                filteredData = filteredData.filter(v => v.games_offered && v.games_offered.includes('Mixed'));
             }
 
             setVenues(filteredData);
@@ -243,9 +605,9 @@ export default function PokerNearMe() {
                 params.set('search', searchQuery);
             }
 
-            const res = await fetch(`/api/poker/tours?${params}`);
-            const { data } = await res.json();
-            setTours(data || []);
+            const res = await fetch('/api/poker/tours?' + params);
+            const json = await res.json();
+            setTours(json.data || []);
         } catch (e) {
             console.error('Fetch tours error:', e);
             setTours([]);
@@ -256,7 +618,6 @@ export default function PokerNearMe() {
         try {
             const params = new URLSearchParams({ upcoming: 'true', limit: '70' });
 
-            // Add date range filter
             const today = new Date();
             const endDate = new Date();
             endDate.setDate(today.getDate() + filters.seriesTimeframe);
@@ -269,9 +630,9 @@ export default function PokerNearMe() {
                 params.set('search', searchQuery);
             }
 
-            const res = await fetch(`/api/poker/series?${params}`);
-            const { data } = await res.json();
-            setSeries(data || []);
+            const res = await fetch('/api/poker/series?' + params);
+            const json = await res.json();
+            setSeries(json.data || []);
         } catch (e) {
             console.error('Fetch series error:', e);
             setSeries([]);
@@ -283,7 +644,7 @@ export default function PokerNearMe() {
             const params = new URLSearchParams({ limit: '100' });
             params.set('day', filters.selectedDay);
 
-            if (selectedCity?.state) {
+            if (selectedCity && selectedCity.state) {
                 params.set('state', selectedCity.state);
             }
             if (searchQuery) {
@@ -296,9 +657,9 @@ export default function PokerNearMe() {
                 params.set('maxBuyin', filters.maxBuyin);
             }
 
-            const res = await fetch(`/api/poker/daily-tournaments?${params}`);
-            const { tournaments } = await res.json();
-            setDailyTournaments(tournaments || []);
+            const res = await fetch('/api/poker/daily-tournaments?' + params);
+            const json = await res.json();
+            setDailyTournaments(json.tournaments || []);
         } catch (e) {
             console.error('Fetch daily tournaments error:', e);
             setDailyTournaments([]);
@@ -345,6 +706,10 @@ export default function PokerNearMe() {
 
     // Render content based on active tab
     const renderContent = () => {
+        if (activeTab === 'map') {
+            return renderMap();
+        }
+
         if (loading) {
             return (
                 <div className="loading-state">
@@ -368,6 +733,15 @@ export default function PokerNearMe() {
         }
     };
 
+    const renderMap = () => {
+        return (
+            <VenueMap
+                venues={allVenuesForMap}
+                userLocation={userLocation}
+            />
+        );
+    };
+
     const renderVenues = () => {
         if (venues.length === 0) {
             return (
@@ -383,7 +757,7 @@ export default function PokerNearMe() {
                 {venues.slice(0, 100).map((venue, i) => {
                     const trust = getTrustLevel(venue.trust_score);
                     return (
-                        <div key={venue.id || i} className="entity-card venue-card" onClick={() => router.push(`/hub/venues/${venue.id}`)} style={{ cursor: 'pointer' }}>
+                        <div key={venue.id || i} className="entity-card venue-card" onClick={() => router.push('/hub/venues/' + venue.id)} style={{ cursor: 'pointer' }}>
                             <div className="card-header">
                                 <h4>{venue.name}</h4>
                                 <span className="badge venue-type">{VENUE_TYPE_LABELS[venue.venue_type] || venue.venue_type}</span>
@@ -392,18 +766,18 @@ export default function PokerNearMe() {
                             {venue.has_tournaments && <span className="tag format" style={{ marginBottom: 8, display: 'inline-block' }}>Tournaments</span>}
                             <div className="card-tags">
                                 {venue.distance_mi && <span className="tag distance">{venue.distance_mi} mi</span>}
-                                {venue.games_offered?.slice(0, 3).map(g => (
+                                {venue.games_offered && venue.games_offered.slice(0, 3).map(g => (
                                     <span key={g} className="tag game">{g}</span>
                                 ))}
                             </div>
-                            {venue.stakes_cash?.length > 0 && (
+                            {venue.stakes_cash && venue.stakes_cash.length > 0 && (
                                 <p className="card-detail">Stakes: {venue.stakes_cash.slice(0, 3).join(', ')}</p>
                             )}
                             <div className="card-footer">
                                 <span className="trust-badge" style={{ color: trust.color }}>Trust: {trust.label}</span>
                                 <div className="card-actions">
-                                    {venue.phone && <a href={`tel:${venue.phone}`} className="action-btn" onClick={e => e.stopPropagation()}>Call</a>}
-                                    <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue.name + ' ' + venue.city + ' ' + venue.state)}`}
+                                    {venue.phone && <a href={'tel:' + venue.phone} className="action-btn" onClick={e => e.stopPropagation()}>Call</a>}
+                                    <a href={'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(venue.name + ' ' + venue.city + ' ' + venue.state)}
                                         target="_blank" rel="noopener noreferrer" className="action-btn" onClick={e => e.stopPropagation()}>Map</a>
                                     <span className="action-btn primary">Details</span>
                                 </div>
@@ -428,7 +802,7 @@ export default function PokerNearMe() {
         return (
             <div className="card-grid tours-grid">
                 {tours.map((tour, i) => (
-                    <div key={tour.tour_code || i} className="entity-card tour-card" onClick={() => router.push(`/hub/tours/${tour.tour_code}`)} style={{ cursor: 'pointer' }}>
+                    <div key={tour.tour_code || i} className="entity-card tour-card" onClick={() => router.push('/hub/tours/' + tour.tour_code)} style={{ cursor: 'pointer' }}>
                         <div className="card-header">
                             <TourBadge tourCode={tour.tour_code} />
                             <span className="badge tour-type">{TOUR_TYPE_LABELS[tour.tour_type] || tour.tour_type}</span>
@@ -481,13 +855,13 @@ export default function PokerNearMe() {
         return (
             <div className="card-grid">
                 {series.slice(0, 70).map((s, i) => (
-                    <div key={s.id || i} className="entity-card series-card" onClick={() => router.push(`/hub/series/${s.id || (i + 1)}`)} style={{ cursor: 'pointer' }}>
+                    <div key={s.id || i} className="entity-card series-card" onClick={() => router.push('/hub/series/' + (s.id || (i + 1)))} style={{ cursor: 'pointer' }}>
                         <div className="card-header">
                             <TourBadge tourCode={s.tour_code || s.short_name} size="small" />
                             <span className="badge series-type">{s.series_type}</span>
                         </div>
                         <h4>{s.name}</h4>
-                        <p className="card-location">{s.location || `${s.city || s.venue}, ${s.state || ''}`}</p>
+                        <p className="card-location">{s.location || ((s.city || s.venue) + ', ' + (s.state || ''))}</p>
                         <p className="card-dates">{formatDate(s.start_date)} - {formatDate(s.end_date)}</p>
                         <div className="card-tags">
                             {s.total_events && <span className="tag events">{s.total_events} Events</span>}
@@ -528,7 +902,7 @@ export default function PokerNearMe() {
                     {DAYS_OF_WEEK.map(day => (
                         <button
                             key={day}
-                            className={`day-btn ${filters.selectedDay === day ? 'active' : ''}`}
+                            className={'day-btn' + (filters.selectedDay === day ? ' active' : '')}
                             onClick={() => {
                                 setFilters({ ...filters, selectedDay: day });
                                 setTimeout(() => fetchDailyTournaments(), 0);
@@ -572,7 +946,7 @@ export default function PokerNearMe() {
 
     return (
         <>
-            {/* 🎬 INTRO VIDEO OVERLAY - Plays while page loads behind it */}
+            {/* Intro video overlay */}
             {showIntro && (
                 <div style={{
                     position: 'fixed',
@@ -601,7 +975,6 @@ export default function PokerNearMe() {
                             objectFit: 'cover'
                         }}
                     />
-                    {/* Skip button */}
                     <button
                         onClick={handleIntroEnd}
                         style={{
@@ -624,9 +997,17 @@ export default function PokerNearMe() {
                     </button>
                 </div>
             )}
+
             <Head>
                 <title>Poker Near Me | Smarter.Poker</title>
                 <meta name="description" content="Find poker rooms, tours, tournament series, and daily events near you." />
+                {/* Leaflet CSS */}
+                <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+                <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+                <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+                {/* Leaflet JS */}
+                <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+                <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" defer></script>
             </Head>
 
             <div className="pnm-page">
@@ -638,7 +1019,7 @@ export default function PokerNearMe() {
                 {/* Page Header */}
                 <div className="pnm-header">
                     <h1><span className="white">POKER</span> <span className="gold">NEAR</span> <span className="white">ME</span></h1>
-                    <span className="subtitle">VENUES | TOURS | SERIES | DAILY EVENTS</span>
+                    <span className="subtitle">VENUES | TOURS | SERIES | DAILY EVENTS | MAP</span>
                 </div>
 
                 {/* Search Section */}
@@ -659,13 +1040,13 @@ export default function PokerNearMe() {
 
                         <div className="search-controls">
                             <div className="search-buttons">
-                                <button className={`btn-gps ${userLocation ? 'active' : ''}`} onClick={requestGpsLocation} disabled={gpsLoading}>
+                                <button className={'btn-gps' + (userLocation ? ' active' : '')} onClick={requestGpsLocation} disabled={gpsLoading}>
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                         <polygon points="3 11 22 2 13 21 11 13 3 11" />
                                     </svg>
                                     {gpsLoading ? 'Locating...' : 'Use GPS'}
                                 </button>
-                                <button className={`btn-filters ${showFilters ? 'active' : ''}`} onClick={() => setShowFilters(!showFilters)}>
+                                <button className={'btn-filters' + (showFilters ? ' active' : '')} onClick={() => setShowFilters(!showFilters)}>
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                         <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" />
                                         <line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" />
@@ -678,7 +1059,7 @@ export default function PokerNearMe() {
                             {/* Popular Cities */}
                             <div className="city-chips">
                                 {POPULAR_CITIES.map(city => (
-                                    <button key={city.name} className={`city-chip ${selectedCity?.name === city.name ? 'active' : ''}`}
+                                    <button key={city.name} className={'city-chip' + (selectedCity && selectedCity.name === city.name ? ' active' : '')}
                                         onClick={() => handleCityClick(city)}>
                                         {city.name}
                                     </button>
@@ -709,7 +1090,7 @@ export default function PokerNearMe() {
                                     <label>Venue Type</label>
                                     <div className="filter-chips">
                                         {['all', 'casino', 'card_room', 'poker_club', 'charity'].map(type => (
-                                            <button key={type} className={`chip ${filters.venueType === type ? 'active' : ''}`}
+                                            <button key={type} className={'chip' + (filters.venueType === type ? ' active' : '')}
                                                 onClick={() => setFilters({ ...filters, venueType: type })}>
                                                 {type === 'all' ? 'All' : VENUE_TYPE_LABELS[type]}
                                             </button>
@@ -719,11 +1100,11 @@ export default function PokerNearMe() {
                                 <div className="filter-group">
                                     <label>Games</label>
                                     <div className="filter-chips">
-                                        <button className={`chip ${filters.hasNLH ? 'active' : ''}`}
+                                        <button className={'chip' + (filters.hasNLH ? ' active' : '')}
                                             onClick={() => setFilters({ ...filters, hasNLH: !filters.hasNLH })}>NLH</button>
-                                        <button className={`chip ${filters.hasPLO ? 'active' : ''}`}
+                                        <button className={'chip' + (filters.hasPLO ? ' active' : '')}
                                             onClick={() => setFilters({ ...filters, hasPLO: !filters.hasPLO })}>PLO</button>
-                                        <button className={`chip ${filters.hasMixed ? 'active' : ''}`}
+                                        <button className={'chip' + (filters.hasMixed ? ' active' : '')}
                                             onClick={() => setFilters({ ...filters, hasMixed: !filters.hasMixed })}>Mixed</button>
                                     </div>
                                 </div>
@@ -735,7 +1116,7 @@ export default function PokerNearMe() {
                                 <label>Tour Type</label>
                                 <div className="filter-chips">
                                     {['all', 'major', 'circuit', 'high_roller', 'regional'].map(type => (
-                                        <button key={type} className={`chip ${filters.tourType === type ? 'active' : ''}`}
+                                        <button key={type} className={'chip' + (filters.tourType === type ? ' active' : '')}
                                             onClick={() => setFilters({ ...filters, tourType: type })}>
                                             {type === 'all' ? 'All' : TOUR_TYPE_LABELS[type]}
                                         </button>
@@ -750,7 +1131,7 @@ export default function PokerNearMe() {
                                     <label>Timeframe</label>
                                     <div className="filter-chips">
                                         {[30, 60, 90, 180].map(days => (
-                                            <button key={days} className={`chip ${filters.seriesTimeframe === days ? 'active' : ''}`}
+                                            <button key={days} className={'chip' + (filters.seriesTimeframe === days ? ' active' : '')}
                                                 onClick={() => setFilters({ ...filters, seriesTimeframe: days })}>
                                                 {days} Days
                                             </button>
@@ -761,7 +1142,7 @@ export default function PokerNearMe() {
                                     <label>Series Type</label>
                                     <div className="filter-chips">
                                         {['all', 'major', 'circuit', 'regional'].map(type => (
-                                            <button key={type} className={`chip ${filters.seriesType === type ? 'active' : ''}`}
+                                            <button key={type} className={'chip' + (filters.seriesType === type ? ' active' : '')}
                                                 onClick={() => setFilters({ ...filters, seriesType: type })}>
                                                 {type.charAt(0).toUpperCase() + type.slice(1)}
                                             </button>
@@ -800,7 +1181,7 @@ export default function PokerNearMe() {
 
                 {/* Tab Navigation */}
                 <div className="tab-navigation">
-                    <button className={`tab ${activeTab === 'venues' ? 'active' : ''}`} onClick={() => setActiveTab('venues')}>
+                    <button className={'tab' + (activeTab === 'venues' ? ' active' : '')} onClick={() => setActiveTab('venues')}>
                         <span className="tab-icon">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
@@ -808,7 +1189,7 @@ export default function PokerNearMe() {
                         </span>
                         Venues <span className="tab-count">{counts.venues}</span>
                     </button>
-                    <button className={`tab ${activeTab === 'tours' ? 'active' : ''}`} onClick={() => setActiveTab('tours')}>
+                    <button className={'tab' + (activeTab === 'tours' ? ' active' : '')} onClick={() => setActiveTab('tours')}>
                         <span className="tab-icon">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
@@ -816,7 +1197,7 @@ export default function PokerNearMe() {
                         </span>
                         Tours <span className="tab-count">{counts.tours}</span>
                     </button>
-                    <button className={`tab ${activeTab === 'series' ? 'active' : ''}`} onClick={() => setActiveTab('series')}>
+                    <button className={'tab' + (activeTab === 'series' ? ' active' : '')} onClick={() => setActiveTab('series')}>
                         <span className="tab-icon">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
@@ -824,7 +1205,7 @@ export default function PokerNearMe() {
                         </span>
                         Series <span className="tab-count">{counts.series}</span>
                     </button>
-                    <button className={`tab ${activeTab === 'daily' ? 'active' : ''}`} onClick={() => setActiveTab('daily')}>
+                    <button className={'tab' + (activeTab === 'daily' ? ' active' : '')} onClick={() => setActiveTab('daily')}>
                         <span className="tab-icon">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
@@ -832,12 +1213,38 @@ export default function PokerNearMe() {
                         </span>
                         Daily <span className="tab-count">{counts.daily}</span>
                     </button>
+                    <button className={'tab' + (activeTab === 'map' ? ' active' : '')} onClick={() => setActiveTab('map')}>
+                        <span className="tab-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+                                <line x1="8" y1="2" x2="8" y2="18" />
+                                <line x1="16" y1="6" x2="16" y2="22" />
+                            </svg>
+                        </span>
+                        Map <span className="tab-count">{allVenuesForMap.length}</span>
+                    </button>
                 </div>
 
                 {/* Main Content */}
                 <main className="pnm-content">
                     {renderContent()}
                 </main>
+
+                {/* Geofence Alert Banner */}
+                {geofenceAlert && (
+                    <GeofenceAlertBanner
+                        venue={geofenceAlert}
+                        onCheckin={() => {
+                            router.push('/hub/venues/' + geofenceAlert.id + '?action=checkin');
+                            setGeofenceAlert(null);
+                        }}
+                        onReview={() => {
+                            router.push('/hub/venues/' + geofenceAlert.id + '?action=review');
+                            setGeofenceAlert(null);
+                        }}
+                        onDismiss={() => setGeofenceAlert(null)}
+                    />
+                )}
 
                 <style jsx>{`
                     .pnm-page {
@@ -1436,6 +1843,37 @@ export default function PokerNearMe() {
                         .tab-icon {
                             display: none;
                         }
+                    }
+                `}</style>
+
+                {/* Global styles for Leaflet overrides and user pulse animation */}
+                <style jsx global>{`
+                    @keyframes userPulse {
+                        0% { transform: scale(1); opacity: 0.6; }
+                        50% { transform: scale(2.2); opacity: 0; }
+                        100% { transform: scale(1); opacity: 0; }
+                    }
+                    /* Override Leaflet default cluster styles to match dark theme */
+                    .marker-cluster-small,
+                    .marker-cluster-medium,
+                    .marker-cluster-large {
+                        background: transparent !important;
+                    }
+                    .marker-cluster-small div,
+                    .marker-cluster-medium div,
+                    .marker-cluster-large div {
+                        background: transparent !important;
+                    }
+                    .venue-popup .leaflet-popup-content-wrapper {
+                        border-radius: 10px;
+                        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                    }
+                    .venue-popup .leaflet-popup-tip {
+                        box-shadow: none;
+                    }
+                    .leaflet-container {
+                        background: #0f172a !important;
+                        font-family: 'Inter', -apple-system, sans-serif;
                     }
                 `}</style>
             </div>

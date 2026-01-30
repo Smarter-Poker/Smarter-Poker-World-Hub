@@ -1,6 +1,7 @@
 /**
  * TOUR DETAIL PAGE - PokerAtlas-style tour information
- * Displays tour details, about info, and upcoming series
+ * Displays tour details, about info, upcoming series,
+ * activity feed, tournament results, and notification opt-in
  */
 
 import Head from 'next/head';
@@ -27,6 +28,13 @@ const TOUR_TYPE_LABELS = {
   grassroots: 'Grassroots',
 };
 
+const ACTIVITY_TYPE_COLORS = {
+  update: { bg: 'rgba(96, 165, 250, 0.15)', text: '#60a5fa', border: 'rgba(96, 165, 250, 0.3)' },
+  announcement: { bg: 'rgba(212, 168, 83, 0.15)', text: '#d4a853', border: 'rgba(212, 168, 83, 0.3)' },
+  promotion: { bg: 'rgba(74, 222, 128, 0.15)', text: '#4ade80', border: 'rgba(74, 222, 128, 0.3)' },
+  result: { bg: 'rgba(167, 139, 250, 0.15)', text: '#a78bfa', border: 'rgba(167, 139, 250, 0.3)' },
+};
+
 function formatDate(dateStr) {
   if (!dateStr) return '';
   const date = new Date(dateStr + 'T00:00:00');
@@ -46,22 +54,38 @@ function formatDateRange(startDate, endDate) {
   const sameYear = start.getFullYear() === end.getFullYear();
 
   if (sameMonth) {
-    return `${startFormatted} - ${end.getDate()}, ${end.getFullYear()}`;
+    return startFormatted + ' - ' + end.getDate() + ', ' + end.getFullYear();
   }
   if (sameYear) {
     const endFormatted = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    return `${startFormatted} - ${endFormatted}, ${end.getFullYear()}`;
+    return startFormatted + ' - ' + endFormatted + ', ' + end.getFullYear();
   }
 
   const endFull = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  return `${startFormatted}, ${start.getFullYear()} - ${endFull}`;
+  return startFormatted + ', ' + start.getFullYear() + ' - ' + endFull;
 }
 
 function formatMoney(amount) {
   if (!amount && amount !== 0) return '';
-  if (amount >= 1000000) return `$${(amount / 1000000).toFixed(1)}M`;
-  if (amount >= 1000) return `$${(amount / 1000).toFixed(0)}K`;
-  return `$${amount.toLocaleString()}`;
+  if (amount >= 1000000) return '$' + (amount / 1000000).toFixed(1) + 'M';
+  if (amount >= 1000) return '$' + (amount / 1000).toFixed(0) + 'K';
+  return '$' + amount.toLocaleString();
+}
+
+function timeAgo(dateStr) {
+  if (!dateStr) return '';
+  const now = new Date();
+  const date = new Date(dateStr);
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return 'just now';
+  if (diffMins < 60) return diffMins + 'm ago';
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return diffHours + 'h ago';
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 30) return diffDays + 'd ago';
+  const diffMonths = Math.floor(diffDays / 30);
+  return diffMonths + 'mo ago';
 }
 
 function getSeriesTypeBadge(type) {
@@ -86,6 +110,16 @@ export default function TourDetailPage() {
   const [isFollowed, setIsFollowed] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
   const [shareMessage, setShareMessage] = useState('');
+  const [activities, setActivities] = useState([]);
+  const [results, setResults] = useState([]);
+  const [notifPermission, setNotifPermission] = useState('default');
+
+  // Check initial notification permission on client
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      setNotifPermission(Notification.permission);
+    }
+  }, []);
 
   // Load follow state - localStorage for instant UI, API for count
   useEffect(() => {
@@ -97,7 +131,7 @@ export default function TourDetailPage() {
       setIsFollowed(false);
     }
     // Fetch follower count from API
-    fetch(`/api/poker/follow?page_type=tour&page_id=${encodeURIComponent(code)}`)
+    fetch('/api/poker/follow?page_type=tour&page_id=' + encodeURIComponent(code))
       .then(r => r.json())
       .then(json => {
         if (json.success) setFollowerCount(json.follower_count || 0);
@@ -113,9 +147,9 @@ export default function TourDetailPage() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`/api/poker/tours?tour_code=${encodeURIComponent(code)}&include_series=true`);
+        const res = await fetch('/api/poker/tours?tour_code=' + encodeURIComponent(code) + '&include_series=true');
         if (!res.ok) {
-          throw new Error(`Failed to fetch tour data (${res.status})`);
+          throw new Error('Failed to fetch tour data (' + res.status + ')');
         }
         const response = await res.json();
         if (response.data && response.data.length > 0) {
@@ -131,6 +165,32 @@ export default function TourDetailPage() {
     }
 
     fetchTour();
+  }, [code]);
+
+  // Fetch activity feed
+  useEffect(() => {
+    if (!code) return;
+    fetch('/api/poker/activity?page_type=tour&page_id=' + encodeURIComponent(code) + '&limit=10')
+      .then(r => r.json())
+      .then(json => {
+        if (json.success && Array.isArray(json.data)) {
+          setActivities(json.data);
+        }
+      })
+      .catch(() => {});
+  }, [code]);
+
+  // Fetch tournament results
+  useEffect(() => {
+    if (!code) return;
+    fetch('/api/poker/results?tour_code=' + encodeURIComponent(code) + '&limit=10')
+      .then(r => r.json())
+      .then(json => {
+        if (json.success && Array.isArray(json.data)) {
+          setResults(json.data);
+        }
+      })
+      .catch(() => {});
   }, [code]);
 
   function handleFollow() {
@@ -194,15 +254,22 @@ export default function TourDetailPage() {
     }
   }
 
+  function handleEnableNotifications() {
+    if (typeof window === 'undefined' || !('Notification' in window)) return;
+    Notification.requestPermission().then(function(permission) {
+      setNotifPermission(permission);
+    }).catch(() => {});
+  }
+
   const tourColor = TOUR_COLORS[code] || TOUR_COLORS['default'];
   const tourTypeLabel = tour ? (TOUR_TYPE_LABELS[tour.tour_type] || tour.tour_type) : '';
-  const pageTitle = tour ? `${tour.tour_name} | Smarter.Poker` : 'Tour Details | Smarter.Poker';
+  const pageTitle = tour ? (tour.tour_name + ' | Smarter.Poker') : 'Tour Details | Smarter.Poker';
 
   return (
     <>
       <Head>
         <title>{pageTitle}</title>
-        <meta name="description" content={tour ? `${tour.tour_name} - poker tour details, upcoming series, and more` : 'Poker tour details'} />
+        <meta name="description" content={tour ? (tour.tour_name + ' - poker tour details, upcoming series, and more') : 'Poker tour details'} />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
       </Head>
 
@@ -245,7 +312,7 @@ export default function TourDetailPage() {
                   <h1 className="tour-name">{tour.tour_name}</h1>
                   <div className="header-actions">
                     <button
-                      className={`follow-btn ${isFollowed ? 'followed' : ''}`}
+                      className={'follow-btn' + (isFollowed ? ' followed' : '')}
                       onClick={handleFollow}
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill={isFollowed ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
@@ -299,7 +366,7 @@ export default function TourDetailPage() {
                   <div className="about-item">
                     <span className="about-label">Official Website</span>
                     <a
-                      href={tour.official_website.startsWith('http') ? tour.official_website : `https://${tour.official_website}`}
+                      href={tour.official_website.startsWith('http') ? tour.official_website : ('https://' + tour.official_website)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="about-link"
@@ -326,12 +393,12 @@ export default function TourDetailPage() {
                     <span className="about-label">Typical Buy-in Range</span>
                     <span className="about-value">
                       {tour.typical_buyins.min && tour.typical_buyins.max
-                        ? `${formatMoney(tour.typical_buyins.min)} - ${formatMoney(tour.typical_buyins.max)}`
+                        ? (formatMoney(tour.typical_buyins.min) + ' - ' + formatMoney(tour.typical_buyins.max))
                         : tour.typical_buyins.min
-                          ? `From ${formatMoney(tour.typical_buyins.min)}`
-                          : `Up to ${formatMoney(tour.typical_buyins.max)}`}
+                          ? ('From ' + formatMoney(tour.typical_buyins.min))
+                          : ('Up to ' + formatMoney(tour.typical_buyins.max))}
                       {tour.typical_buyins.main_event && (
-                        <span className="main-event-buyin"> (Main Event: {formatMoney(tour.typical_buyins.main_event)})</span>
+                        <span className="main-event-buyin">{' (Main Event: ' + formatMoney(tour.typical_buyins.main_event) + ')'}</span>
                       )}
                     </span>
                   </div>
@@ -384,7 +451,7 @@ export default function TourDetailPage() {
                   {tour.upcoming_series.map((series, idx) => {
                     const seriesTypeBadge = getSeriesTypeBadge(series.series_type);
                     return (
-                      <Link key={idx} href={`/hub/series/${idx + 1}`} legacyBehavior>
+                      <Link key={idx} href={'/hub/series/' + (idx + 1)} legacyBehavior>
                         <a className="series-card">
                           <div className="series-card-header">
                             <h3 className="series-name">{series.name}</h3>
@@ -450,480 +517,800 @@ export default function TourDetailPage() {
                 </div>
               )}
             </section>
+
+            {/* Activity Feed Section */}
+            <section className="tour-activity">
+              <h2 className="section-title">Latest Updates</h2>
+              <div className="activity-container">
+                {activities.length === 0 && (
+                  <div className="empty-state">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#4b5563" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                      <line x1="16" y1="13" x2="8" y2="13" />
+                      <line x1="16" y1="17" x2="8" y2="17" />
+                    </svg>
+                    <p>No updates yet.</p>
+                  </div>
+                )}
+                {activities.length > 0 && (
+                  <div className="activity-list">
+                    {activities.map((activity, idx) => {
+                      const typeColor = ACTIVITY_TYPE_COLORS[activity.type] || ACTIVITY_TYPE_COLORS.update;
+                      return (
+                        <div key={idx} className="activity-item">
+                          <div className="activity-header">
+                            <span
+                              className="activity-type-badge"
+                              style={{
+                                background: typeColor.bg,
+                                color: typeColor.text,
+                                borderColor: typeColor.border,
+                              }}
+                            >
+                              {(activity.type || 'update').charAt(0).toUpperCase() + (activity.type || 'update').slice(1)}
+                            </span>
+                            <span className="activity-time">{timeAgo(activity.created_at)}</span>
+                          </div>
+                          <p className="activity-content">{activity.content}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* Tournament Results Section */}
+            <section className="tour-results">
+              <h2 className="section-title">Recent Results</h2>
+              <div className="results-container">
+                {results.length === 0 && (
+                  <div className="empty-state">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#4b5563" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M6 9H4.5a2.5 2.5 0 010-5C7 4 7 7 7 7" />
+                      <path d="M18 9h1.5a2.5 2.5 0 000-5C17 4 17 7 17 7" />
+                      <path d="M4 22h16" />
+                      <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+                      <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+                      <path d="M18 2H6v7a6 6 0 0012 0V2Z" />
+                    </svg>
+                    <p>No results available yet.</p>
+                  </div>
+                )}
+                {results.length > 0 && (
+                  <div className="results-grid">
+                    {results.map((result, idx) => (
+                      <div key={idx} className="result-card">
+                        <div className="result-event-name">{result.event_name}</div>
+                        {result.event_date && (
+                          <div className="result-event-date">{formatDate(result.event_date)}</div>
+                        )}
+                        <div className="result-details">
+                          {result.winner_name && (
+                            <div className="result-row">
+                              <span className="result-label">Winner</span>
+                              <span className="result-winner">{result.winner_name}</span>
+                            </div>
+                          )}
+                          {result.winner_prize && (
+                            <div className="result-row">
+                              <span className="result-label">Prize</span>
+                              <span className="result-prize">{formatMoney(result.winner_prize)}</span>
+                            </div>
+                          )}
+                          {result.total_entries && (
+                            <div className="result-row">
+                              <span className="result-label">Entries</span>
+                              <span className="result-value">{result.total_entries}</span>
+                            </div>
+                          )}
+                          {result.prize_pool && (
+                            <div className="result-row">
+                              <span className="result-label">Prize Pool</span>
+                              <span className="result-value">{formatMoney(result.prize_pool)}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* Notifications Opt-in */}
+            <section className="tour-notifications">
+              <div className="notif-card">
+                <div className="notif-content">
+                  <p className="notif-text">
+                    {'Get notified about new ' + tour.tour_name + ' events and results'}
+                  </p>
+                  {notifPermission === 'granted' ? (
+                    <span className="notif-enabled">Notifications enabled</span>
+                  ) : (
+                    <button className="notif-btn" onClick={handleEnableNotifications}>
+                      Enable Notifications
+                    </button>
+                  )}
+                </div>
+              </div>
+            </section>
           </>
         )}
       </div>
 
-      <style jsx>{`
-        .tour-page {
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-          min-height: 100vh;
-          background: radial-gradient(ellipse at top, #0f172a 0%, #030712 50%),
-                      radial-gradient(ellipse at bottom right, #1e1b4b 0%, #030712 50%);
-          background-color: #030712;
-          color: #e2e8f0;
-          padding-bottom: 80px;
-        }
-
-        /* Loading */
-        .loading-container {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          min-height: 60vh;
-          gap: 16px;
-        }
-        .loading-spinner {
-          width: 40px;
-          height: 40px;
-          border: 3px solid rgba(212, 168, 83, 0.2);
-          border-top-color: #d4a853;
-          border-radius: 50%;
-          animation: spin 0.8s linear infinite;
-        }
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-        .loading-text {
-          color: #94a3b8;
-          font-size: 14px;
-        }
-
-        /* Error */
-        .error-container {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          min-height: 60vh;
-          gap: 12px;
-          text-align: center;
-          padding: 24px;
-        }
-        .error-icon {
-          width: 56px;
-          height: 56px;
-          border-radius: 50%;
-          background: rgba(239, 68, 68, 0.15);
-          border: 2px solid rgba(239, 68, 68, 0.3);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 24px;
-          font-weight: 700;
-          color: #ef4444;
-        }
-        .error-title {
-          font-size: 20px;
-          font-weight: 700;
-          color: #f1f5f9;
-          margin: 0;
-        }
-        .error-text {
-          font-size: 14px;
-          color: #94a3b8;
-          margin: 0;
-        }
-        .back-link-btn {
-          margin-top: 12px;
-          padding: 10px 24px;
-          background: rgba(212, 168, 83, 0.15);
-          border: 1px solid rgba(212, 168, 83, 0.3);
-          border-radius: 8px;
-          color: #d4a853;
-          text-decoration: none;
-          font-size: 14px;
-          font-weight: 500;
-          transition: all 0.2s;
-        }
-        .back-link-btn:hover {
-          background: rgba(212, 168, 83, 0.25);
-        }
-
-        /* Header Section */
-        .tour-header {
-          padding: 0 16px;
-          margin-bottom: 24px;
-        }
-        .header-content {
-          max-width: 900px;
-          margin: 0 auto;
-          padding-top: 20px;
-        }
-        .back-link {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          color: #94a3b8;
-          text-decoration: none;
-          font-size: 13px;
-          font-weight: 500;
-          margin-bottom: 20px;
-          transition: color 0.2s;
-        }
-        .back-link:hover {
-          color: #d4a853;
-        }
-        .header-top-row {
-          display: flex;
-          flex-wrap: wrap;
-          align-items: flex-start;
-          justify-content: space-between;
-          gap: 16px;
-          margin-bottom: 12px;
-        }
-        .tour-name {
-          font-size: 32px;
-          font-weight: 800;
-          color: #f1f5f9;
-          margin: 0;
-          line-height: 1.2;
-          flex: 1;
-          min-width: 200px;
-        }
-        .header-actions {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          flex-shrink: 0;
-        }
-        .follow-btn,
-        .share-btn {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          padding: 8px 16px;
-          border-radius: 8px;
-          font-size: 13px;
-          font-weight: 600;
-          font-family: 'Inter', sans-serif;
-          cursor: pointer;
-          transition: all 0.2s;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          background: rgba(255, 255, 255, 0.05);
-          color: #cbd5e1;
-        }
-        .follow-btn:hover,
-        .share-btn:hover {
-          background: rgba(255, 255, 255, 0.1);
-          border-color: rgba(255, 255, 255, 0.2);
-        }
-        .follow-btn.followed {
-          background: rgba(212, 168, 83, 0.15);
-          border-color: rgba(212, 168, 83, 0.4);
-          color: #d4a853;
-        }
-        .follow-count {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          min-width: 20px;
-          height: 20px;
-          padding: 0 6px;
-          border-radius: 10px;
-          background: rgba(212, 168, 83, 0.2);
-          font-size: 11px;
-          font-weight: 700;
-          color: #d4a853;
-        }
-        .share-message {
-          font-size: 12px;
-          color: #22c55e;
-          font-weight: 500;
-          animation: fadeIn 0.2s ease;
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(-4px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .badges-row {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin-bottom: 12px;
-          flex-wrap: wrap;
-        }
-        .tour-code-badge {
-          display: inline-flex;
-          align-items: center;
-          padding: 6px 14px;
-          border-radius: 6px;
-          font-size: 13px;
-          font-weight: 700;
-          letter-spacing: 0.5px;
-        }
-        .tour-type-badge {
-          display: inline-flex;
-          align-items: center;
-          padding: 6px 14px;
-          border-radius: 6px;
-          font-size: 12px;
-          font-weight: 600;
-          background: rgba(99, 102, 241, 0.15);
-          color: #a5b4fc;
-          border: 1px solid rgba(99, 102, 241, 0.25);
-          text-transform: capitalize;
-        }
-        .headquarters {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          color: #94a3b8;
-          font-size: 14px;
-        }
-
-        /* About Section */
-        .tour-about {
-          padding: 0 16px;
-          margin-bottom: 32px;
-        }
-        .tour-about > * {
-          max-width: 900px;
-          margin-left: auto;
-          margin-right: auto;
-        }
-        .section-title {
-          font-size: 20px;
-          font-weight: 700;
-          color: #f1f5f9;
-          margin: 0 0 16px 0;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          max-width: 900px;
-        }
-        .about-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 16px;
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.06);
-          border-radius: 12px;
-          padding: 20px;
-          backdrop-filter: blur(12px);
-        }
-        .about-item {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-        .about-item-full {
-          grid-column: 1 / -1;
-        }
-        .about-label {
-          font-size: 11px;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          color: #64748b;
-        }
-        .about-value {
-          font-size: 14px;
-          color: #e2e8f0;
-          font-weight: 500;
-        }
-        .main-event-buyin {
-          color: #d4a853;
-          font-weight: 600;
-        }
-        .about-link {
-          display: inline-flex;
-          align-items: center;
-          color: #d4a853;
-          text-decoration: none;
-          font-size: 14px;
-          font-weight: 500;
-          transition: opacity 0.2s;
-        }
-        .about-link:hover {
-          opacity: 0.8;
-          text-decoration: underline;
-        }
-        .about-notes {
-          font-size: 14px;
-          color: #94a3b8;
-          line-height: 1.6;
-          margin: 0;
-        }
-        .regions-list {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 6px;
-        }
-        .region-tag {
-          display: inline-flex;
-          padding: 4px 10px;
-          border-radius: 20px;
-          font-size: 12px;
-          font-weight: 500;
-          background: rgba(99, 102, 241, 0.1);
-          color: #a5b4fc;
-          border: 1px solid rgba(99, 102, 241, 0.2);
-        }
-
-        /* Series Section */
-        .tour-series {
-          padding: 0 16px;
-        }
-        .tour-series > * {
-          max-width: 900px;
-          margin-left: auto;
-          margin-right: auto;
-        }
-        .series-count {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          min-width: 24px;
-          height: 24px;
-          padding: 0 8px;
-          border-radius: 12px;
-          background: rgba(212, 168, 83, 0.15);
-          color: #d4a853;
-          font-size: 13px;
-          font-weight: 600;
-        }
-        .series-grid {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 12px;
-        }
-        .series-card {
-          position: relative;
-          display: block;
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.06);
-          border-radius: 12px;
-          padding: 20px;
-          text-decoration: none;
-          color: inherit;
-          transition: all 0.2s;
-          backdrop-filter: blur(12px);
-          cursor: pointer;
-        }
-        .series-card:hover {
-          background: rgba(255, 255, 255, 0.06);
-          border-color: rgba(212, 168, 83, 0.3);
-          transform: translateY(-1px);
-        }
-        .series-card-header {
-          display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          gap: 12px;
-          margin-bottom: 12px;
-        }
-        .series-name {
-          font-size: 16px;
-          font-weight: 700;
-          color: #f1f5f9;
-          margin: 0;
-          line-height: 1.3;
-          flex: 1;
-        }
-        .series-type-badge {
-          display: inline-flex;
-          padding: 3px 10px;
-          border-radius: 20px;
-          font-size: 11px;
-          font-weight: 600;
-          color: #fff;
-          white-space: nowrap;
-          flex-shrink: 0;
-        }
-        .series-venue,
-        .series-location,
-        .series-dates {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 13px;
-          color: #94a3b8;
-          margin-bottom: 6px;
-        }
-        .series-venue svg,
-        .series-location svg,
-        .series-dates svg {
-          flex-shrink: 0;
-          opacity: 0.6;
-        }
-        .series-meta {
-          display: flex;
-          gap: 20px;
-          margin-top: 12px;
-          padding-top: 12px;
-          border-top: 1px solid rgba(255, 255, 255, 0.06);
-        }
-        .meta-item {
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-        }
-        .meta-label {
-          font-size: 11px;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.3px;
-          color: #64748b;
-        }
-        .meta-value {
-          font-size: 15px;
-          font-weight: 700;
-          color: #d4a853;
-        }
-        .series-card-arrow {
-          position: absolute;
-          top: 50%;
-          right: 16px;
-          transform: translateY(-50%);
-          color: #4b5563;
-          transition: color 0.2s;
-        }
-        .series-card:hover .series-card-arrow {
-          color: #d4a853;
-        }
-
-        /* Empty State */
-        .empty-state {
-          text-align: center;
-          padding: 48px 24px;
-          background: rgba(255, 255, 255, 0.02);
-          border: 1px solid rgba(255, 255, 255, 0.06);
-          border-radius: 12px;
-        }
-        .empty-state p {
-          margin: 8px 0 0 0;
-          color: #94a3b8;
-          font-size: 14px;
-        }
-        .empty-subtext {
-          color: #64748b !important;
-          font-size: 13px !important;
-        }
-
-        /* Responsive */
-        @media (max-width: 640px) {
-          .tour-name {
-            font-size: 24px;
-          }
-          .header-top-row {
-            flex-direction: column;
-            gap: 12px;
-          }
-          .about-grid {
-            grid-template-columns: 1fr;
-          }
-          .header-actions {
-            width: 100%;
-          }
-          .follow-btn,
-          .share-btn {
-            flex: 1;
-            justify-content: center;
-          }
-        }
-      `}</style>
+      <style jsx>{styles}</style>
     </>
   );
 }
+
+const styles = `
+  .tour-page {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    min-height: 100vh;
+    background: radial-gradient(ellipse at top, #0f172a 0%, #030712 50%),
+                radial-gradient(ellipse at bottom right, #1e1b4b 0%, #030712 50%);
+    background-color: #030712;
+    color: #e2e8f0;
+    padding-bottom: 80px;
+  }
+
+  /* Loading */
+  .loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    gap: 16px;
+  }
+  .loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(212, 168, 83, 0.2);
+    border-top-color: #d4a853;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  .loading-text {
+    color: #94a3b8;
+    font-size: 14px;
+  }
+
+  /* Error */
+  .error-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    gap: 12px;
+    text-align: center;
+    padding: 24px;
+  }
+  .error-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: rgba(239, 68, 68, 0.15);
+    border: 2px solid rgba(239, 68, 68, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 700;
+    color: #ef4444;
+  }
+  .error-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #f1f5f9;
+    margin: 0;
+  }
+  .error-text {
+    font-size: 14px;
+    color: #94a3b8;
+    margin: 0;
+  }
+  .back-link-btn {
+    margin-top: 12px;
+    padding: 10px 24px;
+    background: rgba(212, 168, 83, 0.15);
+    border: 1px solid rgba(212, 168, 83, 0.3);
+    border-radius: 8px;
+    color: #d4a853;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+  .back-link-btn:hover {
+    background: rgba(212, 168, 83, 0.25);
+  }
+
+  /* Header Section */
+  .tour-header {
+    padding: 0 16px;
+    margin-bottom: 24px;
+  }
+  .header-content {
+    max-width: 900px;
+    margin: 0 auto;
+    padding-top: 20px;
+  }
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #94a3b8;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 20px;
+    transition: color 0.2s;
+  }
+  .back-link:hover {
+    color: #d4a853;
+  }
+  .header-top-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 12px;
+  }
+  .tour-name {
+    font-size: 32px;
+    font-weight: 800;
+    color: #f1f5f9;
+    margin: 0;
+    line-height: 1.2;
+    flex: 1;
+    min-width: 200px;
+  }
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .follow-btn,
+  .share-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    color: #cbd5e1;
+  }
+  .follow-btn:hover,
+  .share-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+  .follow-btn.followed {
+    background: rgba(212, 168, 83, 0.15);
+    border-color: rgba(212, 168, 83, 0.4);
+    color: #d4a853;
+  }
+  .follow-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 10px;
+    background: rgba(212, 168, 83, 0.2);
+    font-size: 11px;
+    font-weight: 700;
+    color: #d4a853;
+  }
+  .share-message {
+    font-size: 12px;
+    color: #22c55e;
+    font-weight: 500;
+    animation: fadeIn 0.2s ease;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .badges-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+  .tour-code-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+  .tour-type-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    background: rgba(99, 102, 241, 0.15);
+    color: #a5b4fc;
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    text-transform: capitalize;
+  }
+  .headquarters {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #94a3b8;
+    font-size: 14px;
+  }
+
+  /* About Section */
+  .tour-about {
+    padding: 0 16px;
+    margin-bottom: 32px;
+  }
+  .tour-about > * {
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .section-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #f1f5f9;
+    margin: 0 0 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: 900px;
+  }
+  .about-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 20px;
+    backdrop-filter: blur(12px);
+  }
+  .about-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .about-item-full {
+    grid-column: 1 / -1;
+  }
+  .about-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #64748b;
+  }
+  .about-value {
+    font-size: 14px;
+    color: #e2e8f0;
+    font-weight: 500;
+  }
+  .main-event-buyin {
+    color: #d4a853;
+    font-weight: 600;
+  }
+  .about-link {
+    display: inline-flex;
+    align-items: center;
+    color: #d4a853;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: opacity 0.2s;
+  }
+  .about-link:hover {
+    opacity: 0.8;
+    text-decoration: underline;
+  }
+  .about-notes {
+    font-size: 14px;
+    color: #94a3b8;
+    line-height: 1.6;
+    margin: 0;
+  }
+  .regions-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .region-tag {
+    display: inline-flex;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    background: rgba(99, 102, 241, 0.1);
+    color: #a5b4fc;
+    border: 1px solid rgba(99, 102, 241, 0.2);
+  }
+
+  /* Series Section */
+  .tour-series {
+    padding: 0 16px;
+    margin-bottom: 32px;
+  }
+  .tour-series > * {
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .series-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 8px;
+    border-radius: 12px;
+    background: rgba(212, 168, 83, 0.15);
+    color: #d4a853;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .series-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .series-card {
+    position: relative;
+    display: block;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 20px;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.2s;
+    backdrop-filter: blur(12px);
+    cursor: pointer;
+  }
+  .series-card:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(212, 168, 83, 0.3);
+    transform: translateY(-1px);
+  }
+  .series-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .series-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: #f1f5f9;
+    margin: 0;
+    line-height: 1.3;
+    flex: 1;
+  }
+  .series-type-badge {
+    display: inline-flex;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #fff;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .series-venue,
+  .series-location,
+  .series-dates {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #94a3b8;
+    margin-bottom: 6px;
+  }
+  .series-venue svg,
+  .series-location svg,
+  .series-dates svg {
+    flex-shrink: 0;
+    opacity: 0.6;
+  }
+  .series-meta {
+    display: flex;
+    gap: 20px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .meta-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: #64748b;
+  }
+  .meta-value {
+    font-size: 15px;
+    font-weight: 700;
+    color: #d4a853;
+  }
+  .series-card-arrow {
+    position: absolute;
+    top: 50%;
+    right: 16px;
+    transform: translateY(-50%);
+    color: #4b5563;
+    transition: color 0.2s;
+  }
+  .series-card:hover .series-card-arrow {
+    color: #d4a853;
+  }
+
+  /* Empty State */
+  .empty-state {
+    text-align: center;
+    padding: 48px 24px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+  }
+  .empty-state p {
+    margin: 8px 0 0 0;
+    color: #94a3b8;
+    font-size: 14px;
+  }
+  .empty-subtext {
+    color: #64748b !important;
+    font-size: 13px !important;
+  }
+
+  /* Activity Feed Section */
+  .tour-activity {
+    padding: 0 16px;
+    margin-bottom: 32px;
+  }
+  .tour-activity > * {
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .activity-container {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    overflow: hidden;
+    backdrop-filter: blur(12px);
+  }
+  .activity-list {
+    display: flex;
+    flex-direction: column;
+  }
+  .activity-item {
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    transition: background 0.15s;
+  }
+  .activity-item:last-child {
+    border-bottom: none;
+  }
+  .activity-item:hover {
+    background: rgba(255, 255, 255, 0.02);
+  }
+  .activity-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+  .activity-type-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 20px;
+    border: 1px solid;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: capitalize;
+  }
+  .activity-time {
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .activity-content {
+    margin: 0;
+    font-size: 14px;
+    color: #cbd5e1;
+    line-height: 1.5;
+  }
+
+  /* Tournament Results Section */
+  .tour-results {
+    padding: 0 16px;
+    margin-bottom: 32px;
+  }
+  .tour-results > * {
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .results-container {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    overflow: hidden;
+    backdrop-filter: blur(12px);
+  }
+  .results-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .result-card {
+    padding: 18px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    transition: background 0.15s;
+  }
+  .result-card:last-child {
+    border-bottom: none;
+  }
+  .result-card:hover {
+    background: rgba(255, 255, 255, 0.02);
+  }
+  .result-event-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: #f1f5f9;
+    margin-bottom: 4px;
+  }
+  .result-event-date {
+    font-size: 12px;
+    color: #64748b;
+    margin-bottom: 12px;
+  }
+  .result-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .result-row {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .result-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: #64748b;
+  }
+  .result-winner {
+    font-size: 14px;
+    font-weight: 700;
+    color: #d4a853;
+  }
+  .result-prize {
+    font-size: 14px;
+    font-weight: 700;
+    color: #4ade80;
+  }
+  .result-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #e2e8f0;
+  }
+
+  /* Notifications Opt-in */
+  .tour-notifications {
+    padding: 0 16px;
+    margin-bottom: 32px;
+  }
+  .notif-card {
+    max-width: 900px;
+    margin: 0 auto;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 20px 24px;
+    backdrop-filter: blur(12px);
+  }
+  .notif-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .notif-text {
+    margin: 0;
+    font-size: 14px;
+    color: #94a3b8;
+    font-weight: 500;
+  }
+  .notif-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: rgba(212, 168, 83, 0.12);
+    border: 1px solid rgba(212, 168, 83, 0.3);
+    color: #d4a853;
+  }
+  .notif-btn:hover {
+    background: rgba(212, 168, 83, 0.22);
+    border-color: #d4a853;
+  }
+  .notif-enabled {
+    font-size: 13px;
+    font-weight: 600;
+    color: #4ade80;
+  }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    .tour-name {
+      font-size: 24px;
+    }
+    .header-top-row {
+      flex-direction: column;
+      gap: 12px;
+    }
+    .about-grid {
+      grid-template-columns: 1fr;
+    }
+    .header-actions {
+      width: 100%;
+    }
+    .follow-btn,
+    .share-btn {
+      flex: 1;
+      justify-content: center;
+    }
+    .result-details {
+      flex-direction: column;
+      gap: 10px;
+    }
+    .notif-content {
+      flex-direction: column;
+      text-align: center;
+    }
+  }
+`;

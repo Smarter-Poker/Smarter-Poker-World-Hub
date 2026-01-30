@@ -1,7 +1,8 @@
 /**
  * TOURNAMENT SERIES DETAIL PAGE
  * PokerAtlas-style series detail view with event schedule,
- * venue info, follow/share functionality.
+ * venue info, follow/share functionality, results & leaderboard,
+ * and activity feed.
  */
 
 import Head from 'next/head';
@@ -33,6 +34,19 @@ const SERIES_TYPE_COLORS = {
   weekly:     { bg: '#94a3b8', text: '#000' },
 };
 
+const ACTIVITY_TYPE_COLORS = {
+  update: { bg: 'rgba(96, 165, 250, 0.15)', text: '#60a5fa', border: 'rgba(96, 165, 250, 0.3)' },
+  announcement: { bg: 'rgba(212, 168, 83, 0.15)', text: '#d4a853', border: 'rgba(212, 168, 83, 0.3)' },
+  promotion: { bg: 'rgba(74, 222, 128, 0.15)', text: '#4ade80', border: 'rgba(74, 222, 128, 0.3)' },
+  result: { bg: 'rgba(167, 139, 250, 0.15)', text: '#a78bfa', border: 'rgba(167, 139, 250, 0.3)' },
+};
+
+const PODIUM_COLORS = {
+  1: '#d4a853',
+  2: '#c0c0c0',
+  3: '#cd7f32',
+};
+
 function formatDateRange(startDate, endDate) {
   if (!startDate) return 'TBD';
   const start = new Date(startDate + 'T00:00:00');
@@ -42,19 +56,19 @@ function formatDateRange(startDate, endDate) {
   const startDay = start.getDate();
   const startYear = start.getFullYear();
 
-  if (!end) return `${startMonth} ${startDay}, ${startYear}`;
+  if (!end) return startMonth + ' ' + startDay + ', ' + startYear;
 
   const endMonth = end.toLocaleDateString('en-US', { month: 'short' });
   const endDay = end.getDate();
   const endYear = end.getFullYear();
 
   if (startYear === endYear && startMonth === endMonth) {
-    return `${startMonth} ${startDay} - ${endDay}, ${startYear}`;
+    return startMonth + ' ' + startDay + ' - ' + endDay + ', ' + startYear;
   }
   if (startYear === endYear) {
-    return `${startMonth} ${startDay} - ${endMonth} ${endDay}, ${startYear}`;
+    return startMonth + ' ' + startDay + ' - ' + endMonth + ' ' + endDay + ', ' + startYear;
   }
-  return `${startMonth} ${startDay}, ${startYear} - ${endMonth} ${endDay}, ${endYear}`;
+  return startMonth + ' ' + startDay + ', ' + startYear + ' - ' + endMonth + ' ' + endDay + ', ' + endYear;
 }
 
 function formatMoney(amount) {
@@ -68,6 +82,22 @@ function formatEventDate(dateStr) {
   return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
+function timeAgo(dateStr) {
+  if (!dateStr) return '';
+  const now = new Date();
+  const date = new Date(dateStr);
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return 'just now';
+  if (diffMins < 60) return diffMins + 'm ago';
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return diffHours + 'h ago';
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 30) return diffDays + 'd ago';
+  const diffMonths = Math.floor(diffDays / 30);
+  return diffMonths + 'mo ago';
+}
+
 function getSeriesStatus(startDate, endDate) {
   const now = new Date();
   const start = new Date(startDate + 'T00:00:00');
@@ -76,7 +106,7 @@ function getSeriesStatus(startDate, endDate) {
   if (now < start) {
     const diffMs = start - now;
     const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-    if (diffDays <= 30) return { label: `Starts in ${diffDays} day${diffDays === 1 ? '' : 's'}`, color: '#fbbf24' };
+    if (diffDays <= 30) return { label: 'Starts in ' + diffDays + ' day' + (diffDays === 1 ? '' : 's'), color: '#fbbf24' };
     return { label: 'Upcoming', color: '#60a5fa' };
   }
   if (now <= end) return { label: 'In Progress', color: '#4ade80' };
@@ -108,6 +138,9 @@ export default function SeriesDetailPage() {
   const [isFollowing, setIsFollowing] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
   const [shareMessage, setShareMessage] = useState('');
+  const [results, setResults] = useState([]);
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [activities, setActivities] = useState([]);
 
   // Load follow state - localStorage for instant UI, API for count
   useEffect(() => {
@@ -119,7 +152,7 @@ export default function SeriesDetailPage() {
       // ignore parse errors
     }
     // Fetch follower count from API
-    fetch(`/api/poker/follow?page_type=series&page_id=${id}`)
+    fetch('/api/poker/follow?page_type=series&page_id=' + id)
       .then(r => r.json())
       .then(json => {
         if (json.success) setFollowerCount(json.follower_count || 0);
@@ -134,7 +167,7 @@ export default function SeriesDetailPage() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`/api/poker/series?id=${id}`);
+        const res = await fetch('/api/poker/series?id=' + id);
         const json = await res.json();
 
         if (json.success && json.data) {
@@ -156,6 +189,37 @@ export default function SeriesDetailPage() {
     };
 
     fetchSeries();
+  }, [id]);
+
+  // Fetch tournament results and leaderboard
+  useEffect(() => {
+    if (!id) return;
+    fetch('/api/poker/results?series_id=' + id)
+      .then(r => r.json())
+      .then(json => {
+        if (json.success) {
+          if (Array.isArray(json.data)) {
+            setResults(json.data);
+          }
+          if (Array.isArray(json.leaderboard)) {
+            setLeaderboard(json.leaderboard);
+          }
+        }
+      })
+      .catch(() => {});
+  }, [id]);
+
+  // Fetch activity feed
+  useEffect(() => {
+    if (!id) return;
+    fetch('/api/poker/activity?page_type=series&page_id=' + id + '&limit=10')
+      .then(r => r.json())
+      .then(json => {
+        if (json.success && Array.isArray(json.data)) {
+          setActivities(json.data);
+        }
+      })
+      .catch(() => {});
   }, [id]);
 
   const toggleFollow = () => {
@@ -277,8 +341,8 @@ export default function SeriesDetailPage() {
   return (
     <>
       <Head>
-        <title>{series.name} | Smarter.Poker</title>
-        <meta name="description" content={`${series.name} - ${formatDateRange(series.start_date, series.end_date)} at ${venueName || location.city}`} />
+        <title>{series.name + ' | Smarter.Poker'}</title>
+        <meta name="description" content={series.name + ' - ' + formatDateRange(series.start_date, series.end_date) + ' at ' + (venueName || location.city)} />
       </Head>
       <UniversalHeader />
 
@@ -332,7 +396,7 @@ export default function SeriesDetailPage() {
           {/* Action Buttons */}
           <div className="action-buttons">
             <button
-              className={`action-btn follow-btn ${isFollowing ? 'following' : ''}`}
+              className={'action-btn follow-btn' + (isFollowing ? ' following' : '')}
               onClick={toggleFollow}
             >
               {isFollowing ? (
@@ -418,7 +482,7 @@ export default function SeriesDetailPage() {
             <div className="venue-links">
               {(venueName || location.city) && (
                 <Link
-                  href={`/hub/poker-near-me?search=${encodeURIComponent(venueName || location.city)}`}
+                  href={'/hub/poker-near-me?search=' + encodeURIComponent(venueName || location.city)}
                   legacyBehavior
                 >
                   <a className="venue-link">
@@ -451,7 +515,7 @@ export default function SeriesDetailPage() {
         <div className="section-card">
           <h2 className="section-title">
             Event Schedule
-            {events.length > 0 && <span className="event-count">{events.length} events</span>}
+            {events.length > 0 && <span className="event-count">{events.length + ' events'}</span>}
           </h2>
 
           {events.length > 0 ? (
@@ -489,6 +553,141 @@ export default function SeriesDetailPage() {
               </svg>
               <p>Event schedule not yet available</p>
               <p className="no-events-sub">Check back closer to the series start date for the full schedule.</p>
+            </div>
+          )}
+        </div>
+
+        {/* Results & Leaderboard Section */}
+        <div className="section-card">
+          <h2 className="section-title">Results &amp; Leaderboard</h2>
+
+          {results.length === 0 && leaderboard.length === 0 && (
+            <div className="no-events">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 9H4.5a2.5 2.5 0 010-5C7 4 7 7 7 7" />
+                <path d="M18 9h1.5a2.5 2.5 0 000-5C17 4 17 7 17 7" />
+                <path d="M4 22h16" />
+                <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+                <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+                <path d="M18 2H6v7a6 6 0 0012 0V2Z" />
+              </svg>
+              <p>Results will be posted as events complete.</p>
+            </div>
+          )}
+
+          {/* Leaderboard Sub-section */}
+          {leaderboard.length > 0 && (
+            <div className="leaderboard-section">
+              <h3 className="subsection-title">Leaderboard</h3>
+              <div className="leaderboard-table-wrap">
+                <table className="leaderboard-table">
+                  <thead>
+                    <tr>
+                      <th>Rank</th>
+                      <th>Player</th>
+                      <th>Earnings</th>
+                      <th>Cashes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {leaderboard.map((entry, idx) => {
+                      const rank = entry.rank || idx + 1;
+                      const podiumColor = PODIUM_COLORS[rank] || null;
+                      return (
+                        <tr key={idx} className={rank <= 3 ? 'podium-row' : ''}>
+                          <td className="lb-rank" style={podiumColor ? { color: podiumColor } : {}}>
+                            {rank <= 3 ? (
+                              <span className="rank-medal" style={{ background: podiumColor }}>{rank}</span>
+                            ) : rank}
+                          </td>
+                          <td className="lb-player" style={podiumColor ? { color: podiumColor } : {}}>
+                            {entry.player_name}
+                          </td>
+                          <td className="lb-earnings">{formatMoney(entry.total_earnings)}</td>
+                          <td className="lb-cashes">{entry.cashes}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Individual Results Sub-section */}
+          {results.length > 0 && (
+            <div className="individual-results-section">
+              <h3 className="subsection-title">Individual Results</h3>
+              <div className="ind-results-grid">
+                {results.map((result, idx) => (
+                  <div key={idx} className="ind-result-card">
+                    <div className="ind-result-name">{result.event_name}</div>
+                    <div className="ind-result-details">
+                      {result.winner_name && (
+                        <div className="ind-result-row">
+                          <span className="ind-result-label">Winner</span>
+                          <span className="ind-result-winner">{result.winner_name}</span>
+                        </div>
+                      )}
+                      {result.winner_prize && (
+                        <div className="ind-result-row">
+                          <span className="ind-result-label">Prize</span>
+                          <span className="ind-result-prize">{formatMoney(result.winner_prize)}</span>
+                        </div>
+                      )}
+                      {result.total_entries && (
+                        <div className="ind-result-row">
+                          <span className="ind-result-label">Entries</span>
+                          <span className="ind-result-value">{result.total_entries}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Activity Feed Section */}
+        <div className="section-card">
+          <h2 className="section-title">Updates</h2>
+
+          {activities.length === 0 && (
+            <div className="no-events">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+              </svg>
+              <p>No updates yet.</p>
+            </div>
+          )}
+
+          {activities.length > 0 && (
+            <div className="activity-list">
+              {activities.map((activity, idx) => {
+                const typeColor = ACTIVITY_TYPE_COLORS[activity.type] || ACTIVITY_TYPE_COLORS.update;
+                return (
+                  <div key={idx} className="activity-item">
+                    <div className="activity-header">
+                      <span
+                        className="activity-type-badge"
+                        style={{
+                          background: typeColor.bg,
+                          color: typeColor.text,
+                          borderColor: typeColor.border,
+                        }}
+                      >
+                        {(activity.type || 'update').charAt(0).toUpperCase() + (activity.type || 'update').slice(1)}
+                      </span>
+                      <span className="activity-time">{timeAgo(activity.created_at)}</span>
+                    </div>
+                    <p className="activity-content">{activity.content}</p>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -896,6 +1095,222 @@ const styles = `
     color: #64748b !important;
   }
 
+  /* Leaderboard Section */
+  .leaderboard-section {
+    margin-bottom: 24px;
+  }
+
+  .subsection-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #cbd5e1;
+    margin: 0 0 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .leaderboard-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 -28px;
+    padding: 0 28px;
+  }
+
+  .leaderboard-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 400px;
+  }
+
+  .leaderboard-table thead th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    white-space: nowrap;
+  }
+
+  .leaderboard-table tbody tr {
+    transition: background 0.15s;
+  }
+
+  .leaderboard-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .leaderboard-table tbody td {
+    padding: 12px 12px;
+    font-size: 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    vertical-align: middle;
+  }
+
+  .lb-rank {
+    font-weight: 700;
+    color: #94a3b8;
+    width: 60px;
+  }
+
+  .rank-medal {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: 800;
+    color: #000;
+  }
+
+  .lb-player {
+    font-weight: 600;
+    color: #e2e8f0;
+  }
+
+  .podium-row .lb-player {
+    font-weight: 700;
+  }
+
+  .lb-earnings {
+    font-weight: 700;
+    color: #4ade80;
+    white-space: nowrap;
+  }
+
+  .lb-cashes {
+    color: #94a3b8;
+    font-weight: 600;
+  }
+
+  /* Individual Results */
+  .individual-results-section {
+    margin-top: 4px;
+  }
+
+  .ind-results-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .ind-result-card {
+    padding: 16px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    transition: background 0.15s;
+  }
+
+  .ind-result-card:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .ind-result-card:first-child {
+    padding-top: 0;
+  }
+
+  .ind-result-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: #f1f5f9;
+    margin-bottom: 10px;
+  }
+
+  .ind-result-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .ind-result-row {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .ind-result-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: #64748b;
+  }
+
+  .ind-result-winner {
+    font-size: 14px;
+    font-weight: 700;
+    color: #d4a853;
+  }
+
+  .ind-result-prize {
+    font-size: 14px;
+    font-weight: 700;
+    color: #4ade80;
+  }
+
+  .ind-result-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #e2e8f0;
+  }
+
+  /* Activity Feed */
+  .activity-list {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .activity-item {
+    padding: 16px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  }
+
+  .activity-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .activity-item:first-child {
+    padding-top: 0;
+  }
+
+  .activity-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+
+  .activity-type-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 20px;
+    border: 1px solid;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: capitalize;
+  }
+
+  .activity-time {
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .activity-content {
+    margin: 0;
+    font-size: 14px;
+    color: #cbd5e1;
+    line-height: 1.5;
+  }
+
   /* Loading */
   .loading-container {
     display: flex;
@@ -1002,6 +1417,11 @@ const styles = `
       padding: 0 16px;
     }
 
+    .leaderboard-table-wrap {
+      margin: 0 -16px;
+      padding: 0 16px;
+    }
+
     .action-buttons {
       flex-direction: column;
     }
@@ -1013,6 +1433,11 @@ const styles = `
     .venue-row {
       flex-direction: column;
       gap: 2px;
+    }
+
+    .ind-result-details {
+      flex-direction: column;
+      gap: 10px;
     }
   }
 

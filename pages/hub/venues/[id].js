@@ -1,6 +1,7 @@
 /**
  * VENUE DETAIL PAGE - PokerAtlas-style venue profile
- * Displays full venue info, contact details, daily tournament schedules
+ * Displays full venue info, contact details, daily tournament schedules,
+ * live games, check-ins, reviews, activity feed, and claim page
  * Fetches venue data from /api/poker/venues?id=X
  */
 
@@ -38,6 +39,22 @@ function formatMoney(amount) {
   return `$${amount.toLocaleString()}`;
 }
 
+function timeAgo(dateStr) {
+  if (!dateStr) return '';
+  const now = new Date();
+  const date = new Date(dateStr);
+  const seconds = Math.floor((now - date) / 1000);
+  if (seconds < 60) return 'just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return minutes + 'm ago';
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return hours + 'h ago';
+  const days = Math.floor(hours / 24);
+  if (days < 30) return days + 'd ago';
+  const months = Math.floor(days / 30);
+  return months + 'mo ago';
+}
+
 function TrustDots({ score }) {
   const maxDots = 5;
   const filled = Math.round(score || 0);
@@ -46,7 +63,7 @@ function TrustDots({ score }) {
       {Array.from({ length: maxDots }, (_, i) => (
         <span
           key={i}
-          className={`trust-dot ${i < filled ? 'filled' : ''}`}
+          className={'trust-dot' + (i < filled ? ' filled' : '')}
         />
       ))}
       <span className="trust-label">{score ? score.toFixed(1) : 'N/A'}</span>
@@ -112,6 +129,34 @@ function VenueTypeBadge({ type }) {
   );
 }
 
+function StarRating({ rating, size, interactive, onRate }) {
+  const sz = size || 16;
+  const stars = [1, 2, 3, 4, 5];
+  return (
+    <span style={{ display: 'inline-flex', gap: '2px', cursor: interactive ? 'pointer' : 'default' }}>
+      {stars.map(function(star) {
+        return (
+          <svg
+            key={star}
+            width={sz}
+            height={sz}
+            viewBox="0 0 24 24"
+            fill={star <= rating ? '#d4a853' : 'none'}
+            stroke={star <= rating ? '#d4a853' : 'rgba(255,255,255,0.25)'}
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            onClick={function() { if (interactive && onRate) onRate(star); }}
+            style={{ transition: 'all 0.15s' }}
+          >
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+          </svg>
+        );
+      })}
+    </span>
+  );
+}
+
 export default function VenueDetailPage() {
   const router = useRouter();
   const { id } = router.query;
@@ -123,41 +168,102 @@ export default function VenueDetailPage() {
   const [followerCount, setFollowerCount] = useState(0);
   const [copySuccess, setCopySuccess] = useState(false);
 
-  // Check follow status on mount - try API first, localStorage fallback
-  useEffect(() => {
-    if (!id) return;
-    // Check localStorage immediately for fast UI
+  // Live Games state
+  const [liveGames, setLiveGames] = useState([]);
+  const [showReportGame, setShowReportGame] = useState(false);
+  const [reportForm, setReportForm] = useState({
+    game_type: 'NL Holdem',
+    stakes: '',
+    table_count: 1,
+    wait_time: '',
+    notes: '',
+  });
+  const [reportSubmitting, setReportSubmitting] = useState(false);
+
+  // Check-In state
+  const [checkins, setCheckins] = useState([]);
+  const [checkinCount, setCheckinCount] = useState(0);
+  const [hasCheckedIn, setHasCheckedIn] = useState(false);
+  const [checkinMessage, setCheckinMessage] = useState('');
+  const [checkinName, setCheckinName] = useState('');
+  const [showCheckinForm, setShowCheckinForm] = useState(false);
+  const [checkinSubmitting, setCheckinSubmitting] = useState(false);
+  const [checkinConfirm, setCheckinConfirm] = useState(false);
+
+  // Reviews state
+  const [reviews, setReviews] = useState([]);
+  const [avgRating, setAvgRating] = useState(0);
+  const [totalReviews, setTotalReviews] = useState(0);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewForm, setReviewForm] = useState({
+    rating: 0,
+    reviewer_name: '',
+    review_text: '',
+  });
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+
+  // Activity Feed state
+  const [activities, setActivities] = useState([]);
+  const [showPostForm, setShowPostForm] = useState(false);
+  const [postContent, setPostContent] = useState('');
+  const [postSubmitting, setPostSubmitting] = useState(false);
+
+  // Claim Page state
+  const [claimStatus, setClaimStatus] = useState(null);
+  const [showClaimForm, setShowClaimForm] = useState(false);
+  const [claimForm, setClaimForm] = useState({
+    contact_name: '',
+    contact_email: '',
+    contact_phone: '',
+    role: 'Manager',
+    verification_notes: '',
+  });
+  const [claimSubmitting, setClaimSubmitting] = useState(false);
+
+  // Get or create anonymous user ID for tracking
+  function getAnonymousUserId() {
     try {
-      const stored = localStorage.getItem('followed-venues');
-      const ids = stored ? JSON.parse(stored) : [];
+      var uid = localStorage.getItem('sp-anon-uid');
+      if (!uid) {
+        uid = 'anon-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+        localStorage.setItem('sp-anon-uid', uid);
+      }
+      return uid;
+    } catch (e) {
+      return 'anon-fallback';
+    }
+  }
+
+  // Check follow status on mount
+  useEffect(function() {
+    if (!id) return;
+    try {
+      var stored = localStorage.getItem('followed-venues');
+      var ids = stored ? JSON.parse(stored) : [];
       setIsFollowed(ids.includes(String(id)));
-    } catch {
+    } catch (e) {
       // ignore parse errors
     }
-    // Fetch follower count from API
-    fetch(`/api/poker/follow?page_type=venue&page_id=${id}`)
-      .then(r => r.json())
-      .then(json => {
+    fetch('/api/poker/follow?page_type=venue&page_id=' + id)
+      .then(function(r) { return r.json(); })
+      .then(function(json) {
         if (json.success) setFollowerCount(json.follower_count || 0);
       })
-      .catch(() => {});
+      .catch(function() {});
   }, [id]);
 
   // Fetch venue data
-  useEffect(() => {
+  useEffect(function() {
     if (!id) return;
-
-    const fetchVenue = async () => {
+    var fetchVenue = async function() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`/api/poker/venues?id=${id}`);
-        const json = await res.json();
-
+        var res = await fetch('/api/poker/venues?id=' + id);
+        var json = await res.json();
         if (json.success && json.data) {
-          // API may return array or single object
-          const venueData = Array.isArray(json.data)
-            ? json.data.find(v => String(v.id) === String(id)) || json.data[0]
+          var venueData = Array.isArray(json.data)
+            ? json.data.find(function(v) { return String(v.id) === String(id); }) || json.data[0]
             : json.data;
           setVenue(venueData);
         } else {
@@ -170,31 +276,118 @@ export default function VenueDetailPage() {
         setLoading(false);
       }
     };
-
     fetchVenue();
   }, [id]);
 
-  const handleFollow = () => {
-    const venueId = String(id);
-    const newState = !isFollowed;
-    setIsFollowed(newState);
-    setFollowerCount(prev => newState ? prev + 1 : Math.max(0, prev - 1));
-
-    // Update localStorage for instant persistence
+  // Fetch live games
+  var fetchLiveGames = async function() {
     try {
-      const stored = localStorage.getItem('followed-venues');
-      let ids = stored ? JSON.parse(stored) : [];
+      var res = await fetch('/api/poker/live-games?venue_id=' + id);
+      var json = await res.json();
+      if (json.success && json.data) {
+        setLiveGames(Array.isArray(json.data) ? json.data : []);
+      }
+    } catch (e) { /* silent */ }
+  };
+
+  useEffect(function() {
+    if (!id) return;
+    fetchLiveGames();
+  }, [id]);
+
+  // Fetch check-ins
+  var fetchCheckins = async function() {
+    try {
+      var res = await fetch('/api/poker/checkins?venue_id=' + id);
+      var json = await res.json();
+      if (json.success) {
+        var data = Array.isArray(json.data) ? json.data : [];
+        setCheckins(data);
+        setCheckinCount(json.count || data.length);
+        var uid = getAnonymousUserId();
+        var fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000);
+        var recent = data.find(function(c) {
+          return c.user_id === uid && new Date(c.created_at) > fourHoursAgo;
+        });
+        if (recent) setHasCheckedIn(true);
+      }
+    } catch (e) { /* silent */ }
+  };
+
+  useEffect(function() {
+    if (!id) return;
+    fetchCheckins();
+  }, [id]);
+
+  // Fetch reviews
+  var fetchReviews = async function() {
+    try {
+      var res = await fetch('/api/poker/reviews?venue_id=' + id);
+      var json = await res.json();
+      if (json.success) {
+        var reviewData = Array.isArray(json.data) ? json.data : [];
+        setReviews(reviewData);
+        setTotalReviews(json.total || reviewData.length);
+        setAvgRating(json.avg_rating || (reviewData.length > 0
+          ? reviewData.reduce(function(sum, r) { return sum + (r.rating || 0); }, 0) / reviewData.length
+          : 0));
+      }
+    } catch (e) { /* silent */ }
+  };
+
+  useEffect(function() {
+    if (!id) return;
+    fetchReviews();
+  }, [id]);
+
+  // Fetch activity feed
+  var fetchActivities = async function() {
+    try {
+      var res = await fetch('/api/poker/activity?page_type=venue&page_id=' + id + '&limit=10');
+      var json = await res.json();
+      if (json.success && json.data) {
+        setActivities(Array.isArray(json.data) ? json.data : []);
+      }
+    } catch (e) { /* silent */ }
+  };
+
+  useEffect(function() {
+    if (!id) return;
+    fetchActivities();
+  }, [id]);
+
+  // Fetch claim status
+  var fetchClaimStatus = async function() {
+    try {
+      var res = await fetch('/api/poker/claim-page?page_type=venue&page_id=' + id);
+      var json = await res.json();
+      if (json.success) {
+        setClaimStatus(json.status || null);
+      }
+    } catch (e) { /* silent */ }
+  };
+
+  useEffect(function() {
+    if (!id) return;
+    fetchClaimStatus();
+  }, [id]);
+
+  // Handlers
+  var handleFollow = function() {
+    var venueId = String(id);
+    var newState = !isFollowed;
+    setIsFollowed(newState);
+    setFollowerCount(function(prev) { return newState ? prev + 1 : Math.max(0, prev - 1); });
+    try {
+      var stored = localStorage.getItem('followed-venues');
+      var ids = stored ? JSON.parse(stored) : [];
       if (newState) {
         if (!ids.includes(venueId)) ids.push(venueId);
       } else {
-        ids = ids.filter(x => x !== venueId);
+        ids = ids.filter(function(x) { return x !== venueId; });
       }
       localStorage.setItem('followed-venues', JSON.stringify(ids));
-    } catch {
-      // ignore storage errors
-    }
-
-    // Also call API for server-side persistence
+    } catch (e) { /* ignore */ }
     fetch('/api/poker/follow', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -204,96 +397,235 @@ export default function VenueDetailPage() {
         action: newState ? 'follow' : 'unfollow',
         user_id: getAnonymousUserId(),
       }),
-    }).catch(() => {});
+    }).catch(function() {});
   };
 
-  // Get or create anonymous user ID for follow tracking
-  function getAnonymousUserId() {
-    try {
-      let uid = localStorage.getItem('sp-anon-uid');
-      if (!uid) {
-        uid = 'anon-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
-        localStorage.setItem('sp-anon-uid', uid);
-      }
-      return uid;
-    } catch {
-      return 'anon-fallback';
-    }
-  }
-
-  const handleShare = async () => {
+  var handleShare = async function() {
     try {
       await navigator.clipboard.writeText(window.location.href);
       setCopySuccess(true);
-      setTimeout(() => setCopySuccess(false), 2000);
-    } catch {
-      // Fallback for older browsers
-      const textarea = document.createElement('textarea');
+      setTimeout(function() { setCopySuccess(false); }, 2000);
+    } catch (e) {
+      var textarea = document.createElement('textarea');
       textarea.value = window.location.href;
       document.body.appendChild(textarea);
       textarea.select();
       document.execCommand('copy');
       document.body.removeChild(textarea);
       setCopySuccess(true);
-      setTimeout(() => setCopySuccess(false), 2000);
+      setTimeout(function() { setCopySuccess(false); }, 2000);
     }
   };
 
-  const googleMapsUrl = venue
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+  var handleReportGame = async function(e) {
+    e.preventDefault();
+    if (!reportForm.stakes.trim()) return;
+    setReportSubmitting(true);
+    try {
+      var res = await fetch('/api/poker/live-games', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          venue_id: id,
+          game_type: reportForm.game_type,
+          stakes: reportForm.stakes,
+          table_count: parseInt(reportForm.table_count) || 1,
+          wait_time: reportForm.wait_time ? parseInt(reportForm.wait_time) : null,
+          notes: reportForm.notes || null,
+          user_id: getAnonymousUserId(),
+        }),
+      });
+      var json = await res.json();
+      if (json.success) {
+        setShowReportGame(false);
+        setReportForm({ game_type: 'NL Holdem', stakes: '', table_count: 1, wait_time: '', notes: '' });
+        await fetchLiveGames();
+      }
+    } catch (err) { /* silent */ }
+    finally { setReportSubmitting(false); }
+  };
+
+  var handleCheckin = async function(e) {
+    e.preventDefault();
+    setCheckinSubmitting(true);
+    try {
+      var res = await fetch('/api/poker/checkins', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          venue_id: id,
+          user_id: getAnonymousUserId(),
+          user_name: checkinName.trim() || 'Anonymous',
+          message: checkinMessage.trim() || null,
+        }),
+      });
+      var json = await res.json();
+      if (json.success) {
+        setHasCheckedIn(true);
+        setCheckinConfirm(true);
+        setShowCheckinForm(false);
+        setCheckinMessage('');
+        setCheckinName('');
+        await fetchCheckins();
+        setTimeout(function() { setCheckinConfirm(false); }, 3000);
+      }
+    } catch (err) { /* silent */ }
+    finally { setCheckinSubmitting(false); }
+  };
+
+  var handleSubmitReview = async function(e) {
+    e.preventDefault();
+    if (!reviewForm.rating || !reviewForm.review_text.trim()) return;
+    setReviewSubmitting(true);
+    try {
+      var res = await fetch('/api/poker/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          venue_id: id,
+          rating: reviewForm.rating,
+          reviewer_name: reviewForm.reviewer_name.trim() || 'Anonymous',
+          review_text: reviewForm.review_text.trim(),
+          user_id: getAnonymousUserId(),
+        }),
+      });
+      var json = await res.json();
+      if (json.success) {
+        setShowReviewForm(false);
+        setReviewForm({ rating: 0, reviewer_name: '', review_text: '' });
+        await fetchReviews();
+      }
+    } catch (err) { /* silent */ }
+    finally { setReviewSubmitting(false); }
+  };
+
+  var handlePostActivity = async function(e) {
+    e.preventDefault();
+    if (!postContent.trim()) return;
+    setPostSubmitting(true);
+    try {
+      var res = await fetch('/api/poker/activity', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          page_type: 'venue',
+          page_id: id,
+          activity_type: 'update',
+          content: postContent.trim(),
+          user_id: getAnonymousUserId(),
+        }),
+      });
+      var json = await res.json();
+      if (json.success) {
+        setShowPostForm(false);
+        setPostContent('');
+        await fetchActivities();
+      }
+    } catch (err) { /* silent */ }
+    finally { setPostSubmitting(false); }
+  };
+
+  var handleClaimSubmit = async function(e) {
+    e.preventDefault();
+    if (!claimForm.contact_name.trim() || !claimForm.contact_email.trim()) return;
+    setClaimSubmitting(true);
+    try {
+      var res = await fetch('/api/poker/claim-page', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          page_type: 'venue',
+          page_id: id,
+          contact_name: claimForm.contact_name.trim(),
+          contact_email: claimForm.contact_email.trim(),
+          contact_phone: claimForm.contact_phone.trim() || null,
+          role: claimForm.role,
+          verification_notes: claimForm.verification_notes.trim() || null,
+          user_id: getAnonymousUserId(),
+        }),
+      });
+      var json = await res.json();
+      if (json.success) {
+        setClaimStatus('pending');
+        setShowClaimForm(false);
+        setClaimForm({ contact_name: '', contact_email: '', contact_phone: '', role: 'Manager', verification_notes: '' });
+      }
+    } catch (err) { /* silent */ }
+    finally { setClaimSubmitting(false); }
+  };
+
+  var googleMapsUrl = venue
+    ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(
         [venue.address, venue.city, venue.state].filter(Boolean).join(', ')
-      )}`
+      )
     : '#';
 
   // Group daily tournament schedules by day
-  const getGroupedSchedules = () => {
-    if (!venue?.daily_tournaments?.length) return null;
-
-    const allSchedules = [];
-    venue.daily_tournaments.forEach(dt => {
+  var getGroupedSchedules = function() {
+    if (!venue || !venue.daily_tournaments || !venue.daily_tournaments.length) return null;
+    var allSchedules = [];
+    venue.daily_tournaments.forEach(function(dt) {
       if (dt.schedules && dt.schedules.length) {
-        dt.schedules.forEach(s => {
-          allSchedules.push({
-            ...s,
-            source_url: dt.source_url,
-          });
+        dt.schedules.forEach(function(s) {
+          allSchedules.push(Object.assign({}, s, { source_url: dt.source_url }));
         });
       }
     });
-
     if (!allSchedules.length) return null;
-
-    // Group by day
-    const grouped = {};
-    allSchedules.forEach(s => {
-      const day = s.day_of_week || 'Unknown';
+    var grouped = {};
+    allSchedules.forEach(function(s) {
+      var day = s.day_of_week || 'Unknown';
       if (!grouped[day]) grouped[day] = [];
       grouped[day].push(s);
     });
-
-    // Sort days in order
-    const sorted = {};
-    DAYS_ORDER.forEach(day => {
+    var sorted = {};
+    DAYS_ORDER.forEach(function(day) {
       if (grouped[day]) sorted[day] = grouped[day];
     });
-    // Add any days not in standard order
-    Object.keys(grouped).forEach(day => {
+    Object.keys(grouped).forEach(function(day) {
       if (!sorted[day]) sorted[day] = grouped[day];
     });
-
     return sorted;
   };
 
-  const groupedSchedules = venue ? getGroupedSchedules() : null;
-  const todayName = DAYS_ORDER[(new Date().getDay() + 6) % 7]; // JS getDay: 0=Sun, we want Mon=0
+  var groupedSchedules = venue ? getGroupedSchedules() : null;
+  var todayName = DAYS_ORDER[(new Date().getDay() + 6) % 7];
 
-  const pageTitle = venue ? `${venue.name} - Poker Venue` : 'Venue Detail';
+  // Compute rating distribution
+  var getRatingDistribution = function() {
+    var dist = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+    reviews.forEach(function(r) {
+      var star = Math.round(r.rating || 0);
+      if (star >= 1 && star <= 5) dist[star]++;
+    });
+    return dist;
+  };
+  var ratingDistribution = reviews.length > 0 ? getRatingDistribution() : null;
+
+  var getWaitTimeColor = function(waitTime) {
+    if (waitTime === null || waitTime === undefined) return '#94a3b8';
+    if (waitTime <= 10) return '#22c55e';
+    if (waitTime <= 30) return '#d4a853';
+    return '#ef4444';
+  };
+
+  var getActivityTypeStyle = function(type) {
+    var styles = {
+      update: { bg: 'rgba(59, 130, 246, 0.12)', border: 'rgba(59, 130, 246, 0.25)', color: '#60a5fa' },
+      announcement: { bg: 'rgba(212, 168, 83, 0.12)', border: 'rgba(212, 168, 83, 0.25)', color: '#d4a853' },
+      promotion: { bg: 'rgba(34, 197, 94, 0.12)', border: 'rgba(34, 197, 94, 0.25)', color: '#4ade80' },
+      result: { bg: 'rgba(139, 92, 246, 0.12)', border: 'rgba(139, 92, 246, 0.25)', color: '#a78bfa' },
+    };
+    return styles[type] || styles.update;
+  };
+
+  var pageTitle = venue ? venue.name + ' - Poker Venue' : 'Venue Detail';
 
   return (
     <>
       <Head>
         <title>{pageTitle} | Smarter.Poker</title>
-        <meta name="description" content={venue ? `${venue.name} poker room in ${venue.city}, ${venue.state}. Find tournaments, hours, and contact info.` : 'Poker venue details'} />
+        <meta name="description" content={venue ? venue.name + ' poker room in ' + venue.city + ', ' + venue.state + '. Find tournaments, hours, and contact info.' : 'Poker venue details'} />
       </Head>
 
       <UniversalHeader />
@@ -341,6 +673,14 @@ export default function VenueDetailPage() {
                     {venue.is_featured && (
                       <span className="featured-badge">Featured</span>
                     )}
+                    {claimStatus === 'approved' && (
+                      <span className="verified-inline-badge">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        Verified
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -363,7 +703,7 @@ export default function VenueDetailPage() {
               {/* Follow / Share Buttons */}
               <div className="action-buttons">
                 <button
-                  className={`action-btn follow-btn ${isFollowed ? 'followed' : ''}`}
+                  className={'action-btn follow-btn' + (isFollowed ? ' followed' : '')}
                   onClick={handleFollow}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill={isFollowed ? '#d4a853' : 'none'} stroke={isFollowed ? '#d4a853' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -387,7 +727,7 @@ export default function VenueDetailPage() {
 
             {/* Contact & Info Section */}
             <section className="info-section">
-              <h2 className="section-title">Contact & Info</h2>
+              <h2 className="section-title">Contact &amp; Info</h2>
               <div className="info-grid">
                 {/* Address */}
                 <div className="info-card">
@@ -402,12 +742,12 @@ export default function VenueDetailPage() {
                     {venue.address ? (
                       <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" className="info-value info-link">
                         {venue.address}
-                        {venue.city && `, ${venue.city}`}
-                        {venue.state && `, ${venue.state}`}
+                        {venue.city && (', ' + venue.city)}
+                        {venue.state && (', ' + venue.state)}
                       </a>
                     ) : (
                       <span className="info-value">
-                        {venue.city && venue.state ? `${venue.city}, ${venue.state}` : 'Not available'}
+                        {venue.city && venue.state ? venue.city + ', ' + venue.state : 'Not available'}
                       </span>
                     )}
                   </div>
@@ -423,7 +763,7 @@ export default function VenueDetailPage() {
                   <div className="info-content">
                     <span className="info-label">Phone</span>
                     {venue.phone ? (
-                      <a href={`tel:${venue.phone}`} className="info-value info-link">{venue.phone}</a>
+                      <a href={'tel:' + venue.phone} className="info-value info-link">{venue.phone}</a>
                     ) : (
                       <span className="info-value muted">Not available</span>
                     )}
@@ -499,7 +839,7 @@ export default function VenueDetailPage() {
                   </div>
                   <div className="info-content">
                     <span className="info-label">Tournaments</span>
-                    <span className={`info-value ${venue.has_tournaments ? 'has-yes' : 'muted'}`}>
+                    <span className={'info-value' + (venue.has_tournaments ? ' has-yes' : ' muted')}>
                       {venue.has_tournaments ? 'Yes - Tournaments Available' : 'No'}
                     </span>
                   </div>
@@ -512,50 +852,52 @@ export default function VenueDetailPage() {
               <section className="tournaments-section">
                 <h2 className="section-title">Daily Tournament Schedule</h2>
                 <div className="schedule-container">
-                  {Object.entries(groupedSchedules).map(([day, schedules]) => {
-                    const isToday = day === DAYS_ORDER[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1]
+                  {Object.entries(groupedSchedules).map(function([day, schedules]) {
+                    var isToday = day === DAYS_ORDER[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1]
                       || day === ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date().getDay()];
                     return (
-                      <div key={day} className={`day-group ${isToday ? 'today' : ''}`}>
+                      <div key={day} className={'day-group' + (isToday ? ' today' : '')}>
                         <div className="day-header">
                           <h3 className="day-name">{day}</h3>
                           {isToday && <span className="today-badge">Today</span>}
                         </div>
                         <div className="schedule-cards">
-                          {schedules.map((s, idx) => (
-                            <div key={idx} className="schedule-card">
-                              <div className="schedule-row">
-                                <div className="schedule-time">
-                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px', verticalAlign: 'middle' }}>
-                                    <circle cx="12" cy="12" r="10" />
-                                    <polyline points="12 6 12 12 16 14" />
-                                  </svg>
-                                  {formatTime(s.start_time) || 'TBD'}
-                                </div>
-                                {s.buy_in && (
-                                  <div className="schedule-buyin">
-                                    {formatMoney(s.buy_in)}
+                          {schedules.map(function(s, idx) {
+                            return (
+                              <div key={idx} className="schedule-card">
+                                <div className="schedule-row">
+                                  <div className="schedule-time">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px', verticalAlign: 'middle' }}>
+                                      <circle cx="12" cy="12" r="10" />
+                                      <polyline points="12 6 12 12 16 14" />
+                                    </svg>
+                                    {formatTime(s.start_time) || 'TBD'}
                                   </div>
+                                  {s.buy_in && (
+                                    <div className="schedule-buyin">
+                                      {formatMoney(s.buy_in)}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="schedule-details">
+                                  {s.game_type && (
+                                    <span className="detail-chip game-type">{s.game_type}</span>
+                                  )}
+                                  {s.format && (
+                                    <span className="detail-chip format">{s.format}</span>
+                                  )}
+                                  {s.guaranteed && (
+                                    <span className="detail-chip guaranteed">
+                                      GTD: {formatMoney(s.guaranteed)}
+                                    </span>
+                                  )}
+                                </div>
+                                {s.notes && (
+                                  <p className="schedule-notes">{s.notes}</p>
                                 )}
                               </div>
-                              <div className="schedule-details">
-                                {s.game_type && (
-                                  <span className="detail-chip game-type">{s.game_type}</span>
-                                )}
-                                {s.format && (
-                                  <span className="detail-chip format">{s.format}</span>
-                                )}
-                                {s.guaranteed && (
-                                  <span className="detail-chip guaranteed">
-                                    GTD: {formatMoney(s.guaranteed)}
-                                  </span>
-                                )}
-                              </div>
-                              {s.notes && (
-                                <p className="schedule-notes">{s.notes}</p>
-                              )}
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                     );
@@ -578,6 +920,613 @@ export default function VenueDetailPage() {
                 </div>
               </section>
             )}
+
+            {/* ============================================ */}
+            {/* LIVE GAMES SECTION                           */}
+            {/* ============================================ */}
+            <section className="live-games-section">
+              <div className="section-header-row">
+                <h2 className="section-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
+                    <circle cx="12" cy="12" r="10" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                  Live Games
+                  {liveGames.length > 0 && (
+                    <span className="live-count-badge">{liveGames.length} active</span>
+                  )}
+                </h2>
+                <button
+                  className="section-action-btn"
+                  onClick={function() { setShowReportGame(!showReportGame); }}
+                >
+                  {showReportGame ? 'Cancel' : 'Report a Game'}
+                </button>
+              </div>
+
+              {/* Report Game Form */}
+              {showReportGame && (
+                <form className="inline-form" onSubmit={handleReportGame}>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label className="form-label">Game Type</label>
+                      <select
+                        className="form-select"
+                        value={reportForm.game_type}
+                        onChange={function(e) { setReportForm(Object.assign({}, reportForm, { game_type: e.target.value })); }}
+                      >
+                        <option value="NL Holdem">NL Hold&apos;em</option>
+                        <option value="PLO">PLO</option>
+                        <option value="PLO8">PLO8</option>
+                        <option value="Mixed">Mixed</option>
+                        <option value="Stud">Stud</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Stakes *</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="e.g. 1/2, 2/5"
+                        value={reportForm.stakes}
+                        onChange={function(e) { setReportForm(Object.assign({}, reportForm, { stakes: e.target.value })); }}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label className="form-label">Tables</label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        min="1"
+                        max="99"
+                        value={reportForm.table_count}
+                        onChange={function(e) { setReportForm(Object.assign({}, reportForm, { table_count: e.target.value })); }}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Wait (mins)</label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        min="0"
+                        placeholder="Optional"
+                        value={reportForm.wait_time}
+                        onChange={function(e) { setReportForm(Object.assign({}, reportForm, { wait_time: e.target.value })); }}
+                      />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Notes</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="Optional notes..."
+                      value={reportForm.notes}
+                      onChange={function(e) { setReportForm(Object.assign({}, reportForm, { notes: e.target.value })); }}
+                    />
+                  </div>
+                  <button type="submit" className="form-submit-btn" disabled={reportSubmitting || !reportForm.stakes.trim()}>
+                    {reportSubmitting ? 'Submitting...' : 'Submit Report'}
+                  </button>
+                </form>
+              )}
+
+              {/* Live Games List */}
+              {liveGames.length > 0 ? (
+                <div className="live-games-grid">
+                  {liveGames.map(function(game, idx) {
+                    return (
+                      <div key={game.id || idx} className="live-game-card">
+                        <div className="live-game-header">
+                          <span className="live-game-type">{game.game_type || 'Cash Game'}</span>
+                          <span className="live-game-stakes">{game.stakes}</span>
+                        </div>
+                        <div className="live-game-details">
+                          {game.table_count && (
+                            <span className="live-game-detail">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                              </svg>
+                              {game.table_count} {game.table_count === 1 ? 'table' : 'tables'}
+                            </span>
+                          )}
+                          {(game.wait_time !== null && game.wait_time !== undefined) && (
+                            <span className="live-game-detail" style={{ color: getWaitTimeColor(game.wait_time) }}>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="10" />
+                                <polyline points="12 6 12 12 16 14" />
+                              </svg>
+                              {game.wait_time} mins
+                            </span>
+                          )}
+                        </div>
+                        {game.notes && (
+                          <p className="live-game-notes">{game.notes}</p>
+                        )}
+                        {game.created_at && (
+                          <span className="live-game-time">reported {timeAgo(game.created_at)}</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="empty-section-card">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                  <p>No live game reports. Be the first to report what&apos;s running!</p>
+                </div>
+              )}
+            </section>
+
+            {/* ============================================ */}
+            {/* CHECK-INS SECTION                            */}
+            {/* ============================================ */}
+            <section className="checkins-section">
+              <div className="section-header-row">
+                <h2 className="section-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
+                  Check-Ins
+                  {checkinCount > 0 && (
+                    <span className="checkin-count-text">{checkinCount} {checkinCount === 1 ? 'person' : 'people'} checked in today</span>
+                  )}
+                </h2>
+                {!hasCheckedIn ? (
+                  <button
+                    className="section-action-btn checkin-btn"
+                    onClick={function() { setShowCheckinForm(!showCheckinForm); }}
+                  >
+                    {showCheckinForm ? 'Cancel' : 'Check In'}
+                  </button>
+                ) : (
+                  <span className="checked-in-badge">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    Checked In
+                  </span>
+                )}
+              </div>
+
+              {/* Check-in Confirmation */}
+              {checkinConfirm && (
+                <div className="checkin-confirm-banner">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  Checked in! Others can see you&apos;re here.
+                </div>
+              )}
+
+              {/* Check-in Form */}
+              {showCheckinForm && !hasCheckedIn && (
+                <form className="inline-form" onSubmit={handleCheckin}>
+                  <div className="form-row">
+                    <div className="form-group" style={{ flex: 1 }}>
+                      <label className="form-label">Your Name</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="Display name..."
+                        value={checkinName}
+                        onChange={function(e) { setCheckinName(e.target.value); }}
+                      />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Message (optional)</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="What are you playing? Looking for a game?"
+                      value={checkinMessage}
+                      onChange={function(e) { setCheckinMessage(e.target.value); }}
+                    />
+                  </div>
+                  <button type="submit" className="form-submit-btn" disabled={checkinSubmitting}>
+                    {checkinSubmitting ? 'Checking in...' : 'Check In'}
+                  </button>
+                </form>
+              )}
+
+              {/* Check-in List */}
+              {checkins.length > 0 ? (
+                <div className="checkins-list">
+                  {checkins.map(function(ci, idx) {
+                    return (
+                      <div key={ci.id || idx} className="checkin-item">
+                        <div className="checkin-avatar">
+                          {(ci.user_name || 'A').charAt(0).toUpperCase()}
+                        </div>
+                        <div className="checkin-info">
+                          <span className="checkin-name">{ci.user_name || 'Anonymous'}</span>
+                          {ci.message && <span className="checkin-msg">{ci.message}</span>}
+                        </div>
+                        <span className="checkin-time">{timeAgo(ci.created_at)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : !showCheckinForm && (
+                <div className="empty-section-card">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                  </svg>
+                  <p>No check-ins yet today. Be the first to check in!</p>
+                </div>
+              )}
+            </section>
+
+            {/* ============================================ */}
+            {/* REVIEWS & RATINGS SECTION                    */}
+            {/* ============================================ */}
+            <section className="reviews-section">
+              <div className="section-header-row">
+                <h2 className="section-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                  </svg>
+                  Reviews &amp; Ratings
+                </h2>
+                <button
+                  className="section-action-btn"
+                  onClick={function() { setShowReviewForm(!showReviewForm); }}
+                >
+                  {showReviewForm ? 'Cancel' : 'Write a Review'}
+                </button>
+              </div>
+
+              {/* Rating Summary */}
+              {totalReviews > 0 && (
+                <div className="rating-summary">
+                  <div className="rating-overview">
+                    <div className="rating-big-number">{avgRating.toFixed(1)}</div>
+                    <StarRating rating={Math.round(avgRating)} size={20} />
+                    <div className="rating-total">{totalReviews} {totalReviews === 1 ? 'review' : 'reviews'}</div>
+                  </div>
+                  {ratingDistribution && (
+                    <div className="rating-bars">
+                      {[5, 4, 3, 2, 1].map(function(star) {
+                        var count = ratingDistribution[star] || 0;
+                        var pct = totalReviews > 0 ? (count / totalReviews) * 100 : 0;
+                        return (
+                          <div key={star} className="rating-bar-row">
+                            <span className="rating-bar-label">{star}</span>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="#d4a853" stroke="none">
+                              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                            </svg>
+                            <div className="rating-bar-track">
+                              <div
+                                className="rating-bar-fill"
+                                style={{ width: pct + '%' }}
+                              />
+                            </div>
+                            <span className="rating-bar-count">{count}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Review Form */}
+              {showReviewForm && (
+                <form className="inline-form" onSubmit={handleSubmitReview}>
+                  <div className="form-group">
+                    <label className="form-label">Your Rating *</label>
+                    <div className="star-selector">
+                      <StarRating
+                        rating={reviewForm.rating}
+                        size={28}
+                        interactive={true}
+                        onRate={function(val) { setReviewForm(Object.assign({}, reviewForm, { rating: val })); }}
+                      />
+                      {reviewForm.rating > 0 && (
+                        <span className="star-selector-label">
+                          {['', 'Poor', 'Fair', 'Good', 'Great', 'Excellent'][reviewForm.rating]}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Your Name</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="Display name..."
+                      value={reviewForm.reviewer_name}
+                      onChange={function(e) { setReviewForm(Object.assign({}, reviewForm, { reviewer_name: e.target.value })); }}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Review *</label>
+                    <textarea
+                      className="form-textarea"
+                      rows="4"
+                      placeholder="Share your experience at this venue..."
+                      value={reviewForm.review_text}
+                      onChange={function(e) { setReviewForm(Object.assign({}, reviewForm, { review_text: e.target.value })); }}
+                      required
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="form-submit-btn"
+                    disabled={reviewSubmitting || !reviewForm.rating || !reviewForm.review_text.trim()}
+                  >
+                    {reviewSubmitting ? 'Submitting...' : 'Submit Review'}
+                  </button>
+                </form>
+              )}
+
+              {/* Reviews List */}
+              {reviews.length > 0 ? (
+                <div className="reviews-list">
+                  {reviews.map(function(review, idx) {
+                    return (
+                      <div key={review.id || idx} className="review-card">
+                        <div className="review-header">
+                          <div className="review-author">
+                            <div className="review-avatar">
+                              {(review.reviewer_name || 'A').charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <span className="review-name">{review.reviewer_name || 'Anonymous'}</span>
+                              <span className="review-date">{timeAgo(review.created_at)}</span>
+                            </div>
+                          </div>
+                          <StarRating rating={review.rating || 0} size={14} />
+                        </div>
+                        <p className="review-text">{review.review_text}</p>
+                        {review.helpful_count > 0 && (
+                          <span className="review-helpful">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z" />
+                              <path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" />
+                            </svg>
+                            {review.helpful_count} found helpful
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : !showReviewForm && (
+                <div className="empty-section-card">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                  </svg>
+                  <p>No reviews yet. Be the first to review this venue!</p>
+                </div>
+              )}
+            </section>
+
+            {/* ============================================ */}
+            {/* ACTIVITY FEED SECTION                        */}
+            {/* ============================================ */}
+            <section className="activity-section">
+              <div className="section-header-row">
+                <h2 className="section-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                  </svg>
+                  Activity Feed
+                </h2>
+                <button
+                  className="section-action-btn"
+                  onClick={function() { setShowPostForm(!showPostForm); }}
+                >
+                  {showPostForm ? 'Cancel' : 'Post Update'}
+                </button>
+              </div>
+
+              {/* Post Form */}
+              {showPostForm && (
+                <form className="inline-form" onSubmit={handlePostActivity}>
+                  <div className="form-group">
+                    <label className="form-label">What&apos;s happening?</label>
+                    <textarea
+                      className="form-textarea"
+                      rows="3"
+                      placeholder="Share an update about this venue..."
+                      value={postContent}
+                      onChange={function(e) { setPostContent(e.target.value); }}
+                      required
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="form-submit-btn"
+                    disabled={postSubmitting || !postContent.trim()}
+                  >
+                    {postSubmitting ? 'Posting...' : 'Post'}
+                  </button>
+                </form>
+              )}
+
+              {/* Activity List */}
+              {activities.length > 0 ? (
+                <div className="activity-list">
+                  {activities.map(function(activity, idx) {
+                    var typeStyle = getActivityTypeStyle(activity.activity_type);
+                    return (
+                      <div key={activity.id || idx} className="activity-card">
+                        <div className="activity-header">
+                          <span
+                            className="activity-type-badge"
+                            style={{
+                              background: typeStyle.bg,
+                              borderColor: typeStyle.border,
+                              color: typeStyle.color,
+                            }}
+                          >
+                            {activity.activity_type || 'update'}
+                          </span>
+                          <span className="activity-time">{timeAgo(activity.created_at)}</span>
+                        </div>
+                        <p className="activity-content">{activity.content}</p>
+                        {activity.likes_count > 0 && (
+                          <span className="activity-likes">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                            </svg>
+                            {activity.likes_count}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : !showPostForm && (
+                <div className="empty-section-card">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                  </svg>
+                  <p>No updates yet. Follow this venue for the latest news!</p>
+                </div>
+              )}
+            </section>
+
+            {/* ============================================ */}
+            {/* CLAIM THIS PAGE SECTION                      */}
+            {/* ============================================ */}
+            <section className="claim-section">
+              {claimStatus === 'approved' ? (
+                <div className="claim-verified-card">
+                  <div className="claim-verified-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                      <polyline points="22 4 12 14.01 9 11.01" />
+                    </svg>
+                  </div>
+                  <div className="claim-verified-text">
+                    <span className="claim-verified-title">Verified Page</span>
+                    <span className="claim-verified-desc">This venue page is managed by verified staff.</span>
+                  </div>
+                </div>
+              ) : claimStatus === 'pending' ? (
+                <div className="claim-pending-card">
+                  <div className="claim-pending-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                  </div>
+                  <div className="claim-pending-text">
+                    <span className="claim-pending-title">Claim Pending Review</span>
+                    <span className="claim-pending-desc">Your claim for this page is being reviewed. We&apos;ll be in touch soon.</span>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="claim-cta-card">
+                    <div className="claim-cta-content">
+                      <h3 className="claim-cta-title">Own or manage this venue?</h3>
+                      <p className="claim-cta-desc">
+                        Claim this page to update info, respond to reviews, and post updates.
+                      </p>
+                      {!showClaimForm && (
+                        <button
+                          className="claim-cta-btn"
+                          onClick={function() { setShowClaimForm(true); }}
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                            <polyline points="22 4 12 14.01 9 11.01" />
+                          </svg>
+                          Claim This Page
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Claim Form */}
+                  {showClaimForm && (
+                    <form className="inline-form claim-form" onSubmit={handleClaimSubmit}>
+                      <div className="form-row">
+                        <div className="form-group" style={{ flex: 1 }}>
+                          <label className="form-label">Your Name *</label>
+                          <input
+                            type="text"
+                            className="form-input"
+                            placeholder="Full name"
+                            value={claimForm.contact_name}
+                            onChange={function(e) { setClaimForm(Object.assign({}, claimForm, { contact_name: e.target.value })); }}
+                            required
+                          />
+                        </div>
+                        <div className="form-group" style={{ flex: 1 }}>
+                          <label className="form-label">Email *</label>
+                          <input
+                            type="email"
+                            className="form-input"
+                            placeholder="your@email.com"
+                            value={claimForm.contact_email}
+                            onChange={function(e) { setClaimForm(Object.assign({}, claimForm, { contact_email: e.target.value })); }}
+                            required
+                          />
+                        </div>
+                      </div>
+                      <div className="form-row">
+                        <div className="form-group" style={{ flex: 1 }}>
+                          <label className="form-label">Phone (optional)</label>
+                          <input
+                            type="tel"
+                            className="form-input"
+                            placeholder="Phone number"
+                            value={claimForm.contact_phone}
+                            onChange={function(e) { setClaimForm(Object.assign({}, claimForm, { contact_phone: e.target.value })); }}
+                          />
+                        </div>
+                        <div className="form-group" style={{ flex: 1 }}>
+                          <label className="form-label">Your Role</label>
+                          <select
+                            className="form-select"
+                            value={claimForm.role}
+                            onChange={function(e) { setClaimForm(Object.assign({}, claimForm, { role: e.target.value })); }}
+                          >
+                            <option value="Owner">Owner</option>
+                            <option value="Manager">Manager</option>
+                            <option value="Staff">Staff</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Verification Notes</label>
+                        <textarea
+                          className="form-textarea"
+                          rows="3"
+                          placeholder="How can we verify your association with this venue?"
+                          value={claimForm.verification_notes}
+                          onChange={function(e) { setClaimForm(Object.assign({}, claimForm, { verification_notes: e.target.value })); }}
+                        />
+                      </div>
+                      <div className="form-actions">
+                        <button type="submit" className="form-submit-btn" disabled={claimSubmitting || !claimForm.contact_name.trim() || !claimForm.contact_email.trim()}>
+                          {claimSubmitting ? 'Submitting...' : 'Submit Claim'}
+                        </button>
+                        <button type="button" className="form-cancel-btn" onClick={function() { setShowClaimForm(false); }}>
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  )}
+                </>
+              )}
+            </section>
           </>
         )}
       </div>
@@ -728,6 +1677,20 @@ export default function VenueDetailPage() {
           border: 1px solid rgba(212, 168, 83, 0.4);
           color: #d4a853;
         }
+        .verified-inline-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 3px 12px;
+          border-radius: 20px;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.5px;
+          text-transform: uppercase;
+          background: rgba(34, 197, 94, 0.12);
+          border: 1px solid rgba(34, 197, 94, 0.3);
+          color: #22c55e;
+        }
         .venue-location {
           margin-top: 12px;
         }
@@ -812,6 +1775,38 @@ export default function VenueDetailPage() {
           margin: 0 0 16px;
           padding-bottom: 8px;
           border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* Section Header Row */
+        .section-header-row {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 16px;
+          margin-bottom: 0;
+        }
+        .section-header-row .section-title {
+          margin-bottom: 16px;
+          flex: 1;
+        }
+        .section-action-btn {
+          flex-shrink: 0;
+          padding: 8px 18px;
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          font-family: inherit;
+          background: rgba(212, 168, 83, 0.1);
+          border: 1px solid rgba(212, 168, 83, 0.3);
+          color: #d4a853;
+          white-space: nowrap;
+          margin-top: 2px;
+        }
+        .section-action-btn:hover {
+          background: rgba(212, 168, 83, 0.2);
+          border-color: #d4a853;
         }
 
         /* Info Section */
@@ -1028,7 +2023,652 @@ export default function VenueDetailPage() {
           text-decoration: underline;
         }
 
-        /* Mobile Responsive */
+        /* ========================================= */
+        /* SHARED FORM STYLES                        */
+        /* ========================================= */
+        .inline-form {
+          background: rgba(15, 23, 42, 0.5);
+          border: 1px solid rgba(212, 168, 83, 0.2);
+          border-radius: 12px;
+          padding: 20px;
+          margin-bottom: 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+        }
+        .form-row {
+          display: flex;
+          gap: 12px;
+        }
+        .form-group {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          flex: 1;
+        }
+        .form-label {
+          font-size: 12px;
+          font-weight: 600;
+          color: #94a3b8;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        .form-input,
+        .form-select,
+        .form-textarea {
+          width: 100%;
+          padding: 10px 14px;
+          background: rgba(15, 23, 42, 0.8);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 8px;
+          color: #e2e8f0;
+          font-size: 14px;
+          font-family: inherit;
+          transition: border-color 0.2s;
+          outline: none;
+          box-sizing: border-box;
+        }
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+          border-color: rgba(212, 168, 83, 0.5);
+        }
+        .form-input::placeholder,
+        .form-textarea::placeholder {
+          color: #475569;
+        }
+        .form-select {
+          cursor: pointer;
+          appearance: auto;
+        }
+        .form-textarea {
+          resize: vertical;
+          min-height: 60px;
+        }
+        .form-submit-btn {
+          align-self: flex-start;
+          padding: 10px 24px;
+          background: rgba(212, 168, 83, 0.15);
+          border: 1px solid #d4a853;
+          border-radius: 8px;
+          color: #d4a853;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          font-family: inherit;
+        }
+        .form-submit-btn:hover:not(:disabled) {
+          background: rgba(212, 168, 83, 0.25);
+        }
+        .form-submit-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        .form-actions {
+          display: flex;
+          gap: 10px;
+          align-items: center;
+        }
+        .form-cancel-btn {
+          padding: 10px 20px;
+          background: transparent;
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          border-radius: 8px;
+          color: #94a3b8;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          font-family: inherit;
+        }
+        .form-cancel-btn:hover {
+          border-color: rgba(255, 255, 255, 0.25);
+          color: #cbd5e1;
+        }
+
+        /* ========================================= */
+        /* EMPTY SECTION CARD                        */
+        /* ========================================= */
+        .empty-section-card {
+          text-align: center;
+          padding: 40px 24px;
+          background: rgba(15, 23, 42, 0.5);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 12px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 12px;
+        }
+        .empty-section-card p {
+          color: #64748b;
+          font-size: 14px;
+          margin: 0;
+          max-width: 360px;
+          line-height: 1.5;
+        }
+
+        /* ========================================= */
+        /* LIVE GAMES SECTION                        */
+        /* ========================================= */
+        .live-games-section {
+          max-width: 900px;
+          margin: 32px auto 0;
+          padding: 0 24px;
+        }
+        .live-count-badge {
+          display: inline-block;
+          margin-left: 10px;
+          padding: 2px 10px;
+          border-radius: 10px;
+          font-size: 11px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.3px;
+          background: rgba(34, 197, 94, 0.12);
+          border: 1px solid rgba(34, 197, 94, 0.25);
+          color: #4ade80;
+          vertical-align: middle;
+        }
+        .live-games-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+        .live-game-card {
+          padding: 16px 18px;
+          background: rgba(15, 23, 42, 0.5);
+          border: 1px solid rgba(212, 168, 83, 0.15);
+          border-radius: 12px;
+          backdrop-filter: blur(12px);
+          transition: border-color 0.2s;
+        }
+        .live-game-card:hover {
+          border-color: rgba(212, 168, 83, 0.3);
+        }
+        .live-game-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 8px;
+        }
+        .live-game-type {
+          font-size: 13px;
+          font-weight: 700;
+          color: #d4a853;
+          text-transform: uppercase;
+          letter-spacing: 0.3px;
+        }
+        .live-game-stakes {
+          font-size: 18px;
+          font-weight: 800;
+          color: #f1f5f9;
+        }
+        .live-game-details {
+          display: flex;
+          gap: 16px;
+          align-items: center;
+          flex-wrap: wrap;
+        }
+        .live-game-detail {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 13px;
+          color: #94a3b8;
+          font-weight: 500;
+        }
+        .live-game-notes {
+          margin: 8px 0 0;
+          font-size: 13px;
+          color: #94a3b8;
+          line-height: 1.4;
+          font-style: italic;
+        }
+        .live-game-time {
+          display: block;
+          margin-top: 8px;
+          font-size: 11px;
+          color: #64748b;
+        }
+
+        /* ========================================= */
+        /* CHECK-INS SECTION                         */
+        /* ========================================= */
+        .checkins-section {
+          max-width: 900px;
+          margin: 32px auto 0;
+          padding: 0 24px;
+        }
+        .checkin-count-text {
+          display: inline-block;
+          margin-left: 10px;
+          font-size: 13px;
+          font-weight: 500;
+          color: #94a3b8;
+          vertical-align: middle;
+        }
+        .checkin-btn {
+          background: rgba(34, 197, 94, 0.1) !important;
+          border-color: rgba(34, 197, 94, 0.3) !important;
+          color: #4ade80 !important;
+        }
+        .checkin-btn:hover {
+          background: rgba(34, 197, 94, 0.2) !important;
+          border-color: #22c55e !important;
+        }
+        .checked-in-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 14px;
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 600;
+          background: rgba(34, 197, 94, 0.1);
+          border: 1px solid rgba(34, 197, 94, 0.25);
+          color: #22c55e;
+          margin-top: 2px;
+          flex-shrink: 0;
+        }
+        .checkin-confirm-banner {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 12px 16px;
+          background: rgba(34, 197, 94, 0.08);
+          border: 1px solid rgba(34, 197, 94, 0.2);
+          border-radius: 10px;
+          color: #4ade80;
+          font-size: 14px;
+          font-weight: 500;
+          margin-bottom: 16px;
+        }
+        .checkins-list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .checkin-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 16px;
+          background: rgba(15, 23, 42, 0.5);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 10px;
+          transition: border-color 0.2s;
+        }
+        .checkin-item:hover {
+          border-color: rgba(255, 255, 255, 0.15);
+        }
+        .checkin-avatar {
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          background: rgba(212, 168, 83, 0.15);
+          border: 1px solid rgba(212, 168, 83, 0.3);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 14px;
+          font-weight: 700;
+          color: #d4a853;
+          flex-shrink: 0;
+        }
+        .checkin-info {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .checkin-name {
+          font-size: 14px;
+          font-weight: 600;
+          color: #f1f5f9;
+        }
+        .checkin-msg {
+          font-size: 13px;
+          color: #94a3b8;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .checkin-time {
+          font-size: 12px;
+          color: #64748b;
+          flex-shrink: 0;
+        }
+
+        /* ========================================= */
+        /* REVIEWS SECTION                           */
+        /* ========================================= */
+        .reviews-section {
+          max-width: 900px;
+          margin: 32px auto 0;
+          padding: 0 24px;
+        }
+        .rating-summary {
+          display: flex;
+          gap: 32px;
+          align-items: flex-start;
+          padding: 20px 24px;
+          background: rgba(15, 23, 42, 0.5);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 12px;
+          margin-bottom: 16px;
+        }
+        .rating-overview {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 6px;
+          min-width: 100px;
+        }
+        .rating-big-number {
+          font-size: 42px;
+          font-weight: 800;
+          color: #d4a853;
+          line-height: 1;
+        }
+        .rating-total {
+          font-size: 13px;
+          color: #64748b;
+          font-weight: 500;
+        }
+        .rating-bars {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .rating-bar-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .rating-bar-label {
+          font-size: 13px;
+          font-weight: 600;
+          color: #94a3b8;
+          width: 14px;
+          text-align: right;
+        }
+        .rating-bar-track {
+          flex: 1;
+          height: 8px;
+          background: rgba(255, 255, 255, 0.06);
+          border-radius: 4px;
+          overflow: hidden;
+        }
+        .rating-bar-fill {
+          height: 100%;
+          background: #d4a853;
+          border-radius: 4px;
+          transition: width 0.3s ease;
+          min-width: 0;
+        }
+        .rating-bar-count {
+          font-size: 12px;
+          color: #64748b;
+          width: 24px;
+          text-align: left;
+        }
+        .star-selector {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .star-selector-label {
+          font-size: 14px;
+          color: #d4a853;
+          font-weight: 600;
+        }
+        .reviews-list {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .review-card {
+          padding: 16px 18px;
+          background: rgba(15, 23, 42, 0.5);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 12px;
+          transition: border-color 0.2s;
+        }
+        .review-card:hover {
+          border-color: rgba(255, 255, 255, 0.15);
+        }
+        .review-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 10px;
+        }
+        .review-author {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .review-avatar {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background: rgba(139, 92, 246, 0.15);
+          border: 1px solid rgba(139, 92, 246, 0.3);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 13px;
+          font-weight: 700;
+          color: #a78bfa;
+          flex-shrink: 0;
+        }
+        .review-name {
+          display: block;
+          font-size: 14px;
+          font-weight: 600;
+          color: #f1f5f9;
+        }
+        .review-date {
+          display: block;
+          font-size: 12px;
+          color: #64748b;
+        }
+        .review-text {
+          margin: 0;
+          font-size: 14px;
+          color: #cbd5e1;
+          line-height: 1.6;
+        }
+        .review-helpful {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          margin-top: 10px;
+          font-size: 12px;
+          color: #64748b;
+          font-weight: 500;
+        }
+
+        /* ========================================= */
+        /* ACTIVITY FEED SECTION                     */
+        /* ========================================= */
+        .activity-section {
+          max-width: 900px;
+          margin: 32px auto 0;
+          padding: 0 24px;
+        }
+        .activity-list {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+        .activity-card {
+          padding: 16px 18px;
+          background: rgba(15, 23, 42, 0.5);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 12px;
+          transition: border-color 0.2s;
+        }
+        .activity-card:hover {
+          border-color: rgba(255, 255, 255, 0.15);
+        }
+        .activity-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 8px;
+        }
+        .activity-type-badge {
+          display: inline-block;
+          padding: 3px 10px;
+          border-radius: 6px;
+          font-size: 11px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.3px;
+          border: 1px solid;
+        }
+        .activity-time {
+          font-size: 12px;
+          color: #64748b;
+        }
+        .activity-content {
+          margin: 0;
+          font-size: 14px;
+          color: #cbd5e1;
+          line-height: 1.6;
+        }
+        .activity-likes {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          margin-top: 10px;
+          font-size: 12px;
+          color: #ef4444;
+          font-weight: 500;
+        }
+
+        /* ========================================= */
+        /* CLAIM PAGE SECTION                        */
+        /* ========================================= */
+        .claim-section {
+          max-width: 900px;
+          margin: 32px auto 0;
+          padding: 0 24px;
+        }
+        .claim-cta-card {
+          background: rgba(15, 23, 42, 0.5);
+          border: 1px solid rgba(212, 168, 83, 0.15);
+          border-radius: 12px;
+          padding: 28px 24px;
+          text-align: center;
+        }
+        .claim-cta-content {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 10px;
+        }
+        .claim-cta-title {
+          font-size: 18px;
+          font-weight: 700;
+          color: #f1f5f9;
+          margin: 0;
+        }
+        .claim-cta-desc {
+          font-size: 14px;
+          color: #94a3b8;
+          margin: 0;
+          max-width: 480px;
+          line-height: 1.5;
+        }
+        .claim-cta-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          margin-top: 8px;
+          padding: 12px 28px;
+          background: rgba(212, 168, 83, 0.12);
+          border: 1px solid #d4a853;
+          border-radius: 8px;
+          color: #d4a853;
+          font-size: 15px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s;
+          font-family: inherit;
+        }
+        .claim-cta-btn:hover {
+          background: rgba(212, 168, 83, 0.25);
+        }
+        .claim-form {
+          margin-top: 16px;
+        }
+        .claim-verified-card,
+        .claim-pending-card {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          padding: 20px 24px;
+          border-radius: 12px;
+        }
+        .claim-verified-card {
+          background: rgba(34, 197, 94, 0.06);
+          border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+        .claim-pending-card {
+          background: rgba(212, 168, 83, 0.06);
+          border: 1px solid rgba(212, 168, 83, 0.2);
+        }
+        .claim-verified-icon,
+        .claim-pending-icon {
+          flex-shrink: 0;
+          width: 48px;
+          height: 48px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .claim-verified-icon {
+          background: rgba(34, 197, 94, 0.1);
+        }
+        .claim-pending-icon {
+          background: rgba(212, 168, 83, 0.1);
+        }
+        .claim-verified-text,
+        .claim-pending-text {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+        .claim-verified-title {
+          font-size: 16px;
+          font-weight: 700;
+          color: #22c55e;
+        }
+        .claim-pending-title {
+          font-size: 16px;
+          font-weight: 700;
+          color: #d4a853;
+        }
+        .claim-verified-desc,
+        .claim-pending-desc {
+          font-size: 14px;
+          color: #94a3b8;
+          line-height: 1.4;
+        }
+
+        /* ========================================= */
+        /* MOBILE RESPONSIVE                         */
+        /* ========================================= */
         @media (max-width: 640px) {
           .venue-name {
             font-size: 24px;
@@ -1039,6 +2679,11 @@ export default function VenueDetailPage() {
           .venue-header,
           .info-section,
           .tournaments-section,
+          .live-games-section,
+          .checkins-section,
+          .reviews-section,
+          .activity-section,
+          .claim-section,
           .back-nav {
             padding-left: 16px;
             padding-right: 16px;
@@ -1053,6 +2698,46 @@ export default function VenueDetailPage() {
             flex-direction: column;
             align-items: flex-start;
             gap: 4px;
+          }
+          .form-row {
+            flex-direction: column;
+            gap: 14px;
+          }
+          .section-header-row {
+            flex-direction: column;
+            gap: 8px;
+          }
+          .section-action-btn {
+            align-self: flex-start;
+          }
+          .rating-summary {
+            flex-direction: column;
+            gap: 20px;
+            align-items: stretch;
+          }
+          .rating-overview {
+            flex-direction: row;
+            justify-content: center;
+            gap: 12px;
+          }
+          .rating-big-number {
+            font-size: 32px;
+          }
+          .live-game-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
+          }
+          .review-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+          }
+          .claim-verified-card,
+          .claim-pending-card {
+            flex-direction: column;
+            text-align: center;
+            gap: 12px;
           }
         }
       `}</style>
