@@ -117,7 +117,7 @@ export default function MTTDeepStackUI({
             <div style={styles.tableArea}>
                 {/* EXACT TABLE IMAGE */}
                 <img
-                    src="/images/training/table-vertical-stadium.jpg"
+                    src="/images/training/table-vertical-stadium-transparent.png"
                     alt="Poker Table"
                     style={styles.tableImage}
                 />
