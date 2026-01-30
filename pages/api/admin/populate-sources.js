@@ -29,7 +29,7 @@ export default async function handler(req, res) {
         // Get all horse profiles
         const { data: horses, error: horsesError } = await supabase
             .from('profiles')
-            .select('id, alias')
+            .select('id')
             .eq('is_horse', true)
             .order('created_at', { ascending: true });
 
