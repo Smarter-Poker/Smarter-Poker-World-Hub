@@ -55,6 +55,19 @@ function timeAgo(dateStr) {
   return months + 'mo ago';
 }
 
+function formatDateRange(startDate, endDate) {
+  if (!startDate) return 'TBD';
+  var start = new Date(startDate + 'T00:00:00');
+  var end = endDate ? new Date(endDate + 'T00:00:00') : null;
+  var startStr = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  if (!end) return startStr;
+  if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
+    return startStr + ' - ' + end.getDate() + ', ' + end.getFullYear();
+  }
+  var endStr = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return startStr + ' - ' + endStr;
+}
+
 function TrustDots({ score }) {
   const maxDots = 5;
   const filled = Math.round(score || 0);
@@ -225,6 +238,15 @@ export default function VenueDetailPage() {
   const mapInstanceRef = useRef(null);
   const [mapReady, setMapReady] = useState(false);
 
+  // Promotions state
+  const [promotions, setPromotions] = useState([]);
+
+  // Nearby venues state
+  const [nearbyVenues, setNearbyVenues] = useState([]);
+
+  // Related tours/series state
+  const [relatedSeries, setRelatedSeries] = useState([]);
+
   // Get or create anonymous user ID for tracking
   function getAnonymousUserId() {
     try {
@@ -384,6 +406,55 @@ export default function VenueDetailPage() {
     if (!id) return;
     fetchClaimStatus();
   }, [id]);
+
+  // Fetch venue promotions
+  useEffect(function() {
+    if (!id) return;
+    fetch('/api/poker/promotions?page_type=venue&page_id=' + id + '&limit=5')
+      .then(function(r) { return r.json(); })
+      .then(function(json) {
+        if (json.success) {
+          setPromotions(json.promotions || []);
+        }
+      })
+      .catch(function() {});
+  }, [id]);
+
+  // Fetch nearby venues (once we have venue lat/lng)
+  useEffect(function() {
+    if (!venue || !venue.latitude || !venue.longitude) return;
+    fetch('/api/poker/venues?lat=' + venue.latitude + '&lng=' + venue.longitude + '&radius=80&limit=6')
+      .then(function(r) { return r.json(); })
+      .then(function(json) {
+        if (json.success) {
+          var all = json.data || [];
+          // Exclude current venue and take top 5
+          var nearby = all.filter(function(v) { return String(v.id) !== String(id); }).slice(0, 5);
+          setNearbyVenues(nearby);
+        }
+      })
+      .catch(function() {});
+  }, [venue, id]);
+
+  // Fetch related series (match by venue name)
+  useEffect(function() {
+    if (!venue || !venue.name) return;
+    fetch('/api/poker/series')
+      .then(function(r) { return r.json(); })
+      .then(function(json) {
+        if (json.success) {
+          var allSeries = json.series || json.data || [];
+          var venueLower = venue.name.toLowerCase();
+          var matched = allSeries.filter(function(s) {
+            var seriesVenue = (s.venue || s.venue_name || '').toLowerCase();
+            // Match if venue name appears in series venue or vice versa
+            return seriesVenue.indexOf(venueLower) !== -1 || venueLower.indexOf(seriesVenue) !== -1;
+          });
+          setRelatedSeries(matched.slice(0, 5));
+        }
+      })
+      .catch(function() {});
+  }, [venue]);
 
   // Handle ?action= query parameter from geofence alerts
   useEffect(function() {
@@ -1526,6 +1597,128 @@ export default function VenueDetailPage() {
                 </div>
               )}
             </section>
+
+            {/* ============================================ */}
+            {/* PROMOTIONS SECTION                            */}
+            {/* ============================================ */}
+            {promotions.length > 0 && (
+              <section className="promotions-section">
+                <div className="section-header-row">
+                  <h2 className="section-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
+                      <polyline points="20 12 20 22 4 22 4 12" />
+                      <rect x="2" y="7" width="20" height="5" />
+                      <line x1="12" y1="22" x2="12" y2="7" />
+                      <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" />
+                      <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
+                    </svg>
+                    Promotions
+                  </h2>
+                  <Link href="/hub/promotions" legacyBehavior>
+                    <a className="section-action-btn">View All</a>
+                  </Link>
+                </div>
+                <div className="promotions-list">
+                  {promotions.map(function(promo) {
+                    return (
+                      <div key={promo.id} className="promo-card">
+                        <div className="promo-header">
+                          <span className="promo-badge">Promotion</span>
+                          <span className="promo-time">{timeAgo(promo.created_at)}</span>
+                        </div>
+                        {promo.title && <h3 className="promo-title">{promo.title}</h3>}
+                        <p className="promo-content">{promo.content}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
+            {/* ============================================ */}
+            {/* RELATED TOURS & SERIES SECTION                */}
+            {/* ============================================ */}
+            {relatedSeries.length > 0 && (
+              <section className="related-series-section">
+                <h2 className="section-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
+                    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 7 7 7 7" />
+                    <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5C17 4 17 7 17 7" />
+                    <path d="M4 22h16" />
+                    <path d="M10 22V2h4v20" />
+                    <path d="M8 9h8" />
+                  </svg>
+                  Tournament Series at This Venue
+                </h2>
+                <div className="related-series-list">
+                  {relatedSeries.map(function(s) {
+                    return (
+                      <Link key={s.id} href={'/hub/series/' + s.id} legacyBehavior>
+                        <a className="related-series-card">
+                          <div className="related-series-info">
+                            <span className="related-series-tour">{s.tour || 'Tour'}</span>
+                            <span className="related-series-name">{s.name}</span>
+                            <span className="related-series-dates">{formatDateRange(s.start_date, s.end_date)}</span>
+                          </div>
+                          <div className="related-series-meta">
+                            {s.total_events && <span className="related-series-events">{s.total_events} events</span>}
+                            {s.main_event_buyin && <span className="related-series-buyin">ME: {formatMoney(s.main_event_buyin)}</span>}
+                          </div>
+                          <svg className="related-series-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="9 18 15 12 9 6" />
+                          </svg>
+                        </a>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
+            {/* ============================================ */}
+            {/* NEARBY VENUES SECTION                         */}
+            {/* ============================================ */}
+            {nearbyVenues.length > 0 && (
+              <section className="nearby-venues-section">
+                <h2 className="section-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="2" y1="12" x2="22" y2="12" />
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                  </svg>
+                  Nearby Poker Rooms
+                </h2>
+                <div className="nearby-venues-grid">
+                  {nearbyVenues.map(function(nv) {
+                    return (
+                      <Link key={nv.id} href={'/hub/venues/' + nv.id} legacyBehavior>
+                        <a className="nearby-venue-card">
+                          <div className="nearby-venue-info">
+                            <span className="nearby-venue-name">{nv.name}</span>
+                            <span className="nearby-venue-location">
+                              {nv.city}{nv.state ? ', ' + nv.state : ''}
+                            </span>
+                            {nv.venue_type && (
+                              <span className="nearby-venue-type">{VENUE_TYPE_LABELS[nv.venue_type] || nv.venue_type}</span>
+                            )}
+                          </div>
+                          {nv.distance_km != null && (
+                            <span className="nearby-venue-distance">
+                              {nv.distance_km < 1.6
+                                ? (nv.distance_km * 0.621371).toFixed(1) + ' mi'
+                                : Math.round(nv.distance_km * 0.621371) + ' mi'}
+                            </span>
+                          )}
+                          <svg className="nearby-venue-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="9 18 15 12 9 6" />
+                          </svg>
+                        </a>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
 
             {/* ============================================ */}
             {/* CLAIM THIS PAGE SECTION                      */}
@@ -2888,6 +3081,206 @@ export default function VenueDetailPage() {
         }
 
         /* ========================================= */
+        /* PROMOTIONS SECTION                        */
+        /* ========================================= */
+        .promotions-section {
+          max-width: 900px;
+          margin: 32px auto 0;
+          padding: 0 24px;
+        }
+        .promotions-list {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+        .promo-card {
+          padding: 16px 18px;
+          background: rgba(15, 23, 42, 0.5);
+          border: 1px solid rgba(212, 168, 83, 0.12);
+          border-radius: 12px;
+          transition: border-color 0.2s;
+        }
+        .promo-card:hover {
+          border-color: rgba(212, 168, 83, 0.3);
+        }
+        .promo-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 8px;
+        }
+        .promo-badge {
+          display: inline-block;
+          padding: 3px 10px;
+          border-radius: 6px;
+          font-size: 11px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.3px;
+          background: rgba(74, 222, 128, 0.15);
+          border: 1px solid rgba(74, 222, 128, 0.3);
+          color: #4ade80;
+        }
+        .promo-time {
+          font-size: 12px;
+          color: #64748b;
+        }
+        .promo-title {
+          font-size: 16px;
+          font-weight: 700;
+          color: #f1f5f9;
+          margin: 0 0 6px;
+        }
+        .promo-content {
+          margin: 0;
+          font-size: 14px;
+          color: #cbd5e1;
+          line-height: 1.6;
+        }
+
+        /* ========================================= */
+        /* RELATED SERIES SECTION                    */
+        /* ========================================= */
+        .related-series-section {
+          max-width: 900px;
+          margin: 32px auto 0;
+          padding: 0 24px;
+        }
+        .related-series-list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .related-series-card {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          padding: 14px 18px;
+          background: rgba(15, 23, 42, 0.5);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 12px;
+          text-decoration: none;
+          transition: all 0.2s;
+          cursor: pointer;
+        }
+        .related-series-card:hover {
+          border-color: rgba(212, 168, 83, 0.3);
+          background: rgba(212, 168, 83, 0.04);
+        }
+        .related-series-info {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 3px;
+          min-width: 0;
+        }
+        .related-series-tour {
+          font-size: 10px;
+          font-weight: 700;
+          color: #d4a853;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        .related-series-name {
+          font-size: 15px;
+          font-weight: 600;
+          color: #f1f5f9;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .related-series-dates {
+          font-size: 13px;
+          color: #94a3b8;
+        }
+        .related-series-meta {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 4px;
+          flex-shrink: 0;
+        }
+        .related-series-events {
+          font-size: 12px;
+          color: #94a3b8;
+          font-weight: 500;
+        }
+        .related-series-buyin {
+          font-size: 13px;
+          color: #d4a853;
+          font-weight: 700;
+        }
+        .related-series-arrow {
+          color: #475569;
+          flex-shrink: 0;
+        }
+
+        /* ========================================= */
+        /* NEARBY VENUES SECTION                     */
+        /* ========================================= */
+        .nearby-venues-section {
+          max-width: 900px;
+          margin: 32px auto 0;
+          padding: 0 24px;
+        }
+        .nearby-venues-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .nearby-venue-card {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          padding: 14px 18px;
+          background: rgba(15, 23, 42, 0.5);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 12px;
+          text-decoration: none;
+          transition: all 0.2s;
+          cursor: pointer;
+        }
+        .nearby-venue-card:hover {
+          border-color: rgba(212, 168, 83, 0.3);
+          background: rgba(212, 168, 83, 0.04);
+        }
+        .nearby-venue-info {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          min-width: 0;
+        }
+        .nearby-venue-name {
+          font-size: 15px;
+          font-weight: 600;
+          color: #f1f5f9;
+        }
+        .nearby-venue-location {
+          font-size: 13px;
+          color: #94a3b8;
+        }
+        .nearby-venue-type {
+          font-size: 11px;
+          font-weight: 600;
+          color: #64748b;
+          text-transform: uppercase;
+          letter-spacing: 0.3px;
+        }
+        .nearby-venue-distance {
+          font-size: 14px;
+          font-weight: 700;
+          color: #d4a853;
+          flex-shrink: 0;
+          white-space: nowrap;
+        }
+        .nearby-venue-arrow {
+          color: #475569;
+          flex-shrink: 0;
+        }
+
+        /* ========================================= */
         /* MOBILE RESPONSIVE                         */
         /* ========================================= */
         @media (max-width: 640px) {
@@ -2904,6 +3297,9 @@ export default function VenueDetailPage() {
           .checkins-section,
           .reviews-section,
           .activity-section,
+          .promotions-section,
+          .related-series-section,
+          .nearby-venues-section,
           .claim-section,
           .breadcrumb-nav,
           .map-section {

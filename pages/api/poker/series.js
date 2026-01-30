@@ -5,6 +5,7 @@
  */
 import { createClient } from '@supabase/supabase-js';
 import seriesJson from '../../../data/poker-tour-series-2026.json';
+import allVenuesData from '../../../data/all-venues.json';
 import wsopEvents from '../../../data/wsop-2026-events.json';
 import wptEvents from '../../../data/wpt-2026-events.json';
 import wsopCEvents from '../../../data/wsopc-2026-events.json';
@@ -27,6 +28,23 @@ const TOUR_EVENT_DATA = {
   VENETIAN: venetianEvents,
 };
 
+// Build venue name → ID lookup for cross-linking
+const venuesList = Array.isArray(allVenuesData) ? allVenuesData : allVenuesData.venues || [];
+const venueNameLookup = {};
+venuesList.forEach(v => {
+  if (v.name && v.id) venueNameLookup[v.name.toLowerCase()] = v.id;
+});
+
+function findVenueId(venueName) {
+  if (!venueName) return null;
+  const lower = venueName.toLowerCase();
+  if (venueNameLookup[lower]) return venueNameLookup[lower];
+  for (const [name, id] of Object.entries(venueNameLookup)) {
+    if (lower.indexOf(name) !== -1 || name.indexOf(lower) !== -1) return id;
+  }
+  return null;
+}
+
 /**
  * Map JSON series entries to API objects with numeric IDs
  */
@@ -39,6 +57,7 @@ function mapSeriesToApi(seriesArray) {
     tour: s.tour,
     tour_code: s.tour, // expose tour as tour_code for filtering
     venue: s.venue,
+    venue_id: findVenueId(s.venue),
     city: s.city,
     state: s.state,
     start_date: s.start_date,

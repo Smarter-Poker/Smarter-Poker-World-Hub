@@ -5,6 +5,7 @@
 import { createClient } from '@supabase/supabase-js';
 import tourRegistry from '../../../data/tour-source-registry.json';
 import tourSeriesData from '../../../data/poker-tour-series-2026.json';
+import allVenuesData from '../../../data/all-venues.json';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -34,13 +35,43 @@ function getToursFromRegistry() {
     return tours.sort((a, b) => a.priority - b.priority);
 }
 
+// Build venue name → ID lookup for cross-linking
+function buildVenueNameLookup() {
+    const venues = Array.isArray(allVenuesData) ? allVenuesData : allVenuesData.venues || [];
+    const lookup = {};
+    venues.forEach(v => {
+        if (v.name && v.id) {
+            lookup[v.name.toLowerCase()] = v.id;
+        }
+    });
+    return lookup;
+}
+
+function findVenueId(venueName, lookup) {
+    if (!venueName) return null;
+    const lower = venueName.toLowerCase();
+    // Exact match
+    if (lookup[lower]) return lookup[lower];
+    // Partial match: check if any venue name is contained in the series venue string
+    for (const [name, id] of Object.entries(lookup)) {
+        if (lower.indexOf(name) !== -1 || name.indexOf(lower) !== -1) return id;
+    }
+    return null;
+}
+
+const venueLookup = buildVenueNameLookup();
+
 // Get tour series/stops for 2026
 function getUpcomingSeries(tourCode) {
     const series = tourSeriesData.series_2026 || [];
     const today = new Date().toISOString().split('T')[0];
 
     // Assign global numeric IDs (matching series API: index + 1)
-    const withIds = series.map((s, i) => ({ ...s, id: i + 1 }));
+    const withIds = series.map((s, i) => ({
+        ...s,
+        id: i + 1,
+        venue_id: findVenueId(s.venue, venueLookup),
+    }));
 
     return withIds
         .filter(s => {

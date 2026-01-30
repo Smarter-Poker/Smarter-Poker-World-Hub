@@ -63,7 +63,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { page_type, limit = '50', offset = '0' } = req.query;
+    const { page_type, page_id, limit = '50', offset = '0' } = req.query;
     const limitNum = parseInt(limit, 10);
     const offsetNum = parseInt(offset, 10);
 
@@ -76,6 +76,9 @@ export default async function handler(req, res) {
 
     if (page_type && page_type !== 'all') {
       query = query.eq('page_type', page_type);
+    }
+    if (page_id) {
+      query = query.eq('page_id', page_id);
     }
 
     const { data, error } = await query;
@@ -95,6 +98,9 @@ export default async function handler(req, res) {
 
     if (page_type && page_type !== 'all') {
       notifQuery = notifQuery.eq('page_type', page_type);
+    }
+    if (page_id) {
+      notifQuery = notifQuery.eq('page_id', page_id);
     }
 
     const { data: notifData, error: notifError } = await notifQuery;

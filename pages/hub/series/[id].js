@@ -487,7 +487,13 @@ export default function SeriesDetailPage() {
             {venueName && (
               <div className="venue-row">
                 <span className="venue-label">Venue</span>
-                <span className="venue-value">{venueName}</span>
+                {series.venue_id ? (
+                  <Link href={'/hub/venues/' + series.venue_id} legacyBehavior>
+                    <a className="venue-value venue-value-link">{venueName}</a>
+                  </Link>
+                ) : (
+                  <span className="venue-value">{venueName}</span>
+                )}
               </div>
             )}
             {(location.city || location.state) && (
@@ -499,6 +505,17 @@ export default function SeriesDetailPage() {
               </div>
             )}
             <div className="venue-links">
+              {series.venue_id && (
+                <Link href={'/hub/venues/' + series.venue_id} legacyBehavior>
+                  <a className="venue-link venue-link-primary">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                      <polyline points="9 22 9 12 15 12 15 22" />
+                    </svg>
+                    View Venue Page
+                  </a>
+                </Link>
+              )}
               {(venueName || location.city) && (
                 <Link
                   href={'/hub/poker-near-me?search=' + encodeURIComponent(venueName || location.city)}
@@ -509,7 +526,7 @@ export default function SeriesDetailPage() {
                       <circle cx="7" cy="7" r="5"/>
                       <path d="M14 14l-3.5-3.5" strokeLinecap="round"/>
                     </svg>
-                    Find venue on Poker Near Me
+                    Find on Poker Near Me
                   </a>
                 </Link>
               )}
@@ -1084,6 +1101,16 @@ const styles = `
     color: #e2e8f0;
     font-weight: 500;
   }
+  .venue-value-link {
+    color: #d4a853;
+    text-decoration: underline;
+    text-decoration-color: rgba(212, 168, 83, 0.3);
+    text-underline-offset: 2px;
+    transition: text-decoration-color 0.2s;
+  }
+  .venue-value-link:hover {
+    text-decoration-color: #d4a853;
+  }
 
   .venue-links {
     display: flex;
@@ -1107,6 +1134,18 @@ const styles = `
 
   .venue-link:hover {
     color: #93bbfc;
+  }
+  .venue-link-primary {
+    color: #d4a853;
+    background: rgba(212, 168, 83, 0.08);
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(212, 168, 83, 0.2);
+  }
+  .venue-link-primary:hover {
+    color: #d4a853;
+    background: rgba(212, 168, 83, 0.15);
+    border-color: rgba(212, 168, 83, 0.4);
   }
 
   .venue-link.external {
