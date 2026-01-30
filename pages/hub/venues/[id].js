@@ -7,7 +7,7 @@
 
 import Head from 'next/head';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 
@@ -220,6 +220,11 @@ export default function VenueDetailPage() {
   });
   const [claimSubmitting, setClaimSubmitting] = useState(false);
 
+  // Map state
+  const mapContainerRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const [mapReady, setMapReady] = useState(false);
+
   // Get or create anonymous user ID for tracking
   function getAnonymousUserId() {
     try {
@@ -398,6 +403,58 @@ export default function VenueDetailPage() {
       }, 300);
     }
   }, [action, loading]);
+
+  // Wait for Leaflet scripts
+  useEffect(function() {
+    if (typeof window === 'undefined') return;
+    var check = function() {
+      if (window.L) {
+        setMapReady(true);
+      } else {
+        setTimeout(check, 200);
+      }
+    };
+    check();
+  }, []);
+
+  // Initialize venue map once Leaflet is ready and venue loaded
+  useEffect(function() {
+    if (!mapReady || !venue || !venue.latitude || !venue.longitude) return;
+    if (!mapContainerRef.current) return;
+    if (mapInstanceRef.current) return;
+
+    var L = window.L;
+    var map = L.map(mapContainerRef.current, {
+      center: [venue.latitude, venue.longitude],
+      zoom: 15,
+      zoomControl: true,
+      attributionControl: false,
+      scrollWheelZoom: false,
+    });
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '',
+      subdomains: 'abcd',
+      maxZoom: 19,
+    }).addTo(map);
+
+    var goldIcon = L.divIcon({
+      className: 'venue-detail-marker',
+      html: '<div style="width:20px;height:20px;border-radius:50%;background:#d4a853;border:3px solid #fff;box-shadow:0 0 12px rgba(212,168,83,0.8);"></div>',
+      iconSize: [26, 26],
+      iconAnchor: [13, 13],
+    });
+
+    L.marker([venue.latitude, venue.longitude], { icon: goldIcon }).addTo(map);
+    mapInstanceRef.current = map;
+
+    return function() {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, [mapReady, venue]);
 
   // Handlers
   var handleFollow = function() {
@@ -653,6 +710,8 @@ export default function VenueDetailPage() {
       <Head>
         <title>{pageTitle} | Smarter.Poker</title>
         <meta name="description" content={venue ? venue.name + ' poker room in ' + venue.city + ', ' + venue.state + '. Find tournaments, hours, and contact info.' : 'Poker venue details'} />
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
       </Head>
 
       <UniversalHeader />
@@ -678,17 +737,22 @@ export default function VenueDetailPage() {
 
         {venue && !loading && (
           <>
-            {/* Back Navigation */}
-            <div className="back-nav">
-              <Link href="/hub/poker-near-me">
-                <a className="back-link">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="15 18 9 12 15 6" />
-                  </svg>
-                  Back to Poker Near Me
-                </a>
-              </Link>
-            </div>
+            {/* Breadcrumb Navigation */}
+            <nav className="breadcrumb-nav" aria-label="Breadcrumb">
+              <ol className="breadcrumb-list">
+                <li className="breadcrumb-item">
+                  <Link href="/hub" legacyBehavior><a className="breadcrumb-link">Hub</a></Link>
+                  <span className="breadcrumb-sep">/</span>
+                </li>
+                <li className="breadcrumb-item">
+                  <Link href="/hub/poker-near-me" legacyBehavior><a className="breadcrumb-link">Poker Near Me</a></Link>
+                  <span className="breadcrumb-sep">/</span>
+                </li>
+                <li className="breadcrumb-item breadcrumb-current">
+                  {venue.name}
+                </li>
+              </ol>
+            </nav>
 
             {/* Header Section */}
             <header className="venue-header">
@@ -873,6 +937,42 @@ export default function VenueDetailPage() {
                 </div>
               </div>
             </section>
+
+            {/* ============================================ */}
+            {/* MAP & DIRECTIONS SECTION                     */}
+            {/* ============================================ */}
+            {venue.latitude && venue.longitude && (
+              <section className="map-section">
+                <h2 className="section-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
+                  Location
+                </h2>
+                <div className="venue-map-wrapper">
+                  <div ref={mapContainerRef} className="venue-map-container" />
+                </div>
+                <div className="map-actions">
+                  <a
+                    href={googleMapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="directions-btn"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="3 11 22 2 13 21 11 13 3 11" />
+                    </svg>
+                    Get Directions
+                  </a>
+                  {venue.address && (
+                    <span className="map-address-text">
+                      {venue.address}{venue.city ? ', ' + venue.city : ''}{venue.state ? ', ' + venue.state : ''}
+                    </span>
+                  )}
+                </div>
+              </section>
+            )}
 
             {/* Daily Tournaments Section */}
             {groupedSchedules && Object.keys(groupedSchedules).length > 0 && (
@@ -2694,6 +2794,100 @@ export default function VenueDetailPage() {
         }
 
         /* ========================================= */
+        /* BREADCRUMB NAVIGATION                     */
+        /* ========================================= */
+        .breadcrumb-nav {
+          max-width: 900px;
+          margin: 0 auto;
+          padding: 16px 24px 0;
+        }
+        .breadcrumb-list {
+          display: flex;
+          align-items: center;
+          list-style: none;
+          margin: 0;
+          padding: 0;
+          flex-wrap: wrap;
+          gap: 0;
+        }
+        .breadcrumb-item {
+          display: flex;
+          align-items: center;
+          font-size: 13px;
+          font-weight: 500;
+        }
+        .breadcrumb-link {
+          color: #94a3b8;
+          text-decoration: none;
+          transition: color 0.2s;
+        }
+        .breadcrumb-link:hover {
+          color: #d4a853;
+        }
+        .breadcrumb-sep {
+          margin: 0 8px;
+          color: #475569;
+        }
+        .breadcrumb-current {
+          color: #d4a853;
+          font-weight: 600;
+          max-width: 280px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        /* ========================================= */
+        /* MAP & DIRECTIONS                          */
+        /* ========================================= */
+        .map-section {
+          max-width: 900px;
+          margin: 32px auto 0;
+          padding: 0 24px;
+        }
+        .venue-map-wrapper {
+          border-radius: 12px;
+          overflow: hidden;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .venue-map-container {
+          width: 100%;
+          height: 280px;
+          background: #0f172a;
+        }
+        .map-actions {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          margin-top: 12px;
+          flex-wrap: wrap;
+        }
+        .directions-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 24px;
+          background: rgba(212, 168, 83, 0.12);
+          border: 1px solid #d4a853;
+          border-radius: 8px;
+          color: #d4a853;
+          font-size: 14px;
+          font-weight: 700;
+          text-decoration: none;
+          transition: all 0.2s;
+          cursor: pointer;
+          flex-shrink: 0;
+        }
+        .directions-btn:hover {
+          background: rgba(212, 168, 83, 0.25);
+        }
+        .map-address-text {
+          font-size: 13px;
+          color: #94a3b8;
+          line-height: 1.4;
+        }
+
+        /* ========================================= */
         /* MOBILE RESPONSIVE                         */
         /* ========================================= */
         @media (max-width: 640px) {
@@ -2711,7 +2905,8 @@ export default function VenueDetailPage() {
           .reviews-section,
           .activity-section,
           .claim-section,
-          .back-nav {
+          .breadcrumb-nav,
+          .map-section {
             padding-left: 16px;
             padding-right: 16px;
           }
