@@ -131,27 +131,63 @@ export default async function handler(req, res) {
             });
         }
 
-        // Pick a random clip from the least-used ones
-        const clip = clips[Math.floor(Math.random() * Math.min(10, clips.length))];
+        // RETRY LOOP: Try multiple clips until one works (fully autonomous)
+        let clip = null;
+        let attempts = 0;
+        const maxAttempts = Math.min(clips.length, 10);
+        const shuffledClips = [...clips].sort(() => Math.random() - 0.5);
 
-        if (!clip) {
-            return res.status(200).json({ success: false, error: 'No clip selected' });
+        for (const candidateClip of shuffledClips.slice(0, maxAttempts)) {
+            attempts++;
+
+            // Try to reserve this clip
+            const reserved = await ClipDeduplicationService.markClipAsPosted({
+                videoId: candidateClip.video_id,
+                sourceUrl: candidateClip.source_url,
+                clipSource: clipSource,
+                horseId: horse.profile_id
+            });
+
+            if (reserved) {
+                clip = candidateClip;
+                console.log(`   ✅ Reserved clip on attempt ${attempts}: ${candidateClip.title?.slice(0, 30)}`);
+                break;
+            } else {
+                console.log(`   ⏭️ Attempt ${attempts}: clip already used, trying next...`);
+            }
         }
 
-        // Reserve the clip for this horse
-        const reserved = await ClipDeduplicationService.markClipAsPosted({
-            videoId: clip.video_id,
-            sourceUrl: clip.source_url,
-            clipSource: clipSource,
-            horseId: horse.profile_id
-        });
+        if (!clip) {
+            // All clips were already used - fetch more from DB with offset
+            console.log(`   ⚠️ All ${maxAttempts} clips already used, fetching fresh batch...`);
+            const offset = Math.floor(Math.random() * 100) * 20; // Random offset into the 100k clips
+            const { data: freshClips } = await supabase
+                .from(clipSource)
+                .select('*')
+                .range(offset, offset + 20);
 
-        if (!reserved) {
-            console.log(`   ⚠️ Clip already reserved, skipping`);
+            if (freshClips?.length) {
+                for (const freshClip of freshClips) {
+                    const reserved = await ClipDeduplicationService.markClipAsPosted({
+                        videoId: freshClip.video_id,
+                        sourceUrl: freshClip.source_url,
+                        clipSource: clipSource,
+                        horseId: horse.profile_id
+                    });
+                    if (reserved) {
+                        clip = freshClip;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!clip) {
             return res.status(200).json({
-                success: true,
-                message: 'Clip already used',
-                horse: horse.name
+                success: false,
+                error: 'Could not find unused clip after multiple attempts',
+                horse: horse.name,
+                attempts: attempts
             });
         }
 
