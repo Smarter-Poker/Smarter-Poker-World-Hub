@@ -108,10 +108,26 @@ export default async function handler(req, res) {
         }
 
         if (!clips.length) {
+            // Return debugging info
+            const { count: pokerCount } = await supabase
+                .from('poker_clips')
+                .select('*', { count: 'exact', head: true });
+
+            const { count: sportsCount, error: countError } = await supabase
+                .from('sports_clips')
+                .select('*', { count: 'exact', head: true });
+
             return res.status(200).json({
                 success: false,
                 error: 'No clips available in either table',
-                horse: horse.name
+                horse: horse.name,
+                debug: {
+                    poker_clips_count: pokerCount || 0,
+                    sports_clips_count: sportsCount || 0,
+                    sports_error: countError?.message,
+                    supabase_url: SUPABASE_URL?.slice(0, 30) + '...',
+                    has_service_key: !!process.env.SUPABASE_SERVICE_ROLE_KEY
+                }
             });
         }
 
