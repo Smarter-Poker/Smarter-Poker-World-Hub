@@ -13,23 +13,22 @@ import React from 'react';
 import { motion } from 'framer-motion';
 
 // 9-Max seat positions (VERTICAL STADIUM TABLE - portrait orientation)
-// Table is TALL (vertical), so avatars distribute along LEFT and RIGHT sides
-// Reference image: 4 avatars on left edge, 4 on right edge, hero at bottom center
+// Reference shows avatars VERY CLOSE to center, on INNER edge of gold rail
 const SEAT_POSITIONS = [
     // Hero at bottom center
     { id: 'hero', x: 50, y: 85, isHero: true },
 
-    // LEFT SIDE (4 villains) - from bottom to top
-    { id: 'v1', x: 15, y: 70 },  // Bottom-left
-    { id: 'v2', x: 15, y: 50 },  // Mid-left
-    { id: 'v3', x: 15, y: 30 },  // Upper-mid-left
-    { id: 'v4', x: 25, y: 15 },  // Top-left (closer to center)
+    // LEFT SIDE (4 villains) - MUCH closer to center
+    { id: 'v1', x: 30, y: 68 },  // Bottom-left
+    { id: 'v2', x: 30, y: 50 },  // Mid-left
+    { id: 'v3', x: 30, y: 32 },  // Upper-mid-left
+    { id: 'v4', x: 35, y: 18 },  // Top-left
 
-    // RIGHT SIDE (4 villains) - from bottom to top
-    { id: 'v8', x: 85, y: 70 },  // Bottom-right
-    { id: 'v7', x: 85, y: 50 },  // Mid-right
-    { id: 'v6', x: 85, y: 30 },  // Upper-mid-right
-    { id: 'v5', x: 75, y: 15 },  // Top-right (closer to center)
+    // RIGHT SIDE (4 villains) - MUCH closer to center
+    { id: 'v8', x: 70, y: 68 },  // Bottom-right
+    { id: 'v7', x: 70, y: 50 },  // Mid-right
+    { id: 'v6', x: 70, y: 32 },  // Upper-mid-right
+    { id: 'v5', x: 65, y: 18 },  // Top-right
 ];
 
 // Convert card notation (e.g., 'Ah' for Ace of Hearts) to image path
