@@ -559,20 +559,8 @@ function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLike, onC
                 />
             )}
 
-            {/* Play/Pause Overlay */}
-            {!isPlaying && (
-                <div
-                    onClick={togglePlay}
-                    style={{
-                        position: 'absolute', top: '50%', left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        width: 80, height: 80, borderRadius: '50%',
-                        background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        cursor: 'pointer', fontSize: 36, color: 'white'
-                    }}
-                >▶</div>
-            )}
+
+
 
             {/* Author Info & Caption Overlay */}
             <div style={{

@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   GEEVES ADVANCED TOOLBAR — All Phase 4-9 tools in one toolbar
+   GEEVES ADVANCED TOOLBAR — All Phases 3-9 tools in one toolbar
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import React, { useState } from 'react';
@@ -16,6 +16,8 @@ import { OpponentProfiler } from './OpponentProfiler';
 import { TournamentAdvisor } from './TournamentAdvisor';
 import { MultiStreetPlanner } from './MultiStreetPlanner';
 import { AIDebateMode } from './AIDebateMode';
+import { TrainingProgressTracker } from './TrainingProgressTracker';
+import { PioInsights } from './PioInsights';
 
 interface Message {
     id: string;
@@ -34,6 +36,7 @@ type ToolId =
     | 'range' | 'equity' | 'hand' | 'quiz'
     | 'screenshot' | 'history' | 'builder' | 'export'
     | 'session' | 'opponent' | 'tournament' | 'planner' | 'debate'
+    | 'training' | 'pio'
     | null;
 
 const TOOLS = [
@@ -48,11 +51,14 @@ const TOOLS = [
     { id: 'builder' as ToolId, icon: '✏️', label: 'Builder', category: 'Tools' },
     { id: 'export' as ToolId, icon: '📤', label: 'Export', category: 'Share' },
     // Row 3: Advanced (Phase 9)
-    { id: 'session' as ToolId, icon: '🎯', label: 'Session', category: 'Live' },
+    { id: 'session' as ToolId, icon: '⏱️', label: 'Session', category: 'Live' },
     { id: 'opponent' as ToolId, icon: '🎭', label: 'Opponent', category: 'Profiling' },
     { id: 'tournament' as ToolId, icon: '🏆', label: 'MTT', category: 'Tournament' },
     { id: 'planner' as ToolId, icon: '📋', label: 'Planner', category: 'Strategy' },
-    { id: 'debate' as ToolId, icon: '⚔️', label: 'Debate', category: 'AI' }
+    { id: 'debate' as ToolId, icon: '⚔️', label: 'Debate', category: 'AI' },
+    // Row 4: Training Integration (Phase 5)
+    { id: 'training' as ToolId, icon: '📈', label: 'Progress', category: 'Training' },
+    { id: 'pio' as ToolId, icon: '🧮', label: 'PIO', category: 'GTO' }
 ];
 
 export function GeevesAdvancedToolbar({
