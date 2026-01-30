@@ -333,14 +333,28 @@ async function postSportsNews(horse, horseIndex) {
 async function postStory(horse, horseIndex) {
     console.log(`   Posting STORY`);
 
-    const storyTopics = [
-        'poker session update', 'day at the tables', 'poker thought',
-        'tournament recap', 'cash game observation', 'sports take'
+    // Pre-written story bank for 100% reliability
+    const storyBank = [
+        'Just had one of those sessions where everything clicked. Love when the cards cooperate for once',
+        'Been working on my game lately and starting to see results. Small wins add up',
+        'Sometimes you just gotta step away from the tables and reset. Mental game is everything',
+        'That feeling when you make a perfect read and it pays off. Why we play this game',
+        'Tough session today but learned a lot. Every hand is a lesson if you pay attention',
+        'Late night grind hitting different tonight. Focus mode activated',
+        'Poker is wild. One hand can change everything. Staying patient though',
+        'Good run this week. Trying not to get too excited but the cards have been kind',
+        'Taking a break from the tables to watch some sports. Need to decompress',
+        'Reviewed some hands from yesterday. Always room to improve'
     ];
-    const topic = storyTopics[Math.floor(Math.random() * storyTopics.length)];
 
     let story = '';
     try {
+        const storyTopics = [
+            'poker session update', 'day at the tables', 'poker thought',
+            'tournament recap', 'cash game observation', 'sports take'
+        ];
+        const topic = storyTopics[Math.floor(Math.random() * storyTopics.length)];
+
         const response = await grok.chat.completions.create({
             model: 'grok-3-mini',
             messages: [{
@@ -349,9 +363,14 @@ async function postStory(horse, horseIndex) {
             }],
             max_tokens: 80
         });
-        story = response.choices[0]?.message?.content?.trim() || 'Good vibes at the tables today 🎰';
+        story = response.choices[0]?.message?.content?.trim() || '';
     } catch (e) {
-        story = 'Another day grinding';
+        console.log(`   Grok failed, using story bank`);
+    }
+
+    // Use story bank if Grok failed or returned empty
+    if (!story || story.length < 10) {
+        story = storyBank[horseIndex % storyBank.length];
     }
 
     story = applyWritingStyle(story, horse.profile_id);
@@ -415,23 +434,36 @@ export default async function handler(req, res) {
         // Get assigned sources for clips
         const assignedSources = await getHorseSources(horse.profile_id);
 
-        // Execute based on content type
+        // Execute based on content type with FALLBACK CHAIN for 100% reliability
         let result;
-        switch (contentType) {
-            case 'video_clip':
-                result = await postVideoClip(horse, assignedSources, index);
+        const fallbackOrder = [contentType, 'video_clip', 'story'];
+
+        for (const tryType of fallbackOrder) {
+            console.log(`   Trying content type: ${tryType}`);
+
+            switch (tryType) {
+                case 'video_clip':
+                    result = await postVideoClip(horse, assignedSources, index);
+                    break;
+                case 'poker_news':
+                    result = await postPokerNews(horse, index);
+                    break;
+                case 'sports_news':
+                    result = await postSportsNews(horse, index);
+                    break;
+                case 'story':
+                    result = await postStory(horse, index);
+                    break;
+                default:
+                    result = await postVideoClip(horse, assignedSources, index);
+            }
+
+            if (result.success) {
+                result.attemptedType = contentType;
+                result.usedFallback = tryType !== contentType;
                 break;
-            case 'poker_news':
-                result = await postPokerNews(horse, index);
-                break;
-            case 'sports_news':
-                result = await postSportsNews(horse, index);
-                break;
-            case 'story':
-                result = await postStory(horse, index);
-                break;
-            default:
-                result = await postVideoClip(horse, assignedSources, index);
+            }
+            console.log(`   Type ${tryType} failed, trying fallback...`);
         }
 
         console.log(`   ${result.success ? '✅' : '❌'} Result:`, result);
