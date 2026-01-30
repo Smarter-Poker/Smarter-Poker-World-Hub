@@ -470,12 +470,12 @@ export default function TourDetailPage() {
                             )}
                           </div>
 
-                          <div className="series-venue">
+                          <div className="series-venue" onClick={series.venue_id ? function(e) { e.preventDefault(); e.stopPropagation(); router.push('/hub/venues/' + series.venue_id); } : undefined}>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
                               <polyline points="9 22 9 12 15 12 15 22" />
                             </svg>
-                            <span>{series.venue}</span>
+                            <span className={series.venue_id ? 'venue-link-text' : ''}>{series.venue}</span>
                           </div>
 
                           {(series.city || series.state) && (
@@ -1065,6 +1065,17 @@ const styles = `
     font-size: 13px;
     color: #94a3b8;
     margin-bottom: 6px;
+  }
+  .venue-link-text {
+    color: #d4a853;
+    text-decoration: underline;
+    text-decoration-color: rgba(212, 168, 83, 0.3);
+    text-underline-offset: 2px;
+    cursor: pointer;
+    transition: text-decoration-color 0.2s;
+  }
+  .venue-link-text:hover {
+    text-decoration-color: #d4a853;
   }
   .series-venue svg,
   .series-location svg,
