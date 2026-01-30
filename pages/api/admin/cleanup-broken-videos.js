@@ -154,43 +154,29 @@ export default async function handler(req, res) {
 
         // 4. Execute cleanup if requested
         if (execute) {
-            // Update URLs to embed format
-            for (const update of needsUpdate) {
-                const { error: updateError } = await supabase
-                    .from('social_posts')
-                    .update({ media_urls: [update.new_url] })
-                    .eq('id', update.id);
+            // Batch delete all duplicates at once
+            const allDuplicateIds = results.duplicates.flatMap(dup =>
+                dup.delete.map(d => d.id)
+            );
 
-                if (!updateError) {
-                    results.updated.push(update);
-                }
-            }
-
-            // Delete duplicates (keep oldest)
-            for (const dup of results.duplicates) {
-                const idsToDelete = dup.delete.map(d => d.id);
+            if (allDuplicateIds.length > 0) {
+                console.log(`Deleting ${allDuplicateIds.length} duplicate posts...`);
                 const { error: deleteError } = await supabase
                     .from('social_posts')
                     .delete()
-                    .in('id', idsToDelete);
+                    .in('id', allDuplicateIds);
 
                 if (!deleteError) {
-                    results.deleted.push(...idsToDelete);
+                    results.deleted = allDuplicateIds;
+                    console.log(`✅ Deleted ${allDuplicateIds.length} duplicates`);
+                } else {
+                    console.error('Delete error:', deleteError);
                 }
             }
 
-            // Delete broken videos
-            if (brokenVideos.length > 0) {
-                const brokenIds = brokenVideos.map(v => v.id);
-                const { error: deleteError } = await supabase
-                    .from('social_posts')
-                    .delete()
-                    .in('id', brokenIds);
-
-                if (!deleteError) {
-                    results.deleted.push(...brokenIds);
-                }
-            }
+            // Note: URL updates are skipped for performance
+            // The frontend already converts URLs on-the-fly
+            console.log(`Skipping ${needsUpdate.length} URL updates (frontend handles conversion)`);
         }
 
         return res.status(200).json({
