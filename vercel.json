@@ -61,112 +61,8 @@
       "schedule": "0 */4 * * *"
     },
     {
-      "path": "/api/cron/horses-news",
-      "schedule": "30 * * * *"
-    },
-    {
-      "path": "/api/cron/news-scraper",
-      "schedule": "0 */2 * * *"
-    },
-    {
       "path": "/api/cron/scrape-news",
       "schedule": "0 * * * *"
-    },
-    {
-      "path": "/api/cron/pokernews-videos",
-      "schedule": "30 */2 * * *"
-    },
-    {
-      "path": "/api/cron/youtube-shorts",
-      "schedule": "0 */6 * * *"
-    },
-    {
-      "path": "/api/cron/horses-social-likes",
-      "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/cron/horses-social-comments",
-      "schedule": "2,7,12,17,22,27,32,37,42,47,52,57 * * * *"
-    },
-    {
-      "path": "/api/cron/horses-social-friends",
-      "schedule": "15 */4 * * *"
-    },
-    {
-      "path": "/api/cron/horses-social-replies",
-      "schedule": "3,8,13,18,23,28,33,38,43,48,53,58 * * * *"
-    },
-    {
-      "path": "/api/cron/horses-clips",
-      "schedule": "3 * * * *"
-    },
-    {
-      "path": "/api/cron/horses-clips",
-      "schedule": "10 * * * *"
-    },
-    {
-      "path": "/api/cron/horses-clips",
-      "schedule": "18 * * * *"
-    },
-    {
-      "path": "/api/cron/horses-clips",
-      "schedule": "25 * * * *"
-    },
-    {
-      "path": "/api/cron/horses-clips",
-      "schedule": "33 * * * *"
-    },
-    {
-      "path": "/api/cron/horses-clips",
-      "schedule": "40 * * * *"
-    },
-    {
-      "path": "/api/cron/horses-clips",
-      "schedule": "48 * * * *"
-    },
-    {
-      "path": "/api/cron/horses-clips",
-      "schedule": "55 * * * *"
-    },
-    {
-      "path": "/api/cron/horses-stories",
-      "schedule": "8 * * * *"
-    },
-    {
-      "path": "/api/cron/horses-stories",
-      "schedule": "23 * * * *"
-    },
-    {
-      "path": "/api/cron/horses-stories",
-      "schedule": "38 * * * *"
-    },
-    {
-      "path": "/api/cron/horses-stories",
-      "schedule": "53 * * * *"
-    },
-    {
-      "path": "/api/cron/horses-sports-clips",
-      "schedule": "5 * * * *"
-    },
-    {
-      "path": "/api/cron/horses-sports-clips",
-      "schedule": "15 * * * *"
-    },
-    {
-      "path": "/api/cron/horses-sports-clips",
-      "schedule": "28 * * * *"
-    },
-    {
-      "path": "/api/cron/horses-sports-clips",
-      "schedule": "35 * * * *"
-    },
-    {
-      "path": "/api/cron/horses-sports-clips",
-      "schedule": "45 * * * *"
-    },
-    {
-      "path": "/api/cron/horses-sports-clips",
-      "schedule": "58 * * * *"
     },
     {
       "path": "/api/cron/scrape-poker-clips",
@@ -177,60 +73,388 @@
       "schedule": "0 4 * * *"
     },
     {
-      "path": "/api/cron/horses-sports-stories",
-      "schedule": "12 * * * *"
-    },
-    {
-      "path": "/api/cron/horses-sports-stories",
-      "schedule": "27 * * * *"
-    },
-    {
-      "path": "/api/cron/horses-sports-stories",
-      "schedule": "42 * * * *"
-    },
-    {
-      "path": "/api/cron/horses-sports-stories",
-      "schedule": "57 * * * *"
-    },
-    {
       "path": "/api/cron/generate-trivia",
       "schedule": "59 5 * * *"
     },
     {
-      "path": "/api/cron/scrape-venue-tournaments?batch=1",
-      "schedule": "0 6 */3 * *"
+      "path": "/api/cron/horses-social-likes",
+      "schedule": "*/10 * * * *"
     },
     {
-      "path": "/api/cron/scrape-venue-tournaments?batch=2",
-      "schedule": "0 6 1-31/3 * *"
+      "path": "/api/cron/horses-social-comments",
+      "schedule": "*/7 * * * *"
     },
     {
-      "path": "/api/cron/scrape-venue-tournaments?batch=3",
-      "schedule": "0 6 2-31/3 * *"
+      "path": "/api/cron/horses-social-replies",
+      "schedule": "*/8 * * * *"
     },
     {
-      "path": "/api/cron/scrape-tour-events?batch=1",
-      "schedule": "0 8 */3 * *"
+      "path": "/api/cron/horses-social-friends",
+      "schedule": "15 */6 * * *"
     },
     {
-      "path": "/api/cron/scrape-tour-events?batch=2",
-      "schedule": "0 8 1-31/3 * *"
+      "path": "/api/cron/horses-batch-91-99",
+      "schedule": "30 * * * *"
     },
     {
-      "path": "/api/cron/scrape-tour-events?batch=3",
-      "schedule": "0 8 2-31/3 * *"
+      "path": "/api/cron/horse/0",
+      "schedule": "0 * * * *"
     },
     {
-      "path": "/api/cron/scrape-venue-info?batch=1",
-      "schedule": "0 10 */3 * *"
+      "path": "/api/cron/horse/1",
+      "schedule": "1 * * * *"
     },
     {
-      "path": "/api/cron/scrape-venue-info?batch=2",
-      "schedule": "0 10 1-31/3 * *"
+      "path": "/api/cron/horse/2",
+      "schedule": "2 * * * *"
     },
     {
-      "path": "/api/cron/scrape-venue-info?batch=3",
-      "schedule": "0 10 2-31/3 * *"
+      "path": "/api/cron/horse/3",
+      "schedule": "3 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/4",
+      "schedule": "4 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/5",
+      "schedule": "5 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/6",
+      "schedule": "6 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/7",
+      "schedule": "7 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/8",
+      "schedule": "8 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/9",
+      "schedule": "9 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/10",
+      "schedule": "10 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/11",
+      "schedule": "11 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/12",
+      "schedule": "12 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/13",
+      "schedule": "13 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/14",
+      "schedule": "14 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/15",
+      "schedule": "15 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/16",
+      "schedule": "16 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/17",
+      "schedule": "17 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/18",
+      "schedule": "18 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/19",
+      "schedule": "19 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/20",
+      "schedule": "20 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/21",
+      "schedule": "21 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/22",
+      "schedule": "22 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/23",
+      "schedule": "23 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/24",
+      "schedule": "24 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/25",
+      "schedule": "25 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/26",
+      "schedule": "26 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/27",
+      "schedule": "27 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/28",
+      "schedule": "28 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/29",
+      "schedule": "29 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/30",
+      "schedule": "30 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/31",
+      "schedule": "31 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/32",
+      "schedule": "32 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/33",
+      "schedule": "33 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/34",
+      "schedule": "34 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/35",
+      "schedule": "35 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/36",
+      "schedule": "36 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/37",
+      "schedule": "37 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/38",
+      "schedule": "38 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/39",
+      "schedule": "39 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/40",
+      "schedule": "40 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/41",
+      "schedule": "41 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/42",
+      "schedule": "42 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/43",
+      "schedule": "43 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/44",
+      "schedule": "44 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/45",
+      "schedule": "45 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/46",
+      "schedule": "46 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/47",
+      "schedule": "47 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/48",
+      "schedule": "48 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/49",
+      "schedule": "49 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/50",
+      "schedule": "50 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/51",
+      "schedule": "51 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/52",
+      "schedule": "52 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/53",
+      "schedule": "53 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/54",
+      "schedule": "54 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/55",
+      "schedule": "55 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/56",
+      "schedule": "56 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/57",
+      "schedule": "57 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/58",
+      "schedule": "58 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/59",
+      "schedule": "59 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/60",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/61",
+      "schedule": "1 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/62",
+      "schedule": "2 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/63",
+      "schedule": "3 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/64",
+      "schedule": "4 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/65",
+      "schedule": "5 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/66",
+      "schedule": "6 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/67",
+      "schedule": "7 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/68",
+      "schedule": "8 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/69",
+      "schedule": "9 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/70",
+      "schedule": "10 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/71",
+      "schedule": "11 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/72",
+      "schedule": "12 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/73",
+      "schedule": "13 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/74",
+      "schedule": "14 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/75",
+      "schedule": "15 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/76",
+      "schedule": "16 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/77",
+      "schedule": "17 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/78",
+      "schedule": "18 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/79",
+      "schedule": "19 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/80",
+      "schedule": "20 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/81",
+      "schedule": "21 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/82",
+      "schedule": "22 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/83",
+      "schedule": "23 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/84",
+      "schedule": "24 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/85",
+      "schedule": "25 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/86",
+      "schedule": "26 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/87",
+      "schedule": "27 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/88",
+      "schedule": "28 * * * *"
+    },
+    {
+      "path": "/api/cron/horse/89",
+      "schedule": "29 * * * *"
     }
   ]
 }
