@@ -154,29 +154,38 @@ export default async function handler(req, res) {
 
         // 4. Execute cleanup if requested
         if (execute) {
-            // Batch delete all duplicates at once
+            // Batch delete all duplicates
             const allDuplicateIds = results.duplicates.flatMap(dup =>
                 dup.delete.map(d => d.id)
             );
 
             console.log(`[CLEANUP] Found ${allDuplicateIds.length} duplicate IDs to delete`);
-            console.log(`[CLEANUP] Sample IDs:`, allDuplicateIds.slice(0, 5));
 
             if (allDuplicateIds.length > 0) {
-                console.log(`[CLEANUP] Executing batch delete...`);
-                const { data, error: deleteError } = await supabase
-                    .from('social_posts')
-                    .delete()
-                    .in('id', allDuplicateIds);
+                // Delete in batches of 50 to avoid query limits
+                const batchSize = 50;
+                let totalDeleted = 0;
 
-                console.log(`[CLEANUP] Delete response:`, { data, error: deleteError });
+                for (let i = 0; i < allDuplicateIds.length; i += batchSize) {
+                    const batch = allDuplicateIds.slice(i, i + batchSize);
+                    console.log(`[CLEANUP] Deleting batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(allDuplicateIds.length / batchSize)} (${batch.length} items)...`);
 
-                if (!deleteError) {
-                    results.deleted = allDuplicateIds;
-                    console.log(`[CLEANUP] ✅ Successfully deleted ${allDuplicateIds.length} duplicates`);
-                } else {
-                    console.error('[CLEANUP] ❌ Delete error:', deleteError);
+                    const { error: deleteError, count } = await supabase
+                        .from('social_posts')
+                        .delete({ count: 'exact' })
+                        .in('id', batch);
+
+                    if (deleteError) {
+                        console.error(`[CLEANUP] Batch error:`, deleteError);
+                    } else {
+                        const deleted = count || batch.length;
+                        totalDeleted += deleted;
+                        console.log(`[CLEANUP] Batch deleted: ${deleted}`);
+                    }
                 }
+
+                results.deleted = allDuplicateIds.slice(0, totalDeleted);
+                console.log(`[CLEANUP] ✅ Total deleted: ${totalDeleted}/${allDuplicateIds.length}`);
             }
 
             // Note: URL updates are skipped for performance
