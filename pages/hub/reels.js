@@ -154,16 +154,57 @@ export default function ReelsPage() {
     const loadReels = async () => {
         setLoading(true);
         try {
-            const { data } = await supabase
+            // Load from social_reels (YouTube shorts posted by SmarterPokerOfficial)
+            const { data: reelsData } = await supabase
+                .from('social_reels')
+                .select('id, author_id, caption, video_url, view_count, created_at, is_public')
+                .eq('is_public', true)
+                .order('created_at', { ascending: false })
+                .limit(50);
+
+            // Load from social_posts (user-uploaded videos)
+            const { data: postsData } = await supabase
                 .from('social_posts')
-                .select('id, author_id, content, media_urls, like_count, comment_count, created_at')
+                .select('id, author_id, content, media_urls, like_count, created_at')
                 .eq('content_type', 'video')
                 .eq('visibility', 'public')
                 .order('created_at', { ascending: false })
-                .limit(100);
+                .limit(50);
 
-            if (data && data.length > 0) {
-                const authorIds = [...new Set(data.map(p => p.author_id))];
+            // Combine both sources
+            const allVideos = [];
+
+            // Add reels from social_reels
+            if (reelsData && reelsData.length > 0) {
+                allVideos.push(...reelsData.map(reel => ({
+                    id: reel.id,
+                    author_id: reel.author_id,
+                    video_url: reel.video_url,
+                    caption: reel.caption,
+                    like_count: reel.view_count || 0,
+                    created_at: reel.created_at,
+                    source: 'reels'
+                })));
+            }
+
+            // Add videos from social_posts
+            if (postsData && postsData.length > 0) {
+                allVideos.push(...postsData
+                    .filter(post => post.media_urls && post.media_urls.length > 0)
+                    .map(post => ({
+                        id: post.id,
+                        author_id: post.author_id,
+                        video_url: post.media_urls[0],
+                        caption: post.content,
+                        like_count: post.like_count || 0,
+                        created_at: post.created_at,
+                        source: 'posts'
+                    })));
+            }
+
+            if (allVideos.length > 0) {
+                // Get all unique author IDs
+                const authorIds = [...new Set(allVideos.map(v => v.author_id))];
                 const { data: profiles } = await supabase
                     .from('profiles')
                     .select('id, username, avatar_url, full_name')
@@ -172,16 +213,15 @@ export default function ReelsPage() {
                 const profileMap = {};
                 (profiles || []).forEach(p => { profileMap[p.id] = p; });
 
-                const mappedReels = data
-                    .filter(post => post.media_urls && post.media_urls.length > 0)
-                    .map(post => ({
-                        id: post.id,
-                        video_url: post.media_urls[0],
-                        caption: post.content,
-                        like_count: post.like_count || 0,
-                        created_at: post.created_at,
-                        profiles: profileMap[post.author_id] || { username: 'Anonymous' },
-                    }));
+                // Map videos with profile data
+                const mappedReels = allVideos.map(video => ({
+                    id: video.id,
+                    video_url: video.video_url,
+                    caption: video.caption,
+                    like_count: video.like_count,
+                    created_at: video.created_at,
+                    profiles: profileMap[video.author_id] || { username: 'Anonymous' },
+                }));
 
                 // Shuffle for variety
                 const shuffled = mappedReels.sort(() => Math.random() - 0.5);
@@ -192,6 +232,7 @@ export default function ReelsPage() {
         }
         setLoading(false);
     };
+
 
     const currentReel = reels[currentIndex];
 
@@ -463,7 +504,7 @@ export default function ReelsPage() {
                         <iframe
                             ref={iframeRef}
                             key={currentReel?.id}
-                            src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`}
+                            src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&iv_load_policy=3&disablekb=1&fs=0&cc_load_policy=0`}
                             title="Poker Reel"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                             allowFullScreen
