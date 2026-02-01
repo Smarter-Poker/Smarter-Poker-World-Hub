@@ -7,6 +7,8 @@ import { createClient } from '@supabase/supabase-js';
 import { getGrokClient } from '../../../src/lib/grokClient';
 import { getAgentConfig, buildSystemPrompt } from '../../../src/lib/liveHelp/agentPrompts';
 import { collectUserContext } from '../../../src/lib/liveHelp/contextCollector';
+import { injectKnowledge } from '../../../src/lib/liveHelp/knowledgeInjection';
+
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -78,20 +80,28 @@ export default async function handler(req, res) {
         // Get agent config
         const agentConfig = getAgentConfig(conversation.agent_id);
 
-        // Build system prompt with context and history
-        const systemPrompt = buildSystemPrompt(
+        // Build base system prompt with context and history
+        const basePrompt = buildSystemPrompt(
             conversation.agent_id,
             context || conversation.context || {},
             conversationHistory
         );
 
-        // Call Grok API
+        // Inject relevant knowledge based on user's question and context
+        const enhancedPrompt = injectKnowledge(
+            basePrompt,
+            content.trim(),
+            context || conversation.context || {}
+        );
+
+
+        // Call Grok API with enhanced prompt
         const grok = getGrokClient();
 
         const response = await grok.chat.completions.create({
             model: 'grok-beta',
             messages: [
-                { role: 'system', content: systemPrompt },
+                { role: 'system', content: enhancedPrompt },
                 ...conversationHistory.slice(-6).map(msg => ({
                     role: msg.sender_type === 'user' ? 'user' : 'assistant',
                     content: msg.content
@@ -101,6 +111,7 @@ export default async function handler(req, res) {
             temperature: agentConfig.temperature,
             max_tokens: agentConfig.maxTokens
         });
+
 
         const aiResponse = response.choices[0].message.content;
 
@@ -152,21 +163,14 @@ export default async function handler(req, res) {
 }
 
 /**
- * Calculate realistic typing delay based on message length and agent personality
+ * Calculate realistic typing delay based on message length
  */
 function calculateTypingDelay(message, agentId) {
-    const baseDelays = {
-        daniel: 40,  // medium
-        sarah: 60,   // slow (thoughtful)
-        alice: 25,   // fast (direct)
-        michael: 40, // medium
-        jenny: 40    // medium
-    };
-
-    const baseDelay = baseDelays[agentId] || 40;
+    const baseDelay = 40; // Medium typing speed for Jarvis
     const thinkingTime = 500 + Math.random() * 1000; // 500-1500ms thinking
     const typingTime = message.length * baseDelay;
 
     // Cap at 4 seconds max
     return Math.min(thinkingTime + typingTime, 4000);
 }
+

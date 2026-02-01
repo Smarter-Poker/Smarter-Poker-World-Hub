@@ -25,7 +25,6 @@ export type OrbId = string;
 // ─────────────────────────────────────────────────────────────────────────────
 interface WorldState {
   // Player Stats
-  xp: number;
   diamonds: number;
 
   // Navigation
@@ -35,7 +34,6 @@ interface WorldState {
   // Actions
   selectOrb: (orbId: OrbId) => void;
   exitOrb: () => void;
-  addXP: (amount: number) => void;
   addDiamonds: (amount: number) => void;
   updateCursor: (x: number, y: number) => void;
   syncWithBus: () => void;
@@ -46,7 +44,6 @@ interface WorldState {
 // ─────────────────────────────────────────────────────────────────────────────
 export const useWorldStore = create<WorldState>((set) => ({
   // Initial State
-  xp: 8750,
   diamonds: 12450,
   activeOrb: null,
   cursor: { x: 0.5, y: 0.5 },
@@ -63,7 +60,6 @@ export const useWorldStore = create<WorldState>((set) => ({
   },
 
   // Stats Actions
-  addXP: (amount) => set((state) => ({ xp: state.xp + amount })),
   addDiamonds: (amount) => set((state) => ({ diamonds: state.diamonds + amount })),
 
   // Cursor Tracking
@@ -80,5 +76,4 @@ export const useWorldStore = create<WorldState>((set) => ({
 // ─────────────────────────────────────────────────────────────────────────────
 export const selectActiveOrb = (state: WorldState) => state.activeOrb;
 export const selectCursor = (state: WorldState) => state.cursor;
-export const selectXP = (state: WorldState) => state.xp;
 export const selectDiamonds = (state: WorldState) => state.diamonds;

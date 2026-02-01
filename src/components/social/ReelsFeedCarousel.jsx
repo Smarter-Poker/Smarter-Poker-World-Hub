@@ -134,24 +134,6 @@ function ReelCard({ reel, onClick }) {
                 />
             )}
 
-            {/* Play indicator */}
-            <div style={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: 48,
-                height: 48,
-                borderRadius: '50%',
-                background: isYouTube ? 'rgba(255,0,0,0.8)' : 'rgba(0,0,0,0.5)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                opacity: isHovered ? 1 : 0.8,
-                transition: 'opacity 0.2s',
-            }}>
-                <span style={{ fontSize: 24, color: 'white', marginLeft: 4 }}>▶</span>
-            </div>
 
             {/* Gradient overlay */}
             <div style={{
@@ -222,7 +204,7 @@ function ReelCard({ reel, onClick }) {
                 alignItems: 'center',
                 gap: 4,
             }}>
-                ▶ {formatViews(reel.view_count)}
+                {formatViews(reel.view_count)} views
             </div>
         </div>
     );

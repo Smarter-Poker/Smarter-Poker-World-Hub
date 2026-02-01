@@ -6,7 +6,6 @@
  * DELETE /api/commander/high-hands/:id - Delete high hand
  */
 import { createClient } from '@supabase/supabase-js';
-import { awardXP } from '../../../../src/lib/commander/xp';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -152,11 +151,7 @@ async function updateHighHand(req, res, id) {
     // Award XP if this was a verification and player has ID
     if (action === 'verify' && (highHand.player_id || existing.player_id)) {
       const playerId = highHand.player_id || existing.player_id;
-      await awardXP(playerId, 'high_hand', {
-        venue_id: existing.venue_id,
-        hand_description: highHand.hand_description,
-        prize_amount: highHand.prize_amount
-      });
+      // XP system removed
     }
 
     return res.status(200).json({ high_hand: highHand });

@@ -88,7 +88,7 @@ export default async function handler(req, res) {
                 avatar_url: avatar_url || metadata?.avatar_url || null,
                 player_number: nextPlayerNumber,
                 streak_count: 0,
-                xp_total: 100,        // Welcome bonus
+                diamonds: 100,        // Welcome bonus
                 diamonds: 300,        // Welcome bonus
                 diamond_multiplier: 1.0,
                 skill_tier: 'Newcomer',

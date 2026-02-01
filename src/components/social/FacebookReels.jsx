@@ -60,10 +60,6 @@ export const ReelCard = ({
             {/* Gradient Overlay */}
             <div className="reel-gradient" />
 
-            {/* Play Button (when paused) */}
-            {!isPlaying && (
-                <div className="reel-play-btn">▶️</div>
-            )}
 
             {/* User Info */}
             <div className="reel-user">
@@ -299,7 +295,6 @@ export const ReelsCarousel = ({ reels = [], onViewAll }) => {
                             <div className="reel-thumb">
                                 <img src={reel.thumbnail} alt="" />
                                 <div className="reel-overlay">
-                                    <span className="play-icon">▶</span>
                                     <span className="view-count">{reel.viewCount} views</span>
                                 </div>
                             </div>

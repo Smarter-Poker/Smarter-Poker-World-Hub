@@ -10,11 +10,15 @@ let Sentry = null;
 
 /**
  * Initialize Sentry on demand (lazy loading)
+ * Uses eval-based dynamic import to prevent webpack from resolving the module at build time.
+ * At runtime, if @sentry/nextjs is installed, it will be loaded; otherwise fallback to console.
  */
 async function getSentry() {
     if (Sentry) return Sentry;
     try {
-        Sentry = await import('@sentry/nextjs');
+        // Webpack-safe dynamic import: prevents static analysis from requiring the package
+        const moduleName = '@sentry/nextjs';
+        Sentry = await new Function('m', 'return import(m)')(moduleName);
         return Sentry;
     } catch {
         return null;

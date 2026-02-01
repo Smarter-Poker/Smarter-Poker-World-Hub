@@ -10,7 +10,9 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const AGENTS = ['daniel', 'sarah', 'alice', 'michael', 'jenny'];
+
+const AGENTS = ['jarvis']; // Single comprehensive expert
+
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -30,6 +32,15 @@ export default async function handler(req, res) {
         if (authError || !user) {
             return res.status(401).json({ error: 'Invalid token' });
         }
+
+        // Fetch user profile for personalized greeting
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('first_name, username')
+            .eq('id', user.id)
+            .single();
+
+        const userName = profile?.first_name || profile?.username || 'there';
 
         const { agentId, context } = req.body;
 
@@ -60,9 +71,8 @@ export default async function handler(req, res) {
             .from('live_help_conversations')
             .insert({
                 user_id: user.id,
-                agent_id: selectedAgent,
-                status: 'active',
-                context: context || {}
+                agent_id: 'jarvis',
+                status: 'active'
             })
             .select()
             .single();
@@ -82,16 +92,16 @@ export default async function handler(req, res) {
             });
         }
 
-        // Create greeting message
-        const greetingText = getAgentGreeting(selectedAgent);
+        // Create personalized greeting message
+        const greetingMessage = `Hi ${userName}! I'm Jarvis, your Smarter.Poker expert. I can help you with:\n\n• Training games and GTO strategy\n• Club Arena and tournament management\n• Diamond Store and VIP features\n• Social features and messaging\n• Technical support and troubleshooting\n\nWhat can I help you with today?`;
 
-        const { data: greetingMessage, error: msgError } = await supabase
+        const { data: greeting, error: greetingError } = await supabase
             .from('live_help_messages')
             .insert({
                 conversation_id: conversation.id,
                 sender_type: 'agent',
                 agent_id: selectedAgent,
-                content: greetingText,
+                content: greetingMessage,
                 metadata: { isGreeting: true }
             })
             .select()
@@ -115,16 +125,9 @@ export default async function handler(req, res) {
 }
 
 /**
- * Get greeting message for agent
+ * Get greeting message for Jarvis
  */
 function getAgentGreeting(agentId) {
-    const greetings = {
-        daniel: "Hi there! I'm Daniel, your GTO Strategy Coach. What can I help you with today?",
-        sarah: "Hey! I'm Sarah, here to help with mindset and performance. How are you feeling about your game?",
-        alice: "I'm Alice, your Drill Master. Ready to level up your skills? What do you want to work on?",
-        michael: "Hi! I'm Michael, your Bankroll Advisor. Let's talk about building your bankroll sustainably. What's on your mind?",
-        jenny: "Hey there! I'm Jenny, your Live Game Expert. Want to talk reads, tells, or table dynamics? What's up?"
-    };
-
-    return greetings[agentId] || "Hi! How can I help you today?";
+    return "Hi! I'm Jarvis, I can help you with anything you have a question about. What can I help you with?";
 }
+

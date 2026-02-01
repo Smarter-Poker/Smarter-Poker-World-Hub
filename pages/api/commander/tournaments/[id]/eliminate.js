@@ -4,7 +4,6 @@
  * POST /api/commander/tournaments/[id]/eliminate - Eliminate a player
  */
 import { createClient } from '@supabase/supabase-js';
-import { awardXP } from '../../../../../src/lib/commander/xp';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -157,12 +156,7 @@ export default async function handler(req, res) {
 
     // Award XP if player cashed
     if (payoutAmount > 0 && entry.player_id) {
-      await awardXP(entry.player_id, 'tournament.cashed', {
-        tournament_id: tournamentId,
-        tournament_name: tournament.name,
-        finish_position: finishPosition,
-        payout: payoutAmount
-      });
+      // XP system removed
     }
 
     // Check if tournament should end (only 1 player left)
@@ -211,12 +205,7 @@ export default async function handler(req, res) {
 
         // Award XP to winner
         if (winner.player_id) {
-          await awardXP(winner.player_id, 'tournament.cashed', {
-            tournament_id: tournamentId,
-            tournament_name: tournament.name,
-            finish_position: 1,
-            payout: winnerAmount
-          });
+          // XP system removed
         }
 
         // End tournament

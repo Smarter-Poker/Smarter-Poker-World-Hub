@@ -281,19 +281,19 @@ export class ComboEngine {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 📊 PROGRESSION ENGINE — Levels, XP, Mastery Gate
+// 📊 PROGRESSION ENGINE — Levels and Mastery Gate (XP system removed)
 // ═══════════════════════════════════════════════════════════════════════════
 export const LEVELS = [
-    { level: 1, name: 'Neural Boot', focus: 'UTG/MP Opening Ranges', xpRequired: 0 },
-    { level: 2, name: 'Position Pulse', focus: 'CO/BTN/SB Opening', xpRequired: 500 },
-    { level: 3, name: 'Defense Matrix', focus: 'BB Defense vs All Positions', xpRequired: 1200 },
-    { level: 4, name: '3-Bet Ignition', focus: '3-Bet Ranges (IP & OOP)', xpRequired: 2000 },
-    { level: 5, name: 'Call Protocol', focus: 'Flatting Ranges', xpRequired: 3500 },
-    { level: 6, name: '4-Bet Override', focus: '4-Bet/5-Bet Polarization', xpRequired: 5000 },
-    { level: 7, name: 'Flop Architect', focus: 'C-Bet Frequencies', xpRequired: 7500 },
-    { level: 8, name: 'Turn Calibration', focus: 'Turn Decisions', xpRequired: 10000 },
-    { level: 9, name: 'River Execute', focus: 'Value/Bluff Ratios', xpRequired: 15000 },
-    { level: 10, name: 'GTO MASTER', focus: 'All Spots + Mixed', xpRequired: 25000 },
+    { level: 1, name: 'Neural Boot', focus: 'UTG/MP Opening Ranges' },
+    { level: 2, name: 'Position Pulse', focus: 'CO/BTN/SB Opening' },
+    { level: 3, name: 'Defense Matrix', focus: 'BB Defense vs All Positions' },
+    { level: 4, name: '3-Bet Ignition', focus: '3-Bet Ranges (IP & OOP)' },
+    { level: 5, name: 'Call Protocol', focus: 'Flatting Ranges' },
+    { level: 6, name: '4-Bet Override', focus: '4-Bet/5-Bet Polarization' },
+    { level: 7, name: 'Flop Architect', focus: 'C-Bet Frequencies' },
+    { level: 8, name: 'Turn Calibration', focus: 'Turn Decisions' },
+    { level: 9, name: 'River Execute', focus: 'Value/Bluff Ratios' },
+    { level: 10, name: 'GTO MASTER', focus: 'All Spots + Mixed' },
 ];
 
 export const MASTERY_THRESHOLD = 85; // 85% required to advance
@@ -302,7 +302,6 @@ export class ProgressionEngine {
     constructor(userId) {
         this.userId = userId;
         this.currentLevel = 1;
-        this.currentXP = 0;
         this.scenarioHistory = [];
         this.consecutivePasses = 0;
     }
@@ -320,11 +319,7 @@ export class ProgressionEngine {
 
         if (passed) {
             this.consecutivePasses++;
-            // Award XP based on score
-            const baseXP = 50;
-            const bonusXP = Math.floor((score - MASTERY_THRESHOLD) * 5);
-            this.currentXP += baseXP + bonusXP;
-
+            // XP system removed
             SoundEngine.play('correct');
         } else {
             this.consecutivePasses = 0;
@@ -354,11 +349,8 @@ export class ProgressionEngine {
     }
 
     getProgressToNext() {
-        const current = LEVELS[this.currentLevel - 1];
-        const next = LEVELS[this.currentLevel] || current;
-        const xpInLevel = this.currentXP - current.xpRequired;
-        const xpNeeded = next.xpRequired - current.xpRequired;
-        return Math.min(xpInLevel / xpNeeded, 1);
+        // XP system removed - progress based on consecutive passes
+        return Math.min(this.consecutivePasses / 5, 1);
     }
 }
 

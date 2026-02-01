@@ -422,3 +422,136 @@ export function useLeakHandExamples(leakId) {
 
   return { examples, isLoading, error, refetch: fetchExamples };
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// useTrainingStats — Fetch user's GTO Training progress from training_sessions
+// ═══════════════════════════════════════════════════════════════════════════
+
+export function useTrainingStats() {
+  const [stats, setStats] = useState({
+    gamesPlayed: 0,
+    totalAccuracy: 0,
+    bestStreak: 0,
+    weakestCategory: 'Not enough data',
+    strongestCategory: 'Not enough data',
+    recentSessions: [],
+    categoryProgress: []
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    async function fetchTrainingStats() {
+      try {
+        // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
+        const user = getAuthUser();
+        if (!user) {
+          // Demo data for non-logged-in users
+          setStats({
+            gamesPlayed: 12,
+            totalAccuracy: 68,
+            bestStreak: 5,
+            weakestCategory: 'River Play',
+            strongestCategory: 'Preflop Ranges',
+            recentSessions: [
+              { date: 'Today', gameId: 'demo1', gameName: 'Opening Ranges', accuracy: 75, duration: 10 },
+              { date: 'Yesterday', gameId: 'demo2', gameName: 'C-Bet Strategy', accuracy: 62, duration: 8 },
+            ],
+            categoryProgress: [
+              { category: 'Preflop', accuracy: 78, gamesPlayed: 5 },
+              { category: 'Flop', accuracy: 65, gamesPlayed: 4 },
+              { category: 'Turn', accuracy: 60, gamesPlayed: 2 },
+              { category: 'River', accuracy: 52, gamesPlayed: 1 },
+            ]
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        // Fetch from training_sessions table
+        const { data: sessions, error: sessionsError } = await supabase
+          .from('training_sessions')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(100);
+
+        if (sessionsError) {
+          console.error('Training sessions fetch error:', sessionsError);
+          throw sessionsError;
+        }
+
+        if (!sessions || sessions.length === 0) {
+          setStats({
+            gamesPlayed: 0,
+            totalAccuracy: 0,
+            bestStreak: 0,
+            weakestCategory: 'Start training!',
+            strongestCategory: 'Start training!',
+            recentSessions: [],
+            categoryProgress: []
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        // Calculate stats from sessions
+        const gamesPlayed = sessions.length;
+        const totalAccuracy = Math.round(
+          sessions.reduce((sum, s) => sum + (s.accuracy || 0), 0) / gamesPlayed
+        );
+        const bestStreak = sessions.reduce((max, s) => Math.max(max, s.streak || 0), 0);
+
+        // Group by category
+        const categoryMap = {};
+        sessions.forEach(s => {
+          const cat = s.category || 'General';
+          if (!categoryMap[cat]) {
+            categoryMap[cat] = { total: 0, count: 0 };
+          }
+          categoryMap[cat].total += (s.accuracy || 0);
+          categoryMap[cat].count += 1;
+        });
+
+        const categoryProgress = Object.entries(categoryMap).map(([category, data]) => ({
+          category,
+          accuracy: Math.round(data.total / data.count),
+          gamesPlayed: data.count
+        })).sort((a, b) => b.gamesPlayed - a.gamesPlayed);
+
+        // Find weakest and strongest
+        const sorted = [...categoryProgress].sort((a, b) => a.accuracy - b.accuracy);
+        const weakestCategory = sorted[0]?.category || 'Not enough data';
+        const strongestCategory = sorted[sorted.length - 1]?.category || 'Not enough data';
+
+        // Recent sessions (last 5)
+        const recentSessions = sessions.slice(0, 5).map(s => ({
+          date: new Date(s.created_at).toLocaleDateString(),
+          gameId: s.game_id || s.id,
+          gameName: s.game_name || s.category || 'Training Session',
+          accuracy: s.accuracy || 0,
+          duration: s.duration_seconds ? Math.round(s.duration_seconds / 60) : 0
+        }));
+
+        setStats({
+          gamesPlayed,
+          totalAccuracy,
+          bestStreak,
+          weakestCategory,
+          strongestCategory,
+          recentSessions,
+          categoryProgress
+        });
+      } catch (err) {
+        console.error('Error fetching training stats:', err);
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchTrainingStats();
+  }, []);
+
+  return { stats, isLoading, error };
+}

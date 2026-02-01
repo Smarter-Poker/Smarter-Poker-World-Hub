@@ -37,7 +37,9 @@ import { TrainingSettingsProvider } from '../src/contexts/TrainingSettingsContex
 import ToastContainer from '../src/components/ui/ToastContainer';
 import GlobalNotificationPrompt from '../src/components/ui/GlobalNotificationPrompt';
 import { WorldThemeProvider } from '../src/components/WorldThemeProvider';
-
+import { ProactiveHelp } from '../src/world/components/Geeves/ProactiveHelp';
+import { JarvisPanel } from '../src/world/components/Jarvis/JarvisPanel';
+import { useJarvis } from '../src/world/components/Jarvis/useJarvis';
 // ═══════════════════════════════════════════════════════════════════════════
 // CACHE BUSTER — Clears stale caches on new deploys
 // Uses build timestamp to detect version changes
@@ -255,6 +257,8 @@ function NavigationGuard({ children }) {
  * If any requirement fails → fail-closed → SystemOffline screen
  */
 export default function App({ Component, pageProps }) {
+  const { isOpen: isJarvisOpen, onClose: onJarvisClose } = useJarvis();
+
   return (
     <AntiGravityProvider>
       <ThemeProvider>
@@ -269,6 +273,18 @@ export default function App({ Component, pageProps }) {
                       <CelebrationManager />
                       <ToastContainer />
                       <GlobalNotificationPrompt />
+                      <ProactiveHelp
+                        onAccept={() => {
+                          // Open Jarvis when user accepts help
+                          if (typeof window !== 'undefined') {
+                            window.dispatchEvent(new CustomEvent('open-jarvis'));
+                          }
+                        }}
+                        onDismiss={() => {
+                          console.log('[ProactiveHelp] User dismissed help prompt');
+                        }}
+                      />
+                      <JarvisPanel isOpen={isJarvisOpen} onClose={onJarvisClose} />
                     </WorldThemeProvider>
                   </NavigationGuard>
                 </TrainingSettingsProvider>

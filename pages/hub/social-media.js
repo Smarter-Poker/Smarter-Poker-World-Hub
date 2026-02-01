@@ -130,6 +130,10 @@ function getYouTubeVideoId(url) {
     const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
     if (shortMatch) return shortMatch[1];
 
+    // Handle youtube.com/shorts/VIDEO_ID
+    const shortsMatch = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/);
+    if (shortsMatch) return shortsMatch[1];
+
     // Handle youtube.com/embed/VIDEO_ID
     const embedMatch = url.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]+)/);
     if (embedMatch) return embedMatch[1];
@@ -308,27 +312,30 @@ function VideoPostWrapper({ url, onValidVideoClick, children }) {
                 />
             ) : children}
 
-            {/* Play Button Overlay - dim for invalid videos */}
-            <div style={{
-                position: 'absolute', top: '50%', left: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: 64, height: 64, borderRadius: '50%',
-                background: isVideoValid === false ? 'rgba(100,100,100,0.6)' : 'rgba(0,0,0,0.6)',
-                backdropFilter: 'blur(4px)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: isVideoValid === false ? '#888' : 'white',
-                fontSize: 28, pointerEvents: 'none'
-            }}>{isVideoValid === false ? '⚠️' : '▶'}</div>
+            {/* Only show overlay for invalid videos */}
+            {isVideoValid === false && (
+                <>
+                    <div style={{
+                        position: 'absolute', top: '50%', left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        width: 64, height: 64, borderRadius: '50%',
+                        background: 'rgba(100,100,100,0.6)',
+                        backdropFilter: 'blur(4px)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: '#888',
+                        fontSize: 28, pointerEvents: 'none'
+                    }}>⚠️</div>
 
-            {/* Status hint */}
-            <div style={{
-                position: 'absolute', bottom: 8, left: 8,
-                background: isVideoValid === false ? 'rgba(200,50,50,0.8)' : 'rgba(0,0,0,0.6)',
-                padding: '4px 10px',
-                borderRadius: 4, color: 'white', fontSize: 12, fontWeight: 500
-            }}>
-                {isVideoValid === false ? '⚠️ Video unavailable' : '▶ Tap to play'}
-            </div>
+                    <div style={{
+                        position: 'absolute', bottom: 8, left: 8,
+                        background: 'rgba(200,50,50,0.8)',
+                        padding: '4px 10px',
+                        borderRadius: 4, color: 'white', fontSize: 12, fontWeight: 500
+                    }}>
+                        ⚠️ Video unavailable
+                    </div>
+                </>
+            )}
         </div>
     );
 }
@@ -552,20 +559,8 @@ function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLike, onC
                 />
             )}
 
-            {/* Play/Pause Overlay */}
-            {!isPlaying && (
-                <div
-                    onClick={togglePlay}
-                    style={{
-                        position: 'absolute', top: '50%', left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        width: 80, height: 80, borderRadius: '50%',
-                        background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        cursor: 'pointer', fontSize: 36, color: 'white'
-                    }}
-                >▶</div>
-            )}
+
+
 
             {/* Author Info & Caption Overlay */}
             <div style={{
@@ -1374,6 +1369,18 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                     )}
                 </div>
             )}
+            {/* 🔗 LINK PREVIEW for posts with link_url but NO media_urls (ghost fleet posts) */}
+            {(!post.mediaUrls || post.mediaUrls.length === 0) && post.link_url && (
+                <ArticleCard
+                    url={post.link_url}
+                    title={post.link_title}
+                    description={post.link_description}
+                    image={post.link_image}
+                    siteName={post.link_site_name}
+                    fallbackContent={post.content}
+                    onClick={onOpenArticle}
+                />
+            )}
             <div style={{ padding: '8px 12px', display: 'flex', justifyContent: 'space-between', color: C.textSec, fontSize: 13 }}>
                 <span>{likeCount > 0 && `👍 ${likeCount}`}</span>
                 <span style={{ cursor: 'pointer' }} onClick={handleToggleComments}>{commentCount > 0 && `${commentCount} ${commentCount === 1 ? 'comment' : 'comments'}`}</span>
@@ -1567,14 +1574,14 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
             if (isNowFollowing) { if (!stored.includes(pageId)) stored.push(pageId); }
             else { const idx = stored.indexOf(pageId); if (idx !== -1) stored.splice(idx, 1); }
             localStorage.setItem(storageKey, JSON.stringify(stored));
-        } catch {}
+        } catch { }
         try {
             await fetch('/api/poker/follow', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ page_type: pageType, page_id: pageId, action: isNowFollowing ? 'follow' : 'unfollow', user_id: getAnonUserId() }),
             });
-        } catch {}
+        } catch { }
     };
 
     const cats = [
@@ -1941,7 +1948,7 @@ export default function SocialMediaPage() {
                     // Use native fetch to avoid AbortError (same issue as stories/profiles)
                     console.log('[Social] Fetching profile for user:', authUser.id);
 
-                    let profileRes = await fetch(`https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/profiles?id=eq.${authUser.id}&select=id,username,full_name,display_name_preference,skill_tier,avatar_url,hendon_url,hendon_total_cashes,hendon_total_earnings,hendon_best_finish,role`, {
+                    let profileRes = await fetch(`https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/profiles?id=eq.${authUser.id}&select=id,username,full_name,display_name_preference,skill_tier,avatar_url,hendon_url,hendon_total_cashes,hendon_total_earnings,hendon_best_finish,hendon_biggest_cash,role`, {
                         headers: {
                             'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo',
                             'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo'
@@ -1954,7 +1961,7 @@ export default function SocialMediaPage() {
 
                     // If no profile found by id, check if user owns another profile via owner_id
                     if (!p) {
-                        const ownedProfileRes = await fetch(`https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/profiles?owner_id=eq.${authUser.id}&select=id,username,full_name,display_name_preference,skill_tier,avatar_url,hendon_url,hendon_total_cashes,hendon_total_earnings,hendon_best_finish,role`, {
+                        const ownedProfileRes = await fetch(`https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/profiles?owner_id=eq.${authUser.id}&select=id,username,full_name,display_name_preference,skill_tier,avatar_url,hendon_url,hendon_total_cashes,hendon_total_earnings,hendon_best_finish,hendon_biggest_cash,role`, {
                             headers: {
                                 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo',
                                 'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo'
@@ -2823,7 +2830,7 @@ export default function SocialMediaPage() {
                                     <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 9 }}>EARNINGS</div>
                                 </div>
                                 <div style={{ textAlign: 'center' }}>
-                                    <div style={{ color: '#00d4ff', fontSize: 18, fontWeight: 700 }}>${user.hendon.biggestCash?.toLocaleString() || user.hendon.bestFinish || '—'}</div>
+                                    <div style={{ color: '#00d4ff', fontSize: 18, fontWeight: 700 }}>{user.hendon.biggestCash ? `$${user.hendon.biggestCash.toLocaleString()}` : '—'}</div>
                                     <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 9 }}>BIGGEST CASH</div>
                                 </div>
                             </div>
@@ -3251,113 +3258,113 @@ export default function SocialMediaPage() {
 
                     {/* ===== NORMAL FEED ===== */}
                     {!showClubPages && <>
-                    {/* Stories Bar */}
-                    {user && <StoriesBar userId={user.id} userAvatar={user.avatar} />}
+                        {/* Stories Bar */}
+                        {user && <StoriesBar userId={user.id} userAvatar={user.avatar} />}
 
-                    {/* Post Creator */}
-                    {user && <PostCreator user={user} onPost={handlePost} isPosting={isPosting} onGoLive={() => setShowGoLiveModal(true)} />}
+                        {/* Post Creator */}
+                        {user && <PostCreator user={user} onPost={handlePost} isPosting={isPosting} onGoLive={() => setShowGoLiveModal(true)} />}
 
-                    {/* Login prompt */}
-                    {!user && (
-                        <div style={{ background: C.card, borderRadius: 8, padding: 24, textAlign: 'center', marginBottom: 8 }}>
-                            <p style={{ color: C.textSec, marginBottom: 12 }}>Log in to post and interact!</p>
-                            <Link href="/auth/login" style={{
-                                display: 'inline-block', padding: '10px 24px', background: C.blue,
-                                color: 'white', borderRadius: 6, fontWeight: 600, textDecoration: 'none'
-                            }}>Log In</Link>
-                        </div>
-                    )}
-
-                    {/* 📺 LIVE STREAMS SECTION */}
-                    {liveStreams.length > 0 && (
-                        <div style={{ marginBottom: 12 }}>
-                            <h4 style={{ margin: '0 0 10px 4px', fontSize: 16, fontWeight: 700, color: C.text, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                🔴 Live Now
-                            </h4>
-                            <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8 }}>
-                                {liveStreams.map(stream => (
-                                    <div key={stream.id} style={{ flexShrink: 0, width: 280 }}>
-                                        <LiveStreamCard
-                                            stream={stream}
-                                            onClick={() => setWatchingStream(stream)}
-                                        />
-                                    </div>
-                                ))}
+                        {/* Login prompt */}
+                        {!user && (
+                            <div style={{ background: C.card, borderRadius: 8, padding: 24, textAlign: 'center', marginBottom: 8 }}>
+                                <p style={{ color: C.textSec, marginBottom: 12 }}>Log in to post and interact!</p>
+                                <Link href="/auth/login" style={{
+                                    display: 'inline-block', padding: '10px 24px', background: C.blue,
+                                    color: 'white', borderRadius: 6, fontWeight: 600, textDecoration: 'none'
+                                }}>Log In</Link>
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {/* Posts Feed */}
-                    {posts.length === 0 ? (
-                        <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
-                            <div style={{ fontSize: 48 }}>🌟</div>
-                            <h3 style={{ color: C.text }}>No posts yet</h3>
-                            <p>Be the first to share something!</p>
-                        </div>
-                    ) : (
-                        <>
-                            {/* Render posts with Reels carousel inserted after every 3 posts */}
-                            {posts.map((p, index) => (
-                                <>
-                                    <PostCard
-                                        key={p.id}
-                                        post={{ ...p, isGodMode }}
-                                        currentUserId={user?.id}
-                                        currentUserName={user?.name}
-                                        currentUserAvatar={user?.avatar}
-                                        onLike={handleLike}
-                                        onDelete={handleDelete}
-                                        onOpenArticle={(url) => setArticleReader({ open: true, url, title: p.link_title || null })}
-                                    />
-                                    {/* Insert Reels carousel after 3rd post */}
-                                    {index === 2 && <ReelsFeedCarousel key="reels-carousel" />}
-                                </>
-                            ))}
+                        {/* 📺 LIVE STREAMS SECTION */}
+                        {liveStreams.length > 0 && (
+                            <div style={{ marginBottom: 12 }}>
+                                <h4 style={{ margin: '0 0 10px 4px', fontSize: 16, fontWeight: 700, color: C.text, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    🔴 Live Now
+                                </h4>
+                                <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8 }}>
+                                    {liveStreams.map(stream => (
+                                        <div key={stream.id} style={{ flexShrink: 0, width: 280 }}>
+                                            <LiveStreamCard
+                                                stream={stream}
+                                                onClick={() => setWatchingStream(stream)}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
-                            {/* ♾️ INFINITE SCROLL: Load more trigger */}
-                            <div ref={loadMoreCallbackRef} style={{
-                                padding: '20px',
-                                textAlign: 'center',
-                                minHeight: 60
-                            }}>
-                                {loadingMore && (
+                        {/* Posts Feed */}
+                        {posts.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
+                                <div style={{ fontSize: 48 }}>🌟</div>
+                                <h3 style={{ color: C.text }}>No posts yet</h3>
+                                <p>Be the first to share something!</p>
+                            </div>
+                        ) : (
+                            <>
+                                {/* Render posts with Reels carousel inserted after every 3 posts */}
+                                {posts.map((p, index) => (
                                     <>
-                                        {/* Skeleton Post Placeholders */}
-                                        {[1, 2].map(i => (
-                                            <div key={`skeleton-${i}`} style={{
-                                                background: C.card,
-                                                borderRadius: 8,
-                                                padding: 16,
-                                                marginBottom: 12,
-                                                boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-                                            }}>
-                                                {/* Skeleton header */}
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                                                    <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#E4E6EB', animation: 'pulse 1.5s infinite' }} />
-                                                    <div style={{ flex: 1 }}>
-                                                        <div style={{ width: 120, height: 12, background: '#E4E6EB', borderRadius: 6, marginBottom: 6, animation: 'pulse 1.5s infinite' }} />
-                                                        <div style={{ width: 80, height: 10, background: '#E4E6EB', borderRadius: 5, animation: 'pulse 1.5s infinite' }} />
-                                                    </div>
-                                                </div>
-                                                {/* Skeleton content */}
-                                                <div style={{ marginBottom: 12 }}>
-                                                    <div style={{ width: '100%', height: 10, background: '#E4E6EB', borderRadius: 5, marginBottom: 8, animation: 'pulse 1.5s infinite' }} />
-                                                    <div style={{ width: '80%', height: 10, background: '#E4E6EB', borderRadius: 5, animation: 'pulse 1.5s infinite' }} />
-                                                </div>
-                                                {/* Skeleton image placeholder */}
-                                                <div style={{ width: '100%', height: 200, background: '#E4E6EB', borderRadius: 8, animation: 'pulse 1.5s infinite' }} />
-                                            </div>
-                                        ))}
+                                        <PostCard
+                                            key={p.id}
+                                            post={{ ...p, isGodMode }}
+                                            currentUserId={user?.id}
+                                            currentUserName={user?.name}
+                                            currentUserAvatar={user?.avatar}
+                                            onLike={handleLike}
+                                            onDelete={handleDelete}
+                                            onOpenArticle={(url) => setArticleReader({ open: true, url, title: p.link_title || null })}
+                                        />
+                                        {/* Insert Reels carousel after 3rd post */}
+                                        {index === 2 && <ReelsFeedCarousel key="reels-carousel" />}
                                     </>
-                                )}
-                                {!hasMorePosts && posts.length > 0 && (
-                                    <p style={{ color: C.textSec, fontSize: 14, textAlign: 'center' }}>
-                                        You're all caught up! Check back later for new content.
-                                    </p>
-                                )}
-                            </div>
+                                ))}
 
-                            <style jsx>{`
+                                {/* ♾️ INFINITE SCROLL: Load more trigger */}
+                                <div ref={loadMoreCallbackRef} style={{
+                                    padding: '20px',
+                                    textAlign: 'center',
+                                    minHeight: 60
+                                }}>
+                                    {loadingMore && (
+                                        <>
+                                            {/* Skeleton Post Placeholders */}
+                                            {[1, 2].map(i => (
+                                                <div key={`skeleton-${i}`} style={{
+                                                    background: C.card,
+                                                    borderRadius: 8,
+                                                    padding: 16,
+                                                    marginBottom: 12,
+                                                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                                                }}>
+                                                    {/* Skeleton header */}
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                                                        <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#E4E6EB', animation: 'pulse 1.5s infinite' }} />
+                                                        <div style={{ flex: 1 }}>
+                                                            <div style={{ width: 120, height: 12, background: '#E4E6EB', borderRadius: 6, marginBottom: 6, animation: 'pulse 1.5s infinite' }} />
+                                                            <div style={{ width: 80, height: 10, background: '#E4E6EB', borderRadius: 5, animation: 'pulse 1.5s infinite' }} />
+                                                        </div>
+                                                    </div>
+                                                    {/* Skeleton content */}
+                                                    <div style={{ marginBottom: 12 }}>
+                                                        <div style={{ width: '100%', height: 10, background: '#E4E6EB', borderRadius: 5, marginBottom: 8, animation: 'pulse 1.5s infinite' }} />
+                                                        <div style={{ width: '80%', height: 10, background: '#E4E6EB', borderRadius: 5, animation: 'pulse 1.5s infinite' }} />
+                                                    </div>
+                                                    {/* Skeleton image placeholder */}
+                                                    <div style={{ width: '100%', height: 200, background: '#E4E6EB', borderRadius: 8, animation: 'pulse 1.5s infinite' }} />
+                                                </div>
+                                            ))}
+                                        </>
+                                    )}
+                                    {!hasMorePosts && posts.length > 0 && (
+                                        <p style={{ color: C.textSec, fontSize: 14, textAlign: 'center' }}>
+                                            You're all caught up! Check back later for new content.
+                                        </p>
+                                    )}
+                                </div>
+
+                                <style jsx>{`
                                 @keyframes spin {
                                     to { transform: rotate(360deg); }
                                 }
@@ -3366,8 +3373,8 @@ export default function SocialMediaPage() {
                                     50% { opacity: 0.5; }
                                 }
                             `}</style>
-                        </>
-                    )}
+                            </>
+                        )}
                     </>}
                 </main>
 

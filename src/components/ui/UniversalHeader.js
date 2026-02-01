@@ -10,7 +10,6 @@
  * - Dark background with neon blue accents
  * - "Smarter.Poker" in white text 
  * - Diamond wallet with + (REAL balance from user_diamond_balance)
- * - XP display with level (REAL data from profiles.xp_total)
  * - Profile picture (REAL avatar from profiles.avatar_url)
  * - Neon orb icons for profile, messages, notifications, settings
  * - Return to Hub button (for major pages) or Back button (for nested pages)
@@ -21,7 +20,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { supabase } from '../../lib/supabase';
 import PushNotificationBell from '../notifications/PushNotificationBell';
-import { useLiveHelp, LiveHelpPanel } from '../../world/components/LiveHelp';
+import { useLiveHelp, LiveHelpPanel } from '../../world/components/Geeves';
 
 // Dark theme colors matching hub
 const C = {
@@ -90,12 +89,11 @@ export default function UniversalHeader({
 }) {
     const router = useRouter();
     const [user, setUser] = useState(null);
-    const [stats, setStats] = useState({ xp: 0, diamonds: 0, level: 1 });
+    const [stats, setStats] = useState({ diamonds: 0 });
     const [isLoading, setIsLoading] = useState(true);
     const [notificationCount, setNotificationCount] = useState(0);
     const [unreadMessages, setUnreadMessages] = useState(0);
     const [showFullDiamonds, setShowFullDiamonds] = useState(false);
-    const [showFullXP, setShowFullXP] = useState(false);
 
     // Live Help state
     const liveHelp = useLiveHelp();
@@ -154,8 +152,8 @@ export default function UniversalHeader({
                             console.log(`[UniversalHeader] API fetch attempt ${attempt}:`, result);
 
                             if (result.success && result.profile && mounted) {
-                                const { xp, diamonds, level, full_name, username, avatar_url } = result.profile;
-                                setStats({ xp, diamonds, level });
+                                const { diamonds, full_name, username, avatar_url } = result.profile;
+                                setStats({ diamonds });
                                 setUser(prev => ({
                                     ...prev,
                                     avatar: avatar_url,
@@ -201,7 +199,7 @@ export default function UniversalHeader({
                             } catch (e) { }
 
                             const response = await fetch(
-                                `${SUPABASE_URL}/rest/v1/profiles?id=eq.${authUser.id}&select=username,full_name,avatar_url,xp_total,diamonds`,
+                                `${SUPABASE_URL}/rest/v1/profiles?id=eq.${authUser.id}&select=username,full_name,avatar_url,diamonds`,
                                 {
                                     headers: {
                                         'apikey': SUPABASE_ANON_KEY,
@@ -214,9 +212,7 @@ export default function UniversalHeader({
                             const profile = profiles?.[0];
 
                             if (profile && mounted) {
-                                const xpTotal = profile.xp_total || 0;
-                                const level = Math.max(1, Math.floor(Math.sqrt(xpTotal / 231)));
-                                setStats({ xp: xpTotal, diamonds: profile.diamonds || 0, level });
+                                setStats({ diamonds: profile.diamonds || 0 });
                                 setUser(prev => ({
                                     ...prev,
                                     avatar: profile.avatar_url,
@@ -386,20 +382,7 @@ export default function UniversalHeader({
                     box-sizing: border-box;
                 }
                 
-                .xp-display {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    background: linear-gradient(135deg, rgba(0, 212, 255, 0.15) 0%, rgba(0, 100, 150, 0.2) 100%);
-                    border: 1px solid rgba(0, 212, 255, 0.4);
-                    padding: 0 10px;
-                    border-radius: 12px;
-                    width: 90px;
-                    height: 40px;
-                    box-sizing: border-box;
-                    line-height: 1.1;
-                }
+
                 
                 .orb-btn {
                     width: 36px;
@@ -495,8 +478,8 @@ export default function UniversalHeader({
                         display: inline; /* Keep Hub/Back text visible */
                     }
                     
-                    /* Diamond and XP boxes - EXACT SAME SIZE */
-                    .diamond-wallet, .xp-display {
+                    /* Diamond wallet - mobile sizing */
+                    .diamond-wallet {
                         width: 75px;
                         height: 36px;
                         padding: 0 6px;
@@ -566,7 +549,7 @@ export default function UniversalHeader({
                     <span className="brand-text">Smarter.Poker</span>
                 </div>
 
-                {/* CENTER: Diamond Wallet + XP */}
+                {/* CENTER: Diamond Wallet */}
                 <div className="header-center">
                     {/* Diamond Wallet - click to toggle full/compact */}
                     <Link href="/hub/diamond-store" className="diamond-wallet" onClick={(e) => {
@@ -580,26 +563,12 @@ export default function UniversalHeader({
                             {showFullDiamonds ? stats.diamonds.toLocaleString() : formatCompact(stats.diamonds)}
                         </span>
                         <span style={{
-                            width: 16, height: 16, borderRadius: '50%',
+                            width: 20, height: 20, borderRadius: '50%',
                             background: 'rgba(0, 212, 255, 0.3)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 10, fontWeight: 700
+                            fontSize: 12, fontWeight: 700
                         }}>+</span>
                     </Link>
-
-                    {/* XP + Level - click to toggle full/compact - STACKED layout */}
-                    <div className="xp-display" onClick={() => stats.xp >= 1000 && setShowFullXP(!showFullXP)} style={{ cursor: stats.xp >= 1000 ? 'pointer' : 'default' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                            <span style={{ color: C.white, fontWeight: 700, fontSize: 11 }}>XP</span>
-                            <span data-testid="header-xp" style={{ color: C.white, fontWeight: 700, fontSize: 11 }} title={stats.xp.toLocaleString() + ' XP'}>
-                                {showFullXP ? stats.xp.toLocaleString() : formatCompact(stats.xp)}
-                            </span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                            <span style={{ color: C.white, fontWeight: 700, fontSize: 11 }}>LV</span>
-                            <span data-testid="header-level" style={{ color: C.white, fontWeight: 700, fontSize: 11 }}>{stats.level}</span>
-                        </div>
-                    </div>
                 </div>
 
                 {/* RIGHT: Orb Icons */}
@@ -685,12 +654,13 @@ export default function UniversalHeader({
                 </div>
             </header>
 
-            {/* Live Help Panel - renders on all pages with UniversalHeader */}
+            {/* Live Help Panel - DISABLED per user request (no Jarvis/Geeves popups)
             <LiveHelpPanel {...liveHelp} />
+            */}
         </>
     );
 }
 
 
-// LIVE HELP PANEL EXPORT
-export { LiveHelpPanel } from '../../world/components/LiveHelp';
+// GEEVES LIVE HELP PANEL EXPORT
+export { LiveHelpPanel } from '../../world/components/Geeves';

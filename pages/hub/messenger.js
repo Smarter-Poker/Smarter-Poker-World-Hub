@@ -14,10 +14,19 @@ import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../src/config/hamburgerMenus';
+import { messengerPreferences } from '../../src/services/preferences-service';
 
 // Dynamic import for LiveKit (client-side only)
 const LiveKitCall = dynamic(
     () => import('../../src/components/video/LiveKitCall'),
+    { ssr: false }
+);
+
+// Dynamic import for Jarvis AI Widget (client-side only)
+const JarvisMessengerWidget = dynamic(
+    () => import('../../src/world/components/Jarvis/JarvisMessengerWidget'),
     { ssr: false }
 );
 
@@ -615,10 +624,32 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                         boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                         overflow: 'hidden',
                         zIndex: 20,
-                        minWidth: 120,
+                        minWidth: 180,
                     }}>
                         <button
-                            onClick={handleDelete}
+                            onClick={() => {
+                                onDelete(message.id, 'for_me');
+                                setShowMenu(false);
+                            }}
+                            style={{
+                                display: 'block',
+                                width: '100%',
+                                padding: '10px 16px',
+                                border: 'none',
+                                background: 'transparent',
+                                cursor: 'pointer',
+                                textAlign: 'left',
+                                color: C.text,
+                                fontSize: 14,
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                        >Delete for Me</button>
+                        <button
+                            onClick={() => {
+                                onDelete(message.id, 'for_everyone');
+                                setShowMenu(false);
+                            }}
                             style={{
                                 display: 'block',
                                 width: '100%',
@@ -632,7 +663,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                             }}
                             onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
                             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                        >🗑️ Delete</button>
+                        >Delete for Everyone</button>
                     </div>
                 )}
 
@@ -1030,8 +1061,31 @@ export default function MessengerPage() {
     const callTimeoutRef = useRef(null);
     const callStartTimeRef = useRef(null); // Track call start for duration
 
+    // Hamburger Menu State
+    const [menuOpen, setMenuOpen] = useState(false);
+    const [preferences, setPreferences] = useState({
+        notifications: true,
+        readReceipts: true,
+        activeStatus: true,
+        messageSounds: true
+    });
+
     // OneSignal Push Notifications
     const { isInitialized: pushReady, isSubscribed: pushSubscribed, subscribe: subscribePush, setExternalUserId } = useOneSignal();
+
+    // Load preferences from service (localStorage + Supabase)
+    useEffect(() => {
+        messengerPreferences.get(user?.id).then(prefs => {
+            setPreferences(prefs);
+        });
+    }, [user]);
+
+    // Preference update handler with Supabase sync
+    const updatePreference = async (key, value) => {
+        const updated = { ...preferences, [key]: value };
+        setPreferences(updated);
+        await messengerPreferences.update(user?.id, { [key]: value });
+    };
 
     // Global unread count for header badge - refresh after reading messages
     const { refreshUnread } = useUnreadCount();
@@ -1042,6 +1096,14 @@ export default function MessengerPage() {
     const typingTimeout = useRef(null);
     const messageSearchTimeout = useRef(null);
 
+    // Menu config with handlers
+    const menuConfig = getMenuConfig('messenger', user, preferences, {
+        setNotifications: (val) => updatePreference('notifications', val),
+        setReadReceipts: (val) => updatePreference('readReceipts', val),
+        setActiveStatus: (val) => updatePreference('activeStatus', val),
+        setMessageSounds: (val) => updatePreference('messageSounds', val)
+    });
+
     // Check for mobile
     useEffect(() => {
         const check = () => setIsMobile(window.innerWidth < 768);
@@ -1049,6 +1111,7 @@ export default function MessengerPage() {
         window.addEventListener('resize', check);
         return () => window.removeEventListener('resize', check);
     }, []);
+
 
     // Load user and conversations
     useEffect(() => {
@@ -1649,6 +1712,41 @@ export default function MessengerPage() {
     const handleSelectConversation = async (conversation) => {
         setActiveConversation(conversation);
         if (isMobile) setShowSidebar(false);
+
+        // Special handling for Jarvis AI
+        if (conversation.isJarvis) {
+            // Load Jarvis conversation from localStorage
+            const saved = localStorage.getItem('jarvis_messenger_history');
+            if (saved) {
+                try {
+                    const history = JSON.parse(saved);
+                    setMessages(history);
+                } catch (e) {
+                    console.error('Failed to load Jarvis history:', e);
+                    setMessages([{
+                        id: 'welcome',
+                        content: "Hey! I'm Jarvis, your poker AI assistant. Ask me anything about strategy, hand analysis, or GTO concepts.",
+                        created_at: new Date().toISOString(),
+                        sender_id: 'jarvis',
+                        profiles: { id: 'jarvis', username: 'jarvis', full_name: 'Jarvis', avatar_url: null },
+                        isJarvis: true
+                    }]);
+                }
+            } else {
+                // Show welcome message
+                setMessages([{
+                    id: 'welcome',
+                    content: "Hey! I'm Jarvis, your poker AI assistant. Ask me anything about strategy, hand analysis, or GTO concepts.",
+                    created_at: new Date().toISOString(),
+                    sender_id: 'jarvis',
+                    profiles: { id: 'jarvis', username: 'jarvis', full_name: 'Jarvis', avatar_url: null },
+                    isJarvis: true
+                }]);
+            }
+            return;
+        }
+
+        // Regular conversation handling
         await loadMessages(conversation.id);
 
         // Update local unread count
@@ -1660,6 +1758,87 @@ export default function MessengerPage() {
     const handleSendMessage = async (content) => {
         if (!user || !activeConversation || !content.trim()) return;
 
+        // Special handling for Jarvis AI
+        if (activeConversation.isJarvis) {
+            const userMsg = {
+                id: `user-${Date.now()}`,
+                content: content.trim(),
+                created_at: new Date().toISOString(),
+                sender_id: user.id,
+                profiles: { id: user.id, username: user.username, avatar_url: user.avatar_url },
+                isUser: true
+            };
+
+            setMessages(prev => {
+                const updated = [...prev, userMsg];
+                localStorage.setItem('jarvis_messenger_history', JSON.stringify(updated));
+                return updated;
+            });
+
+            // Show typing indicator
+            const typingMsg = {
+                id: 'typing',
+                content: 'Thinking...',
+                created_at: new Date().toISOString(),
+                sender_id: 'jarvis',
+                profiles: { id: 'jarvis', username: 'jarvis', full_name: 'Jarvis', avatar_url: null },
+                isJarvis: true,
+                isTyping: true
+            };
+            setMessages(prev => [...prev, typingMsg]);
+
+            try {
+                const response = await fetch('/api/geeves/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: content,
+                        context: 'messenger',
+                        history: messages.slice(-6).map(m => ({
+                            role: m.isUser ? 'user' : 'assistant',
+                            content: m.content
+                        }))
+                    })
+                });
+
+                const data = await response.json();
+
+                // Remove typing indicator and add response
+                setMessages(prev => {
+                    const withoutTyping = prev.filter(m => m.id !== 'typing');
+                    const jarvisMsg = {
+                        id: `jarvis-${Date.now()}`,
+                        content: data.response || data.message || "I'm having trouble processing that. Try asking again.",
+                        created_at: new Date().toISOString(),
+                        sender_id: 'jarvis',
+                        profiles: { id: 'jarvis', username: 'jarvis', full_name: 'Jarvis', avatar_url: null },
+                        isJarvis: true
+                    };
+                    const updated = [...withoutTyping, jarvisMsg];
+                    localStorage.setItem('jarvis_messenger_history', JSON.stringify(updated));
+                    return updated;
+                });
+            } catch (error) {
+                console.error('Jarvis chat error:', error);
+                setMessages(prev => {
+                    const withoutTyping = prev.filter(m => m.id !== 'typing');
+                    const errorMsg = {
+                        id: `jarvis-error-${Date.now()}`,
+                        content: "Connection issue. Please try again.",
+                        created_at: new Date().toISOString(),
+                        sender_id: 'jarvis',
+                        profiles: { id: 'jarvis', username: 'jarvis', full_name: 'Jarvis', avatar_url: null },
+                        isJarvis: true
+                    };
+                    const updated = [...withoutTyping, errorMsg];
+                    localStorage.setItem('jarvis_messenger_history', JSON.stringify(updated));
+                    return updated;
+                });
+            }
+            return;
+        }
+
+        // Regular message handling
         // Optimistic update - show message immediately
         const tempId = `temp-${Date.now()}`;
         const optimisticMsg = {
@@ -1726,27 +1905,47 @@ export default function MessengerPage() {
         }
     };
 
-    // Handle message deletion
-    const handleDeleteMessage = async (messageId) => {
+    // Handle message deletion (Facebook-style: delete for me vs delete for everyone)
+    const handleDeleteMessage = async (messageId, deleteType = 'for_me') => {
         if (!user) return;
-        try {
-            const { data: success, error } = await supabase.rpc('fn_delete_message', {
-                p_message_id: messageId,
-                p_user_id: user.id,
+
+        // For Jarvis messages, just remove from localStorage
+        if (activeConversation?.isJarvis) {
+            setMessages(prev => {
+                const updated = deleteType === 'all'
+                    ? []
+                    : prev.filter(m => m.id !== messageId);
+                localStorage.setItem('jarvis_messenger_history', JSON.stringify(updated));
+                return updated;
             });
+            setToast({ type: 'success', message: deleteType === 'all' ? 'All messages deleted' : 'Message deleted' });
+            return;
+        }
 
-            if (error) throw error;
+        try {
+            if (deleteType === 'for_everyone') {
+                // Delete for everyone (only if you sent it)
+                const { data: success, error } = await supabase.rpc('fn_delete_message', {
+                    p_message_id: messageId,
+                    p_user_id: user.id,
+                });
 
-            if (success) {
-                // Update UI to show deleted message
-                setMessages(prev => prev.map(m =>
-                    m.id === messageId
-                        ? { ...m, content: '[Message deleted]', is_deleted: true }
-                        : m
-                ));
-                setToast({ type: 'success', message: 'Message deleted' });
+                if (error) throw error;
+
+                if (success) {
+                    setMessages(prev => prev.map(m =>
+                        m.id === messageId
+                            ? { ...m, content: '[Message deleted]', is_deleted: true }
+                            : m
+                    ));
+                    setToast({ type: 'success', message: 'Message deleted for everyone' });
+                } else {
+                    setToast({ type: 'error', message: 'Could not delete message' });
+                }
             } else {
-                setToast({ type: 'error', message: 'Could not delete message' });
+                // Delete for me only (hide locally)
+                setMessages(prev => prev.filter(m => m.id !== messageId));
+                setToast({ type: 'success', message: 'Message removed' });
             }
         } catch (e) {
             console.error('Delete message error:', e);
@@ -2304,7 +2503,22 @@ export default function MessengerPage() {
             </Head>
 
             {/* UNIVERSAL HEADER - Mobile responsive with diamond/XP */}
-            <UniversalHeader pageDepth={2} />
+            <UniversalHeader
+                pageDepth={2}
+                onMenuClick={() => setMenuOpen(true)}
+            />
+
+            {/* Hamburger Menu */}
+            <HamburgerMenu
+                isOpen={menuOpen}
+                onClose={() => setMenuOpen(false)}
+                direction="left"
+                theme="dark"
+                user={user}
+                showProfile={true}
+                menuItems={menuConfig.menuItems}
+                bottomLinks={menuConfig.bottomLinks}
+            />
 
             {/* Toast Notifications */}
             <Toast toast={toast} onDismiss={() => setToast(null)} />
@@ -2655,15 +2869,104 @@ export default function MessengerPage() {
                                     }}>Search for people</button>
                             </div>
                         ) : (
-                            conversations.map(conv => (
-                                <ConversationItem
-                                    key={conv.id}
-                                    conversation={conv}
-                                    isActive={activeConversation?.id === conv.id}
-                                    onClick={() => handleSelectConversation(conv)}
-                                    currentUserId={user.id}
-                                />
-                            ))
+                            <>
+                                {/* Jarvis AI - Locked at Top */}
+                                <div
+                                    onClick={() => handleSelectConversation({
+                                        id: 'jarvis-ai',
+                                        isJarvis: true,
+                                        otherUser: {
+                                            id: 'jarvis',
+                                            username: 'jarvis',
+                                            full_name: 'Jarvis',
+                                            avatar_url: null
+                                        },
+                                        last_message_preview: 'Your Poker AI Assistant',
+                                        last_message_at: new Date().toISOString(),
+                                        unread_count: 0
+                                    })}
+                                    style={{
+                                        padding: '12px 16px',
+                                        cursor: 'pointer',
+                                        background: activeConversation?.id === 'jarvis-ai'
+                                            ? 'linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(0, 150, 255, 0.1))'
+                                            : '#2a2a2a',
+                                        borderBottom: `1px solid ${C.border}`,
+                                        borderLeft: activeConversation?.id === 'jarvis-ai' ? '3px solid #00D4FF' : '3px solid transparent',
+                                        transition: 'all 0.2s',
+                                        position: 'relative'
+                                    }}
+                                    onMouseEnter={e => {
+                                        if (activeConversation?.id !== 'jarvis-ai') {
+                                            e.currentTarget.style.background = 'rgba(0, 212, 255, 0.05)';
+                                        }
+                                    }}
+                                    onMouseLeave={e => {
+                                        if (activeConversation?.id !== 'jarvis-ai') {
+                                            e.currentTarget.style.background = '#2a2a2a';
+                                        }
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                        {/* Jarvis Avatar */}
+                                        <img
+                                            src="/images/jarvis-avatar.png"
+                                            alt="Jarvis AI"
+                                            style={{
+                                                width: 48,
+                                                height: 48,
+                                                borderRadius: '50%',
+                                                objectFit: 'cover',
+                                                boxShadow: '0 2px 8px rgba(0, 212, 255, 0.3)',
+                                                border: '2px solid #00D4FF',
+                                                position: 'relative'
+                                            }}
+                                        />
+                                        {/* Always Online Indicator */}
+                                        <div style={{
+                                            position: 'absolute',
+                                            bottom: 0,
+                                            left: 36,
+                                            width: 14,
+                                            height: 14,
+                                            borderRadius: '50%',
+                                            background: C.green,
+                                            border: '2px solid white'
+                                        }} />
+
+                                        {/* Jarvis Info */}
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{
+                                                marginBottom: 4
+                                            }}>
+                                                <span style={{
+                                                    fontWeight: 600,
+                                                    fontSize: 15,
+                                                    color: '#00D4FF'
+                                                }}>Jarvis</span>
+                                            </div>
+                                            <div style={{
+                                                fontSize: 13,
+                                                color: '#00D4FF',
+                                                lineHeight: 1.3
+                                            }}>
+                                                Your Personal Smarter.Poker Coach - Always Online Always Available! Ask Me Anything...
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Regular Conversations */}
+                                {conversations.map(conv => (
+                                    <ConversationItem
+                                        key={conv.id}
+                                        conversation={conv}
+                                        isActive={activeConversation?.id === conv.id}
+                                        onClick={() => handleSelectConversation(conv)}
+                                        currentUserId={user.id}
+                                    />
+                                ))}
+                            </>
                         )}
                     </div>
 
@@ -2934,6 +3237,8 @@ export default function MessengerPage() {
                             </div>
                         )}
                 </main >
+
+                {/* Jarvis is now integrated as a conversation in the list */}
             </div >
         </>
     );

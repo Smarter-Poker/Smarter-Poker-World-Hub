@@ -28,7 +28,7 @@ export interface TriviaResult {
     correctCount: number;
     accuracy: number;
     timeSpent: number;
-    xpEarned: number;
+
     diamondsEarned: number;
     streakBonus: number;
 }
@@ -40,7 +40,6 @@ export const TRIVIA_MODES = {
         description: '1 Question • Once Per Day',
         questionsCount: 1,
         timeLimit: null,
-        xpBase: 50,
         diamondCost: 0,
         diamondReward: 0,
         icon: 'lightning',
@@ -52,7 +51,6 @@ export const TRIVIA_MODES = {
         description: 'Iconic moments, famous hands, legendary players',
         questionsCount: 10,
         timeLimit: null,
-        xpBase: 10,
         diamondCost: 0,
         diamondReward: 0,
         icon: 'trophy',
@@ -64,7 +62,6 @@ export const TRIVIA_MODES = {
         description: 'Test your understanding of official poker rules',
         questionsCount: 10,
         timeLimit: null,
-        xpBase: 10,
         diamondCost: 0,
         diamondReward: 0,
         icon: 'book',
@@ -76,7 +73,6 @@ export const TRIVIA_MODES = {
         description: 'Strategy concepts, GTO basics, advanced trivia',
         questionsCount: 10,
         timeLimit: null,
-        xpBase: 15,
         diamondCost: 0,
         diamondReward: 0,
         icon: 'graduation',
@@ -88,7 +84,6 @@ export const TRIVIA_MODES = {
         description: 'High-speed trivia for Diamond rewards',
         questionsCount: 10,
         timeLimit: 60,
-        xpBase: 0,
         diamondCost: 10,
         diamondReward: 100,
         icon: 'diamond',
@@ -98,18 +93,7 @@ export const TRIVIA_MODES = {
 
 export type TriviaMode = keyof typeof TRIVIA_MODES;
 
-export function calculateXP(
-    mode: TriviaMode,
-    correctCount: number,
-    totalQuestions: number,
-    streak: number
-): number {
-    const config = TRIVIA_MODES[mode];
-    const baseXP = config.xpBase * correctCount;
-    const streakBonus = Math.min(streak, 7) * 5;
-    const accuracyBonus = correctCount === totalQuestions ? 25 : 0;
-    return baseXP + streakBonus + accuracyBonus;
-}
+// XP system removed - calculateXP function deleted
 
 export function calculateDiamonds(
     mode: TriviaMode,

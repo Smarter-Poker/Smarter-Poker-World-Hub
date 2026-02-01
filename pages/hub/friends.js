@@ -16,6 +16,9 @@ import { useFriendsStore } from '../../src/stores/friendsStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { getAuthUser } from '../../src/lib/authUtils';
+import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../src/config/hamburgerMenus';
+import { friendPreferences } from '../../src/services/preferences-service';
 
 const C = {
     bg: '#0a0a0a', card: '#1a1a1a', cardHover: '#252525', text: '#FFFFFF', textSec: '#9ca3af',
@@ -406,6 +409,35 @@ export default function FriendsPage() {
     const [followingIds, setFollowingIds] = useState(new Set());
     const [followerIds, setFollowerIds] = useState(new Set());
     const [myFriendIds, setMyFriendIds] = useState([]); // For mutual friends calculation
+
+    // Hamburger Menu State
+    const [menuOpen, setMenuOpen] = useState(false);
+    const [preferences, setPreferences] = useState({
+        allowRequests: true,
+        showOnlineStatus: true,
+        friendSuggestions: true
+    });
+
+    // Load preferences from service (localStorage + Supabase)
+    useEffect(() => {
+        friendPreferences.get(user?.id).then(prefs => {
+            setPreferences(prefs);
+        });
+    }, [user]);
+
+    // Preference update handler with Supabase sync
+    const updatePreference = async (key, value) => {
+        const updated = { ...preferences, [key]: value };
+        setPreferences(updated);
+        await friendPreferences.update(user?.id, { [key]: value });
+    };
+
+    // Menu config
+    const menuConfig = getMenuConfig('friends', user, preferences, {
+        setAllowRequests: (val) => updatePreference('allowRequests', val),
+        setShowOnlineStatus: (val) => updatePreference('showOnlineStatus', val),
+        setFriendSuggestions: (val) => updatePreference('friendSuggestions', val)
+    });
 
     const fetchData = async () => {
         // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
@@ -942,7 +974,22 @@ export default function FriendsPage() {
                 color: C.text
             }}>
                 {/* Header - Universal Header */}
-                <UniversalHeader pageDepth={2} />
+                <UniversalHeader
+                    pageDepth={2}
+                    onMenuClick={() => setMenuOpen(true)}
+                />
+
+                {/* Hamburger Menu */}
+                <HamburgerMenu
+                    isOpen={menuOpen}
+                    onClose={() => setMenuOpen(false)}
+                    direction="left"
+                    theme="dark"
+                    user={user}
+                    showProfile={true}
+                    menuItems={menuConfig.menuItems}
+                    bottomLinks={menuConfig.bottomLinks}
+                />
 
                 {/* Stats Bar */}
                 <div style={{

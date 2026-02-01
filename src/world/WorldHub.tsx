@@ -40,13 +40,13 @@ function useIsMobile() {
 }
 
 // UI Components
-import { DiamondStat, XPStat } from './components/HeaderStats';
+import { DiamondStat } from './components/HeaderStats';
 import { WelcomeBack } from './components/WelcomeMessage';
 import { StreakPopup } from './components/StreakPopup';
 import { SearchOrb, SearchOverlay } from './components/GlobalSearch';
 import { ProfileDropdown } from './components/ProfileDropdown';
-import { LiveHelpOrb } from './components/LiveHelpOrb';
-import { useLiveHelp, LiveHelpPanel } from './components/LiveHelp';
+import { GeevesOrb } from './components/GeevesOrb';
+import { useLiveHelp, LiveHelpPanel } from './components/Geeves';
 import { SettingsOrb } from './components/SettingsOrb';
 
 
@@ -968,7 +968,7 @@ export default function WorldHub() {
                 ═══════════════════════════════════════════════════════════════ */}
                 <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
 
-                {/* Live Help Panel */}
+                {/* Live Help Panel - DISABLED per user request (no Jarvis/Geeves popups)
                 <LiveHelpPanel
                     isOpen={liveHelp.isOpen}
                     onClose={() => liveHelp.setIsOpen(false)}
@@ -980,6 +980,7 @@ export default function WorldHub() {
                     onSendMessage={liveHelp.sendMessage}
                     onSwitchAgent={liveHelp.switchAgent}
                 />
+                */}
             </div>
         </>
     );

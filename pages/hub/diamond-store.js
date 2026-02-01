@@ -5,7 +5,7 @@
 
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 
@@ -16,46 +16,14 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import ShoppingCart from '../../src/components/store/ShoppingCart';
 import useCartStore from '../../src/stores/cartStore';
 import supabase from '../../src/lib/supabase';
+import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../src/config/hamburgerMenus';
+import { getAuthUser } from '../../src/lib/authUtils';
+import { storePreferences } from '../../src/services/preferences-service';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// XP SYSTEM — Quadratic Progression (Infinite Levels)
-// Formula: Level = floor(sqrt(XP / 100)) + 1
-// Verified: 700,000 XP = Level 84
+// XP SYSTEM REMOVED - No longer tracking experience points
 // ═══════════════════════════════════════════════════════════════════════════
-
-// Calculate level from total XP
-function calculateLevelFromXP(xp) {
-    return Math.max(1, Math.floor(Math.sqrt(xp / 100)) + 1);
-}
-
-// Calculate total XP required for a given level
-function calculateXPForLevel(level) {
-    if (level <= 1) return 0;
-    return Math.pow(level - 1, 2) * 100;
-}
-
-// Calculate XP required to reach next level from current XP
-function calculateXPToNextLevel(currentXP) {
-    const currentLevel = calculateLevelFromXP(currentXP);
-    const xpForNextLevel = calculateXPForLevel(currentLevel + 1);
-    return xpForNextLevel - currentXP;
-}
-
-// Generate example milestones for display
-const XP_MILESTONES = [
-    { level: 1, xp: 0 },
-    { level: 5, xp: 1600 },
-    { level: 10, xp: 8100 },
-    { level: 15, xp: 19600 },
-    { level: 20, xp: 36100 },
-    { level: 25, xp: 57600 },
-    { level: 30, xp: 84100 },
-    { level: 40, xp: 152100 },
-    { level: 50, xp: 240100 },
-    { level: 75, xp: 547600 },
-    { level: 84, xp: 688900 }, // Verified production data
-    { level: 100, xp: 980100 },
-];
 
 // ═══════════════════════════════════════════════════════════════════════════
 // STANDARD DIAMOND REWARDS — 10 Ways to Earn (Daily Cap: 500 💎)
@@ -541,19 +509,20 @@ function VIPCard({ plan, isSelected, onSelect }) {
             style={{
                 position: 'relative',
                 background: isSelected
-                    ? 'linear-gradient(135deg, rgba(24, 119, 242, 0.3), rgba(66, 133, 244, 0.3))'
-                    : 'linear-gradient(135deg, rgba(24, 119, 242, 0.1), rgba(66, 133, 244, 0.1))',
+                    ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(180, 134, 11, 0.15))'
+                    : 'linear-gradient(135deg, rgba(20, 20, 30, 0.9), rgba(30, 30, 45, 0.8))',
                 border: isSelected
-                    ? '2px solid #1877F2'
+                    ? '2px solid #ffd700'
                     : plan.popular
-                        ? '2px solid rgba(24, 119, 242, 0.5)'
-                        : '1px solid rgba(24, 119, 242, 0.3)',
+                        ? '2px solid rgba(255, 215, 0, 0.5)'
+                        : '1px solid rgba(255, 215, 0, 0.2)',
                 borderRadius: 16,
-                padding: 24,
+                padding: 20,
                 cursor: 'pointer',
-                transition: 'all 0.2s ease',
+                transition: 'all 0.3s ease',
                 transform: isSelected ? 'scale(1.02)' : 'scale(1)',
                 flex: 1,
+                overflow: 'hidden',
             }}
         >
             {plan.popular && (
@@ -561,8 +530,8 @@ function VIPCard({ plan, isSelected, onSelect }) {
                     position: 'absolute',
                     top: -10,
                     right: 16,
-                    background: 'linear-gradient(135deg, #1877F2, #4285F4)',
-                    color: '#fff',
+                    background: 'linear-gradient(135deg, #ffd700, #b8860b)',
+                    color: '#0a0a14',
                     fontSize: 10,
                     fontWeight: 700,
                     padding: '4px 10px',
@@ -589,25 +558,44 @@ function VIPCard({ plan, isSelected, onSelect }) {
                 </div>
             )}
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                <span style={{ fontSize: 36 }}>👑</span>
-                <div>
-                    <div style={{
-                        fontFamily: 'Orbitron, sans-serif',
-                        fontSize: 20,
-                        fontWeight: 700,
-                        color: '#fff',
-                    }}>
-                        {plan.name}
-                    </div>
-                    <div style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.6)' }}>
-                        All features included
-                    </div>
+            {/* VIP Card Image */}
+            <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                marginBottom: 16,
+            }}>
+                <img
+                    src="/images/vip-card.png"
+                    alt="VIP Card"
+                    style={{
+                        width: '100%',
+                        maxWidth: 280,
+                        height: 'auto',
+                        borderRadius: 12,
+                        boxShadow: isSelected
+                            ? '0 8px 32px rgba(255, 215, 0, 0.4)'
+                            : '0 4px 16px rgba(0, 0, 0, 0.4)',
+                    }}
+                />
+            </div>
+
+            <div style={{ textAlign: 'center' }}>
+                <div style={{
+                    fontFamily: 'Orbitron, sans-serif',
+                    fontSize: 18,
+                    fontWeight: 700,
+                    color: '#ffd700',
+                    marginBottom: 4,
+                }}>
+                    {plan.name}
+                </div>
+                <div style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.6)', marginBottom: 12 }}>
+                    All VIP features included
                 </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                <span style={{ fontSize: 32, fontWeight: 700, color: '#fff' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 4 }}>
+                <span style={{ fontSize: 28, fontWeight: 700, color: '#fff' }}>
                     ${plan.price.toFixed(2)}
                 </span>
                 <span style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.5)' }}>
@@ -709,6 +697,79 @@ export default function DiamondStorePage() {
         }
     }, []);
 
+    // Hamburger Menu State
+    const [menuOpen, setMenuOpen] = useState(false);
+    const [user, setUser] = useState(null);
+    const [preferences, setPreferences] = useState({
+        emailReceipts: true,
+        promotionalEmails: false
+    });
+
+    // Load user
+    useEffect(() => {
+        // getAuthUser is synchronous
+        const authUser = getAuthUser();
+        setUser(authUser);
+    }, []);
+
+    // Load preferences from service (localStorage + Supabase)
+    useEffect(() => {
+        storePreferences.get(user?.id).then(prefs => {
+            setPreferences(prefs);
+        });
+    }, [user]);
+
+    // Preference update handler with Supabase sync
+    const updatePreference = async (key, value) => {
+        const updated = { ...preferences, [key]: value };
+        setPreferences(updated);
+        await storePreferences.update(user?.id, { [key]: value });
+    };
+
+    // Menu config
+    const menuConfig = getMenuConfig('diamond-store', user, preferences, {
+        setEmailReceipts: (val) => updatePreference('emailReceipts', val),
+        setPromotionalEmails: (val) => updatePreference('promotionalEmails', val)
+    });
+
+    // Handle success/cancel redirects from Stripe checkout
+    const { clearCart } = useCartStore();
+
+    useEffect(() => {
+        const { success, canceled, session_id } = router.query;
+
+        if (success === 'true') {
+            // Purchase successful!
+            console.log('[Diamond Store] Purchase successful! Session:', session_id);
+
+            // Clear the cart
+            clearCart();
+
+            // Trigger confetti celebration
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+
+            // Show success message
+            alert('🎉 Purchase successful! Your diamonds have been added to your account.');
+
+            // Clean up URL
+            router.replace('/hub/diamond-store', undefined, { shallow: true });
+
+        } else if (canceled === 'true') {
+            // Purchase canceled
+            console.log('[Diamond Store] Purchase canceled');
+
+            // Show cancellation message
+            alert('Purchase canceled. Your items are still in your cart.');
+
+            // Clean up URL
+            router.replace('/hub/diamond-store', undefined, { shallow: true });
+        }
+    }, [router.query, router, clearCart]);
+
     const { addItem } = useCartStore();
 
     // Add diamond package to cart
@@ -781,12 +842,18 @@ export default function DiamondStorePage() {
                 })
             });
 
+            console.log('[Diamond Store] API Response Status:', response.status);
             const data = await response.json();
+            console.log('[Diamond Store] API Response Data:', data);
 
             if (!data.success) {
-                throw new Error(data.error?.message || 'Failed to create checkout session');
+                console.error('[Diamond Store] Checkout failed:', data.error);
+                const errorMsg = data.error?.message || 'Failed to create checkout session';
+                const errorCode = data.error?.code || 'UNKNOWN';
+                throw new Error(`${errorCode}: ${errorMsg}`);
             }
 
+            console.log('[Diamond Store] Redirecting to Stripe:', data.data.url);
             // Redirect to Stripe Checkout
             window.location.href = data.data.url;
 
@@ -919,7 +986,22 @@ export default function DiamondStorePage() {
                     <div style={styles.bgGlow} />
 
                     {/* Header */}
-                    <UniversalHeader pageDepth={1} />
+                    <UniversalHeader
+                        pageDepth={1}
+                        onMenuClick={() => setMenuOpen(true)}
+                    />
+
+                    {/* Hamburger Menu */}
+                    <HamburgerMenu
+                        isOpen={menuOpen}
+                        onClose={() => setMenuOpen(false)}
+                        direction="left"
+                        theme="dark"
+                        user={user}
+                        showProfile={true}
+                        menuItems={menuConfig.menuItems}
+                        bottomLinks={menuConfig.bottomLinks}
+                    />
                     <div style={styles.header}>
                         <div style={{ width: 100 }} />
                         <h1 style={styles.pageTitle}>💎 Store</h1>

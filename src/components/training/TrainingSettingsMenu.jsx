@@ -11,14 +11,27 @@
 import React, { useState, useEffect } from 'react';
 import { useTrainingSettings } from '../../contexts/TrainingSettingsContext';
 
-export default function TrainingSettingsMenu() {
+export default function TrainingSettingsMenu({ onClose }) {
     const [isOpen, setIsOpen] = useState(false);
-    const { viewMode, setViewMode, soundEnabled, setSoundEnabled, timerEnabled, setTimerEnabled } = useTrainingSettings();
+    const { viewMode, setViewMode, soundEnabled, setSoundEnabled, timerEnabled, setTimerEnabled, autoAdvanceEnabled, setAutoAdvanceEnabled, hintsEnabled, setHintsEnabled } = useTrainingSettings();
+
+    // Auto-open when component mounts (controlled by parent)
+    useEffect(() => {
+        setIsOpen(true);
+    }, []);
+
+    // Close handler
+    const handleClose = () => {
+        setIsOpen(false);
+        setTimeout(() => {
+            if (onClose) onClose();
+        }, 300); // Wait for animation
+    };
 
     // Close on ESC key
     useEffect(() => {
         const handleEsc = (e) => {
-            if (e.key === 'Escape') setIsOpen(false);
+            if (e.key === 'Escape') handleClose();
         };
         window.addEventListener('keydown', handleEsc);
         return () => window.removeEventListener('keydown', handleEsc);
@@ -26,24 +39,11 @@ export default function TrainingSettingsMenu() {
 
     return (
         <>
-            {/* Hamburger Button */}
-            <button
-                onClick={() => setIsOpen(true)}
-                style={styles.hamburgerButton}
-                aria-label="Training Settings"
-            >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="3" y1="6" x2="21" y2="6" />
-                    <line x1="3" y1="12" x2="21" y2="12" />
-                    <line x1="3" y1="18" x2="21" y2="18" />
-                </svg>
-            </button>
-
             {/* Backdrop */}
             {isOpen && (
                 <div
                     style={styles.backdrop}
-                    onClick={() => setIsOpen(false)}
+                    onClick={handleClose}
                 />
             )}
 
@@ -55,7 +55,7 @@ export default function TrainingSettingsMenu() {
                 <div style={styles.drawerHeader}>
                     <h2 style={styles.drawerTitle}>Training Settings</h2>
                     <button
-                        onClick={() => setIsOpen(false)}
+                        onClick={handleClose}
                         style={styles.closeButton}
                         aria-label="Close"
                     >
@@ -132,6 +132,50 @@ export default function TrainingSettingsMenu() {
                         </label>
                     </div>
 
+                    {/* Auto-Advance Toggle */}
+                    <div style={styles.settingGroup}>
+                        <label style={styles.settingLabel}>
+                            Auto-Advance
+                            <span style={styles.settingHint}>
+                                Automatically move to next question
+                            </span>
+                        </label>
+                        <label style={styles.switchContainer}>
+                            <input
+                                type="checkbox"
+                                checked={autoAdvanceEnabled}
+                                onChange={(e) => setAutoAdvanceEnabled(e.target.checked)}
+                                style={styles.switchInput}
+                            />
+                            <span style={{
+                                ...styles.switchSlider,
+                                backgroundColor: autoAdvanceEnabled ? '#10b981' : '#64748b',
+                            }} />
+                        </label>
+                    </div>
+
+                    {/* Hints Toggle */}
+                    <div style={styles.settingGroup}>
+                        <label style={styles.settingLabel}>
+                            Hints
+                            <span style={styles.settingHint}>
+                                Show helpful hints during questions
+                            </span>
+                        </label>
+                        <label style={styles.switchContainer}>
+                            <input
+                                type="checkbox"
+                                checked={hintsEnabled}
+                                onChange={(e) => setHintsEnabled(e.target.checked)}
+                                style={styles.switchInput}
+                            />
+                            <span style={{
+                                ...styles.switchSlider,
+                                backgroundColor: hintsEnabled ? '#10b981' : '#64748b',
+                            }} />
+                        </label>
+                    </div>
+
                     {/* Info Text */}
                     <div style={styles.infoBox}>
                         <p style={styles.infoText}>
@@ -149,6 +193,10 @@ export default function TrainingSettingsMenu() {
 
 const styles = {
     hamburgerButton: {
+        position: 'fixed',
+        top: '16px',
+        right: '80px',
+        zIndex: 998,
         background: 'rgba(255, 255, 255, 0.08)',
         border: '1px solid rgba(255, 255, 255, 0.15)',
         borderRadius: '8px',

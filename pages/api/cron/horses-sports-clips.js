@@ -21,8 +21,37 @@ import { getGrokClient } from '../../../src/lib/grokClient.js';
 import {
     applyWritingStyle,
     getTimeOfDayEnergy,
-    shouldHorsePostToday
+    shouldHorseBeActive,
+    isHorseActiveHour
 } from '../../../src/content-engine/pipeline/HorseScheduler.js';
+import * as SportsClipDeduplicationService from '../../../src/services/SportsClipDeduplicationService.js';
+
+/**
+ * Extract video ID from YouTube URL
+ */
+function extractVideoIdFromUrl(url) {
+    if (!url) return null;
+    const patterns = [
+        /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+        /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
+        /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/
+    ];
+    for (const pattern of patterns) {
+        const match = url.match(pattern);
+        if (match) return match[1];
+    }
+    return null;
+}
+
+/**
+ * Convert YouTube URL to embed format
+ */
+function convertToEmbedUrl(url) {
+    if (!url) return url;
+    const videoId = extractVideoIdFromUrl(url);
+    if (!videoId) return url;
+    return `https://www.youtube.com/embed/${videoId}`;
+}
 
 // Sports caption templates
 const SPORTS_CAPTION_TEMPLATES = {
@@ -106,41 +135,53 @@ export default async function handler(req, res) {
         console.log('🏈 SPORTS CLIPS CRON STARTED');
         console.log('═'.repeat(60));
 
-        // Get random active horses (select more than needed since ~30% will be filtered by shouldHorsePostToday)
-        const { data: horses } = await supabase
+        // Get current time for per-horse scheduling
+        const now = new Date();
+        const currentMinute = now.getMinutes();
+        const currentHour = now.getHours();
+
+        // Get ALL active horses
+        const { data: allHorses } = await supabase
             .from('content_authors')
             .select('*')
             .eq('is_active', true)
-            .not('profile_id', 'is', null)
-            .limit(CONFIG.HORSES_PER_TRIGGER * 3);  // 3x to account for filtering
+            .not('profile_id', 'is', null);
 
-        if (!horses?.length) {
+        if (!allHorses?.length) {
             return res.status(200).json({ success: true, message: 'No horses available', posted: 0 });
         }
 
-        const shuffledHorses = horses.sort(() => Math.random() - 0.5);
+        // FILTER: Only horses who are awake (12-hour active window)
+        const awakeHorses = allHorses.filter(horse => {
+            if (!horse.profile_id) return false;
+            return isHorseActiveHour(horse.profile_id, currentHour);
+        });
+
+        // INDIVIDUAL SCHEDULING: Each horse has their own assigned minute
+        const selectedHorses = awakeHorses.filter(horse => {
+            const isMyTime = shouldHorseBeActive(horse.profile_id, currentMinute, 7);
+            if (isMyTime) {
+                console.log(`   ✅ ${horse.alias || horse.name}'s scheduled time slot!`);
+            }
+            return isMyTime;
+        });
+
         const results = [];
-
-        // Get current time-of-day energy
         const timeEnergy = getTimeOfDayEnergy();
-        console.log(`   ⏰ Time-of-day mode: ${timeEnergy.mode}`);
-        console.log(`   🐴 Selected ${shuffledHorses.length} horses (will filter to ${CONFIG.HORSES_PER_TRIGGER})`);
+        console.log(`   ⏰ Minute ${currentMinute}, Hour ${currentHour}, Mode: ${timeEnergy.mode}`);
+        console.log(`   🐴 Total: ${allHorses.length}, Awake: ${awakeHorses.length}, Scheduled now: ${selectedHorses.length}`);
 
-        let postsAttempted = 0;
-        for (const horse of shuffledHorses) {
-            // Stop once we have enough posts
-            if (postsAttempted >= CONFIG.HORSES_PER_TRIGGER) {
-                break;
-            }
+        if (selectedHorses.length === 0) {
+            return res.status(200).json({
+                success: true,
+                message: `No horses scheduled for minute ${currentMinute}`,
+                posted: 0,
+                awakeHorses: awakeHorses.length
+            });
+        }
 
-            // Check if this horse should post today
-            if (!shouldHorsePostToday(horse.profile_id)) {
-                console.log(`   💤 ${horse.alias} is having a quiet day`);
-                continue;
-            }
-
-            postsAttempted++;
-            console.log(`\n🏈 ${horse.alias}: Posting sports clip...`);
+        for (const horse of selectedHorses) {
+            console.log(`\n🏈 ${horse.alias || horse.name}: Posting sports clip...`);
 
             // Get a random sports clip from database
             const clip = await getRandomSportsClip(Array.from(usedClipsThisSession));
@@ -150,8 +191,22 @@ export default async function handler(req, res) {
                 continue;
             }
 
+            // ATOMIC RESERVATION: Try to claim this clip BEFORE posting
+            const reserved = await SportsClipDeduplicationService.markSportsClipAsPosted({
+                videoId: clip.video_id,
+                sourceUrl: clip.source_url,
+                clipSource: clip.source,
+                horseId: horse.profile_id
+            });
+
+            if (!reserved) {
+                console.log(`   ⚠️ Clip ${clip.video_id} already claimed by another horse, trying next...`);
+                continue;
+            }
+
             usedClipsThisSession.add(clip.id);
             console.log(`   📺 Selected: ${clip.title} from ${clip.source}`);
+            console.log(`   🔒 RESERVED: ${clip.video_id} for ${horse.alias}`);
 
             // Generate caption using Grok
             let caption = '';
@@ -202,7 +257,7 @@ Your reaction:`;
                     author_id: horse.profile_id,
                     content: finalCaption,
                     content_type: 'video',
-                    media_urls: [clip.source_url],
+                    media_urls: [convertToEmbedUrl(clip.source_url)],
                     visibility: 'public',
                     metadata: {
                         clip_id: clip.id,

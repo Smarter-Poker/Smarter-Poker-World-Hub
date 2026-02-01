@@ -12,7 +12,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { getAuthUser } from '../lib/authUtils';
 import TRAINING_CONFIG, { checkLevelPassed, getXPReward, getRequiredCorrect } from '../config/trainingConfig';
 
-const QUESTIONS_PER_LEVEL = 100; // Pre-load 100 questions for instant serving
+const QUESTIONS_PER_LEVEL = 25; // 25 questions per level
 
 export default function useMillionaireGame(gameId, engineType = 'PIO', initialLevel = 1) {
     // Game state

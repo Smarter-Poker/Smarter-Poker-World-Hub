@@ -56,6 +56,21 @@ async function loadClipLibrary() {
     }
 }
 
+/**
+ * Convert YouTube URL to embed format
+ * Handles: youtube.com/watch?v=ID, youtube.com/shorts/ID, youtu.be/ID
+ */
+function convertToEmbedUrl(url) {
+    if (!url) return url;
+
+    // Extract video ID
+    const videoId = extractVideoIdFromUrl(url);
+    if (!videoId) return url;
+
+    // Convert to embed URL
+    return `https://www.youtube.com/embed/${videoId}`;
+}
+
 // ClipDeduplicationService - CRITICAL for preventing duplicate posts
 let ClipDeduplicationService;
 let deduplicationLoaded = false;
@@ -199,10 +214,24 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
             return null;
         }
 
-        // Get this horse's preferred content sources
-        const preferredSources = getHorsePreferredSources ? getHorsePreferredSources(horse.profile_id) : null;
-        if (preferredSources) {
-            console.log(`   ${horse.name} prefers: ${preferredSources.join(', ')}`);
+        // Get this horse's EXCLUSIVE assigned content sources from database
+        let assignedSources = null;
+        try {
+            const { data: assignments, error: assignError } = await supabase
+                .from('horse_source_assignments')
+                .select('source_name, is_primary')
+                .eq('horse_id', horse.profile_id);
+
+            if (!assignError && assignments && assignments.length > 0) {
+                assignedSources = assignments.map(a => a.source_name);
+                console.log(`   ${horse.name} assigned sources: ${assignedSources.join(', ')}`);
+            } else {
+                console.log(`   ${horse.name} has no assigned sources, using hash-based fallback`);
+                assignedSources = getHorsePreferredSources ? getHorsePreferredSources(horse.profile_id) : null;
+            }
+        } catch (err) {
+            console.error(`   Error fetching assigned sources:`, err);
+            assignedSources = getHorsePreferredSources ? getHorsePreferredSources(horse.profile_id) : null;
         }
 
         // Get a random clip that hasn't been used recently, preferring horse's sources
@@ -227,25 +256,29 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
             attempts++;
 
             // FAILSAFE: After 10 failed attempts, directly pick from verified clips
+            // BUT ONLY from this horse's assigned sources
             if (attempts > 10) {
-                // Find a verified clip that hasn't been used
+                // Find a verified clip that hasn't been used AND matches assigned sources
                 for (const verifiedId of VERIFIED_CLIP_IDS) {
                     if (!recentlyUsedClips.has(verifiedId) && !usedClipsThisSession.has(verifiedId)) {
                         // Find this clip in the library
                         const verifiedClip = CLIP_LIBRARY?.find(c => c.video_id === verifiedId);
                         if (verifiedClip) {
-                            console.log(`   ⚡ FAILSAFE: Using pre-verified clip: ${verifiedId}`);
-                            clip = verifiedClip;
-                            usedClipsThisSession.add(verifiedClip.id);
-                            break;
+                            // CRITICAL: Only use if it's from one of this horse's assigned sources
+                            if (!assignedSources || assignedSources.includes(verifiedClip.source)) {
+                                console.log(`   ⚡ FAILSAFE: Using pre-verified clip from ${verifiedClip.source}: ${verifiedId}`);
+                                clip = verifiedClip;
+                                usedClipsThisSession.add(verifiedClip.id);
+                                break;
+                            }
                         }
                     }
                 }
                 if (clip) break;
             }
 
-            // Try to get clip from preferred source first
-            const preferSource = preferredSources ? preferredSources[attempts % preferredSources.length] : null;
+            // Try to get clip from assigned source first
+            const preferSource = assignedSources ? assignedSources[attempts % assignedSources.length] : null;
             const candidate = getRandomClip({ preferSource });
             if (!candidate) continue;
 
@@ -257,24 +290,50 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
 
             const videoId = extractVideoIdFromUrl(candidate.source_url) || candidate.video_id;
 
-            // CRITICAL: Check if this video has EVER been posted by ANY horse
-            if (dedupLoaded && ClipDeduplicationService) {
-                const alreadyPosted = await ClipDeduplicationService.isClipAlreadyPosted(videoId);
-                if (alreadyPosted) {
-                    console.log(`   🚫 DUPLICATE BLOCKED: ${videoId} already posted`);
-                    continue;
-                }
+            // CRITICAL: Also check if video ID is in session (prevents race condition)
+            if (usedClipsThisSession.has(videoId)) {
+                console.log(`   Skipping ${videoId} (video ID already used this session)`);
+                continue;
             }
 
-            // If it's a verified clip, accept immediately without validation
+            // REMOVED: isClipAlreadyPosted() check - it's racy!
+            // Instead, we rely ENTIRELY on the atomic insert with unique constraint
+            // If the clip is already posted, the insert will fail and we'll try the next clip
+
+            // If it's a verified clip, validate and try to reserve atomically
             if (VERIFIED_CLIP_IDS.includes(videoId)) {
                 console.log(`   ✅ Pre-verified clip: ${videoId}`);
+
+                // ATOMIC RESERVATION: Try to claim this clip in the database FIRST
+                // If another horse already claimed it, this will fail and we skip to next clip
+                if (dedupLoaded && ClipDeduplicationService) {
+                    try {
+                        const reserved = await ClipDeduplicationService.markClipAsPosted({
+                            videoId,
+                            sourceUrl: candidate.source_url,
+                            clipSource: candidate.source,
+                            horseId: horse.profile_id,
+                            postId: null // Will be updated after post creation
+                        });
+
+                        if (!reserved) {
+                            console.log(`   ⚠️ Failed to reserve ${videoId} - already claimed`);
+                            continue;
+                        }
+                        console.log(`   🔒 RESERVED: ${videoId} for ${horse.name}`);
+                    } catch (error) {
+                        console.log(`   ⚠️ Reservation failed for ${videoId}: ${error.message}`);
+                        continue;
+                    }
+                }
+
                 clip = candidate;
                 usedClipsThisSession.add(candidate.id);
+                usedClipsThisSession.add(videoId);
                 break;
             }
 
-            // Otherwise validate the video ID
+            // Otherwise validate the video ID first
             const isValid = await validateYouTubeVideoId(videoId);
 
             if (!isValid) {
@@ -282,10 +341,32 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
                 continue;
             }
 
-            // Video ID is valid - accept this clip
+            // Video ID is valid - try to reserve atomically
+            if (dedupLoaded && ClipDeduplicationService) {
+                try {
+                    const reserved = await ClipDeduplicationService.markClipAsPosted({
+                        videoId,
+                        sourceUrl: candidate.source_url,
+                        clipSource: candidate.source,
+                        horseId: horse.profile_id,
+                        postId: null // Will be updated after post creation
+                    });
+
+                    if (!reserved) {
+                        console.log(`   ⚠️ Failed to reserve ${videoId} - already claimed`);
+                        continue;
+                    }
+                    console.log(`   🔒 RESERVED and validated: ${videoId} for ${horse.name}`);
+                } catch (error) {
+                    console.log(`   ⚠️ Reservation failed for ${videoId}: ${error.message}`);
+                    continue;
+                }
+            }
+
             clip = candidate;
             usedClipsThisSession.add(candidate.id);
-            console.log(`   ✅ Validated: ${videoId}`);
+            usedClipsThisSession.add(videoId);
+            console.log(`   ✅ Validated and reserved: ${videoId}`);
         }
 
         if (!clip) {
@@ -374,7 +455,7 @@ BAD EXAMPLES:
                 author_id: horse.profile_id,
                 content: finalCaption,
                 content_type: 'video',
-                media_urls: [clip.source_url],
+                media_urls: [convertToEmbedUrl(clip.source_url)],
                 visibility: 'public',
                 metadata: {
                     clip_id: clip.id,
@@ -399,7 +480,7 @@ BAD EXAMPLES:
                 sourceUrl: clip.source_url,
                 clipSource: clip.source,
                 clipTitle: clip.description || clip.title,
-                postedBy: horse.profile_id,
+                horseId: horse.profile_id,
                 postId: post.id,
                 clipType: 'poker',
                 category: clip.category
@@ -644,32 +725,35 @@ export default async function handler(req, res) {
 
         // FILTER: Only horses who are "awake" during their 12-hour active window
         // Each horse has a unique sleep schedule based on their profile_id hash
-        const activeHorses = allHorses.filter(horse => {
+        const awakeHorses = allHorses.filter(horse => {
             if (!horse.profile_id) return false;
-            const isAwake = isHorseActiveHour(horse.profile_id, currentHour);
-            if (!isAwake) {
-                console.log(`   💤 ${horse.name} is sleeping (not in active hours)`);
-            }
-            return isAwake;
+            return isHorseActiveHour(horse.profile_id, currentHour);
         });
 
         console.log(`⏰ Minute ${currentMinute}, Hour ${currentHour}`);
-        console.log(`🐴 Awake horses this hour: ${activeHorses.length}/${allHorses.length}`);
+        console.log(`🐴 Awake horses this hour: ${awakeHorses.length}/${allHorses.length}`);
 
-        if (activeHorses.length === 0) {
+        // INDIVIDUAL SCHEDULING: Each horse has their own assigned minute (0-59)
+        // shouldHorseBeActive checks if current minute is within ±7 of their slot
+        const selectedHorses = awakeHorses.filter(horse => {
+            const isMyTime = shouldHorseBeActive(horse.profile_id, currentMinute, 7);
+            if (isMyTime) {
+                console.log(`   ✅ ${horse.name}'s scheduled time slot!`);
+            }
+            return isMyTime;
+        });
+
+        console.log(`🎯 Horses in their time slot: ${selectedHorses.length}`);
+        console.log(`   Names: ${selectedHorses.map(h => h.name).join(', ') || 'none'}`);
+
+        if (selectedHorses.length === 0) {
             return res.status(200).json({
                 success: true,
-                message: 'No horses in their active slot this minute',
+                message: `No horses scheduled for minute ${currentMinute}`,
                 posted: 0,
-                activeHorses: 0
+                awakeHorses: awakeHorses.length
             });
         }
-
-        // Select horses based on their activity rate (some post more than others)
-        const selectedHorses = activeHorses.filter(horse => {
-            const rate = getHorseActivityRate(horse.profile_id, 'post');
-            return Math.random() < rate;
-        }).slice(0, CONFIG.HORSES_PER_TRIGGER);
 
         const results = [];
 

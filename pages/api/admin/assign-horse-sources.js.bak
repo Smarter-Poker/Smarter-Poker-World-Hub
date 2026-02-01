@@ -1,0 +1,113 @@
+/**
+ * API endpoint to assign horses to exclusive content sources
+ * Each horse gets 1 primary source (exclusive) and 1 secondary source
+ * POST /api/admin/assign-horse-sources
+ */
+import { createClient } from '@supabase/supabase-js';
+import { CLIP_SOURCES } from '@/src/content-engine/pipeline/ClipLibrary';
+
+const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+export default async function handler(req, res) {
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    try {
+        console.log('Starting horse-to-source assignment...');
+
+        // Get all horse profiles
+        const { data: horses, error: horsesError } = await supabase
+            .from('profiles')
+            .select('id, alias')
+            .eq('is_horse', true)
+            .order('created_at', { ascending: true });
+
+        if (horsesError) {
+            console.error('Error fetching horses:', horsesError);
+            return res.status(500).json({ error: 'Failed to fetch horses' });
+        }
+
+        console.log(`Found ${horses.length} horses`);
+
+        // Get all source names
+        const sourceNames = Object.keys(CLIP_SOURCES);
+        console.log(`Found ${sourceNames.length} content sources`);
+
+        // Clear existing assignments
+        const { error: deleteError } = await supabase
+            .from('horse_source_assignments')
+            .delete()
+            .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+
+        if (deleteError) {
+            console.error('Error clearing assignments:', deleteError);
+        }
+
+        // Assign horses to sources
+        const assignments = [];
+
+        for (let i = 0; i < horses.length; i++) {
+            const horse = horses[i];
+
+            // Primary source: unique for each horse
+            const primarySourceIndex = i % sourceNames.length;
+            const primarySource = sourceNames[primarySourceIndex];
+
+            // Secondary source: offset by 25 to create overlap
+            const secondarySourceIndex = (i + 25) % sourceNames.length;
+            const secondarySource = sourceNames[secondarySourceIndex];
+
+            // Add primary assignment
+            assignments.push({
+                horse_id: horse.id,
+                source_name: primarySource,
+                is_primary: true
+            });
+
+            // Add secondary assignment (only if different from primary)
+            if (primarySource !== secondarySource) {
+                assignments.push({
+                    horse_id: horse.id,
+                    source_name: secondarySource,
+                    is_primary: false
+                });
+            }
+
+            console.log(`${horse.alias}: PRIMARY=${primarySource}, SECONDARY=${secondarySource}`);
+        }
+
+        console.log(`Creating ${assignments.length} assignments...`);
+
+        // Insert all assignments in batches
+        const batchSize = 50;
+        let inserted = 0;
+
+        for (let i = 0; i < assignments.length; i += batchSize) {
+            const batch = assignments.slice(i, i + batchSize);
+            const { error: insertError } = await supabase
+                .from('horse_source_assignments')
+                .insert(batch);
+
+            if (insertError) {
+                console.error(`Error inserting batch ${i / batchSize}:`, insertError);
+            } else {
+                inserted += batch.length;
+            }
+        }
+
+        return res.status(200).json({
+            success: true,
+            horses: horses.length,
+            sources: sourceNames.length,
+            assignments: inserted
+        });
+
+    } catch (error) {
+        console.error('Error in assign-horse-sources:', error);
+        return res.status(500).json({ error: error.message });
+    }
+}

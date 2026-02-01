@@ -37,32 +37,39 @@ export async function isClipAlreadyPosted(videoId) {
 }
 
 /**
- * Mark a clip as posted
+ * Mark a clip as posted (ATOMIC - uses database RPC with ON CONFLICT)
+ * Returns the inserted row if successful, false if clip already posted
  */
 export async function markClipAsPosted(clipData) {
-    const { videoId, sourceUrl, clipSource, clipTitle, postedBy, postId, clipType = 'poker', category } = clipData;
+    const { videoId, sourceUrl, clipSource, horseId } = clipData;
 
-    const { data, error } = await supabase
-        .from('posted_clips')
-        .insert({
-            video_id: videoId,
-            source_url: sourceUrl,
-            clip_source: clipSource,
-            clip_title: clipTitle,
-            posted_by: postedBy,
-            post_id: postId,
-            clip_type: clipType,
-            category: category
-        })
-        .select()
-        .single();
+    try {
+        // Use RPC function which implements ON CONFLICT at database level
+        // This is truly atomic - the database handles the race condition
+        const { data, error } = await supabase.rpc('reserve_clip', {
+            p_video_id: videoId,
+            p_source_url: sourceUrl,
+            p_clip_source: clipSource,
+            p_horse_id: horseId
+        });
 
-    if (error) {
-        console.error('Error marking clip as posted:', error);
-        return null;
+        if (error) {
+            console.error('Error calling reserve_clip RPC:', error);
+            return false;
+        }
+
+        // RPC returns array with single row: { success: boolean, clip_id: uuid }
+        if (!data || data.length === 0 || !data[0].success) {
+            console.log(`   🔒 Clip ${videoId} already reserved by another horse`);
+            return false;
+        }
+
+        console.log(`   ✅ Clip ${videoId} successfully reserved (ID: ${data[0].clip_id})`);
+        return { id: data[0].clip_id };
+    } catch (error) {
+        console.error('Exception calling reserve_clip RPC:', error);
+        return false;
     }
-
-    return data;
 }
 
 /**

@@ -9,6 +9,11 @@ import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
 import Link from 'next/link';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../src/config/hamburgerMenus';
+import { reelsPreferences, savedReelsService } from '../../src/services/preferences-service';
+import { getAuthUser } from '../../src/lib/authUtils';
+import UploadReelModal from '../../src/components/reels/UploadReelModal';
 
 const C = {
     bg: '#000000',
@@ -55,6 +60,18 @@ export default function ReelsPage() {
     const iframeRef = useRef(null);
     const touchStartY = useRef(0);
     const router = useRouter();
+    const [user, setUser] = useState(null);
+    const [menuOpen, setMenuOpen] = useState(false);
+    const [showUploadModal, setShowUploadModal] = useState(false);
+    const [savedReels, setSavedReels] = useState(new Set());
+
+    // Reels preferences state
+    const [preferences, setPreferences] = useState({
+        autoplay: true,
+        soundOnScroll: true,
+        dataSaver: false,
+        showCaptions: true
+    });
 
     // Load sound preference from localStorage on mount
     useEffect(() => {
@@ -64,6 +81,26 @@ export default function ReelsPage() {
                 setUserWantsSound(true);
             }
         }
+    }, []);
+
+    // Load user and preferences
+    useEffect(() => {
+        const loadUserData = async () => {
+            const authUser = await getAuthUser();
+            setUser(authUser);
+
+            if (authUser) {
+                // Load preferences
+                const prefs = await reelsPreferences.get(authUser.id);
+                setPreferences(prefs);
+
+                // Load saved reels
+                const saved = await savedReelsService.getSavedReels(authUser.id);
+                const savedIds = new Set(saved.map(item => item.reel_id));
+                setSavedReels(savedIds);
+            }
+        };
+        loadUserData();
     }, []);
 
     // YouTube API: Send command to iframe via postMessage
@@ -122,16 +159,57 @@ export default function ReelsPage() {
     const loadReels = async () => {
         setLoading(true);
         try {
-            const { data } = await supabase
+            // Load from social_reels (YouTube shorts posted by SmarterPokerOfficial)
+            const { data: reelsData } = await supabase
+                .from('social_reels')
+                .select('id, author_id, caption, video_url, view_count, created_at, is_public')
+                .eq('is_public', true)
+                .order('created_at', { ascending: false })
+                .limit(50);
+
+            // Load from social_posts (user-uploaded videos)
+            const { data: postsData } = await supabase
                 .from('social_posts')
-                .select('id, author_id, content, media_urls, like_count, comment_count, created_at')
+                .select('id, author_id, content, media_urls, like_count, created_at')
                 .eq('content_type', 'video')
                 .eq('visibility', 'public')
                 .order('created_at', { ascending: false })
-                .limit(100);
+                .limit(50);
 
-            if (data && data.length > 0) {
-                const authorIds = [...new Set(data.map(p => p.author_id))];
+            // Combine both sources
+            const allVideos = [];
+
+            // Add reels from social_reels
+            if (reelsData && reelsData.length > 0) {
+                allVideos.push(...reelsData.map(reel => ({
+                    id: reel.id,
+                    author_id: reel.author_id,
+                    video_url: reel.video_url,
+                    caption: reel.caption,
+                    like_count: reel.view_count || 0,
+                    created_at: reel.created_at,
+                    source: 'reels'
+                })));
+            }
+
+            // Add videos from social_posts
+            if (postsData && postsData.length > 0) {
+                allVideos.push(...postsData
+                    .filter(post => post.media_urls && post.media_urls.length > 0)
+                    .map(post => ({
+                        id: post.id,
+                        author_id: post.author_id,
+                        video_url: post.media_urls[0],
+                        caption: post.content,
+                        like_count: post.like_count || 0,
+                        created_at: post.created_at,
+                        source: 'posts'
+                    })));
+            }
+
+            if (allVideos.length > 0) {
+                // Get all unique author IDs
+                const authorIds = [...new Set(allVideos.map(v => v.author_id))];
                 const { data: profiles } = await supabase
                     .from('profiles')
                     .select('id, username, avatar_url, full_name')
@@ -140,16 +218,15 @@ export default function ReelsPage() {
                 const profileMap = {};
                 (profiles || []).forEach(p => { profileMap[p.id] = p; });
 
-                const mappedReels = data
-                    .filter(post => post.media_urls && post.media_urls.length > 0)
-                    .map(post => ({
-                        id: post.id,
-                        video_url: post.media_urls[0],
-                        caption: post.content,
-                        like_count: post.like_count || 0,
-                        created_at: post.created_at,
-                        profiles: profileMap[post.author_id] || { username: 'Anonymous' },
-                    }));
+                // Map videos with profile data
+                const mappedReels = allVideos.map(video => ({
+                    id: video.id,
+                    video_url: video.video_url,
+                    caption: video.caption,
+                    like_count: video.like_count,
+                    created_at: video.created_at,
+                    profiles: profileMap[video.author_id] || { username: 'Anonymous' },
+                }));
 
                 // Shuffle for variety
                 const shuffled = mappedReels.sort(() => Math.random() - 0.5);
@@ -160,6 +237,7 @@ export default function ReelsPage() {
         }
         setLoading(false);
     };
+
 
     const currentReel = reels[currentIndex];
 
@@ -248,6 +326,51 @@ export default function ReelsPage() {
         setComments([]);
         setCommentText('');
     }, [currentIndex]);
+
+    const handleSave = async () => {
+        if (!currentReel || !user) return;
+
+        const isSaved = savedReels.has(currentReel.id);
+
+        if (isSaved) {
+            await savedReelsService.unsaveReel(user.id, currentReel.id);
+            setSavedReels(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(currentReel.id);
+                return newSet;
+            });
+        } else {
+            await savedReelsService.saveReel(user.id, {
+                id: currentReel.id,
+                video_url: currentReel.video_url,
+                caption: currentReel.caption
+            });
+            setSavedReels(prev => new Set([...prev, currentReel.id]));
+        }
+    };
+
+    // Hamburger menu handlers
+    const handleUploadReel = () => {
+        setShowUploadModal(true);
+        setMenuOpen(false);
+    };
+
+    const updatePreference = async (key, value) => {
+        const newPrefs = { ...preferences, [key]: value };
+        setPreferences(newPrefs);
+        if (user) {
+            await reelsPreferences.update(user.id, newPrefs);
+        }
+    };
+
+    // Menu config
+    const menuConfig = getMenuConfig('reels', user, preferences, {
+        onUploadReel: handleUploadReel,
+        setAutoplay: (val) => updatePreference('autoplay', val),
+        setSoundOnScroll: (val) => updatePreference('soundOnScroll', val),
+        setDataSaver: (val) => updatePreference('dataSaver', val),
+        setShowCaptions: (val) => updatePreference('showCaptions', val)
+    });
 
     // Keyboard navigation
     useEffect(() => {
@@ -381,6 +504,36 @@ export default function ReelsPage() {
                 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
             </Head>
 
+            {/* Universal Header */}
+            <UniversalHeader
+                pageDepth={1}
+                onMenuClick={() => setMenuOpen(true)}
+            />
+
+            {/* Hamburger Menu */}
+            <HamburgerMenu
+                isOpen={menuOpen}
+                onClose={() => setMenuOpen(false)}
+                direction="left"
+                theme="dark"
+                user={user}
+                showProfile={false}
+                menuItems={menuConfig.menuItems}
+                bottomLinks={menuConfig.bottomLinks}
+            />
+
+            {/* Upload Modal */}
+            {showUploadModal && (
+                <UploadReelModal
+                    user={user}
+                    onClose={() => setShowUploadModal(false)}
+                    onSuccess={() => {
+                        setShowUploadModal(false);
+                        loadReels();
+                    }}
+                />
+            )}
+
             {/* Full-screen container */}
             <div
                 ref={containerRef}
@@ -429,7 +582,7 @@ export default function ReelsPage() {
                         <iframe
                             ref={iframeRef}
                             key={currentReel?.id}
-                            src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`}
+                            src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&iv_load_policy=3&disablekb=1&fs=0&cc_load_policy=0`}
                             title="Poker Reel"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                             allowFullScreen
@@ -564,6 +717,19 @@ export default function ReelsPage() {
                     }}>
                         <span style={{ fontSize: 32, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}>📤</span>
                         <span style={{ color: 'white', fontSize: 12, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>{shareMsg || 'Share'}</span>
+                    </button>
+
+                    {/* Save */}
+                    <button onClick={handleSave} style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center',
+                    }}>
+                        <span style={{ fontSize: 32, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}>
+                            {savedReels.has(currentReel?.id) ? '🔖' : '📑'}
+                        </span>
+                        <span style={{ color: 'white', fontSize: 12, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+                            {savedReels.has(currentReel?.id) ? 'Saved' : 'Save'}
+                        </span>
                     </button>
 
                     {/* Sound */}
