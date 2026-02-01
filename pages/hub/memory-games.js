@@ -6,6 +6,7 @@
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createClient } from '@supabase/supabase-js';
 import gsap from 'gsap';
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
@@ -40,43 +41,11 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 // ═══════════════════════════════════════════════════════════════════════════
 // 💎 DIAMOND ENGINE — Local storage with VIP check
 // ═══════════════════════════════════════════════════════════════════════════
-const DiamondEngine = {
-    _balance: null,
-    _isVIP: false,
+// ═══════════════════════════════════════════════════════════════════════════
+// 💎 DIAMOND ENGINE - Import Supabase-powered version
+// ═══════════════════════════════════════════════════════════════════════════
+import DiamondEngine from '../../src/services/DiamondEngine';
 
-    init() {
-        if (typeof window === 'undefined') return;
-        this._balance = parseInt(localStorage.getItem('diamond_balance') || '100', 10);
-        this._isVIP = localStorage.getItem('vip_status') === 'true';
-    },
-
-    getBalance() {
-        this.init();
-        return this._balance;
-    },
-
-    isVIP() {
-        this.init();
-        return this._isVIP;
-    },
-
-    deduct(amount) {
-        this.init();
-        if (this._isVIP) return { success: true, charged: 0 };
-        if (this._balance < amount) return { success: false, balance: this._balance };
-        this._balance -= amount;
-        localStorage.setItem('diamond_balance', String(this._balance));
-        return { success: true, charged: amount, balance: this._balance };
-    },
-
-    award(amount) {
-        this.init();
-        this._balance += amount;
-        localStorage.setItem('diamond_balance', String(this._balance));
-        SoundEngine.play('diamond');
-        return this._balance;
-    }
-};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🎨 ACTION COLORS
@@ -1264,9 +1233,19 @@ export default function MemoryGamesPage() {
     const [comboName, setComboName] = useState(null);
     const [multiplier, setMultiplier] = useState(1);
 
-    // Economy state - fetched from Supabase
-    const [diamondBalance, setDiamondBalance] = useState(0);
+    // Economy state - fetched from    // Diamond state
+    const [diamondBalance, setDiamondBalance] = useState(100);
     const [isVIP, setIsVIP] = useState(false);
+    const [userId, setUserId] = useState(null);
+
+    // Initialize Supabase client
+    const supabase = useRef(null);
+    if (!supabase.current && typeof window !== 'undefined') {
+        supabase.current = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        );
+    }
     const [lastReward, setLastReward] = useState(null);
 
     // Progress state
@@ -1325,24 +1304,46 @@ export default function MemoryGamesPage() {
     // Safe helper to get level config with fallback
     const safeLevelConfig = getLevelConfig(currentLevel) || { timer: 90, gridSize: 13, maxHands: 20 };
 
-    // Initialize effects CSS and load real user balance from Supabase
+    // Initialize effects CSS and DiamondEngine with user session
     useEffect(() => {
         EffectsEngine.initCSS();
-        // Fetch real diamond balance from Supabase
-        const loadUserBalance = async () => {
+
+        // Initialize DiamondEngine with user session
+        const initializeDiamondEngine = async () => {
             try {
-                const { getAuthUser, queryDiamondBalance } = await import('../../src/lib/authUtils');
-                const authUser = getAuthUser();
-                if (authUser) {
-                    const balance = await queryDiamondBalance(authUser.id);
-                    setDiamondBalance(balance);
+                // Get user session
+                if (supabase.current) {
+                    const { data: { session } } = await supabase.current.auth.getSession();
+                    const user = session?.user;
+
+                    if (user) {
+                        setUserId(user.id);
+                        // Initialize DiamondEngine with user ID
+                        await DiamondEngine.init(user.id);
+
+                        // Load balance and VIP status
+                        const balance = await DiamondEngine.getBalance();
+                        const vipStatus = await DiamondEngine.isVIP();
+
+                        setDiamondBalance(balance);
+                        setIsVIP(vipStatus);
+                    } else {
+                        // Guest user - use localStorage fallback
+                        await DiamondEngine.init(null);
+                        const balance = await DiamondEngine.getBalance();
+                        setDiamondBalance(balance);
+                    }
                 }
             } catch (e) {
-                console.error('[MemoryGames] Failed to fetch diamond balance:', e);
+                console.error('[MemoryGames] Failed to initialize DiamondEngine:', e);
+                // Fallback to localStorage
+                await DiamondEngine.init(null);
+                const balance = await DiamondEngine.getBalance();
+                setDiamondBalance(balance);
             }
         };
-        loadUserBalance();
-        setIsVIP(DiamondEngine.isVIP());
+
+        initializeDiamondEngine();
     }, []);
 
     // Timer logic
