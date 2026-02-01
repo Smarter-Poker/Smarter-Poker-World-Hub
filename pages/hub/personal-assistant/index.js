@@ -19,6 +19,8 @@ import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { useAssistantStats, useRecentSessions } from '../../../src/hooks/useAssistant';
+import JarvisChatWidget from '../../../src/components/jarvis/JarvisChatWidget';
+import DashboardOverview from '../../../src/components/jarvis/DashboardOverview';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // STRATEGY HUB — Main Landing Page
@@ -28,6 +30,7 @@ export default function PersonalAssistantPage() {
   const router = useRouter();
   const { user } = useAvatar();
   const [mounted, setMounted] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
 
   // 🎬 INTRO VIDEO STATE - Video plays while page loads in background
   // Only show once per session (not on every reload)
@@ -132,10 +135,10 @@ export default function PersonalAssistantPage() {
         <style>{`
           .strategy-hub-page { width: 100%; max-width: 100%; margin: 0 auto; overflow-x: hidden; }
           
-          
-          
-          
-          
+          @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+          }
         `}</style>
       </Head>
 
@@ -145,7 +148,90 @@ export default function PersonalAssistantPage() {
         <div style={styles.bgGlow} />
 
         {/* Header */}
-        <UniversalHeader pageDepth={1} />
+        <UniversalHeader pageDepth={1} onMenuClick={() => setShowMenu(!showMenu)} />
+
+        {/* Hamburger Menu Drawer */}
+        {showMenu && (
+          <>
+            {/* Overlay */}
+            <div
+              onClick={() => setShowMenu(false)}
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'rgba(0, 0, 0, 0.7)',
+                zIndex: 999,
+              }}
+            />
+            {/* Menu Drawer */}
+            <motion.div
+              initial={{ x: -300 }}
+              animate={{ x: 0 }}
+              exit={{ x: -300 }}
+              transition={{ type: 'spring', damping: 25 }}
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                bottom: 0,
+                width: 280,
+                background: '#0a0e1a',
+                borderRight: '1px solid rgba(0, 136, 255, 0.2)',
+                zIndex: 1000,
+                padding: '20px',
+                overflowY: 'auto',
+              }}
+            >
+              <h3 style={{ color: '#00D4FF', marginBottom: 24, fontSize: 20 }}>Menu</h3>
+              {[
+                { label: 'Overview', href: '/hub/personal-assistant' },
+                { label: 'Virtual Sandbox', href: '/hub/personal-assistant/sandbox' },
+                { label: 'Leak Finder', href: '/hub/personal-assistant/leaks' },
+                { label: 'Goals', href: '/hub/personal-assistant?tab=goals' },
+                { label: 'Tilt Log', href: '/hub/personal-assistant?tab=tilt' },
+                { label: 'Bankroll', href: '/hub/personal-assistant?tab=bankroll' },
+                { label: 'Opponents', href: '/hub/personal-assistant?tab=opponents' },
+                { label: 'Hand History', href: '/hub/personal-assistant?tab=hands' },
+                { label: 'Chat with Jarvis', href: '/hub/messenger?chat=jarvis' },
+              ].map((item) => (
+                <button
+                  key={item.label}
+                  onClick={() => {
+                    router.push(item.href);
+                    setShowMenu(false);
+                  }}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    padding: '12px 16px',
+                    marginBottom: 8,
+                    background: 'rgba(0, 136, 255, 0.1)',
+                    border: '1px solid rgba(0, 136, 255, 0.2)',
+                    borderRadius: 8,
+                    color: '#fff',
+                    fontSize: 15,
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(0, 212, 255, 0.2)';
+                    e.currentTarget.style.borderColor = '#00D4FF';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(0, 136, 255, 0.1)';
+                    e.currentTarget.style.borderColor = 'rgba(0, 136, 255, 0.2)';
+                  }}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </motion.div>
+          </>
+        )}
 
         {/* Main Content */}
         <main style={styles.main}>
@@ -154,6 +240,9 @@ export default function PersonalAssistantPage() {
             <h1 style={styles.pageTitle}>Strategy Hub</h1>
             <p style={styles.pageSubtitle}>Safe, data-driven tools to refine your poker game the right way.</p>
           </div>
+
+          {/* Dashboard Overview */}
+          <DashboardOverview stats={stats} isLoading={isLoading} />
 
           {/* Two Main Tool Cards */}
           <div style={styles.toolCardsContainer}>
@@ -355,6 +444,9 @@ export default function PersonalAssistantPage() {
             <p style={styles.footerCopyright}>2024 Smarter.Poker. All rights reserved.</p>
           </footer>
         </main>
+
+        {/* Jarvis Chat Widget */}
+        <JarvisChatWidget user={user} />
       </div>
     </PageTransition>
   );

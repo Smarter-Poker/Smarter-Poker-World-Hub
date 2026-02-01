@@ -1237,7 +1237,7 @@ export default function MemoryGamesPage() {
     const containerRef = useRef(null);
 
     // Zustand Global State (replaces some local useState)
-    const currentLevel = useMemoryStore((s) => s.currentLevel);
+    const currentLevel = useMemoryStore((s) => s.currentLevel) || 1; // Fallback to level 1 if undefined
     const setCurrentLevel = useMemoryStore((s) => s.setCurrentLevel);
     const currentView = useMemoryStore((s) => s.currentView);
     const setCurrentView = useMemoryStore((s) => s.setCurrentView);
@@ -1297,6 +1297,9 @@ export default function MemoryGamesPage() {
             introVideoRef.current.muted = false;
         }
     }, []);
+
+    // Safe helper to get level config with fallback
+    const safeLevelConfig = getLevelConfig(currentLevel) || { timer: 90, gridSize: 13, maxHands: 20 };
 
     // Initialize effects CSS and load real user balance from Supabase
     useEffect(() => {
@@ -1374,7 +1377,7 @@ export default function MemoryGamesPage() {
         }
 
         // Get level-specific config for progressive difficulty
-        const levelConfig = getLevelConfig(level);
+        const levelConfig = getLevelConfig(level) || { timer: 90, gridSize: 13, maxHands: 20 };
 
         setCurrentLevel(level);
         setCurrentScenario(scenario);
@@ -1839,7 +1842,7 @@ export default function MemoryGamesPage() {
                                     <div style={styles.levelGrid}>
                                         {LEVELS.map((level, idx) => {
                                             const scenarioCount = getLevelScenarios(level.level);
-                                            const levelConfig = getLevelConfig(level.level);
+                                            const levelConfig = getLevelConfig(level.level) || { timer: 90, gridSize: 13, maxHands: 20, xpMultiplier: 1 };
                                             const isUnlocked = idx === 0 || consecutivePasses >= (idx * 5);
 
                                             return (
@@ -1944,7 +1947,7 @@ export default function MemoryGamesPage() {
                                 <div
                                     style={{
                                         ...styles.timerBar,
-                                        width: `${(timeRemaining / getLevelConfig(currentLevel).timer) * 100}%`,
+                                        width: `${(timeRemaining / safeLevelConfig.timer) * 100}%`,
                                         backgroundColor: getTimerColor(),
                                     }}
                                 />
@@ -1959,7 +1962,7 @@ export default function MemoryGamesPage() {
                             {/* Scenario Header */}
                             <div style={styles.gameHeader}>
                                 <div>
-                                    <div style={styles.levelBadge}>Level {currentLevel} • ⏱️ {getLevelConfig(currentLevel).timer}s</div>
+                                    <div style={styles.levelBadge}>Level {currentLevel} • ⏱️ {safeLevelConfig.timer}s</div>
                                     <h2 style={styles.scenarioTitle}>{currentScenario.title}</h2>
                                     <p style={styles.scenarioDesc}>{currentScenario.description}</p>
                                     {currentScenario.tip && !gradeResult && (
