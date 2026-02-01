@@ -370,7 +370,7 @@ const styles = {
         left: '58%',  // Off to the side of the rail
         transform: 'translateX(-50%)',
         display: 'flex',
-        gap: -15,  // Negative gap for overlap
+        gap: -20,  // 50% overlap (cards are 40px wide)
         zIndex: 10,
     },
 
