@@ -3,7 +3,7 @@
  * Manages user's bookmarked news articles
  */
 
-import { supabase } from '../lib/supabaseClient';
+import { supabase } from '../lib/supabase';
 
 /**
  * Get all bookmarked articles for a user

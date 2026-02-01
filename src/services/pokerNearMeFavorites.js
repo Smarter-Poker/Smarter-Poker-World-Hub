@@ -3,7 +3,7 @@
  * Manages user's favorite poker venues
  */
 
-import { supabase } from '../lib/supabaseClient';
+import { supabase } from '../lib/supabase';
 
 /**
  * Get all favorite venues for a user

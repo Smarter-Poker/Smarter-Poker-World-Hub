@@ -3,7 +3,7 @@
  * Manages user's watch later queue
  */
 
-import { supabase } from '../lib/supabaseClient';
+import { supabase } from '../lib/supabase';
 
 /**
  * Get watch later videos for a user

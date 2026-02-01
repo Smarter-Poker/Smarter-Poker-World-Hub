@@ -3,7 +3,7 @@
  * Tracks videos the user has watched
  */
 
-import { supabase } from '../lib/supabaseClient';
+import { supabase } from '../lib/supabase';
 
 /**
  * Get watch history for a user

@@ -16202,14 +16202,7 @@ export const LEVEL_9_SCENARIOS = [
             "JTo": "fold"
         },
         "level": 9
-    }
-];
-
-
-// ═══════════════════════════════════════════════════════════════════════════
-// LEVEL 10 SCENARIOS (AI-Generated)
-// ═══════════════════════════════════════════════════════════════════════════
-export const LEVEL_10_SCENARIOS = [
+    },
     {
         "id": "l10-scenario-0",
         "title": "CO Open 50bb 6-max",

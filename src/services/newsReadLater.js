@@ -3,7 +3,7 @@
  * Manages user's read later queue for news articles
  */
 
-import { supabase } from '../lib/supabaseClient';
+import { supabase } from '../lib/supabase';
 
 /**
  * Get all read later articles for a user

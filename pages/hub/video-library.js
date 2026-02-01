@@ -14,9 +14,9 @@ import { useAvatar } from '../../src/contexts/AvatarContext';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getVideoLibraryPreferences, updateVideoLibraryPreferences } from '../../src/services/videoLibraryPreferences';
-import * as videoFavorites from '../../src/services/videoFavorites';
-import * as videoWatchLater from '../../src/services/videoWatchLater';
-import * as videoWatchHistory from '../../src/services/videoWatchHistory';
+import { getVideoFavorites, addVideoFavorite, removeVideoFavorite } from '../../src/services/videoFavorites';
+import { getWatchLater, addToWatchLater, removeFromWatchLater } from '../../src/services/videoWatchLater';
+import { addVideoWatchHistory } from '../../src/services/videoWatchHistory';
 
 // God-Mode Stack
 import { useVideoLibraryStore } from '../../src/stores/videoLibraryStore';
@@ -440,11 +440,11 @@ export default function VideoLibraryPage() {
             getVideoLibraryPreferences(userId).then(setPreferences);
 
             // Load favorites and watch later lists
-            videoFavorites.get(userId).then(data => {
+            getVideoFavorites(userId).then(data => {
                 setFavorites(new Set(data.map(v => v.video_id)));
             }).catch(err => console.error('Error loading favorites:', err));
 
-            videoWatchLater.get(userId).then(data => {
+            getWatchLater(userId).then(data => {
                 setWatchLater(new Set(data.map(v => v.video_id)));
             }).catch(err => console.error('Error loading watch later:', err));
         }
@@ -476,14 +476,14 @@ export default function VideoLibraryPage() {
 
         const videoId = video.id;
         if (favorites.has(videoId)) {
-            await videoFavorites.remove(userId, videoId);
+            await removeVideoFavorite(userId, videoId);
             setFavorites(prev => {
                 const newSet = new Set(prev);
                 newSet.delete(videoId);
                 return newSet;
             });
         } else {
-            await videoFavorites.add(userId, videoId, {
+            await addVideoFavorite(userId, videoId, {
                 title: video.title,
                 source: video.source,
                 video_url: `https://youtube.com/watch?v=${video.videoId}`
@@ -497,14 +497,14 @@ export default function VideoLibraryPage() {
 
         const videoId = video.id;
         if (watchLater.has(videoId)) {
-            await videoWatchLater.remove(userId, videoId);
+            await removeFromWatchLater(userId, videoId);
             setWatchLater(prev => {
                 const newSet = new Set(prev);
                 newSet.delete(videoId);
                 return newSet;
             });
         } else {
-            await videoWatchLater.add(userId, videoId, {
+            await addToWatchLater(userId, videoId, {
                 title: video.title,
                 source: video.source,
                 video_url: `https://youtube.com/watch?v=${video.videoId}`

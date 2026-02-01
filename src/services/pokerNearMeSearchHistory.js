@@ -3,7 +3,7 @@
  * Tracks user's search history for poker venues
  */
 
-import { supabase } from '../lib/supabaseClient';
+import { supabase } from '../lib/supabase';
 
 /**
  * Get search history for a user
