@@ -15,6 +15,16 @@ export function getHandName(row, col) {
 // DIFFICULTY SETTINGS - Timer, complexity, and scoring adjustments
 // ═══════════════════════════════════════════════════════════════════════════
 export const LEVEL_CONFIG = {
+    1: { timer: 90, gridSize: 13, maxHands: 20, xpMultiplier: 1.0 },
+    2: { timer: 85, gridSize: 13, maxHands: 22, xpMultiplier: 1.2 },
+    3: { timer: 80, gridSize: 13, maxHands: 24, xpMultiplier: 1.4 },
+    4: { timer: 75, gridSize: 13, maxHands: 26, xpMultiplier: 1.6 },
+    5: { timer: 70, gridSize: 13, maxHands: 28, xpMultiplier: 1.8 },
+    6: { timer: 65, gridSize: 13, maxHands: 30, xpMultiplier: 2.0 },
+    7: { timer: 60, gridSize: 13, maxHands: 32, xpMultiplier: 2.2 },
+    8: { timer: 55, gridSize: 13, maxHands: 34, xpMultiplier: 2.4 },
+    9: { timer: 50, gridSize: 13, maxHands: 36, xpMultiplier: 2.6 },
+    10: { timer: 45, gridSize: 13, maxHands: 40, xpMultiplier: 3.0 },
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -66,6 +76,294 @@ export const LEVEL_1_SCENARIOS = [
             'T9s': 'raise', 'T8s': 'raise', '98s': 'raise', '97s': 'raise',
             '87s': 'raise', '86s': 'raise', '76s': 'raise', '75s': 'raise',
             '65s': 'raise', '64s': 'raise', '54s': 'raise', '53s': 'raise',
+        }
+    },
+    {
+        id: 'l1-utg-50bb', level: 1, title: 'UTG Open (50bb)', position: 'UTG', stackDepth: 50,
+        description: 'Shorter stack UTG range. Tighter than 100bb.',
+        tip: 'Cut some suited connectors, focus on high card strength.',
+        solution: {
+            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
+            '99': 'raise', '88': 'raise', '77': 'raise',
+            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise',
+            'A5s': 'raise', 'A4s': 'raise',
+            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise',
+            'KQs': 'raise', 'KJs': 'raise', 'QJs': 'raise', 'JTs': 'raise',
+            'T9s': 'raise', '98s': 'raise',
+        }
+    },
+    {
+        id: 'l1-utg-200bb', level: 1, title: 'UTG Open (200bb)', position: 'UTG', stackDepth: 200,
+        description: 'Deep stack UTG. Can add more speculative hands.',
+        tip: 'Add small pairs and more suited connectors for implied odds.',
+        solution: {
+            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
+            '99': 'raise', '88': 'raise', '77': 'raise', '66': 'raise', '55': 'raise',
+            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise', 'A9s': 'raise',
+            'A5s': 'raise', 'A4s': 'raise', 'A3s': 'raise', 'A2s': 'raise',
+            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise', 'ATo': 'raise',
+            'KQs': 'raise', 'KJs': 'raise', 'KTs': 'raise', 'QJs': 'raise', 'QTs': 'raise',
+            'JTs': 'raise', 'J9s': 'raise', 'T9s': 'raise', '98s': 'raise', '87s': 'raise', '76s': 'raise', '65s': 'raise', '54s': 'raise',
+        }
+    },
+    {
+        id: 'l1-mp-50bb', level: 1, title: 'MP Open (50bb)', position: 'MP', stackDepth: 50,
+        description: 'Middle position with shorter stack.',
+        tip: 'Slightly wider than UTG 50bb, but still tight.',
+        solution: {
+            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
+            '99': 'raise', '88': 'raise', '77': 'raise', '66': 'raise',
+            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise', 'A9s': 'raise',
+            'A5s': 'raise', 'A4s': 'raise', 'A3s': 'raise',
+            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise', 'ATo': 'raise',
+            'KQs': 'raise', 'KJs': 'raise', 'KTs': 'raise', 'KQo': 'raise',
+            'QJs': 'raise', 'QTs': 'raise', 'JTs': 'raise',
+            'T9s': 'raise', '98s': 'raise', '87s': 'raise',
+        }
+    },
+    {
+        id: 'l1-mp-200bb', level: 1, title: 'MP Open (200bb)', position: 'MP', stackDepth: 200,
+        description: 'Deep stack middle position.',
+        tip: 'Add more suited hands and small pairs.',
+        solution: {
+            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
+            '99': 'raise', '88': 'raise', '77': 'raise', '66': 'raise', '55': 'raise', '44': 'raise',
+            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise', 'A9s': 'raise', 'A8s': 'raise',
+            'A5s': 'raise', 'A4s': 'raise', 'A3s': 'raise', 'A2s': 'raise',
+            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise', 'ATo': 'raise', 'A9o': 'raise',
+            'KQs': 'raise', 'KJs': 'raise', 'KTs': 'raise', 'K9s': 'raise', 'K8s': 'raise', 'KQo': 'raise', 'KJo': 'raise',
+            'QJs': 'raise', 'QTs': 'raise', 'Q9s': 'raise', 'JTs': 'raise', 'J9s': 'raise',
+            'T9s': 'raise', 'T8s': 'raise', '98s': 'raise', '97s': 'raise', '87s': 'raise', '86s': 'raise',
+            '76s': 'raise', '75s': 'raise', '65s': 'raise', '64s': 'raise', '54s': 'raise', '53s': 'raise',
+        }
+    },
+    {
+        id: 'l1-hj-50bb', level: 1, title: 'HJ Open (50bb)', position: 'HJ', stackDepth: 50,
+        description: 'Hijack with shorter stack.',
+        tip: 'Wider than MP, but not as wide as 100bb HJ.',
+        solution: {
+            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
+            '99': 'raise', '88': 'raise', '77': 'raise', '66': 'raise', '55': 'raise',
+            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise', 'A9s': 'raise', 'A8s': 'raise',
+            'A5s': 'raise', 'A4s': 'raise', 'A3s': 'raise',
+            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise', 'ATo': 'raise',
+            'KQs': 'raise', 'KJs': 'raise', 'KTs': 'raise', 'K9s': 'raise', 'KQo': 'raise', 'KJo': 'raise',
+            'QJs': 'raise', 'QTs': 'raise', 'Q9s': 'raise', 'QJo': 'raise',
+            'JTs': 'raise', 'J9s': 'raise', 'T9s': 'raise', 'T8s': 'raise',
+            '98s': 'raise', '97s': 'raise', '87s': 'raise', '76s': 'raise', '65s': 'raise',
+        }
+    },
+    {
+        id: 'l1-hj-200bb', level: 1, title: 'HJ Open (200bb)', position: 'HJ', stackDepth: 200,
+        description: 'Deep stack hijack.',
+        tip: 'Very wide range with deep stacks.',
+        solution: {
+            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
+            '99': 'raise', '88': 'raise', '77': 'raise', '66': 'raise', '55': 'raise', '44': 'raise', '33': 'raise',
+            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise', 'A9s': 'raise', 'A8s': 'raise', 'A7s': 'raise',
+            'A5s': 'raise', 'A4s': 'raise', 'A3s': 'raise', 'A2s': 'raise',
+            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise', 'ATo': 'raise', 'A9o': 'raise', 'A8o': 'raise',
+            'KQs': 'raise', 'KJs': 'raise', 'KTs': 'raise', 'K9s': 'raise', 'K8s': 'raise', 'K7s': 'raise', 'KQo': 'raise', 'KJo': 'raise', 'KTo': 'raise',
+            'QJs': 'raise', 'QTs': 'raise', 'Q9s': 'raise', 'Q8s': 'raise', 'QJo': 'raise', 'QTo': 'raise',
+            'JTs': 'raise', 'J9s': 'raise', 'J8s': 'raise', 'JTo': 'raise',
+            'T9s': 'raise', 'T8s': 'raise', 'T7s': 'raise', 'T9o': 'raise',
+            '98s': 'raise', '97s': 'raise', '96s': 'raise', '87s': 'raise', '86s': 'raise', '85s': 'raise',
+            '76s': 'raise', '75s': 'raise', '74s': 'raise', '65s': 'raise', '64s': 'raise', '54s': 'raise', '53s': 'raise', '43s': 'raise',
+        }
+    },
+    // Additional UTG variations
+    {
+        id: 'l1-utg-30bb', level: 1, title: 'UTG Open (30bb)', position: 'UTG', stackDepth: 30,
+        description: 'Short stack UTG. Very tight range.',
+        tip: 'Premium hands only. No speculative plays.',
+        solution: {
+            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
+            '99': 'raise', '88': 'raise',
+            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise',
+            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise',
+            'KQs': 'raise', 'KJs': 'raise', 'QJs': 'raise',
+        }
+    },
+    {
+        id: 'l1-mp-30bb', level: 1, title: 'MP Open (30bb)', position: 'MP', stackDepth: 30,
+        description: 'Short stack middle position.',
+        tip: 'Slightly wider than UTG 30bb.',
+        solution: {
+            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
+            '99': 'raise', '88': 'raise', '77': 'raise',
+            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise', 'A9s': 'raise',
+            'A5s': 'raise', 'A4s': 'raise',
+            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise', 'ATo': 'raise',
+            'KQs': 'raise', 'KJs': 'raise', 'KTs': 'raise', 'KQo': 'raise',
+            'QJs': 'raise', 'JTs': 'raise',
+        }
+    },
+    {
+        id: 'l1-hj-30bb', level: 1, title: 'HJ Open (30bb)', position: 'HJ', stackDepth: 30,
+        description: 'Short stack hijack.',
+        tip: 'Wider than MP 30bb, but still relatively tight.',
+        solution: {
+            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
+            '99': 'raise', '88': 'raise', '77': 'raise', '66': 'raise',
+            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise', 'A9s': 'raise',
+            'A5s': 'raise', 'A4s': 'raise', 'A3s': 'raise',
+            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise', 'ATo': 'raise',
+            'KQs': 'raise', 'KJs': 'raise', 'KTs': 'raise', 'K9s': 'raise', 'KQo': 'raise',
+            'QJs': 'raise', 'QTs': 'raise', 'JTs': 'raise',
+            'T9s': 'raise', '98s': 'raise',
+        }
+    },
+    // UTG+1 scenarios
+    {
+        id: 'l1-utg1-100bb', level: 1, title: 'UTG+1 Open (100bb)', position: 'UTG+1', stackDepth: 100,
+        description: 'One seat after UTG. Slightly wider.',
+        tip: 'Add a few more suited hands than UTG.',
+        solution: {
+            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
+            '99': 'raise', '88': 'raise', '77': 'raise',
+            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise', 'A9s': 'raise',
+            'A5s': 'raise', 'A4s': 'raise', 'A3s': 'raise',
+            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise', 'ATo': 'raise',
+            'KQs': 'raise', 'KJs': 'raise', 'KTs': 'raise', 'K9s': 'raise', 'KQo': 'raise',
+            'QJs': 'raise', 'QTs': 'raise', 'JTs': 'raise', 'J9s': 'raise',
+            'T9s': 'raise', '98s': 'raise', '87s': 'raise', '76s': 'raise', '65s': 'raise',
+        }
+    },
+    {
+        id: 'l1-utg1-50bb', level: 1, title: 'UTG+1 Open (50bb)', position: 'UTG+1', stackDepth: 50,
+        description: 'UTG+1 with shorter stack.',
+        tip: 'Tighter than 100bb, but wider than UTG 50bb.',
+        solution: {
+            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
+            '99': 'raise', '88': 'raise', '77': 'raise',
+            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise',
+            'A5s': 'raise', 'A4s': 'raise',
+            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise',
+            'KQs': 'raise', 'KJs': 'raise', 'QJs': 'raise', 'JTs': 'raise',
+            'T9s': 'raise', '98s': 'raise', '87s': 'raise',
+        }
+    },
+    {
+        id: 'l1-lj-100bb', level: 1, title: 'LJ Open (100bb)', position: 'LJ', stackDepth: 100,
+        description: 'Lojack (MP2). Between MP and HJ.',
+        tip: 'Wider than MP, narrower than HJ.',
+        solution: {
+            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
+            '99': 'raise', '88': 'raise', '77': 'raise', '66': 'raise', '55': 'raise',
+            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise', 'A9s': 'raise', 'A8s': 'raise',
+            'A5s': 'raise', 'A4s': 'raise', 'A3s': 'raise', 'A2s': 'raise',
+            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise', 'ATo': 'raise', 'A9o': 'raise',
+            'KQs': 'raise', 'KJs': 'raise', 'KTs': 'raise', 'K9s': 'raise', 'KQo': 'raise', 'KJo': 'raise',
+            'QJs': 'raise', 'QTs': 'raise', 'Q9s': 'raise', 'QJo': 'raise',
+            'JTs': 'raise', 'J9s': 'raise', 'JTo': 'raise',
+            'T9s': 'raise', 'T8s': 'raise', '98s': 'raise', '97s': 'raise',
+            '87s': 'raise', '86s': 'raise', '76s': 'raise', '75s': 'raise', '65s': 'raise', '64s': 'raise', '54s': 'raise',
+        }
+    },
+    // Ante vs No Ante scenarios
+    {
+        id: 'l1-utg-100bb-ante', level: 1, title: 'UTG Open (100bb, Ante)', position: 'UTG', stackDepth: 100,
+        description: 'UTG with big blind ante. Slightly wider.',
+        tip: 'Ante makes stealing more profitable. Add a few more hands.',
+        solution: {
+            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
+            '99': 'raise', '88': 'raise', '77': 'raise', '66': 'raise',
+            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise', 'A9s': 'raise',
+            'A5s': 'raise', 'A4s': 'raise', 'A3s': 'raise',
+            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise', 'ATo': 'raise',
+            'KQs': 'raise', 'KJs': 'raise', 'KTs': 'raise', 'K9s': 'raise', 'KQo': 'raise',
+            'QJs': 'raise', 'QTs': 'raise', 'JTs': 'raise', 'J9s': 'raise',
+            'T9s': 'raise', '98s': 'raise', '87s': 'raise', '76s': 'raise', '65s': 'raise', '54s': 'raise',
+        }
+    },
+    {
+        id: 'l1-mp-100bb-ante', level: 1, title: 'MP Open (100bb, Ante)', position: 'MP', stackDepth: 100,
+        description: 'Middle position with ante.',
+        tip: 'Ante increases pot odds. Open wider.',
+        solution: {
+            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
+            '99': 'raise', '88': 'raise', '77': 'raise', '66': 'raise', '55': 'raise',
+            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise', 'A9s': 'raise', 'A8s': 'raise',
+            'A5s': 'raise', 'A4s': 'raise', 'A3s': 'raise', 'A2s': 'raise',
+            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise', 'ATo': 'raise', 'A9o': 'raise',
+            'KQs': 'raise', 'KJs': 'raise', 'KTs': 'raise', 'K9s': 'raise', 'K8s': 'raise', 'KQo': 'raise', 'KJo': 'raise',
+            'QJs': 'raise', 'QTs': 'raise', 'Q9s': 'raise', 'JTs': 'raise', 'J9s': 'raise',
+            'T9s': 'raise', 'T8s': 'raise', '98s': 'raise', '97s': 'raise', '87s': 'raise', '86s': 'raise',
+            '76s': 'raise', '75s': 'raise', '65s': 'raise', '64s': 'raise', '54s': 'raise', '53s': 'raise',
+        }
+    },
+    // 6-max vs 9-max
+    {
+        id: 'l1-utg-6max', level: 1, title: 'UTG Open (6-Max)', position: 'UTG', stackDepth: 100,
+        description: 'UTG in 6-max. Wider than 9-max UTG.',
+        tip: '6-max UTG is like 9-max MP. Open wider.',
+        solution: {
+            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
+            '99': 'raise', '88': 'raise', '77': 'raise', '66': 'raise',
+            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise', 'A9s': 'raise',
+            'A5s': 'raise', 'A4s': 'raise', 'A3s': 'raise', 'A2s': 'raise',
+            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise', 'ATo': 'raise',
+            'KQs': 'raise', 'KJs': 'raise', 'KTs': 'raise', 'K9s': 'raise', 'KQo': 'raise', 'KJo': 'raise',
+            'QJs': 'raise', 'QTs': 'raise', 'JTs': 'raise', 'J9s': 'raise',
+            'T9s': 'raise', '98s': 'raise', '87s': 'raise', '76s': 'raise', '65s': 'raise', '54s': 'raise',
+        }
+    },
+    {
+        id: 'l1-mp-6max', level: 1, title: 'MP Open (6-Max)', position: 'MP', stackDepth: 100,
+        description: 'MP in 6-max. Very wide.',
+        tip: '6-max MP is like 9-max HJ. Open very wide.',
+        solution: {
+            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
+            '99': 'raise', '88': 'raise', '77': 'raise', '66': 'raise', '55': 'raise', '44': 'raise',
+            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise', 'A9s': 'raise', 'A8s': 'raise', 'A7s': 'raise',
+            'A5s': 'raise', 'A4s': 'raise', 'A3s': 'raise', 'A2s': 'raise',
+            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise', 'ATo': 'raise', 'A9o': 'raise', 'A8o': 'raise',
+            'KQs': 'raise', 'KJs': 'raise', 'KTs': 'raise', 'K9s': 'raise', 'K8s': 'raise', 'KQo': 'raise', 'KJo': 'raise', 'KTo': 'raise',
+            'QJs': 'raise', 'QTs': 'raise', 'Q9s': 'raise', 'Q8s': 'raise', 'QJo': 'raise', 'QTo': 'raise',
+            'JTs': 'raise', 'J9s': 'raise', 'J8s': 'raise', 'JTo': 'raise',
+            'T9s': 'raise', 'T8s': 'raise', 'T7s': 'raise', '98s': 'raise', '97s': 'raise', '96s': 'raise',
+            '87s': 'raise', '86s': 'raise', '85s': 'raise', '76s': 'raise', '75s': 'raise', '74s': 'raise',
+            '65s': 'raise', '64s': 'raise', '54s': 'raise', '53s': 'raise', '43s': 'raise',
+        }
+    },
+    // Tournament vs Cash
+    {
+        id: 'l1-utg-mtt-20bb', level: 1, title: 'UTG Open (MTT, 20bb)', position: 'UTG', stackDepth: 20,
+        description: 'Tournament UTG with 20bb. Push/fold territory.',
+        tip: 'Very tight. Only premium hands.',
+        solution: {
+            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
+            '99': 'raise', '88': 'raise',
+            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise',
+            'AKo': 'raise', 'AQo': 'raise',
+            'KQs': 'raise', 'KJs': 'raise',
+        }
+    },
+    {
+        id: 'l1-mp-mtt-20bb', level: 1, title: 'MP Open (MTT, 20bb)', position: 'MP', stackDepth: 20,
+        description: 'Tournament MP with 20bb.',
+        tip: 'Slightly wider than UTG 20bb.',
+        solution: {
+            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
+            '99': 'raise', '88': 'raise', '77': 'raise',
+            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise',
+            'A5s': 'raise', 'A4s': 'raise',
+            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise',
+            'KQs': 'raise', 'KJs': 'raise', 'QJs': 'raise',
+        }
+    },
+    {
+        id: 'l1-hj-mtt-20bb', level: 1, title: 'HJ Open (MTT, 20bb)', position: 'HJ', stackDepth: 20,
+        description: 'Tournament HJ with 20bb.',
+        tip: 'Wider than MP, but still relatively tight.',
+        solution: {
+            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
+            '99': 'raise', '88': 'raise', '77': 'raise', '66': 'raise',
+            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise', 'A9s': 'raise',
+            'A5s': 'raise', 'A4s': 'raise', 'A3s': 'raise',
+            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise', 'ATo': 'raise',
+            'KQs': 'raise', 'KJs': 'raise', 'KTs': 'raise', 'KQo': 'raise',
+            'QJs': 'raise', 'JTs': 'raise', 'T9s': 'raise',
         }
     },
 ];
