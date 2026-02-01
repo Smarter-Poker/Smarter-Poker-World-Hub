@@ -7,11 +7,12 @@
 
 import Head from 'next/head';
 import Link from 'next/link';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
+import { useAvatar } from '../../src/contexts/AvatarContext';
 
 // God-Mode Stack
 import { useDiamondArenaStore } from '../../src/stores/diamondArenaStore';
@@ -23,6 +24,8 @@ import { getDiamondArenaPreferences, updateDiamondArenaPreferences } from '../..
 
 export default function DiamondArenaPage() {
     const router = useRouter();
+    const { user } = useAvatar();
+    const userId = user?.id;
     const iframeRef = useRef(null);
     const [iframeLoaded, setIframeLoaded] = useState(false);
     const [mounted, setMounted] = useState(false);
@@ -38,7 +41,6 @@ export default function DiamondArenaPage() {
 
     // Load preferences from Supabase on mount
     useEffect(() => {
-        const userId = null; // TODO: Get from user context when available
         if (userId) {
             getDiamondArenaPreferences(userId).then(setPreferences);
         }
@@ -48,7 +50,6 @@ export default function DiamondArenaPage() {
         const newPrefs = { ...preferences, [key]: value };
         setPreferences(newPrefs);
 
-        const userId = null; // TODO: Get from user context when available
         if (userId) {
             try {
                 await updateDiamondArenaPreferences(userId, { [key]: value });

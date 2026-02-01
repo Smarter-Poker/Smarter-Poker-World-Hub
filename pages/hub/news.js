@@ -19,6 +19,8 @@ import { useRouter } from 'next/router';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
+import { supabase } from '../../src/lib/supabase';
+import { useAvatar } from '../../src/contexts/AvatarContext';
 import {
     Search, Clock, Eye, TrendingUp, Trophy, Calendar,
     Zap, Play, Mail, Check, Flame, MapPin, ExternalLink, Loader,
@@ -780,6 +782,8 @@ function SourcePlaceholderBox({ sourceName, sourceUrl, index, openExternal }) {
 
 export default function NewsHub() {
     const router = useRouter();
+    const { user } = useAvatar();
+    const userId = user?.id;
 
     // Core State
     const [news, setNews] = useState([]);
@@ -829,7 +833,6 @@ export default function NewsHub() {
 
     // Load preferences from Supabase on mount
     useEffect(() => {
-        const userId = null; // TODO: Get from user context when available
         if (userId) {
             getNewsPreferences(userId).then(setPreferences);
         }
@@ -839,7 +842,6 @@ export default function NewsHub() {
         const newPrefs = { ...preferences, [key]: value };
         setPreferences(newPrefs);
 
-        const userId = null; // TODO: Get from user context when available
         if (userId) {
             try {
                 await updateNewsPreferences(userId, { [key]: value });

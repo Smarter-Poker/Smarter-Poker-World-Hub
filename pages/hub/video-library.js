@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import { useAvatar } from '../../src/contexts/AvatarContext';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getVideoLibraryPreferences, updateVideoLibraryPreferences } from '../../src/services/videoLibraryPreferences';
@@ -363,7 +364,11 @@ const C = {
 };
 
 export default function VideoLibraryPage() {
-    // Zustand Global State (replaces UI-related useState)
+    const router = useRouter();
+    const { user } = useAvatar();
+    const userId = user?.id;
+
+    // Zustand storebal State (replaces UI-related useState)
     const selectedCategory = useVideoLibraryStore((s) => s.selectedCategory);
     const setSelectedCategory = useVideoLibraryStore((s) => s.setSelectedCategory);
     const selectedVideo = useVideoLibraryStore((s) => s.selectedVideo);
@@ -424,7 +429,6 @@ export default function VideoLibraryPage() {
 
     // Load preferences from Supabase on mount
     useEffect(() => {
-        const userId = null; // TODO: Get from user context when available
         if (userId) {
             getVideoLibraryPreferences(userId).then(setPreferences);
         }
@@ -435,7 +439,6 @@ export default function VideoLibraryPage() {
         const newPrefs = { ...preferences, [key]: value };
         setPreferences(newPrefs);
 
-        const userId = null; // TODO: Get from user context when available
         if (userId) {
             try {
                 await updateVideoLibraryPreferences(userId, { [key]: value });

@@ -13,11 +13,12 @@
    - Bottom navigation icons
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
 import Head from 'next/head';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
+import { useAvatar } from '../../src/contexts/AvatarContext';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
@@ -109,7 +110,10 @@ const GAME_CARD_STYLES = {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default function DiamondArcade() {
-    const [user, setUser] = useState(null);
+    const { user } = useAvatar();
+    const userId = user?.id;
+
+    const [mounted, setMounted] = useState(false);
     const [balance, setBalance] = useState(1247);
     const [streak, setStreak] = useState(3);
     const [stats, setStats] = useState({ todayProfit: 127, gamesPlayed: 12, winRate: 62 });
@@ -136,7 +140,6 @@ export default function DiamondArcade() {
 
     // Load preferences from Supabase on mount
     useEffect(() => {
-        const userId = null; // TODO: Get from user context when available
         if (userId) {
             getDiamondArcadePreferences(userId).then(setPreferences);
         }
@@ -146,7 +149,6 @@ export default function DiamondArcade() {
         const newPrefs = { ...preferences, [key]: value };
         setPreferences(newPrefs);
 
-        const userId = null; // TODO: Get from user context when available
         if (userId) {
             try {
                 await updateDiamondArcadePreferences(userId, { [key]: value });

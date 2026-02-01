@@ -4,9 +4,10 @@
  */
 
 import Head from 'next/head';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
+import { useAvatar } from '../../../src/contexts/AvatarContext';
 
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -16,6 +17,8 @@ import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { getTriviaPreferences, updateTriviaPreferences } from '../../../src/services/triviaPreferences';
 
 export default function TriviaHubPage() {
+    const { user } = useAvatar();
+    const userId = user?.id;
     const [userDiamonds, setUserDiamonds] = useState(0);
     const [dailyCompleted, setDailyCompleted] = useState(false);
     const [currentStreak, setCurrentStreak] = useState(0);
@@ -30,7 +33,6 @@ export default function TriviaHubPage() {
 
     // Load preferences from Supabase on mount
     useEffect(() => {
-        const userId = null; // TODO: Get from user context when available
         if (userId) {
             getTriviaPreferences(userId).then(setPreferences);
         }
@@ -40,7 +42,6 @@ export default function TriviaHubPage() {
         const newPrefs = { ...preferences, [key]: value };
         setPreferences(newPrefs);
 
-        const userId = null; // TODO: Get from user context when available
         if (userId) {
             try {
                 await updateTriviaPreferences(userId, { [key]: value });

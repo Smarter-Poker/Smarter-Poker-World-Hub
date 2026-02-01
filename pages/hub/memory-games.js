@@ -34,6 +34,7 @@ import { supabase } from '../../src/lib/supabase';
 // God-Mode Stack
 import { useMemoryStore } from '../../src/stores/memoryStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
+import { useAvatar } from '../../src/contexts/AvatarContext';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
@@ -1206,6 +1207,8 @@ function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) 
 // ═══════════════════════════════════════════════════════════════════════════
 export default function MemoryGamesPage() {
     const router = useRouter();
+    const { user } = useAvatar();
+    const userId = user?.id;
     const containerRef = useRef(null);
 
     // Zustand Global State (replaces some local useState)
@@ -1234,10 +1237,9 @@ export default function MemoryGamesPage() {
     const [comboName, setComboName] = useState(null);
     const [multiplier, setMultiplier] = useState(1);
 
-    // Economy state - fetched from    // Diamond state
+    // Economy state - fetched from Supabase
     const [diamondBalance, setDiamondBalance] = useState(100);
     const [isVIP, setIsVIP] = useState(false);
-    const [userId, setUserId] = useState(null);
 
     // Initialize Supabase client
     const supabase = useRef(null);
@@ -1267,7 +1269,6 @@ export default function MemoryGamesPage() {
 
     // Load preferences from Supabase on mount
     useEffect(() => {
-        const userId = null; // TODO: Get from user context when available
         if (userId) {
             getMemoryGamesPreferences(userId).then(setPreferences);
         }
@@ -1277,7 +1278,6 @@ export default function MemoryGamesPage() {
         const newPrefs = { ...preferences, [key]: value };
         setPreferences(newPrefs);
 
-        const userId = null; // TODO: Get from user context when available
         if (userId) {
             try {
                 await updateMemoryGamesPreferences(userId, { [key]: value });

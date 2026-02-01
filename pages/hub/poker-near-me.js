@@ -1,12 +1,14 @@
 /**
- * POKER NEAR ME - Unified Search for Venues, Tours, Series, and Daily Events
- * Complete poker discovery platform with interactive map and geofence alerts
+ * 🗺️ POKER NEAR ME - Live Venue Finder
+ * Find poker rooms, casinos, and tournaments near you
  */
 
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Head from 'next/head';
-import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
-import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '../../src/lib/supabase';
+import { useAvatar } from '../../src/contexts/AvatarContext';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getPokerNearMePreferences, updatePokerNearMePreferences } from '../../src/services/pokerNearMePreferences';
@@ -405,8 +407,11 @@ function VenueMap({ venues, userLocation }) {
 }
 
 
-export default function PokerNearMe() {
+export default function PokerNearMePage() {
     const router = useRouter();
+    const { user } = useAvatar();
+    const userId = user?.id;
+
     // Active tab state
     const [activeTab, setActiveTab] = useState('venues');
 
@@ -665,7 +670,6 @@ export default function PokerNearMe() {
 
     // Load preferences from Supabase on mount
     useEffect(() => {
-        const userId = null; // TODO: Get from user context when available
         if (userId) {
             getPokerNearMePreferences(userId).then(setPreferences);
         }
@@ -676,7 +680,6 @@ export default function PokerNearMe() {
         const newPrefs = { ...preferences, [key]: value };
         setPreferences(newPrefs);
 
-        const userId = null; // TODO: Get from user context when available
         if (userId) {
             try {
                 await updatePokerNearMePreferences(userId, { [key]: value });
