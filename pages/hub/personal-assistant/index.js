@@ -19,6 +19,8 @@ import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { useAssistantStats, useRecentSessions } from '../../../src/hooks/useAssistant';
+import JarvisChatWidget from '../../../src/components/jarvis/JarvisChatWidget';
+import DashboardOverview from '../../../src/components/jarvis/DashboardOverview';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // STRATEGY HUB — Main Landing Page
@@ -132,10 +134,10 @@ export default function PersonalAssistantPage() {
         <style>{`
           .strategy-hub-page { width: 100%; max-width: 100%; margin: 0 auto; overflow-x: hidden; }
           
-          
-          
-          
-          
+          @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+          }
         `}</style>
       </Head>
 
@@ -154,6 +156,9 @@ export default function PersonalAssistantPage() {
             <h1 style={styles.pageTitle}>Strategy Hub</h1>
             <p style={styles.pageSubtitle}>Safe, data-driven tools to refine your poker game the right way.</p>
           </div>
+
+          {/* Dashboard Overview */}
+          <DashboardOverview stats={stats} isLoading={isLoading} />
 
           {/* Two Main Tool Cards */}
           <div style={styles.toolCardsContainer}>
@@ -355,6 +360,9 @@ export default function PersonalAssistantPage() {
             <p style={styles.footerCopyright}>2024 Smarter.Poker. All rights reserved.</p>
           </footer>
         </main>
+
+        {/* Jarvis Chat Widget */}
+        <JarvisChatWidget user={user} />
       </div>
     </PageTransition>
   );
