@@ -167,14 +167,14 @@ export default function ReelsPage() {
                 .order('created_at', { ascending: false })
                 .limit(50);
 
-            // Load from social_posts (user-uploaded videos)
+            // Load from social_posts (posts with YouTube videos in media_urls)
             const { data: postsData } = await supabase
                 .from('social_posts')
-                .select('id, author_id, content, media_urls, like_count, created_at')
-                .eq('content_type', 'video')
+                .select('id, author_id, content, media_urls, like_count, created_at, visibility')
                 .eq('visibility', 'public')
+                .not('media_urls', 'is', null)
                 .order('created_at', { ascending: false })
-                .limit(50);
+                .limit(100); // Get more to filter for YouTube links
 
             // Combine both sources
             const allVideos = [];
@@ -192,10 +192,15 @@ export default function ReelsPage() {
                 })));
             }
 
-            // Add videos from social_posts
+            // Add videos from social_posts (only YouTube links)
             if (postsData && postsData.length > 0) {
                 allVideos.push(...postsData
-                    .filter(post => post.media_urls && post.media_urls.length > 0)
+                    .filter(post => {
+                        if (!post.media_urls || post.media_urls.length === 0) return false;
+                        // Only include posts with YouTube URLs
+                        const url = post.media_urls[0];
+                        return url && (url.includes('youtube.com') || url.includes('youtu.be'));
+                    })
                     .map(post => ({
                         id: post.id,
                         author_id: post.author_id,
@@ -312,7 +317,7 @@ export default function ReelsPage() {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ post_id: currentReel.id, user_id: userId, interaction_type: 'share' })
-                }).catch(() => {});
+                }).catch(() => { });
             }
         } catch {
             setShareMsg('Failed');

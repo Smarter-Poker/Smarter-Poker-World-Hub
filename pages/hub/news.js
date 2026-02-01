@@ -792,6 +792,19 @@ export default function NewsHub() {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [activeTab, setActiveTab] = useState('all');
+
+    // Handle query parameters for deep linking
+    useEffect(() => {
+        if (router.query.tab) {
+            setActiveTab(router.query.tab);
+        }
+        if (router.query.source) {
+            setSourceFilter(router.query.source);
+        }
+        if (router.query.filter) {
+            setCategoryFilter(router.query.filter);
+        }
+    }, [router.query]);
     const [activeSection, setActiveSection] = useState('news'); // 'news' or 'videos'
     const [email, setEmail] = useState('');
     const [subscribed, setSubscribed] = useState(false);

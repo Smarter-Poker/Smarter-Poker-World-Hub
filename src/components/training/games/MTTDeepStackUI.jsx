@@ -177,7 +177,7 @@ export default function MTTDeepStackUI({
                 {/* HERO CARDS - Bottom center below hero avatar */}
                 <div style={styles.heroCardsContainer}>
                     <img src={getCardPath(card1)} alt={card1} style={styles.card} />
-                    <img src={getCardPath(card2)} alt={card2} style={{ ...styles.card, marginLeft: -36 }} />
+                    <img src={getCardPath(card2)} alt={card2} style={{ ...styles.card, marginLeft: -38 }} />
                 </div>
 
                 {/* POT - Center top */}

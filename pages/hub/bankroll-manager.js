@@ -98,6 +98,16 @@ export default function BankrollManagerPage() {
 
   // UI State
   const [activeSection, setActiveSection] = useState('dashboard');
+
+  // Handle query parameters for deep linking
+  useEffect(() => {
+    if (router.query.view) {
+      setActiveSection(router.query.view);
+    }
+    if (router.query.type) {
+      setCategoryFilter(router.query.type);
+    }
+  }, [router.query]);
   const [showLogModal, setShowLogModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);

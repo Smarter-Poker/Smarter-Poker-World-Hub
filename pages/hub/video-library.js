@@ -375,6 +375,19 @@ export default function VideoLibraryPage() {
     const [videos, setVideos] = useState(FULL_VIDEOS);
     const [selectedSource, setSelectedSource] = useState('ALL');
     const [selectedType, setSelectedType] = useState('ALL'); // 'ALL', 'cash', 'tournament'
+
+    // Handle query parameters for deep linking
+    useEffect(() => {
+        if (router.query.type) {
+            setSelectedType(router.query.type.toUpperCase());
+        }
+        if (router.query.source) {
+            setSelectedSource(router.query.source.toUpperCase());
+        }
+        if (router.query.filter) {
+            setSearchQuery(router.query.filter);
+        }
+    }, [router.query]);
     const [searchQuery, setSearchQuery] = useState('');
     const modalRef = useRef(null);
     const [menuOpen, setMenuOpen] = useState(false);

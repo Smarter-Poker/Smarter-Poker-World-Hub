@@ -410,6 +410,16 @@ export default function PokerNearMe() {
     // Active tab state
     const [activeTab, setActiveTab] = useState('venues');
 
+    // Handle query parameters for deep linking
+    useEffect(() => {
+        if (router.query.tab) {
+            setActiveTab(router.query.tab);
+        }
+        if (router.query.filter) {
+            setVenueTypeFilter(router.query.filter);
+        }
+    }, [router.query]);
+
     // Data states
     const [venues, setVenues] = useState([]);
     const [allVenuesForMap, setAllVenuesForMap] = useState([]);
