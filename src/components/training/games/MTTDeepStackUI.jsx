@@ -160,25 +160,30 @@ export default function MTTDeepStackUI({
                                     style={styles.avatar}
                                 />
 
-                                {/* Badge */}
-                                <div style={styles.badge}>
-                                    <div style={styles.badgeLabel}>
-                                        {isHero ? 'Hero' : `Villain ${villainNumber}`}
+                                {/* Badge + Hero Cards in horizontal row */}
+                                <div style={isHero ? styles.heroRow : undefined}>
+                                    {/* Badge */}
+                                    <div style={styles.badge}>
+                                        <div style={styles.badgeLabel}>
+                                            {isHero ? 'Hero' : `Villain ${villainNumber}`}
+                                        </div>
+                                        <div style={styles.badgeStack}>{stackSize} BB</div>
                                     </div>
-                                    <div style={styles.badgeStack}>{stackSize} BB</div>
+
+                                    {/* Hero Cards - positioned right next to badge */}
+                                    {isHero && (
+                                        <div style={styles.heroCardsInline}>
+                                            <img src={getCardPath(card1)} alt={card1} style={styles.card} />
+                                            <img src={getCardPath(card2)} alt={card2} style={{ ...styles.card, marginLeft: -32 }} />
+                                        </div>
+                                    )}
                                 </div>
-
-
                             </div>
                         );
                     })}
                 </div>
 
-                {/* HERO CARDS - Bottom center below hero avatar */}
-                <div style={styles.heroCardsContainer}>
-                    <img src={getCardPath(card1)} alt={card1} style={styles.card} />
-                    <img src={getCardPath(card2)} alt={card2} style={{ ...styles.card, marginLeft: -38 }} />
-                </div>
+                {/* Hero cards are now rendered inside the hero seat above */}
 
                 {/* POT - Center top */}
                 <div style={styles.pot}>POT 20</div>
@@ -363,15 +368,19 @@ const styles = {
         marginTop: 4,
     },
 
-    // Hero cards positioned at bottom center (below hero avatar)
-    heroCardsContainer: {
-        position: 'absolute',
-        bottom: '6%',
-        left: '50%',  // Centered directly below hero avatar
-        transform: 'translateX(-50%)',
+    // Hero row: horizontal layout for badge + cards
+    heroRow: {
         display: 'flex',
-        gap: -20,  // 50% overlap (cards are 40px wide)
-        zIndex: 10,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+
+    // Hero cards inline (next to badge)
+    heroCardsInline: {
+        display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'center',
     },
 
     card: {
