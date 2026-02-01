@@ -2890,7 +2890,7 @@ export default function MessengerPage() {
                                         cursor: 'pointer',
                                         background: activeConversation?.id === 'jarvis-ai'
                                             ? 'linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(0, 150, 255, 0.1))'
-                                            : 'rgba(128, 128, 128, 0.1)',
+                                            : 'rgba(255, 255, 255, 0.05)',
                                         borderBottom: `1px solid ${C.border}`,
                                         borderLeft: activeConversation?.id === 'jarvis-ai' ? '3px solid #00D4FF' : '3px solid transparent',
                                         transition: 'all 0.2s',
@@ -2903,7 +2903,7 @@ export default function MessengerPage() {
                                     }}
                                     onMouseLeave={e => {
                                         if (activeConversation?.id !== 'jarvis-ai') {
-                                            e.currentTarget.style.background = 'rgba(128, 128, 128, 0.1)';
+                                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
                                         }
                                     }}
                                 >
