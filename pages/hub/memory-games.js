@@ -1377,7 +1377,7 @@ export default function MemoryGamesPage() {
         }
 
         // Get level-specific config for progressive difficulty
-        const levelConfig = getLevelConfig(level);
+        const levelConfig = getLevelConfig(level) || { timer: 90, gridSize: 13, maxHands: 20 };
 
         setCurrentLevel(level);
         setCurrentScenario(scenario);
@@ -1842,7 +1842,7 @@ export default function MemoryGamesPage() {
                                     <div style={styles.levelGrid}>
                                         {LEVELS.map((level, idx) => {
                                             const scenarioCount = getLevelScenarios(level.level);
-                                            const levelConfig = getLevelConfig(level.level);
+                                            const levelConfig = getLevelConfig(level.level) || { timer: 90, gridSize: 13, maxHands: 20, xpMultiplier: 1 };
                                             const isUnlocked = idx === 0 || consecutivePasses >= (idx * 5);
 
                                             return (
