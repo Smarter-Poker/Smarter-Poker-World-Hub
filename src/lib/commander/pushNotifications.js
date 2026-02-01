@@ -288,3 +288,67 @@ export async function notifyVenueAnnouncement(venueName, message) {
     data: { type: 'venue_announcement', venue: venueName }
   });
 }
+
+// ==================
+// Social Page Notifications
+// ==================
+
+/**
+ * Notify page followers of a new post
+ */
+export async function notifyPageNewPost(followerIds, pageName, authorName) {
+  if (!followerIds || followerIds.length === 0) return { success: false, reason: 'No followers' };
+  return sendPushNotification({
+    externalUserIds: followerIds,
+    title: pageName,
+    message: `${authorName} posted something new on ${pageName}`,
+    data: { type: 'page_new_post', page: pageName }
+  });
+}
+
+/**
+ * Notify post author of a new like
+ */
+export async function notifyPostLiked(authorId, likerName, pageName) {
+  return sendPushNotification({
+    externalUserIds: [authorId],
+    title: 'New Like',
+    message: `${likerName} liked your post on ${pageName}`,
+    data: { type: 'post_liked', page: pageName }
+  });
+}
+
+/**
+ * Notify post author of a new comment
+ */
+export async function notifyPostCommented(authorId, commenterName, pageName) {
+  return sendPushNotification({
+    externalUserIds: [authorId],
+    title: 'New Comment',
+    message: `${commenterName} commented on your post in ${pageName}`,
+    data: { type: 'post_commented', page: pageName }
+  });
+}
+
+/**
+ * Notify page owner of new follower
+ */
+export async function notifyNewPageFollower(ownerId, followerName, pageName) {
+  return sendPushNotification({
+    externalUserIds: [ownerId],
+    title: 'New Follower',
+    message: `${followerName} started following ${pageName}`,
+    data: { type: 'page_new_follower', page: pageName }
+  });
+}
+
+/**
+ * Get OneSignal status for health checks
+ */
+export function getOneSignalStatus() {
+  return {
+    configured: isOneSignalConfigured(),
+    hasAppId: !!ONESIGNAL_APP_ID,
+    hasApiKey: !!ONESIGNAL_REST_API_KEY,
+  };
+}

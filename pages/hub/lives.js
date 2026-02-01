@@ -21,6 +21,12 @@ export default function LivesPage() {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [loading, setLoading] = useState(true);
     const [touchStart, setTouchStart] = useState(null);
+    const [likedStreams, setLikedStreams] = useState({});
+    const [shareMsg, setShareMsg] = useState('');
+    const [showChat, setShowChat] = useState(false);
+    const [chatMessages, setChatMessages] = useState([]);
+    const [chatText, setChatText] = useState('');
+    const [submittingChat, setSubmittingChat] = useState(false);
     const containerRef = useRef(null);
     const videoRefs = useRef({});
 
@@ -104,6 +110,82 @@ export default function LivesPage() {
     }, [currentIndex]);
 
     const currentStream = streams[currentIndex];
+
+    const handleLivelike = async () => {
+        if (!currentStream) return;
+        const wasLiked = likedStreams[currentStream.id];
+        setLikedStreams(prev => ({ ...prev, [currentStream.id]: !wasLiked }));
+        const userId = typeof window !== 'undefined' ? localStorage.getItem('sp-anon-uid') : null;
+        if (userId) {
+            fetch('/api/social/interactions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ post_id: currentStream.id, user_id: userId, interaction_type: 'like' })
+            }).catch(() => {
+                setLikedStreams(prev => ({ ...prev, [currentStream.id]: wasLiked }));
+            });
+        }
+    };
+
+    const handleLiveChat = async () => {
+        if (!currentStream) return;
+        setShowChat(prev => !prev);
+        if (!showChat && chatMessages.length === 0) {
+            try {
+                const res = await fetch('/api/social/interactions?post_id=' + currentStream.id + '&type=comment');
+                const json = await res.json();
+                setChatMessages(json.comments || []);
+            } catch (e) { console.error('Load chat:', e); }
+        }
+    };
+
+    const submitChatMsg = async () => {
+        if (!chatText.trim()) return;
+        const userId = typeof window !== 'undefined' ? localStorage.getItem('sp-anon-uid') : null;
+        if (!userId) return;
+        setSubmittingChat(true);
+        try {
+            const res = await fetch('/api/social/interactions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ post_id: currentStream.id, user_id: userId, interaction_type: 'comment', content: chatText.trim() })
+            });
+            const json = await res.json();
+            if (json.comment) {
+                setChatMessages(prev => [...prev, { ...json.comment, author: { username: 'You' } }]);
+            }
+            setChatText('');
+        } catch (e) { console.error('Submit chat:', e); }
+        setSubmittingChat(false);
+    };
+
+    const handleLiveShare = async () => {
+        if (!currentStream) return;
+        const url = window.location.origin + '/hub/lives?id=' + currentStream.id;
+        try {
+            await navigator.clipboard.writeText(url);
+            setShareMsg('Copied!');
+            setTimeout(() => setShareMsg(''), 2000);
+            const userId = typeof window !== 'undefined' ? localStorage.getItem('sp-anon-uid') : null;
+            if (userId) {
+                fetch('/api/social/interactions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ post_id: currentStream.id, user_id: userId, interaction_type: 'share' })
+                }).catch(() => {});
+            }
+        } catch {
+            setShareMsg('Failed');
+            setTimeout(() => setShareMsg(''), 2000);
+        }
+    };
+
+    // Reset chat when switching streams
+    useEffect(() => {
+        setShowChat(false);
+        setChatMessages([]);
+        setChatText('');
+    }, [currentIndex]);
 
     return (
         <>
@@ -341,7 +423,7 @@ export default function LivesPage() {
                             alignItems: 'center',
                         }}>
                             {/* Like Button */}
-                            <button style={{
+                            <button onClick={handleLivelike} style={{
                                 background: 'none',
                                 border: 'none',
                                 color: 'white',
@@ -352,15 +434,15 @@ export default function LivesPage() {
                                 alignItems: 'center',
                                 gap: 4,
                             }}>
-                                ❤️
-                                <span style={{ fontSize: 12 }}>Like</span>
+                                {likedStreams[stream.id] ? '❤️' : '🤍'}
+                                <span style={{ fontSize: 12 }}>{likedStreams[stream.id] ? 'Liked' : 'Like'}</span>
                             </button>
 
                             {/* Comment Button */}
-                            <button style={{
+                            <button onClick={handleLiveChat} style={{
                                 background: 'none',
                                 border: 'none',
-                                color: 'white',
+                                color: showChat ? C.blue : 'white',
                                 fontSize: 28,
                                 cursor: 'pointer',
                                 display: 'flex',
@@ -373,7 +455,7 @@ export default function LivesPage() {
                             </button>
 
                             {/* Share Button */}
-                            <button style={{
+                            <button onClick={handleLiveShare} style={{
                                 background: 'none',
                                 border: 'none',
                                 color: 'white',
@@ -385,7 +467,7 @@ export default function LivesPage() {
                                 gap: 4,
                             }}>
                                 📤
-                                <span style={{ fontSize: 12 }}>Share</span>
+                                <span style={{ fontSize: 12 }}>{shareMsg || 'Share'}</span>
                             </button>
                         </div>
                     </div>
@@ -420,8 +502,65 @@ export default function LivesPage() {
                     </div>
                 )}
 
+                {/* Chat Panel */}
+                {showChat && (
+                    <div style={{
+                        position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 200,
+                        background: 'rgba(0,0,0,0.95)', borderRadius: '16px 16px 0 0',
+                        maxHeight: '50vh', display: 'flex', flexDirection: 'column',
+                    }}>
+                        <div style={{
+                            padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)',
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                        }}>
+                            <span style={{ color: 'white', fontWeight: 700, fontSize: 16 }}>Live Chat</span>
+                            <button onClick={() => setShowChat(false)} style={{
+                                background: 'none', border: 'none', color: 'white', fontSize: 20, cursor: 'pointer'
+                            }}>x</button>
+                        </div>
+                        <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', maxHeight: 250 }}>
+                            {chatMessages.length === 0 && (
+                                <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.5)', padding: 20, fontSize: 14 }}>
+                                    No messages yet. Start the conversation!
+                                </div>
+                            )}
+                            {chatMessages.map((m, i) => (
+                                <div key={m.id || i} style={{ marginBottom: 10 }}>
+                                    <span style={{ color: C.blue, fontWeight: 600, fontSize: 13 }}>{m.author?.username || 'User'}: </span>
+                                    <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: 14 }}>{m.content}</span>
+                                </div>
+                            ))}
+                        </div>
+                        <div style={{
+                            padding: '10px 16px', borderTop: '1px solid rgba(255,255,255,0.1)',
+                            display: 'flex', gap: 8
+                        }}>
+                            <input
+                                value={chatText}
+                                onChange={e => setChatText(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitChatMsg(); } }}
+                                placeholder="Say something..."
+                                style={{
+                                    flex: 1, padding: '10px 14px', background: 'rgba(255,255,255,0.1)',
+                                    border: 'none', borderRadius: 20, fontSize: 14, color: 'white', outline: 'none'
+                                }}
+                            />
+                            <button
+                                onClick={submitChatMsg}
+                                disabled={!chatText.trim() || submittingChat}
+                                style={{
+                                    padding: '8px 16px', background: C.red, color: 'white',
+                                    border: 'none', borderRadius: 20, fontWeight: 600, fontSize: 13,
+                                    cursor: chatText.trim() ? 'pointer' : 'not-allowed',
+                                    opacity: chatText.trim() ? 1 : 0.5
+                                }}
+                            >{submittingChat ? '...' : 'Send'}</button>
+                        </div>
+                    </div>
+                )}
+
                 {/* Counter */}
-                {streams.length > 0 && (
+                {streams.length > 0 && !showChat && (
                     <div style={{
                         position: 'absolute',
                         bottom: 20,

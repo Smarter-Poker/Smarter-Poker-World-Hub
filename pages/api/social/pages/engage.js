@@ -1,0 +1,139 @@
+/**
+ * Social Page Post Engagement API - Likes and Comments
+ *
+ * POST /api/social/pages/engage  - Like/unlike or comment on a post
+ * GET  /api/social/pages/engage  - Get comments for a post
+ */
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+export default async function handler(req, res) {
+    if (!supabaseUrl || !supabaseServiceKey) {
+        return res.status(500).json({ error: 'Server configuration error' });
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    if (req.method === 'POST') {
+        const { action, post_id, user_id, content, parent_id } = req.body;
+
+        if (!post_id || !user_id || !action) {
+            return res.status(400).json({ error: 'action, post_id, and user_id required' });
+        }
+
+        if (action === 'like') {
+            // Toggle like
+            const { data: existing } = await supabase
+                .from('social_page_post_likes')
+                .select('id')
+                .eq('post_id', post_id)
+                .eq('user_id', user_id)
+                .maybeSingle();
+
+            if (existing) {
+                await supabase.from('social_page_post_likes').delete().eq('id', existing.id);
+                return res.status(200).json({ success: true, liked: false });
+            } else {
+                await supabase.from('social_page_post_likes').insert({ post_id, user_id });
+                return res.status(201).json({ success: true, liked: true });
+            }
+        }
+
+        if (action === 'comment') {
+            if (!content) {
+                return res.status(400).json({ error: 'content required for comments' });
+            }
+
+            const { data, error } = await supabase
+                .from('social_page_post_comments')
+                .insert({
+                    post_id,
+                    user_id,
+                    content,
+                    parent_id: parent_id || null
+                })
+                .select()
+                .single();
+
+            if (error) return res.status(500).json({ error: error.message });
+
+            // Enrich with profile
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('id, username, full_name, avatar_url')
+                .eq('id', user_id)
+                .single();
+
+            return res.status(201).json({
+                success: true,
+                data: { ...data, author: profile }
+            });
+        }
+
+        return res.status(400).json({ error: 'Invalid action. Use "like" or "comment"' });
+
+    } else if (req.method === 'GET') {
+        const { post_id, limit = '50' } = req.query;
+
+        if (!post_id) {
+            return res.status(400).json({ error: 'post_id required' });
+        }
+
+        const { data, error } = await supabase
+            .from('social_page_post_comments')
+            .select('*')
+            .eq('post_id', post_id)
+            .order('created_at', { ascending: true })
+            .limit(parseInt(limit));
+
+        if (error) return res.status(500).json({ error: error.message });
+
+        // Enrich with profiles
+        const userIds = [...new Set((data || []).map(c => c.user_id))];
+        let profiles = {};
+        if (userIds.length > 0) {
+            const { data: profileData } = await supabase
+                .from('profiles')
+                .select('id, username, full_name, avatar_url')
+                .in('id', userIds);
+            (profileData || []).forEach(p => { profiles[p.id] = p; });
+        }
+
+        const enriched = (data || []).map(c => ({
+            ...c,
+            author: profiles[c.user_id] || null
+        }));
+
+        return res.status(200).json({ success: true, data: enriched });
+
+    } else if (req.method === 'DELETE') {
+        const { id, user_id, type } = req.query;
+
+        if (!id || !user_id) {
+            return res.status(400).json({ error: 'id and user_id required' });
+        }
+
+        if (type === 'comment') {
+            const { error } = await supabase
+                .from('social_page_post_comments')
+                .delete()
+                .eq('id', id)
+                .eq('user_id', user_id);
+            if (error) return res.status(500).json({ error: error.message });
+        } else {
+            const { error } = await supabase
+                .from('social_page_post_likes')
+                .delete()
+                .eq('id', id)
+                .eq('user_id', user_id);
+            if (error) return res.status(500).json({ error: error.message });
+        }
+
+        return res.status(200).json({ success: true });
+
+    } else {
+        return res.status(405).json({ error: 'Method not allowed' });
+    }
+}
