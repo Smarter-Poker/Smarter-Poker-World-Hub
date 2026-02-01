@@ -9,24 +9,6 @@ module.exports = {
     return 'build-v19-2-baked-assets-' + Date.now();
   },
 
-  // Club Arena rewrites - MUST be in next.config.js with beforeFiles
-  // to take precedence over dynamic [orbId].js route
-  // Fixed: now pointing to club-arena.vercel.app (not deprecated club.smarter.poker)
-  async rewrites() {
-    return {
-      beforeFiles: [
-        // Club Arena - served from club-arena.vercel.app
-        {
-          source: '/hub/club-arena',
-          destination: 'https://club-arena.vercel.app/hub/club-arena/?v=28012026v3',
-        },
-        {
-          source: '/hub/club-arena/:path*',
-          destination: 'https://club-arena.vercel.app/hub/club-arena/:path*',
-        },
-      ],
-    };
-  },
+  // Club Arena is now served from this repo (pages/hub/club-arena.js + sub-pages)
+  // External rewrites to club-arena.vercel.app removed — all routes handled in-app
 }
-
-// Force redeploy 1769586614
