@@ -1237,7 +1237,7 @@ export default function MemoryGamesPage() {
     const containerRef = useRef(null);
 
     // Zustand Global State (replaces some local useState)
-    const currentLevel = useMemoryStore((s) => s.currentLevel);
+    const currentLevel = useMemoryStore((s) => s.currentLevel) || 1; // Fallback to level 1 if undefined
     const setCurrentLevel = useMemoryStore((s) => s.setCurrentLevel);
     const currentView = useMemoryStore((s) => s.currentView);
     const setCurrentView = useMemoryStore((s) => s.setCurrentView);
@@ -1297,6 +1297,9 @@ export default function MemoryGamesPage() {
             introVideoRef.current.muted = false;
         }
     }, []);
+
+    // Safe helper to get level config with fallback
+    const safeLevelConfig = getLevelConfig(currentLevel) || { timer: 90, gridSize: 13, maxHands: 20 };
 
     // Initialize effects CSS and load real user balance from Supabase
     useEffect(() => {
