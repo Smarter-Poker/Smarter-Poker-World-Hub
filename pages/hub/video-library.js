@@ -12,6 +12,7 @@ import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader'
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
+import { getVideoLibraryPreferences, updateVideoLibraryPreferences } from '../../src/services/videoLibraryPreferences';
 
 // God-Mode Stack
 import { useVideoLibraryStore } from '../../src/stores/videoLibraryStore';
@@ -408,14 +409,28 @@ export default function VideoLibraryPage() {
         }
     }, []);
 
-    // Hamburger menu handlers
-    const updatePreference = (key, value) => {
+    // Load preferences from Supabase on mount
+    useEffect(() => {
+        const userId = null; // TODO: Get from user context when available
+        if (userId) {
+            getVideoLibraryPreferences(userId).then(setPreferences);
+        }
+    }, []);
+
+    // Hamburger menu handlers - save to Supabase
+    const updatePreference = useCallback(async (key, value) => {
         const newPrefs = { ...preferences, [key]: value };
         setPreferences(newPrefs);
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('video-library-preferences', JSON.stringify(newPrefs));
+
+        const userId = null; // TODO: Get from user context when available
+        if (userId) {
+            try {
+                await updateVideoLibraryPreferences(userId, { [key]: value });
+            } catch (error) {
+                console.error('Failed to save preference:', error);
+            }
         }
-    };
+    }, [preferences]);
 
     const menuConfig = getMenuConfig('video-library', null, preferences, {
         setAutoplay: (val) => updatePreference('autoplay', val),

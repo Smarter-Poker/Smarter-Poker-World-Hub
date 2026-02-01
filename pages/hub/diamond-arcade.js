@@ -21,6 +21,7 @@ import { supabase } from '../../src/lib/supabase';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
+import { getDiamondArcadePreferences, updateDiamondArcadePreferences } from '../../src/services/diamondArcadePreferences';
 import {
     ARCADE_GAMES,
     generateHandSnapQuestion,
@@ -133,13 +134,27 @@ export default function DiamondArcade() {
         animations: true
     });
 
-    const updatePreference = (key, value) => {
+    // Load preferences from Supabase on mount
+    useEffect(() => {
+        const userId = null; // TODO: Get from user context when available
+        if (userId) {
+            getDiamondArcadePreferences(userId).then(setPreferences);
+        }
+    }, []);
+
+    const updatePreference = useCallback(async (key, value) => {
         const newPrefs = { ...preferences, [key]: value };
         setPreferences(newPrefs);
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('diamond-arcade-preferences', JSON.stringify(newPrefs));
+
+        const userId = null; // TODO: Get from user context when available
+        if (userId) {
+            try {
+                await updateDiamondArcadePreferences(userId, { [key]: value });
+            } catch (error) {
+                console.error('Failed to save preference:', error);
+            }
         }
-    };
+    }, [preferences]);
 
     const menuConfig = getMenuConfig('diamond-arcade', null, preferences, {
         setSoundEffects: (val) => updatePreference('soundEffects', val),

@@ -13,6 +13,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import TriviaLobby from '../../../src/components/trivia/TriviaLobby';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
+import { getTriviaPreferences, updateTriviaPreferences } from '../../../src/services/triviaPreferences';
 
 export default function TriviaHubPage() {
     const [userDiamonds, setUserDiamonds] = useState(0);
@@ -27,13 +28,27 @@ export default function TriviaHubPage() {
         showHints: true
     });
 
-    const updatePreference = (key, value) => {
+    // Load preferences from Supabase on mount
+    useEffect(() => {
+        const userId = null; // TODO: Get from user context when available
+        if (userId) {
+            getTriviaPreferences(userId).then(setPreferences);
+        }
+    }, []);
+
+    const updatePreference = useCallback(async (key, value) => {
         const newPrefs = { ...preferences, [key]: value };
         setPreferences(newPrefs);
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('trivia-preferences', JSON.stringify(newPrefs));
+
+        const userId = null; // TODO: Get from user context when available
+        if (userId) {
+            try {
+                await updateTriviaPreferences(userId, { [key]: value });
+            } catch (error) {
+                console.error('Failed to save preference:', error);
+            }
         }
-    };
+    }, [preferences]);
 
     const menuConfig = getMenuConfig('trivia', null, preferences, {
         setSoundEffects: (val) => updatePreference('soundEffects', val),

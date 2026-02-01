@@ -14,6 +14,7 @@ import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
+import { getBankrollPreferences, updateBankrollPreferences } from '../../src/services/bankrollPreferences';
 
 // Bankroll library
 import { getBankrollStats } from '../../src/lib/bankroll/calculations';
@@ -210,14 +211,26 @@ export default function BankrollManagerPage() {
     ? locations.find((l) => l.id === locationFilter)?.name || 'Unknown'
     : 'All Locations';
 
-  // Hamburger menu handlers
-  const updatePreference = (key, value) => {
+  // Load preferences from Supabase on mount
+  useEffect(() => {
+    if (userId) {
+      getBankrollPreferences(userId).then(setPreferences);
+    }
+  }, [userId]);
+
+  // Hamburger menu handlers - save to Supabase
+  const updatePreference = useCallback(async (key, value) => {
     const newPrefs = { ...preferences, [key]: value };
     setPreferences(newPrefs);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('bankroll-manager-preferences', JSON.stringify(newPrefs));
+
+    if (userId) {
+      try {
+        await updateBankrollPreferences(userId, { [key]: value });
+      } catch (error) {
+        console.error('Failed to save preference:', error);
+      }
     }
-  };
+  }, [userId, preferences]);
 
   const menuConfig = getMenuConfig('bankroll-manager', user, preferences, {
     setAutoSave: (val) => updatePreference('autoSave', val),

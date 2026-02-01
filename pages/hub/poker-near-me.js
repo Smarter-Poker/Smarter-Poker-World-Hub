@@ -9,6 +9,7 @@ import { useRouter } from 'next/router';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
+import { getPokerNearMePreferences, updatePokerNearMePreferences } from '../../src/services/pokerNearMePreferences';
 
 const POPULAR_CITIES = [
     { name: 'Las Vegas', state: 'NV' },
@@ -652,14 +653,28 @@ export default function PokerNearMe() {
         );
     };
 
-    // Hamburger menu handlers
-    const updatePreference = (key, value) => {
+    // Load preferences from Supabase on mount
+    useEffect(() => {
+        const userId = null; // TODO: Get from user context when available
+        if (userId) {
+            getPokerNearMePreferences(userId).then(setPreferences);
+        }
+    }, []);
+
+    // Hamburger menu handlers - save to Supabase
+    const updatePreference = useCallback(async (key, value) => {
         const newPrefs = { ...preferences, [key]: value };
         setPreferences(newPrefs);
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('poker-near-me-preferences', JSON.stringify(newPrefs));
+
+        const userId = null; // TODO: Get from user context when available
+        if (userId) {
+            try {
+                await updatePokerNearMePreferences(userId, { [key]: value });
+            } catch (error) {
+                console.error('Failed to save preference:', error);
+            }
         }
-    };
+    }, [preferences]);
 
     const menuConfig = getMenuConfig('poker-near-me', null, preferences, {
         setGeofenceAlerts: (val) => updatePreference('geofenceAlerts', val),

@@ -32,6 +32,7 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { useExternalLink } from '../../src/components/ui/ExternalLinkModal';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
+import { getNewsPreferences, updateNewsPreferences } from '../../src/services/newsPreferences';
 
 // Fallback data
 const FALLBACK_NEWS = [
@@ -813,13 +814,27 @@ export default function NewsHub() {
         autoRefresh: false
     });
 
-    const updatePreference = (key, value) => {
+    // Load preferences from Supabase on mount
+    useEffect(() => {
+        const userId = null; // TODO: Get from user context when available
+        if (userId) {
+            getNewsPreferences(userId).then(setPreferences);
+        }
+    }, []);
+
+    const updatePreference = useCallback(async (key, value) => {
         const newPrefs = { ...preferences, [key]: value };
         setPreferences(newPrefs);
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('news-preferences', JSON.stringify(newPrefs));
+
+        const userId = null; // TODO: Get from user context when available
+        if (userId) {
+            try {
+                await updateNewsPreferences(userId, { [key]: value });
+            } catch (error) {
+                console.error('Failed to save preference:', error);
+            }
         }
-    };
+    }, [preferences]);
 
     const menuConfig = getMenuConfig('news', null, preferences, {
         setNotifications: (val) => updatePreference('notifications', val),
