@@ -19,6 +19,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import CreateGameForm from '../../../../src/components/commander/home-games/CreateGameForm';
+import GoogleMapPicker from '../../../../src/components/maps/GoogleMapPicker';
 
 const GAME_TYPES = [
   { value: 'nlhe', label: "No Limit Hold'em" },
@@ -399,10 +400,28 @@ export default function CreateHomeGamePage() {
               <div className="cmd-panel p-6 space-y-4">
                 <h2 className="font-semibold text-white flex items-center gap-2">
                   <MapPin className="w-5 h-5 text-[#EF4444]" />
-                  Location
+                  Approximate Location
                 </h2>
+                <p className="text-sm text-[#64748B]">
+                  Your exact address is never shared. Only the approximate neighborhood is shown to players.
+                </p>
 
-                <div className="grid grid-cols-2 gap-4">
+                <GoogleMapPicker
+                  value={{ city: formData.city, state: formData.state }}
+                  onChange={(loc) => {
+                    if (loc.city) updateField('city', loc.city);
+                    if (loc.state) updateField('state', loc.state);
+                    if (loc.lat) updateField('approximate_lat', loc.lat);
+                    if (loc.lng) updateField('approximate_lng', loc.lng);
+                    if (loc.neighborhood) updateField('neighborhood', loc.neighborhood);
+                    if (loc.zipCode) updateField('zip_code', loc.zipCode);
+                  }}
+                  approximateOnly={true}
+                  height={250}
+                />
+
+                {/* Fallback manual inputs always visible below map */}
+                <div className="grid grid-cols-2 gap-4 mt-2">
                   <div>
                     <label className="block text-sm font-medium text-white mb-2">
                       City
