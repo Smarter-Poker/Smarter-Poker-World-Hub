@@ -1947,7 +1947,7 @@ export default function MemoryGamesPage() {
                                 <div
                                     style={{
                                         ...styles.timerBar,
-                                        width: `${(timeRemaining / getLevelConfig(currentLevel).timer) * 100}%`,
+                                        width: `${(timeRemaining / safeLevelConfig.timer) * 100}%`,
                                         backgroundColor: getTimerColor(),
                                     }}
                                 />
@@ -1962,7 +1962,7 @@ export default function MemoryGamesPage() {
                             {/* Scenario Header */}
                             <div style={styles.gameHeader}>
                                 <div>
-                                    <div style={styles.levelBadge}>Level {currentLevel} • ⏱️ {getLevelConfig(currentLevel).timer}s</div>
+                                    <div style={styles.levelBadge}>Level {currentLevel} • ⏱️ {safeLevelConfig.timer}s</div>
                                     <h2 style={styles.scenarioTitle}>{currentScenario.title}</h2>
                                     <p style={styles.scenarioDesc}>{currentScenario.description}</p>
                                     {currentScenario.tip && !gradeResult && (
