@@ -25,6 +25,10 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
 async function auditVideos() {
     console.log('🔍 Auditing video links in database...\n');
 
+    // Declare at function scope for summary access
+    let brokenUrls = [];
+    let brokenPosts = [];
+
     try {
         // Check social_reels
         console.log('1. Checking social_reels table...');
@@ -50,7 +54,7 @@ async function auditVideos() {
                 null_or_empty: 0
             };
 
-            const brokenUrls = [];
+            brokenUrls = [];
 
             reels.forEach(reel => {
                 if (!reel.video_url || reel.video_url.trim() === '') {
@@ -114,7 +118,7 @@ async function auditVideos() {
         } else {
             console.log(`✅ Found ${posts.length} public video posts\n`);
 
-            const brokenPosts = [];
+            brokenPosts = [];
 
             posts.forEach(post => {
                 if (!post.media_urls || post.media_urls.length === 0) {
