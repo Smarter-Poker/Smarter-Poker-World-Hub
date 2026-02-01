@@ -12,23 +12,27 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
-// 9-Max seat positions (VERTICAL STADIUM TABLE - portrait orientation)
-// Reference shows avatars VERY CLOSE to center, on INNER edge of gold rail
+// 🎯 GOLDEN LOCK STANDARD - Fixed Canvas: 862x1024px
+// All positions in FIXED PIXELS - will scale uniformly via transform
+const CANVAS_WIDTH = 862;
+const CANVAS_HEIGHT = 1024;
+
+// 9-Max seat positions (FIXED PIXEL COORDINATES)
 const SEAT_POSITIONS = [
     // Hero at bottom center
-    { id: 'hero', x: 50, y: 85, isHero: true },
+    { id: 'hero', x: 431, y: 870, isHero: true },  // 50%, 85%
 
-    // LEFT SIDE (4 villains) - MUCH closer to center
-    { id: 'v1', x: 30, y: 68 },  // Bottom-left
-    { id: 'v2', x: 30, y: 50 },  // Mid-left
-    { id: 'v3', x: 30, y: 32 },  // Upper-mid-left
-    { id: 'v4', x: 35, y: 18 },  // Top-left
+    // LEFT SIDE (4 villains)
+    { id: 'v1', x: 259, y: 696 },  // 30%, 68%
+    { id: 'v2', x: 259, y: 512 },  // 30%, 50%
+    { id: 'v3', x: 259, y: 328 },  // 30%, 32%
+    { id: 'v4', x: 302, y: 184 },  // 35%, 18%
 
-    // RIGHT SIDE (4 villains) - MUCH closer to center
-    { id: 'v8', x: 70, y: 68 },  // Bottom-right
-    { id: 'v7', x: 70, y: 50 },  // Mid-right
-    { id: 'v6', x: 70, y: 32 },  // Upper-mid-right
-    { id: 'v5', x: 65, y: 18 },  // Top-right
+    // RIGHT SIDE (4 villains)
+    { id: 'v8', x: 603, y: 696 },  // 70%, 68%
+    { id: 'v7', x: 603, y: 512 },  // 70%, 50%
+    { id: 'v6', x: 603, y: 328 },  // 70%, 32%
+    { id: 'v5', x: 560, y: 184 },  // 65%, 18%
 ];
 
 // Convert card notation (e.g., 'Ah' for Ace of Hearts) to image path
@@ -72,6 +76,21 @@ export default function MTTDeepStackUI({
     explanation,
 }) {
     const [timeLeft, setTimeLeft] = React.useState(30);
+    const [scale, setScale] = React.useState(1);
+
+    // 🎯 GOLDEN LOCK: Calculate viewport scale factor
+    React.useEffect(() => {
+        const calculateScale = () => {
+            const scaleX = window.innerWidth / CANVAS_WIDTH;
+            const scaleY = window.innerHeight / CANVAS_HEIGHT;
+            const newScale = Math.min(scaleX, scaleY, 1); // Never scale UP, only down
+            setScale(newScale);
+        };
+
+        calculateScale();
+        window.addEventListener('resize', calculateScale);
+        return () => window.removeEventListener('resize', calculateScale);
+    }, []);
 
     // Parse question data
     const questionText = question?.question || question?.text || 'Loading question...';
@@ -123,120 +142,128 @@ export default function MTTDeepStackUI({
 
     return (
         <div style={styles.container}>
-            {/* LARGE QUESTION BAR - Top */}
-            <div style={styles.questionBar}>
-                <div style={styles.questionText}>{questionText}</div>
-            </div>
+            {/* 🎯 GOLDEN LOCK: Fixed canvas with transform scaling */}
+            <div style={{
+                ...styles.canvas,
+                transform: `scale(${scale})`,
+                transformOrigin: 'top center',
+            }}>
+                {/* LARGE QUESTION BAR - Top */}
+                <div style={styles.questionBar}>
+                    <div style={styles.questionText}>{questionText}</div>
+                </div>
 
-            {/* TABLE AREA - Center */}
-            <div style={styles.tableArea}>
-                {/* EXACT TABLE IMAGE */}
-                <img
-                    src="/images/training/table-vertical-stadium-transparent.png"
-                    alt="Poker Table"
-                    style={styles.tableImage}
-                />
+                {/* TABLE AREA - Center */}
+                <div style={styles.tableArea}>
+                    {/* EXACT TABLE IMAGE */}
+                    <img
+                        src="/images/training/table-vertical-stadium-transparent.png"
+                        alt="Poker Table"
+                        style={styles.tableImage}
+                    />
 
-                {/* PLAYER SEATS - Positioned over table */}
-                <div style={styles.seatsContainer}>
-                    {SEAT_POSITIONS.map((seat, index) => {
-                        const isHero = seat.isHero;
-                        const stackSize = isHero ? 45 : Math.floor(Math.random() * 50) + 20;
-                        const villainNumber = isHero ? null : index;
+                    {/* PLAYER SEATS - Positioned over table */}
+                    <div style={styles.seatsContainer}>
+                        {SEAT_POSITIONS.map((seat, index) => {
+                            const isHero = seat.isHero;
+                            const stackSize = isHero ? 45 : Math.floor(Math.random() * 50) + 20;
+                            const villainNumber = isHero ? null : index;
 
-                        return (
-                            <div
-                                key={seat.id}
-                                style={{
-                                    ...styles.seat,
-                                    left: `${seat.x}%`,
-                                    top: `${seat.y}%`,
-                                }}
-                            >
-                                {/* Avatar */}
-                                <img
-                                    src={AVATARS[index]}
-                                    alt={isHero ? 'Hero' : `Villain ${villainNumber}`}
-                                    style={styles.avatar}
-                                />
+                            return (
+                                <div
+                                    key={seat.id}
+                                    style={{
+                                        ...styles.seat,
+                                        left: `${seat.x}px`,
+                                        top: `${seat.y}px`,
+                                    }}
+                                >
+                                    {/* Avatar */}
+                                    <img
+                                        src={AVATARS[index]}
+                                        alt={isHero ? 'Hero' : `Villain ${villainNumber}`}
+                                        style={styles.avatar}
+                                    />
 
-                                {/* Badge */}
-                                <div style={styles.badge}>
-                                    <div style={styles.badgeLabel}>
-                                        {isHero ? 'Hero' : `Villain ${villainNumber}`}
+                                    {/* Badge */}
+                                    <div style={styles.badge}>
+                                        <div style={styles.badgeLabel}>
+                                            {isHero ? 'Hero' : `Villain ${villainNumber}`}
+                                        </div>
+                                        <div style={styles.badgeStack}>{stackSize} BB</div>
                                     </div>
-                                    <div style={styles.badgeStack}>{stackSize} BB</div>
+
+
                                 </div>
+                            );
+                        })}
+                    </div>
 
+                    {/* HERO CARDS - Bottom center below hero avatar */}
+                    <div style={styles.heroCardsContainer}>
+                        <img src={getCardPath(card1)} alt={card1} style={styles.card} />
+                        <img src={getCardPath(card2)} alt={card2} style={styles.card} />
+                    </div>
 
-                            </div>
+                    {/* POT - Center top */}
+                    <div style={styles.pot}>POT 20</div>
+
+                    {/* Tournament Label - Center */}
+                    <div style={styles.tournamentLabel}>
+                        <div style={styles.tournamentTitle}>9-Max Tournament</div>
+                        <div style={styles.tournamentSubtitle}>(MTT)</div>
+                        <div style={styles.tournamentSmall}>Smarter.Poker</div>
+                    </div>
+                </div>
+
+                {/* TIMER & COUNTER - Above buttons */}
+                <div style={styles.timerCounterRow}>
+                    <div style={styles.timer}>{timeLeft}</div>
+                    <div style={styles.questionCounter}>
+                        Question {questionNumber} of {totalQuestions}
+                    </div>
+                </div>
+
+                {/* 2x2 ANSWER GRID - Full width bottom */}
+                <div style={styles.answersGrid}>
+                    {options.slice(0, 4).map((option, index) => {
+                        const letter = String.fromCharCode(65 + index);
+                        const text = typeof option === 'string' ? option : (option.text || option.label || 'Option');
+                        return (
+                            <motion.button
+                                key={index}
+                                onClick={() => handleAnswer(letter)}
+                                disabled={showFeedback}
+                                style={getButtonStyle(letter)}
+                                whileHover={!showFeedback ? { scale: 1.02 } : {}}
+                                whileTap={!showFeedback ? { scale: 0.98 } : {}}
+                            >
+                                {text}
+                            </motion.button>
                         );
                     })}
                 </div>
 
-                {/* HERO CARDS - Bottom center below hero avatar */}
-                <div style={styles.heroCardsContainer}>
-                    <img src={getCardPath(card1)} alt={card1} style={styles.card} />
-                    <img src={getCardPath(card2)} alt={card2} style={styles.card} />
-                </div>
-
-                {/* POT - Center top */}
-                <div style={styles.pot}>POT 20</div>
-
-                {/* Tournament Label - Center */}
-                <div style={styles.tournamentLabel}>
-                    <div style={styles.tournamentTitle}>9-Max Tournament</div>
-                    <div style={styles.tournamentSubtitle}>(MTT)</div>
-                    <div style={styles.tournamentSmall}>Smarter.Poker</div>
-                </div>
-            </div>
-
-            {/* TIMER & COUNTER - Above buttons */}
-            <div style={styles.timerCounterRow}>
-                <div style={styles.timer}>{timeLeft}</div>
-                <div style={styles.questionCounter}>
-                    Question {questionNumber} of {totalQuestions}
-                </div>
-            </div>
-
-            {/* 2x2 ANSWER GRID - Full width bottom */}
-            <div style={styles.answersGrid}>
-                {options.slice(0, 4).map((option, index) => {
-                    const letter = String.fromCharCode(65 + index);
-                    const text = typeof option === 'string' ? option : (option.text || option.label || 'Option');
-                    return (
-                        <motion.button
-                            key={index}
-                            onClick={() => handleAnswer(letter)}
-                            disabled={showFeedback}
-                            style={getButtonStyle(letter)}
-                            whileHover={!showFeedback ? { scale: 1.02 } : {}}
-                            whileTap={!showFeedback ? { scale: 0.98 } : {}}
-                        >
-                            {text}
-                        </motion.button>
-                    );
-                })}
-            </div>
-
-            {/* EXPLANATION OVERLAY */}
-            {showFeedback && explanation && (
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    style={styles.explanationOverlay}
-                >
-                    <div style={styles.explanationBox}>
-                        <div style={{
-                            ...styles.explanationTitle,
-                            color: feedbackResult === 'correct' ? '#22c55e' : '#ef4444',
-                        }}>
-                            {feedbackResult === 'correct' ? '✓ Correct!' : '✗ Incorrect'}
+                {/* EXPLANATION OVERLAY */}
+                {showFeedback && explanation && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        style={styles.explanationOverlay}
+                    >
+                        <div style={styles.explanationBox}>
+                            <div style={{
+                                ...styles.explanationTitle,
+                                color: feedbackResult === 'correct' ? '#22c55e' : '#ef4444',
+                            }}>
+                                {feedbackResult === 'correct' ? '✓ Correct!' : '✗ Incorrect'}
+                            </div>
+                            <div style={styles.explanationText}>{explanation}</div>
                         </div>
-                        <div style={styles.explanationText}>{explanation}</div>
-                    </div>
-                </motion.div>
-            )}
+                    </motion.div>
+                )}
+            </div>
+        </div>
         </div>
     );
 }
@@ -250,10 +277,20 @@ const styles = {
         width: '100%',
         height: '100vh',
         display: 'flex',
-        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
         background: 'transparent',
         fontFamily: "'Inter', -apple-system, sans-serif",
         overflow: 'hidden',
+    },
+
+    // 🎯 GOLDEN LOCK: Fixed canvas (862x1024)
+    canvas: {
+        width: `${CANVAS_WIDTH}px`,
+        height: `${CANVAS_HEIGHT}px`,
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'relative',
     },
 
     // 🎰 PREMIUM CASINO QUESTION BAR - Industrial metal frame with HUD display
