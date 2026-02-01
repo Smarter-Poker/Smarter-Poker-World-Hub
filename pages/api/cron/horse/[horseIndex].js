@@ -14,6 +14,24 @@ import { createClient } from '@supabase/supabase-js';
 import Parser from 'rss-parser';
 import { getGrokClient } from '../../../../src/lib/grokClient.js';
 
+// ClipLibrary for poker video clips - loaded dynamically
+let getRandomClip, CLIP_LIBRARY, clipLibraryLoaded = false;
+
+async function loadClipLibrary() {
+    if (clipLibraryLoaded) return true;
+    try {
+        const lib = await import('../../../../src/content-engine/pipeline/ClipLibrary.js');
+        getRandomClip = lib.getRandomClip;
+        CLIP_LIBRARY = lib.CLIP_LIBRARY;
+        clipLibraryLoaded = true;
+        console.log('✅ ClipLibrary loaded for poker clips');
+        return true;
+    } catch (e) {
+        console.error('❌ Failed to load ClipLibrary:', e.message);
+        return false;
+    }
+}
+
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -235,65 +253,114 @@ function convertToEmbedUrl(url) {
     return url;
 }
 
-// POST VIDEO CLIP (with unique voice + GLOBAL DEDUPLICATION)
-async function postVideoClip(horse, assignedSources, horseIndex) {
-    console.log(`   Posting VIDEO CLIP for horse #${horseIndex}`);
+// POST VIDEO CLIP (with unique voice + GLOBAL DEDUPLICATION + POKER/SPORTS SUPPORT)
+async function postVideoClip(horse, assignedSources, horseIndex, clipType = 'sports') {
+    console.log(`   Posting ${clipType.toUpperCase()} VIDEO CLIP for horse #${horseIndex}`);
 
     let clips = [];
-    if (assignedSources.length > 0) {
-        const { data } = await supabase.from('sports_clips').select('*').in('source', assignedSources).limit(200);
-        if (data?.length) clips = data;
+    let clip = null;
+
+    if (clipType === 'poker') {
+        // Use ClipLibrary for poker clips
+        if (!clipLibraryLoaded || typeof getRandomClip !== 'function') {
+            console.error(`   ClipLibrary not loaded for poker clips`);
+            return { success: false, error: 'ClipLibrary not available' };
+        }
+
+        // Try to get a poker clip (with deduplication handled by getRandomClip)
+        const maxAttempts = 20;
+        for (let i = 0; i < maxAttempts; i++) {
+            const candidate = getRandomClip();
+            if (!candidate) continue;
+
+            // Check if this clip was recently posted
+            const videoId = candidate.video_id || candidate.id;
+            const embedUrl = convertToEmbedUrl(candidate.source_url);
+
+            // Quick check against recent posts
+            const since48h = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+            const { data: recentVideos } = await supabase
+                .from('social_posts')
+                .select('media_urls')
+                .eq('content_type', 'video')
+                .gte('created_at', since48h)
+                .limit(100);
+
+            const usedUrls = new Set();
+            (recentVideos || []).forEach(p => {
+                if (p.media_urls) p.media_urls.forEach(url => usedUrls.add(url));
+            });
+
+            if (!usedUrls.has(embedUrl) && !usedUrls.has(candidate.source_url)) {
+                clip = candidate;
+                break;
+            }
+        }
+
+        if (!clip) {
+            console.log(`   No fresh poker clips available after ${maxAttempts} attempts`);
+            return { success: false, error: 'All poker clips already posted' };
+        }
+
+    } else {
+        // Use sports_clips table for sports clips
+        if (assignedSources.length > 0) {
+            const { data } = await supabase.from('sports_clips').select('*').in('source', assignedSources).limit(200);
+            if (data?.length) clips = data;
+        }
+        if (!clips.length) {
+            const offset = Math.floor(Math.random() * 5000);
+            const { data } = await supabase.from('sports_clips').select('*').range(offset, offset + 200);
+            if (data?.length) clips = data;
+        }
+        if (!clips.length) return { success: false, error: 'No sports clips' };
+
+        // GLOBAL DEDUPLICATION: Check which video URLs were already posted (last 48h)
+        const since48h = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+        const { data: recentVideos } = await supabase
+            .from('social_posts')
+            .select('media_urls')
+            .eq('content_type', 'video')
+            .gte('created_at', since48h);
+
+        const usedUrls = new Set();
+        (recentVideos || []).forEach(p => {
+            if (p.media_urls) p.media_urls.forEach(url => usedUrls.add(url));
+        });
+        console.log(`   Found ${usedUrls.size} recently used video URLs, filtering...`);
+
+        // Filter out already-posted clips
+        const freshClips = clips.filter(c => {
+            const embedUrl = convertToEmbedUrl(c.source_url);
+            return !usedUrls.has(embedUrl) && !usedUrls.has(c.source_url);
+        });
+        console.log(`   ${freshClips.length}/${clips.length} sports clips are fresh`);
+
+        if (!freshClips.length) {
+            console.log(`   No fresh sports clips available`);
+            return { success: false, error: 'All sports clips already posted' };
+        }
+
+        // Pick random from FRESH clips only
+        clip = freshClips[Math.floor(Math.random() * freshClips.length)];
     }
-    if (!clips.length) {
-        const offset = Math.floor(Math.random() * 5000);
-        const { data } = await supabase.from('sports_clips').select('*').range(offset, offset + 200);
-        if (data?.length) clips = data;
-    }
-    if (!clips.length) return { success: false, error: 'No clips' };
 
-    // GLOBAL DEDUPLICATION: Check which video URLs were already posted (last 48h)
-    const since48h = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-    const { data: recentVideos } = await supabase
-        .from('social_posts')
-        .select('media_urls')
-        .eq('content_type', 'video')
-        .gte('created_at', since48h);
-
-    const usedUrls = new Set();
-    (recentVideos || []).forEach(p => {
-        if (p.media_urls) p.media_urls.forEach(url => usedUrls.add(url));
-    });
-    console.log(`   Found ${usedUrls.size} recently used video URLs, filtering...`);
-
-    // Filter out already-posted clips
-    const freshClips = clips.filter(c => {
-        const embedUrl = convertToEmbedUrl(c.source_url);
-        return !usedUrls.has(embedUrl) && !usedUrls.has(c.source_url);
-    });
-    console.log(`   ${freshClips.length}/${clips.length} clips are fresh`);
-
-    if (!freshClips.length) {
-        console.log(`   No fresh clips available`);
-        return { success: false, error: 'All clips already posted' };
-    }
-
-    // Pick random from FRESH clips only
-    const clip = freshClips[Math.floor(Math.random() * freshClips.length)];
     const voice = getHorseVoice(horseIndex);
 
     let caption = '';
     try {
+        const clipTitle = clip.title || clip.description || 'video clip';
         const response = await grok.chat.completions.create({
             model: 'grok-3-mini',
             messages: [{
                 role: 'user',
-                content: `Write a ${voice.style} reaction to this video title in 3-10 words. NO emojis. NO "yo", "check out", "pretty cool". Just ${voice.style}. Example: "${voice.example}". Title: "${clip.title}"`
+                content: `Write a ${voice.style} reaction to this ${clipType} video title in 3-10 words. NO emojis. NO "yo", "check out", "pretty cool". Just ${voice.style}. Example: "${voice.example}". Title: "${clipTitle}"`
             }],
             max_tokens: 30
         });
-        caption = response.choices[0]?.message?.content?.trim() || clip.title?.slice(0, 50);
+        caption = response.choices[0]?.message?.content?.trim() || clipTitle.slice(0, 50);
     } catch (e) {
-        caption = clip.title?.slice(0, 50) || 'Worth watching';
+        caption = (clip.title || clip.description || 'Worth watching').slice(0, 50);
     }
 
     caption = voice.opener + cleanCaption(caption, horseIndex);
@@ -303,11 +370,15 @@ async function postVideoClip(horse, assignedSources, horseIndex) {
         content: caption,
         content_type: 'video',
         media_urls: [convertToEmbedUrl(clip.source_url)],
-        visibility: 'public'
+        visibility: 'public',
+        metadata: {
+            clip_type: clipType,
+            clip_id: clip.id || clip.video_id
+        }
     }).select().single();
 
     if (error) return { success: false, error: error.message };
-    return { success: true, postId: post.id, type: 'video_clip', caption: caption.slice(0, 50) };
+    return { success: true, postId: post.id, type: `${clipType}_video`, caption: caption.slice(0, 50) };
 }
 
 // POST NEWS LINK (with unique voice + GLOBAL DEDUPLICATION)
@@ -394,6 +465,9 @@ export default async function handler(req, res) {
     try {
         console.log(`\nHORSE CRON #${index}`);
 
+        // Load ClipLibrary for poker video clips
+        await loadClipLibrary();
+
         const { data: horses } = await supabase
             .from('content_authors')
             .select('*')
@@ -408,24 +482,33 @@ export default async function handler(req, res) {
         const horse = horses[index];
         console.log(`   Horse: ${horse.name}`);
 
-        // CONTENT: 75% POKER / 25% SPORTS SPLIT
+        // CONTENT: 75% POKER / 25% SPORTS SPLIT (for BOTH videos AND news)
         // Hours 0,1,2,4,5,6,8,9,10,12,13,14,16,17,18,20,21,22 = POKER (75%)
         // Hours 3,7,11,15,19,23 = SPORTS (25%)
         const hour = new Date().getUTCHours();
-        const contentType = (hour % 4 === 3) ? 'sports_news' : 'poker_news';
+        const isPokerHour = (hour % 4 !== 3);
+        const contentCategory = isPokerHour ? 'poker' : 'sports';
+
+        console.log(`   Hour ${hour}: ${contentCategory.toUpperCase()} content (${isPokerHour ? '75%' : '25%'})`);
 
         const assignedSources = await getHorseSources(horse.profile_id);
 
-        // Try primary content type, fallback to video_clip if it fails
+        // Try news first, fallback to video clip of SAME CATEGORY
         let result;
-        if (contentType === 'poker_news') {
+        if (isPokerHour) {
+            // POKER HOUR: Try poker news, fallback to poker video
             result = await postNewsLink(horse, index, 'poker');
-            if (!result.success) result = await postVideoClip(horse, assignedSources, index);
-        } else if (contentType === 'sports_news') {
-            result = await postNewsLink(horse, index, 'sports');
-            if (!result.success) result = await postVideoClip(horse, assignedSources, index);
+            if (!result.success) {
+                console.log(`   Poker news failed, trying poker video...`);
+                result = await postVideoClip(horse, assignedSources, index, 'poker');
+            }
         } else {
-            result = await postVideoClip(horse, assignedSources, index);
+            // SPORTS HOUR: Try sports news, fallback to sports video
+            result = await postNewsLink(horse, index, 'sports');
+            if (!result.success) {
+                console.log(`   Sports news failed, trying sports video...`);
+                result = await postVideoClip(horse, assignedSources, index, 'sports');
+            }
         }
 
         console.log(`   Result: ${result.success ? 'SUCCESS' : 'FAILED'}`);
@@ -434,7 +517,8 @@ export default async function handler(req, res) {
             success: result.success,
             horse: horse.name,
             horseIndex: index,
-            contentType,
+            contentCategory,
+            hour,
             ...result
         });
 
