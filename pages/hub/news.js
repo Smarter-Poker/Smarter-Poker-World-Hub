@@ -30,6 +30,8 @@ import {
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { useExternalLink } from '../../src/components/ui/ExternalLinkModal';
+import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../src/config/hamburgerMenus';
 
 // Fallback data
 const FALLBACK_NEWS = [
@@ -803,6 +805,26 @@ export default function NewsHub() {
     const [lastUpdate, setLastUpdate] = useState(null);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [showAllStories, setShowAllStories] = useState(false);
+    const [menuOpen, setMenuOpen] = useState(false);
+
+    // Hamburger menu preferences
+    const [preferences, setPreferences] = useState({
+        notifications: true,
+        autoRefresh: false
+    });
+
+    const updatePreference = (key, value) => {
+        const newPrefs = { ...preferences, [key]: value };
+        setPreferences(newPrefs);
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('news-preferences', JSON.stringify(newPrefs));
+        }
+    };
+
+    const menuConfig = getMenuConfig('news', null, preferences, {
+        setNotifications: (val) => updatePreference('notifications', val),
+        setAutoRefresh: (val) => updatePreference('autoRefresh', val)
+    });
 
     // 🎬 INTRO VIDEO STATE - Video plays while page loads in background
     // Only show once per session (not on every reload)
@@ -1174,7 +1196,19 @@ export default function NewsHub() {
             </Head>
 
             <div className={`news-hub ${darkMode ? '' : 'light'}`}>
-                <UniversalHeader pageDepth={1} />
+                <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
+
+                {/* Hamburger Menu */}
+                <HamburgerMenu
+                    isOpen={menuOpen}
+                    onClose={() => setMenuOpen(false)}
+                    direction="left"
+                    theme="dark"
+                    user={null}
+                    showProfile={false}
+                    menuItems={menuConfig.menuItems}
+                    bottomLinks={menuConfig.bottomLinks}
+                />
 
                 {/* Header Bar */}
                 <header className="header">

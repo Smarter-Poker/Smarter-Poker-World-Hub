@@ -13,22 +13,22 @@ import React from 'react';
 import { motion } from 'framer-motion';
 
 // 9-Max seat positions (VERTICAL STADIUM TABLE - portrait orientation)
-// Reference shows avatars VERY CLOSE to center, on INNER edge of gold rail
+// Evenly spaced around entire oval rail (matching reference image)
 const SEAT_POSITIONS = [
     // Hero at bottom center
-    { id: 'hero', x: 50, y: 85, isHero: true },
+    { id: 'hero', x: 50, y: 88, isHero: true },
 
-    // LEFT SIDE (4 villains) - MUCH closer to center
-    { id: 'v1', x: 30, y: 68 },  // Bottom-left
-    { id: 'v2', x: 30, y: 50 },  // Mid-left
-    { id: 'v3', x: 30, y: 32 },  // Upper-mid-left
-    { id: 'v4', x: 35, y: 18 },  // Top-left
+    // LEFT SIDE (4 villains) - Evenly spaced along left rail
+    { id: 'v1', x: 20, y: 72 },  // Bottom-left
+    { id: 'v2', x: 15, y: 54 },  // Mid-left  
+    { id: 'v3', x: 15, y: 36 },  // Upper-mid-left
+    { id: 'v4', x: 25, y: 18 },  // Top-left
 
-    // RIGHT SIDE (4 villains) - MUCH closer to center
-    { id: 'v8', x: 70, y: 68 },  // Bottom-right
-    { id: 'v7', x: 70, y: 50 },  // Mid-right
-    { id: 'v6', x: 70, y: 32 },  // Upper-mid-right
-    { id: 'v5', x: 65, y: 18 },  // Top-right
+    // RIGHT SIDE (4 villains) - Evenly spaced along right rail
+    { id: 'v8', x: 80, y: 72 },  // Bottom-right
+    { id: 'v7', x: 85, y: 54 },  // Mid-right
+    { id: 'v6', x: 85, y: 36 },  // Upper-mid-right
+    { id: 'v5', x: 75, y: 18 },  // Top-right
 ];
 
 // Convert card notation (e.g., 'Ah' for Ace of Hearts) to image path
@@ -366,11 +366,11 @@ const styles = {
     // Hero cards positioned at bottom center (below hero avatar)
     heroCardsContainer: {
         position: 'absolute',
-        bottom: '8%',
-        left: '50%',
+        bottom: '6%',
+        left: '58%',  // Off to the side of the rail
         transform: 'translateX(-50%)',
         display: 'flex',
-        gap: 8,
+        gap: -15,  // Negative gap for overlap
         zIndex: 10,
     },
 

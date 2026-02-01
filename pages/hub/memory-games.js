@@ -34,6 +34,8 @@ import { supabase } from '../../src/lib/supabase';
 import { useMemoryStore } from '../../src/stores/memoryStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../src/config/hamburgerMenus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 💎 DIAMOND ENGINE — Local storage with VIP check
@@ -1274,6 +1276,28 @@ export default function MemoryGamesPage() {
     // Visual state
     const [screenShake, setScreenShake] = useState(false);
     const [showComboPopup, setShowComboPopup] = useState(false);
+    const [menuOpen, setMenuOpen] = useState(false);
+
+    // Hamburger menu preferences
+    const [preferences, setPreferences] = useState({
+        soundEffects: true,
+        showHints: true,
+        autoSave: true
+    });
+
+    const updatePreference = (key, value) => {
+        const newPrefs = { ...preferences, [key]: value };
+        setPreferences(newPrefs);
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('memory-games-preferences', JSON.stringify(newPrefs));
+        }
+    };
+
+    const menuConfig = getMenuConfig('memory-games', null, preferences, {
+        setSoundEffects: (val) => updatePreference('soundEffects', val),
+        setShowHints: (val) => updatePreference('showHints', val),
+        setAutoSave: (val) => updatePreference('autoSave', val)
+    });
 
     // 🎬 INTRO VIDEO STATE - Video plays while page loads in background
     // Only show once per session (not on every reload)
@@ -1606,7 +1630,19 @@ export default function MemoryGamesPage() {
                 <div style={styles.bgGlow} />
 
                 {/* Standard Hub Header - DO NOT MODIFY */}
-                <UniversalHeader pageDepth={1} />
+                <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
+
+                {/* Hamburger Menu */}
+                <HamburgerMenu
+                    isOpen={menuOpen}
+                    onClose={() => setMenuOpen(false)}
+                    direction="left"
+                    theme="dark"
+                    user={null}
+                    showProfile={false}
+                    menuItems={menuConfig.menuItems}
+                    bottomLinks={menuConfig.bottomLinks}
+                />
 
                 {/* Combo Popup */}
                 {showComboPopup && comboName && (

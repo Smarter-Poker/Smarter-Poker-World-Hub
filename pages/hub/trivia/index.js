@@ -11,12 +11,34 @@ import { getAuthUser } from '../../../src/lib/authUtils';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import TriviaLobby from '../../../src/components/trivia/TriviaLobby';
+import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 
 export default function TriviaHubPage() {
     const [userDiamonds, setUserDiamonds] = useState(0);
     const [dailyCompleted, setDailyCompleted] = useState(false);
     const [currentStreak, setCurrentStreak] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
+    const [menuOpen, setMenuOpen] = useState(false);
+
+    // Hamburger menu preferences
+    const [preferences, setPreferences] = useState({
+        soundEffects: true,
+        showHints: true
+    });
+
+    const updatePreference = (key, value) => {
+        const newPrefs = { ...preferences, [key]: value };
+        setPreferences(newPrefs);
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('trivia-preferences', JSON.stringify(newPrefs));
+        }
+    };
+
+    const menuConfig = getMenuConfig('trivia', null, preferences, {
+        setSoundEffects: (val) => updatePreference('soundEffects', val),
+        setShowHints: (val) => updatePreference('showHints', val)
+    });
 
     // Using existing supabase instance from lib
 
@@ -90,7 +112,19 @@ export default function TriviaHubPage() {
             <div className="trivia-page">
                 <div className="bg-overlay" />
 
-                <UniversalHeader pageDepth={1} />
+                <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
+
+                {/* Hamburger Menu */}
+                <HamburgerMenu
+                    isOpen={menuOpen}
+                    onClose={() => setMenuOpen(false)}
+                    direction="left"
+                    theme="dark"
+                    user={null}
+                    showProfile={false}
+                    menuItems={menuConfig.menuItems}
+                    bottomLinks={menuConfig.bottomLinks}
+                />
 
                 <div className="content">
                     {isLoading ? (

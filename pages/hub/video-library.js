@@ -10,6 +10,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../src/config/hamburgerMenus';
 
 // God-Mode Stack
 import { useVideoLibraryStore } from '../../src/stores/videoLibraryStore';
@@ -374,6 +376,14 @@ export default function VideoLibraryPage() {
     const [selectedType, setSelectedType] = useState('ALL'); // 'ALL', 'cash', 'tournament'
     const [searchQuery, setSearchQuery] = useState('');
     const modalRef = useRef(null);
+    const [menuOpen, setMenuOpen] = useState(false);
+
+    // Hamburger menu preferences
+    const [preferences, setPreferences] = useState({
+        autoplay: true,
+        hdQuality: true,
+        captions: false
+    });
 
     // 🎬 INTRO VIDEO STATE - Video plays while page loads in background
     // Only show once per session (not on every reload)
@@ -397,6 +407,21 @@ export default function VideoLibraryPage() {
             introVideoRef.current.muted = false;
         }
     }, []);
+
+    // Hamburger menu handlers
+    const updatePreference = (key, value) => {
+        const newPrefs = { ...preferences, [key]: value };
+        setPreferences(newPrefs);
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('video-library-preferences', JSON.stringify(newPrefs));
+        }
+    };
+
+    const menuConfig = getMenuConfig('video-library', null, preferences, {
+        setAutoplay: (val) => updatePreference('autoplay', val),
+        setHdQuality: (val) => updatePreference('hdQuality', val),
+        setCaptions: (val) => updatePreference('captions', val)
+    });
 
     // Filter videos
     useEffect(() => {
@@ -528,7 +553,19 @@ export default function VideoLibraryPage() {
                             alignItems: 'center',
                             gap: 16,
                         }}>
-                            <UniversalHeader pageDepth={1} />
+                            <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
+
+                            {/* Hamburger Menu */}
+                            <HamburgerMenu
+                                isOpen={menuOpen}
+                                onClose={() => setMenuOpen(false)}
+                                direction="left"
+                                theme="dark"
+                                user={null}
+                                showProfile={false}
+                                menuItems={menuConfig.menuItems}
+                                bottomLinks={menuConfig.bottomLinks}
+                            />
                             <h1 style={{
                                 color: C.text,
                                 fontSize: 28,

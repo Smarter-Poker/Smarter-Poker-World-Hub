@@ -7,6 +7,8 @@ import Head from 'next/head';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../src/config/hamburgerMenus';
 
 const POPULAR_CITIES = [
     { name: 'Las Vegas', state: 'NV' },
@@ -265,25 +267,25 @@ function VenueMap({ venues, userLocation }) {
             },
         });
 
-        const validVenues = (venues || []).filter(function(v) { return v.latitude && v.longitude; });
+        const validVenues = (venues || []).filter(function (v) { return v.latitude && v.longitude; });
 
-        validVenues.forEach(function(venue) {
+        validVenues.forEach(function (venue) {
             const trust = getTrustLevel(venue.trust_score);
             const typeBadge = VENUE_TYPE_LABELS[venue.venue_type] || venue.venue_type || '';
 
             const popupHtml = '<div style="font-family:Inter,-apple-system,sans-serif;min-width:200px;max-width:280px;">' +
                 '<div style="font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:4px;">' + (venue.name || '') + '</div>' +
                 '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">' +
-                    '<span style="padding:2px 8px;border-radius:4px;background:#eef2ff;color:#4338ca;font-size:11px;font-weight:600;">' + typeBadge + '</span>' +
-                    '<span style="font-size:12px;color:#666;">' + (venue.city || '') + ', ' + (venue.state || '') + '</span>' +
+                '<span style="padding:2px 8px;border-radius:4px;background:#eef2ff;color:#4338ca;font-size:11px;font-weight:600;">' + typeBadge + '</span>' +
+                '<span style="font-size:12px;color:#666;">' + (venue.city || '') + ', ' + (venue.state || '') + '</span>' +
                 '</div>' +
                 '<div style="font-size:12px;color:' + trust.color + ';font-weight:600;margin-bottom:8px;">Trust: ' + trust.label + ' (' + (venue.trust_score || '-') + '/5)</div>' +
                 '<div style="display:flex;gap:6px;">' +
-                    '<a href="/hub/venues/' + venue.id + '" style="padding:6px 12px;border-radius:6px;background:#d4a853;color:#000;text-decoration:none;font-size:12px;font-weight:600;">View Details</a>' +
-                    '<a href="/hub/venues/' + venue.id + '?action=checkin" style="padding:6px 12px;border-radius:6px;background:#1e40af;color:#fff;text-decoration:none;font-size:12px;font-weight:600;">Check In</a>' +
-                    '<a href="/hub/venues/' + venue.id + '?action=review" style="padding:6px 12px;border-radius:6px;background:#374151;color:#fff;text-decoration:none;font-size:12px;font-weight:600;">Review</a>' +
+                '<a href="/hub/venues/' + venue.id + '" style="padding:6px 12px;border-radius:6px;background:#d4a853;color:#000;text-decoration:none;font-size:12px;font-weight:600;">View Details</a>' +
+                '<a href="/hub/venues/' + venue.id + '?action=checkin" style="padding:6px 12px;border-radius:6px;background:#1e40af;color:#fff;text-decoration:none;font-size:12px;font-weight:600;">Check In</a>' +
+                '<a href="/hub/venues/' + venue.id + '?action=review" style="padding:6px 12px;border-radius:6px;background:#374151;color:#fff;text-decoration:none;font-size:12px;font-weight:600;">Review</a>' +
                 '</div>' +
-            '</div>';
+                '</div>';
 
             const marker = L.marker([venue.latitude, venue.longitude], { icon: goldIcon })
                 .bindPopup(popupHtml, { maxWidth: 300, className: 'venue-popup' });
@@ -315,7 +317,7 @@ function VenueMap({ venues, userLocation }) {
             circlesGroup.clearLayers();
             const zoom = map.getZoom();
             if (zoom >= 11) {
-                clusterGroup.eachLayer(function(marker) {
+                clusterGroup.eachLayer(function (marker) {
                     if (marker._venueCircle) {
                         circlesGroup.addLayer(marker._venueCircle);
                     }
@@ -355,7 +357,7 @@ function VenueMap({ venues, userLocation }) {
                 html: '<div style="position:relative;width:18px;height:18px;">' +
                     '<div style="position:absolute;inset:0;border-radius:50%;background:rgba(59,130,246,0.3);animation:userPulse 2s ease-in-out infinite;"></div>' +
                     '<div style="position:absolute;top:4px;left:4px;width:10px;height:10px;border-radius:50%;background:#3b82f6;border:2px solid #fff;box-shadow:0 0 6px rgba(59,130,246,0.8);"></div>' +
-                '</div>',
+                    '</div>',
                 iconSize: [18, 18],
                 iconAnchor: [9, 9],
             });
@@ -426,6 +428,14 @@ export default function PokerNearMe() {
     // Geofence alert state
     const [geofenceAlert, setGeofenceAlert] = useState(null);
     const geofenceRef = useRef(null);
+    const [menuOpen, setMenuOpen] = useState(false);
+
+    // Hamburger menu preferences
+    const [preferences, setPreferences] = useState({
+        geofenceAlerts: true,
+        locationEnabled: true,
+        showNewcomerFriendly: true
+    });
 
     // Intro video state - only show once per session
     const [showIntro, setShowIntro] = useState(() => {
@@ -487,12 +497,12 @@ export default function PokerNearMe() {
     useEffect(() => {
         if (typeof window === 'undefined') return;
         fetch('/data/all-venues.json')
-            .then(function(r) { return r.json(); })
-            .then(function(json) {
+            .then(function (r) { return r.json(); })
+            .then(function (json) {
                 var v = json.venues || json.data || json || [];
                 setAllVenuesForMap(Array.isArray(v) ? v : []);
             })
-            .catch(function() { setAllVenuesForMap([]); });
+            .catch(function () { setAllVenuesForMap([]); });
     }, []);
 
     // Fetch all data on mount and when filters change
@@ -509,33 +519,33 @@ export default function PokerNearMe() {
         var gfService = null;
 
         // Dynamic import to keep SSR safe
-        import('../../src/lib/geofence').then(function(mod) {
+        import('../../src/lib/geofence').then(function (mod) {
             var GeofenceService = mod.default;
             gfService = new GeofenceService();
 
             // Also try requesting push permission
-            import('../../src/lib/pushAlerts').then(function(pushMod) {
+            import('../../src/lib/pushAlerts').then(function (pushMod) {
                 pushMod.requestPermission();
 
-                gfService.start(allVenuesForMap, function(venue) {
+                gfService.start(allVenuesForMap, function (venue) {
                     // Try browser notification first
                     pushMod.showVenueAlert(venue, 'checkin');
                     // Also show in-app banner
                     setGeofenceAlert(venue);
                 });
-            }).catch(function() {
+            }).catch(function () {
                 // Fallback: just in-app alerts
-                gfService.start(allVenuesForMap, function(venue) {
+                gfService.start(allVenuesForMap, function (venue) {
                     setGeofenceAlert(venue);
                 });
             });
 
             geofenceRef.current = gfService;
-        }).catch(function(err) {
+        }).catch(function (err) {
             console.warn('[PokerNearMe] Could not load GeofenceService:', err);
         });
 
-        return function() {
+        return function () {
             if (geofenceRef.current) {
                 geofenceRef.current.stop();
                 geofenceRef.current = null;
@@ -559,7 +569,7 @@ export default function PokerNearMe() {
                 (json.promotions || json.data || []).forEach(p => { if (p.page_id) ids.add(String(p.page_id)); });
                 setPromotionVenueIds(ids);
             })
-            .catch(() => {});
+            .catch(() => { });
     }, []);
 
     // --- NEW: Auto-refresh live games when on live tab ---
@@ -641,6 +651,21 @@ export default function PokerNearMe() {
             { enableHighAccuracy: true, timeout: 10000 }
         );
     };
+
+    // Hamburger menu handlers
+    const updatePreference = (key, value) => {
+        const newPrefs = { ...preferences, [key]: value };
+        setPreferences(newPrefs);
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('poker-near-me-preferences', JSON.stringify(newPrefs));
+        }
+    };
+
+    const menuConfig = getMenuConfig('poker-near-me', null, preferences, {
+        setGeofenceAlerts: (val) => updatePreference('geofenceAlerts', val),
+        setLocationEnabled: (val) => updatePreference('locationEnabled', val),
+        setShowNewcomerFriendly: (val) => updatePreference('showNewcomerFriendly', val)
+    });
 
     const fetchAllData = async () => {
         setLoading(true);
@@ -916,7 +941,7 @@ export default function PokerNearMe() {
                                 {/* Favorite heart */}
                                 <button className={'fav-btn' + (fav ? ' active' : '')} onClick={(e) => toggleFavorite('venue', venue.id, e)} title={fav ? 'Remove from favorites' : 'Add to favorites'}>
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill={fav ? '#ef4444' : 'none'} stroke={fav ? '#ef4444' : 'rgba(255,255,255,0.4)'} strokeWidth="2">
-                                        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+                                        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
                                     </svg>
                                 </button>
                                 <div className="card-header">
@@ -983,7 +1008,7 @@ export default function PokerNearMe() {
         if (tours.length === 0) {
             return (
                 <div className="empty-state">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5"><circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" /></svg>
                     <p>No tours found</p>
                     <p style={{ fontSize: 13, opacity: 0.5, marginTop: 4 }}>Try clearing filters or searching for a specific tour</p>
                     <button onClick={clearFilters}>Clear Filters</button>
@@ -1003,7 +1028,7 @@ export default function PokerNearMe() {
                             <div key={tour.tour_code || i} className="entity-card tour-card" onClick={() => router.push('/hub/tours/' + tour.tour_code)} style={{ cursor: 'pointer' }}>
                                 <button className={'fav-btn' + (fav ? ' active' : '')} onClick={(e) => toggleFavorite('tour', tour.tour_code, e)}>
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill={fav ? '#ef4444' : 'none'} stroke={fav ? '#ef4444' : 'rgba(255,255,255,0.4)'} strokeWidth="2">
-                                        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+                                        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
                                     </svg>
                                 </button>
                                 <div className="card-header">
@@ -1056,7 +1081,7 @@ export default function PokerNearMe() {
         if (series.length === 0) {
             return (
                 <div className="empty-state">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
                     <p>No tournament series found</p>
                     <p style={{ fontSize: 13, opacity: 0.5, marginTop: 4 }}>Try expanding the timeframe or clearing filters</p>
                     <button onClick={clearFilters}>Clear Filters</button>
@@ -1070,11 +1095,11 @@ export default function PokerNearMe() {
                     <span className="results-count">Showing {Math.min(displayCount.series, series.length)} of {series.length} series</span>
                     <div className="view-toggle">
                         <button className={'view-btn' + (seriesViewMode === 'grid' ? ' active' : '')} onClick={() => setSeriesViewMode('grid')}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>
                             Grid
                         </button>
                         <button className={'view-btn' + (seriesViewMode === 'calendar' ? ' active' : '')} onClick={() => setSeriesViewMode('calendar')}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
                             Calendar
                         </button>
                     </div>
@@ -1089,7 +1114,7 @@ export default function PokerNearMe() {
                                     <div key={s.id || i} className="entity-card series-card" onClick={() => router.push('/hub/series/' + (s.id || (i + 1)))} style={{ cursor: 'pointer' }}>
                                         <button className={'fav-btn' + (fav ? ' active' : '')} onClick={(e) => toggleFavorite('series', s.id || (i + 1), e)}>
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill={fav ? '#ef4444' : 'none'} stroke={fav ? '#ef4444' : 'rgba(255,255,255,0.4)'} strokeWidth="2">
-                                                <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+                                                <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
                                             </svg>
                                         </button>
                                         <div className="card-header">
@@ -1199,7 +1224,7 @@ export default function PokerNearMe() {
             return (
                 <div className="empty-state">
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5">
-                        <circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/>
+                        <circle cx="12" cy="12" r="10" /><polygon points="10 8 16 12 10 16 10 8" />
                     </svg>
                     <p>No live games reported right now</p>
                     <p style={{ fontSize: 13, opacity: 0.5, marginTop: 4 }}>Be the first to report a game at your venue!</p>
@@ -1317,7 +1342,7 @@ export default function PokerNearMe() {
                                         const start = new Date(s.start_date);
                                         const end = s.end_date ? new Date(s.end_date) : start;
                                         return dayDate >= new Date(start.getFullYear(), start.getMonth(), start.getDate()) &&
-                                               dayDate <= new Date(end.getFullYear(), end.getMonth(), end.getDate());
+                                            dayDate <= new Date(end.getFullYear(), end.getMonth(), end.getDate());
                                     });
                                     const isToday = dayDate.toDateString() === today.toDateString();
                                     return (
@@ -1416,7 +1441,19 @@ export default function PokerNearMe() {
                 <div className="space-bg"></div>
                 <div className="space-overlay"></div>
 
-                <UniversalHeader pageDepth={1} />
+                <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
+
+                {/* Hamburger Menu */}
+                <HamburgerMenu
+                    isOpen={menuOpen}
+                    onClose={() => setMenuOpen(false)}
+                    direction="left"
+                    theme="dark"
+                    user={null}
+                    showProfile={false}
+                    menuItems={menuConfig.menuItems}
+                    bottomLinks={menuConfig.bottomLinks}
+                />
 
                 {/* Page Header */}
                 <div className="pnm-header">
@@ -1449,7 +1486,7 @@ export default function PokerNearMe() {
                                         {searchHistory.map((item, i) => (
                                             <button key={i} type="button" className="search-history-item"
                                                 onClick={() => { setSearchQuery(item); setShowSearchHistory(false); setTimeout(() => fetchAllData(), 0); }}>
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
                                                 {item}
                                             </button>
                                         ))}
@@ -1637,7 +1674,7 @@ export default function PokerNearMe() {
                     <button className={'tab' + (activeTab === 'live' ? ' active' : '')} onClick={() => setActiveTab('live')}>
                         <span className="tab-icon">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/>
+                                <circle cx="12" cy="12" r="10" /><polygon points="10 8 16 12 10 16 10 8" />
                             </svg>
                         </span>
                         Live <span className="tab-count live-count">{counts.live}</span>

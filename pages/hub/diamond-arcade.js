@@ -19,6 +19,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import {
     ARCADE_GAMES,
     generateHandSnapQuestion,
@@ -121,6 +123,26 @@ export default function DiamondArcade() {
     const [gameResult, setGameResult] = useState(null);
     const timerRef = useRef(null);
     const questionStartTime = useRef(0);
+    const [menuOpen, setMenuOpen] = useState(false);
+
+    // Hamburger menu preferences
+    const [preferences, setPreferences] = useState({
+        soundEffects: true,
+        animations: true
+    });
+
+    const updatePreference = (key, value) => {
+        const newPrefs = { ...preferences, [key]: value };
+        setPreferences(newPrefs);
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('diamond-arcade-preferences', JSON.stringify(newPrefs));
+        }
+    };
+
+    const menuConfig = getMenuConfig('diamond-arcade', null, preferences, {
+        setSoundEffects: (val) => updatePreference('soundEffects', val),
+        setAnimations: (val) => updatePreference('animations', val)
+    });
 
     // 🎬 INTRO VIDEO STATE - Video plays while page loads in background
     // Only show once per session (not on every reload)
@@ -383,7 +405,19 @@ export default function DiamondArcade() {
                 <div style={styles.casinoBgVignette} />
                 <div style={styles.casinoBgLights} />
 
-                <UniversalHeader pageDepth={1} />
+                <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
+
+                {/* Hamburger Menu */}
+                <HamburgerMenu
+                    isOpen={menuOpen}
+                    onClose={() => setMenuOpen(false)}
+                    direction="left"
+                    theme="dark"
+                    user={null}
+                    showProfile={false}
+                    menuItems={menuConfig.menuItems}
+                    bottomLinks={menuConfig.bottomLinks}
+                />
 
                 <div style={styles.mainContent}>
                     <AnimatePresence mode="wait">

@@ -17,6 +17,8 @@ import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader'
 import { useDiamondArenaStore } from '../../src/stores/diamondArenaStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../src/config/hamburgerMenus';
 
 export default function DiamondArenaPage() {
     const router = useRouter();
@@ -24,6 +26,28 @@ export default function DiamondArenaPage() {
     const [iframeLoaded, setIframeLoaded] = useState(false);
     const [mounted, setMounted] = useState(false);
     const [isNavigating, setIsNavigating] = useState(false);
+    const [menuOpen, setMenuOpen] = useState(false);
+
+    // Hamburger menu preferences
+    const [preferences, setPreferences] = useState({
+        soundEffects: true,
+        animations: true,
+        autoRebuy: false
+    });
+
+    const updatePreference = (key, value) => {
+        const newPrefs = { ...preferences, [key]: value };
+        setPreferences(newPrefs);
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('diamond-arena-preferences', JSON.stringify(newPrefs));
+        }
+    };
+
+    const menuConfig = getMenuConfig('diamond-arena', null, preferences, {
+        setSoundEffects: (val) => updatePreference('soundEffects', val),
+        setAnimations: (val) => updatePreference('animations', val),
+        setAutoRebuy: (val) => updatePreference('autoRebuy', val)
+    });
 
     useEffect(() => {
         setMounted(true);
@@ -92,8 +116,20 @@ export default function DiamondArenaPage() {
             <div className="diamond-arena-page" style={styles.container}>
                 {/* Universal Header */}
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1001 }}>
-                    <UniversalHeader pageDepth={1} />
+                    <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
                 </div>
+
+                {/* Hamburger Menu */}
+                <HamburgerMenu
+                    isOpen={menuOpen}
+                    onClose={() => setMenuOpen(false)}
+                    direction="left"
+                    theme="dark"
+                    user={null}
+                    showProfile={false}
+                    menuItems={menuConfig.menuItems}
+                    bottomLinks={menuConfig.bottomLinks}
+                />
 
                 {/* Loading Overlay */}
                 {!iframeLoaded && (

@@ -12,6 +12,8 @@ import { supabase } from '../../src/lib/supabase';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../src/config/hamburgerMenus';
 
 // Bankroll library
 import { getBankrollStats } from '../../src/lib/bankroll/calculations';
@@ -97,6 +99,13 @@ export default function BankrollManagerPage() {
   const [activeSection, setActiveSection] = useState('dashboard');
   const [showLogModal, setShowLogModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // Hamburger menu preferences
+  const [preferences, setPreferences] = useState({
+    autoSave: true,
+    notifications: true
+  });
 
   // Filters
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -201,6 +210,20 @@ export default function BankrollManagerPage() {
     ? locations.find((l) => l.id === locationFilter)?.name || 'Unknown'
     : 'All Locations';
 
+  // Hamburger menu handlers
+  const updatePreference = (key, value) => {
+    const newPrefs = { ...preferences, [key]: value };
+    setPreferences(newPrefs);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('bankroll-manager-preferences', JSON.stringify(newPrefs));
+    }
+  };
+
+  const menuConfig = getMenuConfig('bankroll-manager', user, preferences, {
+    setAutoSave: (val) => updatePreference('autoSave', val),
+    setNotifications: (val) => updatePreference('notifications', val)
+  });
+
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClick = () => {
@@ -282,7 +305,19 @@ export default function BankrollManagerPage() {
 
       <div className="bankroll-page" style={styles.container}>
         <div style={styles.bgGrid} />
-        <UniversalHeader pageDepth={2} />
+        <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
+
+        {/* Hamburger Menu */}
+        <HamburgerMenu
+          isOpen={menuOpen}
+          onClose={() => setMenuOpen(false)}
+          direction="left"
+          theme="dark"
+          user={user}
+          showProfile={false}
+          menuItems={menuConfig.menuItems}
+          bottomLinks={menuConfig.bottomLinks}
+        />
 
         {/* Top Bar with Filters */}
         <div style={styles.topBar}>
