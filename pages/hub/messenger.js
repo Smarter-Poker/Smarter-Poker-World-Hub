@@ -2890,7 +2890,7 @@ export default function MessengerPage() {
                                         cursor: 'pointer',
                                         background: activeConversation?.id === 'jarvis-ai'
                                             ? 'linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(0, 150, 255, 0.1))'
-                                            : 'transparent',
+                                            : 'rgba(128, 128, 128, 0.1)',
                                         borderBottom: `1px solid ${C.border}`,
                                         borderLeft: activeConversation?.id === 'jarvis-ai' ? '3px solid #00D4FF' : '3px solid transparent',
                                         transition: 'all 0.2s',
@@ -2903,7 +2903,7 @@ export default function MessengerPage() {
                                     }}
                                     onMouseLeave={e => {
                                         if (activeConversation?.id !== 'jarvis-ai') {
-                                            e.currentTarget.style.background = 'transparent';
+                                            e.currentTarget.style.background = 'rgba(128, 128, 128, 0.1)';
                                         }
                                     }}
                                 >
@@ -2937,9 +2937,6 @@ export default function MessengerPage() {
                                         {/* Jarvis Info */}
                                         <div style={{ flex: 1, minWidth: 0 }}>
                                             <div style={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'space-between',
                                                 marginBottom: 4
                                             }}>
                                                 <span style={{
@@ -2947,20 +2944,13 @@ export default function MessengerPage() {
                                                     fontSize: 15,
                                                     color: '#00D4FF'
                                                 }}>Jarvis</span>
-                                                <span style={{
-                                                    fontSize: 10,
-                                                    color: 'rgba(0, 212, 255, 0.6)',
-                                                    fontWeight: 500
-                                                }}>AI</span>
                                             </div>
                                             <div style={{
                                                 fontSize: 13,
                                                 color: 'rgba(255, 255, 255, 0.6)',
-                                                whiteSpace: 'nowrap',
-                                                overflow: 'hidden',
-                                                textOverflow: 'ellipsis'
+                                                lineHeight: 1.3
                                             }}>
-                                                Your Poker AI Assistant
+                                                Ask Jarvis Anything About Poker Or Ask For Help With A Hand
                                             </div>
                                         </div>
                                     </div>
