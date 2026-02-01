@@ -14,6 +14,9 @@ import { useAvatar } from '../../src/contexts/AvatarContext';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getVideoLibraryPreferences, updateVideoLibraryPreferences } from '../../src/services/videoLibraryPreferences';
+import * as videoFavorites from '../../src/services/videoFavorites';
+import * as videoWatchLater from '../../src/services/videoWatchLater';
+import * as videoWatchHistory from '../../src/services/videoWatchHistory';
 
 // God-Mode Stack
 import { useVideoLibraryStore } from '../../src/stores/videoLibraryStore';
@@ -397,6 +400,10 @@ export default function VideoLibraryPage() {
     const modalRef = useRef(null);
     const [menuOpen, setMenuOpen] = useState(false);
 
+    // Content tracking state
+    const [favorites, setFavorites] = useState(new Set());
+    const [watchLater, setWatchLater] = useState(new Set());
+
     // Hamburger menu preferences
     const [preferences, setPreferences] = useState({
         autoplay: true,
@@ -431,8 +438,17 @@ export default function VideoLibraryPage() {
     useEffect(() => {
         if (userId) {
             getVideoLibraryPreferences(userId).then(setPreferences);
+
+            // Load favorites and watch later lists
+            videoFavorites.get(userId).then(data => {
+                setFavorites(new Set(data.map(v => v.video_id)));
+            }).catch(err => console.error('Error loading favorites:', err));
+
+            videoWatchLater.get(userId).then(data => {
+                setWatchLater(new Set(data.map(v => v.video_id)));
+            }).catch(err => console.error('Error loading watch later:', err));
         }
-    }, []);
+    }, [userId]);
 
     // Hamburger menu handlers - save to Supabase
     const updatePreference = useCallback(async (key, value) => {
@@ -453,6 +469,49 @@ export default function VideoLibraryPage() {
         setHdQuality: (val) => updatePreference('hdQuality', val),
         setCaptions: (val) => updatePreference('captions', val)
     });
+
+    // Content tracking handlers
+    const toggleFavorite = useCallback(async (video) => {
+        if (!userId) return;
+
+        const videoId = video.id;
+        if (favorites.has(videoId)) {
+            await videoFavorites.remove(userId, videoId);
+            setFavorites(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(videoId);
+                return newSet;
+            });
+        } else {
+            await videoFavorites.add(userId, videoId, {
+                title: video.title,
+                source: video.source,
+                video_url: `https://youtube.com/watch?v=${video.videoId}`
+            });
+            setFavorites(prev => new Set(prev).add(videoId));
+        }
+    }, [userId, favorites]);
+
+    const toggleWatchLater = useCallback(async (video) => {
+        if (!userId) return;
+
+        const videoId = video.id;
+        if (watchLater.has(videoId)) {
+            await videoWatchLater.remove(userId, videoId);
+            setWatchLater(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(videoId);
+                return newSet;
+            });
+        } else {
+            await videoWatchLater.add(userId, videoId, {
+                title: video.title,
+                source: video.source,
+                video_url: `https://youtube.com/watch?v=${video.videoId}`
+            });
+            setWatchLater(prev => new Set(prev).add(videoId));
+        }
+    }, [userId, watchLater]);
 
     // Filter videos
     useEffect(() => {

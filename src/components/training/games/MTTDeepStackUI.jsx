@@ -367,7 +367,7 @@ const styles = {
     heroCardsContainer: {
         position: 'absolute',
         bottom: '6%',
-        left: '58%',  // Off to the side of the rail
+        left: '50%',  // Centered directly below hero avatar
         transform: 'translateX(-50%)',
         display: 'flex',
         gap: -20,  // 50% overlap (cards are 40px wide)

@@ -3,7 +3,7 @@
  * Manages user's favorite videos
  */
 
-import { supabase } from '../lib/supabaseClient';
+import { supabase } from '../lib/supabase';
 
 /**
  * Get all favorite videos for a user
