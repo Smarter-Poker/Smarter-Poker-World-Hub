@@ -2947,10 +2947,10 @@ export default function MessengerPage() {
                                             </div>
                                             <div style={{
                                                 fontSize: 13,
-                                                color: 'rgba(255, 255, 255, 0.6)',
+                                                color: '#00D4FF',
                                                 lineHeight: 1.3
                                             }}>
-                                                Ask Jarvis Anything About Poker Or Ask For Help With A Hand
+                                                Your Personal Smarter.Poker Coach - Always Online Always Available! Ask Me Anything...
                                             </div>
                                         </div>
                                     </div>
