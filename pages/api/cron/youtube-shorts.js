@@ -142,7 +142,44 @@ async function scrapeChannelShorts(channel) {
 
     // Extract titles - they appear near the video IDs in the JSON
     const titlePattern = /"title":\s*\{"runs":\s*\[\{"text":\s*"([^"]+)"\}\]/g;
-    const titles = [...html.matchAll(titlePattern)].map(m => cleanText(m[1]));
+    const allTitles = [...html.matchAll(titlePattern)].map(m => cleanText(m[1]));
+
+    // Filter out YouTube UI text that gets scraped as titles
+    const INVALID_TITLES = [
+        'keyboard shortcuts',
+        'sign in to youtube',
+        'sign in',
+        'watch on youtube',
+        'share',
+        'save',
+        'report',
+        'transcript',
+        'show transcript',
+        'more videos',
+        'autoplay',
+        'settings',
+        'full screen',
+        'theater mode',
+        'miniplayer',
+        'watch later',
+        'like',
+        'dislike',
+        'subscribe',
+        'subscribed',
+        'notifications',
+        'playlist',
+        'queue'
+    ];
+
+    const titles = allTitles.filter(title => {
+        const lowerTitle = title.toLowerCase().trim();
+        // Filter out empty titles, very short titles, and known UI text
+        if (!title || title.length < 3) return false;
+        if (INVALID_TITLES.includes(lowerTitle)) return false;
+        // Filter out titles that are just numbers or symbols
+        if (/^[\d\s\W]+$/.test(title)) return false;
+        return true;
+    });
 
     // Extract view counts
     const viewPattern = /"viewCountText":\s*\{"simpleText":\s*"([^"]+)"\}/g;
@@ -157,7 +194,8 @@ async function scrapeChannelShorts(channel) {
     // Build shorts objects
     for (let i = 0; i < Math.min(uniqueIds.length, CONFIG.MAX_REELS_PER_CHANNEL); i++) {
         const videoId = uniqueIds[i];
-        const title = titles[i] || `${channel.name} Short`;
+        // Use filtered titles, fallback to channel name if no valid title found
+        const title = titles[i] || `${channel.name} Poker Short`;
         const viewCount = views[i] || 0;
 
         shorts.push({
