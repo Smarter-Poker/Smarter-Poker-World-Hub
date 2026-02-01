@@ -264,7 +264,6 @@ export default function MTTDeepStackUI({
                 )}
             </div>
         </div>
-        </div>
     );
 }
 
