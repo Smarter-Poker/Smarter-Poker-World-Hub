@@ -13,22 +13,22 @@ import React from 'react';
 import { motion } from 'framer-motion';
 
 // 9-Max seat positions (VERTICAL STADIUM TABLE - portrait orientation)
-// Evenly spaced around entire oval rail (matching reference image)
+// Attached to table on inner edge of gold rail
 const SEAT_POSITIONS = [
     // Hero at bottom center
     { id: 'hero', x: 50, y: 88, isHero: true },
 
-    // LEFT SIDE (4 villains) - Evenly spaced along left rail
-    { id: 'v1', x: 20, y: 72 },  // Bottom-left
-    { id: 'v2', x: 15, y: 54 },  // Mid-left  
-    { id: 'v3', x: 15, y: 36 },  // Upper-mid-left
-    { id: 'v4', x: 25, y: 18 },  // Top-left
+    // LEFT SIDE (4 villains) - Attached to inner rail edge
+    { id: 'v1', x: 25, y: 72 },  // Bottom-left
+    { id: 'v2', x: 22, y: 54 },  // Mid-left  
+    { id: 'v3', x: 22, y: 36 },  // Upper-mid-left
+    { id: 'v4', x: 30, y: 18 },  // Top-left
 
-    // RIGHT SIDE (4 villains) - Evenly spaced along right rail
-    { id: 'v8', x: 80, y: 72 },  // Bottom-right
-    { id: 'v7', x: 85, y: 54 },  // Mid-right
-    { id: 'v6', x: 85, y: 36 },  // Upper-mid-right
-    { id: 'v5', x: 75, y: 18 },  // Top-right
+    // RIGHT SIDE (4 villains) - Attached to inner rail edge
+    { id: 'v8', x: 75, y: 72 },  // Bottom-right
+    { id: 'v7', x: 78, y: 54 },  // Mid-right
+    { id: 'v6', x: 78, y: 36 },  // Upper-mid-right
+    { id: 'v5', x: 70, y: 18 },  // Top-right
 ];
 
 // Convert card notation (e.g., 'Ah' for Ace of Hearts) to image path
@@ -177,7 +177,7 @@ export default function MTTDeepStackUI({
                 {/* HERO CARDS - Bottom center below hero avatar */}
                 <div style={styles.heroCardsContainer}>
                     <img src={getCardPath(card1)} alt={card1} style={styles.card} />
-                    <img src={getCardPath(card2)} alt={card2} style={{ ...styles.card, marginLeft: -20 }} />
+                    <img src={getCardPath(card2)} alt={card2} style={{ ...styles.card, marginLeft: -30 }} />
                 </div>
 
                 {/* POT - Center top */}
