@@ -26,7 +26,18 @@ const INVALID_TITLE_PATTERNS = [
     'full screen',
     'theater mode',
     'miniplayer',
-    'watch later'
+    'watch later',
+    'subtitles and closed captions',
+    'subtitles',
+    'closed captions',
+    'general',
+    'playback',
+    'spherical videos',
+    'annotations',
+    'cards',
+    'end screens',
+    'quality',
+    'speed'
 ];
 
 export default async function handler(req, res) {
