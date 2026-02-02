@@ -2164,8 +2164,28 @@ export default function MemoryGamesPage() {
             }
 
             const result = await dailyChallengeService.getTodaysChallenge();
-            if (result.success) {
-                setDailyChallenge(result.challenge);
+            if (result.success && result.challenge) {
+                // Parse scenario from scenario_id JSON string
+                let challenge = { ...result.challenge };
+                if (challenge.scenario_id && typeof challenge.scenario_id === 'string') {
+                    try {
+                        const scenario = JSON.parse(challenge.scenario_id);
+                        // Merge scenario properties into challenge object
+                        challenge = {
+                            ...challenge,
+                            title: scenario.title || challenge.title,
+                            description: scenario.description || challenge.description,
+                            tip: scenario.tip,
+                            solution: scenario.solution,
+                            position: scenario.position,
+                            stackDepth: scenario.stackDepth,
+                            scenario: scenario // Keep full scenario for gameplay
+                        };
+                    } catch (e) {
+                        console.warn('[MemoryGames] Could not parse scenario_id:', e);
+                    }
+                }
+                setDailyChallenge(challenge);
                 setChallengeCompleted(result.completed);
             }
 
