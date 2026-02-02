@@ -320,7 +320,7 @@ export default function SurvivalGamePage() {
         setEliminatedOptions(toEliminate);
     }
 
-    // Skip Question Function (costs 3💎)
+    // Skip Question Function (costs 5💎)
     async function useSkipQuestion() {
         if (showResult || skipUsedThisQuestion) return;
         if (lifelinesUsedThisLevel >= MAX_LIFELINES_PER_LEVEL) {
@@ -916,7 +916,7 @@ export default function SurvivalGamePage() {
                                             >
                                                 <span style={{ fontSize: '20px' }}>⏭️</span>
                                                 <span>Skip</span>
-                                                <span style={{ fontSize: '11px', color: '#fbbf24' }}>3💎</span>
+                                                <span style={{ fontSize: '11px', color: '#fbbf24' }}>5💎</span>
                                             </button>
 
                                             {/* Double Chance Button */}
@@ -950,13 +950,13 @@ export default function SurvivalGamePage() {
                                                 ) : doubleChanceUsedThisQuestion ? (
                                                     <span style={{ fontSize: '11px', opacity: 0.7 }}>USED</span>
                                                 ) : (
-                                                    <span style={{ fontSize: '11px', color: '#a855f7' }}>3💎</span>
+                                                    <span style={{ fontSize: '11px', color: '#a855f7' }}>5💎</span>
                                                 )}
                                             </button>
                                         </div>
                                     )}
                                 </div>
-                            </>
+                            </div>
                         )}
 
                         {/* Level Complete State */}
