@@ -2193,72 +2193,73 @@ export default function PokerNearMePage() {
                         }
                     }
 
-                    /* Entity Cards - Metal Frame Style */
-                    .entity-card {
+                    /* Entity Cards - Metal Frame Style (GLOBAL to apply to dynamically rendered cards) */
+                    :global(.entity-card) {
                         position: relative;
-                        background: linear-gradient(180deg, rgba(61, 79, 95, 0.3) 0%, rgba(26, 35, 50, 0.8) 50%, rgba(13, 17, 23, 0.9) 100%);
-                        border: 2px solid var(--metal-highlight);
+                        background: linear-gradient(180deg, #3d4f5f 0%, #1a2332 50%, #0d1117 100%) !important;
+                        border: 2px solid #3d4f5f !important;
                         border-radius: 12px;
                         padding: 20px;
                         transition: all 0.3s ease;
                         box-shadow: 
-                            inset 0 1px 0 rgba(255,255,255,0.08),
+                            inset 0 1px 0 rgba(255,255,255,0.1),
                             inset 0 -1px 0 rgba(0,0,0,0.3),
-                            0 4px 15px rgba(0,0,0,0.4);
+                            0 4px 20px rgba(0,0,0,0.5) !important;
                     }
-                    .entity-card::before,
-                    .entity-card::after {
+                    :global(.entity-card)::before,
+                    :global(.entity-card)::after {
                         content: '+';
                         position: absolute;
-                        width: 10px;
-                        height: 10px;
+                        width: 12px;
+                        height: 12px;
                         background: radial-gradient(circle, #5a6a7a 30%, #3a4a5a 70%);
                         border-radius: 50%;
                         border: 1px solid #2a3a4a;
-                        font-size: 7px;
+                        font-size: 8px;
                         color: #1a2a3a;
                         display: flex;
                         align-items: center;
                         justify-content: center;
                         font-weight: bold;
+                        box-shadow: inset 0 1px 2px rgba(255,255,255,0.2), 0 2px 4px rgba(0,0,0,0.3);
                     }
-                    .entity-card::before { top: 8px; left: 8px; }
-                    .entity-card::after { top: 8px; right: 8px; }
-                    .entity-card:hover {
-                        border-color: var(--neon-cyan);
+                    :global(.entity-card)::before { top: 8px; left: 8px; }
+                    :global(.entity-card)::after { top: 8px; right: 8px; }
+                    :global(.entity-card:hover) {
+                        border-color: #00D4FF !important;
                         box-shadow: 
-                            inset 0 1px 0 rgba(255,255,255,0.08),
-                            0 0 15px var(--neon-cyan-glow),
-                            0 4px 20px rgba(0,0,0,0.5);
+                            inset 0 1px 0 rgba(255,255,255,0.1),
+                            0 0 15px rgba(0, 212, 255, 0.6),
+                            0 4px 25px rgba(0,0,0,0.6) !important;
                     }
-                    .card-header {
+                    :global(.card-header) {
                         display: flex;
                         justify-content: space-between;
                         align-items: flex-start;
                         margin-bottom: 10px;
                     }
-                    .entity-card h4 {
+                    :global(.entity-card h4) {
                         font-size: 16px;
                         font-weight: 600;
                         margin: 0 0 4px;
                         color: #fff;
                     }
-                    .card-location {
+                    :global(.card-location) {
                         font-size: 13px;
                         color: rgba(255,255,255,0.5);
                         margin: 0 0 10px;
                     }
-                    .card-dates {
+                    :global(.card-dates) {
                         font-size: 12px;
                         color: rgba(255,255,255,0.6);
                         margin: 0 0 10px;
                     }
-                    .card-detail {
+                    :global(.card-detail) {
                         font-size: 13px;
                         color: rgba(255,255,255,0.6);
                         margin: 8px 0;
                     }
-                    .card-detail.guaranteed {
+                    :global(.card-detail.guaranteed) {
                         color: #4ade80;
                         font-weight: 600;
                     }

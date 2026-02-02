@@ -41,7 +41,8 @@ export const TRIVIA_MODES = {
         questionsCount: 10,
         timeLimit: null,
         diamondCost: 0,
-        diamondReward: 0,
+        diamondReward: 5,
+        perfectBonus: 10,
         icon: 'lightning',
         color: '#00ccff'
     },
@@ -52,7 +53,8 @@ export const TRIVIA_MODES = {
         questionsCount: 10,
         timeLimit: null,
         diamondCost: 0,
-        diamondReward: 0,
+        diamondReward: 3,
+        perfectBonus: 5,
         icon: 'trophy',
         color: '#fbbf24'
     },
@@ -63,7 +65,8 @@ export const TRIVIA_MODES = {
         questionsCount: 10,
         timeLimit: null,
         diamondCost: 0,
-        diamondReward: 0,
+        diamondReward: 3,
+        perfectBonus: 5,
         icon: 'book',
         color: '#3b82f6'
     },
@@ -74,7 +77,8 @@ export const TRIVIA_MODES = {
         questionsCount: 10,
         timeLimit: null,
         diamondCost: 0,
-        diamondReward: 0,
+        diamondReward: 5,
+        perfectBonus: 10,
         icon: 'graduation',
         color: '#8b5cf6'
     },
@@ -86,8 +90,21 @@ export const TRIVIA_MODES = {
         timeLimit: 60,
         diamondCost: 10,
         diamondReward: 100,
+        perfectBonus: 50,
         icon: 'diamond',
         color: '#06b6d4'
+    },
+    survival: {
+        id: 'survival',
+        name: 'Survival Mode',
+        description: 'Answer until you miss. Rewards stack!',
+        questionsCount: 100, // Unlimited effectively
+        timeLimit: null,
+        diamondCost: 0,
+        diamondReward: 1, // Per correct answer
+        perfectBonus: 0,
+        icon: 'heart',
+        color: '#ef4444'
     }
 } as const;
 
@@ -99,18 +116,40 @@ export function calculateDiamonds(
     mode: TriviaMode,
     correctCount: number,
     totalQuestions: number,
-    timeRemaining: number
+    timeRemaining: number = 0
 ): number {
-    if (mode !== 'arcade') return 0;
-
     const config = TRIVIA_MODES[mode];
-    const accuracy = correctCount / totalQuestions;
-    const timeBonus = Math.floor(timeRemaining / 6);
+    const accuracy = totalQuestions > 0 ? correctCount / totalQuestions : 0;
 
-    if (accuracy < 0.5) return 0;
-    if (accuracy < 0.7) return Math.floor(config.diamondReward * 0.2) + timeBonus;
-    if (accuracy < 0.9) return Math.floor(config.diamondReward * 0.5) + timeBonus;
-    return config.diamondReward + timeBonus;
+    // Survival mode: 1 diamond per correct, 2x every 5
+    if (mode === 'survival') {
+        let total = 0;
+        for (let i = 1; i <= correctCount; i++) {
+            const multiplier = Math.floor((i - 1) / 5) + 1;
+            total += multiplier;
+        }
+        return total;
+    }
+
+    // Quick Stakes (arcade): Original tiered system
+    if (mode === 'arcade') {
+        const timeBonus = Math.floor(timeRemaining / 6);
+        if (accuracy < 0.5) return 0;
+        if (accuracy < 0.7) return Math.floor(config.diamondReward * 0.2) + timeBonus;
+        if (accuracy < 0.9) return Math.floor(config.diamondReward * 0.5) + timeBonus;
+        return config.diamondReward + config.perfectBonus + timeBonus;
+    }
+
+    // All other modes: Base reward + perfect bonus
+    if (accuracy === 1.0) {
+        return config.diamondReward + config.perfectBonus;
+    } else if (accuracy >= 0.7) {
+        return config.diamondReward;
+    } else if (accuracy >= 0.5) {
+        return Math.floor(config.diamondReward * 0.5);
+    }
+
+    return 0; // Less than 50% accuracy = no diamonds
 }
 
 export function getDifficultyColor(difficulty: string): string {

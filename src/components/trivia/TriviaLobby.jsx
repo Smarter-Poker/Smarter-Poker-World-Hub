@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { Zap, Trophy, BookOpen, GraduationCap, Gem, Lock, ChevronRight, Flame } from 'lucide-react';
+import { Zap, Trophy, BookOpen, GraduationCap, Gem, Lock, ChevronRight, Flame, Heart, Skull } from 'lucide-react';
 import MetalFrame from '../ui/MetalFrame';
 import HexButton from '../ui/HexButton';
 import PortholeIcon from '../ui/PortholeIcon';
@@ -18,7 +18,9 @@ const MODE_CARDS = [
         description: 'Iconic moments, famous hands, legendary players',
         icon: Trophy,
         color: '#FFD700',
-        glowColor: '#FFD700'
+        glowColor: '#FFD700',
+        diamondReward: 3,
+        perfectBonus: 5
     },
     {
         id: 'rules',
@@ -26,7 +28,9 @@ const MODE_CARDS = [
         description: 'Test your understanding of official poker rules',
         icon: BookOpen,
         color: '#4a90d9',
-        glowColor: '#4a90d9'
+        glowColor: '#4a90d9',
+        diamondReward: 3,
+        perfectBonus: 5
     },
     {
         id: 'pro',
@@ -34,7 +38,19 @@ const MODE_CARDS = [
         description: 'Strategy concepts, GTO basics, advanced trivia',
         icon: GraduationCap,
         color: '#9D4EDD',
-        glowColor: '#9D4EDD'
+        glowColor: '#9D4EDD',
+        diamondReward: 5,
+        perfectBonus: 10
+    },
+    {
+        id: 'survival',
+        name: 'Survival Mode',
+        description: 'Answer until you miss. Rewards stack every 5!',
+        icon: Heart,
+        color: '#ef4444',
+        glowColor: '#ef4444',
+        diamondReward: '1+/Q',
+        perfectBonus: null
     }
 ];
 
@@ -161,6 +177,12 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
                                             Entry: {mode.diamondCost} <Gem size={14} />
                                         </div>
                                     )}
+
+                                    {/* Diamond reward badge */}
+                                    <div className="diamond-reward-badge">
+                                        <Gem size={12} />
+                                        <span>{mode.diamondReward}{mode.perfectBonus ? ` (+${mode.perfectBonus} perfect)` : ''}</span>
+                                    </div>
 
                                     <HexButton
                                         onClick={(e) => {
@@ -433,6 +455,23 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
                     font-size: 13px;
                     margin: 12px 0;
                     text-shadow: 0 0 10px currentColor;
+                }
+
+                .diamond-reward-badge {
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
+                    font-size: 11px;
+                    color: #00D4FF;
+                    background: rgba(0, 212, 255, 0.1);
+                    border: 1px solid rgba(0, 212, 255, 0.3);
+                    border-radius: 4px;
+                    padding: 4px 8px;
+                    margin: 8px 0 12px 0;
+                }
+
+                .diamond-reward-badge svg {
+                    color: #00D4FF;
                 }
 
                 .mode-card--locked {

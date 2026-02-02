@@ -144,28 +144,54 @@ export default function TriviaModePage() {
 
     async function loadQuestions(mode, count) {
         const today = getTodayCST();
+        const sixtyDaysAgo = new Date();
+        sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+        const sixtyDaysAgoStr = sixtyDaysAgo.toISOString();
+
+        // Get user's recently seen question IDs (60-day exclusion)
+        let excludeIds = [];
+        if (userId) {
+            const { data: recentHistory } = await supabase
+                .from('trivia_user_question_history')
+                .select('question_id')
+                .eq('user_id', userId)
+                .gte('seen_at', sixtyDaysAgoStr);
+
+            if (recentHistory) {
+                excludeIds = recentHistory.map(h => h.question_id);
+            }
+        }
 
         // For daily mode, get today's 10 questions (deterministic by date)
         if (mode === 'daily') {
             // First try to get pre-assigned daily questions
-            const { data } = await supabase
+            let query = supabase
                 .from('trivia_questions')
                 .select('*')
                 .eq('daily_date', today)
                 .order('order_index')
                 .limit(10);
 
+            const { data } = await query;
+
             if (data && data.length >= 10) {
                 return data;
             }
 
-            // Fallback: get all questions and use date-seeded shuffle
-            const { data: allQuestions } = await supabase
-                .from('trivia_questions')
-                .select('*');
+            // Fallback: get all questions, exclude recently seen, use date-seeded shuffle
+            let allQuery = supabase.from('trivia_questions').select('*');
+            const { data: allQuestions } = await allQuery;
 
             if (allQuestions && allQuestions.length > 0) {
-                return seededShuffle(allQuestions, today).slice(0, count);
+                // Filter out recently seen questions
+                let available = allQuestions.filter(q => !excludeIds.includes(q.id));
+
+                // If not enough unseen, include some older ones
+                if (available.length < count) {
+                    available = allQuestions;
+                }
+
+                return seededShuffle(available, today).slice(0, count);
             }
 
             return getFallbackQuestions(count);
@@ -185,8 +211,17 @@ export default function TriviaModePage() {
             return getFallbackQuestions(count);
         }
 
+        // Filter out recently seen questions (60-day exclusion)
+        let available = data.filter(q => !excludeIds.includes(q.id));
+
+        // If not enough unseen questions, use all questions
+        if (available.length < count) {
+            console.log(`Not enough unseen questions (${available.length}/${count}), using all available`);
+            available = data;
+        }
+
         // Use date-seeded shuffle for daily-consistent question selection
-        return seededShuffle(data, today).slice(0, count);
+        return seededShuffle(available, today).slice(0, count);
     }
 
     // Date-seeded shuffle for consistent daily questions
@@ -312,7 +347,7 @@ export default function TriviaModePage() {
     };
 
     const handleComplete = async (gameResult) => {
-        const { correctCount, totalQuestions, timeSpent, timeRemaining } = gameResult;
+        const { correctCount, totalQuestions, timeSpent, timeRemaining, answers } = gameResult;
 
         // Calculate rewards with streak multiplier
         const baseDiamonds = calculateDiamonds(mode, correctCount, totalQuestions, timeRemaining);
@@ -355,7 +390,7 @@ export default function TriviaModePage() {
                     play_date: today
                 });
 
-                // Update profile with diamonds only
+                // Update profile with diamonds
                 if (diamondsEarned > 0) {
                     const { data: profile } = await supabase
                         .from('profiles')
@@ -370,6 +405,72 @@ export default function TriviaModePage() {
                                 diamonds: (profile.diamonds || 0) + diamondsEarned
                             })
                             .eq('id', userId);
+                    }
+                }
+
+                // Record question history (60-day non-repeat tracking)
+                if (questions && questions.length > 0) {
+                    const historyRecords = questions.map((q, idx) => ({
+                        user_id: userId,
+                        question_id: q.id,
+                        was_correct: answers ? answers[idx] === q.correct_index : null,
+                        mode
+                    }));
+
+                    // Use upsert to handle potential duplicates
+                    await supabase.from('trivia_user_question_history')
+                        .upsert(historyRecords, {
+                            onConflict: 'user_id,question_id',
+                            ignoreDuplicates: false
+                        });
+                }
+
+                // Update category mastery
+                const categoryStats = {};
+                questions.forEach((q, idx) => {
+                    const cat = q.category || 'general';
+                    if (!categoryStats[cat]) {
+                        categoryStats[cat] = { answered: 0, correct: 0 };
+                    }
+                    categoryStats[cat].answered++;
+                    if (answers && answers[idx] === q.correct_index) {
+                        categoryStats[cat].correct++;
+                    }
+                });
+
+                for (const [category, stats] of Object.entries(categoryStats)) {
+                    // Get current mastery or create new
+                    const { data: existing } = await supabase
+                        .from('trivia_category_mastery')
+                        .select('*')
+                        .eq('user_id', userId)
+                        .eq('category', category)
+                        .single();
+
+                    if (existing) {
+                        const newTotal = existing.total_answered + stats.answered;
+                        const newCorrect = existing.correct_count + stats.correct;
+                        const accuracy = newTotal > 0 ? newCorrect / newTotal : 0;
+                        // Level up every 20% accuracy milestone (20=L2, 40=L3, etc.)
+                        const newLevel = Math.min(10, Math.max(1, Math.floor(accuracy * 10) + 1));
+
+                        await supabase.from('trivia_category_mastery')
+                            .update({
+                                total_answered: newTotal,
+                                correct_count: newCorrect,
+                                mastery_level: newLevel,
+                                updated_at: new Date().toISOString()
+                            })
+                            .eq('user_id', userId)
+                            .eq('category', category);
+                    } else {
+                        await supabase.from('trivia_category_mastery').insert({
+                            user_id: userId,
+                            category,
+                            total_answered: stats.answered,
+                            correct_count: stats.correct,
+                            mastery_level: 1
+                        });
                     }
                 }
 

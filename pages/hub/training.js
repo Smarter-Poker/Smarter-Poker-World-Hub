@@ -25,6 +25,7 @@ import { TRAINING_LIBRARY, TRAINING_LANES, getGamesByCategory, getGamesByTag } f
 import useTrainingProgress from '../../src/hooks/useTrainingProgress';
 import { getAuthUser } from '../../src/lib/authUtils';
 import { getGameImage } from '../../src/data/GAME_IMAGES';
+import DiamondEngine from '../../src/services/DiamondEngine';
 import GameIntroSplash from '../../src/components/training/GameIntroSplash';
 import LeakFixerIntercept from '../../src/components/training/LeakFixerIntercept';
 import dynamic from 'next/dynamic';
@@ -418,6 +419,116 @@ function FilterBar({ active, onFilter, gameCount }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// 💎 OUT OF DIAMONDS MODAL
+// ═══════════════════════════════════════════════════════════════════════════
+function OutOfDiamondsModal({ isOpen, onClose, gameCost = 10 }) {
+    const router = useRouter();
+    if (!isOpen) return null;
+
+    return (
+        <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.85)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000,
+        }}>
+            <div style={{
+                background: 'linear-gradient(135deg, #1a0a2a, #0a0a12)',
+                borderRadius: 24,
+                padding: 32,
+                maxWidth: 420,
+                width: '90%',
+                textAlign: 'center',
+                border: '2px solid rgba(255, 107, 0, 0.5)',
+                boxShadow: '0 0 60px rgba(255, 107, 0, 0.3)',
+            }}>
+                <div style={{ fontSize: 64, marginBottom: 16 }}>💎</div>
+                <h2 style={{
+                    fontFamily: 'Orbitron, sans-serif',
+                    fontSize: 28,
+                    fontWeight: 900,
+                    color: '#ff6b00',
+                    marginBottom: 8,
+                }}>OUT OF DIAMONDS</h2>
+                <p style={{
+                    color: 'rgba(255,255,255,0.7)',
+                    fontSize: 16,
+                    marginBottom: 24,
+                    lineHeight: 1.6,
+                }}>
+                    You need <strong style={{ color: '#FFD700' }}>{gameCost} diamonds</strong> to play this training game.
+                </p>
+
+                <div style={{
+                    background: 'linear-gradient(135deg, rgba(138, 43, 226, 0.2), rgba(0, 212, 255, 0.2))',
+                    borderRadius: 16,
+                    padding: 20,
+                    marginBottom: 24,
+                    border: '1px solid rgba(138, 43, 226, 0.3)',
+                }}>
+                    <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>
+                        🎁 GET VIP FOR
+                    </div>
+                    <div style={{
+                        fontFamily: 'Orbitron, sans-serif',
+                        fontSize: 32,
+                        fontWeight: 900,
+                        color: '#fff',
+                        marginBottom: 4,
+                    }}>
+                        $19.99<span style={{ fontSize: 16, opacity: 0.7 }}>/month</span>
+                    </div>
+                    <div style={{ color: '#00ff88', fontSize: 14, fontWeight: 600 }}>
+                        UNLIMITED ACCESS • No diamonds needed
+                    </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: 12 }}>
+                    <button
+                        onClick={onClose}
+                        style={{
+                            flex: 1,
+                            padding: '14px 24px',
+                            background: 'rgba(255,255,255,0.1)',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            borderRadius: 12,
+                            color: '#fff',
+                            fontSize: 14,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                        }}
+                    >
+                        Maybe Later
+                    </button>
+                    <button
+                        onClick={() => router.push('/hub/store?tab=vip')}
+                        style={{
+                            flex: 1,
+                            padding: '14px 24px',
+                            background: 'linear-gradient(135deg, #ff6b00, #ff0066)',
+                            border: 'none',
+                            borderRadius: 12,
+                            color: '#fff',
+                            fontSize: 14,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                        }}
+                    >
+                        Get Diamonds
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // GAME LANE (Horizontal scroll) - Mobile Optimized
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -508,6 +619,12 @@ export default function TrainingPage() {
     // 🎛️ SETTINGS MENU STATE
     const [showSettingsMenu, setShowSettingsMenu] = useState(false);
 
+    // 💎 DIAMOND ENTRY FEE STATE
+    const [isVIP, setIsVIP] = useState(false);
+    const [diamondBalance, setDiamondBalance] = useState(0);
+    const [showOutOfDiamondsModal, setShowOutOfDiamondsModal] = useState(false);
+    const GAME_COST = 10; // 10 diamonds per training game
+
     // Mark intro as seen when it ends
     const handleIntroEnd = useCallback(() => {
         sessionStorage.setItem('training-intro-seen', 'true');
@@ -519,6 +636,30 @@ export default function TrainingPage() {
         if (introVideoRef.current) {
             introVideoRef.current.muted = false;
         }
+    }, []);
+
+    // 💎 Initialize DiamondEngine and check VIP status
+    useEffect(() => {
+        const initializeDiamondEngine = async () => {
+            try {
+                const authUser = getAuthUser();
+                if (authUser) {
+                    await DiamondEngine.init(authUser.id);
+                    const balance = await DiamondEngine.getBalance();
+                    const vipStatus = await DiamondEngine.isVIP();
+                    setDiamondBalance(balance);
+                    setIsVIP(vipStatus);
+                } else {
+                    // Guest user - use localStorage fallback
+                    await DiamondEngine.init(null);
+                    const balance = await DiamondEngine.getBalance();
+                    setDiamondBalance(balance);
+                }
+            } catch (e) {
+                console.error('[Training] Failed to initialize DiamondEngine:', e);
+            }
+        };
+        initializeDiamondEngine();
     }, []);
 
     const {
@@ -578,8 +719,18 @@ export default function TrainingPage() {
     const leakGames = getLeakGames(TRAINING_LIBRARY);
 
     // Handle game click - Show intro video first, then navigate
-    const handleGameClick = (game) => {
-        console.log(' Launching game:', game.name);
+    const handleGameClick = async (game) => {
+        console.log('🎮 Launching game:', game.name);
+
+        // 💎 Check diamond access - VIP plays free, others pay 10 diamonds
+        if (!isVIP) {
+            const result = await DiamondEngine.deduct(GAME_COST);
+            if (!result.success) {
+                setShowOutOfDiamondsModal(true);
+                return;
+            }
+            setDiamondBalance(result.balance);
+        }
 
         // Check if game was just mastered (trigger celebration)
         const gameProgress = getGameProgress(game.id);

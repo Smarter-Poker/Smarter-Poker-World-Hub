@@ -46,8 +46,7 @@ async function initDiamonds() {
         user_id: p.id,
         balance: STARTING_DIAMONDS,
         lifetime_earned: STARTING_DIAMONDS,
-        lifetime_spent: 0,
-        last_updated: new Date().toISOString()
+        lifetime_spent: 0
     }));
 
     const { error } = await supabase
