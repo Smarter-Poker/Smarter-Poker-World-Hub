@@ -51,8 +51,21 @@ export default function EndlessModePage() {
     const [timeLeft, setTimeLeft] = useState(24);
     const [isTimerRunning, setIsTimerRunning] = useState(false);
     const [screenShake, setScreenShake] = useState(false);
+    const [isPaused, setIsPaused] = useState(false); // Visibility-based pause
     const timerRef = useRef(null);
     const heartbeatIntervalRef = useRef(null);
+
+    // Game Settings (persist to localStorage)
+    const [settings, setSettings] = useState({
+        haptics: true,      // Vibration feedback
+        audio: true,        // Heartbeat sounds
+        screenShake: true,  // Screen shake effect
+        intensity: 'high'   // 'low', 'medium', 'high'
+    });
+
+    // Speed Bonus State
+    const [speedBonus, setSpeedBonus] = useState(0);
+    const [showSpeedBonus, setShowSpeedBonus] = useState(false);
 
     const startTimeRef = useRef(null);
 
@@ -91,11 +104,36 @@ export default function EndlessModePage() {
                     console.error('Failed to load diamonds:', e);
                 }
             }
+            // Load settings from localStorage
+            try {
+                const savedSettings = localStorage.getItem('trivia_settings');
+                if (savedSettings) setSettings(JSON.parse(savedSettings));
+            } catch (e) { }
+
             await loadMoreQuestions();
             setIsLoading(false);
         }
         init();
     }, []);
+
+    // Save settings to localStorage when changed
+    useEffect(() => {
+        try {
+            localStorage.setItem('trivia_settings', JSON.stringify(settings));
+        } catch (e) { }
+    }, [settings]);
+
+    // Visibility-based timer pause (when user leaves app/tab)
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.hidden && isTimerRunning) {
+                setIsPaused(true);
+                setIsTimerRunning(false);
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [isTimerRunning]);
 
     // Load more questions when running low
     useEffect(() => {
@@ -144,7 +182,7 @@ export default function EndlessModePage() {
         startTimeRef.current = Date.now();
     }
 
-    // Shot Clock Timer Effect - 24 seconds with haptics/audio/shake
+    // Shot Clock Timer Effect - 24 seconds with haptics/audio/shake (respects settings)
     useEffect(() => {
         if (!isTimerRunning || showResult) {
             if (timerRef.current) clearInterval(timerRef.current);
@@ -153,15 +191,21 @@ export default function EndlessModePage() {
             return;
         }
 
+        // Intensity multipliers
+        const intensityMultiplier = settings.intensity === 'high' ? 1 : settings.intensity === 'medium' ? 0.6 : 0.3;
+
         timerRef.current = setInterval(() => {
             setTimeLeft(prev => {
                 const newTime = prev - 1;
-                if ('vibrate' in navigator) {
-                    if (newTime <= 3) navigator.vibrate(100);
-                    else if (newTime <= 8) navigator.vibrate(50);
-                    else navigator.vibrate(20);
+
+                // Haptic feedback (if enabled)
+                if (settings.haptics && 'vibrate' in navigator) {
+                    const baseVibration = newTime <= 3 ? 100 : newTime <= 8 ? 50 : 20;
+                    navigator.vibrate(Math.round(baseVibration * intensityMultiplier));
                 }
-                if (newTime <= 3 && newTime > 0) setScreenShake(true);
+
+                // Screen shake (if enabled)
+                if (settings.screenShake && newTime <= 3 && newTime > 0) setScreenShake(true);
                 else setScreenShake(false);
 
                 if (newTime <= 0) {
@@ -174,7 +218,8 @@ export default function EndlessModePage() {
             });
         }, 1000);
 
-        if (timeLeft <= 8 && timeLeft > 0) {
+        // Heartbeat audio (if enabled)
+        if (settings.audio && timeLeft <= 8 && timeLeft > 0) {
             const playHeartbeat = () => {
                 try {
                     const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -184,7 +229,8 @@ export default function EndlessModePage() {
                     gain.connect(ctx.destination);
                     osc.frequency.value = 80;
                     osc.type = 'sine';
-                    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                    const volume = 0.3 * intensityMultiplier;
+                    gain.gain.setValueAtTime(volume, ctx.currentTime);
                     gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
                     osc.start(ctx.currentTime);
                     osc.stop(ctx.currentTime + 0.15);
@@ -200,7 +246,7 @@ export default function EndlessModePage() {
             if (timerRef.current) clearInterval(timerRef.current);
             if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
         };
-    }, [isTimerRunning, showResult, timeLeft]);
+    }, [isTimerRunning, showResult, timeLeft, settings]);
 
     // Handle timeout - game over
     function handleTimeOut() {
@@ -332,6 +378,7 @@ export default function EndlessModePage() {
 
         // Stop timer
         setIsTimerRunning(false);
+        const answerTime = 24 - timeLeft; // How many seconds it took to answer
 
         // If Double Chance active and this is first attempt
         if (doubleChanceActive && firstAttemptWrong === null) {
@@ -354,7 +401,17 @@ export default function EndlessModePage() {
         setShowResult(true);
 
         if (correct) {
-            const earned = multiplier;
+            let earned = multiplier;
+
+            // Speed bonus for fast answers (under 10 seconds)
+            if (answerTime < 10) {
+                const bonus = answerTime <= 3 ? 3 : answerTime <= 5 ? 2 : 1; // 3💎 for ≤3s, 2💎 for ≤5s, 1💎 for <10s
+                setSpeedBonus(bonus);
+                setShowSpeedBonus(true);
+                earned += bonus;
+                setTimeout(() => setShowSpeedBonus(false), 1500);
+            }
+
             setDiamondsEarned(prev => prev + earned);
             setStreak(prev => prev + 1);
 
@@ -544,12 +601,101 @@ export default function EndlessModePage() {
                                     }
                                 `}</style>
 
+                                {/* Paused Overlay */}
+                                {isPaused && (
+                                    <div style={{
+                                        position: 'fixed',
+                                        top: 0, left: 0, right: 0, bottom: 0,
+                                        background: 'rgba(0,0,0,0.85)',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        zIndex: 1000
+                                    }}>
+                                        <span style={{ fontSize: '48px', marginBottom: '20px' }}>⏸️</span>
+                                        <h2 style={{ color: 'white', marginBottom: '10px' }}>Game Paused</h2>
+                                        <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '20px' }}>
+                                            You left the screen. Time remaining: {timeLeft}s
+                                        </p>
+                                        <button
+                                            onClick={() => { setIsPaused(false); setIsTimerRunning(true); }}
+                                            style={{
+                                                padding: '16px 48px',
+                                                background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+                                                border: 'none',
+                                                borderRadius: '12px',
+                                                color: 'white',
+                                                fontSize: '18px',
+                                                fontWeight: 'bold',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            ▶️ Resume Game
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* Speed Bonus Animation */}
+                                {showSpeedBonus && (
+                                    <div style={{
+                                        position: 'fixed',
+                                        top: '50%',
+                                        left: '50%',
+                                        transform: 'translate(-50%, -50%)',
+                                        zIndex: 100,
+                                        animation: 'bonusPop 1.5s ease-out forwards',
+                                        pointerEvents: 'none'
+                                    }}>
+                                        <style>{`
+                                            @keyframes bonusPop {
+                                                0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+                                                20% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+                                                80% { transform: translate(-50%, -80%) scale(1); opacity: 1; }
+                                                100% { transform: translate(-50%, -100%) scale(0.8); opacity: 0; }
+                                            }
+                                        `}</style>
+                                        <div style={{
+                                            padding: '16px 32px',
+                                            background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
+                                            borderRadius: '16px',
+                                            boxShadow: '0 8px 32px rgba(251, 191, 36, 0.5)'
+                                        }}>
+                                            <span style={{ fontSize: '24px', fontWeight: 'bold', color: '#1a1a1a' }}>
+                                                ⚡ SPEED BONUS +{speedBonus}💎
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Shot Clock Timer */}
                                 <div style={{
                                     display: 'flex',
                                     justifyContent: 'center',
+                                    alignItems: 'center',
+                                    gap: '12px',
                                     marginBottom: '12px'
                                 }}>
+                                    {/* Settings Button */}
+                                    <button
+                                        onClick={() => setSettings(prev => ({ ...prev, showPanel: !prev.showPanel }))}
+                                        style={{
+                                            width: '36px',
+                                            height: '36px',
+                                            background: 'rgba(255,255,255,0.1)',
+                                            border: '1px solid rgba(255,255,255,0.2)',
+                                            borderRadius: '50%',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            fontSize: '16px'
+                                        }}
+                                    >
+                                        ⚙️
+                                    </button>
+
+                                    {/* Timer Display */}
                                     <div style={{
                                         display: 'flex',
                                         alignItems: 'center',
@@ -584,7 +730,93 @@ export default function EndlessModePage() {
                                             </span>
                                         )}
                                     </div>
+
+                                    {/* Spacer for symmetry */}
+                                    <div style={{ width: '36px' }} />
                                 </div>
+
+                                {/* Settings Panel */}
+                                {settings.showPanel && (
+                                    <div style={{
+                                        background: 'rgba(0,0,0,0.8)',
+                                        border: '1px solid rgba(255,255,255,0.2)',
+                                        borderRadius: '12px',
+                                        padding: '16px',
+                                        marginBottom: '16px'
+                                    }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                            <span style={{ color: 'white' }}>🔊 Sound Effects</span>
+                                            <button
+                                                onClick={() => setSettings(prev => ({ ...prev, audio: !prev.audio }))}
+                                                style={{
+                                                    padding: '4px 12px',
+                                                    background: settings.audio ? '#22c55e' : '#666',
+                                                    border: 'none',
+                                                    borderRadius: '12px',
+                                                    color: 'white',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                {settings.audio ? 'ON' : 'OFF'}
+                                            </button>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                            <span style={{ color: 'white' }}>📳 Haptic Vibration</span>
+                                            <button
+                                                onClick={() => setSettings(prev => ({ ...prev, haptics: !prev.haptics }))}
+                                                style={{
+                                                    padding: '4px 12px',
+                                                    background: settings.haptics ? '#22c55e' : '#666',
+                                                    border: 'none',
+                                                    borderRadius: '12px',
+                                                    color: 'white',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                {settings.haptics ? 'ON' : 'OFF'}
+                                            </button>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                            <span style={{ color: 'white' }}>📱 Screen Shake</span>
+                                            <button
+                                                onClick={() => setSettings(prev => ({ ...prev, screenShake: !prev.screenShake }))}
+                                                style={{
+                                                    padding: '4px 12px',
+                                                    background: settings.screenShake ? '#22c55e' : '#666',
+                                                    border: 'none',
+                                                    borderRadius: '12px',
+                                                    color: 'white',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                {settings.screenShake ? 'ON' : 'OFF'}
+                                            </button>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span style={{ color: 'white' }}>⚡ Intensity</span>
+                                            <div style={{ display: 'flex', gap: '4px' }}>
+                                                {['low', 'medium', 'high'].map(level => (
+                                                    <button
+                                                        key={level}
+                                                        onClick={() => setSettings(prev => ({ ...prev, intensity: level }))}
+                                                        style={{
+                                                            padding: '4px 10px',
+                                                            background: settings.intensity === level ? '#8b5cf6' : 'rgba(255,255,255,0.1)',
+                                                            border: 'none',
+                                                            borderRadius: '8px',
+                                                            color: 'white',
+                                                            fontSize: '11px',
+                                                            cursor: 'pointer',
+                                                            textTransform: 'capitalize'
+                                                        }}
+                                                    >
+                                                        {level}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Multiplier Progress */}
                                 <div style={{
@@ -919,7 +1151,7 @@ export default function EndlessModePage() {
                         )}
                     </div>
                 </div>
-            </PageTransition>
+            </PageTransition >
         </>
     );
 }
