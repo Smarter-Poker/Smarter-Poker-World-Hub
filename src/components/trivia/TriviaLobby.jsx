@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { Zap, Trophy, BookOpen, GraduationCap, Gem, Lock, ChevronRight, Flame, Heart, Skull } from 'lucide-react';
+import { Zap, Trophy, BookOpen, GraduationCap, Gem, Lock, ChevronRight, Flame, Heart, Skull, Infinity, Dices } from 'lucide-react';
 import MetalFrame from '../ui/MetalFrame';
 import HexButton from '../ui/HexButton';
 import PortholeIcon from '../ui/PortholeIcon';
@@ -50,6 +50,26 @@ const MODE_CARDS = [
         color: '#ef4444',
         glowColor: '#ef4444',
         diamondReward: '10+',
+        perfectBonus: null
+    },
+    {
+        id: 'endless',
+        name: 'Endless Mode',
+        description: 'All questions, random order. Answer until you miss!',
+        icon: Infinity,
+        color: '#8b5cf6',
+        glowColor: '#8b5cf6',
+        diamondReward: '1+/Q',
+        perfectBonus: null
+    },
+    {
+        id: 'mixed',
+        name: 'Mixed Categories',
+        description: 'All 4 categories in rotation. Track your strengths!',
+        icon: Dices,
+        color: '#00D4FF',
+        glowColor: '#00D4FF',
+        diamondReward: '1+/Q',
         perfectBonus: null
     }
 ];

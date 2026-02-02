@@ -311,7 +311,7 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
                     </motion.div>
 
                     {/* Stats Row */}
-                    {(phase === 'XP' || phase === 'BLUNDERS' || phase === 'ACTIONS') && (
+                    {(phase === 'XP' || phase === 'COACHING' || phase === 'BLUNDERS' || phase === 'ACTIONS') && (
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -343,6 +343,139 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
                                     <span style={styles.statIcon}>🔥</span>
                                     <span style={styles.statValue}>{stats.bestStreak}</span>
                                     <span style={styles.statLabel}>Best Streak</span>
+                                </div>
+                            )}
+                        </motion.div>
+                    )}
+
+                    {/* 🧠 JARVIS AI COACHING */}
+                    {(phase === 'COACHING' || phase === 'BLUNDERS' || phase === 'ACTIONS') && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            style={{
+                                marginBottom: 24,
+                                padding: 16,
+                                background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(0, 212, 255, 0.05))',
+                                borderRadius: 12,
+                                border: '1px solid rgba(0, 212, 255, 0.3)'
+                            }}
+                        >
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8,
+                                marginBottom: 12,
+                                fontSize: 12,
+                                fontWeight: 700,
+                                color: '#00d4ff',
+                                textTransform: 'uppercase',
+                                letterSpacing: 1
+                            }}>
+                                🧠 Jarvis Coach
+                                {isLoadingCoaching && (
+                                    <motion.span
+                                        animate={{ rotate: 360 }}
+                                        transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                                        style={{ marginLeft: 8 }}
+                                    >
+                                        ⏳
+                                    </motion.span>
+                                )}
+                            </div>
+
+                            {aiCoaching ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                    {/* Headline */}
+                                    <p style={{
+                                        fontSize: 16,
+                                        fontWeight: 600,
+                                        color: '#fff',
+                                        margin: 0,
+                                        lineHeight: 1.4
+                                    }}>
+                                        {aiCoaching.headline}
+                                    </p>
+
+                                    {/* Detailed Feedback */}
+                                    <p style={{
+                                        fontSize: 13,
+                                        color: 'rgba(255,255,255,0.8)',
+                                        margin: 0,
+                                        lineHeight: 1.5
+                                    }}>
+                                        {aiCoaching.detailedFeedback}
+                                    </p>
+
+                                    {/* Strengths & Improvements */}
+                                    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                                        {aiCoaching.strengths?.length > 0 && (
+                                            <div style={{ flex: 1, minWidth: 140 }}>
+                                                <div style={{ fontSize: 10, fontWeight: 700, color: '#22c55e', marginBottom: 4 }}>
+                                                    ✓ STRENGTHS
+                                                </div>
+                                                {aiCoaching.strengths.slice(0, 2).map((s, i) => (
+                                                    <p key={i} style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', margin: '2px 0' }}>
+                                                        • {s}
+                                                    </p>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {aiCoaching.areasToImprove?.length > 0 && (
+                                            <div style={{ flex: 1, minWidth: 140 }}>
+                                                <div style={{ fontSize: 10, fontWeight: 700, color: '#f59e0b', marginBottom: 4 }}>
+                                                    ⚡ FOCUS AREAS
+                                                </div>
+                                                {aiCoaching.areasToImprove.slice(0, 2).map((a, i) => (
+                                                    <p key={i} style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', margin: '2px 0' }}>
+                                                        • {a}
+                                                    </p>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Recommended Drill */}
+                                    {aiCoaching.recommendedDrill && (
+                                        <div style={{
+                                            padding: '10px 12px',
+                                            background: 'rgba(255, 215, 0, 0.1)',
+                                            borderRadius: 8,
+                                            border: '1px solid rgba(255, 215, 0, 0.3)'
+                                        }}>
+                                            <div style={{ fontSize: 10, fontWeight: 700, color: '#ffd700', marginBottom: 4 }}>
+                                                💡 RECOMMENDED NEXT
+                                            </div>
+                                            <p style={{ fontSize: 12, color: '#fff', margin: 0, fontWeight: 500 }}>
+                                                {aiCoaching.recommendedDrill.name}
+                                            </p>
+                                            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', margin: '4px 0 0 0' }}>
+                                                {aiCoaching.recommendedDrill.reason}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {/* Motivational Quote */}
+                                    {aiCoaching.motivationalQuote && (
+                                        <p style={{
+                                            fontSize: 11,
+                                            fontStyle: 'italic',
+                                            color: 'rgba(255,255,255,0.5)',
+                                            margin: '4px 0 0 0',
+                                            textAlign: 'center'
+                                        }}>
+                                            "{aiCoaching.motivationalQuote}"
+                                        </p>
+                                    )}
+                                </div>
+                            ) : (
+                                <div style={{
+                                    textAlign: 'center',
+                                    padding: 16,
+                                    color: 'rgba(255,255,255,0.5)',
+                                    fontSize: 13
+                                }}>
+                                    {isLoadingCoaching ? 'Jarvis is analyzing your session...' : 'Coaching feedback unavailable'}
                                 </div>
                             )}
                         </motion.div>

@@ -536,6 +536,16 @@ const GameSession: React.FC<GameSessionProps> = ({
     } | null>(null);
     const [scenarioPhase, setScenarioPhase] = useState<'READING' | 'DECIDING' | 'SHOWING_RESULT'>('DECIDING');
 
+    // 📊 Jarvis Training Data - Track all answers for analysis
+    const [sessionAnswers, setSessionAnswers] = useState<Array<{
+        questionId: string;
+        userAnswer: string;
+        correctAnswer: string;
+        wasCorrect: boolean;
+        scenario?: any;
+    }>>([]);
+    const [sessionStartTime] = useState(Date.now());
+
     // Animation controls
     const screenControls = useAnimation();
 
@@ -682,6 +692,15 @@ const GameSession: React.FC<GameSessionProps> = ({
                 setCorrectCount(prev => prev + 1);
             }
 
+            // 📊 Track answer for Jarvis analysis
+            setSessionAnswers(prev => [...prev, {
+                questionId: `hand_${handNumber}`,
+                userAnswer: action,
+                correctAnswer: result.correctAction || 'unknown',
+                wasCorrect: result.isCorrect,
+                scenario: currentHand
+            }]);
+
             // Show result overlay
             setPhase('SHOWING_RESULT');
             setShowResult(true);
@@ -764,12 +783,13 @@ const GameSession: React.FC<GameSessionProps> = ({
         return lines;
     };
 
-    const completeSession = () => {
+    const completeSession = useCallback(async () => {
         setPhase('SESSION_COMPLETE');
 
         const accuracy = handNumber > 0 ? (correctCount / handNumber) * 100 : 0;
         const thresholds = [85, 87, 89, 91, 93, 95, 97, 98, 99, 100];
         const passed = accuracy >= (thresholds[currentLevel - 1] || 85);
+        const timeSpent = Math.round((Date.now() - sessionStartTime) / 1000);
 
         const stats: SessionStats = {
             handsPlayed: handNumber,
@@ -780,8 +800,34 @@ const GameSession: React.FC<GameSessionProps> = ({
             xpEarned: correctCount * 10 + (passed ? 100 : 0),
         };
 
+        // 📊 Push training data to Jarvis for analysis
+        try {
+            await fetch('/api/jarvis/training-session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId,
+                    sessionId: `session_${Date.now()}`,
+                    gameId,
+                    gameName,
+                    category: engineType,
+                    level: currentLevel,
+                    questionsAnswered: handNumber,
+                    questionsCorrect: correctCount,
+                    accuracy,
+                    streak: 0, // Could track best streak
+                    timeSpentSeconds: timeSpent,
+                    answers: sessionAnswers,
+                    timestamp: new Date().toISOString()
+                })
+            });
+            console.log('[GameSession] ✅ Training data pushed to Jarvis');
+        } catch (error) {
+            console.error('[GameSession] Failed to push to Jarvis:', error);
+        }
+
         onSessionComplete?.(stats);
-    };
+    }, [handNumber, correctCount, currentLevel, health, userId, gameId, gameName, engineType, sessionAnswers, sessionStartTime, onSessionComplete]);
 
     // ========================================================================
     // EFFECTS

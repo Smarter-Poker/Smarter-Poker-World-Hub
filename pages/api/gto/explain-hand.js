@@ -128,7 +128,7 @@ function getDefaultExplanation(hand, correctAction, userAction) {
 
     return `${hand} has ${handStrength}, making ${actionVerb} the correct play in this spot. ` +
         `The hand's playability and equity distribution favor an aggressive approach. ` +
-        `💡 Key insight: Position and stack depth heavily influence preflop decisions.`;
+        `Key insight: Position and stack depth heavily influence preflop decisions.`;
 }
 
 function getHandStrengthDescription(hand) {

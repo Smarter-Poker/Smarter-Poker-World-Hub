@@ -3767,7 +3767,7 @@ export default function MemoryGamesPage() {
                                                 width: '100%'
                                             }}
                                         >
-                                            🤖 Ask Jarvis: Why was I wrong?
+                                            Ask Jarvis: Why was I wrong?
                                         </button>
                                         <button
                                             onClick={() => fetchCoachAnalysis(gradeResult)}
@@ -3788,7 +3788,7 @@ export default function MemoryGamesPage() {
                                                 width: '100%'
                                             }}
                                         >
-                                            📊 Get Full Game Analysis
+                                            Get Full Game Analysis
                                         </button>
                                     </>)}
 
@@ -3803,13 +3803,13 @@ export default function MemoryGamesPage() {
                                             padding: 16
                                         }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                                                <span style={{ fontSize: 20 }}>🧠</span>
+                                                <span style={{ fontSize: 20, fontWeight: 'bold', color: '#10B981' }}>J</span>
                                                 <span style={{ fontFamily: 'Orbitron', fontSize: 14, color: '#10B981' }}>Jarvis Analysis</span>
                                             </div>
 
                                             {coachAnalysis.loading ? (
                                                 <div style={{ textAlign: 'center', padding: 20, color: 'rgba(255, 255, 255, 0.6)' }}>
-                                                    <div style={{ marginBottom: 8 }}>🤔</div>
+                                                    <div style={{ marginBottom: 8 }}>...</div>
                                                     Jarvis is analyzing your game...
                                                 </div>
                                             ) : coachAnalysis.analysis ? (
@@ -3827,7 +3827,7 @@ export default function MemoryGamesPage() {
                                                     {/* Pattern Insights */}
                                                     {coachAnalysis.analysis.patternInsights?.length > 0 && (
                                                         <div style={{ marginBottom: 12 }}>
-                                                            <div style={{ fontSize: 12, color: '#10B981', marginBottom: 6 }}>💡 Patterns Detected</div>
+                                                            <div style={{ fontSize: 12, color: '#10B981', marginBottom: 6 }}>Patterns Detected</div>
                                                             {coachAnalysis.analysis.patternInsights.map((item, i) => (
                                                                 <div key={i} style={{
                                                                     background: 'rgba(0, 0, 0, 0.2)',
@@ -3846,7 +3846,7 @@ export default function MemoryGamesPage() {
                                                     {/* Recommendations */}
                                                     {coachAnalysis.analysis.recommendations?.length > 0 && (
                                                         <div>
-                                                            <div style={{ fontSize: 12, color: '#06B6D4', marginBottom: 6 }}>🎯 Next Steps</div>
+                                                            <div style={{ fontSize: 12, color: '#06B6D4', marginBottom: 6 }}>Next Steps</div>
                                                             {coachAnalysis.analysis.recommendations.map((rec, i) => (
                                                                 <div key={i} style={{
                                                                     display: 'flex',
@@ -3893,7 +3893,7 @@ export default function MemoryGamesPage() {
                                     }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                                <span style={{ fontSize: 32 }}>🤖</span>
+                                                <span style={{ fontSize: 28, fontFamily: 'Orbitron', fontWeight: 'bold', color: '#A78BFA' }}>J</span>
                                                 <span style={{ fontFamily: 'Orbitron', fontSize: 18, color: '#A78BFA' }}>Jarvis GTO Coach</span>
                                             </div>
                                             <button
@@ -3936,7 +3936,7 @@ export default function MemoryGamesPage() {
                                         }}>
                                             {explainModal.loading ? (
                                                 <div style={{ textAlign: 'center', color: 'rgba(255, 255, 255, 0.6)' }}>
-                                                    <div style={{ marginBottom: 8 }}>🤔</div>
+                                                    <div style={{ marginBottom: 8 }}>...</div>
                                                     Jarvis is analyzing...
                                                 </div>
                                             ) : (

@@ -28,7 +28,7 @@ export default async function handler(req, res) {
             return res.status(200).json({
                 success: true,
                 analysis: {
-                    summary: "Perfect game! No mistakes to analyze. 🎯",
+                    summary: "Perfect game! No mistakes to analyze.",
                     recommendations: ["Keep practicing to maintain your edge!"],
                     patternInsights: []
                 }
