@@ -43,6 +43,11 @@ import LocationAnalytics from '../../src/components/bankroll/LocationAnalytics';
 import WeeklySummary from '../../src/components/bankroll/WeeklySummary';
 import BankrollProjection from '../../src/components/bankroll/BankrollProjection';
 import PlayerNotes from '../../src/components/bankroll/PlayerNotes';
+// Phase 4 Components
+import SessionTimer from '../../src/components/bankroll/SessionTimer';
+import HistoricalComparison from '../../src/components/bankroll/HistoricalComparison';
+import VarianceCalculator from '../../src/components/bankroll/VarianceCalculator';
+import BankrollHeatMap from '../../src/components/bankroll/BankrollHeatMap';
 
 const SIDEBAR_SECTIONS = [
   { id: 'dashboard', label: 'Dashboard', icon: '◎' },
@@ -848,6 +853,13 @@ export default function BankrollManagerPage() {
 
           {/* Right Sidebar - Assistant Panel */}
           <aside style={styles.assistantPanel}>
+            {/* Session Timer */}
+            <SessionTimer
+              onOpenLog={(prefill) => {
+                setShowLogModal(true);
+              }}
+            />
+
             {/* Jarvis AI Insights */}
             <JarvisLeakInsights userId={userId} onRefresh={loadData} />
 
@@ -860,6 +872,15 @@ export default function BankrollManagerPage() {
               currentBankroll={stats?.currentBankroll || 0}
               periodPL={stats?.monthlyPL || 0}
             />
+
+            {/* Historical Comparison */}
+            <HistoricalComparison userId={userId} />
+
+            {/* Variance Calculator */}
+            <VarianceCalculator userId={userId} />
+
+            {/* Heat Map */}
+            <BankrollHeatMap userId={userId} />
 
             {/* Location Analytics */}
             <LocationAnalytics entries={entries} isLoading={isLoading} />
