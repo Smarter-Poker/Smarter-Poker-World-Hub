@@ -22,6 +22,63 @@ const SUIT_ROTATIONS = {
     3: { s: 'c', h: 's', d: 'h', c: 'd' }, // Rotate +3
 };
 
+// PioSolver action code translation
+const ACTION_TRANSLATIONS = {
+    'c': 'Check',
+    'f': 'Fold',
+    'x': 'Check',
+    'k': 'Check',
+    'b': 'Bet',
+    'r': 'Raise',
+    'ai': 'All-In',
+    'allin': 'All-In',
+    // Bet sizes
+    'b16': 'Bet 16%',
+    'b20': 'Bet 20%',
+    'b25': 'Bet 25%',
+    'b33': 'Bet 33%',
+    'b45': 'Bet 45%',
+    'b50': 'Bet 50%',
+    'b66': 'Bet 66%',
+    'b75': 'Bet 75%',
+    'b100': 'Bet 100%',
+    'b125': 'Bet 125%',
+    'b150': 'Bet 150%',
+    'b200': 'Bet 200%',
+    // Raise sizes
+    'r2.5': 'Raise 2.5x',
+    'r3': 'Raise 3x',
+    'r4': 'Raise 4x',
+};
+
+/**
+ * Translate PIO action code to human-readable action
+ */
+function translateAction(actionCode) {
+    if (!actionCode) return 'Unknown';
+    const lower = actionCode.toLowerCase();
+
+    // Direct lookup
+    if (ACTION_TRANSLATIONS[lower]) {
+        return ACTION_TRANSLATIONS[lower];
+    }
+
+    // Pattern matching for bet sizes (e.g., "b67" -> "Bet 67%")
+    const betMatch = lower.match(/^b(\d+)$/);
+    if (betMatch) {
+        return `Bet ${betMatch[1]}%`;
+    }
+
+    // Pattern matching for raise sizes (e.g., "r2.5" -> "Raise 2.5x")
+    const raiseMatch = lower.match(/^r([\d.]+)$/);
+    if (raiseMatch) {
+        return `Raise ${raiseMatch[1]}x`;
+    }
+
+    // Fallback: capitalize first letter
+    return actionCode.charAt(0).toUpperCase() + actionCode.slice(1);
+}
+
 /**
  * Apply suit rotation to a card string
  */
@@ -216,11 +273,12 @@ export default async function handler(req, res) {
                         const frequencies = strategyMatrix.frequencies || {};
                         const handEv = strategyMatrix.hand_evs?.[heroHandKey] || 0;
 
-                        // Build actions object for this hand
+                        // Build actions object for this hand with translated names
                         // EVs are calculated based on frequency - higher frequency actions have higher EV
                         // This is a simplification since we don't have per-action EVs in the data
                         const handActions = {};
                         let bestAction = null;
+                        let bestActionDisplay = null;
                         let bestFreq = 0;
                         const baseEv = handEv || 10; // Base EV for the hand
 
@@ -228,13 +286,16 @@ export default async function handler(req, res) {
                             const freq = frequencies[action]?.[heroHandKey] || 0;
                             // EV scales with frequency - 100% freq = full EV, 0% freq = penalty
                             const actionEv = freq > 0.01 ? baseEv * freq : -5; // Penalty for actions not in strategy
+                            const displayName = translateAction(action);
                             handActions[action] = {
                                 frequency: freq,
-                                ev: actionEv
+                                ev: actionEv,
+                                displayName: displayName
                             };
                             if (freq > bestFreq) {
                                 bestFreq = freq;
                                 bestAction = action;
+                                bestActionDisplay = displayName;
                             }
                         }
 
@@ -258,6 +319,7 @@ export default async function handler(req, res) {
                             solver_node: {
                                 actions: handActions,
                                 best_action: bestAction,
+                                best_action_display: bestActionDisplay,
                                 max_ev: handEv,
                                 is_mixed: availableActions.filter(a => (frequencies[a]?.[heroHandKey] || 0) > 0.1).length > 1
                             }
