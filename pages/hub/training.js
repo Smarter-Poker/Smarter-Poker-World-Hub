@@ -44,6 +44,8 @@ import PageTransition from '../../src/components/transitions/PageTransition';
 import { masteryCelebration, achievementCelebration } from '../../src/utils/confetti';
 import toast from '../../src/stores/toastStore';
 import { trainingSounds } from '../../src/utils/trainingSounds';
+import GamificationService from '../../services/GamificationService';
+import AchievementToast from '../../src/components/training/AchievementToast';
 
 // Register GSAP plugins
 if (typeof window !== 'undefined') {
@@ -774,12 +776,44 @@ export default function TrainingPage() {
         setActiveGame(null);
     };
 
-    // Handle arena completion
-    const handleArenaComplete = (results) => {
-        console.log('Trophy Arena complete:', results);
-        // Could show results modal or update progress here
+    // 🎮 Achievement toast state
+    const [unlockedAchievements, setUnlockedAchievements] = useState([]);
+
+    // Handle arena completion - record to gamification APIs
+    const handleArenaComplete = async (results) => {
+        console.log('🏆 Arena complete:', results);
         setShowArena(false);
         setActiveGame(null);
+
+        // Record session to gamification APIs
+        const user = getAuthUser();
+        if (user?.id && results) {
+            try {
+                const gamificationResult = await GamificationService.recordSession({
+                    userId: user.id,
+                    gameId: results.gameId,
+                    accuracy: results.accuracy || 0,
+                    questionsAnswered: results.questionsAnswered || 0,
+                    questionsCorrect: results.questionsCorrect || 0,
+                    bestStreak: results.bestStreak || 0,
+                    levelPassed: results.levelPassed || false
+                });
+
+                // Show achievement toast if any unlocked
+                if (gamificationResult.newlyUnlocked?.length > 0) {
+                    setUnlockedAchievements(gamificationResult.newlyUnlocked);
+                    achievementCelebration();
+                    trainingSounds.play('achievement');
+                }
+
+                // Show streak toast
+                if (gamificationResult.streak?.streakUpdated) {
+                    toast.success(`🔥 ${gamificationResult.streak.currentStreak} day streak!`);
+                }
+            } catch (e) {
+                console.error('[Training] Gamification update failed:', e);
+            }
+        }
     };
 
     // Handle featured play
@@ -932,6 +966,13 @@ export default function TrainingPage() {
                         onClose={() => setShowOutOfDiamondsModal(false)}
                         gameCost={GAME_COST}
                     />
+
+                    {/* 🏅 Achievement Toast */}
+                    <AchievementToast
+                        achievements={unlockedAchievements}
+                        onDismiss={() => setUnlockedAchievements([])}
+                    />
+
 
                     <div className="training-page" style={styles.page}>
                         {/* Fixed Header - Universal Header with Hub navigation + Settings Menu */}

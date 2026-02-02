@@ -874,7 +874,7 @@ export default function VideoLibraryPage() {
                     {videos.map(video => (
                         <div
                             key={video.id}
-                            onClick={() => setSelectedVideo(video)}
+                            onClick={() => handleOpenVideo(video)}
                             style={{
                                 background: C.card,
                                 borderRadius: 16,
@@ -935,6 +935,25 @@ export default function VideoLibraryPage() {
                                 }}>
                                     {video.duration}
                                 </div>
+                                {/* Watched badge */}
+                                {watchedVideos.has(video.id) && (
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: 8,
+                                        left: 8,
+                                        background: 'rgba(0, 200, 83, 0.9)',
+                                        padding: '4px 10px',
+                                        borderRadius: 12,
+                                        fontSize: 11,
+                                        fontWeight: 700,
+                                        color: 'white',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 4,
+                                    }}>
+                                        <span>✓</span> Watched
+                                    </div>
+                                )}
                                 {/* Play button overlay */}
                                 <div style={{
                                     position: 'absolute',
@@ -1054,7 +1073,7 @@ export default function VideoLibraryPage() {
             {selectedVideo && (
                 <div
                     onClick={(e) => {
-                        if (e.target === e.currentTarget) setSelectedVideo(null);
+                        if (e.target === e.currentTarget) handleCloseVideo();
                     }}
                     style={{
                         position: 'fixed',
@@ -1070,7 +1089,7 @@ export default function VideoLibraryPage() {
                 >
                     {/* Close button - always visible */}
                     <button
-                        onClick={() => setSelectedVideo(null)}
+                        onClick={handleCloseVideo}
                         style={{
                             position: 'absolute',
                             top: 16,

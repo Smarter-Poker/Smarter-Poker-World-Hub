@@ -11,12 +11,81 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export default async function handler(req, res) {
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // POST: Update leaderboard entry after session
+    if (req.method === 'POST') {
+        const { userId, accuracy, questionsAnswered, questionsCorrect, bestStreak } = req.body;
+
+        if (!userId) {
+            return res.status(400).json({ error: 'userId required' });
+        }
+
+        try {
+            const now = new Date();
+            const periods = [
+                { type: 'daily', key: now.toISOString().split('T')[0] },
+                { type: 'weekly', key: `${now.getFullYear()}-W${Math.ceil((now.getDate() + new Date(now.getFullYear(), now.getMonth(), 1).getDay()) / 7).toString().padStart(2, '0')}` },
+                { type: 'monthly', key: `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}` },
+                { type: 'alltime', key: 'alltime' }
+            ];
+
+            // Upsert entry for each period
+            for (const period of periods) {
+                const { data: existing } = await supabase
+                    .from('training_leaderboard')
+                    .select('*')
+                    .eq('user_id', userId)
+                    .eq('period_type', period.type)
+                    .eq('period_key', period.key)
+                    .single();
+
+                if (existing) {
+                    const newTotal = existing.questions_answered + questionsAnswered;
+                    const newCorrect = existing.questions_correct + questionsCorrect;
+                    await supabase
+                        .from('training_leaderboard')
+                        .update({
+                            sessions_completed: existing.sessions_completed + 1,
+                            questions_answered: newTotal,
+                            questions_correct: newCorrect,
+                            accuracy: newTotal > 0 ? Math.round((newCorrect / newTotal) * 100) : 0,
+                            best_streak: Math.max(existing.best_streak || 0, bestStreak || 0),
+                            updated_at: new Date().toISOString()
+                        })
+                        .eq('id', existing.id);
+                } else {
+                    await supabase
+                        .from('training_leaderboard')
+                        .insert({
+                            user_id: userId,
+                            period_type: period.type,
+                            period_key: period.key,
+                            sessions_completed: 1,
+                            questions_answered: questionsAnswered,
+                            questions_correct: questionsCorrect,
+                            accuracy: questionsAnswered > 0 ? Math.round((questionsCorrect / questionsAnswered) * 100) : 0,
+                            best_streak: bestStreak || 0,
+                            total_xp: 0
+                        });
+                }
+            }
+
+            return res.status(200).json({ success: true, message: 'Leaderboard updated' });
+        } catch (error) {
+            console.error('[Leaderboard] Update error:', error.message);
+            return res.status(500).json({ error: 'Failed to update leaderboard' });
+        }
+    }
+
+    // GET: Fetch leaderboard
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
+
     const { period = 'daily', limit = 20, gameId } = req.query;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+
 
     try {
         // Calculate period key

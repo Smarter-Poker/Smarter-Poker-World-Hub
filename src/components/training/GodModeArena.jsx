@@ -166,9 +166,22 @@ export default function GodModeArena({
                                 Retry Level {currentLevel}
                             </button>
                         )}
-                        <button onClick={onExit} style={styles.exitButton}>
+                        <button onClick={() => {
+                            // Pass session stats to parent for gamification tracking
+                            onComplete?.({
+                                gameId,
+                                accuracy,
+                                questionsAnswered: totalQuestions,
+                                questionsCorrect: correctCount,
+                                bestStreak,
+                                levelPassed,
+                                level: currentLevel
+                            });
+                            onExit?.();
+                        }} style={styles.exitButton}>
                             Back to Training
                         </button>
+
                     </div>
 
                     {/* Mastery Progress */}

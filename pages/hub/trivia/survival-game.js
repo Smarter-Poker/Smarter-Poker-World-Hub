@@ -54,13 +54,25 @@ export default function SurvivalGamePage() {
     const [eliminatedOptions, setEliminatedOptions] = useState([]); // Indices of eliminated wrong answers
     const [userDiamonds, setUserDiamonds] = useState(0); // Current diamond balance
 
-    // Skip Question Lifeline state (3💎 each use)
+    // Lifeline usage tracking (max 3 per level, all cost 5💎)
+    const [lifelinesUsedThisLevel, setLifelinesUsedThisLevel] = useState(0);
+    const LIFELINE_COST = 5;
+    const MAX_LIFELINES_PER_LEVEL = 3;
+
+    // Skip Question Lifeline state
     const [skipUsedThisQuestion, setSkipUsedThisQuestion] = useState(false);
 
-    // Double Chance Lifeline state (3💎 - get 2 attempts)
+    // Double Chance Lifeline state
     const [doubleChanceActive, setDoubleChanceActive] = useState(false);
     const [doubleChanceUsedThisQuestion, setDoubleChanceUsedThisQuestion] = useState(false);
     const [firstAttemptWrong, setFirstAttemptWrong] = useState(null);
+
+    // 24-Second Shot Clock State
+    const [timeLeft, setTimeLeft] = useState(24);
+    const [isTimerRunning, setIsTimerRunning] = useState(false);
+    const [screenShake, setScreenShake] = useState(false);
+    const timerRef = useRef(null);
+    const heartbeatIntervalRef = useRef(null);
 
     // User state
     const [userId, setUserId] = useState(null);
@@ -78,6 +90,103 @@ export default function SurvivalGamePage() {
             loadUserDiamonds(user.id);
         }
     }, []);
+
+    // Shot Clock Timer Effect - 24 seconds with haptics/audio/shake
+    useEffect(() => {
+        if (!isTimerRunning || showResult) {
+            if (timerRef.current) clearInterval(timerRef.current);
+            if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
+            setScreenShake(false);
+            return;
+        }
+
+        timerRef.current = setInterval(() => {
+            setTimeLeft(prev => {
+                const newTime = prev - 1;
+
+                // Haptic feedback every second (stronger as time decreases)
+                if ('vibrate' in navigator) {
+                    if (newTime <= 3) navigator.vibrate(100);
+                    else if (newTime <= 8) navigator.vibrate(50);
+                    else navigator.vibrate(20);
+                }
+
+                // Screen shake at 3 seconds
+                if (newTime <= 3 && newTime > 0) setScreenShake(true);
+                else setScreenShake(false);
+
+                // Time's up - auto fail
+                if (newTime <= 0) {
+                    clearInterval(timerRef.current);
+                    clearInterval(heartbeatIntervalRef.current);
+                    handleTimeOut();
+                    return 0;
+                }
+                return newTime;
+            });
+        }, 1000);
+
+        // Heartbeat audio at 8 seconds - speeds up
+        if (timeLeft <= 8 && timeLeft > 0) {
+            const playHeartbeat = () => {
+                try {
+                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.frequency.value = 80;
+                    osc.type = 'sine';
+                    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+                    osc.start(ctx.currentTime);
+                    osc.stop(ctx.currentTime + 0.15);
+                } catch (e) { }
+            };
+            const speed = Math.max(200, 600 - ((8 - timeLeft) * 50));
+            if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
+            heartbeatIntervalRef.current = setInterval(playHeartbeat, speed);
+            playHeartbeat();
+        }
+
+        return () => {
+            if (timerRef.current) clearInterval(timerRef.current);
+            if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
+        };
+    }, [isTimerRunning, showResult, timeLeft]);
+
+    // Handle timeout - count as wrong answer
+    function handleTimeOut() {
+        setIsTimerRunning(false);
+        setScreenShake(false);
+        if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
+
+        setIncorrectCount(prev => prev + 1);
+        setShowResult(true);
+
+        const config = LEVEL_CONFIG[currentLevel - 1];
+        const remainingQuestions = QUESTIONS_PER_LEVEL - currentQuestionIndex - 1;
+        const maxPossibleCorrect = correctCount + remainingQuestions;
+
+        setTimeout(() => {
+            if (currentQuestionIndex + 1 >= QUESTIONS_PER_LEVEL) {
+                evaluateLevelResult(correctCount);
+            } else if (maxPossibleCorrect < config.minCorrect) {
+                setGameState('gameOver');
+            } else {
+                setCurrentQuestionIndex(prev => prev + 1);
+                setSelectedAnswer(null);
+                setShowResult(false);
+                setEliminatedOptions([]);
+                setSkipUsedThisQuestion(false);
+                setDoubleChanceActive(false);
+                setDoubleChanceUsedThisQuestion(false);
+                setFirstAttemptWrong(null);
+                setTimeLeft(24);
+                setIsTimerRunning(true);
+            }
+        }, 1500);
+    }
 
     async function loadUserDiamonds(uid) {
         try {
