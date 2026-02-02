@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import { getAuthUser } from '../../src/lib/authUtils';
 
 const CATEGORIES = [
     { key: 'all', label: 'All Pages' },
@@ -53,19 +54,6 @@ const TYPE_COLORS = {
     series: { bg: '#F39C12', light: 'rgba(243, 156, 18, 0.1)', border: 'rgba(243, 156, 18, 0.2)' },
 };
 
-function getAnonymousUserId() {
-    try {
-        let uid = localStorage.getItem('sp-anon-uid');
-        if (!uid) {
-            uid = 'anon-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
-            localStorage.setItem('sp-anon-uid', uid);
-        }
-        return uid;
-    } catch {
-        return 'anon-fallback';
-    }
-}
-
 export default function PokerPagesPage() {
     const router = useRouter();
 
@@ -78,8 +66,15 @@ export default function PokerPagesPage() {
     const [showFollowing, setShowFollowing] = useState(false);
     const [summary, setSummary] = useState({});
     const [followingIds, setFollowingIds] = useState(new Set());
+    const [userId, setUserId] = useState('');
 
-    const userId = typeof window !== 'undefined' ? getAnonymousUserId() : '';
+    // Get authenticated user ID on mount
+    useEffect(() => {
+        const authUser = getAuthUser();
+        if (authUser?.id) {
+            setUserId(authUser.id);
+        }
+    }, []);
 
     const fetchPages = useCallback(async () => {
         setLoading(true);

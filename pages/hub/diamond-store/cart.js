@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAuthUser } from '../../../src/lib/authUtils';
+import toast from '../../../src/stores/toastStore';
 
 export default function ShoppingCart() {
     const [user, setUser] = useState(null);
@@ -68,9 +69,23 @@ export default function ShoppingCart() {
         return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     };
 
-    const handleCheckout = () => {
-        // Redirect to store with checkout flow
-        window.location.href = '/hub/diamond-store?checkout=true';
+    const handleCheckout = async () => {
+        try {
+            const res = await fetch('/api/store/create-checkout-session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ items: cart }),
+            });
+            const data = await res.json();
+            if (data.url) {
+                window.location.href = data.url;
+                return;
+            }
+            throw new Error(data.error || 'No checkout URL returned');
+        } catch (err) {
+            toast.error(err.message || 'Checkout unavailable. Redirecting...');
+            window.location.href = '/hub/diamond-store?checkout=true';
+        }
     };
 
     if (loading) {

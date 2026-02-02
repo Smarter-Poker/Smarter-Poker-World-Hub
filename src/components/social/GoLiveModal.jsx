@@ -160,12 +160,12 @@ export function GoLiveModal({ isOpen, onClose, user }) {
         mediaRecorder.onstop = () => {
             const blob = new Blob(recordedChunksRef.current, { type: selectedMimeType });
             setRecordedBlob(blob);
-            console.log('📹 Recording complete, size:', (blob.size / 1024 / 1024).toFixed(2), 'MB');
+            if (process.env.NODE_ENV === 'development') console.log('Recording complete, size:', (blob.size / 1024 / 1024).toFixed(2), 'MB');
         };
 
         mediaRecorder.start(1000); // Capture in 1-second chunks
         mediaRecorderRef.current = mediaRecorder;
-        console.log('🔴 Recording started with:', selectedMimeType);
+        if (process.env.NODE_ENV === 'development') console.log('Recording started with:', selectedMimeType);
     };
 
     const handleGoLive = async () => {

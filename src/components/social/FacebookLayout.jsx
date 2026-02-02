@@ -1,57 +1,18 @@
 /**
- * 🌐 FACEBOOK LAYOUT (SHELL)
- * src/app/social/components/FacebookLayout.jsx
- * 
+ * FACEBOOK LAYOUT (SHELL)
  * Main shell component with Navigation, Chat Dock, and Responsive Grid
+ * Uses real authenticated user data from SupabaseProvider
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FB_COLORS, FBAvatar } from './FacebookStyleCard';
 import { NotificationBell, NotificationsDropdown } from './FacebookNotifications';
 import { ChatDock, ChatWindow, ConversationList } from './FacebookMessenger';
+import { useSupabase } from '../../providers/SupabaseProvider';
+import { supabase } from '../../lib/supabase';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 🧠 MOCK DATA (Context)
-// ═══════════════════════════════════════════════════════════════════════════
-
-const MOCK_USER = {
-    id: 'u1',
-    name: 'Hero Player',
-    avatar: 'https://picsum.photos/100/100',
-    online: true
-};
-
-const MOCK_CONVERSATIONS = [
-    {
-        id: 'c1',
-        unreadCount: 1,
-        unread: true,
-        lastMessage: { text: 'You call that a raise?', time: '2m', isOwn: false },
-        participants: [
-            { id: 'u1', name: 'Hero Player' },
-            { id: 'u2', name: 'Mike Shark', avatar: 'https://picsum.photos/101/101', online: true }
-        ]
-    },
-    {
-        id: 'c2',
-        unreadCount: 0,
-        unread: false,
-        lastMessage: { text: 'See you at the tables at 8', time: '1h', isOwn: true },
-        participants: [
-            { id: 'u1', name: 'Hero Player' },
-            { id: 'u3', name: 'Sarah GTO', avatar: 'https://picsum.photos/102/102', online: false }
-        ]
-    }
-];
-
-const MOCK_MESSAGES = [
-    { id: 1, text: 'Hey, nice hand earlier!', time: '10:30 AM', senderId: 'u2' },
-    { id: 2, text: 'Thanks! I knew he was bluffing.', time: '10:31 AM', senderId: 'u1' },
-    { id: 3, text: 'You call that a raise?', time: '10:32 AM', senderId: 'u2' }
-];
-
-// ═══════════════════════════════════════════════════════════════════════════
-// 🧭 MAIN NAVIGATION BAR
+// MAIN NAVIGATION BAR
 // ═══════════════════════════════════════════════════════════════════════════
 
 const FBNavBar = ({
@@ -69,10 +30,10 @@ const FBNavBar = ({
             {/* Left: Logo + Search */}
             <div className="fb-nav-left">
                 <div className="fb-logo" onClick={() => onNavigate?.('/app')} style={{ cursor: 'pointer' }}>
-                    <span className="logo-icon">🃏</span>
+                    <span className="logo-icon">&#x1F0CF;</span>
                 </div>
                 <div className="fb-search">
-                    <span className="search-icon">🔍</span>
+                    <span className="search-icon">&#x1F50D;</span>
                     <input
                         type="text"
                         placeholder="Search Smarter Poker"
@@ -88,53 +49,53 @@ const FBNavBar = ({
                     title="Home"
                     onClick={() => onNavigate?.('/app/social')}
                 >
-                    <span className="tab-icon">🏠</span>
+                    <span className="tab-icon">&#x1F3E0;</span>
                 </button>
                 <button
                     className="fb-nav-tab"
                     title="Watch"
                     onClick={() => onNavigate?.('/app/watch')}
                 >
-                    <span className="tab-icon">📺</span>
+                    <span className="tab-icon">&#x1F4FA;</span>
                 </button>
                 <button
                     className="fb-nav-tab"
                     title="Clubs"
                     onClick={() => onNavigate?.('/app/clubs')}
                 >
-                    <span className="tab-icon">🎰</span>
+                    <span className="tab-icon">&#x1F3B0;</span>
                 </button>
                 <button
                     className="fb-nav-tab"
                     title="GTO Training"
                     onClick={() => onNavigate?.('/app/training')}
                 >
-                    <span className="tab-icon">🧠</span>
+                    <span className="tab-icon">&#x1F9E0;</span>
                 </button>
                 <button
                     className="fb-nav-tab"
                     title="Games"
                     onClick={() => onNavigate?.('/app/arcade')}
                 >
-                    <span className="tab-icon">🎮</span>
+                    <span className="tab-icon">&#x1F3AE;</span>
                 </button>
 
                 {/* Mobile Menu (Hidden on Desktop) */}
                 <button className="fb-nav-tab mobile-menu">
-                    <span className="tab-icon">☰</span>
+                    <span className="tab-icon">&#x2630;</span>
                 </button>
             </div>
 
             {/* Right: User Actions */}
             <div className="fb-nav-right">
-                <button className="fb-nav-icon" title="Menu">⊞</button>
+                <button className="fb-nav-icon" title="Menu">&#x229E;</button>
 
                 <button
                     className={`fb-nav-icon ${showMessenger ? 'active' : ''}`}
                     title="Messenger"
                     onClick={() => setShowMessenger(!showMessenger)}
                 >
-                    💬
+                    &#x1F4AC;
                 </button>
 
                 <div className="notif-wrapper">
@@ -245,7 +206,7 @@ const FBNavBar = ({
                     background: ${FB_COLORS.blue};
                     border-radius: 2px 2px 0 0;
                 }
-                
+
                 .mobile-menu { display: none; }
 
                 .fb-nav-right {
@@ -272,7 +233,7 @@ const FBNavBar = ({
                 .fb-nav-icon:hover, .fb-nav-icon.active {
                     background: ${FB_COLORS.bgHover};
                 }
-                
+
                 .fb-nav-icon.active {
                     color: ${FB_COLORS.blue};
                     background: ${FB_COLORS.blueLight};
@@ -308,33 +269,63 @@ const FBNavBar = ({
     );
 };
 
-import { useSupabase } from '../../providers/SupabaseProvider';
-
 // ═══════════════════════════════════════════════════════════════════════════
-// 🏗️ MAIN LAYOUT SHELL
+// MAIN LAYOUT SHELL
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const FacebookLayout = ({ children, currentUser: propUser, onNavigate }) => {
-    // 1. Get Real User Data
+    // 1. Get Real User Data from Supabase auth
     const { user: authUser, profile: authProfile } = useSupabase();
 
     const currentUser = propUser || (authUser ? {
         id: authUser.id,
-        name: authProfile?.username || authUser.email,
-        avatar: authProfile?.avatar_url || 'https://picsum.photos/100/100',
+        name: authProfile?.username || authUser.email?.split('@')[0] || 'Player',
+        avatar: authProfile?.avatar_url || null,
         online: true
-    } : MOCK_USER);
+    } : { id: 'guest', name: 'Guest', avatar: null, online: false });
 
-    // 2. Chat State management
-    const [openChats, setOpenChats] = useState([]); // Array of conversations
+    // 2. Fetch real notifications from Supabase
+    const [notifications, setNotifications] = useState([]);
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    useEffect(() => {
+        if (!authUser?.id) return;
+
+        async function fetchNotifications() {
+            try {
+                const { data } = await supabase
+                    .from('notifications')
+                    .select('id, type, message, created_at, read')
+                    .eq('user_id', authUser.id)
+                    .order('created_at', { ascending: false })
+                    .limit(20);
+
+                if (data) {
+                    setNotifications(data.map(n => ({
+                        id: n.id,
+                        type: n.type || 'info',
+                        text: n.message,
+                        time: getRelativeTime(n.created_at),
+                        read: n.read,
+                    })));
+                    setUnreadCount(data.filter(n => !n.read).length);
+                }
+            } catch {
+                // Notifications table may not exist yet - fail silently
+            }
+        }
+
+        fetchNotifications();
+    }, [authUser?.id]);
+
+    // 3. Chat State management
+    const [openChats, setOpenChats] = useState([]);
 
     const handleOpenChat = (participant) => {
-        // Check if chat already open
         if (openChats.find(c => c.conversation.id === participant.id || c.conversation.participants[0].id === participant.id)) {
             return;
         }
 
-        // Create new chat session (Mock for now, real app would fetch Conversation ID)
         const newChat = {
             conversation: {
                 id: `chat_${participant.id}`,
@@ -360,7 +351,39 @@ export const FacebookLayout = ({ children, currentUser: propUser, onNavigate }) 
         ));
     };
 
-    // 3. Inject props into children (Views)
+    const handleSendMessage = async (chatId, text) => {
+        if (!authUser?.id || !text.trim()) return;
+
+        // Optimistic local update
+        setOpenChats(prev => prev.map(c => {
+            if (c.conversation.id === chatId) {
+                return {
+                    ...c,
+                    messages: [...c.messages, {
+                        id: Date.now(),
+                        text,
+                        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        senderId: authUser.id
+                    }]
+                };
+            }
+            return c;
+        }));
+
+        // Persist to Supabase
+        try {
+            const participantId = chatId.replace('chat_', '');
+            await supabase.from('social_messages').insert({
+                sender_id: authUser.id,
+                receiver_id: participantId,
+                content: text,
+            });
+        } catch {
+            // Message table may not exist - fail silently
+        }
+    };
+
+    // 4. Inject props into children
     const childrenWithProps = React.Children.map(children, child => {
         if (React.isValidElement(child)) {
             return React.cloneElement(child, {
@@ -376,11 +399,8 @@ export const FacebookLayout = ({ children, currentUser: propUser, onNavigate }) 
         <div className="fb-shell">
             <FBNavBar
                 currentUser={currentUser}
-                unreadNotifCount={3}
-                notifications={[
-                    { id: 1, type: 'like', text: 'Mike liked your hand history', time: '2m', user: { name: 'Mike' } },
-                    { id: 2, type: 'gto_badge', text: 'You earned the GTO Master badge!', time: '1h', read: true }
-                ]}
+                unreadNotifCount={unreadCount}
+                notifications={notifications}
                 onNavigate={onNavigate}
             />
 
@@ -394,7 +414,7 @@ export const FacebookLayout = ({ children, currentUser: propUser, onNavigate }) 
                 currentUser={currentUser}
                 onClose={handleCloseChat}
                 onMinimize={handleMinimizeChat}
-                onSend={(id, text) => console.log('Sent to', id, text)}
+                onSend={handleSendMessage}
             />
 
             <style>{`
@@ -412,16 +432,16 @@ export const FacebookLayout = ({ children, currentUser: propUser, onNavigate }) 
                 ::-webkit-scrollbar {
                     width: 8px;
                 }
-                
+
                 ::-webkit-scrollbar-track {
                     background: transparent;
                 }
-                
+
                 ::-webkit-scrollbar-thumb {
                     background: #BCC0C4;
                     border-radius: 4px;
                 }
-                
+
                 ::-webkit-scrollbar-thumb:hover {
                     background: #A8ABAF;
                 }
@@ -429,5 +449,18 @@ export const FacebookLayout = ({ children, currentUser: propUser, onNavigate }) 
         </div>
     );
 };
+
+function getRelativeTime(dateStr) {
+    const now = new Date();
+    const date = new Date(dateStr);
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return 'now';
+    if (diffMins < 60) return `${diffMins}m`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h`;
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays}d`;
+}
 
 export default FacebookLayout;

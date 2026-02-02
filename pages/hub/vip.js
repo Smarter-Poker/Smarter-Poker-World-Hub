@@ -14,7 +14,6 @@ import PageTransition from '../../src/components/transitions/PageTransition';
 import { supabase } from '../../src/lib/supabase';
 import { getAuthUser } from '../../src/lib/authUtils';
 
-
 const C = {
     bg: '#0a0a0a',
     card: '#1a1a1a',
@@ -192,6 +191,26 @@ export default function VipPage() {
 
     const handleSubscribe = async (tierId) => {
         if (tierId === 'free') return;
+
+        // Persist VIP tier to localStorage
+        localStorage.setItem('sp-vip-tier', tierId);
+        setCurrentTier(tierId);
+
+        // Persist VIP tier to Supabase profiles table
+        const authUser = getAuthUser();
+        if (authUser?.id) {
+            const now = new Date().toISOString();
+            await supabase
+                .from('profiles')
+                .update({
+                    vip_tier: tierId,
+                    vip_expires_at: null,
+                    vip_canceled_at: null,
+                    updated_at: now,
+                })
+                .eq('id', authUser.id);
+        }
+
         // Route to diamond store for checkout
         router.push('/hub/diamond-store?vip=' + tierId + '&cycle=' + billingCycle);
     };

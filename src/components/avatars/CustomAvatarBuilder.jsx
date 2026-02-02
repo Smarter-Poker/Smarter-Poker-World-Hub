@@ -9,6 +9,7 @@ import React, { useState, useEffect } from 'react';
 import { useAvatar } from '../../contexts/AvatarContext';
 import { getCustomAvatarGallery, deleteCustomAvatar } from '../../services/avatar-service';
 import supabase from '../../lib/supabase.ts';
+import toast from '../../stores/toastStore';
 
 export default function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = null }) {
   const { user: contextUser, createCustomAvatar, isVip: contextIsVip, initializing } = useAvatar();
@@ -110,7 +111,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
 
   async function handleGenerate() {
     if (!prompt.trim()) {
-      alert('Please enter a description for your avatar');
+      toast.warning('Please enter a description for your avatar');
       return;
     }
 
@@ -125,11 +126,11 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
         setGeneratedImage(result.imageUrl);
         setShowResult(true);
       } else {
-        alert(`❌ ${result.error}`);
+        toast.error(result.error);
       }
     } catch (error) {
       console.error('Avatar generation error:', error);
-      alert('Error generating avatar. Please try again.');
+      toast.error('Error generating avatar. Please try again.');
     } finally {
       setGenerating(false);
     }
@@ -151,7 +152,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
 
         if (error) {
           console.error('Error saving avatar:', error);
-          alert('Failed to save avatar. Please try again.');
+          toast.error('Failed to save avatar. Please try again.');
           return;
         }
 
@@ -168,7 +169,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
         }
       } catch (err) {
         console.error('Error in handleAccept:', err);
-        alert('Failed to save avatar. Please try again.');
+        toast.error('Failed to save avatar. Please try again.');
         return;
       }
     }
@@ -198,7 +199,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
   // Edit avatar using Grok image editing
   async function handleEditAvatar() {
     if (!editPrompt.trim()) {
-      alert('Please describe what you want to change');
+      toast.warning('Please describe what you want to change');
       return;
     }
 
@@ -223,11 +224,11 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
         setShowEditMode(false);
         setEditPrompt('');
       } else {
-        alert(`❌ ${result.error}`);
+        toast.error(result.error);
       }
     } catch (error) {
       console.error('Avatar edit error:', error);
-      alert('Error editing avatar. Please try again.');
+      toast.error('Error editing avatar. Please try again.');
     } finally {
       setEditing(false);
     }

@@ -6,6 +6,8 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { fetchBankrollRules, updateBankrollRule } from '../../lib/bankroll/bankrollSelectors';
+import { supabase } from '../../lib/supabase';
+import toast from '../../stores/toastStore';
 
 const RULE_LABELS = {
   stop_loss_session: 'Stop Loss (Session)',
@@ -54,7 +56,11 @@ function RuleItem({ rule, onToggle }) {
 export default function BankrollRulesCard({ userId }) {
   const [rules, setRules] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [showEdit, setShowEdit] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newRuleType, setNewRuleType] = useState('stop_loss_session');
+  const [newRuleValue, setNewRuleValue] = useState('');
+  const [newRuleStrict, setNewRuleStrict] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadRules();
@@ -67,9 +73,31 @@ export default function BankrollRulesCard({ userId }) {
       const data = await fetchBankrollRules(userId);
       setRules(data);
     } catch (error) {
-      console.error('Error loading rules:', error);
+      // Rules table may not exist yet
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleAddRule = async () => {
+    if (!newRuleValue || !userId) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase.from('bankroll_rules').insert({
+        user_id: userId,
+        rule_type: newRuleType,
+        value: parseFloat(newRuleValue),
+        is_strict: newRuleStrict,
+      });
+      if (error) throw error;
+      toast.success('Rule added');
+      setShowAddForm(false);
+      setNewRuleValue('');
+      await loadRules();
+    } catch (err) {
+      toast.error('Failed to add rule');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -89,13 +117,13 @@ export default function BankrollRulesCard({ userId }) {
     );
   }
 
-  if (rules.length === 0) {
+  if (rules.length === 0 && !showAddForm) {
     return (
       <div style={styles.container}>
         <h3 style={styles.title}>Bankroll Rules</h3>
         <div style={styles.emptyState}>
           <p style={styles.emptyText}>No rules configured</p>
-          <button style={styles.addButton}>+ Add Rule</button>
+          <button style={styles.addButton} onClick={() => setShowAddForm(true)}>+ Add Rule</button>
         </div>
       </div>
     );
@@ -105,7 +133,43 @@ export default function BankrollRulesCard({ userId }) {
     <div style={styles.container}>
       <div style={styles.header}>
         <h3 style={styles.title}>Bankroll Rules</h3>
+        <button style={styles.addButton} onClick={() => setShowAddForm(!showAddForm)}>
+          {showAddForm ? 'Cancel' : '+ Add Rule'}
+        </button>
       </div>
+
+      {showAddForm && (
+        <div style={{ marginBottom: 16, padding: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)' }}>
+          <select
+            value={newRuleType}
+            onChange={(e) => setNewRuleType(e.target.value)}
+            style={{ width: '100%', marginBottom: 8, padding: '8px 10px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, color: '#fff', fontSize: 12 }}
+          >
+            {Object.entries(RULE_LABELS).map(([key, label]) => (
+              <option key={key} value={key}>{label}</option>
+            ))}
+          </select>
+          <input
+            type="number"
+            placeholder="Value"
+            value={newRuleValue}
+            onChange={(e) => setNewRuleValue(e.target.value)}
+            style={{ width: '100%', marginBottom: 8, padding: '8px 10px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, color: '#fff', fontSize: 12 }}
+          />
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, fontSize: 12, color: 'rgba(255,255,255,0.6)', cursor: 'pointer' }}>
+            <input type="checkbox" checked={newRuleStrict} onChange={(e) => setNewRuleStrict(e.target.checked)} />
+            Strict (block play when exceeded)
+          </label>
+          <button
+            onClick={handleAddRule}
+            disabled={saving || !newRuleValue}
+            style={{ width: '100%', padding: '8px 12px', background: '#00D4FF', border: 'none', borderRadius: 6, color: '#000', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: saving || !newRuleValue ? 0.5 : 1 }}
+          >
+            {saving ? 'Saving...' : 'Save Rule'}
+          </button>
+        </div>
+      )}
+
       <div style={styles.ruleList}>
         {rules.map((rule) => (
           <RuleItem key={rule.id} rule={rule} />

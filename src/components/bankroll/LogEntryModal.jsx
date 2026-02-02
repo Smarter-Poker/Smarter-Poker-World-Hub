@@ -9,6 +9,7 @@ import { supabase } from '../../lib/supabase';
 import { createLedgerEntry } from '../../lib/bankroll/bankrollSelectors';
 import { getOrCreateLocation, detectNearbyLocation } from '../../lib/bankroll/locationMemory';
 import { checkRuleViolations } from '../../lib/bankroll/leakDetection';
+import toast from '../../stores/toastStore';
 
 const CATEGORIES = [
   { id: 'poker_cash', label: 'Poker Cash', icon: '♠' },
@@ -193,7 +194,7 @@ export default function LogEntryModal({ userId, locations, trips, onClose, onSub
       onSubmit(entry);
     } catch (error) {
       console.error('Error logging entry:', error);
-      alert('Failed to log entry. Please try again.');
+      toast.error('Failed to log entry. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

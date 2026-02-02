@@ -5,6 +5,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { Play, Pause, SkipForward, SkipBack, Users, Trophy, Coins } from 'lucide-react';
+import toast from '../../../stores/toastStore';
 
 export default function TournamentClock({
   tournamentId,
@@ -77,11 +78,11 @@ export default function TournamentClock({
           onLevelChange?.(data.tournament.current_level);
         }
       } else {
-        alert(data.error || 'Action failed');
+        toast.error(data.error || 'Action failed');
       }
     } catch (error) {
       console.error('Clock action error:', error);
-      alert('Failed to perform action');
+      toast.error('Failed to perform action');
     } finally {
       setIsLoading(false);
     }
