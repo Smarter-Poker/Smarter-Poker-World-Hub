@@ -31,12 +31,14 @@ export default async function handler(req, res) {
         });
       }
 
+      const pageIdStr = String(page_id);
+
       // Check if claim already exists for this page
       const { data: existingClaim, error: checkError } = await supabase
         .from('page_claims')
         .select('id, status, user_id')
         .eq('page_type', page_type)
-        .eq('page_id', page_id)
+        .eq('page_id', pageIdStr)
         .limit(1);
 
       if (checkError) {
@@ -57,7 +59,7 @@ export default async function handler(req, res) {
 
       const insertData = {
         page_type,
-        page_id,
+        page_id: pageIdStr,
         user_id,
         contact_name,
         contact_email,
@@ -91,11 +93,12 @@ export default async function handler(req, res) {
 
       // Get claim status for a specific page
       if (page_type && page_id) {
+        const pageIdStr = String(page_id);
         const { data, error } = await supabase
           .from('page_claims')
           .select('*')
           .eq('page_type', page_type)
-          .eq('page_id', page_id)
+          .eq('page_id', pageIdStr)
           .order('created_at', { ascending: false })
           .limit(1);
 

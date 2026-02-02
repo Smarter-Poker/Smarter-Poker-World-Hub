@@ -155,16 +155,22 @@ export default async function handler(req, res) {
             featured,
         } = req.query;
 
-        const maxResults = parseInt(limit) || 500;
+        const maxResults = parseInt(limit, 10) || 500;
         let venues = [];
 
         if (id) {
-            // --- Single venue lookup: try Supabase first (has real-time data) ---
+            // --- Single venue lookup: validate integer ID ---
+            const numericId = parseInt(id, 10);
+            if (isNaN(numericId) || numericId < 1) {
+                return res.status(400).json({ success: false, error: 'Invalid venue id' });
+            }
+
+            // Try Supabase first (has real-time data)
             try {
                 const { data, error } = await supabase
                     .from('poker_venues')
                     .select('*')
-                    .eq('id', id)
+                    .eq('id', numericId)
                     .single();
 
                 if (!error && data) {

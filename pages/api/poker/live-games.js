@@ -28,11 +28,16 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, error: 'Missing required fields: venue_id, user_id, game_type, stakes' });
       }
 
+      const venueIdNum = parseInt(venue_id, 10);
+      if (isNaN(venueIdNum) || venueIdNum < 1) {
+        return res.status(400).json({ success: false, error: 'venue_id must be a valid positive integer' });
+      }
+
       const now = new Date();
       const expiresAt = new Date(now.getTime() + 4 * 60 * 60 * 1000);
 
       const insertData = {
-        venue_id,
+        venue_id: venueIdNum,
         user_id,
         game_type,
         stakes,
@@ -67,10 +72,15 @@ export default async function handler(req, res) {
 
       // Active games for a specific venue
       if (venue_id) {
+        const venueIdNum = parseInt(venue_id, 10);
+        if (isNaN(venueIdNum) || venueIdNum < 1) {
+          return res.status(400).json({ success: false, error: 'venue_id must be a valid positive integer' });
+        }
+
         let query = supabase
           .from('live_games')
           .select('*')
-          .eq('venue_id', venue_id)
+          .eq('venue_id', venueIdNum)
           .gt('expires_at', now)
           .order('created_at', { ascending: false });
 

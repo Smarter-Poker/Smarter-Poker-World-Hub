@@ -162,7 +162,7 @@ export default async function handler(req, res) {
 
         return res.status(200).json({
             success: true,
-            data: tours.slice(0, parseInt(limit)),
+            data: tours.slice(0, parseInt(limit, 10) || 50),
             total: tours.length,
             summary: {
                 total_tours: tours.length,

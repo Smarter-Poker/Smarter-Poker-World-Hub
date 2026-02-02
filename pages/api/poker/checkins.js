@@ -28,6 +28,11 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, error: 'Missing required fields: venue_id, user_id, user_name' });
       }
 
+      const venueIdNum = parseInt(venue_id, 10);
+      if (isNaN(venueIdNum) || venueIdNum < 1) {
+        return res.status(400).json({ success: false, error: 'venue_id must be a valid positive integer' });
+      }
+
       // Check for recent check-in at same venue within 4 hours
       const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
 
@@ -35,7 +40,7 @@ export default async function handler(req, res) {
         .from('venue_checkins')
         .select('id')
         .eq('user_id', user_id)
-        .eq('venue_id', venue_id)
+        .eq('venue_id', venueIdNum)
         .gte('created_at', fourHoursAgo)
         .limit(1);
 
@@ -49,7 +54,7 @@ export default async function handler(req, res) {
       }
 
       const insertData = {
-        venue_id,
+        venue_id: venueIdNum,
         user_id,
         user_name,
         created_at: new Date().toISOString(),
@@ -77,13 +82,18 @@ export default async function handler(req, res) {
 
       // Venue check-ins (last 24 hours)
       if (venue_id) {
+        const venueIdNum = parseInt(venue_id, 10);
+        if (isNaN(venueIdNum) || venueIdNum < 1) {
+          return res.status(400).json({ success: false, error: 'venue_id must be a valid positive integer' });
+        }
+
         const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
         if (count_only === 'true') {
           const { count, error } = await supabase
             .from('venue_checkins')
             .select('*', { count: 'exact', head: true })
-            .eq('venue_id', venue_id)
+            .eq('venue_id', venueIdNum)
             .gte('created_at', twentyFourHoursAgo);
 
           if (error) {
@@ -91,13 +101,13 @@ export default async function handler(req, res) {
             return res.status(500).json({ success: false, error: error.message });
           }
 
-          return res.status(200).json({ success: true, venue_id, count: count || 0 });
+          return res.status(200).json({ success: true, venue_id: venueIdNum, count: count || 0 });
         }
 
         const { data, error } = await supabase
           .from('venue_checkins')
           .select('*')
-          .eq('venue_id', venue_id)
+          .eq('venue_id', venueIdNum)
           .gte('created_at', twentyFourHoursAgo)
           .order('created_at', { ascending: false });
 
