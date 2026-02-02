@@ -192,9 +192,7 @@ Return ONLY a valid JSON array (no markdown, no explanation):
                 options: q.options.map(o => String(o).trim()),
                 correct_index: q.correct_index,
                 explanation: q.explanation || '',
-                subcategory: topic,
-                source: 'grok-bootstrap',
-                created_at: new Date().toISOString()
+                subcategory: topic
             }));
     } catch (error) {
         console.error(`  ❌ Error generating ${difficulty} for ${topic}: ${error.message}`);
