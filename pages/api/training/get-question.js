@@ -215,18 +215,36 @@ async function generateQuestionFromPIO(pioScenarios, gameId, level, game) {
         const heroHand = allHands[Math.floor(Math.random() * allHands.length)];
 
         // Find the optimal action for this hand (highest frequency)
+        // Filter out invalid frequencies (some actions like 'f' may have bogus values > 1)
         let optimalAction = null;
         let maxFreq = -1;
         const handActions = {};
+        const validActions = [];
 
         actions.forEach(action => {
             const freq = frequencies[action]?.[heroHand] || 0;
-            handActions[action] = freq;
-            if (freq > maxFreq) {
-                maxFreq = freq;
-                optimalAction = action;
+            // Only consider valid frequencies in 0-1 range
+            if (freq >= 0 && freq <= 1) {
+                handActions[action] = freq;
+                validActions.push(action);
+                if (freq > maxFreq) {
+                    maxFreq = freq;
+                    optimalAction = action;
+                }
+            } else {
+                // Skip invalid frequency values (likely data import errors)
+                console.log(`[Training] Skipping action ${action} with invalid freq: ${freq}`);
             }
         });
+
+        // Fallback if no valid actions found
+        if (!optimalAction || validActions.length === 0) {
+            console.log('[Training] ⚠️ No valid actions found, using first available');
+            optimalAction = actions[0];
+            maxFreq = 0.5;
+            handActions[optimalAction] = maxFreq;
+            validActions.push(optimalAction);
+        }
 
         // Map action codes to readable names
         const actionNameMap = {
@@ -247,7 +265,7 @@ async function generateQuestionFromPIO(pioScenarios, gameId, level, game) {
             'r': 'Raise'
         };
 
-        const readableActions = actions.map(a => ({
+        const readableActions = validActions.map(a => ({
             id: a,
             text: actionNameMap[a] || a.toUpperCase(),
             frequency: handActions[a]

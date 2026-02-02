@@ -149,22 +149,30 @@ export class PIOQueryService {
 
     /**
      * Parse board cards from scenario hash
-     * Example: "AsKs7d.csv_Cash_100bb_Flop" → ["As", "Ks", "7d"]
+     * ACTUAL Format: "hu_cash_BTN_100bb_3h7c7s" → ["3h", "7c", "7s"]
+     * Board is at the END of the scenario_hash after the last underscore
      */
     parseBoardCards(scenarioHash) {
         if (!scenarioHash) return [];
 
-        // Extract board string (e.g., "AsKs7d" from "AsKs7d.csv_Cash_100bb_Flop")
-        const match = scenarioHash.match(/^([A-K0-9][shdc]+)/);
-        if (!match) return [];
+        // Extract board string from end (e.g., "3h7c7s" from "hu_cash_BTN_100bb_3h7c7s")
+        const parts = scenarioHash.split('_');
+        const boardString = parts[parts.length - 1]; // Get last part after underscore
 
-        const boardString = match[1];
+        if (!boardString || boardString.length < 4) return [];
+
         const cards = [];
 
-        // Parse into individual cards (2 characters each)
+        // Parse into individual cards (2 characters each: rank + suit)
+        // Board string format: "3h7c7s" = 3h, 7c, 7s (flop)
+        // Or "3h7c7s9d" = 3h, 7c, 7s, 9d (turn)
         for (let i = 0; i < boardString.length; i += 2) {
             if (i + 1 < boardString.length) {
-                cards.push(boardString.substr(i, 2));
+                const card = boardString.substr(i, 2);
+                // Validate it looks like a card (rank + suit)
+                if (/^[2-9TJQKA][shdc]$/i.test(card)) {
+                    cards.push(card);
+                }
             }
         }
 
