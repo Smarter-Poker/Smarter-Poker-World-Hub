@@ -384,9 +384,8 @@ export default function ClubArenaPage() {
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
                 <style>{`
                     @keyframes ca-glow { 0%, 100% { box-shadow: 0 0 20px rgba(0,212,255,0.2); } 50% { box-shadow: 0 0 40px rgba(0,212,255,0.4); } }
-                    .ca-container { width: 100%; max-width: 500px; margin: 0 auto; }
-                    @media (min-width: 501px) and (max-width: 700px) { .ca-container { zoom: 0.75; } }
-                    @media (min-width: 701px) { .ca-container { zoom: 1; max-width: 600px; } }
+                    .ca-container { width: 100%; max-width: 100%; margin: 0 auto; padding: 0; }
+                    @media (min-width: 700px) { .ca-container { max-width: 600px; } }
                 `}</style>
             </Head>
 
