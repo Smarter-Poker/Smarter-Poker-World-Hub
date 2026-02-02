@@ -51,6 +51,10 @@
       "schedule": "0 * * * *"
     },
     {
+      "path": "/api/cron/news-scraper",
+      "schedule": "30 * * * *"
+    },
+    {
       "path": "/api/cron/scrape-poker-clips",
       "schedule": "0 6 * * *"
     },

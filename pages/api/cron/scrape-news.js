@@ -10,42 +10,21 @@ const supabase = createClient(
 );
 
 // RSS feed sources for poker news
+// NOTE: Only sources with WORKING RSS feeds are included here.
+// MSPT, WSOP, Pokerfuse, and Poker.org do NOT have working RSS feeds
+// and are scraped directly via /api/cron/news-scraper
 const NEWS_SOURCES = [
     {
         name: 'PokerNews',
         source_name: 'PokerNews',
-        url: 'https://www.pokernews.com/rss.xml',
+        url: 'https://www.pokernews.com/rss.php',  // Fixed URL - was /rss.xml (404)
         category: 'tournament'
-    },
-    {
-        name: 'PokerOrg',
-        source_name: 'Poker.org',
-        url: 'https://www.poker.org/feed/',
-        category: 'industry'
     },
     {
         name: 'CardPlayer',
         source_name: 'CardPlayer',
-        url: 'https://www.cardplayer.com/poker-news/rss',
+        url: 'https://www.cardplayer.com/poker-news.rss',  // Fixed URL - was /poker-news/rss (403)
         category: 'news'
-    },
-    {
-        name: 'Pokerfuse',
-        source_name: 'Pokerfuse',
-        url: 'https://pokerfuse.com/feed/',
-        category: 'industry'
-    },
-    {
-        name: 'WSOP',
-        source_name: 'WSOP',
-        url: 'https://www.wsop.com/news/rss/',
-        category: 'tournament'
-    },
-    {
-        name: 'MSPT',
-        source_name: 'MSPT',
-        url: 'https://msptpoker.com/feed/',
-        category: 'tournament'
     }
 ];
 

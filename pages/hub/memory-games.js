@@ -60,6 +60,8 @@ import DiamondEngine from '../../src/services/DiamondEngine';
 import leaderboardService from '../../src/services/LeaderboardService';
 import dailyChallengeService from '../../src/services/DailyChallengeService';
 import { processGameResult, getRankTitle } from '../../src/games/ELOService';
+import gameSessionService from '../../src/services/GameSessionService';
+import achievementService from '../../src/services/AchievementService';
 
 // New Game Mode Components (dynamic imports for code splitting)
 import dynamic from 'next/dynamic';
@@ -1666,7 +1668,44 @@ export default function MemoryGamesPage() {
             });
 
             // 4. Increment games played counter
-            setGamesPlayed && setGamesPlayed(prev => (prev || 0) + 1);
+            const newGamesPlayed = (gamesPlayed || 0) + 1;
+            setGamesPlayed && setGamesPlayed(newGamesPlayed);
+
+            // 5. Record game session for analytics
+            gameSessionService.recordSession(user.id, {
+                gameMode,
+                level: currentLevel,
+                scenarioId: currentScenario?.id || currentScenario?.title,
+                score: result.score,
+                accuracy: result.score,
+                timeTaken,
+                diamondsSpent: isVIP ? 0 : 10,
+                diamondsEarned: passed ? totalReward : 0,
+                completed: true
+            }).then(sessionResult => {
+                console.log('[Memory] Session recorded:', sessionResult);
+            }).catch(err => {
+                console.warn('[Memory] Session recording failed:', err);
+            });
+
+            // 6. Check and unlock achievements
+            achievementService.checkAndUnlock(user.id, {
+                gamesPlayed: newGamesPlayed,
+                accuracy: result.score,
+                timeTaken,
+                level: currentLevel,
+                gameMode,
+                totalDiamonds: diamondBalance,
+                aiScenariosCompleted: useAIGeneration ? 1 : 0,
+                currentStreak: consecutivePasses,
+                modesPlayed: [gameMode] // TODO: track all modes played
+            }).then(unlocked => {
+                if (unlocked.length > 0) {
+                    console.log('[Memory] Achievements unlocked:', unlocked);
+                }
+            }).catch(err => {
+                console.warn('[Memory] Achievement check failed:', err);
+            });
         }
 
         setMode('result');
@@ -2231,6 +2270,82 @@ export default function MemoryGamesPage() {
                                         }}
                                     >
                                         START MIXED TRAINER
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Spot Trainer Mode */}
+                            {gameType === 'spot' && (
+                                <div style={{
+                                    ...styles.speedDrillCard,
+                                    background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.1), rgba(234, 88, 12, 0.1))',
+                                    border: '2px solid rgba(249, 115, 22, 0.3)',
+                                }}>
+                                    <div style={{ fontSize: 48, marginBottom: 16 }}>🎯</div>
+                                    <h2 style={{ fontSize: 24, fontWeight: 700, color: '#F97316', marginBottom: 8 }}>
+                                        SPOT TRAINER
+                                    </h2>
+                                    <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 20 }}>
+                                        Play through entire hand trees from preflop to river!<br />
+                                        Learn how ranges evolve on each street.<br />
+                                        Compare your EV to optimal GTO play.
+                                    </p>
+                                    <button
+                                        onClick={() => {
+                                            if (!isVIP) {
+                                                const result = DiamondEngine.deduct(GAME_COST);
+                                                if (!result.success) {
+                                                    alert(`Not enough diamonds!`);
+                                                    return;
+                                                }
+                                                setDiamondBalance(result.balance);
+                                            }
+                                            setMode('spot-trainer');
+                                        }}
+                                        style={{
+                                            ...styles.speedDrillButton,
+                                            background: 'linear-gradient(135deg, #F97316, #EA580C)',
+                                        }}
+                                    >
+                                        START SPOT TRAINER
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Tournament Mode */}
+                            {gameType === 'tournament' && (
+                                <div style={{
+                                    ...styles.speedDrillCard,
+                                    background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(219, 39, 119, 0.1))',
+                                    border: '2px solid rgba(236, 72, 153, 0.3)',
+                                }}>
+                                    <div style={{ fontSize: 48, marginBottom: 16 }}>🏆</div>
+                                    <h2 style={{ fontSize: 24, fontWeight: 700, color: '#EC4899', marginBottom: 8 }}>
+                                        VS RANKED
+                                    </h2>
+                                    <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 20 }}>
+                                        Head-to-head GTO challenges for ELO ranking!<br />
+                                        Beat simulated opponents to climb the ladder.<br />
+                                        <span style={{ color: '#EC4899' }}>Win diamonds & bragging rights!</span>
+                                    </p>
+                                    <button
+                                        onClick={() => {
+                                            if (!isVIP) {
+                                                const result = DiamondEngine.deduct(GAME_COST);
+                                                if (!result.success) {
+                                                    alert(`Not enough diamonds!`);
+                                                    return;
+                                                }
+                                                setDiamondBalance(result.balance);
+                                            }
+                                            setMode('tournament');
+                                        }}
+                                        style={{
+                                            ...styles.speedDrillButton,
+                                            background: 'linear-gradient(135deg, #EC4899, #DB2777)',
+                                        }}
+                                    >
+                                        ENTER RANKED BATTLE
                                     </button>
                                 </div>
                             )}
@@ -2867,7 +2982,7 @@ export default function MemoryGamesPage() {
                     )}
 
                     {/* Tournament Mode - Full Implementation */}
-                    {mode === 'tournament-mode' && (
+                    {mode === 'tournament' && (
                         <TournamentModeGame
                             level={currentLevel}
                             onExit={() => setMode('menu')}
