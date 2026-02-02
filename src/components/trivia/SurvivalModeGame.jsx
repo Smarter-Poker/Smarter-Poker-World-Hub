@@ -1,10 +1,9 @@
 /**
- * SURVIVAL MODE TRIVIA GAME - MINIMAL VERSION
- * Endless questions until you answer wrong - rewards stack every 5!
+ * SURVIVAL MODE TRIVIA GAME - SELF-CONTAINED VERSION
+ * No external imports except React to isolate React error #31
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { calculateDiamonds } from '../../lib/trivia/triviaEngine';
 
 export default function SurvivalModeGame({
     questions,
@@ -23,6 +22,16 @@ export default function SurvivalModeGame({
 
     const startTimeRef = useRef(Date.now());
     const currentQuestion = questions?.[currentIndex];
+
+    // Inline diamond calculation
+    const calculateSurvivalDiamonds = (streak) => {
+        if (streak === 0) return 0;
+        let total = 0;
+        for (let i = 0; i < streak; i++) {
+            total += Math.floor(i / 5) + 1;
+        }
+        return total;
+    };
 
     useEffect(() => {
         setMultiplier(Math.floor(streak / 5) + 1);
@@ -63,7 +72,7 @@ export default function SurvivalModeGame({
                     correctCount: streak,
                     totalQuestions: streak + 1,
                     timeSpent,
-                    diamondsEarned: calculateDiamonds('survival', streak, streak + 1, 0),
+                    diamondsEarned: calculateSurvivalDiamonds(streak),
                     streak,
                     multiplier
                 });
@@ -85,7 +94,7 @@ export default function SurvivalModeGame({
                 <h2 style={{ fontSize: '32px', color: '#ef4444', marginBottom: '24px' }}>GAME OVER</h2>
                 <p style={{ fontSize: '24px', marginBottom: '8px' }}>Streak: {streak}</p>
                 <p style={{ fontSize: '20px', color: '#00D4FF' }}>
-                    Diamonds Earned: {calculateDiamonds('survival', streak, streak + 1, 0)}
+                    Diamonds Earned: {calculateSurvivalDiamonds(streak)}
                 </p>
             </div>
         );
@@ -104,9 +113,9 @@ export default function SurvivalModeGame({
                 marginBottom: '16px',
                 color: 'white'
             }}>
-                <span style={{ color: '#ef4444', fontWeight: 'bold' }}>❤️ SURVIVAL</span>
-                <span style={{ color: '#fbbf24' }}>🔥 Streak: {streak}</span>
-                <span style={{ color: '#00D4FF' }}>💎 {diamondsEarned}</span>
+                <span style={{ color: '#ef4444', fontWeight: 'bold' }}>SURVIVAL</span>
+                <span style={{ color: '#fbbf24' }}>Streak: {streak}</span>
+                <span style={{ color: '#00D4FF' }}>{diamondsEarned} diamonds</span>
             </div>
 
             {/* Multiplier Bar */}
@@ -195,8 +204,6 @@ export default function SurvivalModeGame({
                                     {String.fromCharCode(65 + index)}
                                 </span>
                                 <span style={{ flex: 1 }}>{option}</span>
-                                {showResult && index === currentQuestion.correct_index && '✓'}
-                                {showResult && index === selectedAnswer && index !== currentQuestion.correct_index && '✗'}
                             </button>
                         );
                     })}
@@ -216,7 +223,7 @@ export default function SurvivalModeGame({
                     color: '#00D4FF',
                     fontSize: '13px'
                 }}>
-                    💎 +{multiplier} for correct answer
+                    +{multiplier} diamonds for correct answer
                 </div>
             </div>
         </div>
