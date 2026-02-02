@@ -45,10 +45,11 @@ export default function TrainingProgress() {
 
             // Fetch training sessions
             const { data: sessions, error } = await supabase
-                .from('training_sessions')
+                .from('jarvis_training_sessions')
                 .select('*')
                 .eq('user_id', authUser.id)
                 .order('created_at', { ascending: false });
+
 
             if (error) throw error;
 
@@ -89,17 +90,30 @@ export default function TrainingProgress() {
                 .filter(area => area.accuracy < 70 && area.total >= 5)
                 .sort((a, b) => a.accuracy - b.accuracy);
 
+            // Fetch streak data
+            let currentStreak = 0;
+            const { data: streakData } = await supabase
+                .from('training_streaks')
+                .select('current_streak')
+                .eq('user_id', authUser.id)
+                .single();
+
+            if (streakData) {
+                currentStreak = streakData.current_streak || 0;
+            }
+
             setStats({
                 totalQuestions,
                 correctAnswers,
                 accuracy,
                 totalTime,
                 averageTime,
-                streak: 0, // TODO: Calculate streak
+                streak: currentStreak,
                 categoryBreakdown,
                 recentActivity,
                 weakAreas
             });
+
 
             setLoading(false);
         } catch (error) {
@@ -164,11 +178,18 @@ export default function TrainingProgress() {
                             color={stats.accuracy >= 80 ? '#31A24C' : stats.accuracy >= 60 ? '#FFB800' : '#FF4444'}
                         />
                         <StatCard
-                            icon=""
+                            icon="⏱"
                             label="Avg Time/Question"
                             value={`${stats.averageTime}s`}
                         />
+                        <StatCard
+                            icon="🔥"
+                            label="Current Streak"
+                            value={`${stats.streak} days`}
+                            color={stats.streak >= 7 ? '#FF6B35' : stats.streak >= 3 ? '#FFB800' : '#9ca3af'}
+                        />
                     </div>
+
 
                     {/* Category Breakdown */}
                     <section style={styles.section}>

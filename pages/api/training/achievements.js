@@ -71,12 +71,37 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
         const { userId, stats } = req.body;
 
-        if (!userId || !stats) {
-            return res.status(400).json({ error: 'userId and stats required' });
+        if (!userId) {
+            return res.status(400).json({ error: 'userId required' });
         }
 
         try {
             const newlyUnlocked = [];
+
+            // Get cumulative stats from database
+            const { data: leaderboardData } = await supabase
+                .from('training_leaderboard')
+                .select('sessions_completed, questions_correct, accuracy')
+                .eq('user_id', userId)
+                .eq('period_type', 'alltime')
+                .single();
+
+            const { data: streakData } = await supabase
+                .from('training_streaks')
+                .select('current_streak, longest_streak')
+                .eq('user_id', userId)
+                .single();
+
+            // Merge client stats with cumulative DB stats
+            const cumulativeStats = {
+                accuracy: stats?.accuracy || 0,
+                currentStreak: streakData?.current_streak || 0,
+                longestStreak: streakData?.longest_streak || 0,
+                totalSessions: leaderboardData?.sessions_completed || 0,
+                totalCorrect: leaderboardData?.questions_correct || 0,
+                // For perfect rounds, check if this session was perfect and add to count
+                perfectRounds: stats?.perfectRounds || 0
+            };
 
             // Get all definitions
             const { data: definitions } = await supabase
@@ -100,29 +125,30 @@ export default async function handler(req, res) {
 
                 switch (def.category) {
                     case 'accuracy':
-                        if (def.id === 'first_perfect' && stats.accuracy === 100) {
+                        if (def.id === 'first_perfect' && cumulativeStats.accuracy === 100) {
                             shouldUnlock = true;
                         } else if (def.id.includes('flawless')) {
-                            progress = stats.perfectRounds || 0;
+                            progress = cumulativeStats.perfectRounds || 0;
                             shouldUnlock = progress >= def.threshold;
                         }
                         break;
 
                     case 'streak':
-                        progress = stats.currentStreak || 0;
+                        progress = cumulativeStats.currentStreak || 0;
                         shouldUnlock = progress >= def.threshold;
                         break;
 
                     case 'volume':
-                        progress = stats.totalSessions || 0;
+                        progress = cumulativeStats.totalSessions || 0;
                         shouldUnlock = progress >= def.threshold;
                         break;
 
                     case 'mastery':
-                        progress = stats.totalCorrect || 0;
+                        progress = cumulativeStats.totalCorrect || 0;
                         shouldUnlock = progress >= def.threshold;
                         break;
                 }
+
 
                 if (shouldUnlock) {
                     await supabase
