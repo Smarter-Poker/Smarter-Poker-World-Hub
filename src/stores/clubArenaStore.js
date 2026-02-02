@@ -2,15 +2,27 @@ import { create } from 'zustand';
 
 /**
  * Club Arena Global State
- * Manages UI state for club arena iframe wrapper
+ * Manages UI state for Club Arena — play money home games
  */
 export const useClubArenaStore = create((set) => ({
-    // UI State
-    iframeLoaded: false,
-    showHelp: false,
+    // User's clubs
+    clubs: [],
+    activeClub: null,
+    isLoadingClubs: true,
+
+    // Disclaimer
+    disclaimerAccepted: false,
+
+    // Modals
+    showCreateClub: false,
+    showJoinClub: false,
+    showFindPlayer: false,
 
     // Actions
-    setIframeLoaded: (loaded) => set({ iframeLoaded: loaded }),
-    setShowHelp: (show) => set({ showHelp: show }),
-    toggleHelp: () => set((state) => ({ showHelp: !state.showHelp })),
+    setClubs: (clubs) => set({ clubs, isLoadingClubs: false }),
+    setActiveClub: (club) => set({ activeClub: club }),
+    setDisclaimerAccepted: (accepted) => set({ disclaimerAccepted: accepted }),
+    setShowCreateClub: (show) => set({ showCreateClub: show }),
+    setShowJoinClub: (show) => set({ showJoinClub: show }),
+    setShowFindPlayer: (show) => set({ showFindPlayer: show }),
 }));
