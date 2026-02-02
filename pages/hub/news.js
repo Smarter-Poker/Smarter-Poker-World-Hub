@@ -35,6 +35,7 @@ import { useExternalLink } from '../../src/components/ui/ExternalLinkModal';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getNewsPreferences, updateNewsPreferences } from '../../src/services/newsPreferences';
+import { getNewsBookmarks, addNewsBookmark, removeNewsBookmark } from '../../src/services/newsBookmarks';
 
 // Fallback data
 const FALLBACK_NEWS = [
@@ -126,7 +127,7 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
         >
             {/* Quick Actions */}
             <div className="box-actions">
-                <button onClick={(e) => { e.stopPropagation(); onBookmark(article.id); }} title="Bookmark">
+                <button onClick={(e) => { e.stopPropagation(); onBookmark(article.id, article); }} title="Bookmark">
                     {isBookmarked ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}
                 </button>
                 <button onClick={(e) => { e.stopPropagation(); onShare(article); }} title="Share">
@@ -831,12 +832,18 @@ export default function NewsHub() {
         autoRefresh: false
     });
 
-    // Load preferences from Supabase on mount
+
+    // Load preferences and bookmarks from Supabase on mount
     useEffect(() => {
         if (userId) {
             getNewsPreferences(userId).then(setPreferences);
+
+            // Load bookmarks
+            getNewsBookmarks(userId).then(data => {
+                setBookmarks(data.map(b => b.article_id));
+            }).catch(err => console.error('Error loading bookmarks:', err));
         }
-    }, []);
+    }, [userId]);
 
     const updatePreference = useCallback(async (key, value) => {
         const newPrefs = { ...preferences, [key]: value };
@@ -911,13 +918,22 @@ export default function NewsHub() {
     }, [darkMode]);
 
     // Toggle functions
-    const toggleBookmark = (articleId) => {
-        setBookmarks(prev =>
-            prev.includes(articleId)
-                ? prev.filter(id => id !== articleId)
-                : [...prev, articleId]
-        );
-    };
+    const toggleBookmark = useCallback(async (articleId, article = {}) => {
+        if (!userId) return;
+
+        if (bookmarks.includes(articleId)) {
+            await removeNewsBookmark(userId, articleId);
+            setBookmarks(prev => prev.filter(id => id !== articleId));
+        } else {
+            await addNewsBookmark(userId, articleId, {
+                title: article.title,
+                url: article.source_url,
+                source: article.source_name,
+                thumbnail: article.image_url
+            });
+            setBookmarks(prev => [...prev, articleId]);
+        }
+    }, [userId, bookmarks]);
 
     const markAsRead = (articleId) => {
         if (!readArticles.includes(articleId)) {

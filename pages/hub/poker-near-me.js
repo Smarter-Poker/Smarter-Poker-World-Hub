@@ -12,6 +12,7 @@ import { useAvatar } from '../../src/contexts/AvatarContext';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getPokerNearMePreferences, updatePokerNearMePreferences } from '../../src/services/pokerNearMePreferences';
+import { getVenueFavorites, addVenueFavorite, removeVenueFavorite } from '../../src/services/pokerNearMeFavorites';
 
 const POPULAR_CITIES = [
     { name: 'Las Vegas', state: 'NV' },
@@ -598,15 +599,36 @@ export default function PokerNearMePage() {
     }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // --- NEW: Helper functions ---
-    const toggleFavorite = (type, id, e) => {
+    const toggleFavorite = useCallback(async (type, id, e, itemData = {}) => {
         if (e) { e.stopPropagation(); e.preventDefault(); }
         const key = type + '-' + id;
+        const isCurrentlyFavorited = favorites[key];
+
+        // Update local state immediately
         setFavorites(prev => {
             const next = { ...prev };
             if (next[key]) { delete next[key]; } else { next[key] = Date.now(); }
             return next;
         });
-    };
+
+        // Sync venue favorites to Supabase
+        if (type === 'venue' && userId) {
+            try {
+                if (isCurrentlyFavorited) {
+                    await removeVenueFavorite(userId, id);
+                } else {
+                    await addVenueFavorite(userId, id, {
+                        name: itemData.name,
+                        address: itemData.address,
+                        city: itemData.city,
+                        state: itemData.state
+                    });
+                }
+            } catch (err) {
+                console.error('Error syncing favorite:', err);
+            }
+        }
+    }, [favorites, userId]);
 
     const isFavorited = (type, id) => !!favorites[type + '-' + id];
 
@@ -668,12 +690,19 @@ export default function PokerNearMePage() {
         );
     };
 
-    // Load preferences from Supabase on mount
+    // Load preferences and venue favorites from Supabase on mount
     useEffect(() => {
         if (userId) {
             getPokerNearMePreferences(userId).then(setPreferences);
+
+            // Load venue favorites from Supabase
+            getVenueFavorites(userId).then(data => {
+                const favMap = {};
+                data.forEach(f => { favMap['venue-' + f.venue_id] = Date.now(); });
+                setFavorites(prev => ({ ...prev, ...favMap }));
+            }).catch(err => console.error('Error loading venue favorites:', err));
         }
-    }, []);
+    }, [userId]);
 
     // Hamburger menu handlers - save to Supabase
     const updatePreference = useCallback(async (key, value) => {
@@ -967,7 +996,7 @@ export default function PokerNearMePage() {
                         return (
                             <div key={venue.id || i} className="entity-card venue-card" onClick={() => router.push('/hub/venues/' + venue.id)} style={{ cursor: 'pointer' }}>
                                 {/* Favorite heart */}
-                                <button className={'fav-btn' + (fav ? ' active' : '')} onClick={(e) => toggleFavorite('venue', venue.id, e)} title={fav ? 'Remove from favorites' : 'Add to favorites'}>
+                                <button className={'fav-btn' + (fav ? ' active' : '')} onClick={(e) => toggleFavorite('venue', venue.id, e, venue)} title={fav ? 'Remove from favorites' : 'Add to favorites'}>
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill={fav ? '#ef4444' : 'none'} stroke={fav ? '#ef4444' : 'rgba(255,255,255,0.4)'} strokeWidth="2">
                                         <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
                                     </svg>

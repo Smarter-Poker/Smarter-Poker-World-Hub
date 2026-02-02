@@ -47,6 +47,8 @@ import { getMemoryGamesPreferences, updateMemoryGamesPreferences } from '../../s
 // 💎 DIAMOND ENGINE - Import Supabase-powered version
 // ═══════════════════════════════════════════════════════════════════════════
 import DiamondEngine from '../../src/services/DiamondEngine';
+import leaderboardService from '../../src/services/LeaderboardService';
+import dailyChallengeService from '../../src/services/DailyChallengeService';
 
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1221,11 +1223,23 @@ export default function MemoryGamesPage() {
 
     // Game state (keep local for game session)
     const [mode, setMode] = useState('menu'); // 'menu' | 'game' | 'result' | 'speed-drill'
-    const [gameType, setGameType] = useState('range'); // 'range' | 'speed'
+    const [gameType, setGameType] = useState('range'); // 'range' | 'speed' | 'leaderboard' | 'daily'
     const [currentScenario, setCurrentScenario] = useState(null);
     const [userGrid, setUserGrid] = useState({});
     const [selectedAction, setSelectedAction] = useState('raise');
     const [gradeResult, setGradeResult] = useState(null);
+
+    // Leaderboard state
+    const [leaderboardData, setLeaderboardData] = useState([]);
+    const [leaderboardLoading, setLeaderboardLoading] = useState(false);
+    const [leaderboardMode, setLeaderboardMode] = useState('range-memory');
+    const [userRank, setUserRank] = useState(null);
+
+    // Daily Challenge state
+    const [dailyChallenge, setDailyChallenge] = useState(null);
+    const [challengeLoading, setChallengeLoading] = useState(false);
+    const [userStreak, setUserStreak] = useState({ current_streak: 0, longest_streak: 0 });
+    const [challengeCompleted, setChallengeCompleted] = useState(false);
 
     // Timer state
     const [timeRemaining, setTimeRemaining] = useState(90);
@@ -1554,6 +1568,93 @@ export default function MemoryGamesPage() {
         startGame(currentLevel);
     };
 
+    // Load leaderboard data
+    const loadLeaderboard = useCallback(async () => {
+        setLeaderboardLoading(true);
+        try {
+            // Initialize service with supabase client if not done
+            if (supabase.current) {
+                await leaderboardService.initialize(supabase.current);
+            }
+
+            const result = await leaderboardService.getLeaderboard(leaderboardMode, null, 50);
+            if (result.success) {
+                setLeaderboardData(result.leaderboard);
+            }
+
+            // Get user rank if logged in
+            if (userId) {
+                const rankResult = await leaderboardService.getUserRank(userId, leaderboardMode, null);
+                if (rankResult.success) {
+                    setUserRank(rankResult);
+                }
+            }
+        } catch (error) {
+            console.error('[MemoryGames] Failed to load leaderboard:', error);
+        } finally {
+            setLeaderboardLoading(false);
+        }
+    }, [leaderboardMode, userId]);
+
+    // Load daily challenge data
+    const loadDailyChallenge = useCallback(async () => {
+        setChallengeLoading(true);
+        try {
+            // Initialize service with supabase client if not done
+            if (supabase.current) {
+                await dailyChallengeService.initialize(supabase.current);
+            }
+
+            const result = await dailyChallengeService.getTodaysChallenge();
+            if (result.success) {
+                setDailyChallenge(result.challenge);
+                setChallengeCompleted(result.completed);
+            }
+
+            // Get user streak if logged in
+            if (userId) {
+                const streakResult = await dailyChallengeService.getUserStreak(userId);
+                if (streakResult.success) {
+                    setUserStreak(streakResult.streak);
+                }
+            }
+        } catch (error) {
+            console.error('[MemoryGames] Failed to load daily challenge:', error);
+        } finally {
+            setChallengeLoading(false);
+        }
+    }, [userId]);
+
+    // Submit score to leaderboard after game ends
+    const submitToLeaderboard = useCallback(async (gameMode, level, score, accuracy, timeTaken) => {
+        if (!userId) return; // Only logged-in users
+
+        try {
+            if (supabase.current) {
+                await leaderboardService.initialize(supabase.current);
+            }
+
+            const sessionId = crypto.randomUUID();
+            const result = await leaderboardService.updateLeaderboard(
+                userId, gameMode, level, score, accuracy, timeTaken, sessionId
+            );
+
+            if (result.new_record) {
+                // Show celebration for new record
+                SoundEngine.play('levelUp');
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }
+
+            return result;
+        } catch (error) {
+            console.error('[MemoryGames] Failed to submit score:', error);
+        }
+    }, [userId]);
+
     // Timer color
     const getTimerColor = () => {
         if (timeRemaining > 30) return '#00ff88';
@@ -1742,6 +1843,32 @@ export default function MemoryGamesPage() {
                                 >
                                     🏆 Campaign
                                 </button>
+                                <button
+                                    onClick={() => {
+                                        setGameType('leaderboard');
+                                        loadLeaderboard();
+                                    }}
+                                    style={{
+                                        ...styles.gameModeTab,
+                                        ...(gameType === 'leaderboard' ? styles.gameModeTabActive : {}),
+                                    }}
+                                >
+                                    📊 Rankings
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setGameType('daily');
+                                        loadDailyChallenge();
+                                    }}
+                                    style={{
+                                        ...styles.gameModeTab,
+                                        background: gameType === 'daily' ? 'linear-gradient(135deg, rgba(0, 255, 136, 0.2), rgba(0, 212, 255, 0.2))' : 'rgba(255, 255, 255, 0.05)',
+                                        border: gameType === 'daily' ? '2px solid #00ff88' : '2px solid rgba(255, 255, 255, 0.1)',
+                                        color: gameType === 'daily' ? '#00ff88' : 'rgba(255, 255, 255, 0.5)',
+                                    }}
+                                >
+                                    📅 Daily
+                                </button>
                             </div>
 
                             {/* Speed Drill Mode */}
@@ -1885,6 +2012,345 @@ export default function MemoryGamesPage() {
                                     >
                                         START MIXED TRAINER
                                     </button>
+                                </div>
+                            )}
+
+                            {/* Leaderboard Section */}
+                            {gameType === 'leaderboard' && (
+                                <div style={{
+                                    background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.05), rgba(255, 140, 0, 0.05))',
+                                    border: '2px solid rgba(255, 215, 0, 0.3)',
+                                    borderRadius: 20,
+                                    padding: 24,
+                                    maxWidth: 800,
+                                    margin: '0 auto',
+                                }}>
+                                    <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                                        <div style={{ fontSize: 48, marginBottom: 12 }}>🏆</div>
+                                        <h2 style={{ fontSize: 28, fontWeight: 700, color: '#FFD700', marginBottom: 8 }}>
+                                            GLOBAL LEADERBOARD
+                                        </h2>
+                                        <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>
+                                            Compete with players worldwide. Top scores win prizes!
+                                        </p>
+                                    </div>
+
+                                    {/* Mode Toggle */}
+                                    <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
+                                        {[
+                                            { id: 'range-memory', label: '🧠 Range', color: '#00D4FF' },
+                                            { id: 'speed-drill', label: '⚡ Speed', color: '#FFD700' },
+                                            { id: 'pressure-cooker', label: '🔥 Pressure', color: '#ff4444' },
+                                            { id: 'pattern-recognition', label: '🧩 Pattern', color: '#00D4FF' },
+                                            { id: 'mixed-strategy', label: '🎛️ Mixed', color: '#A855F7' },
+                                        ].map(mode => (
+                                            <button
+                                                key={mode.id}
+                                                onClick={() => {
+                                                    setLeaderboardMode(mode.id);
+                                                    loadLeaderboard();
+                                                }}
+                                                style={{
+                                                    padding: '8px 16px',
+                                                    fontSize: 12,
+                                                    fontWeight: 600,
+                                                    background: leaderboardMode === mode.id ? `${mode.color}22` : 'rgba(0,0,0,0.3)',
+                                                    border: `2px solid ${leaderboardMode === mode.id ? mode.color : 'rgba(255,255,255,0.1)'}`,
+                                                    borderRadius: 20,
+                                                    color: leaderboardMode === mode.id ? mode.color : 'rgba(255,255,255,0.5)',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.2s ease',
+                                                }}
+                                            >
+                                                {mode.label}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {/* User Rank Display */}
+                                    {userRank && (
+                                        <div style={{
+                                            background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(138, 43, 226, 0.15))',
+                                            border: '2px solid #00D4FF',
+                                            borderRadius: 12,
+                                            padding: 16,
+                                            marginBottom: 20,
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                        }}>
+                                            <div>
+                                                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>YOUR RANK</div>
+                                                <div style={{ fontSize: 32, fontWeight: 900, color: '#00D4FF' }}>#{userRank.rank || '—'}</div>
+                                            </div>
+                                            <div style={{ textAlign: 'right' }}>
+                                                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>BEST SCORE</div>
+                                                <div style={{ fontSize: 24, fontWeight: 700, color: '#fff' }}>{userRank.score || 0}</div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Leaderboard Table */}
+                                    <div style={{
+                                        background: 'rgba(0,0,0,0.4)',
+                                        borderRadius: 12,
+                                        overflow: 'hidden',
+                                        maxHeight: 400,
+                                        overflowY: 'auto',
+                                    }}>
+                                        {leaderboardLoading ? (
+                                            <div style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,0.5)' }}>
+                                                <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
+                                                Loading rankings...
+                                            </div>
+                                        ) : leaderboardData.length === 0 ? (
+                                            <div style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,0.5)' }}>
+                                                <div style={{ fontSize: 32, marginBottom: 12 }}>🎮</div>
+                                                No rankings yet. Be the first!
+                                            </div>
+                                        ) : (
+                                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                                <thead>
+                                                    <tr style={{ background: 'rgba(255,215,0,0.1)' }}>
+                                                        <th style={{ padding: '12px 16px', textAlign: 'left', color: '#FFD700', fontSize: 12, fontWeight: 600 }}>RANK</th>
+                                                        <th style={{ padding: '12px 16px', textAlign: 'left', color: '#FFD700', fontSize: 12, fontWeight: 600 }}>PLAYER</th>
+                                                        <th style={{ padding: '12px 16px', textAlign: 'right', color: '#FFD700', fontSize: 12, fontWeight: 600 }}>SCORE</th>
+                                                        <th style={{ padding: '12px 16px', textAlign: 'right', color: '#FFD700', fontSize: 12, fontWeight: 600 }}>STREAK</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {leaderboardData.map((entry, idx) => (
+                                                        <tr
+                                                            key={entry.user_id}
+                                                            style={{
+                                                                background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)',
+                                                                borderBottom: '1px solid rgba(255,255,255,0.05)',
+                                                            }}
+                                                        >
+                                                            <td style={{ padding: '12px 16px', color: idx < 3 ? '#FFD700' : '#fff', fontSize: 14, fontWeight: idx < 3 ? 700 : 400 }}>
+                                                                {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`}
+                                                            </td>
+                                                            <td style={{ padding: '12px 16px', color: '#fff', fontSize: 14 }}>
+                                                                {entry.display_name || 'Anonymous'}
+                                                            </td>
+                                                            <td style={{ padding: '12px 16px', color: '#00ff88', fontSize: 14, fontWeight: 600, textAlign: 'right' }}>
+                                                                {entry.score?.toLocaleString()}
+                                                            </td>
+                                                            <td style={{ padding: '12px 16px', color: '#FF6B00', fontSize: 14, textAlign: 'right' }}>
+                                                                🔥 {entry.streak || 0}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        )}
+                                    </div>
+
+                                    {/* Refresh Button */}
+                                    <div style={{ textAlign: 'center', marginTop: 20 }}>
+                                        <button
+                                            onClick={loadLeaderboard}
+                                            disabled={leaderboardLoading}
+                                            style={{
+                                                padding: '12px 32px',
+                                                fontSize: 14,
+                                                fontWeight: 600,
+                                                background: 'rgba(255,255,255,0.1)',
+                                                border: '1px solid rgba(255,255,255,0.2)',
+                                                borderRadius: 30,
+                                                color: '#fff',
+                                                cursor: 'pointer',
+                                            }}
+                                        >
+                                            🔄 Refresh Rankings
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Daily Challenge Section */}
+                            {gameType === 'daily' && (
+                                <div style={{
+                                    background: 'linear-gradient(135deg, rgba(0, 255, 136, 0.05), rgba(0, 212, 255, 0.05))',
+                                    border: '2px solid rgba(0, 255, 136, 0.3)',
+                                    borderRadius: 20,
+                                    padding: 24,
+                                    maxWidth: 600,
+                                    margin: '0 auto',
+                                }}>
+                                    {/* Streak Display */}
+                                    <div style={{
+                                        display: 'flex',
+                                        justifyContent: 'center',
+                                        gap: 32,
+                                        marginBottom: 24,
+                                    }}>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 48, marginBottom: 4 }}>🔥</div>
+                                            <div style={{ fontSize: 32, fontWeight: 900, color: '#FF6B00' }}>{userStreak.current_streak || 0}</div>
+                                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Current Streak</div>
+                                        </div>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 48, marginBottom: 4 }}>👑</div>
+                                            <div style={{ fontSize: 32, fontWeight: 900, color: '#FFD700' }}>{userStreak.longest_streak || 0}</div>
+                                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Best Streak</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Challenge Card */}
+                                    <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                                        <div style={{ fontSize: 48, marginBottom: 12 }}>📅</div>
+                                        <h2 style={{ fontSize: 28, fontWeight: 700, color: '#00ff88', marginBottom: 8 }}>
+                                            DAILY CHALLENGE
+                                        </h2>
+                                        <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', marginBottom: 20 }}>
+                                            Complete today's challenge to keep your streak alive!
+                                        </p>
+                                    </div>
+
+                                    {challengeLoading ? (
+                                        <div style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,0.5)' }}>
+                                            <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
+                                            Loading today's challenge...
+                                        </div>
+                                    ) : challengeCompleted ? (
+                                        <div style={{
+                                            background: 'linear-gradient(135deg, rgba(0, 255, 136, 0.2), rgba(0, 212, 255, 0.2))',
+                                            border: '2px solid #00ff88',
+                                            borderRadius: 16,
+                                            padding: 32,
+                                            textAlign: 'center',
+                                        }}>
+                                            <div style={{ fontSize: 64, marginBottom: 16 }}>✅</div>
+                                            <h3 style={{ fontSize: 24, fontWeight: 700, color: '#00ff88', marginBottom: 8 }}>
+                                                CHALLENGE COMPLETE!
+                                            </h3>
+                                            <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)' }}>
+                                                Come back tomorrow for a new challenge!
+                                            </p>
+                                            <div style={{ marginTop: 20, fontSize: 18, color: '#FFD700' }}>
+                                                +{dailyChallenge?.diamond_reward || 50} 💎 Earned!
+                                            </div>
+                                        </div>
+                                    ) : dailyChallenge ? (
+                                        <div style={{
+                                            background: 'rgba(0,0,0,0.4)',
+                                            border: '1px solid rgba(255,255,255,0.1)',
+                                            borderRadius: 16,
+                                            padding: 24,
+                                        }}>
+                                            <div style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 16,
+                                                marginBottom: 16,
+                                                padding: '12px 16px',
+                                                background: 'rgba(0, 255, 136, 0.1)',
+                                                borderRadius: 12,
+                                            }}>
+                                                <div style={{ fontSize: 32 }}>
+                                                    {dailyChallenge.game_mode === 'range-memory' ? '🧠' :
+                                                        dailyChallenge.game_mode === 'speed-drill' ? '⚡' :
+                                                            dailyChallenge.game_mode === 'pressure-cooker' ? '🔥' :
+                                                                dailyChallenge.game_mode === 'pattern-recognition' ? '🧩' : '🎛️'}
+                                                </div>
+                                                <div>
+                                                    <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>
+                                                        {dailyChallenge.title || 'Today\'s Challenge'}
+                                                    </div>
+                                                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
+                                                        Level {dailyChallenge.level || 1} • {dailyChallenge.game_mode?.replace('-', ' ').toUpperCase()}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 20 }}>
+                                                {dailyChallenge.description || `Score ${dailyChallenge.target_score || 80}% or higher to complete the challenge.`}
+                                            </p>
+
+                                            <div style={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                padding: '12px 16px',
+                                                background: 'rgba(255,215,0,0.1)',
+                                                borderRadius: 12,
+                                                marginBottom: 20,
+                                            }}>
+                                                <div>
+                                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>TARGET SCORE</div>
+                                                    <div style={{ fontSize: 20, fontWeight: 700, color: '#00ff88' }}>{dailyChallenge.target_score || 80}%</div>
+                                                </div>
+                                                <div style={{ textAlign: 'right' }}>
+                                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>REWARD</div>
+                                                    <div style={{ fontSize: 20, fontWeight: 700, color: '#FFD700' }}>{dailyChallenge.diamond_reward || 50}💎</div>
+                                                </div>
+                                            </div>
+
+                                            <button
+                                                onClick={() => {
+                                                    // Start the challenge based on game mode
+                                                    const mode = dailyChallenge.game_mode;
+                                                    if (mode === 'range-memory') {
+                                                        startGame(dailyChallenge.level || 1);
+                                                    } else if (mode === 'speed-drill') {
+                                                        setMode('speed-drill');
+                                                    } else if (mode === 'pressure-cooker') {
+                                                        setMode('pressure-cooker');
+                                                    } else if (mode === 'pattern-recognition') {
+                                                        setMode('pattern-recognition');
+                                                    } else if (mode === 'mixed-strategy') {
+                                                        setMode('mixed-strategy');
+                                                    }
+                                                }}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '16px 32px',
+                                                    fontSize: 18,
+                                                    fontWeight: 700,
+                                                    background: 'linear-gradient(135deg, #00ff88, #00D4FF)',
+                                                    color: '#000',
+                                                    border: 'none',
+                                                    borderRadius: 50,
+                                                    cursor: 'pointer',
+                                                    boxShadow: '0 0 30px rgba(0, 255, 136, 0.4)',
+                                                }}
+                                            >
+                                                🚀 START DAILY CHALLENGE
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div style={{
+                                            background: 'rgba(255,165,0,0.1)',
+                                            border: '1px solid rgba(255,165,0,0.3)',
+                                            borderRadius: 16,
+                                            padding: 32,
+                                            textAlign: 'center',
+                                        }}>
+                                            <div style={{ fontSize: 48, marginBottom: 12 }}>⚠️</div>
+                                            <h3 style={{ fontSize: 18, fontWeight: 600, color: '#FFA500', marginBottom: 8 }}>
+                                                No Challenge Available
+                                            </h3>
+                                            <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>
+                                                Check back soon for today's challenge!
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {/* Streak Rewards Info */}
+                                    <div style={{
+                                        marginTop: 24,
+                                        padding: 16,
+                                        background: 'rgba(0,0,0,0.3)',
+                                        borderRadius: 12,
+                                        textAlign: 'center',
+                                    }}>
+                                        <div style={{ fontSize: 14, fontWeight: 600, color: '#FFD700', marginBottom: 8 }}>
+                                            🎁 STREAK REWARDS
+                                        </div>
+                                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.6 }}>
+                                            7 days: +100💎 bonus • 30 days: +500💎 bonus • 100 days: +2000💎 bonus
+                                        </div>
+                                    </div>
                                 </div>
                             )}
 

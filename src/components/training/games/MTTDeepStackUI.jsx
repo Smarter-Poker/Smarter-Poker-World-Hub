@@ -174,7 +174,7 @@ export default function MTTDeepStackUI({
                                     {isHero && (
                                         <div style={styles.heroCardsInline}>
                                             <img src={getCardPath(card1)} alt={card1} style={styles.card} />
-                                            <img src={getCardPath(card2)} alt={card2} style={{ ...styles.card, marginLeft: -32 }} />
+                                            <img src={getCardPath(card2)} alt={card2} style={{ ...styles.card, marginLeft: -34 }} />
                                         </div>
                                     )}
                                 </div>
@@ -384,8 +384,8 @@ const styles = {
     },
 
     card: {
-        width: 40,
-        height: 56,
+        width: 44,
+        height: 62,
         borderRadius: 4,
         boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
     },
