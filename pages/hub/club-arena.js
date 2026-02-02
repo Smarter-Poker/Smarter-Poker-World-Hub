@@ -498,6 +498,44 @@ export default function ClubArenaPage() {
                     showProfile={true}
                     {...getMenuConfig('club-arena', user, {}, {})}
                 />
+
+                {/* CLUB BOTTOM NAVIGATION BAR */}
+                {activeClub && (
+                    <nav style={S.bottomNav}>
+                        <div style={S.bottomNavItems}>
+                            <Link href={`/hub/club-arena/messages?club=${activeClub.club_id}`} style={S.bottomNavItem}>
+                                <svg style={S.bottomNavIcon} viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4V4c0-1.1-.9-2-2-2zm0 15.17L18.83 16H4V4h16v13.17zM7 9h10v2H7zm0-3h10v2H7zm0 6h7v2H7z" />
+                                </svg>
+                                <span style={S.bottomNavLabel}>Messages</span>
+                            </Link>
+                            <Link href={`/hub/club-arena/players?club=${activeClub.club_id}`} style={S.bottomNavItem}>
+                                <svg style={S.bottomNavIcon} viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" />
+                                </svg>
+                                <span style={S.bottomNavLabel}>Players</span>
+                            </Link>
+                            <Link href={`/hub/club-arena/cashier?club=${activeClub.club_id}`} style={S.bottomNavItem}>
+                                <svg style={S.bottomNavIcon} viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M19 14V6c0-1.1-.9-2-2-2H3c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zm-2 0H3V6h14v8zm-7-7c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3zm13 0v11c0 1.1-.9 2-2 2H4v-2h17V7h2z" />
+                                </svg>
+                                <span style={S.bottomNavLabel}>Cashier</span>
+                            </Link>
+                            <Link href={`/hub/club-arena/player-stats?club=${activeClub.club_id}`} style={S.bottomNavItem}>
+                                <svg style={S.bottomNavIcon} viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z" />
+                                </svg>
+                                <span style={S.bottomNavLabel}>Data</span>
+                            </Link>
+                            <Link href={`/hub/club-arena/admin?club=${activeClub.club_id}`} style={S.bottomNavItem}>
+                                <svg style={S.bottomNavIcon} viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
+                                </svg>
+                                <span style={S.bottomNavLabel}>Admin</span>
+                            </Link>
+                        </div>
+                    </nav>
+                )}
             </div>
         </>
     );
@@ -666,5 +704,49 @@ const S = {
         height: '100%',
         objectFit: 'cover',
         display: 'block',
+    },
+
+    // BOTTOM NAVIGATION BAR - PokerBros style
+    bottomNav: {
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 1000,
+        background: 'linear-gradient(180deg, rgba(15, 25, 40, 0.98) 0%, rgba(8, 15, 25, 0.99) 100%)',
+        borderTop: '1px solid rgba(0, 180, 255, 0.2)',
+        boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.5)',
+        backdropFilter: 'blur(10px)',
+    },
+    bottomNavItems: {
+        display: 'flex',
+        alignItems: 'stretch',
+        justifyContent: 'space-around',
+        padding: '8px 0',
+    },
+    bottomNavItem: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '4px',
+        flex: 1,
+        padding: '8px 4px',
+        textDecoration: 'none',
+        color: 'rgba(255, 255, 255, 0.5)',
+        transition: 'all 0.2s ease',
+        borderRadius: '8px',
+        margin: '0 4px',
+    },
+    bottomNavIcon: {
+        width: '24px',
+        height: '24px',
+        transition: 'all 0.2s ease',
+    },
+    bottomNavLabel: {
+        fontSize: '10px',
+        fontWeight: 600,
+        textTransform: 'uppercase',
+        letterSpacing: '0.5px',
     },
 };
