@@ -6,14 +6,29 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { motion, AnimatePresence } from 'framer-motion';
+import dynamic from 'next/dynamic';
 import { supabase } from '../../src/lib/supabase';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getPokerNearMePreferences, updatePokerNearMePreferences } from '../../src/services/pokerNearMePreferences';
 import { getVenueFavorites, addVenueFavorite, removeVenueFavorite } from '../../src/services/pokerNearMeFavorites';
+import { addSearchHistory as addSearchHistoryToDb, getSearchHistory as getSearchHistoryFromDb, clearSearchHistory as clearSearchHistoryFromDb } from '../../src/services/pokerNearMeSearchHistory';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+const VenueCard = dynamic(() => import('../../src/components/poker-near-me/VenueCard'), { ssr: false });
+const TourCard = dynamic(() => import('../../src/components/poker-near-me/TourCard'), { ssr: false });
+const SeriesCard = dynamic(() => import('../../src/components/poker-near-me/SeriesCard'), { ssr: false });
+
+// Page configuration constants
+const PAGE_SIZE = 24;
+const PAGE_SIZE_DAILY = 30;
+const PAGE_SIZE_LIVE = 30;
+const LIVE_REFRESH_MS = 120000; // 2 minutes
+const SEARCH_DEBOUNCE_MS = 400;
+const SEARCH_HISTORY_MAX = 8;
+const GPS_SEARCH_RADIUS_KM = 500;
+const GEOFENCE_ALERT_TIMEOUT_MS = 30000;
+const TOTAL_VENUES = 483;
 
 const POPULAR_CITIES = [
     { name: 'Las Vegas', state: 'NV' },
@@ -122,7 +137,7 @@ function GeofenceAlertBanner({ venue, onCheckin, onReview, onDismiss }) {
         const timer = setTimeout(() => {
             setVisible(false);
             if (onDismiss) onDismiss();
-        }, 30000);
+        }, GEOFENCE_ALERT_TIMEOUT_MS);
         return () => clearTimeout(timer);
     }, [onDismiss]);
 
@@ -379,7 +394,7 @@ function VenueMap({ venues, userLocation }) {
         <div style={{ position: 'relative' }}>
             {!mapReady && (
                 <div style={{
-                    height: 'calc(100vh - 200px)',
+                    height: 'calc(100vh - 280px)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     flexDirection: 'column', gap: 12,
                     color: 'rgba(255,255,255,0.5)',
@@ -395,7 +410,7 @@ function VenueMap({ venues, userLocation }) {
             <div
                 ref={mapContainerRef}
                 style={{
-                    height: 'calc(100vh - 200px)',
+                    height: 'calc(100vh - 280px)',
                     minHeight: 400,
                     width: '100%',
                     borderRadius: 12,
@@ -501,7 +516,7 @@ export default function PokerNearMePage() {
         return {};
     });
     const [sortBy, setSortBy] = useState('default');
-    const [displayCount, setDisplayCount] = useState({ venues: 24, tours: 24, series: 24, daily: 30, live: 30 });
+    const [displayCount, setDisplayCount] = useState({ venues: PAGE_SIZE, tours: PAGE_SIZE, series: PAGE_SIZE, daily: PAGE_SIZE_DAILY, live: PAGE_SIZE_LIVE });
     const [searchHistory, setSearchHistory] = useState(() => {
         if (typeof window !== 'undefined') {
             try { return JSON.parse(localStorage.getItem('sp-search-history') || '[]'); } catch { return []; }
@@ -509,6 +524,7 @@ export default function PokerNearMePage() {
         return [];
     });
     const [showSearchHistory, setShowSearchHistory] = useState(false);
+    const searchDebounceRef = useRef(null);
     const [promotionVenueIds, setPromotionVenueIds] = useState(new Set());
     const [seriesViewMode, setSeriesViewMode] = useState('grid'); // 'grid' or 'calendar'
 
@@ -538,6 +554,8 @@ export default function PokerNearMePage() {
     }, [selectedCity, userLocation]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // ---------- Geofence monitoring ----------
+    const [geofenceStatus, setGeofenceStatus] = useState(null); // 'active' | 'denied' | 'error'
+
     useEffect(() => {
         if (typeof window === 'undefined') return;
         if (!userLocation) return;
@@ -552,7 +570,13 @@ export default function PokerNearMePage() {
 
             // Also try requesting push permission
             import('../../src/lib/pushAlerts').then(function (pushMod) {
-                pushMod.requestPermission();
+                pushMod.requestPermission().then(function (permission) {
+                    if (permission === 'denied') {
+                        setGeofenceStatus('denied');
+                    }
+                }).catch(function () {
+                    setGeofenceStatus('denied');
+                });
 
                 gfService.start(allVenuesForMap, function (venue) {
                     // Try browser notification first
@@ -560,16 +584,20 @@ export default function PokerNearMePage() {
                     // Also show in-app banner
                     setGeofenceAlert(venue);
                 });
+
+                setGeofenceStatus('active');
             }).catch(function () {
-                // Fallback: just in-app alerts
+                // Fallback: just in-app alerts (push not available)
                 gfService.start(allVenuesForMap, function (venue) {
                     setGeofenceAlert(venue);
                 });
+                setGeofenceStatus('active');
             });
 
             geofenceRef.current = gfService;
         }).catch(function (err) {
             console.warn('[PokerNearMe] Could not load GeofenceService:', err);
+            setGeofenceStatus('error');
         });
 
         return function () {
@@ -603,7 +631,7 @@ export default function PokerNearMePage() {
     useEffect(() => {
         if (activeTab === 'live') {
             fetchLiveGames();
-            liveRefreshRef.current = setInterval(fetchLiveGames, 120000); // 2 min
+            liveRefreshRef.current = setInterval(fetchLiveGames, LIVE_REFRESH_MS);
         }
         return () => { if (liveRefreshRef.current) clearInterval(liveRefreshRef.current); };
     }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -647,10 +675,17 @@ export default function PokerNearMePage() {
         const trimmed = query.trim();
         setSearchHistory(prev => {
             const filtered = prev.filter(s => s !== trimmed);
-            const next = [trimmed, ...filtered].slice(0, 8);
+            const next = [trimmed, ...filtered].slice(0, SEARCH_HISTORY_MAX);
             localStorage.setItem('sp-search-history', JSON.stringify(next));
             return next;
         });
+        // Async sync to Supabase if logged in
+        if (userId) {
+            addSearchHistoryToDb(userId, query.trim(), {
+                location: selectedCity ? selectedCity.name : null,
+                filters: filters
+            }).catch(() => { /* localStorage is the primary store */ });
+        }
     };
 
     const getSortedVenues = (venueList) => {
@@ -667,7 +702,7 @@ export default function PokerNearMePage() {
     };
 
     const loadMore = (tab) => {
-        setDisplayCount(prev => ({ ...prev, [tab]: prev[tab] + 24 }));
+        setDisplayCount(prev => ({ ...prev, [tab]: prev[tab] + PAGE_SIZE }));
     };
 
     const isNewcomerFriendly = (venue) => {
@@ -700,7 +735,7 @@ export default function PokerNearMePage() {
         );
     };
 
-    // Load preferences and venue favorites from Supabase on mount
+    // Load preferences, venue favorites, and search history from Supabase on mount
     useEffect(() => {
         if (userId) {
             getPokerNearMePreferences(userId).then(setPreferences);
@@ -711,6 +746,17 @@ export default function PokerNearMePage() {
                 data.forEach(f => { favMap['venue-' + f.venue_id] = Date.now(); });
                 setFavorites(prev => ({ ...prev, ...favMap }));
             }).catch(err => console.error('Error loading venue favorites:', err));
+
+            // Merge search history from Supabase with localStorage
+            getSearchHistoryFromDb(userId, SEARCH_HISTORY_MAX).then(dbHistory => {
+                if (dbHistory && dbHistory.length > 0) {
+                    setSearchHistory(prev => {
+                        const merged = [...new Set([...prev, ...dbHistory.map(h => h.search_query)])].slice(0, SEARCH_HISTORY_MAX);
+                        localStorage.setItem('sp-search-history', JSON.stringify(merged));
+                        return merged;
+                    });
+                }
+            }).catch(() => { /* localStorage is the primary store */ });
         }
     }, [userId]);
 
@@ -754,7 +800,7 @@ export default function PokerNearMePage() {
             if (userLocation) {
                 params.set('lat', userLocation.lat.toString());
                 params.set('lng', userLocation.lng.toString());
-                params.set('radius', '500');
+                params.set('radius', String(GPS_SEARCH_RADIUS_KM));
             }
             if (searchQuery) {
                 params.set('search', searchQuery);
@@ -874,10 +920,23 @@ export default function PokerNearMePage() {
 
     const handleSearch = (e) => {
         e.preventDefault();
+        if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
         addToSearchHistory(searchQuery);
         setShowSearchHistory(false);
         setHasSearched(true);
         fetchAllData({ includeVenues: true });
+    };
+
+    const handleSearchInputChange = (e) => {
+        const value = e.target.value;
+        setSearchQuery(value);
+        if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+        if (value.trim().length >= 3) {
+            searchDebounceRef.current = setTimeout(() => {
+                setHasSearched(true);
+                fetchAllData({ includeVenues: true });
+            }, SEARCH_DEBOUNCE_MS);
+        }
     };
 
     const handleCityClick = (city) => {
@@ -891,7 +950,7 @@ export default function PokerNearMePage() {
         setSearchQuery('');
         setHasSearched(false);
         setVenues([]);
-        setDisplayCount(prev => ({ ...prev, venues: 24 }));
+        setDisplayCount(prev => ({ ...prev, venues: PAGE_SIZE }));
         setFilters({
             venueType: 'all',
             hasNLH: false,
@@ -980,7 +1039,7 @@ export default function PokerNearMePage() {
                     <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="rgba(212,168,83,0.4)" strokeWidth="1.5">
                         <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
                     </svg>
-                    <h3 style={{ color: '#fff', fontSize: 20, fontWeight: 600, margin: '16px 0 8px' }}>Search 483 Poker Venues</h3>
+                    <h3 style={{ color: '#fff', fontSize: 20, fontWeight: 600, margin: '16px 0 8px' }}>Search {TOTAL_VENUES} Poker Venues</h3>
                     <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, margin: 0, lineHeight: 1.6 }}>
                         Enter a city or venue name, select a popular city, or use GPS to find poker rooms near you.
                     </p>
@@ -1020,66 +1079,17 @@ export default function PokerNearMePage() {
                     </div>
                 </div>
                 <div className="card-grid">
-                    {displayed.map((venue, i) => {
-                        const trust = getTrustLevel(venue.trust_score);
-                        const fav = isFavorited('venue', venue.id);
-                        const newcomer = isNewcomerFriendly(venue);
-                        const hasPromo = promotionVenueIds.has(String(venue.id));
-                        return (
-                            <div key={venue.id || i} className="entity-card venue-card" onClick={() => router.push('/hub/venues/' + venue.id)} style={{ cursor: 'pointer' }}>
-                                {/* Favorite heart */}
-                                <button className={'fav-btn' + (fav ? ' active' : '')} onClick={(e) => toggleFavorite('venue', venue.id, e, venue)} title={fav ? 'Remove from favorites' : 'Add to favorites'}>
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill={fav ? '#ef4444' : 'none'} stroke={fav ? '#ef4444' : 'rgba(255,255,255,0.4)'} strokeWidth="2">
-                                        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
-                                    </svg>
-                                </button>
-                                <div className="card-header">
-                                    <h4>{venue.name}</h4>
-                                    <span className="badge venue-type">{VENUE_TYPE_LABELS[venue.venue_type] || venue.venue_type}</span>
-                                </div>
-                                <p className="card-location">
-                                    {venue.address ? (venue.address + ' - ') : ''}{venue.city}, {venue.state}
-                                </p>
-                                {/* Badge row */}
-                                <div className="badge-row">
-                                    {venue.is_featured && <span className="mini-badge featured-badge">Featured</span>}
-                                    {newcomer && <span className="mini-badge newcomer-badge">Newcomer Friendly</span>}
-                                    {hasPromo && <span className="mini-badge promo-badge">Active Promo</span>}
-                                    {venue.has_tournaments && <span className="mini-badge tourney-badge">Tournaments</span>}
-                                </div>
-                                {/* Hours */}
-                                {venue.hours && (
-                                    <p className="card-hours">{venue.hours === '24/7' ? 'Open 24/7' : venue.hours}</p>
-                                )}
-                                <div className="card-tags">
-                                    {venue.distance_mi && <span className="tag distance">{venue.distance_mi} mi</span>}
-                                    {venue.games_offered && venue.games_offered.slice(0, 4).map(g => (
-                                        <span key={g} className="tag game">{g}</span>
-                                    ))}
-                                </div>
-                                {venue.stakes_cash && venue.stakes_cash.length > 0 && (
-                                    <p className="card-detail">Stakes: {venue.stakes_cash.slice(0, 3).join(', ')}</p>
-                                )}
-                                <div className="card-footer">
-                                    <span className="trust-badge" style={{ color: trust.color }}>Trust: {trust.label} ({venue.trust_score || '-'})</span>
-                                    <div className="card-actions">
-                                        {venue.website && (
-                                            <a href={venue.website} target="_blank" rel="noopener noreferrer" className="action-btn" onClick={e => e.stopPropagation()}>Web</a>
-                                        )}
-                                        {venue.phone && <a href={'tel:' + venue.phone} className="action-btn" onClick={e => e.stopPropagation()}>Call</a>}
-                                        <a href={'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent((venue.address || '') + ' ' + venue.name + ' ' + venue.city + ' ' + venue.state)}
-                                            target="_blank" rel="noopener noreferrer" className="action-btn" onClick={e => e.stopPropagation()}>Map</a>
-                                    </div>
-                                </div>
-                                {/* Quick actions */}
-                                <div className="quick-actions">
-                                    <button className="quick-btn checkin-btn" onClick={e => { e.stopPropagation(); router.push('/hub/venues/' + venue.id + '?action=checkin'); }}>Check In</button>
-                                    <button className="quick-btn review-btn" onClick={e => { e.stopPropagation(); router.push('/hub/venues/' + venue.id + '?action=review'); }}>Review</button>
-                                    <span className="action-btn primary" style={{ flex: 1, textAlign: 'center' }}>Details</span>
-                                </div>
-                            </div>
-                        );
-                    })}
+                    {displayed.map((venue, i) => (
+                        <VenueCard
+                            key={venue.id || i}
+                            venue={venue}
+                            isFavorited={isFavorited('venue', venue.id)}
+                            isNewcomer={isNewcomerFriendly(venue)}
+                            hasPromo={promotionVenueIds.has(String(venue.id))}
+                            onFavorite={(e) => toggleFavorite('venue', venue.id, e, venue)}
+                            onNavigate={(path) => router.push(path)}
+                        />
+                    ))}
                 </div>
                 {/* Load More */}
                 {displayCount.venues < venues.length && (
@@ -1111,49 +1121,15 @@ export default function PokerNearMePage() {
                     <span className="results-count">Showing {Math.min(displayCount.tours, tours.length)} of {tours.length} tours</span>
                 </div>
                 <div className="card-grid tours-grid">
-                    {tours.slice(0, displayCount.tours).map((tour, i) => {
-                        const fav = isFavorited('tour', tour.tour_code);
-                        return (
-                            <div key={tour.tour_code || i} className="entity-card tour-card" onClick={() => router.push('/hub/tours/' + tour.tour_code)} style={{ cursor: 'pointer' }}>
-                                <button className={'fav-btn' + (fav ? ' active' : '')} onClick={(e) => toggleFavorite('tour', tour.tour_code, e)}>
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill={fav ? '#ef4444' : 'none'} stroke={fav ? '#ef4444' : 'rgba(255,255,255,0.4)'} strokeWidth="2">
-                                        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
-                                    </svg>
-                                </button>
-                                <div className="card-header">
-                                    <TourBadge tourCode={tour.tour_code} />
-                                    <span className="badge tour-type">{TOUR_TYPE_LABELS[tour.tour_type] || tour.tour_type}</span>
-                                </div>
-                                <h4 className="tour-name">{tour.tour_name}</h4>
-                                <p className="card-location">{tour.headquarters}</p>
-                                {tour.typical_buyins && (
-                                    <p className="card-detail">
-                                        Buy-ins: {formatMoney(tour.typical_buyins.min)} - {formatMoney(tour.typical_buyins.max)}
-                                    </p>
-                                )}
-                                {tour.regions && tour.regions.length > 0 && (
-                                    <div className="card-tags">
-                                        {tour.regions.map(r => <span key={r} className="tag region">{r}</span>)}
-                                    </div>
-                                )}
-                                {tour.upcoming_series && tour.upcoming_series.length > 0 && (
-                                    <div className="upcoming-series">
-                                        <span className="upcoming-label">Next: {tour.upcoming_series[0].short_name || tour.upcoming_series[0].name}</span>
-                                        <span className="upcoming-date">{formatDate(tour.upcoming_series[0].start_date)}</span>
-                                    </div>
-                                )}
-                                <div className="card-footer">
-                                    <span className="established">Est. {tour.established}</span>
-                                    <div className="card-actions">
-                                        <span className="action-btn primary">Details</span>
-                                        {tour.official_website && (
-                                            <a href={tour.official_website} target="_blank" rel="noopener noreferrer" className="action-btn" onClick={e => e.stopPropagation()}>Website</a>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })}
+                    {tours.slice(0, displayCount.tours).map((tour, i) => (
+                        <TourCard
+                            key={tour.tour_code || i}
+                            tour={tour}
+                            isFavorited={isFavorited('tour', tour.tour_code)}
+                            onFavorite={(e) => toggleFavorite('tour', tour.tour_code, e)}
+                            onNavigate={(path) => router.push(path)}
+                        />
+                    ))}
                 </div>
                 {displayCount.tours < tours.length && (
                     <div className="load-more">
@@ -1197,40 +1173,16 @@ export default function PokerNearMePage() {
                 {seriesViewMode === 'calendar' ? renderSeriesCalendar() : (
                     <>
                         <div className="card-grid">
-                            {series.slice(0, displayCount.series).map((s, i) => {
-                                const fav = isFavorited('series', s.id || (i + 1));
-                                return (
-                                    <div key={s.id || i} className="entity-card series-card" onClick={() => router.push('/hub/series/' + (s.id || (i + 1)))} style={{ cursor: 'pointer' }}>
-                                        <button className={'fav-btn' + (fav ? ' active' : '')} onClick={(e) => toggleFavorite('series', s.id || (i + 1), e)}>
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill={fav ? '#ef4444' : 'none'} stroke={fav ? '#ef4444' : 'rgba(255,255,255,0.4)'} strokeWidth="2">
-                                                <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
-                                            </svg>
-                                        </button>
-                                        <div className="card-header">
-                                            <TourBadge tourCode={s.tour_code || s.short_name} size="small" />
-                                            <span className="badge series-type">{s.series_type}</span>
-                                        </div>
-                                        <h4>{s.name}</h4>
-                                        <p className="card-location">{s.location || ((s.city || s.venue) + ', ' + (s.state || ''))}</p>
-                                        <p className="card-dates">{formatDate(s.start_date)} - {formatDate(s.end_date)}</p>
-                                        <div className="card-tags">
-                                            {s.total_events && <span className="tag events">{s.total_events} Events</span>}
-                                            {s.main_event_buyin && <span className="tag buyin">{formatMoney(s.main_event_buyin)} Main</span>}
-                                        </div>
-                                        {s.main_event_guaranteed && (
-                                            <p className="card-detail guaranteed">{formatMoney(s.main_event_guaranteed)}+ GTD</p>
-                                        )}
-                                        <div className="card-footer">
-                                            <div className="card-actions">
-                                                <span className="action-btn primary">Details</span>
-                                                {s.source_url && (
-                                                    <a href={s.source_url} target="_blank" rel="noopener noreferrer" className="action-btn" onClick={e => e.stopPropagation()}>Source</a>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                            {series.slice(0, displayCount.series).map((s, i) => (
+                                <SeriesCard
+                                    key={s.id || i}
+                                    series={s}
+                                    index={i}
+                                    isFavorited={isFavorited('series', s.id || (i + 1))}
+                                    onFavorite={(e) => toggleFavorite('series', s.id || (i + 1), e)}
+                                    onNavigate={(path) => router.push(path)}
+                                />
+                            ))}
                         </div>
                         {displayCount.series < series.length && (
                             <div className="load-more">
@@ -1317,7 +1269,7 @@ export default function PokerNearMePage() {
                     </svg>
                     <p>No live games reported right now</p>
                     <p style={{ fontSize: 13, opacity: 0.5, marginTop: 4 }}>Be the first to report a game at your venue!</p>
-                    <p style={{ fontSize: 11, opacity: 0.3, marginTop: 8 }}>Auto-refreshes every 2 minutes</p>
+                    <p style={{ fontSize: 11, opacity: 0.3, marginTop: 8 }}>Auto-refreshes every {LIVE_REFRESH_MS / 60000} minutes</p>
                 </div>
             );
         }
@@ -1340,7 +1292,7 @@ export default function PokerNearMePage() {
                     </span>
                     <div className="live-refresh">
                         <span className="live-dot"></span>
-                        <span>Auto-refreshes every 2 min</span>
+                        <span>Auto-refreshes every {LIVE_REFRESH_MS / 60000} min</span>
                         <button className="refresh-btn" onClick={fetchLiveGames} disabled={liveLoading}>
                             {liveLoading ? 'Refreshing...' : 'Refresh Now'}
                         </button>
@@ -1562,7 +1514,7 @@ export default function PokerNearMePage() {
                                     type="text"
                                     placeholder="Search venues, tours, series, or events..."
                                     value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    onChange={handleSearchInputChange}
                                     onFocus={() => { if (searchHistory.length > 0) setShowSearchHistory(true); }}
                                     onBlur={() => setTimeout(() => setShowSearchHistory(false), 200)}
                                 />
@@ -1570,7 +1522,7 @@ export default function PokerNearMePage() {
                                     <div className="search-history-dropdown">
                                         <div className="search-history-header">
                                             <span>Recent Searches</span>
-                                            <button type="button" onClick={() => { setSearchHistory([]); localStorage.removeItem('sp-search-history'); setShowSearchHistory(false); }}>Clear</button>
+                                            <button type="button" onClick={() => { setSearchHistory([]); localStorage.removeItem('sp-search-history'); if (userId) clearSearchHistoryFromDb(userId).catch(() => {}); setShowSearchHistory(false); }}>Clear</button>
                                         </div>
                                         {searchHistory.map((item, i) => (
                                             <button key={i} type="button" className="search-history-item"
@@ -1622,6 +1574,22 @@ export default function PokerNearMePage() {
                                         <polygon points="3 11 22 2 13 21 11 13 3 11" />
                                     </svg>
                                     <span>Nearest: ~{nearestDistance || '0'} miles</span>
+                                </div>
+                            )}
+                            {geofenceStatus === 'denied' && (
+                                <div className="geofence-notice denied">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
+                                    </svg>
+                                    <span>Notifications blocked - venue alerts will show in-app only</span>
+                                </div>
+                            )}
+                            {geofenceStatus === 'error' && (
+                                <div className="geofence-notice error">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+                                    </svg>
+                                    <span>Geofence service unavailable</span>
                                 </div>
                             )}
                         </div>
@@ -1734,7 +1702,7 @@ export default function PokerNearMePage() {
                                 <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
                             </svg>
                         </span>
-                        Venues <span className="tab-count">{hasSearched ? counts.venues : 483}</span>
+                        Venues <span className="tab-count">{hasSearched ? counts.venues : TOTAL_VENUES}</span>
                     </button>
                     <button className={'tab' + (activeTab === 'tours' ? ' active' : '')} onClick={() => setActiveTab('tours')}>
                         <span className="tab-icon">
@@ -1982,6 +1950,22 @@ export default function PokerNearMePage() {
                         border-radius: 8px;
                         color: #4ade80;
                         font-size: 13px;
+                    }
+                    .geofence-notice {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        padding: 8px 12px;
+                        border-radius: 8px;
+                        font-size: 12px;
+                    }
+                    .geofence-notice.denied {
+                        background: rgba(245,158,11,0.1);
+                        color: #fbbf24;
+                    }
+                    .geofence-notice.error {
+                        background: rgba(239,68,68,0.1);
+                        color: #f87171;
                     }
 
                     /* Filter Panel */
