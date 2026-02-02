@@ -1,8 +1,8 @@
 /**
- * 📊 WEEKLY LEAK REPORT CRON — JARVIS ANALYSIS
+ * 📊 DAILY LEAK REPORT CRON — JARVIS ANALYSIS
  * ═══════════════════════════════════════════════════════════════════════════
- * Runs every Monday at 8 AM UTC
- * Analyzes each user's training sessions from the past week
+ * Runs every day at 8 AM UTC
+ * Analyzes each user's training sessions from the past 24 hours
  * Generates personalized leak reports using Grok
  * ═══════════════════════════════════════════════════════════════════════════
  */
@@ -29,19 +29,19 @@ export default async function handler(req, res) {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     try {
-        console.log('[WeeklyLeakReport] 📊 Starting weekly analysis...');
+        console.log('[DailyLeakReport] 📊 Starting daily analysis...');
 
-        // Calculate current week identifier
+        // Calculate today's identifier
         const now = new Date();
-        const weekStart = new Date(now);
-        weekStart.setDate(now.getDate() - 7);
-        const reportWeek = getWeekIdentifier(now);
+        const dayStart = new Date(now);
+        dayStart.setHours(dayStart.getHours() - 24); // Past 24 hours
+        const reportDate = now.toISOString().split('T')[0];
 
-        // Get all users who trained this week
+        // Get all users who trained today
         const { data: sessions, error: sessionsError } = await supabase
             .from('jarvis_training_sessions')
             .select('user_id, game_id, category, accuracy, questions_answered, questions_correct, answers_data, leaks_detected')
-            .gte('created_at', weekStart.toISOString())
+            .gte('created_at', dayStart.toISOString())
             .order('user_id');
 
         if (sessionsError) {
