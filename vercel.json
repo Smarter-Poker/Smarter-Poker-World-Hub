@@ -129,6 +129,10 @@
     {
       "path": "/api/cron/horse-batch/9",
       "schedule": "30 22 * * *"
+    },
+    {
+      "path": "/api/cron/daily-challenges",
+      "schedule": "5 0 * * *"
     }
   ]
 }
