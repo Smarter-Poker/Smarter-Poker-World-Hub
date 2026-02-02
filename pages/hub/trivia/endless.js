@@ -29,6 +29,11 @@ export default function EndlessModePage() {
     const [isLoading, setIsLoading] = useState(true);
     const [highScore, setHighScore] = useState(0);
 
+    // 50/50 Lifeline State
+    const [fiftyFiftyUsedFree, setFiftyFiftyUsedFree] = useState(false); // One free per game
+    const [eliminatedOptions, setEliminatedOptions] = useState([]);
+    const [userDiamonds, setUserDiamonds] = useState(0);
+
     const startTimeRef = useRef(null);
 
     // Calculate multiplier based on streak (increases every 5 questions)
@@ -53,6 +58,17 @@ export default function EndlessModePage() {
                     if (data) setHighScore(data.high_score || 0);
                 } catch (e) {
                     // High score table may not exist yet
+                }
+                // Load user diamonds
+                try {
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('diamonds')
+                        .eq('id', user.id)
+                        .single();
+                    if (profile) setUserDiamonds(profile.diamonds || 0);
+                } catch (e) {
+                    console.error('Failed to load diamonds:', e);
                 }
             }
             await loadMoreQuestions();
@@ -93,7 +109,51 @@ export default function EndlessModePage() {
         setDiamondsEarned(0);
         setMultiplier(1);
         setCurrentIndex(0);
+        setFiftyFiftyUsedFree(false); // Reset free 50/50 for new game
+        setEliminatedOptions([]);
         startTimeRef.current = Date.now();
+    }
+
+    // 50/50 Lifeline Function
+    async function useFiftyFifty() {
+        if (eliminatedOptions.length > 0 || showResult) return; // Already used on this question
+
+        const currentQ = questions[currentIndex];
+        if (!currentQ) return;
+
+        const needsToPay = fiftyFiftyUsedFree;
+
+        if (needsToPay) {
+            if (userDiamonds < 5) {
+                alert('Not enough diamonds! You need 5💎 for an additional 50/50.');
+                return;
+            }
+            // Deduct diamonds
+            if (userId) {
+                try {
+                    await supabase
+                        .from('profiles')
+                        .update({ diamonds: userDiamonds - 5 })
+                        .eq('id', userId);
+                    setUserDiamonds(prev => prev - 5);
+                } catch (e) {
+                    console.error('Failed to deduct diamonds:', e);
+                    return;
+                }
+            }
+        } else {
+            setFiftyFiftyUsedFree(true);
+        }
+
+        // Find wrong answer indices
+        const wrongIndices = currentQ.options
+            .map((_, idx) => idx)
+            .filter(idx => idx !== currentQ.correct_index);
+
+        // Randomly select 2 to eliminate
+        const shuffled = wrongIndices.sort(() => Math.random() - 0.5);
+        const toEliminate = shuffled.slice(0, 2);
+        setEliminatedOptions(toEliminate);
     }
 
     function selectAnswer(index) {
@@ -114,6 +174,7 @@ export default function EndlessModePage() {
                 setCurrentIndex(prev => prev + 1);
                 setSelectedAnswer(null);
                 setShowResult(false);
+                setEliminatedOptions([]); // Reset 50/50 for next question
             }, 1000);
         } else {
             setTimeout(() => {
@@ -327,6 +388,7 @@ export default function EndlessModePage() {
 
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                         {currentQuestion.options?.map((option, index) => {
+                                            const isEliminated = eliminatedOptions.includes(index);
                                             let bg = 'rgba(255,255,255,0.05)';
                                             let borderColor = 'rgba(255,255,255,0.1)';
 
@@ -344,7 +406,7 @@ export default function EndlessModePage() {
                                                 <button
                                                     key={index}
                                                     onClick={() => selectAnswer(index)}
-                                                    disabled={selectedAnswer !== null}
+                                                    disabled={selectedAnswer !== null || isEliminated}
                                                     style={{
                                                         display: 'flex',
                                                         alignItems: 'center',
@@ -353,11 +415,13 @@ export default function EndlessModePage() {
                                                         background: bg,
                                                         border: `2px solid ${borderColor}`,
                                                         borderRadius: '10px',
-                                                        color: 'rgba(255,255,255,0.9)',
+                                                        color: isEliminated ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.9)',
                                                         fontSize: '15px',
                                                         textAlign: 'left',
-                                                        cursor: selectedAnswer !== null ? 'default' : 'pointer',
-                                                        transition: 'all 0.2s'
+                                                        cursor: (selectedAnswer !== null || isEliminated) ? 'default' : 'pointer',
+                                                        transition: 'all 0.2s',
+                                                        textDecoration: isEliminated ? 'line-through' : 'none',
+                                                        opacity: isEliminated ? 0.5 : 1
                                                     }}
                                                 >
                                                     <span style={{
@@ -366,18 +430,58 @@ export default function EndlessModePage() {
                                                         display: 'flex',
                                                         alignItems: 'center',
                                                         justifyContent: 'center',
-                                                        background: 'rgba(255,255,255,0.1)',
+                                                        background: isEliminated ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255,255,255,0.1)',
                                                         borderRadius: '6px',
                                                         fontWeight: 700,
-                                                        fontSize: '13px'
+                                                        fontSize: '13px',
+                                                        color: isEliminated ? '#ef4444' : 'inherit'
                                                     }}>
-                                                        {String.fromCharCode(65 + index)}
+                                                        {isEliminated ? '✗' : String.fromCharCode(65 + index)}
                                                     </span>
                                                     <span style={{ flex: 1 }}>{option}</span>
                                                 </button>
                                             );
                                         })}
                                     </div>
+
+                                    {/* 50/50 Lifeline Button */}
+                                    {!showResult && (
+                                        <button
+                                            onClick={useFiftyFifty}
+                                            disabled={eliminatedOptions.length > 0}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: '8px',
+                                                width: '100%',
+                                                padding: '14px',
+                                                marginTop: '16px',
+                                                background: eliminatedOptions.length > 0
+                                                    ? 'rgba(100,100,100,0.2)'
+                                                    : 'linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.1))',
+                                                border: eliminatedOptions.length > 0
+                                                    ? '1px solid rgba(100,100,100,0.3)'
+                                                    : '1px solid rgba(139, 92, 246, 0.4)',
+                                                borderRadius: '10px',
+                                                color: eliminatedOptions.length > 0 ? 'rgba(255,255,255,0.4)' : 'white',
+                                                fontSize: '15px',
+                                                fontWeight: 'bold',
+                                                cursor: eliminatedOptions.length > 0 ? 'default' : 'pointer',
+                                                transition: 'all 0.2s'
+                                            }}
+                                        >
+                                            <span style={{ fontSize: '18px' }}>⚡</span>
+                                            <span>50/50</span>
+                                            {eliminatedOptions.length > 0 ? (
+                                                <span style={{ fontSize: '13px', opacity: 0.7 }}>USED</span>
+                                            ) : fiftyFiftyUsedFree ? (
+                                                <span style={{ fontSize: '13px', color: '#00D4FF' }}>5💎</span>
+                                            ) : (
+                                                <span style={{ fontSize: '13px', color: '#22c55e' }}>FREE</span>
+                                            )}
+                                        </button>
+                                    )}
 
                                     <div style={{
                                         display: 'flex',
