@@ -1,10 +1,8 @@
 /**
  * Training Settings Menu (Hamburger Menu)
  * ═══════════════════════════════════════════════════════════════════════════
- * Slide-out drawer with training preferences
- * - View Mode: Standard (beginner) / Pro (advanced)
- * - Sound Effects: On/Off
- * - Timer: On/Off
+ * Slide-out drawer from LEFT with training preferences
+ * Facebook Dark Theme
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -37,6 +35,27 @@ export default function TrainingSettingsMenu({ onClose }) {
         return () => window.removeEventListener('keydown', handleEsc);
     }, []);
 
+    // Toggle Switch Component with proper knob
+    const ToggleSwitch = ({ enabled, onToggle }) => (
+        <label style={styles.switchContainer}>
+            <input
+                type="checkbox"
+                checked={enabled}
+                onChange={(e) => onToggle(e.target.checked)}
+                style={styles.switchInput}
+            />
+            <span style={{
+                ...styles.switchTrack,
+                backgroundColor: enabled ? '#31A24C' : '#3E4042',
+            }}>
+                <span style={{
+                    ...styles.switchKnob,
+                    transform: enabled ? 'translateX(26px)' : 'translateX(2px)',
+                }} />
+            </span>
+        </label>
+    );
+
     return (
         <>
             {/* Backdrop */}
@@ -47,13 +66,13 @@ export default function TrainingSettingsMenu({ onClose }) {
                 />
             )}
 
-            {/* Drawer */}
+            {/* Drawer - Opens from LEFT - Facebook Dark Theme */}
             <div style={{
                 ...styles.drawer,
-                transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
+                transform: isOpen ? 'translateX(0)' : 'translateX(-100%)',
             }}>
                 <div style={styles.drawerHeader}>
-                    <h2 style={styles.drawerTitle}>Training Settings</h2>
+                    <h2 style={styles.drawerTitle}>Settings</h2>
                     <button
                         onClick={handleClose}
                         style={styles.closeButton}
@@ -67,9 +86,9 @@ export default function TrainingSettingsMenu({ onClose }) {
                     {/* View Mode Toggle */}
                     <div style={styles.settingGroup}>
                         <label style={styles.settingLabel}>
-                            View Mode
+                            Language Mode
                             <span style={styles.settingHint}>
-                                {viewMode === 'standard' ? 'Beginner-friendly' : 'Advanced terminology'}
+                                {viewMode === 'standard' ? 'Simple terms for beginners' : 'Pro poker terms'}
                             </span>
                         </label>
                         <div style={styles.toggleGroup}>
@@ -80,7 +99,7 @@ export default function TrainingSettingsMenu({ onClose }) {
                                     ...(viewMode === 'standard' ? styles.toggleButtonActive : {}),
                                 }}
                             >
-                                Standard
+                                Beginner
                             </button>
                             <button
                                 onClick={() => setViewMode('pro')}
@@ -96,93 +115,65 @@ export default function TrainingSettingsMenu({ onClose }) {
 
                     {/* Sound Effects Toggle */}
                     <div style={styles.settingGroup}>
-                        <label style={styles.settingLabel}>
-                            Sound Effects
-                        </label>
-                        <label style={styles.switchContainer}>
-                            <input
-                                type="checkbox"
-                                checked={soundEnabled}
-                                onChange={(e) => setSoundEnabled(e.target.checked)}
-                                style={styles.switchInput}
+                        <div style={styles.settingRow}>
+                            <label style={styles.settingLabel}>Sound</label>
+                            <ToggleSwitch
+                                enabled={soundEnabled}
+                                onToggle={setSoundEnabled}
                             />
-                            <span style={{
-                                ...styles.switchSlider,
-                                backgroundColor: soundEnabled ? '#10b981' : '#64748b',
-                            }} />
-                        </label>
+                        </div>
                     </div>
 
                     {/* Timer Toggle */}
                     <div style={styles.settingGroup}>
-                        <label style={styles.settingLabel}>
-                            Timer
-                        </label>
-                        <label style={styles.switchContainer}>
-                            <input
-                                type="checkbox"
-                                checked={timerEnabled}
-                                onChange={(e) => setTimerEnabled(e.target.checked)}
-                                style={styles.switchInput}
+                        <div style={styles.settingRow}>
+                            <label style={styles.settingLabel}>Timer</label>
+                            <ToggleSwitch
+                                enabled={timerEnabled}
+                                onToggle={setTimerEnabled}
                             />
-                            <span style={{
-                                ...styles.switchSlider,
-                                backgroundColor: timerEnabled ? '#10b981' : '#64748b',
-                            }} />
-                        </label>
+                        </div>
                     </div>
 
                     {/* Auto-Advance Toggle */}
                     <div style={styles.settingGroup}>
-                        <label style={styles.settingLabel}>
-                            Auto-Advance
-                            <span style={styles.settingHint}>
-                                Automatically move to next question
-                            </span>
-                        </label>
-                        <label style={styles.switchContainer}>
-                            <input
-                                type="checkbox"
-                                checked={autoAdvanceEnabled}
-                                onChange={(e) => setAutoAdvanceEnabled(e.target.checked)}
-                                style={styles.switchInput}
+                        <div style={styles.settingRow}>
+                            <div>
+                                <label style={styles.settingLabel}>Auto-Next</label>
+                                <span style={styles.settingHintSmall}>
+                                    Skip to next question automatically
+                                </span>
+                            </div>
+                            <ToggleSwitch
+                                enabled={autoAdvanceEnabled}
+                                onToggle={setAutoAdvanceEnabled}
                             />
-                            <span style={{
-                                ...styles.switchSlider,
-                                backgroundColor: autoAdvanceEnabled ? '#10b981' : '#64748b',
-                            }} />
-                        </label>
+                        </div>
                     </div>
 
                     {/* Hints Toggle */}
                     <div style={styles.settingGroup}>
-                        <label style={styles.settingLabel}>
-                            Hints
-                            <span style={styles.settingHint}>
-                                Show helpful hints during questions
-                            </span>
-                        </label>
-                        <label style={styles.switchContainer}>
-                            <input
-                                type="checkbox"
-                                checked={hintsEnabled}
-                                onChange={(e) => setHintsEnabled(e.target.checked)}
-                                style={styles.switchInput}
+                        <div style={styles.settingRow}>
+                            <div>
+                                <label style={styles.settingLabel}>Hints</label>
+                                <span style={styles.settingHintSmall}>
+                                    Levels 1-3 only
+                                </span>
+                            </div>
+                            <ToggleSwitch
+                                enabled={hintsEnabled}
+                                onToggle={setHintsEnabled}
                             />
-                            <span style={{
-                                ...styles.switchSlider,
-                                backgroundColor: hintsEnabled ? '#10b981' : '#64748b',
-                            }} />
-                        </label>
+                        </div>
                     </div>
 
                     {/* Info Text */}
                     <div style={styles.infoBox}>
                         <p style={styles.infoText}>
-                            <strong>Standard View:</strong> Uses beginner-friendly language like "Your Stack: 150bb"
+                            <strong>Beginner:</strong> "Your Chips: 150bb"
                         </p>
                         <p style={styles.infoText}>
-                            <strong>Pro View:</strong> Uses advanced terminology like "Effective Stack: 150bb"
+                            <strong>Pro:</strong> "Effective Stack: 150bb"
                         </p>
                     </div>
                 </div>
@@ -191,39 +182,34 @@ export default function TrainingSettingsMenu({ onClose }) {
     );
 }
 
+// Facebook Dark Theme Colors
+const FB_DARK = {
+    bg: '#18191A',           // Main background
+    card: '#242526',         // Card/container background
+    elevated: '#3A3B3C',     // Elevated elements
+    border: '#3E4042',       // Borders
+    textPrimary: '#E4E6EB',  // Primary text
+    textSecondary: '#B0B3B8', // Secondary text
+    accent: '#2374E1',       // Facebook blue
+    success: '#31A24C',      // Green for toggles
+};
+
 const styles = {
-    hamburgerButton: {
-        position: 'fixed',
-        top: '16px',
-        right: '80px',
-        zIndex: 998,
-        background: 'rgba(255, 255, 255, 0.08)',
-        border: '1px solid rgba(255, 255, 255, 0.15)',
-        borderRadius: '8px',
-        padding: '8px',
-        color: '#fff',
-        cursor: 'pointer',
-        transition: 'all 0.2s ease',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
     backdrop: {
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0, 0, 0, 0.5)',
+        background: 'rgba(0, 0, 0, 0.6)',
         zIndex: 999,
-        animation: 'fadeIn 0.2s ease',
     },
     drawer: {
         position: 'fixed',
         top: 0,
-        right: 0,
+        left: 0,
         bottom: 0,
         width: '100%',
-        maxWidth: '400px',
-        background: 'linear-gradient(180deg, #0a0a1a 0%, #1a1a3a 100%)',
-        boxShadow: '-4px 0 20px rgba(0, 0, 0, 0.5)',
+        maxWidth: '320px',
+        background: FB_DARK.bg,
+        boxShadow: '4px 0 20px rgba(0, 0, 0, 0.5)',
         zIndex: 1000,
         transition: 'transform 0.3s ease',
         display: 'flex',
@@ -233,105 +219,134 @@ const styles = {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '24px',
-        borderBottom: '1px solid rgba(59, 130, 246, 0.2)',
+        padding: '20px',
+        borderBottom: `1px solid ${FB_DARK.border}`,
     },
     drawerTitle: {
-        color: '#fff',
-        fontSize: '24px',
+        color: FB_DARK.textPrimary,
+        fontSize: '20px',
         fontWeight: '700',
         margin: 0,
     },
     closeButton: {
-        background: 'transparent',
+        background: FB_DARK.elevated,
         border: 'none',
-        color: '#94a3b8',
-        fontSize: '32px',
+        color: FB_DARK.textSecondary,
+        fontSize: '18px',
         cursor: 'pointer',
         padding: '0',
-        width: '32px',
-        height: '32px',
+        width: '36px',
+        height: '36px',
+        borderRadius: '50%',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        transition: 'color 0.2s ease',
+        transition: 'background 0.2s ease',
     },
     drawerContent: {
         flex: 1,
-        padding: '24px',
+        padding: '20px',
         overflowY: 'auto',
     },
     settingGroup: {
-        marginBottom: '32px',
+        marginBottom: '24px',
+    },
+    settingRow: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '16px',
+        padding: '12px 16px',
+        background: FB_DARK.card,
+        borderRadius: '8px',
     },
     settingLabel: {
         display: 'block',
-        color: '#fff',
-        fontSize: '16px',
-        fontWeight: '600',
-        marginBottom: '12px',
+        color: FB_DARK.textPrimary,
+        fontSize: '15px',
+        fontWeight: '500',
+        marginBottom: '0',
     },
     settingHint: {
         display: 'block',
-        color: '#94a3b8',
-        fontSize: '14px',
+        color: FB_DARK.textSecondary,
+        fontSize: '13px',
         fontWeight: '400',
         marginTop: '4px',
+        marginBottom: '12px',
+    },
+    settingHintSmall: {
+        display: 'block',
+        color: FB_DARK.textSecondary,
+        fontSize: '12px',
+        fontWeight: '400',
+        marginTop: '2px',
     },
     toggleGroup: {
         display: 'flex',
-        gap: '12px',
+        gap: '8px',
+        background: FB_DARK.card,
+        borderRadius: '8px',
+        padding: '4px',
     },
     toggleButton: {
         flex: 1,
-        padding: '12px 24px',
-        background: 'rgba(30, 58, 95, 0.5)',
-        border: '2px solid #3b82f6',
-        borderRadius: '8px',
-        color: '#94a3b8',
-        fontSize: '16px',
+        padding: '10px 16px',
+        background: 'transparent',
+        border: 'none',
+        borderRadius: '6px',
+        color: FB_DARK.textSecondary,
+        fontSize: '14px',
         fontWeight: '600',
         cursor: 'pointer',
         transition: 'all 0.2s ease',
     },
     toggleButtonActive: {
-        background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+        background: FB_DARK.accent,
         color: '#fff',
-        borderColor: '#60a5fa',
     },
+    // Toggle Switch Styles (with proper knob)
     switchContainer: {
         position: 'relative',
         display: 'inline-block',
-        width: '60px',
-        height: '34px',
         cursor: 'pointer',
+        flexShrink: 0,
     },
     switchInput: {
         opacity: 0,
         width: 0,
         height: 0,
-    },
-    switchSlider: {
         position: 'absolute',
-        cursor: 'pointer',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        borderRadius: '34px',
+    },
+    switchTrack: {
+        display: 'block',
+        width: '52px',
+        height: '28px',
+        borderRadius: '14px',
         transition: 'background-color 0.2s ease',
+        position: 'relative',
+    },
+    switchKnob: {
+        position: 'absolute',
+        top: '2px',
+        width: '24px',
+        height: '24px',
+        background: '#fff',
+        borderRadius: '50%',
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
+        transition: 'transform 0.2s ease',
     },
     infoBox: {
-        marginTop: '32px',
+        marginTop: '24px',
         padding: '16px',
-        background: 'rgba(59, 130, 246, 0.1)',
-        border: '1px solid rgba(59, 130, 246, 0.3)',
+        background: FB_DARK.card,
         borderRadius: '8px',
+        borderLeft: `3px solid ${FB_DARK.accent}`,
     },
     infoText: {
-        color: '#94a3b8',
-        fontSize: '14px',
-        lineHeight: '1.6',
-        margin: '0 0 8px 0',
+        color: FB_DARK.textSecondary,
+        fontSize: '13px',
+        lineHeight: '1.5',
+        margin: '0 0 6px 0',
     },
 };

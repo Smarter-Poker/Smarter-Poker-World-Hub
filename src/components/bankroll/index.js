@@ -18,3 +18,9 @@ export { default as LocationAnalytics } from './LocationAnalytics';
 export { default as WeeklySummary } from './WeeklySummary';
 export { default as BankrollProjection } from './BankrollProjection';
 export { default as PlayerNotes } from './PlayerNotes';
+
+// Phase 4 Components
+export { default as SessionTimer } from './SessionTimer';
+export { default as HistoricalComparison } from './HistoricalComparison';
+export { default as VarianceCalculator } from './VarianceCalculator';
+export { default as BankrollHeatMap } from './BankrollHeatMap';

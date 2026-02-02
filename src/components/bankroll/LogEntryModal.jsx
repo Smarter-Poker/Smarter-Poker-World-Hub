@@ -58,6 +58,7 @@ export default function LogEntryModal({ userId, locations, trips, onClose, onSub
     start_time: '',
     end_time: '',
     notes: '',
+    media_url: '',
     emotional_tag: '',
 
     // Poker
@@ -160,6 +161,7 @@ export default function LogEntryModal({ userId, locations, trips, onClose, onSub
         gross_in: parseFloat(formData.gross_in) || 0,
         gross_out: parseFloat(formData.gross_out) || 0,
         notes: formData.notes || null,
+        media_urls: formData.media_url ? [formData.media_url] : null,
         emotional_tag: formData.emotional_tag || null,
       };
 
@@ -531,13 +533,35 @@ export default function LogEntryModal({ userId, locations, trips, onClose, onSub
               </div>
 
               <div style={styles.formGroup}>
-                <label style={styles.label}>Notes</label>
+                <label style={styles.label}>📝 Session Notes</label>
                 <textarea
                   value={formData.notes}
                   onChange={(e) => handleInputChange('notes', e.target.value)}
-                  placeholder="Any additional notes..."
-                  style={styles.textarea}
+                  placeholder="Key hands, table dynamics, reads on players, mental state, lessons learned..."
+                  style={{ ...styles.textarea, minHeight: 100 }}
                 />
+              </div>
+
+              {/* Photo/Media URL */}
+              <div style={styles.formGroup}>
+                <label style={styles.label}>📷 Session Photo (URL)</label>
+                <input
+                  type="text"
+                  value={formData.media_url || ''}
+                  onChange={(e) => handleInputChange('media_url', e.target.value)}
+                  placeholder="Paste image URL (optional)"
+                  style={styles.input}
+                />
+                {formData.media_url && (
+                  <div style={{ marginTop: 10, borderRadius: 8, overflow: 'hidden', maxHeight: 150 }}>
+                    <img
+                      src={formData.media_url}
+                      alt="Session"
+                      style={{ width: '100%', height: 'auto', objectFit: 'cover' }}
+                      onError={(e) => e.target.style.display = 'none'}
+                    />
+                  </div>
+                )}
               </div>
             </motion.div>
           )}

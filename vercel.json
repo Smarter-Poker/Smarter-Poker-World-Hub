@@ -153,6 +153,10 @@
     {
       "path": "/api/cron/geofence-session-reminder",
       "schedule": "0 */2 * * *"
+    },
+    {
+      "path": "/api/cron/bankroll-alerts",
+      "schedule": "0 */6 * * *"
     }
   ]
 }

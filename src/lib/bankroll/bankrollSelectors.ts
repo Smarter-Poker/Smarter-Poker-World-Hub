@@ -19,6 +19,7 @@ export interface LedgerEntry {
   gross_out: number;
   net_result: number;
   notes: string | null;
+  media_urls: string[] | null;
   emotional_tag: string | null;
   stakes: string | null;
   game_type: string | null;
@@ -194,6 +195,7 @@ export async function createLedgerEntry(
       gross_in: entry.gross_in || 0,
       gross_out: entry.gross_out || 0,
       notes: entry.notes,
+      media_urls: entry.media_urls,
       emotional_tag: entry.emotional_tag,
       stakes: entry.stakes,
       game_type: entry.game_type,

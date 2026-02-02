@@ -382,6 +382,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Sports Betting', '/hub/bankroll-manager?type=sports'),
             createMenuItem.divider(),
             createMenuItem.section('Settings'),
+            createMenuItem.toggle('Display EUR', state.currencyEUR || false, handlers.setCurrencyEUR, 'Show amounts in Euros'),
             createMenuItem.toggle('Auto-Save', state.autoSave !== false, handlers.setAutoSave),
             createMenuItem.toggle('Notifications', state.notifications !== false, handlers.setNotifications),
             createMenuItem.navigation('Bankroll Rules', '/hub/bankroll-manager?view=rules'),

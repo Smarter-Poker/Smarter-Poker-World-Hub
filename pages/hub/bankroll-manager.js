@@ -127,7 +127,8 @@ export default function BankrollManagerPage() {
   // Hamburger menu preferences
   const [preferences, setPreferences] = useState({
     autoSave: true,
-    notifications: true
+    notifications: true,
+    currencyEUR: false
   });
 
   // Filters
@@ -260,7 +261,8 @@ export default function BankrollManagerPage() {
 
   const menuConfig = getMenuConfig('bankroll-manager', user, preferences, {
     setAutoSave: (val) => updatePreference('autoSave', val),
-    setNotifications: (val) => updatePreference('notifications', val)
+    setNotifications: (val) => updatePreference('notifications', val),
+    setCurrencyEUR: (val) => updatePreference('currencyEUR', val)
   });
 
   // Close dropdowns when clicking outside
@@ -776,6 +778,40 @@ export default function BankrollManagerPage() {
                       <div style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>Export to JSON</div>
                       <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
                         Full data export for backup or API use
+                      </div>
+                    </div>
+                    <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
+                  </button>
+
+                  {/* PDF Export */}
+                  <button
+                    onClick={async () => {
+                      try {
+                        const { data: { session } } = await supabase.auth.getSession();
+                        const token = session?.access_token;
+                        const res = await fetch('/api/bankroll/export-pdf', {
+                          headers: { Authorization: `Bearer ${token}` }
+                        });
+                        if (res.ok) {
+                          const blob = await res.blob();
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `bankroll_report_${new Date().toISOString().split('T')[0]}.pdf`;
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        }
+                      } catch (err) {
+                        console.error('PDF export failed:', err);
+                      }
+                    }}
+                    style={styles.reportActionBtn}
+                  >
+                    <span style={{ fontSize: 24 }}>📑</span>
+                    <div style={{ flex: 1, textAlign: 'left' }}>
+                      <div style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>Export to PDF</div>
+                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
+                        Formatted report for printing or sharing
                       </div>
                     </div>
                     <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>

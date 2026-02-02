@@ -6,11 +6,14 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { getAuthUser } from '../lib/authUtils';
 
 const TrainingSettingsContext = createContext();
+
+// Hints are only available on levels 1, 2, and 3
+const HINTS_MAX_LEVEL = 3;
 
 export function TrainingSettingsProvider({ children }) {
     const [user, setUser] = useState(null);
@@ -20,6 +23,7 @@ export function TrainingSettingsProvider({ children }) {
     const [autoAdvanceEnabled, setAutoAdvanceEnabledState] = useState(false);
     const [hintsEnabled, setHintsEnabledState] = useState(true);
     const [loading, setLoading] = useState(true);
+
 
     // Load user and settings on mount
     useEffect(() => {
@@ -99,6 +103,12 @@ export function TrainingSettingsProvider({ children }) {
         await updateSettings({ training_hints_enabled: enabled });
     };
 
+    // Helper to check if hints are available for a given level
+    // Hints are ONLY available on levels 1, 2, and 3
+    const areHintsAvailable = useCallback((currentLevel) => {
+        return hintsEnabled && currentLevel <= HINTS_MAX_LEVEL;
+    }, [hintsEnabled]);
+
     const value = {
         viewMode,
         setViewMode,
@@ -110,8 +120,11 @@ export function TrainingSettingsProvider({ children }) {
         setAutoAdvanceEnabled,
         hintsEnabled,
         setHintsEnabled,
+        areHintsAvailable,
+        HINTS_MAX_LEVEL,
         loading,
     };
+
 
     return (
         <TrainingSettingsContext.Provider value={value}>
