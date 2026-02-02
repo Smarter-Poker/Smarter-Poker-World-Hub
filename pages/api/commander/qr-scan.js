@@ -20,7 +20,7 @@ export default async function handler(req, res) {
         const { data, error } = await supabase
             .from('qr_code_scans')
             .insert({
-                venue_id: parseInt(venue_id),
+                venue_id: venue_id,
                 scanned_by: user_id || null,
                 scan_type: scan_type || 'check-in',
                 ip_address: req.headers['x-forwarded-for'] || req.socket?.remoteAddress || null,
@@ -49,7 +49,7 @@ export default async function handler(req, res) {
         const { data, error, count } = await supabase
             .from('qr_code_scans')
             .select('*', { count: 'exact' })
-            .eq('venue_id', parseInt(venue_id))
+            .eq('venue_id', venue_id)
             .gte('scanned_at', since.toISOString())
             .order('scanned_at', { ascending: false })
             .limit(100);

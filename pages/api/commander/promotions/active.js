@@ -56,7 +56,7 @@ export default async function handler(req, res) {
         venue_id,
         poker_venues:venue_id (id, name, city, state)
       `)
-      .eq('venue_id', parseInt(venue_id))
+      .eq('venue_id', venue_id)
       .eq('status', 'active')
       .order('is_featured', { ascending: false })
       .order('created_at', { ascending: false })

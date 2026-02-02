@@ -11,7 +11,7 @@
 
 CREATE TABLE IF NOT EXISTS commander_tournaments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id INTEGER REFERENCES poker_venues(id) ON DELETE CASCADE,
+  venue_id UUID REFERENCES poker_venues(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   description TEXT,
   tournament_type TEXT NOT NULL CHECK (tournament_type IN ('freezeout', 'rebuy', 'bounty', 'satellite', 'shootout', 'turbo', 'hyper')),

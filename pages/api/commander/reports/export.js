@@ -36,7 +36,7 @@ export default async function handler(req, res) {
     const { data: venue } = await supabase
       .from('poker_venues')
       .select('id, name')
-      .eq('id', parseInt(venue_id))
+      .eq('id', venue_id)
       .single();
 
     if (!venue) {
@@ -57,7 +57,7 @@ export default async function handler(req, res) {
         started_at, ended_at,
         commander_tables:table_id (id, table_number)
       `)
-      .eq('venue_id', parseInt(venue_id))
+      .eq('venue_id', venue_id)
       .gte('started_at', startOfDay)
       .lte('started_at', endOfDay);
 
@@ -65,7 +65,7 @@ export default async function handler(req, res) {
     const { data: sessions } = await supabase
       .from('commander_sessions')
       .select('id, player_id, check_in_time, check_out_time')
-      .eq('venue_id', parseInt(venue_id))
+      .eq('venue_id', venue_id)
       .gte('check_in_time', startOfDay)
       .lte('check_in_time', endOfDay);
 
@@ -73,7 +73,7 @@ export default async function handler(req, res) {
     const { data: comps } = await supabase
       .from('commander_comp_transactions')
       .select('id, amount, transaction_type')
-      .eq('venue_id', parseInt(venue_id))
+      .eq('venue_id', venue_id)
       .gte('created_at', startOfDay)
       .lte('created_at', endOfDay);
 

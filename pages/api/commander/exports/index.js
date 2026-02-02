@@ -53,7 +53,7 @@ async function listExports(req, res) {
       const { data: staff } = await supabase
         .from('commander_staff')
         .select('id, role')
-        .eq('venue_id', parseInt(venue_id))
+        .eq('venue_id', venue_id)
         .eq('user_id', user.id)
         .eq('is_active', true)
         .single();
@@ -62,7 +62,7 @@ async function listExports(req, res) {
         return res.status(403).json({ error: 'Manager access required' });
       }
 
-      query = query.eq('venue_id', parseInt(venue_id));
+      query = query.eq('venue_id', venue_id);
     } else {
       query = query.eq('requested_by', user.id);
     }
@@ -113,7 +113,7 @@ async function createExport(req, res) {
     const { data: staff } = await supabase
       .from('commander_staff')
       .select('id, role')
-      .eq('venue_id', parseInt(venue_id))
+      .eq('venue_id', venue_id)
       .eq('user_id', user.id)
       .eq('is_active', true)
       .single();
@@ -126,7 +126,7 @@ async function createExport(req, res) {
     const { data: exportJob, error } = await supabase
       .from('commander_export_jobs')
       .insert({
-        venue_id: parseInt(venue_id),
+        venue_id: venue_id,
         requested_by: user.id,
         export_type,
         date_from: date_from || null,

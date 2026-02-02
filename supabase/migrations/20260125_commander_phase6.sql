@@ -12,7 +12,7 @@
 
 CREATE TABLE IF NOT EXISTS commander_audit_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id INTEGER REFERENCES poker_venues(id) ON DELETE SET NULL,
+  venue_id UUID REFERENCES poker_venues(id) ON DELETE SET NULL,
 
   -- Actor
   user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
@@ -99,7 +99,7 @@ CREATE INDEX IF NOT EXISTS idx_rate_limits_blocked ON commander_rate_limits(is_b
 
 CREATE TABLE IF NOT EXISTS commander_system_health (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id INTEGER REFERENCES poker_venues(id) ON DELETE CASCADE,
+  venue_id UUID REFERENCES poker_venues(id) ON DELETE CASCADE,
 
   -- Metrics
   metric_type TEXT NOT NULL CHECK (metric_type IN (
@@ -168,7 +168,7 @@ CREATE INDEX IF NOT EXISTS idx_admin_settings_key ON commander_admin_settings(se
 
 CREATE TABLE IF NOT EXISTS commander_export_jobs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id INTEGER REFERENCES poker_venues(id) ON DELETE CASCADE,
+  venue_id UUID REFERENCES poker_venues(id) ON DELETE CASCADE,
 
   -- Requester
   requested_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
@@ -212,7 +212,7 @@ CREATE INDEX IF NOT EXISTS idx_export_jobs_user ON commander_export_jobs(request
 
 CREATE TABLE IF NOT EXISTS commander_api_keys (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id INTEGER REFERENCES poker_venues(id) ON DELETE CASCADE,
+  venue_id UUID REFERENCES poker_venues(id) ON DELETE CASCADE,
 
   -- Key details
   name TEXT NOT NULL,

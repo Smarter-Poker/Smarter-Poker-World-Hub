@@ -12,7 +12,7 @@
 
 CREATE TABLE IF NOT EXISTS commander_player_sessions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id INTEGER REFERENCES poker_venues(id) ON DELETE CASCADE,
+  venue_id UUID REFERENCES poker_venues(id) ON DELETE CASCADE,
   player_id UUID REFERENCES profiles(id),
   player_name TEXT,
   check_in_at TIMESTAMPTZ DEFAULT now(),
@@ -38,7 +38,7 @@ CREATE INDEX IF NOT EXISTS idx_commander_sessions_active ON commander_player_ses
 
 CREATE TABLE IF NOT EXISTS commander_service_requests (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id INTEGER REFERENCES poker_venues(id) ON DELETE CASCADE,
+  venue_id UUID REFERENCES poker_venues(id) ON DELETE CASCADE,
   game_id UUID REFERENCES commander_games(id),
   seat_id UUID REFERENCES commander_seats(id),
   player_id UUID REFERENCES profiles(id),
@@ -65,7 +65,7 @@ CREATE INDEX IF NOT EXISTS idx_commander_service_pending ON commander_service_re
 CREATE TABLE IF NOT EXISTS commander_player_preferences (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   player_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
-  venue_id INTEGER REFERENCES poker_venues(id),
+  venue_id UUID REFERENCES poker_venues(id),
   preferred_games TEXT[] DEFAULT '{}',
   preferred_stakes TEXT[] DEFAULT '{}',
   preferred_seats INTEGER[] DEFAULT '{}',

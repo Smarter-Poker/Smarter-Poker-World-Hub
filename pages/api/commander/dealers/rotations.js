@@ -53,7 +53,7 @@ async function getRotations(req, res) {
         commander_tables:table_id (id, table_number),
         commander_games:game_id (id, game_type, stakes)
       `)
-      .eq('venue_id', parseInt(venue_id))
+      .eq('venue_id', venue_id)
       .is('ended_at', null)
       .order('started_at', { ascending: false });
 
@@ -92,7 +92,7 @@ async function createRotation(req, res) {
       .from('commander_dealers')
       .select('id, display_name')
       .eq('id', dealer_id)
-      .eq('venue_id', parseInt(venue_id))
+      .eq('venue_id', venue_id)
       .eq('is_active', true)
       .single();
 
@@ -117,7 +117,7 @@ async function createRotation(req, res) {
         const { data: assignment, error } = await supabase
           .from('commander_dealer_rotations')
           .insert({
-            venue_id: parseInt(venue_id),
+            venue_id: venue_id,
             dealer_id,
             table_id: parseInt(table_id),
             game_id: game_id ? parseInt(game_id) : null,
@@ -204,7 +204,7 @@ async function createRotation(req, res) {
     const { data: assignment, error } = await supabase
       .from('commander_dealer_rotations')
       .insert({
-        venue_id: parseInt(venue_id),
+        venue_id: venue_id,
         dealer_id,
         table_id: parseInt(table_id),
         game_id: game_id ? parseInt(game_id) : null,

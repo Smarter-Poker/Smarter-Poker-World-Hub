@@ -39,7 +39,7 @@ async function listTournaments(req, res) {
       .limit(parseInt(limit));
 
     if (venue_id) {
-      query = query.eq('venue_id', parseInt(venue_id));
+      query = query.eq('venue_id', venue_id);
     }
 
     if (status) {
@@ -128,7 +128,7 @@ async function createTournament(req, res) {
     const { data: staff, error: staffError } = await supabase
       .from('commander_staff')
       .select('id, role')
-      .eq('venue_id', parseInt(venue_id))
+      .eq('venue_id', venue_id)
       .eq('user_id', user.id)
       .eq('is_active', true)
       .single();
@@ -140,7 +140,7 @@ async function createTournament(req, res) {
     const { data: tournament, error } = await supabase
       .from('commander_tournaments')
       .insert({
-        venue_id: parseInt(venue_id),
+        venue_id: venue_id,
         name,
         description,
         tournament_type,

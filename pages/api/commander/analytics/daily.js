@@ -48,7 +48,7 @@ async function getDailyAnalytics(req, res) {
     const { data: staff } = await supabase
       .from('commander_staff')
       .select('id, role')
-      .eq('venue_id', parseInt(venue_id))
+      .eq('venue_id', venue_id)
       .eq('user_id', user.id)
       .in('role', ['owner', 'manager'])
       .eq('is_active', true)
@@ -61,7 +61,7 @@ async function getDailyAnalytics(req, res) {
     let query = supabase
       .from('commander_analytics_daily')
       .select('*')
-      .eq('venue_id', parseInt(venue_id))
+      .eq('venue_id', venue_id)
       .order('date', { ascending: false });
 
     if (start_date && end_date) {
@@ -134,7 +134,7 @@ async function calculateDailyAnalytics(req, res) {
     const { data: staff } = await supabase
       .from('commander_staff')
       .select('id, role')
-      .eq('venue_id', parseInt(venue_id))
+      .eq('venue_id', venue_id)
       .eq('user_id', user.id)
       .in('role', ['owner', 'manager'])
       .eq('is_active', true)
@@ -150,21 +150,21 @@ async function calculateDailyAnalytics(req, res) {
     const { data: sessions } = await supabase
       .from('commander_player_sessions')
       .select('*')
-      .eq('venue_id', parseInt(venue_id))
+      .eq('venue_id', venue_id)
       .gte('check_in_at', `${targetDate}T00:00:00`)
       .lt('check_in_at', `${targetDate}T23:59:59`);
 
     const { data: tournaments } = await supabase
       .from('commander_tournaments')
       .select('*')
-      .eq('venue_id', parseInt(venue_id))
+      .eq('venue_id', venue_id)
       .gte('scheduled_start', `${targetDate}T00:00:00`)
       .lt('scheduled_start', `${targetDate}T23:59:59`);
 
     const { data: awards } = await supabase
       .from('commander_promotion_awards')
       .select('*')
-      .eq('venue_id', parseInt(venue_id))
+      .eq('venue_id', venue_id)
       .gte('created_at', `${targetDate}T00:00:00`)
       .lt('created_at', `${targetDate}T23:59:59`);
 
@@ -175,7 +175,7 @@ async function calculateDailyAnalytics(req, res) {
     const totalCashout = sessions?.reduce((sum, s) => sum + (s.total_cashout || 0), 0) || 0;
 
     const analytics = {
-      venue_id: parseInt(venue_id),
+      venue_id: venue_id,
       date: targetDate,
       total_sessions: sessions?.length || 0,
       unique_players: uniquePlayers.size,

@@ -55,7 +55,7 @@ async function getSettings(req, res, venueId) {
         tournament_settings,
         staff_pin_required
       `)
-      .eq('id', parseInt(venueId))
+      .eq('id', venueId)
       .single();
 
     if (error) throw error;
@@ -110,7 +110,7 @@ async function updateSettings(req, res, venueId) {
     const { data: venue, error } = await supabase
       .from('poker_venues')
       .update(updates)
-      .eq('id', parseInt(venueId))
+      .eq('id', venueId)
       .select()
       .single();
 

@@ -12,7 +12,7 @@
 
 CREATE TABLE IF NOT EXISTS commander_promotions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id INTEGER REFERENCES poker_venues(id) ON DELETE CASCADE,
+  venue_id UUID REFERENCES poker_venues(id) ON DELETE CASCADE,
 
   -- Basic info
   name TEXT NOT NULL,
@@ -74,7 +74,7 @@ CREATE INDEX IF NOT EXISTS idx_promotions_dates ON commander_promotions(start_da
 CREATE TABLE IF NOT EXISTS commander_promotion_awards (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   promotion_id UUID REFERENCES commander_promotions(id) ON DELETE CASCADE,
-  venue_id INTEGER REFERENCES poker_venues(id) ON DELETE CASCADE,
+  venue_id UUID REFERENCES poker_venues(id) ON DELETE CASCADE,
 
   -- Recipient
   player_id UUID REFERENCES profiles(id),
@@ -113,7 +113,7 @@ CREATE INDEX IF NOT EXISTS idx_awards_venue ON commander_promotion_awards(venue_
 
 CREATE TABLE IF NOT EXISTS commander_analytics_daily (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id INTEGER REFERENCES poker_venues(id) ON DELETE CASCADE,
+  venue_id UUID REFERENCES poker_venues(id) ON DELETE CASCADE,
   date DATE NOT NULL,
 
   -- Session metrics
@@ -177,7 +177,7 @@ CREATE INDEX IF NOT EXISTS idx_analytics_daily_date ON commander_analytics_daily
 
 CREATE TABLE IF NOT EXISTS commander_player_stats (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id INTEGER REFERENCES poker_venues(id) ON DELETE CASCADE,
+  venue_id UUID REFERENCES poker_venues(id) ON DELETE CASCADE,
   player_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
 
   -- Visit metrics
@@ -243,7 +243,7 @@ CREATE INDEX IF NOT EXISTS idx_player_stats_loyalty ON commander_player_stats(ve
 
 CREATE TABLE IF NOT EXISTS commander_leaderboards (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id INTEGER REFERENCES poker_venues(id) ON DELETE CASCADE,
+  venue_id UUID REFERENCES poker_venues(id) ON DELETE CASCADE,
 
   -- Leaderboard info
   name TEXT NOT NULL,

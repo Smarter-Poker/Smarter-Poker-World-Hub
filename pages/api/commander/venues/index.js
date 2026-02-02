@@ -1,6 +1,6 @@
 /**
  * Commander Venues API - GET /api/commander/venues
- * Lists venues with Commander enabled
+ * Lists venues with live game counts, waitlist data, and filter support
  * Reference: API_REFERENCE.md - Venues section
  */
 import { createClient } from '@supabase/supabase-js';
@@ -32,6 +32,7 @@ export default async function handler(req, res) {
 
   try {
     const {
+      filter,
       commander_enabled,
       state,
       city,
@@ -44,20 +45,19 @@ export default async function handler(req, res) {
     let query = supabase
       .from('poker_venues')
       .select('*')
+      .eq('is_active', true)
       .order('trust_score', { ascending: false })
       .limit(parseInt(limit));
 
-    // Filter by Commander enabled status
+    // Only filter by commander_enabled if explicitly set to 'true'
     if (commander_enabled === 'true') {
       query = query.eq('commander_enabled', true);
     }
 
-    // Filter by state
     if (state) {
       query = query.eq('state', state.toUpperCase());
     }
 
-    // Filter by city
     if (city) {
       query = query.ilike('city', `%${city}%`);
     }
@@ -74,15 +74,62 @@ export default async function handler(req, res) {
 
     let venues = data || [];
 
+    // Fetch active games for all venues in one query
+    const { data: activeGames } = await supabase
+      .from('commander_games')
+      .select('venue_id, game_type, stakes, status')
+      .in('status', ['running', 'waiting']);
+
+    // Fetch waitlist counts in one query
+    const { data: waitlistEntries } = await supabase
+      .from('commander_waitlist')
+      .select('venue_id')
+      .eq('status', 'waiting');
+
+    // Build lookup maps
+    const gamesByVenue = {};
+    (activeGames || []).forEach(game => {
+      const vid = game.venue_id;
+      if (!gamesByVenue[vid]) gamesByVenue[vid] = [];
+      gamesByVenue[vid].push(game);
+    });
+
+    const waitlistByVenue = {};
+    (waitlistEntries || []).forEach(entry => {
+      waitlistByVenue[entry.venue_id] = (waitlistByVenue[entry.venue_id] || 0) + 1;
+    });
+
+    // Enrich venues with computed fields
+    let enrichedVenues = venues.map(venue => {
+      const venueGames = gamesByVenue[venue.id] || [];
+      const runningGames = venueGames.filter(g => g.status === 'running');
+      const stakes = [...new Set(venueGames.map(g => g.stakes).filter(Boolean))];
+
+      return {
+        ...venue,
+        active_games: runningGames.length,
+        waitlist_count: waitlistByVenue[venue.id] || 0,
+        stakes_spread: stakes,
+        rating: venue.trust_score ? parseFloat(venue.trust_score) : null
+      };
+    });
+
+    // Apply filter param
+    if (filter === 'live') {
+      enrichedVenues = enrichedVenues.filter(v => v.active_games > 0);
+    }
+
     // GPS-based distance calculation and filtering
     if (lat && lng) {
       const userLat = parseFloat(lat);
       const userLng = parseFloat(lng);
       const maxRadius = parseFloat(radius);
 
-      venues = venues.map(venue => {
-        if (venue.lat && venue.lng) {
-          const distance = calculateDistance(userLat, userLng, venue.lat, venue.lng);
+      enrichedVenues = enrichedVenues.map(venue => {
+        const vLat = venue.latitude || venue.lat;
+        const vLng = venue.longitude || venue.lng;
+        if (vLat && vLng) {
+          const distance = calculateDistance(userLat, userLng, parseFloat(vLat), parseFloat(vLng));
           return {
             ...venue,
             distance_km: Math.round(distance * 10) / 10,
@@ -93,17 +140,19 @@ export default async function handler(req, res) {
       });
 
       // Filter by radius
-      venues = venues.filter(v => !v.distance_km || v.distance_km <= maxRadius);
+      enrichedVenues = enrichedVenues.filter(v => !v.distance_km || v.distance_km <= maxRadius);
+    }
 
-      // Sort by distance
-      venues.sort((a, b) => (a.distance_km || 999) - (b.distance_km || 999));
+    // Sort nearby by distance
+    if (filter === 'nearby' || (lat && lng)) {
+      enrichedVenues.sort((a, b) => (a.distance_km || 999) - (b.distance_km || 999));
     }
 
     return res.status(200).json({
       success: true,
       data: {
-        venues: venues,
-        total: venues.length
+        venues: enrichedVenues,
+        total: enrichedVenues.length
       }
     });
   } catch (error) {

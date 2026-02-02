@@ -53,7 +53,7 @@ async function listRates(req, res) {
     let query = supabase
       .from('commander_comp_rates')
       .select('*')
-      .eq('venue_id', parseInt(venue_id))
+      .eq('venue_id', venue_id)
       .order('is_default', { ascending: false })
       .order('created_at', { ascending: false });
 
@@ -109,7 +109,7 @@ async function createRate(req, res) {
     const { data: staff } = await supabase
       .from('commander_staff')
       .select('id, role')
-      .eq('venue_id', parseInt(venue_id))
+      .eq('venue_id', venue_id)
       .eq('user_id', user.id)
       .in('role', ['owner', 'manager'])
       .eq('is_active', true)
@@ -146,14 +146,14 @@ async function createRate(req, res) {
       await supabase
         .from('commander_comp_rates')
         .update({ is_default: false })
-        .eq('venue_id', parseInt(venue_id))
+        .eq('venue_id', venue_id)
         .eq('rate_type', rate_type);
     }
 
     const { data: rate, error } = await supabase
       .from('commander_comp_rates')
       .insert({
-        venue_id: parseInt(venue_id),
+        venue_id: venue_id,
         name,
         description,
         rate_type,
