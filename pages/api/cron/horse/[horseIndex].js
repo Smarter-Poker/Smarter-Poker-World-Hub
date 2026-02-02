@@ -32,6 +32,30 @@ async function loadClipLibrary() {
     }
 }
 
+// Validate YouTube video actually exists before posting
+async function validateYouTubeVideo(url) {
+    if (!url) return false;
+    const patterns = [
+        /youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/,
+        /youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/,
+        /youtu\.be\/([a-zA-Z0-9_-]+)/,
+        /youtube\.com\/embed\/([a-zA-Z0-9_-]+)/
+    ];
+    let videoId = null;
+    for (const pattern of patterns) {
+        const match = url.match(pattern);
+        if (match) { videoId = match[1]; break; }
+    }
+    if (!videoId) return false;
+
+    try {
+        const response = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
+        return response.ok;
+    } catch {
+        return false;
+    }
+}
+
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -292,8 +316,14 @@ async function postVideoClip(horse, assignedSources, horseIndex, clipType = 'spo
             });
 
             if (!usedUrls.has(embedUrl) && !usedUrls.has(candidate.source_url)) {
-                clip = candidate;
-                break;
+                // VALIDATE: Check if video actually exists on YouTube
+                const isValid = await validateYouTubeVideo(candidate.source_url);
+                if (isValid) {
+                    clip = candidate;
+                    break;
+                } else {
+                    console.log(`   ⚠️ Skipping invalid video: ${videoId}`);
+                }
             }
         }
 
@@ -341,8 +371,25 @@ async function postVideoClip(horse, assignedSources, horseIndex, clipType = 'spo
             return { success: false, error: 'All sports clips already posted' };
         }
 
-        // Pick random from FRESH clips only
-        clip = freshClips[Math.floor(Math.random() * freshClips.length)];
+        // Pick random from FRESH clips only, with validation
+        const maxValidationAttempts = 10;
+        for (let i = 0; i < maxValidationAttempts && freshClips.length > 0; i++) {
+            const idx = Math.floor(Math.random() * freshClips.length);
+            const candidate = freshClips[idx];
+            const isValid = await validateYouTubeVideo(candidate.source_url);
+            if (isValid) {
+                clip = candidate;
+                break;
+            } else {
+                console.log(`   ⚠️ Skipping invalid sports video: ${candidate.source_url?.slice(0, 50)}`);
+                freshClips.splice(idx, 1); // Remove invalid clip from candidates
+            }
+        }
+
+        if (!clip) {
+            console.log(`   No valid sports clips after validation`);
+            return { success: false, error: 'No valid sports clips found' };
+        }
     }
 
     const voice = getHorseVoice(horseIndex);
