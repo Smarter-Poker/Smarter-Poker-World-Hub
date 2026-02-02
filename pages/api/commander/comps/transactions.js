@@ -62,19 +62,19 @@ async function listTransactions(req, res) {
       const { data: staff } = await supabase
         .from('commander_staff')
         .select('id, role')
-        .eq('venue_id', parseInt(venue_id))
+        .eq('venue_id', venue_id)
         .eq('user_id', user.id)
         .eq('is_active', true)
         .single();
 
       if (staff) {
-        query = query.eq('venue_id', parseInt(venue_id));
+        query = query.eq('venue_id', venue_id);
         if (player_id) {
           query = query.eq('player_id', player_id);
         }
       } else {
         // Non-staff can only see their own
-        query = query.eq('venue_id', parseInt(venue_id)).eq('player_id', user.id);
+        query = query.eq('venue_id', venue_id).eq('player_id', user.id);
       }
     } else {
       // No venue specified, show user's transactions
@@ -138,7 +138,7 @@ async function createTransaction(req, res) {
     const { data: staff } = await supabase
       .from('commander_staff')
       .select('id, role')
-      .eq('venue_id', parseInt(venue_id))
+      .eq('venue_id', venue_id)
       .eq('user_id', user.id)
       .eq('is_active', true)
       .single();
@@ -154,7 +154,7 @@ async function createTransaction(req, res) {
 
     // Use the database function to issue manual comp
     const { data, error } = await supabase.rpc('issue_manual_comp', {
-      p_venue_id: parseInt(venue_id),
+      p_venue_id: venue_id,
       p_player_id: player_id,
       p_amount: parseFloat(amount),
       p_description: description || (amount >= 0 ? 'Manual comp issued' : 'Manual adjustment'),
@@ -178,7 +178,7 @@ async function createTransaction(req, res) {
     const { data: balance } = await supabase
       .from('commander_comp_balances')
       .select('*')
-      .eq('venue_id', parseInt(venue_id))
+      .eq('venue_id', venue_id)
       .eq('player_id', player_id)
       .single();
 

@@ -56,7 +56,7 @@ async function listApiKeys(req, res, user) {
     const { data: staff } = await supabase
       .from('commander_staff')
       .select('id, role')
-      .eq('venue_id', parseInt(venue_id))
+      .eq('venue_id', venue_id)
       .eq('user_id', user.id)
       .eq('is_active', true)
       .single();
@@ -68,7 +68,7 @@ async function listApiKeys(req, res, user) {
     const { data: keys, error } = await supabase
       .from('commander_api_keys')
       .select('id, name, key_prefix, permissions, rate_limit, is_active, last_used_at, use_count, created_at, expires_at')
-      .eq('venue_id', parseInt(venue_id))
+      .eq('venue_id', venue_id)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -99,7 +99,7 @@ async function createApiKey(req, res, user) {
     const { data: staff } = await supabase
       .from('commander_staff')
       .select('id, role')
-      .eq('venue_id', parseInt(venue_id))
+      .eq('venue_id', venue_id)
       .eq('user_id', user.id)
       .eq('is_active', true)
       .single();
@@ -121,7 +121,7 @@ async function createApiKey(req, res, user) {
     const { data: apiKey, error } = await supabase
       .from('commander_api_keys')
       .insert({
-        venue_id: parseInt(venue_id),
+        venue_id: venue_id,
         name,
         key_hash: keyHash,
         key_prefix: keyPrefix,
@@ -174,7 +174,7 @@ async function revokeApiKey(req, res, user) {
     const { data: staff } = await supabase
       .from('commander_staff')
       .select('id, role')
-      .eq('venue_id', parseInt(venue_id))
+      .eq('venue_id', venue_id)
       .eq('user_id', user.id)
       .eq('is_active', true)
       .single();
@@ -188,7 +188,7 @@ async function revokeApiKey(req, res, user) {
       .from('commander_api_keys')
       .update({ is_active: false })
       .eq('id', key_id)
-      .eq('venue_id', parseInt(venue_id));
+      .eq('venue_id', venue_id);
 
     if (error) throw error;
 

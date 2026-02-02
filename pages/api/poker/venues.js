@@ -100,7 +100,7 @@ function applyFilters(venues, { id, state, city, type, tournaments, search, feat
     let filtered = [...venues];
 
     if (id) {
-        filtered = filtered.filter(v => v.id === parseInt(id));
+        filtered = filtered.filter(v => String(v.id) === String(id));
     }
 
     if (state) {
@@ -166,7 +166,7 @@ export default async function handler(req, res) {
                 .select('*');
 
             if (id) {
-                query = query.eq('id', parseInt(id));
+                query = query.eq('id', id);
             } else {
                 if (state) {
                     query = query.eq('state', state.toUpperCase());

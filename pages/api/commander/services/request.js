@@ -66,7 +66,7 @@ export default async function handler(req, res) {
       .from('commander_service_requests')
       .select('id')
       .eq('player_id', user.id)
-      .eq('venue_id', parseInt(venue_id))
+      .eq('venue_id', venue_id)
       .eq('request_type', request_type)
       .in('status', ['pending', 'in_progress'])
       .single();
@@ -83,7 +83,7 @@ export default async function handler(req, res) {
       .from('commander_service_requests')
       .insert({
         player_id: user.id,
-        venue_id: parseInt(venue_id),
+        venue_id: venue_id,
         table_id: table_id ? parseInt(table_id) : null,
         request_type,
         details,

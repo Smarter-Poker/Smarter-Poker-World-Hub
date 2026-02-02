@@ -22,7 +22,7 @@ export default function CommanderHub() {
 
   async function fetchVenues() {
     try {
-      let url = '/api/commander/venues?commander_enabled=true&limit=20';
+      let url = '/api/commander/venues?limit=30';
       if (userLocation) {
         url += `&lat=${userLocation.lat}&lng=${userLocation.lng}&radius=100`;
       }
@@ -317,14 +317,24 @@ export default function CommanderHub() {
                   <MapPin className="w-7 h-7" />
                 </div>
                 <p className="text-[#CBD5E1] font-semibold text-lg">
-                  {searchQuery ? 'No venues match your search' : 'No venues with live games found'}
+                  {searchQuery ? 'No venues match your search' : 'No poker venues found'}
                 </p>
               </div>
             ) : (
               <div className="space-y-4">
-                {filteredVenues.map((venue) => (
-                  <VenueCard key={venue.id} venue={venue} games={[]} waitlistCounts={{}} />
-                ))}
+                {filteredVenues.map((venue) => {
+                  const venueGames = liveGames.filter(g =>
+                    g.venue_id === venue.id || g.poker_venues?.id === venue.id
+                  );
+                  const waitlistCounts = {};
+                  venueGames.forEach(g => {
+                    const key = `${g.game_type}-${g.stakes}`;
+                    if (g.waitlist_count) waitlistCounts[key] = g.waitlist_count;
+                  });
+                  return (
+                    <VenueCard key={venue.id} venue={venue} games={venueGames} waitlistCounts={waitlistCounts} />
+                  );
+                })}
               </div>
             )}
           </section>

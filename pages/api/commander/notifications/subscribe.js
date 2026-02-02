@@ -83,7 +83,7 @@ async function subscribe(req, res) {
           subscription_data: subscriptionData,
           platform: platform || 'web',
           device_id,
-          venue_id: venue_id ? parseInt(venue_id) : null,
+          venue_id: venue_id ? venue_id : null,
           is_active: true,
           updated_at: new Date().toISOString()
         })
@@ -108,7 +108,7 @@ async function subscribe(req, res) {
         subscription_data: subscriptionData,
         platform: platform || 'web',
         device_id,
-        venue_id: venue_id ? parseInt(venue_id) : null,
+        venue_id: venue_id ? venue_id : null,
         is_active: true
       })
       .select()

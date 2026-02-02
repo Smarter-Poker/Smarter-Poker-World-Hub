@@ -47,7 +47,7 @@ export default async function handler(req, res) {
     const { data: staff } = await supabase
       .from('commander_staff')
       .select('id, role')
-      .eq('venue_id', parseInt(venue_id))
+      .eq('venue_id', venue_id)
       .eq('user_id', user.id)
       .eq('is_active', true)
       .single();
@@ -62,7 +62,7 @@ export default async function handler(req, res) {
         *,
         profiles:player_id (id, display_name, avatar_url, email)
       `, { count: 'exact' })
-      .eq('venue_id', parseInt(venue_id));
+      .eq('venue_id', venue_id);
 
     if (loyalty_tier) {
       query = query.eq('loyalty_tier', loyalty_tier);

@@ -33,7 +33,7 @@ export default async function handler(req, res) {
       .from('commander_tables')
       .select('id, venue_id')
       .eq('id', tableId)
-      .eq('venue_id', parseInt(venue_id))
+      .eq('venue_id', venue_id)
       .single();
 
     if (tableError || !table) {
@@ -73,7 +73,7 @@ export default async function handler(req, res) {
         .from('commander_streams')
         .insert({
           table_id: tableId,
-          venue_id: parseInt(venue_id),
+          venue_id: venue_id,
           platforms: platforms || [],
           delay_minutes: delay_minutes || 15,
           overlay_config: overlay_config || {},

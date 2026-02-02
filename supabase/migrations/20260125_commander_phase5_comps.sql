@@ -12,7 +12,7 @@
 
 CREATE TABLE IF NOT EXISTS commander_comp_rates (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id INTEGER REFERENCES poker_venues(id) ON DELETE CASCADE,
+  venue_id UUID REFERENCES poker_venues(id) ON DELETE CASCADE,
 
   -- Rate info
   name TEXT NOT NULL,
@@ -62,7 +62,7 @@ CREATE INDEX IF NOT EXISTS idx_comp_rates_venue ON commander_comp_rates(venue_id
 
 CREATE TABLE IF NOT EXISTS commander_comp_balances (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id INTEGER REFERENCES poker_venues(id) ON DELETE CASCADE,
+  venue_id UUID REFERENCES poker_venues(id) ON DELETE CASCADE,
   player_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
 
   -- Balance
@@ -100,7 +100,7 @@ CREATE INDEX IF NOT EXISTS idx_comp_balances_balance ON commander_comp_balances(
 
 CREATE TABLE IF NOT EXISTS commander_comp_transactions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id INTEGER REFERENCES poker_venues(id) ON DELETE CASCADE,
+  venue_id UUID REFERENCES poker_venues(id) ON DELETE CASCADE,
   player_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
   balance_id UUID REFERENCES commander_comp_balances(id) ON DELETE CASCADE,
 
@@ -153,7 +153,7 @@ CREATE INDEX IF NOT EXISTS idx_comp_transactions_type ON commander_comp_transact
 CREATE TABLE IF NOT EXISTS commander_comp_redemptions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   transaction_id UUID REFERENCES commander_comp_transactions(id) ON DELETE CASCADE,
-  venue_id INTEGER REFERENCES poker_venues(id) ON DELETE CASCADE,
+  venue_id UUID REFERENCES poker_venues(id) ON DELETE CASCADE,
   player_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
 
   -- Redemption details

@@ -45,7 +45,7 @@ async function listPromotions(req, res) {
       .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
 
     if (venue_id) {
-      query = query.eq('venue_id', parseInt(venue_id));
+      query = query.eq('venue_id', venue_id);
     }
 
     if (status && status !== 'all') {
@@ -102,7 +102,7 @@ async function createPromotion(req, res) {
     const { data: staff } = await supabase
       .from('commander_staff')
       .select('id, role')
-      .eq('venue_id', parseInt(venue_id))
+      .eq('venue_id', venue_id)
       .eq('user_id', user.id)
       .eq('is_active', true)
       .single();
@@ -147,7 +147,7 @@ async function createPromotion(req, res) {
     const { data: promotion, error } = await supabase
       .from('commander_promotions')
       .insert({
-        venue_id: parseInt(venue_id),
+        venue_id: venue_id,
         name,
         description,
         promotion_type,

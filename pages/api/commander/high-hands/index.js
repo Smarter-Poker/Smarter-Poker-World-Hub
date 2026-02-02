@@ -47,7 +47,7 @@ async function listHighHands(req, res) {
         commander_promotions:promotion_id (id, name),
         verifier:verified_by (id, display_name)
       `, { count: 'exact' })
-      .eq('venue_id', parseInt(venue_id))
+      .eq('venue_id', venue_id)
       .order('created_at', { ascending: false })
       .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
 
@@ -71,7 +71,7 @@ async function listHighHands(req, res) {
         *,
         profiles:player_id (id, display_name, avatar_url)
       `)
-      .eq('venue_id', parseInt(venue_id))
+      .eq('venue_id', venue_id)
       .gte('created_at', `${today}T00:00:00`)
       .not('verified_at', 'is', null)
       .order('hand_rank', { ascending: false })
@@ -132,7 +132,7 @@ async function createHighHand(req, res) {
     const { data: staff } = await supabase
       .from('commander_staff')
       .select('id, role')
-      .eq('venue_id', parseInt(venue_id))
+      .eq('venue_id', venue_id)
       .eq('user_id', user.id)
       .eq('is_active', true)
       .single();
@@ -142,7 +142,7 @@ async function createHighHand(req, res) {
     }
 
     const insertData = {
-      venue_id: parseInt(venue_id),
+      venue_id: venue_id,
       promotion_id: promotion_id || null,
       player_id: player_id || null,
       player_name: player_name || null,

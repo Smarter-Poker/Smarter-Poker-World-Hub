@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS commander_onboarding_leads (
   contacted_at TIMESTAMPTZ,
   demo_scheduled_at TIMESTAMPTZ,
   converted_at TIMESTAMPTZ,
-  venue_id INTEGER REFERENCES poker_venues(id),
+  venue_id UUID REFERENCES poker_venues(id),
   metadata JSONB DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
@@ -43,7 +43,7 @@ CREATE INDEX IF NOT EXISTS idx_onboarding_leads_created ON commander_onboarding_
 
 CREATE TABLE IF NOT EXISTS commander_table_displays (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id INTEGER REFERENCES poker_venues(id) ON DELETE CASCADE,
+  venue_id UUID REFERENCES poker_venues(id) ON DELETE CASCADE,
   table_id UUID REFERENCES commander_tables(id),
   device_id TEXT UNIQUE,
   device_name TEXT,
@@ -70,7 +70,7 @@ CREATE INDEX IF NOT EXISTS idx_displays_device ON commander_table_displays(devic
 CREATE TABLE IF NOT EXISTS commander_progressive_jackpots (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   promotion_id UUID REFERENCES commander_promotions(id) ON DELETE CASCADE,
-  venue_id INTEGER REFERENCES poker_venues(id) ON DELETE CASCADE,
+  venue_id UUID REFERENCES poker_venues(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   current_amount DECIMAL(12,2) DEFAULT 0,
   seed_amount DECIMAL(12,2) DEFAULT 0,

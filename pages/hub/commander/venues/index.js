@@ -49,10 +49,10 @@ function VenueCard({ venue, onSelect }) {
           <Clock className="w-4 h-4" />
           {venue.waitlist_count || 0} waiting
         </span>
-        {venue.distance && (
+        {venue.distance_mi && (
           <span className="flex items-center gap-1">
             <Navigation className="w-4 h-4" />
-            {venue.distance} mi
+            {venue.distance_mi} mi
           </span>
         )}
       </div>
@@ -94,15 +94,29 @@ export default function VenueDiscoveryPage() {
   const [venues, setVenues] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState('all'); // 'all', 'live', 'nearby'
+  const [userLocation, setUserLocation] = useState(null);
 
   useEffect(() => {
-    fetchVenues();
-  }, [filter]);
+    if (filter === 'nearby' && !userLocation) {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+          () => fetchVenues(null)
+        );
+        return;
+      }
+    }
+    fetchVenues(userLocation);
+  }, [filter, userLocation]);
 
-  async function fetchVenues() {
+  async function fetchVenues(location) {
     setLoading(true);
     try {
-      const res = await fetch(`/api/commander/venues?filter=${filter}`);
+      let url = `/api/commander/venues?filter=${filter}&limit=50`;
+      if (location) {
+        url += `&lat=${location.lat}&lng=${location.lng}&radius=100`;
+      }
+      const res = await fetch(url);
       const data = await res.json();
 
       if (data.success) {

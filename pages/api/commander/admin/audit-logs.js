@@ -68,10 +68,10 @@ async function handler(req, res) {
 
     // Filter by venue
     if (venue_id) {
-      if (!allowedVenueIds.includes(parseInt(venue_id))) {
+      if (!allowedVenueIds.includes(venue_id)) {
         return res.status(403).json({ error: 'Access denied to this venue' });
       }
-      query = query.eq('venue_id', parseInt(venue_id));
+      query = query.eq('venue_id', venue_id);
     } else {
       query = query.in('venue_id', allowedVenueIds);
     }

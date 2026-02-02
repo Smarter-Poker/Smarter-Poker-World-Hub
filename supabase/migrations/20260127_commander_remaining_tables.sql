@@ -12,7 +12,7 @@
 CREATE TABLE IF NOT EXISTS commander_waitlist_groups (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   leader_id UUID REFERENCES profiles(id),
-  venue_id INTEGER REFERENCES poker_venues(id),
+  venue_id UUID REFERENCES poker_venues(id),
   game_type TEXT,
   stakes TEXT,
   prefer_same_table BOOLEAN DEFAULT true,
@@ -38,7 +38,7 @@ CREATE INDEX IF NOT EXISTS idx_waitlist_group_members_group ON commander_waitlis
 
 CREATE TABLE IF NOT EXISTS commander_dealers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id INTEGER REFERENCES poker_venues(id),
+  venue_id UUID REFERENCES poker_venues(id),
   user_id UUID REFERENCES profiles(id),
   name TEXT NOT NULL,
   employee_id TEXT,
@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS commander_dealers (
 
 CREATE TABLE IF NOT EXISTS commander_dealer_rotations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id INTEGER REFERENCES poker_venues(id),
+  venue_id UUID REFERENCES poker_venues(id),
   dealer_id UUID REFERENCES commander_dealers(id) ON DELETE CASCADE,
   table_id UUID REFERENCES commander_tables(id),
   game_id UUID REFERENCES commander_games(id),
@@ -78,7 +78,7 @@ CREATE INDEX IF NOT EXISTS idx_dealer_rotations_dealer ON commander_dealer_rotat
 
 CREATE TABLE IF NOT EXISTS commander_incidents (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id INTEGER REFERENCES poker_venues(id),
+  venue_id UUID REFERENCES poker_venues(id),
   reported_by UUID REFERENCES commander_staff(id),
   incident_type TEXT NOT NULL,
   severity TEXT NOT NULL DEFAULT 'medium',
@@ -201,7 +201,7 @@ CREATE INDEX IF NOT EXISTS idx_equipment_area ON commander_equipment_rentals USI
 
 CREATE TABLE IF NOT EXISTS commander_wait_time_predictions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id INTEGER REFERENCES poker_venues(id),
+  venue_id UUID REFERENCES poker_venues(id),
   game_type TEXT NOT NULL,
   stakes TEXT NOT NULL,
   hour_of_day INTEGER,
@@ -216,7 +216,7 @@ CREATE TABLE IF NOT EXISTS commander_wait_time_predictions (
 CREATE TABLE IF NOT EXISTS commander_player_recommendations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   player_id UUID REFERENCES profiles(id),
-  venue_id INTEGER REFERENCES poker_venues(id),
+  venue_id UUID REFERENCES poker_venues(id),
   recommendation_type TEXT,
   recommendation_data JSONB,
   was_followed BOOLEAN,
@@ -233,7 +233,7 @@ CREATE INDEX IF NOT EXISTS idx_recommendations_player ON commander_player_recomm
 
 CREATE TABLE IF NOT EXISTS commander_streams (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id INTEGER REFERENCES poker_venues(id),
+  venue_id UUID REFERENCES poker_venues(id),
   table_id UUID REFERENCES commander_tables(id),
   stream_name TEXT,
   platforms TEXT[],
@@ -249,7 +249,7 @@ CREATE TABLE IF NOT EXISTS commander_streams (
 
 CREATE TABLE IF NOT EXISTS commander_hand_history (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id INTEGER REFERENCES poker_venues(id),
+  venue_id UUID REFERENCES poker_venues(id),
   table_id UUID REFERENCES commander_tables(id),
   game_id UUID REFERENCES commander_games(id),
   hand_number INTEGER,
@@ -274,7 +274,7 @@ CREATE INDEX IF NOT EXISTS idx_hand_history_venue ON commander_hand_history(venu
 
 CREATE TABLE IF NOT EXISTS commander_tax_events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  venue_id INTEGER REFERENCES poker_venues(id),
+  venue_id UUID REFERENCES poker_venues(id),
   player_id UUID REFERENCES profiles(id),
   event_type TEXT NOT NULL,
   event_date DATE DEFAULT CURRENT_DATE,
@@ -307,7 +307,7 @@ CREATE TABLE IF NOT EXISTS commander_self_exclusions (
   exclusion_type TEXT NOT NULL,
   duration_days INTEGER,
   scope TEXT NOT NULL DEFAULT 'venue',
-  venue_id INTEGER REFERENCES poker_venues(id),
+  venue_id UUID REFERENCES poker_venues(id),
   reason TEXT,
   allow_early_removal BOOLEAN DEFAULT false,
   started_at TIMESTAMPTZ DEFAULT now(),

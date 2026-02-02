@@ -71,7 +71,7 @@ export default async function handler(req, res) {
     const { data: staff } = await supabase
       .from('commander_staff')
       .select('id, role')
-      .eq('venue_id', parseInt(venue_id))
+      .eq('venue_id', venue_id)
       .eq('user_id', user.id)
       .eq('is_active', true)
       .single();
@@ -84,7 +84,7 @@ export default async function handler(req, res) {
           *,
           profiles:player_id (id, display_name, avatar_url, email)
         `, { count: 'exact' })
-        .eq('venue_id', parseInt(venue_id));
+        .eq('venue_id', venue_id);
 
       if (player_id) {
         query = query.eq('player_id', player_id);
@@ -104,7 +104,7 @@ export default async function handler(req, res) {
       const { data: totals } = await supabase
         .from('commander_comp_balances')
         .select('current_balance, lifetime_earned, lifetime_redeemed')
-        .eq('venue_id', parseInt(venue_id));
+        .eq('venue_id', venue_id);
 
       const summary = totals?.reduce((acc, b) => ({
         total_outstanding: acc.total_outstanding + parseFloat(b.current_balance || 0),
@@ -128,7 +128,7 @@ export default async function handler(req, res) {
         *,
         poker_venues:venue_id (id, name, city, state)
       `)
-      .eq('venue_id', parseInt(venue_id))
+      .eq('venue_id', venue_id)
       .eq('player_id', user.id)
       .single();
 

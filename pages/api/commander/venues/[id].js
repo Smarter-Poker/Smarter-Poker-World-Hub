@@ -132,7 +132,7 @@ async function handlePatch(req, res, venueId) {
     }
 
     // Verify staff belongs to this venue and has manager role
-    if (staff.venue_id !== parseInt(venueId)) {
+    if (staff.venue_id !== venueId) {
       return res.status(403).json({
         success: false,
         error: { code: 'FORBIDDEN', message: 'Not authorized for this venue' }

@@ -56,7 +56,7 @@ async function redeemComps(req, res) {
     const { data: staff } = await supabase
       .from('commander_staff')
       .select('id, role')
-      .eq('venue_id', parseInt(venue_id))
+      .eq('venue_id', venue_id)
       .eq('user_id', user.id)
       .eq('is_active', true)
       .single();
@@ -67,7 +67,7 @@ async function redeemComps(req, res) {
 
     // Use the database function to redeem
     const { data, error } = await supabase.rpc('redeem_comps', {
-      p_venue_id: parseInt(venue_id),
+      p_venue_id: venue_id,
       p_player_id: player_id,
       p_amount: parseFloat(amount),
       p_redemption_type: redemption_type,
@@ -101,7 +101,7 @@ async function redeemComps(req, res) {
     const { data: balance } = await supabase
       .from('commander_comp_balances')
       .select('*')
-      .eq('venue_id', parseInt(venue_id))
+      .eq('venue_id', venue_id)
       .eq('player_id', player_id)
       .single();
 
@@ -154,18 +154,18 @@ async function listRedemptions(req, res) {
       const { data: staff } = await supabase
         .from('commander_staff')
         .select('id, role')
-        .eq('venue_id', parseInt(venue_id))
+        .eq('venue_id', venue_id)
         .eq('user_id', user.id)
         .eq('is_active', true)
         .single();
 
       if (staff) {
-        query = query.eq('venue_id', parseInt(venue_id));
+        query = query.eq('venue_id', venue_id);
         if (player_id) {
           query = query.eq('player_id', player_id);
         }
       } else {
-        query = query.eq('venue_id', parseInt(venue_id)).eq('player_id', user.id);
+        query = query.eq('venue_id', venue_id).eq('player_id', user.id);
       }
     } else {
       query = query.eq('player_id', user.id);

@@ -163,7 +163,7 @@ async function handleSubscriptionUpdate(subscription) {
         commander_tier: tierMap[status] || 'free',
         commander_enabled: status === 'active' || status === 'trialing'
       })
-      .eq('id', parseInt(metadata.venue_id));
+      .eq('id', metadata.venue_id);
 
     if (error) {
       console.error('Update venue subscription error:', error);
@@ -182,7 +182,7 @@ async function handleSubscriptionCancelled(subscription) {
       .update({
         commander_tier: 'free'
       })
-      .eq('id', parseInt(metadata.venue_id));
+      .eq('id', metadata.venue_id);
 
     if (error) {
       console.error('Update venue subscription error:', error);
