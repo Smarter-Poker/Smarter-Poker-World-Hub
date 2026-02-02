@@ -176,7 +176,7 @@ async function discoverPlayers(req, res, options) {
         state
       )
     `)
-    .eq('looking_for_games', true)
+    .eq('auto_join_waitlist', true)
     .neq('player_id', userId)
     .limit(parseInt(limit));
 
@@ -224,7 +224,7 @@ async function discoverPlayers(req, res, options) {
     state: p.profiles?.state,
     preferred_games: p.preferred_games,
     preferred_stakes: p.preferred_stakes,
-    availability: p.availability
+    notes: p.notes
   }));
 
   return res.status(200).json({

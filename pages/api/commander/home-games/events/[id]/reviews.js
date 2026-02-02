@@ -33,7 +33,7 @@ async function handleGet(req, res, eventId) {
         *,
         profiles (id, display_name, avatar_url)
       `)
-      .eq('event_id', eventId)
+      .eq('game_id', eventId)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -82,7 +82,7 @@ async function handleCreate(req, res, eventId) {
     const { data: existing } = await supabase
       .from('commander_home_game_reviews')
       .select('id')
-      .eq('event_id', eventId)
+      .eq('game_id', eventId)
       .eq('reviewer_id', player_id)
       .single();
 
@@ -96,12 +96,12 @@ async function handleCreate(req, res, eventId) {
     // Check if player attended
     const { data: rsvp } = await supabase
       .from('commander_home_rsvps')
-      .select('status')
-      .eq('event_id', eventId)
+      .select('response, is_confirmed')
+      .eq('game_id', eventId)
       .eq('player_id', player_id)
       .single();
 
-    if (!rsvp || rsvp.status !== 'confirmed') {
+    if (!rsvp || rsvp.response !== 'yes') {
       return res.status(403).json({
         success: false,
         error: { code: 'NOT_ATTENDED', message: 'Must attend game to review' }
@@ -111,7 +111,7 @@ async function handleCreate(req, res, eventId) {
     const { data: review, error } = await supabase
       .from('commander_home_game_reviews')
       .insert({
-        event_id: eventId,
+        game_id: eventId,
         reviewer_id: player_id,
         rating,
         comment,

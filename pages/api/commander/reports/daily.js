@@ -37,11 +37,11 @@ export default async function handler(req, res) {
 
     // Fetch sessions for this date
     const { data: sessions, error: sessionsError } = await supabase
-      .from('commander_sessions')
+      .from('commander_player_sessions')
       .select('*')
       .eq('venue_id', venue_id)
-      .gte('check_in_time', startOfDay)
-      .lte('check_in_time', endOfDay);
+      .gte('check_in_at', startOfDay)
+      .lte('check_in_at', endOfDay);
 
     if (sessionsError) throw sessionsError;
 
@@ -60,16 +60,16 @@ export default async function handler(req, res) {
       .from('commander_waitlist')
       .select('*')
       .eq('venue_id', venue_id)
-      .gte('joined_at', startOfDay)
-      .lte('joined_at', endOfDay);
+      .gte('created_at', startOfDay)
+      .lte('created_at', endOfDay);
 
     if (waitlistError) throw waitlistError;
 
     // Calculate summary stats
     const uniquePlayers = new Set(sessions.map(s => s.player_id)).size;
     const totalHours = sessions.reduce((sum, s) => {
-      if (s.check_out_time) {
-        const duration = (new Date(s.check_out_time) - new Date(s.check_in_time)) / (1000 * 60 * 60);
+      if (s.check_out_at) {
+        const duration = (new Date(s.check_out_at) - new Date(s.check_in_at)) / (1000 * 60 * 60);
         return sum + duration;
       }
       return sum;
@@ -95,7 +95,7 @@ export default async function handler(req, res) {
       hourlyData[i] = { players: 0, tables: 0 };
     }
     sessions.forEach(s => {
-      const hour = new Date(s.check_in_time).getHours();
+      const hour = new Date(s.check_in_at).getHours();
       hourlyData[hour].players++;
     });
 
@@ -107,7 +107,7 @@ export default async function handler(req, res) {
         total_sessions: sessions.length,
         total_hours: Math.round(totalHours * 10) / 10,
         peak_tables: peakTables,
-        active_games: games.filter(g => g.status === 'active').length,
+        active_games: games.filter(g => g.status === 'running').length,
         tournaments_run: tournaments.length,
         waitlist_joins: waitlistEntries.length
       },
@@ -121,7 +121,7 @@ export default async function handler(req, res) {
         name: t.name,
         buyin: t.buyin_amount,
         entries: t.current_entries || 0,
-        prizepool: t.actual_prizepool || t.guaranteed_pool || 0,
+        prizepool: t.guaranteed_pool || 0,
         status: t.status
       })),
       hourlyBreakdown: Object.entries(hourlyData).map(([hour, data]) => ({

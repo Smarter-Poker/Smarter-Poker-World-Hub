@@ -55,7 +55,7 @@ export default async function handler(req, res) {
           poker_venues(id, name)
         )
       `)
-      .eq('status', 'completed')
+      .eq('status', 'closed')
       .order('started_at', { ascending: false })
       .limit(20);
 

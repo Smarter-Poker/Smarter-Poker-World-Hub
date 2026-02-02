@@ -260,6 +260,18 @@ export default function ManageSocialPage() {
                                         <input type="url" value={form.website}
                                             onChange={e => setForm(f => ({ ...f, website: e.target.value }))} style={inputStyle} />
                                     </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                                        <div>
+                                            <label style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 4, display: 'block' }}>Contact Email</label>
+                                            <input type="email" value={form.contact_email}
+                                                onChange={e => setForm(f => ({ ...f, contact_email: e.target.value }))} placeholder="contact@example.com" style={inputStyle} />
+                                        </div>
+                                        <div>
+                                            <label style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 4, display: 'block' }}>Phone</label>
+                                            <input type="tel" value={form.phone}
+                                                onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="(555) 123-4567" style={inputStyle} />
+                                        </div>
+                                    </div>
 
                                     {/* Toggle Settings */}
                                     {[
