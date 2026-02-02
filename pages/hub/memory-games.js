@@ -2178,11 +2178,11 @@ export default function MemoryGamesPage() {
         let mult = 1;
 
         if (comboCount >= 20) { name = ' LEGENDARY!'; mult = 3.0; }
-        else if (comboCount >= 15) { name = '💀 UNSTOPPABLE!'; mult = 2.5; }
+        else if (comboCount >= 15) { name = 'UNSTOPPABLE!'; mult = 2.5; }
         else if (comboCount >= 10) { name = '++ ON FIRE!'; mult = 2.0; }
         else if (comboCount >= 7) { name = ' DOMINATING!'; mult = 1.7; }
         else if (comboCount >= 5) { name = ' HOT STREAK!'; mult = 1.5; }
-        else if (comboCount >= 3) { name = '👍 NICE!'; mult = 1.2; }
+        else if (comboCount >= 3) { name = 'NICE!'; mult = 1.2; }
 
         setComboName(name);
         setMultiplier(mult);
@@ -2908,7 +2908,7 @@ export default function MemoryGamesPage() {
                                         color: gameType === 'daily' ? '#00ff88' : 'rgba(255, 255, 255, 0.5)',
                                     }}
                                 >
-                                    📅 Daily
+                                    Daily
                                 </button>
                                 <button
                                     onClick={() => setGameType('spot')}
@@ -3338,7 +3338,7 @@ export default function MemoryGamesPage() {
 
                                     {/* Challenge Card */}
                                     <div style={{ textAlign: 'center', marginBottom: 24 }}>
-                                        <div style={{ fontSize: 48, marginBottom: 12 }}>📅</div>
+                                        <div style={{ fontSize: 48, marginBottom: 12 }}>◉</div>
                                         <h2 style={{ fontSize: 28, fontWeight: 700, color: '#00ff88', marginBottom: 8 }}>
                                             DAILY CHALLENGE
                                         </h2>
