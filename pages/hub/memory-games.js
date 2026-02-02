@@ -1675,7 +1675,7 @@ export default function MemoryGamesPage() {
     const [menuOpen, setMenuOpen] = useState(false);
     const [showOutOfDiamondsModal, setShowOutOfDiamondsModal] = useState(false);
 
-    // Grok Explain Modal state
+    // Jarvis Explain Modal state
     const [explainModal, setExplainModal] = useState({
         show: false,
         hand: null,
@@ -2136,8 +2136,8 @@ export default function MemoryGamesPage() {
         startGame(currentLevel);
     };
 
-    // Fetch Grok explanation for a hand
-    const fetchGrokExplanation = async (hand, correctAction, userAction) => {
+    // Fetch Jarvis explanation for a hand
+    const fetchJarvisExplanation = async (hand, correctAction, userAction) => {
         setExplainModal({
             show: true,
             hand,
@@ -3251,7 +3251,7 @@ export default function MemoryGamesPage() {
                                                     alignItems: 'center',
                                                     gap: 6,
                                                 }}
-                                                title="Generate unique scenarios using AI (powered by Grok)"
+                                                title="Generate unique scenarios using Jarvis AI"
                                             >
                                                 🤖 {useAIGeneration ? 'AI ON' : 'AI Mode'}
                                             </button>
@@ -3493,7 +3493,7 @@ export default function MemoryGamesPage() {
                                 color: '#FFD700',
                                 marginBottom: 10,
                             }}>
-                                Grok AI is generating your scenario...
+                                Jarvis is generating your scenario...
                             </div>
                             <div style={{
                                 fontSize: 14,
@@ -3664,14 +3664,14 @@ export default function MemoryGamesPage() {
                                         </div>
                                     )}
 
-                                    {/* Ask Grok Why Button - shows when there are mistakes */}
+                                    {/* Ask Jarvis Why Button - shows when there are mistakes */}
                                     {(gradeResult.missedHands.length > 0 || gradeResult.wrongActionHands.length > 0) && (
                                         <button
                                             onClick={() => {
                                                 const firstMistake = gradeResult.wrongActionHands[0] || gradeResult.missedHands[0];
                                                 const correctAction = currentScenario?.solution?.[firstMistake] || 'call';
                                                 const userAction = userGrid[firstMistake] || 'fold';
-                                                fetchGrokExplanation(firstMistake, correctAction, userAction);
+                                                fetchJarvisExplanation(firstMistake, correctAction, userAction);
                                             }}
                                             style={{
                                                 marginTop: 16,
@@ -3690,13 +3690,13 @@ export default function MemoryGamesPage() {
                                                 width: '100%'
                                             }}
                                         >
-                                            🤖 Ask Grok: Why was I wrong?
+                                            🤖 Ask Jarvis: Why was I wrong?
                                         </button>
                                     )}
                                 </div>
                             )}
 
-                            {/* Grok Explain Modal */}
+                            {/* Jarvis Explain Modal */}
                             {explainModal.show && (
                                 <div style={{
                                     position: 'fixed',
@@ -3720,7 +3720,7 @@ export default function MemoryGamesPage() {
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                                                 <span style={{ fontSize: 32 }}>🤖</span>
-                                                <span style={{ fontFamily: 'Orbitron', fontSize: 18, color: '#A78BFA' }}>Grok GTO Coach</span>
+                                                <span style={{ fontFamily: 'Orbitron', fontSize: 18, color: '#A78BFA' }}>Jarvis GTO Coach</span>
                                             </div>
                                             <button
                                                 onClick={() => setExplainModal(prev => ({ ...prev, show: false }))}
@@ -3763,7 +3763,7 @@ export default function MemoryGamesPage() {
                                             {explainModal.loading ? (
                                                 <div style={{ textAlign: 'center', color: 'rgba(255, 255, 255, 0.6)' }}>
                                                     <div style={{ marginBottom: 8 }}>🤔</div>
-                                                    Analyzing with Grok...
+                                                    Jarvis is analyzing...
                                                 </div>
                                             ) : (
                                                 <div style={{ color: 'rgba(255, 255, 255, 0.9)', lineHeight: 1.6 }}>
