@@ -167,7 +167,11 @@ export default function BankrollManagerPage() {
 
   // Load all data
   const loadData = useCallback(async () => {
-    if (!userId) return;
+    // Fix: Set isLoading false even when no user (prevents infinite skeleton)
+    if (!userId) {
+      setIsLoading(false);
+      return;
+    }
 
     setIsLoading(true);
     try {
@@ -437,11 +441,17 @@ export default function BankrollManagerPage() {
             ))}
           </nav>
 
-          {/* Main Content */}
+          {/* Main Content - Switches based on activeSection */}
           <main style={styles.mainContent}>
             {/* Header */}
             <div style={styles.contentHeader}>
-              <h1 style={styles.pageTitle}>Bankroll Manager</h1>
+              <h1 style={styles.pageTitle}>
+                {activeSection === 'dashboard' && 'Bankroll Manager'}
+                {activeSection === 'trips' && 'Trips & Expenses'}
+                {activeSection === 'leaks' && 'Leak Analysis'}
+                {activeSection === 'reports' && 'Reports'}
+                {activeSection === 'settings' && 'Settings'}
+              </h1>
               <div style={styles.headerActions}>
                 <button style={styles.logButton} onClick={() => setShowLogModal(true)}>
                   + Log
@@ -449,102 +459,204 @@ export default function BankrollManagerPage() {
               </div>
             </div>
 
-            {/* Stats Cards */}
-            <div style={styles.statsGrid}>
-              <StatCard
-                title="Total Bankroll"
-                value={stats ? `$${stats.totalBankroll.toLocaleString()}` : '—'}
-                change={stats?.allInNet}
-                isLoading={isLoading}
-              />
-              <StatCard
-                title="All-In Net"
-                value={
-                  stats
-                    ? `${stats.allInNet < 0 ? '-' : ''}$${Math.abs(stats.allInNet).toLocaleString()}`
-                    : '—'
-                }
-                isLoading={isLoading}
-              />
-              <StatCard
-                title="Leak Risk"
-                value={stats?.leakRisk || 'LOW'}
-                isRisk={true}
-                isLoading={isLoading}
-              />
-              <StatCard
-                title="Travel ROI"
-                value={
-                  stats
-                    ? `${stats.travelROI < 0 ? '-' : ''}$${Math.abs(stats.travelROI).toLocaleString()}`
-                    : '—'
-                }
-                suffix="Last Trip"
-                isLoading={isLoading}
-              />
-            </div>
-
-            {/* Recent Activity Section */}
-            <div style={styles.activitySection}>
-              <h2 style={styles.sectionTitle}>Recent Activity</h2>
-
-              {/* Filter Tabs */}
-              <div style={styles.filterTabs}>
-                <div style={styles.filterTabsLeft}>
-                  {CATEGORY_FILTERS.map((filter) => (
-                    <button
-                      key={filter.id}
-                      onClick={() => setCategoryFilter(filter.id)}
-                      style={{
-                        ...styles.filterTab,
-                        ...(categoryFilter === filter.id ? styles.filterTabActive : {}),
-                      }}
-                    >
-                      {filter.label}
-                    </button>
-                  ))}
-                </div>
-                <label style={styles.expenseToggle}>
-                  <input
-                    type="checkbox"
-                    checked={includeExpenses}
-                    onChange={(e) => setIncludeExpenses(e.target.checked)}
-                    style={styles.checkbox}
+            {/* Dashboard View */}
+            {activeSection === 'dashboard' && (
+              <>
+                {/* Stats Cards */}
+                <div style={styles.statsGrid}>
+                  <StatCard
+                    title="Total Bankroll"
+                    value={stats ? `$${stats.totalBankroll.toLocaleString()}` : '—'}
+                    change={stats?.allInNet}
+                    isLoading={isLoading}
                   />
-                  Include Expenses
-                </label>
-              </div>
+                  <StatCard
+                    title="All-In Net"
+                    value={
+                      stats
+                        ? `${stats.allInNet < 0 ? '-' : ''}$${Math.abs(stats.allInNet).toLocaleString()}`
+                        : '—'
+                    }
+                    isLoading={isLoading}
+                  />
+                  <StatCard
+                    title="Leak Risk"
+                    value={stats?.leakRisk || 'LOW'}
+                    isRisk={true}
+                    isLoading={isLoading}
+                  />
+                  <StatCard
+                    title="Travel ROI"
+                    value={
+                      stats
+                        ? `${stats.travelROI < 0 ? '-' : ''}$${Math.abs(stats.travelROI).toLocaleString()}`
+                        : '—'
+                    }
+                    suffix="Last Trip"
+                    isLoading={isLoading}
+                  />
+                </div>
 
-              {/* Ledger Timeline */}
-              <LedgerTimeline entries={entries} isLoading={isLoading} />
+                {/* Recent Activity Section */}
+                <div style={styles.activitySection}>
+                  <h2 style={styles.sectionTitle}>Recent Activity</h2>
 
-              {/* Trip Expenses Section */}
-              {trips.length > 0 && (
-                <div style={styles.tripSection}>
-                  <h3 style={styles.tripTitle}>Trip Expenses</h3>
-                  {trips.slice(0, 3).map((trip) => (
+                  {/* Filter Tabs */}
+                  <div style={styles.filterTabs}>
+                    <div style={styles.filterTabsLeft}>
+                      {CATEGORY_FILTERS.map((filter) => (
+                        <button
+                          key={filter.id}
+                          onClick={() => setCategoryFilter(filter.id)}
+                          style={{
+                            ...styles.filterTab,
+                            ...(categoryFilter === filter.id ? styles.filterTabActive : {}),
+                          }}
+                        >
+                          {filter.label}
+                        </button>
+                      ))}
+                    </div>
+                    <label style={styles.expenseToggle}>
+                      <input
+                        type="checkbox"
+                        checked={includeExpenses}
+                        onChange={(e) => setIncludeExpenses(e.target.checked)}
+                        style={styles.checkbox}
+                      />
+                      Include Expenses
+                    </label>
+                  </div>
+
+                  {/* Ledger Timeline */}
+                  <LedgerTimeline entries={entries} isLoading={isLoading} />
+
+                  {/* Trip Expenses Section */}
+                  {trips.length > 0 && (
+                    <div style={styles.tripSection}>
+                      <h3 style={styles.tripTitle}>Trip Expenses</h3>
+                      {trips.slice(0, 3).map((trip) => (
+                        <div key={trip.id} style={styles.tripCard}>
+                          <div style={styles.tripInfo}>
+                            <span style={styles.tripName}>{trip.name}:</span>
+                            <span
+                              style={{
+                                ...styles.tripNet,
+                                color: (trip.totalNet || 0) >= 0 ? '#22c55e' : '#ef4444',
+                              }}
+                            >
+                              {(trip.totalNet || 0) >= 0 ? '+' : '~-'}$
+                              {Math.abs(trip.totalNet || 0).toLocaleString()}
+                            </span>
+                            <span style={styles.tripExpenses}>
+                              Net / ${(trip.totalExpenses || 0).toLocaleString()} Expenses
+                            </span>
+                          </div>
+                          <span style={styles.tripArrow}>›</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Trips View */}
+            {activeSection === 'trips' && (
+              <div style={styles.activitySection}>
+                <h2 style={styles.sectionTitle}>All Trips</h2>
+                {trips.length === 0 ? (
+                  <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+                    <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.5 }}>✈️</div>
+                    <p style={{ fontSize: 16, fontWeight: 600, color: '#fff', margin: '0 0 8px' }}>No trips yet</p>
+                    <p style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.5)', margin: 0 }}>Create a trip to track travel expenses and poker winnings together</p>
+                  </div>
+                ) : (
+                  trips.map((trip) => (
                     <div key={trip.id} style={styles.tripCard}>
                       <div style={styles.tripInfo}>
                         <span style={styles.tripName}>{trip.name}:</span>
-                        <span
-                          style={{
-                            ...styles.tripNet,
-                            color: (trip.totalNet || 0) >= 0 ? '#22c55e' : '#ef4444',
-                          }}
-                        >
-                          {(trip.totalNet || 0) >= 0 ? '+' : '~-'}$
-                          {Math.abs(trip.totalNet || 0).toLocaleString()}
+                        <span style={{ ...styles.tripNet, color: (trip.totalNet || 0) >= 0 ? '#22c55e' : '#ef4444' }}>
+                          {(trip.totalNet || 0) >= 0 ? '+' : '-'}${Math.abs(trip.totalNet || 0).toLocaleString()}
                         </span>
-                        <span style={styles.tripExpenses}>
-                          Net / ${(trip.totalExpenses || 0).toLocaleString()} Expenses
-                        </span>
+                        <span style={styles.tripExpenses}>Net / ${(trip.totalExpenses || 0).toLocaleString()} Expenses</span>
                       </div>
                       <span style={styles.tripArrow}>›</span>
                     </div>
-                  ))}
+                  ))
+                )}
+              </div>
+            )}
+
+            {/* Leaks View */}
+            {activeSection === 'leaks' && (
+              <div style={styles.activitySection}>
+                <h2 style={styles.sectionTitle}>Leak Analysis</h2>
+                {!leakAnalysis || leakAnalysis.topLeaks?.length === 0 ? (
+                  <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+                    <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.5 }}>✅</div>
+                    <p style={{ fontSize: 16, fontWeight: 600, color: '#22c55e', margin: '0 0 8px' }}>No Leaks Detected</p>
+                    <p style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.5)', margin: 0 }}>Keep logging sessions to build your analysis history</p>
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, padding: 16, background: leakAnalysis.leakRisk === 'HIGH' ? 'rgba(239, 68, 68, 0.1)' : leakAnalysis.leakRisk === 'MEDIUM' ? 'rgba(234, 179, 8, 0.1)' : 'rgba(34, 197, 94, 0.1)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)' }}>
+                      <span style={{ fontSize: 32 }}>{leakAnalysis.leakRisk === 'HIGH' ? '🚨' : leakAnalysis.leakRisk === 'MEDIUM' ? '⚠️' : '✅'}</span>
+                      <div>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: leakAnalysis.leakRisk === 'HIGH' ? '#ef4444' : leakAnalysis.leakRisk === 'MEDIUM' ? '#eab308' : '#22c55e' }}>{leakAnalysis.leakRisk} RISK</div>
+                        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>Total Leak Amount: ${leakAnalysis.totalLeakAmount?.toLocaleString() || 0}</div>
+                      </div>
+                    </div>
+                    {leakAnalysis.topLeaks?.map((leak, i) => (
+                      <div key={i} style={{ padding: '14px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: 10, marginBottom: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                          <span style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{leak.title}</span>
+                          <span style={{ fontSize: 14, fontWeight: 700, color: leak.severity >= 4 ? '#ef4444' : leak.severity >= 3 ? '#eab308' : '#3b82f6' }}>{leak.value}</span>
+                        </div>
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{leak.message}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Reports View */}
+            {activeSection === 'reports' && (
+              <div style={styles.activitySection}>
+                <h2 style={styles.sectionTitle}>Performance Reports</h2>
+                <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.5 }}>📊</div>
+                  <p style={{ fontSize: 16, fontWeight: 600, color: '#fff', margin: '0 0 8px' }}>Reports Coming Soon</p>
+                  <p style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.5)', margin: 0 }}>Detailed performance analytics, charts, and export options</p>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
+
+            {/* Settings View */}
+            {activeSection === 'settings' && (
+              <div style={styles.activitySection}>
+                <h2 style={styles.sectionTitle}>Bankroll Settings</h2>
+                <div style={{ padding: 16, background: 'rgba(255,255,255,0.03)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.06)', marginBottom: 16 }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 600, color: '#fff', margin: '0 0 16px' }}>Preferences</h3>
+                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <span style={{ fontSize: 14, color: '#fff' }}>Auto-save sessions</span>
+                    <input type="checkbox" checked={preferences.autoSave} onChange={(e) => updatePreference('autoSave', e.target.checked)} style={{ accentColor: '#00D4FF' }} />
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0' }}>
+                    <span style={{ fontSize: 14, color: '#fff' }}>Notifications</span>
+                    <input type="checkbox" checked={preferences.notifications} onChange={(e) => updatePreference('notifications', e.target.checked)} style={{ accentColor: '#00D4FF' }} />
+                  </label>
+                </div>
+                <button
+                  onClick={() => router.push('/hub/bankroll-manager/export')}
+                  style={{ width: '100%', padding: '14px 18px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 500, cursor: 'pointer', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                >
+                  Export Data
+                  <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
+                </button>
+              </div>
+            )}
           </main>
 
           {/* Right Sidebar - Assistant Panel */}
@@ -565,16 +677,88 @@ export default function BankrollManagerPage() {
         </div>
       </div>
 
-      {/* Log Entry Modal */}
+      {/* Log Entry Modal - Shows login prompt if not authenticated */}
       <AnimatePresence>
-        {showLogModal && userId && (
-          <LogEntryModal
-            userId={userId}
-            locations={locations}
-            trips={trips}
-            onClose={() => setShowLogModal(false)}
-            onSubmit={handleLogSubmit}
-          />
+        {showLogModal && (
+          userId ? (
+            <LogEntryModal
+              userId={userId}
+              locations={locations}
+              trips={trips}
+              onClose={() => setShowLogModal(false)}
+              onSubmit={handleLogSubmit}
+            />
+          ) : (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'rgba(0, 0, 0, 0.8)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 50,
+              }}
+              onClick={() => setShowLogModal(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                style={{
+                  background: '#1a2a44',
+                  borderRadius: 16,
+                  padding: '32px 40px',
+                  textAlign: 'center',
+                  maxWidth: 400,
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
+                <h2 style={{ fontSize: 20, fontWeight: 700, color: '#fff', margin: '0 0 12px' }}>Sign In Required</h2>
+                <p style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.6)', margin: '0 0 24px' }}>
+                  Please sign in to log your poker sessions and track your bankroll.
+                </p>
+                <button
+                  onClick={() => router.push('/login?redirect=/hub/bankroll-manager')}
+                  style={{
+                    padding: '14px 32px',
+                    background: 'linear-gradient(135deg, #00D4FF, #0099cc)',
+                    border: 'none',
+                    borderRadius: 10,
+                    color: '#fff',
+                    fontSize: 16,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    marginRight: 12,
+                  }}
+                >
+                  Sign In
+                </button>
+                <button
+                  onClick={() => setShowLogModal(false)}
+                  style={{
+                    padding: '14px 24px',
+                    background: 'transparent',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    borderRadius: 10,
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    fontSize: 16,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+              </motion.div>
+            </motion.div>
+          )
         )}
       </AnimatePresence>
     </PageTransition>

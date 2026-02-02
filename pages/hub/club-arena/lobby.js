@@ -482,21 +482,21 @@ export default function ClubLobby() {
     );
 }
 
-// Facebook Classic Color Scheme
+// Facebook Dark Color Scheme
 const FB = {
-    primary: '#1877F2',
-    primaryDark: '#166FE5',
-    primaryLight: '#E7F3FF',
-    background: '#f0f2f5',
-    cardBg: '#ffffff',
-    textPrimary: '#1c1e21',
-    textSecondary: '#65676b',
-    textMuted: '#8a8d91',
-    border: '#dddfe2',
-    borderLight: '#e4e6eb',
-    success: '#42b72a',
-    error: '#fa3e3e',
-    hover: '#f2f3f5',
+    primary: '#2374E1',
+    primaryDark: '#1A5DC8',
+    primaryLight: '#263951',
+    background: '#18191A',
+    cardBg: '#242526',
+    textPrimary: '#E4E6EB',
+    textSecondary: '#B0B3B8',
+    textMuted: '#8A8D91',
+    border: '#3E4042',
+    borderLight: '#3A3B3C',
+    success: '#31A24C',
+    error: '#FA383E',
+    hover: '#3A3B3C',
 };
 
 const styles = {
@@ -531,7 +531,7 @@ const styles = {
     error: {
         textAlign: 'center',
         padding: '40px 20px',
-        background: '#ffebe9',
+        background: '#3B2020',
         border: `1px solid ${FB.error}`,
         borderRadius: '8px',
     },

@@ -1,18 +1,19 @@
 /**
- * 🤖 Memory Matrix Daily Challenge Generator (Grok-Powered)
+ * Memory Matrix Daily Challenge Generator (Jarvis-Powered)
  * ═══════════════════════════════════════════════════════════════════════════
- * Generates a fresh GTO training challenge every day using Grok AI.
+ * Generates a fresh GTO training challenge every day using Jarvis AI.
  * 
  * Cron: Runs daily at midnight UTC (0 0 * * *)
  * 
  * Creates a new challenge in `memory_daily_challenges` with:
- * - Grok-generated scenario with solution grid
+ * - Jarvis-generated scenario with solution grid
  * - Level scaling based on day of month
  * - Weekend bonus rewards
  */
 
 import { createClient } from '@supabase/supabase-js';
 import { getGrokClient } from '../../../src/lib/grokClient';
+import { getCachedResponse, setCachedResponse } from '../../../src/lib/jarvisCache';
 
 export const config = {
     maxDuration: 60 // Allow up to 60 seconds for Grok generation
