@@ -21,6 +21,80 @@ export default function ClubLobby() {
     const [tables, setTables] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [menuOpen, setMenuOpen] = useState(false);
+    const [activeFilter, setActiveFilter] = useState('ALL');
+    const [showCreateTable, setShowCreateTable] = useState(false);
+    const [creatingTable, setCreatingTable] = useState(false);
+    const [newTable, setNewTable] = useState({
+        name: '',
+        variant: 'nlh',
+        maxPlayers: '9',
+        smallBlind: '1',
+        bigBlind: '2',
+        straddle: true,
+        runItTwice: true,
+        bombPots: false,
+        autoMuck: true
+    });
+
+    // Filter tables by game type
+    const filteredTables = tables.filter(table => {
+        if (activeFilter === 'ALL') return true;
+        if (activeFilter === 'nlh') return table.game_variant === 'nlh' || table.game_variant === 'short_deck';
+        if (activeFilter === 'plo') return table.game_variant?.startsWith('plo');
+        if (activeFilter === 'tournament') return table.table_type === 'tournament';
+        if (activeFilter === 'sng') return table.table_type === 'sng';
+        return true;
+    });
+
+    // Handler for creating a new table
+    async function handleCreateTable() {
+        if (!club) return;
+        setCreatingTable(true);
+        try {
+            const { data, error } = await supabase
+                .from('poker_tables')
+                .insert({
+                    club_id: club.id,
+                    name: newTable.name || `New ${newTable.variant.toUpperCase()} Table`,
+                    game_variant: newTable.variant,
+                    max_players: parseInt(newTable.maxPlayers),
+                    small_blind: parseFloat(newTable.smallBlind),
+                    big_blind: parseFloat(newTable.bigBlind),
+                    status: 'active',
+                    settings: {
+                        straddle_enabled: newTable.straddle,
+                        run_it_twice: newTable.runItTwice,
+                        bomb_pot_enabled: newTable.bombPots,
+                        auto_muck: newTable.autoMuck
+                    }
+                })
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            // Add to table list and close modal
+            setTables(prev => [...prev, data]);
+            setShowCreateTable(false);
+            setNewTable({
+                name: '',
+                variant: 'nlh',
+                maxPlayers: '9',
+                smallBlind: '1',
+                bigBlind: '2',
+                straddle: true,
+                runItTwice: true,
+                bombPots: false,
+                autoMuck: true
+            });
+            alert('Table created successfully!');
+        } catch (err) {
+            console.error('Failed to create table:', err);
+            alert('Failed to create table: ' + err.message);
+        } finally {
+            setCreatingTable(false);
+        }
+    }
 
     useEffect(() => {
         if (clubIdParam) loadClubData();
@@ -124,16 +198,63 @@ export default function ClubLobby() {
 
                             {/* Game Type Filters */}
                             <div style={styles.filterTabs}>
-                                {['ALL', "Hold'em", 'Omaha', 'Mixed', 'MTT', 'SNG'].map(filter => (
-                                    <button key={filter} style={styles.filterTab}>{filter}</button>
+                                {[
+                                    { key: 'ALL', label: 'ALL' },
+                                    { key: 'nlh', label: "Hold'em" },
+                                    { key: 'plo', label: 'Omaha' },
+                                    { key: 'tournament', label: 'MTT' },
+                                    { key: 'sng', label: 'SNG' }
+                                ].map(filter => (
+                                    <button
+                                        key={filter.key}
+                                        style={{
+                                            ...styles.filterTab,
+                                            ...(activeFilter === filter.key ? styles.filterTabActive : {})
+                                        }}
+                                        onClick={() => setActiveFilter(filter.key)}
+                                    >
+                                        {filter.label}
+                                    </button>
                                 ))}
+                            </div>
+
+                            {/* Quick Actions */}
+                            <div style={styles.heroActions}>
+                                <button
+                                    style={styles.heroActionBtn}
+                                    onClick={() => router.push('/hub/club-arena')}
+                                >
+                                    <span style={styles.heroActionIcon}>🏛️</span>
+                                    <span style={styles.heroActionLabel}>My Clubs</span>
+                                </button>
+                                <button
+                                    style={{ ...styles.heroActionBtn, ...styles.heroActionPrimary }}
+                                    onClick={() => setShowCreateTable(true)}
+                                >
+                                    <span style={styles.heroActionIcon}>➕</span>
+                                    <span style={styles.heroActionLabel}>Create Table</span>
+                                </button>
+                                <button
+                                    style={styles.heroActionBtn}
+                                    onClick={() => {
+                                        // Quick seat to first available table
+                                        if (filteredTables.length > 0) {
+                                            alert(`Joining ${filteredTables[0].name}...`);
+                                        } else {
+                                            alert('No tables available. Create one!');
+                                        }
+                                    }}
+                                >
+                                    <span style={styles.heroActionIcon}>⚡</span>
+                                    <span style={styles.heroActionLabel}>Quick Seat</span>
+                                </button>
                             </div>
 
                             {/* Tables Section */}
                             <h2 style={styles.sectionTitle}>ACTIVE TABLES</h2>
-                            {tables.length > 0 ? (
+                            {filteredTables.length > 0 ? (
                                 <div style={styles.tableGrid}>
-                                    {tables.map(table => (
+                                    {filteredTables.map(table => (
                                         <div key={table.id} style={styles.tableCard}>
                                             <div style={styles.tableHeader}>
                                                 <span style={styles.tableIcon}>🎰</span>
@@ -155,6 +276,12 @@ export default function ClubLobby() {
                                     <span style={{ fontSize: '40px', marginBottom: '12px' }}>🃏</span>
                                     <p>No active tables</p>
                                     <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>Check back later or start a new table!</p>
+                                    <button
+                                        style={{ ...styles.primaryBtn, marginTop: '16px' }}
+                                        onClick={() => setShowCreateTable(true)}
+                                    >
+                                        Create Table
+                                    </button>
                                 </div>
                             )}
 
@@ -173,6 +300,134 @@ export default function ClubLobby() {
                         </>
                     )}
                 </div>
+
+                {/* Create Table Modal */}
+                {showCreateTable && (
+                    <div style={styles.modalOverlay} onClick={(e) => e.target === e.currentTarget && setShowCreateTable(false)}>
+                        <div style={styles.modalContent}>
+                            <div style={styles.modalHeader}>
+                                <h2 style={styles.modalTitle}>Create New Table</h2>
+                                <button style={styles.modalClose} onClick={() => setShowCreateTable(false)}>✕</button>
+                            </div>
+                            <div style={styles.modalBody}>
+                                <div style={styles.formGroup}>
+                                    <label style={styles.formLabel}>Table Name</label>
+                                    <input
+                                        style={styles.formInput}
+                                        type="text"
+                                        placeholder="e.g. Friday Night High Stakes"
+                                        value={newTable.name}
+                                        onChange={e => setNewTable({ ...newTable, name: e.target.value })}
+                                    />
+                                </div>
+
+                                <div style={styles.formRow}>
+                                    <div style={styles.formGroup}>
+                                        <label style={styles.formLabel}>Game Type</label>
+                                        <select
+                                            style={styles.formSelect}
+                                            value={newTable.variant}
+                                            onChange={e => setNewTable({ ...newTable, variant: e.target.value })}
+                                        >
+                                            <option value="nlh">No Limit Hold'em</option>
+                                            <option value="plo4">PLO (4-Card)</option>
+                                            <option value="plo5">PLO 5-Card</option>
+                                            <option value="plo6">PLO 6-Card</option>
+                                            <option value="plo8">PLO Hi/Lo (8-or-Better)</option>
+                                            <option value="short_deck">Short Deck (6+)</option>
+                                            <option value="ofc">Open Face Chinese</option>
+                                        </select>
+                                    </div>
+                                    <div style={styles.formGroup}>
+                                        <label style={styles.formLabel}>Players</label>
+                                        <select
+                                            style={styles.formSelect}
+                                            value={newTable.maxPlayers}
+                                            onChange={e => setNewTable({ ...newTable, maxPlayers: e.target.value })}
+                                        >
+                                            <option value="2">Heads Up (2)</option>
+                                            <option value="6">6-Max</option>
+                                            <option value="9">Full Ring (9)</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div style={styles.formRow}>
+                                    <div style={styles.formGroup}>
+                                        <label style={styles.formLabel}>Small Blind ($)</label>
+                                        <input
+                                            style={styles.formInput}
+                                            type="number"
+                                            min="0.01"
+                                            step="0.01"
+                                            value={newTable.smallBlind}
+                                            onChange={e => setNewTable({ ...newTable, smallBlind: e.target.value })}
+                                        />
+                                    </div>
+                                    <div style={styles.formGroup}>
+                                        <label style={styles.formLabel}>Big Blind ($)</label>
+                                        <input
+                                            style={styles.formInput}
+                                            type="number"
+                                            min="0.02"
+                                            step="0.01"
+                                            value={newTable.bigBlind}
+                                            onChange={e => setNewTable({ ...newTable, bigBlind: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div style={styles.formGroup}>
+                                    <label style={styles.formLabel}>Table Options</label>
+                                    <div style={styles.settingsGrid}>
+                                        <label style={styles.checkboxLabel}>
+                                            <input
+                                                type="checkbox"
+                                                checked={newTable.straddle}
+                                                onChange={e => setNewTable({ ...newTable, straddle: e.target.checked })}
+                                            />
+                                            Enable Straddle
+                                        </label>
+                                        <label style={styles.checkboxLabel}>
+                                            <input
+                                                type="checkbox"
+                                                checked={newTable.runItTwice}
+                                                onChange={e => setNewTable({ ...newTable, runItTwice: e.target.checked })}
+                                            />
+                                            Run It Twice (RIT)
+                                        </label>
+                                        <label style={styles.checkboxLabel}>
+                                            <input
+                                                type="checkbox"
+                                                checked={newTable.bombPots}
+                                                onChange={e => setNewTable({ ...newTable, bombPots: e.target.checked })}
+                                            />
+                                            Bomb Pots
+                                        </label>
+                                        <label style={styles.checkboxLabel}>
+                                            <input
+                                                type="checkbox"
+                                                checked={newTable.autoMuck}
+                                                onChange={e => setNewTable({ ...newTable, autoMuck: e.target.checked })}
+                                            />
+                                            Auto Muck
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style={styles.modalFooter}>
+                                <button style={styles.modalBtnGhost} onClick={() => setShowCreateTable(false)}>Cancel</button>
+                                <button
+                                    style={styles.modalBtnPrimary}
+                                    onClick={handleCreateTable}
+                                    disabled={creatingTable}
+                                >
+                                    {creatingTable ? 'Creating...' : 'Create Table'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Bottom Navigation */}
                 {club && (
@@ -514,5 +769,176 @@ const styles = {
         fontWeight: 600,
         textTransform: 'uppercase',
         letterSpacing: '0.5px',
+    },
+    // Filter Tab Active State
+    filterTabActive: {
+        background: 'linear-gradient(135deg, #00D4FF, #0066FF)',
+        color: '#000',
+        border: '1px solid #00D4FF',
+    },
+    // Hero Actions (Quick Actions bar)
+    heroActions: {
+        display: 'flex',
+        gap: '12px',
+        marginBottom: '24px',
+    },
+    heroActionBtn: {
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '6px',
+        padding: '14px 8px',
+        background: 'rgba(0, 212, 255, 0.08)',
+        border: '1px solid rgba(0, 212, 255, 0.2)',
+        borderRadius: '12px',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+    },
+    heroActionPrimary: {
+        background: 'linear-gradient(135deg, rgba(0,212,255,0.25) 0%, rgba(0,100,255,0.2) 100%)',
+        border: '1px solid rgba(0,212,255,0.5)',
+    },
+    heroActionIcon: {
+        fontSize: '20px',
+    },
+    heroActionLabel: {
+        fontSize: '11px',
+        fontWeight: 600,
+        color: '#fff',
+    },
+    // Modal Styles
+    modalOverlay: {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.85)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px',
+        zIndex: 2000,
+    },
+    modalContent: {
+        width: '100%',
+        maxWidth: '440px',
+        maxHeight: '90vh',
+        overflow: 'auto',
+        background: 'linear-gradient(180deg, #0d1825 0%, #06101a 100%)',
+        borderRadius: '16px',
+        border: '1px solid rgba(0, 212, 255, 0.3)',
+        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
+    },
+    modalHeader: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '20px',
+        borderBottom: '1px solid rgba(0, 212, 255, 0.1)',
+    },
+    modalTitle: {
+        fontFamily: 'Orbitron, sans-serif',
+        fontSize: '16px',
+        fontWeight: 700,
+        color: '#fff',
+        margin: 0,
+    },
+    modalClose: {
+        width: '32px',
+        height: '32px',
+        border: 'none',
+        background: 'rgba(255, 255, 255, 0.1)',
+        color: '#fff',
+        borderRadius: '8px',
+        fontSize: '16px',
+        cursor: 'pointer',
+    },
+    modalBody: {
+        padding: '20px',
+    },
+    modalFooter: {
+        display: 'flex',
+        gap: '12px',
+        padding: '16px 20px',
+        borderTop: '1px solid rgba(0, 212, 255, 0.1)',
+    },
+    // Form Styles
+    formGroup: {
+        marginBottom: '16px',
+    },
+    formRow: {
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: '12px',
+    },
+    formLabel: {
+        display: 'block',
+        fontSize: '11px',
+        fontWeight: 600,
+        color: 'rgba(255, 255, 255, 0.6)',
+        marginBottom: '6px',
+        textTransform: 'uppercase',
+        letterSpacing: '1px',
+    },
+    formInput: {
+        width: '100%',
+        padding: '12px 14px',
+        background: 'rgba(0, 0, 0, 0.4)',
+        border: '1px solid rgba(0, 212, 255, 0.2)',
+        borderRadius: '8px',
+        color: '#fff',
+        fontSize: '14px',
+        outline: 'none',
+        boxSizing: 'border-box',
+    },
+    formSelect: {
+        width: '100%',
+        padding: '12px 14px',
+        background: 'rgba(0, 0, 0, 0.4)',
+        border: '1px solid rgba(0, 212, 255, 0.2)',
+        borderRadius: '8px',
+        color: '#fff',
+        fontSize: '14px',
+        outline: 'none',
+        boxSizing: 'border-box',
+        appearance: 'none',
+    },
+    settingsGrid: {
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: '12px',
+    },
+    checkboxLabel: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        fontSize: '13px',
+        color: '#fff',
+        cursor: 'pointer',
+    },
+    modalBtnGhost: {
+        flex: 1,
+        padding: '12px 16px',
+        background: 'transparent',
+        border: '1px solid rgba(255, 255, 255, 0.2)',
+        borderRadius: '8px',
+        color: '#fff',
+        fontSize: '13px',
+        fontWeight: 600,
+        cursor: 'pointer',
+    },
+    modalBtnPrimary: {
+        flex: 1,
+        padding: '12px 16px',
+        background: 'linear-gradient(135deg, #00D4FF, #0066FF)',
+        border: 'none',
+        borderRadius: '8px',
+        color: '#000',
+        fontSize: '13px',
+        fontWeight: 700,
+        cursor: 'pointer',
+        fontFamily: 'Orbitron, sans-serif',
     },
 };

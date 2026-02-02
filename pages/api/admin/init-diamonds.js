@@ -50,8 +50,7 @@ export default async function handler(req, res) {
             user_id: profile.id,
             balance: STARTING_DIAMONDS,
             lifetime_earned: STARTING_DIAMONDS,
-            lifetime_spent: 0,
-            last_updated: new Date().toISOString()
+            lifetime_spent: 0
         }));
 
         if (diamondRecords.length > 0) {
