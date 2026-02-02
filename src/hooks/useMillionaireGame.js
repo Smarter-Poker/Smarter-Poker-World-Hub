@@ -41,8 +41,24 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
     const [gameComplete, setGameComplete] = useState(false);
     const [levelPassed, setLevelPassed] = useState(false);
 
+    // ⏱️ Time tracking
+    const [sessionStartTime, setSessionStartTime] = useState(Date.now());
+
     // Get user ID for no-repeat tracking
     const userId = getAuthUser()?.id;
+
+    /**
+     * 💎 Calculate diamond reward based on level and performance
+     * Higher levels = more diamonds, accuracy bonus
+     */
+    const calculateDiamondReward = (lvl, accuracy, passed) => {
+        if (!passed) return 0;
+        // Base reward: 5 diamonds per level
+        const baseReward = lvl * 5;
+        // Accuracy bonus: +50% at 90%+, +25% at 80%+
+        const accuracyMultiplier = accuracy >= 90 ? 1.5 : accuracy >= 80 ? 1.25 : 1;
+        return Math.round(baseReward * accuracyMultiplier);
+    };
 
     /**
      * 🚀 BATCH PRE-LOAD ALL QUESTIONS AT ONCE
@@ -193,6 +209,10 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
     const saveProgress = useCallback(async (passed, accuracy) => {
         if (!userId || !gameId) return;
 
+        // Calculate time spent and diamond rewards
+        const timeSpentSeconds = Math.round((Date.now() - sessionStartTime) / 1000);
+        const diamondsEarned = calculateDiamondReward(level, accuracy, passed);
+
         try {
             await fetch('/api/training/save-progress', {
                 method: 'POST',
@@ -207,14 +227,14 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
                     passed,
                     streak: bestStreak,
                     xpEarned: totalXP,
-                    diamondsEarned: 0, // TODO: Calculate diamond rewards
-                    timeSpentSeconds: 0, // TODO: Track time
+                    diamondsEarned,
+                    timeSpentSeconds,
                 }),
             });
         } catch (err) {
             console.warn('[MillionaireGame] Save progress error:', err);
         }
-    }, [userId, gameId, level, correctCount, bestStreak, totalXP]);
+    }, [userId, gameId, level, correctCount, bestStreak, totalXP, sessionStartTime]);
 
     /**
      * Advance to next question or complete level
@@ -261,6 +281,7 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
         setGameComplete(false);
         setLevelPassed(false);
         setPreloadComplete(false);
+        setSessionStartTime(Date.now()); // Reset timer for new level
         preloadAllQuestions();
     }, [levelPassed, level, preloadAllQuestions]);
 
@@ -275,6 +296,7 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
         setGameComplete(false);
         setLevelPassed(false);
         setPreloadComplete(false);
+        setSessionStartTime(Date.now()); // Reset timer for retry
         preloadAllQuestions();
     }, [preloadAllQuestions]);
 
