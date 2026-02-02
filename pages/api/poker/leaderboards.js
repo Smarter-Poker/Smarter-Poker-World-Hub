@@ -37,7 +37,7 @@ export default async function handler(req, res) {
 
         if (type === 'checkins' || type === 'overall') {
             let query = supabase
-                .from('poker_checkins')
+                .from('venue_checkins')
                 .select('user_id, created_at');
             if (dateFilter) query = query.gte('created_at', dateFilter);
             const { data: checkins } = await query;
@@ -79,7 +79,7 @@ export default async function handler(req, res) {
 
         if (type === 'reviews' || type === 'overall') {
             let query = supabase
-                .from('poker_reviews')
+                .from('venue_reviews')
                 .select('user_id, created_at');
             if (dateFilter) query = query.gte('created_at', dateFilter);
             const { data: reviews } = await query;

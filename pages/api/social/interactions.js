@@ -39,30 +39,41 @@ export default async function handler(req, res) {
             return res.status(500).json({ error: error.message });
         }
 
-        // Get comments from separate comments table if type is comment
+        // Get comments - social_comments table may not exist, fall back to interactions
         let comments = [];
         if (!type || type === 'comment') {
-            const { data: commentData } = await supabase
-                .from('social_comments')
-                .select('id, post_id, user_id, content, created_at, parent_id')
-                .eq('post_id', post_id)
-                .order('created_at', { ascending: true });
+            try {
+                const { data: commentData, error: commentError } = await supabase
+                    .from('social_comments')
+                    .select('id, post_id, user_id, content, created_at, parent_id')
+                    .eq('post_id', post_id)
+                    .order('created_at', { ascending: true });
 
-            if (commentData) {
-                // Enrich comments with user info
-                const userIds = [...new Set(commentData.map(c => c.user_id))];
-                const { data: profiles } = await supabase
-                    .from('profiles')
-                    .select('id, username, full_name, avatar_url')
-                    .in('id', userIds);
+                if (commentError && commentError.code === '42P01') {
+                    // Table doesn't exist - use comment interactions instead
+                    const commentInteractions = (data || []).filter(i => i.interaction_type === 'comment');
+                    comments = commentInteractions;
+                } else if (commentData) {
+                    // Enrich comments with user info
+                    const userIds = [...new Set(commentData.map(c => c.user_id))];
+                    if (userIds.length > 0) {
+                        const { data: profiles } = await supabase
+                            .from('profiles')
+                            .select('id, username, full_name, avatar_url')
+                            .in('id', userIds);
 
-                const profileMap = {};
-                (profiles || []).forEach(p => { profileMap[p.id] = p; });
+                        const profileMap = {};
+                        (profiles || []).forEach(p => { profileMap[p.id] = p; });
 
-                comments = commentData.map(c => ({
-                    ...c,
-                    author: profileMap[c.user_id] || { username: 'Unknown' }
-                }));
+                        comments = commentData.map(c => ({
+                            ...c,
+                            author: profileMap[c.user_id] || { username: 'Unknown' }
+                        }));
+                    }
+                }
+            } catch {
+                // Fallback: use comment interactions
+                comments = (data || []).filter(i => i.interaction_type === 'comment');
             }
         }
 

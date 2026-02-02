@@ -1,9 +1,22 @@
 import { createClient } from '@supabase/supabase-js';
+import allVenuesData from '../../../data/all-venues.json';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
+
+// Build venue name lookup (live_games.venue_id is TEXT)
+const venuesList = Array.isArray(allVenuesData) ? allVenuesData : allVenuesData.venues || [];
+const venueNameMap = {};
+venuesList.forEach(v => { if (v.id && v.name) venueNameMap[String(v.id)] = v.name; });
+
+function enrichGamesWithVenue(games) {
+  return (games || []).map(g => ({
+    ...g,
+    venue_name: venueNameMap[String(g.venue_id)] || 'Unknown Venue',
+  }));
+}
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -37,7 +50,7 @@ export default async function handler(req, res) {
       const expiresAt = new Date(now.getTime() + 4 * 60 * 60 * 1000);
 
       const insertData = {
-        venue_id: venueIdNum,
+        venue_id: String(venueIdNum),
         user_id,
         game_type,
         stakes,
@@ -80,7 +93,7 @@ export default async function handler(req, res) {
         let query = supabase
           .from('live_games')
           .select('*')
-          .eq('venue_id', venueIdNum)
+          .eq('venue_id', String(venueIdNum))
           .gt('expires_at', now)
           .order('created_at', { ascending: false });
 
@@ -95,7 +108,7 @@ export default async function handler(req, res) {
           return res.status(500).json({ success: false, error: error.message });
         }
 
-        return res.status(200).json({ success: true, games: data || [] });
+        return res.status(200).json({ success: true, games: enrichGamesWithVenue(data) });
       }
 
       // All active games grouped by venue
@@ -117,9 +130,10 @@ export default async function handler(req, res) {
           return res.status(500).json({ success: false, error: error.message });
         }
 
-        // Group by venue_id
+        // Enrich with venue names and group by venue_id
+        const enriched = enrichGamesWithVenue(data);
         const grouped = {};
-        (data || []).forEach((game) => {
+        enriched.forEach((game) => {
           if (!grouped[game.venue_id]) {
             grouped[game.venue_id] = [];
           }

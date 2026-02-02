@@ -40,7 +40,7 @@ export default async function handler(req, res) {
         .from('venue_checkins')
         .select('id')
         .eq('user_id', user_id)
-        .eq('venue_id', venueIdNum)
+        .eq('venue_id', String(venueIdNum))
         .gte('created_at', fourHoursAgo)
         .limit(1);
 
@@ -54,7 +54,7 @@ export default async function handler(req, res) {
       }
 
       const insertData = {
-        venue_id: venueIdNum,
+        venue_id: String(venueIdNum),
         user_id,
         user_name,
         created_at: new Date().toISOString(),
@@ -93,7 +93,7 @@ export default async function handler(req, res) {
           const { count, error } = await supabase
             .from('venue_checkins')
             .select('*', { count: 'exact', head: true })
-            .eq('venue_id', venueIdNum)
+            .eq('venue_id', String(venueIdNum))
             .gte('created_at', twentyFourHoursAgo);
 
           if (error) {
@@ -107,7 +107,7 @@ export default async function handler(req, res) {
         const { data, error } = await supabase
           .from('venue_checkins')
           .select('*')
-          .eq('venue_id', venueIdNum)
+          .eq('venue_id', String(venueIdNum))
           .gte('created_at', twentyFourHoursAgo)
           .order('created_at', { ascending: false });
 
