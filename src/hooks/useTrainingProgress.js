@@ -39,19 +39,33 @@ export default function useTrainingProgress() {
                 try {
                     const { data: { session } } = await supabase.auth.getSession();
                     userId = session?.user?.id;
+                    console.log('[useTrainingProgress] Session check:', {
+                        hasSession: !!session,
+                        userId,
+                        userEmail: session?.user?.email
+                    });
                 } catch (sessionError) {
                     console.warn('[useTrainingProgress] Session fetch failed, trying localStorage fallback:', sessionError.message);
                 }
 
                 // Fallback to localStorage if session not available
                 if (!userId) {
-                    const { getAuthUser } = await import('../lib/authUtils');
-                    const authUser = getAuthUser();
-                    userId = authUser?.id;
+                    try {
+                        const { getAuthUser } = await import('../lib/authUtils');
+                        const authUser = getAuthUser();
+                        userId = authUser?.id;
+                        console.log('[useTrainingProgress] localStorage fallback:', {
+                            hasUser: !!authUser,
+                            userId
+                        });
+                    } catch (e) {
+                        console.warn('[useTrainingProgress] localStorage fallback failed:', e.message);
+                    }
                 }
 
                 if (userId) {
                     // Fetch from API
+                    console.log('[useTrainingProgress] Fetching progress for userId:', userId);
                     const response = await fetch(`/api/training/get-progress?userId=${userId}`);
                     if (response.ok) {
                         const data = await response.json();
