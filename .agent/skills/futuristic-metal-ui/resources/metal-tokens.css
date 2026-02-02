@@ -1,0 +1,183 @@
+/**
+ * Futuristic Metal UI CSS Variables
+ * Smarter.Poker Design System - Skeuomorphic Sci-Fi
+ */
+
+:root {
+    /* ========================================
+     BASE COLORS - Dark Navy / Gunmetal
+     ======================================== */
+    --metal-dark: #0a0a15;
+    --metal-base: #0d1117;
+    --metal-mid: #1a2332;
+    --metal-light: #2a3a4a;
+    --metal-highlight: #3d4f5f;
+    --metal-shine: #5a6a7a;
+
+    /* ========================================
+     ACCENT COLORS - Neon Cyan Primary
+     ======================================== */
+    --neon-cyan: #00D4FF;
+    --neon-cyan-bright: #00FFFF;
+    --neon-cyan-glow: rgba(0, 212, 255, 0.6);
+    --neon-cyan-dim: rgba(0, 212, 255, 0.3);
+    --neon-cyan-subtle: rgba(0, 212, 255, 0.15);
+
+    /* ========================================
+     SECONDARY ACCENTS
+     ======================================== */
+    --neon-magenta: #FF00FF;
+    --neon-purple: #9D4EDD;
+    --gold-vip: #FFD700;
+    --gold-dark: #B8860B;
+    --diamond-blue: #00BFFF;
+    --success-green: #00FF87;
+    --warning-orange: #FF8C00;
+    --error-red: #FF4444;
+
+    /* ========================================
+     METAL GRADIENTS
+     ======================================== */
+    --metal-gradient: linear-gradient(180deg, #3d4f5f 0%, #1a2332 50%, #0d1117 100%);
+    --metal-gradient-inset: linear-gradient(180deg, #0a0a15 0%, #1a2332 100%);
+    --frame-gradient: linear-gradient(135deg, #4a5a6a 0%, #2a3a4a 50%, #1a2a3a 100%);
+    --button-gradient: linear-gradient(180deg, #3d4f5f 0%, #2a3a4a 50%, #1a2332 100%);
+    --button-hover-gradient: linear-gradient(180deg, rgba(0, 212, 255, 0.3) 0%, #2a3a4a 50%, #1a2332 100%);
+
+    /* ========================================
+     LIGHTING EFFECTS
+     ======================================== */
+    --glow-cyan: 0 0 10px var(--neon-cyan), 0 0 20px var(--neon-cyan-glow);
+    --glow-intense: 0 0 5px var(--neon-cyan), 0 0 15px var(--neon-cyan), 0 0 30px var(--neon-cyan-glow);
+    --glow-subtle: 0 0 5px var(--neon-cyan-dim);
+    --glow-gold: 0 0 10px rgba(255, 215, 0, 0.6), 0 0 20px rgba(255, 215, 0, 0.3);
+
+    /* ========================================
+     SHADOWS - Depth and Bevels
+     ======================================== */
+    --shadow-frame:
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+        0 4px 20px rgba(0, 0, 0, 0.5);
+
+    --shadow-inset:
+        inset 0 2px 4px rgba(0, 0, 0, 0.5),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+
+    --shadow-button:
+        inset 0 2px 4px rgba(255, 255, 255, 0.1),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.3),
+        0 4px 15px rgba(0, 0, 0, 0.4);
+
+    --shadow-elevated:
+        0 8px 32px rgba(0, 0, 0, 0.6),
+        0 2px 8px rgba(0, 0, 0, 0.4);
+
+    /* ========================================
+     TYPOGRAPHY
+     ======================================== */
+    --font-display: 'Orbitron', 'Rajdhani', 'Exo 2', sans-serif;
+    --font-body: 'Rajdhani', 'Exo 2', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+    /* ========================================
+     SPACING
+     ======================================== */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 16px;
+    --space-lg: 24px;
+    --space-xl: 32px;
+    --space-2xl: 48px;
+
+    /* ========================================
+     BORDER RADIUS
+     ======================================== */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    --radius-round: 50%;
+
+    /* ========================================
+     TRANSITIONS
+     ======================================== */
+    --transition-fast: 0.15s ease-out;
+    --transition-normal: 0.3s ease-out;
+    --transition-slow: 0.5s ease-out;
+    --transition-spring: 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ========================================
+   ANIMATIONS
+   ======================================== */
+
+@keyframes neon-pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+        filter: drop-shadow(0 0 8px var(--neon-cyan));
+    }
+
+    50% {
+        opacity: 0.8;
+        filter: drop-shadow(0 0 15px var(--neon-cyan));
+    }
+}
+
+@keyframes metal-shine {
+    0% {
+        background-position: -200% 0;
+    }
+
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+@keyframes hud-flicker {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    92% {
+        opacity: 1;
+    }
+
+    93% {
+        opacity: 0.7;
+    }
+
+    94% {
+        opacity: 1;
+    }
+
+    95% {
+        opacity: 0.6;
+    }
+
+    96% {
+        opacity: 1;
+    }
+}
+
+@keyframes scan-line {
+    0% {
+        transform: translateY(-100%);
+    }
+
+    100% {
+        transform: translateY(100%);
+    }
+}
+
+.neon-animated {
+    animation: neon-pulse 2s ease-in-out infinite;
+}
+
+.hud-flicker {
+    animation: hud-flicker 4s ease-in-out infinite;
+}
