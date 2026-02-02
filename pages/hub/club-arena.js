@@ -553,11 +553,11 @@ const S = {
         position: 'relative', padding: '0 0 20px', zIndex: 1,
     },
 
-    // ACTION BAR (baked image) - 15px below header
+    // ACTION BAR (baked image) - 15px overlapping INTO header background
     actionBarWrapper: {
         position: 'relative',
         width: '100%',
-        marginTop: '15px',
+        marginTop: '-15px',
         marginBottom: '0',
     },
     actionBarImage: {

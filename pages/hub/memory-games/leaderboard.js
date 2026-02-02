@@ -9,7 +9,7 @@ import { useRouter } from 'next/router';
 import { createClient } from '@supabase/supabase-js';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
-import { useAvatar } from '../../../src/context/AvatarContext';
+import { useAvatar } from '../../../src/contexts/AvatarContext';
 
 // Initialize Supabase
 const supabase = createClient(
