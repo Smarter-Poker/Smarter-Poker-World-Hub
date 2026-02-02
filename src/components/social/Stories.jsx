@@ -187,7 +187,7 @@ function StoryAvatar({ story, onClick, isOwn, hasStory, onCreateStory, isLive })
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
             }}>
-                {isOwn ? 'Your Story' : (story?.author_username || 'User')}
+                {isOwn ? 'Your Story' : (story?.author_fullname || story?.author_username || 'User')}
             </span>
         </div>
     );
