@@ -8,6 +8,8 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../src/config/hamburgerMenus';
 
 const C = {
     bg: '#F0F2F5',
@@ -50,12 +52,15 @@ function getDetailUrl(pageType, pageId) {
 }
 
 export default function PromotionsPage() {
+    const [menuOpen, setMenuOpen] = useState(false);
     const [promotions, setPromotions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [searchInput, setSearchInput] = useState('');
+
+    const menuConfig = getMenuConfig('promotions', null, {}, {});
 
     useEffect(() => {
         async function fetchPromotions() {
@@ -114,7 +119,15 @@ export default function PromotionsPage() {
                 <meta name="description" content="Discover active promotions and deals from poker venues, tours, and series across the poker world." />
             </Head>
 
-            <UniversalHeader />
+            <UniversalHeader onMenuClick={() => setMenuOpen(true)} />
+            <HamburgerMenu
+                isOpen={menuOpen}
+                onClose={() => setMenuOpen(false)}
+                direction="right"
+                theme="light"
+                menuItems={menuConfig.menuItems}
+                bottomLinks={menuConfig.bottomLinks}
+            />
 
             <div className="promos-wrapper">
                 {/* Page Header */}
@@ -216,8 +229,8 @@ export default function PromotionsPage() {
                                 const detailUrl = getDetailUrl(promo.page_type, promo.page_id);
                                 const typeLabel = promo.page_type === 'venue' ? 'Venue'
                                     : promo.page_type === 'tour' ? 'Tour'
-                                    : promo.page_type === 'series' ? 'Series'
-                                    : 'Page';
+                                        : promo.page_type === 'series' ? 'Series'
+                                            : 'Page';
 
                                 return (
                                     <div key={promo.id || idx} className="promo-card">

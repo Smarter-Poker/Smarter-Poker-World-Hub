@@ -10,6 +10,8 @@ import { useRouter } from 'next/router';
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import PageTransition from '../../src/components/transitions/PageTransition';
 
 const C = {
@@ -284,11 +286,14 @@ function ScoreBreakdown({ leader }) {
 
 export default function LeaderboardsPage() {
     const router = useRouter();
+    const [menuOpen, setMenuOpen] = useState(false);
     const [activeTab, setActiveTab] = useState('overall');
     const [period, setPeriod] = useState('all');
     const [leaders, setLeaders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    const menuConfig = getMenuConfig('leaderboards', null, {}, {});
 
     const fetchLeaderboards = useCallback(async () => {
         setLoading(true);
@@ -339,7 +344,15 @@ export default function LeaderboardsPage() {
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
             </Head>
 
-            <UniversalHeader pageDepth={1} />
+            <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
+            <HamburgerMenu
+                isOpen={menuOpen}
+                onClose={() => setMenuOpen(false)}
+                direction="right"
+                theme="dark"
+                menuItems={menuConfig.menuItems}
+                bottomLinks={menuConfig.bottomLinks}
+            />
 
             <PageTransition>
                 <div style={{

@@ -34,6 +34,21 @@ export default function HamburgerMenu({
         return () => window.removeEventListener('keydown', handleEsc);
     }, [isOpen, onClose]);
 
+    // Swipe-to-close gesture
+    const touchStartRef = React.useRef(null);
+    const handleTouchStart = (e) => {
+        touchStartRef.current = e.touches[0].clientX;
+    };
+    const handleTouchEnd = (e) => {
+        if (touchStartRef.current === null) return;
+        const touchEnd = e.changedTouches[0].clientX;
+        const diff = touchStartRef.current - touchEnd;
+        // Swipe left to close if menu is on left, swipe right if menu is on right
+        if (direction === 'left' && diff > 50) onClose();
+        if (direction === 'right' && diff < -50) onClose();
+        touchStartRef.current = null;
+    };
+
     // Prevent body scroll when menu is open
     useEffect(() => {
         if (isOpen) {
@@ -116,26 +131,38 @@ export default function HamburgerMenu({
             case 'toggle':
                 return (
                     <div key={index} style={{ padding: '12px 16px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                             <label style={{ fontSize: 15, fontWeight: 500, color: colors.text }}>
                                 {item.label}
                             </label>
-                            <label style={styles.switchContainer}>
-                                <input
-                                    type="checkbox"
-                                    checked={item.checked}
-                                    onChange={(e) => item.onChange && item.onChange(e.target.checked)}
-                                    style={styles.switchInput}
-                                />
+                            <button
+                                onClick={() => item.onChange && item.onChange(!item.checked)}
+                                style={{
+                                    width: 52,
+                                    height: 28,
+                                    borderRadius: 14,
+                                    border: 'none',
+                                    padding: 2,
+                                    cursor: 'pointer',
+                                    backgroundColor: item.checked ? '#10b981' : '#64748b',
+                                    transition: 'background-color 0.2s ease',
+                                    display: 'flex',
+                                    alignItems: 'center'
+                                }}
+                                aria-checked={item.checked}
+                                role="switch"
+                            >
                                 <span style={{
-                                    ...styles.switchSlider,
-                                    backgroundColor: item.checked ? '#10b981' : '#64748b'
+                                    width: 24,
+                                    height: 24,
+                                    borderRadius: '50%',
+                                    backgroundColor: 'white',
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                                    transform: item.checked ? 'translateX(24px)' : 'translateX(0)',
+                                    transition: 'transform 0.2s ease'
                                 }} />
-                            </label>
+                            </button>
                         </div>
-                        {item.hint && (
-                            <div style={{ fontSize: 13, color: colors.textSec }}>{item.hint}</div>
-                        )}
                     </div>
                 );
 
@@ -282,25 +309,28 @@ export default function HamburgerMenu({
             )}
 
             {/* Drawer */}
-            <div style={{
-                position: 'fixed',
-                top: 0,
-                [direction]: 0,
-                bottom: 0,
-                width: '100%',
-                maxWidth: width,
-                background: theme === 'light' ? colors.bg : colors.bg,
-                boxShadow: direction === 'left' ? '2px 0 10px rgba(0,0,0,0.2)' : '-4px 0 20px rgba(0, 0, 0, 0.5)',
-                zIndex: 1000,
-                transform: isOpen
-                    ? 'translateX(0)'
-                    : direction === 'left' ? 'translateX(-100%)' : 'translateX(100%)',
-                transition: 'transform 0.3s ease',
-                display: 'flex',
-                flexDirection: 'column',
-                overflowY: 'auto',
-                paddingBottom: 80
-            }}>
+            <div
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
+                style={{
+                    position: 'fixed',
+                    top: 0,
+                    [direction]: 0,
+                    bottom: 0,
+                    width: '100%',
+                    maxWidth: width,
+                    background: theme === 'light' ? colors.bg : colors.bg,
+                    boxShadow: direction === 'left' ? '2px 0 10px rgba(0,0,0,0.2)' : '-4px 0 20px rgba(0, 0, 0, 0.5)',
+                    zIndex: 1000,
+                    transform: isOpen
+                        ? 'translateX(0)'
+                        : direction === 'left' ? 'translateX(-100%)' : 'translateX(100%)',
+                    transition: 'transform 0.3s ease',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    overflowY: 'auto',
+                    paddingBottom: 80
+                }}>
                 {/* Close button */}
                 <div style={{ display: 'flex', justifyContent: 'flex-end', padding: 12 }}>
                     <button

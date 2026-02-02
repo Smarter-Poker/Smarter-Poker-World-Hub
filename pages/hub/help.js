@@ -6,6 +6,8 @@ import { useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../src/config/hamburgerMenus';
 
 const C = {
     bg: '#0a1628',
@@ -17,7 +19,10 @@ const C = {
 };
 
 export default function HelpPage() {
+    const [menuOpen, setMenuOpen] = useState(false);
     const [expandedFaq, setExpandedFaq] = useState(null);
+
+    const menuConfig = getMenuConfig('help', null, {}, {});
 
     const faqSections = [
         {
@@ -105,7 +110,15 @@ export default function HelpPage() {
                 paddingBottom: 80,
             }}>
                 {/* Header */}
-                <UniversalHeader pageDepth={2} />
+                <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
+                <HamburgerMenu
+                    isOpen={menuOpen}
+                    onClose={() => setMenuOpen(false)}
+                    direction="right"
+                    theme="dark"
+                    menuItems={menuConfig.menuItems}
+                    bottomLinks={menuConfig.bottomLinks}
+                />
 
                 {/* Page Title */}
                 <div style={{
@@ -161,7 +174,7 @@ export default function HelpPage() {
                             justifyContent: 'center',
                             fontSize: 24,
                         }}>
-                            
+
                         </div>
                         <div>
                             <div style={{ color: C.text, fontWeight: 600, fontSize: 16, marginBottom: 4 }}>
@@ -194,7 +207,7 @@ export default function HelpPage() {
                             justifyContent: 'center',
                             fontSize: 24,
                         }}>
-                            
+
                         </div>
                         <div>
                             <div style={{ color: C.text, fontWeight: 600, fontSize: 16, marginBottom: 4 }}>

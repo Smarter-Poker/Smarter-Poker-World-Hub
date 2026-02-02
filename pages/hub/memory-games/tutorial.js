@@ -43,7 +43,7 @@ export default function MemoryGamesTutorial() {
                         </button>
 
                         <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#fff', marginBottom: '30px' }}>
-                            📚 Tutorial
+                            Tutorial
                         </h1>
 
                         <div style={{ display: 'grid', gap: '20px' }}>

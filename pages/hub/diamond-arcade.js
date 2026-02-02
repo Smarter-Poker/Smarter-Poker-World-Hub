@@ -159,7 +159,7 @@ export default function DiamondArcade() {
         }
     }, [preferences]);
 
-    const menuConfig = getMenuConfig('diamond-arcade', null, preferences, {
+    const menuConfig = getMenuConfig('diamond-arcade', user, preferences, {
         setSoundEffects: (val) => updatePreference('soundEffects', val),
         setAnimations: (val) => updatePreference('animations', val)
     });

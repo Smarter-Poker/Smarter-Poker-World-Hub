@@ -17,8 +17,11 @@ import CustomAvatarBuilder from '../../src/components/avatars/CustomAvatarBuilde
 import { useAvatarsCompleteStore } from '../../src/stores/avatarsCompleteStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../src/config/hamburgerMenus';
 
 export default function AvatarsComplete() {
+    const [menuOpen, setMenuOpen] = useState(false);
     const [user, setUser] = useState(null);
     const [isVip, setIsVip] = useState(false);
     const [avatars, setAvatars] = useState([]);
@@ -26,6 +29,8 @@ export default function AvatarsComplete() {
     const [selectedAvatar, setSelectedAvatar] = useState(null);
     const [showBuilder, setShowBuilder] = useState(false);
     const [loading, setLoading] = useState(true);
+
+    const menuConfig = getMenuConfig('avatars', user, {}, {});
 
     // Load user and avatars
     useEffect(() => {
@@ -202,7 +207,16 @@ export default function AvatarsComplete() {
                     margin: '0 auto'
                 }}>
                     {/* UniversalHeader */}
-                    <UniversalHeader pageDepth={2} />
+                    <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
+                    <HamburgerMenu
+                        isOpen={menuOpen}
+                        onClose={() => setMenuOpen(false)}
+                        direction="right"
+                        theme="dark"
+                        user={user}
+                        menuItems={menuConfig.menuItems}
+                        bottomLinks={menuConfig.bottomLinks}
+                    />
 
                     {/* Header */}
                     <h1 style={{

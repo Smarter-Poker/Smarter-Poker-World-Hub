@@ -6,11 +6,13 @@
 
 import Head from 'next/head';
 import Link from 'next/link';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import AvatarGallery from '../../src/components/avatars/AvatarGallery';
 
@@ -20,6 +22,9 @@ import PageTransition from '../../src/components/transitions/PageTransition';
 
 export default function AvatarsPage() {
     const { avatar, user, refreshUser } = useAvatar();
+    const [menuOpen, setMenuOpen] = useState(false);
+
+    const menuConfig = getMenuConfig('avatars', user, {}, {});
 
     // Refresh user session on page load to get latest VIP status
     useEffect(() => {
@@ -123,7 +128,16 @@ export default function AvatarsPage() {
                 `}</style>
 
                     {/* Header */}
-                    <UniversalHeader pageDepth={2} />
+                    <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
+                    <HamburgerMenu
+                        isOpen={menuOpen}
+                        onClose={() => setMenuOpen(false)}
+                        direction="right"
+                        theme="dark"
+                        user={user}
+                        menuItems={menuConfig.menuItems}
+                        bottomLinks={menuConfig.bottomLinks}
+                    />
                     <div className="header">
 
                         {avatar && (

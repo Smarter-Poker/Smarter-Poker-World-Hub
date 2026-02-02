@@ -8,6 +8,8 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../src/config/hamburgerMenus';
 
 const C = { bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B', border: '#DADDE1', blue: '#1877F2', green: '#42B72A' };
 
@@ -296,6 +298,7 @@ function EventCard({ event, isToday }) {
 
 /* ---- Main Page ---- */
 export default function EventsCalendarPage() {
+  const [menuOpen, setMenuOpen] = useState(false);
   const [viewMode, setViewMode] = useState('list');
   const [allEvents, setAllEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -313,6 +316,7 @@ export default function EventsCalendarPage() {
   const [selectedSeries, setSelectedSeries] = useState('all');
   const [seriesOptions, setSeriesOptions] = useState([]);
 
+  const menuConfig = getMenuConfig('events', null, {}, {});
   const todayKey = getTodayKey();
 
   /* ---- Fetch data ---- */
@@ -491,7 +495,15 @@ export default function EventsCalendarPage() {
         <title>Events Calendar | Smarter.Poker</title>
         <meta name="description" content="Browse upcoming poker tournaments and events across all venues and series." />
       </Head>
-      <UniversalHeader />
+      <UniversalHeader onMenuClick={() => setMenuOpen(true)} />
+      <HamburgerMenu
+        isOpen={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        direction="right"
+        theme="light"
+        menuItems={menuConfig.menuItems}
+        bottomLinks={menuConfig.bottomLinks}
+      />
 
       <div className="ec-page">
         {/* Page Header */}

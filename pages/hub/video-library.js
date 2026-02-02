@@ -464,7 +464,7 @@ export default function VideoLibraryPage() {
         }
     }, [preferences]);
 
-    const menuConfig = getMenuConfig('video-library', null, preferences, {
+    const menuConfig = getMenuConfig('video-library', user, preferences, {
         setAutoplay: (val) => updatePreference('autoplay', val),
         setHdQuality: (val) => updatePreference('hdQuality', val),
         setCaptions: (val) => updatePreference('captions', val)

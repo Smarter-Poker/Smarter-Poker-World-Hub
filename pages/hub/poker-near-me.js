@@ -718,7 +718,7 @@ export default function PokerNearMePage() {
         }
     }, [preferences]);
 
-    const menuConfig = getMenuConfig('poker-near-me', null, preferences, {
+    const menuConfig = getMenuConfig('poker-near-me', user, preferences, {
         setGeofenceAlerts: (val) => updatePreference('geofenceAlerts', val),
         setLocationEnabled: (val) => updatePreference('locationEnabled', val),
         setShowNewcomerFriendly: (val) => updatePreference('showNewcomerFriendly', val)

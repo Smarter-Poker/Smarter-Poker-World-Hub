@@ -16,22 +16,27 @@ import toast from '../../src/stores/toastStore';
 import { useArticleStore } from '../../src/stores/articleStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../src/config/hamburgerMenus';
 
 export default function ArticlePage() {
     const router = useRouter();
     const { id, slug } = router.query;
+    const [menuOpen, setMenuOpen] = useState(false);
     const [article, setArticle] = useState(null);
     const [loading, setLoading] = useState(true);
     const [related, setRelated] = useState([]);
     const [isBookmarked, setIsBookmarked] = useState(false);
     const [userId, setUserId] = useState(null);
 
+    const menuConfig = getMenuConfig('article', null, {}, {});
+
     useEffect(() => {
         async function loadUser() {
             try {
                 const user = await getAuthUser();
                 if (user?.id) setUserId(user.id);
-            } catch {}
+            } catch { }
         }
         loadUser();
     }, []);
@@ -57,7 +62,7 @@ export default function ArticlePage() {
                 .eq('article_id', article.id)
                 .maybeSingle();
             setIsBookmarked(!!data);
-        } catch {}
+        } catch { }
     };
 
     const handleBookmark = async () => {
@@ -179,7 +184,15 @@ export default function ArticlePage() {
 
             <div className="article-page">
                 {/* UniversalHeader */}
-                <UniversalHeader pageDepth={2} />
+                <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
+                <HamburgerMenu
+                    isOpen={menuOpen}
+                    onClose={() => setMenuOpen(false)}
+                    direction="right"
+                    theme="dark"
+                    menuItems={menuConfig.menuItems}
+                    bottomLinks={menuConfig.bottomLinks}
+                />
 
                 {/* Header */}
                 <header className="header">

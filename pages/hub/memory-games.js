@@ -28,6 +28,16 @@ import {
     RANKS,
     getHandName,
     MIXED_SCENARIOS,
+    LEVEL_1_SCENARIOS,
+    LEVEL_2_SCENARIOS,
+    LEVEL_3_SCENARIOS,
+    LEVEL_4_SCENARIOS,
+    LEVEL_5_SCENARIOS,
+    LEVEL_6_SCENARIOS,
+    LEVEL_7_SCENARIOS,
+    LEVEL_8_SCENARIOS,
+    LEVEL_9_SCENARIOS,
+    LEVEL_10_SCENARIOS,
 } from '../../src/games/ScenarioDatabase';
 import { supabase } from '../../src/lib/supabase';
 
@@ -645,7 +655,7 @@ function PressureCookerGame({ level = 1, onExit, onScoreUpdate, DiamondEngine })
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 🧩 PATTERN RECOGNITION GAME COMPONENT
+// Pattern PATTERN RECOGNITION GAME COMPONENT
 // Identify the pattern - what action does this range shape represent?
 // ═══════════════════════════════════════════════════════════════════════════
 function PatternRecognitionGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) {
@@ -824,7 +834,7 @@ function PatternRecognitionGame({ level = 1, onExit, onScoreUpdate, DiamondEngin
 
             {gameState === 'ready' && (
                 <div style={{ marginTop: 60 }}>
-                    <div style={{ fontSize: 80, marginBottom: 20 }}>🧩</div>
+                    <div style={{ fontSize: 80, marginBottom: 20 }}>Pattern</div>
                     <h1 style={{ fontFamily: 'Orbitron', fontSize: 32, color: '#00D4FF', marginBottom: 16 }}>PATTERN RECOGNITION</h1>
                     <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 30, lineHeight: 1.6 }}>
                         See a partial range → Identify the dominant action!<br />
@@ -913,7 +923,7 @@ function PatternRecognitionGame({ level = 1, onExit, onScoreUpdate, DiamondEngin
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 🎛️ MIXED STRATEGY GAME COMPONENT
+// Mix MIXED STRATEGY GAME COMPONENT
 // Slider-based frequency training for complex spots
 // ═══════════════════════════════════════════════════════════════════════════
 function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) {
@@ -1032,7 +1042,7 @@ function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) 
 
             {gameState === 'ready' && (
                 <div style={{ marginTop: 60 }}>
-                    <div style={{ fontSize: 80, marginBottom: 20 }}>🎛️</div>
+                    <div style={{ fontSize: 80, marginBottom: 20 }}>Mix</div>
                     <h1 style={{ fontFamily: 'Orbitron', fontSize: 32, color: '#A855F7', marginBottom: 16 }}>MIXED STRATEGY</h1>
                     <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 30, lineHeight: 1.6 }}>
                         Not every decision is 100% frequency.<br />
@@ -1192,7 +1202,7 @@ function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) 
 
             {gameState === 'gameover' && (
                 <div style={{ marginTop: 40 }}>
-                    <div style={{ fontSize: 80, marginBottom: 20 }}>🎛️</div>
+                    <div style={{ fontSize: 80, marginBottom: 20 }}>Mix</div>
                     <h1 style={{ fontFamily: 'Orbitron', fontSize: 32, marginBottom: 30 }}>SESSION COMPLETE</h1>
                     <div style={{ background: 'rgba(0,0,0,0.4)', borderRadius: 16, padding: 24, marginBottom: 30 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.1)', fontSize: 18, color: '#fff' }}>
@@ -1245,6 +1255,14 @@ export default function MemoryGamesPage() {
     const [challengeLoading, setChallengeLoading] = useState(false);
     const [userStreak, setUserStreak] = useState({ current_streak: 0, longest_streak: 0 });
     const [challengeCompleted, setChallengeCompleted] = useState(false);
+
+    // Scenario Filter state
+    const [showFilters, setShowFilters] = useState(false);
+    const [scenarioFilters, setScenarioFilters] = useState({});
+
+    // AI Generation state
+    const [useAIGeneration, setUseAIGeneration] = useState(false);
+    const [aiGenerating, setAIGenerating] = useState(false);
 
     // Timer state
     const [timeRemaining, setTimeRemaining] = useState(90);
@@ -1306,10 +1324,11 @@ export default function MemoryGamesPage() {
         }
     }, [preferences]);
 
-    const menuConfig = getMenuConfig('memory-games', null, preferences, {
+    const menuConfig = getMenuConfig('memory-games', user, preferences, {
         setSoundEffects: (val) => updatePreference('soundEffects', val),
-        setShowHints: (val) => updatePreference('showHints', val),
-        setAutoSave: (val) => updatePreference('autoSave', val)
+        setKeyboardShortcuts: (val) => updatePreference('keyboardShortcuts', val),
+        setShowTimer: (val) => updatePreference('showTimer', val),
+        setVisualHints: (val) => updatePreference('visualHints', val)
     });
 
     //  INTRO VIDEO STATE - Video plays while page loads in background
@@ -1429,9 +1448,62 @@ export default function MemoryGamesPage() {
             setDiamondBalance(result.balance);
         }
 
-        const scenario = getRandomScenario(level);
+        let scenario = null;
+
+        // Use AI Generation if enabled (VIP feature)
+        if (useAIGeneration) {
+            setAIGenerating(true);
+            try {
+                // Build filter params from active filters
+                const requestBody = {
+                    level,
+                    position: scenarioFilters.position || undefined,
+                    stackDepth: scenarioFilters.stackDepth || undefined,
+                    format: scenarioFilters.format || undefined,
+                };
+
+                const response = await fetch('/api/gto/generate-scenario', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody),
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.scenario) {
+                    scenario = result.scenario;
+                    console.log('[MemoryGames] AI-generated scenario:', scenario.title);
+                } else {
+                    console.error('[MemoryGames] AI generation failed:', result.error);
+                    // Fallback to static scenarios
+                    scenario = null;
+                }
+            } catch (error) {
+                console.error('[MemoryGames] AI generation error:', error);
+                // Fallback to static scenarios
+                scenario = null;
+            } finally {
+                setAIGenerating(false);
+            }
+        }
+
+        // Fallback: Use static scenarios if AI generation failed or is disabled
         if (!scenario) {
-            alert('No scenarios available for this level yet!');
+            let levelScenarios = getScenariosByLevel(level);
+
+            // Apply filters if any are active
+            if (Object.keys(scenarioFilters).filter(k => scenarioFilters[k]).length > 0) {
+                levelScenarios = filterScenarios(levelScenarios, scenarioFilters);
+            }
+
+            // Select random scenario from filtered list
+            scenario = levelScenarios.length > 0
+                ? levelScenarios[Math.floor(Math.random() * levelScenarios.length)]
+                : null;
+        }
+
+        if (!scenario) {
+            alert('No scenarios available for this level!\n\nTry adjusting or resetting your filters.');
             return;
         }
 
@@ -1660,6 +1732,60 @@ export default function MemoryGamesPage() {
         }
     }, [userId]);
 
+    // Handle VIP upgrade - initiate Stripe checkout for VIP subscription
+    const handleVipUpgrade = useCallback(async () => {
+        // Check if user is logged in
+        if (!userId) {
+            alert('Please log in to upgrade to VIP!');
+            return;
+        }
+
+        try {
+            // Get auth token for API call
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.access_token) {
+                alert('Please log in to upgrade to VIP!');
+                return;
+            }
+
+            // Call checkout session API
+            const response = await fetch('/api/store/create-checkout-session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({
+                    type: 'subscription',
+                    items: [{
+                        name: 'Memory Matrix VIP',
+                        tier: 'vip',
+                        priceId: process.env.NEXT_PUBLIC_STRIPE_VIP_PRICE_ID || 'price_vip_monthly' // Configured in Stripe dashboard
+                    }],
+                    successUrl: `${window.location.origin}/hub/memory-games?vip_success=true`,
+                    cancelUrl: `${window.location.origin}/hub/memory-games?vip_canceled=true`
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success && result.data?.url) {
+                // Redirect to Stripe checkout
+                window.location.href = result.data.url;
+            } else {
+                // Handle error - show helpful message
+                if (result.error?.code === 'PAYMENTS_NOT_CONFIGURED') {
+                    alert('VIP subscriptions coming soon! Payment processing is being set up.');
+                } else {
+                    alert(result.error?.message || 'Failed to start checkout. Please try again.');
+                }
+            }
+        } catch (error) {
+            console.error('[MemoryGames] VIP upgrade error:', error);
+            alert('Something went wrong. Please try again later.');
+        }
+    }, [userId]);
+
     // Timer color
     const getTimerColor = () => {
         if (timeRemaining > 30) return '#00ff88';
@@ -1826,7 +1952,7 @@ export default function MemoryGamesPage() {
                                         ...(gameType === 'pattern' ? styles.gameModeTabActive : {}),
                                     }}
                                 >
-                                    🧩 Pattern
+                                    Pattern Pattern
                                 </button>
                                 <button
                                     onClick={() => setGameType('mixed')}
@@ -1835,7 +1961,7 @@ export default function MemoryGamesPage() {
                                         ...(gameType === 'mixed' ? styles.gameModeTabActive : {}),
                                     }}
                                 >
-                                    🎛️ Mixed
+                                    Mix Mixed
                                 </button>
                                 <button
                                     onClick={() => router.push('/hub/memory-campaign')}
@@ -1894,7 +2020,7 @@ export default function MemoryGamesPage() {
                                         color: gameType === 'tournament' ? '#EC4899' : 'rgba(255, 255, 255, 0.5)',
                                     }}
                                 >
-                                    ⚔️ Ranked
+                                    VS Ranked
                                 </button>
                             </div>
 
@@ -1973,7 +2099,7 @@ export default function MemoryGamesPage() {
                                     background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(0, 136, 255, 0.1))',
                                     border: '2px solid rgba(0, 212, 255, 0.3)',
                                 }}>
-                                    <div style={{ fontSize: 48, marginBottom: 16 }}>🧩</div>
+                                    <div style={{ fontSize: 48, marginBottom: 16 }}>Pattern</div>
                                     <h2 style={{ fontSize: 24, fontWeight: 700, color: '#00D4FF', marginBottom: 8 }}>
                                         PATTERN RECOGNITION
                                     </h2>
@@ -2011,7 +2137,7 @@ export default function MemoryGamesPage() {
                                     background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(217, 70, 239, 0.1))',
                                     border: '2px solid rgba(168, 85, 247, 0.3)',
                                 }}>
-                                    <div style={{ fontSize: 48, marginBottom: 16 }}>🎛️</div>
+                                    <div style={{ fontSize: 48, marginBottom: 16 }}>Mix</div>
                                     <h2 style={{ fontSize: 24, fontWeight: 700, color: '#A855F7', marginBottom: 8 }}>
                                         MIXED STRATEGY
                                     </h2>
@@ -2068,8 +2194,8 @@ export default function MemoryGamesPage() {
                                             { id: 'range-memory', label: ' Range', color: '#00D4FF' },
                                             { id: 'speed-drill', label: '++ Speed', color: '#FFD700' },
                                             { id: 'pressure-cooker', label: ' Pressure', color: '#ff4444' },
-                                            { id: 'pattern-recognition', label: '🧩 Pattern', color: '#00D4FF' },
-                                            { id: 'mixed-strategy', label: '🎛️ Mixed', color: '#A855F7' },
+                                            { id: 'pattern-recognition', label: 'Pattern Pattern', color: '#00D4FF' },
+                                            { id: 'mixed-strategy', label: 'Mix Mixed', color: '#A855F7' },
                                         ].map(mode => (
                                             <button
                                                 key={mode.id}
@@ -2279,7 +2405,7 @@ export default function MemoryGamesPage() {
                                                     {dailyChallenge.game_mode === 'range-memory' ? '' :
                                                         dailyChallenge.game_mode === 'speed-drill' ? '++' :
                                                             dailyChallenge.game_mode === 'pressure-cooker' ? '' :
-                                                                dailyChallenge.game_mode === 'pattern-recognition' ? '🧩' : '🎛️'}
+                                                                dailyChallenge.game_mode === 'pattern-recognition' ? 'Pattern' : 'Mix'}
                                                 </div>
                                                 <div>
                                                     <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>
@@ -2426,7 +2552,7 @@ export default function MemoryGamesPage() {
                                     background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(219, 39, 119, 0.1))',
                                     border: '2px solid rgba(236, 72, 153, 0.3)',
                                 }}>
-                                    <div style={{ fontSize: 48, marginBottom: 16 }}>⚔️</div>
+                                    <div style={{ fontSize: 48, marginBottom: 16 }}>VS</div>
                                     <h2 style={{ fontSize: 24, fontWeight: 700, color: '#EC4899', marginBottom: 8 }}>
                                         RANKED BATTLES
                                     </h2>
@@ -2460,6 +2586,108 @@ export default function MemoryGamesPage() {
                             {/* Level Grid - Only show for Range Memory */}
                             {gameType === 'range' && (
                                 <>
+                                    {/* Filter Toggle Button + AI Generation Toggle */}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                                        <h3 style={{ margin: 0, fontSize: 16, color: 'rgba(255,255,255,0.8)' }}>
+                                            Select a Level
+                                        </h3>
+                                        <div style={{ display: 'flex', gap: 8 }}>
+                                            {/* AI Generation Toggle (VIP Feature) */}
+                                            <button
+                                                onClick={() => setUseAIGeneration(!useAIGeneration)}
+                                                style={{
+                                                    padding: '8px 16px',
+                                                    background: useAIGeneration ? 'rgba(255, 215, 0, 0.2)' : 'rgba(255, 255, 255, 0.1)',
+                                                    border: useAIGeneration ? '1px solid #FFD700' : '1px solid rgba(255, 255, 255, 0.2)',
+                                                    borderRadius: 20,
+                                                    color: useAIGeneration ? '#FFD700' : 'rgba(255, 255, 255, 0.7)',
+                                                    fontSize: 13,
+                                                    fontWeight: 600,
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: 6,
+                                                }}
+                                                title="Generate unique scenarios using AI (powered by Grok)"
+                                            >
+                                                🤖 {useAIGeneration ? 'AI ON' : 'AI Mode'}
+                                            </button>
+
+                                            {/* Filter Toggle */}
+                                            <button
+                                                onClick={() => setShowFilters(!showFilters)}
+                                                style={{
+                                                    padding: '8px 16px',
+                                                    background: showFilters ? 'rgba(0, 212, 255, 0.2)' : 'rgba(255, 255, 255, 0.1)',
+                                                    border: showFilters ? '1px solid #00D4FF' : '1px solid rgba(255, 255, 255, 0.2)',
+                                                    borderRadius: 20,
+                                                    color: showFilters ? '#00D4FF' : 'rgba(255, 255, 255, 0.7)',
+                                                    fontSize: 13,
+                                                    fontWeight: 600,
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: 6,
+                                                }}
+                                            >
+                                                🔍 {showFilters ? 'Hide Filters' : 'Filter Scenarios'}
+                                                {Object.keys(scenarioFilters).filter(k => scenarioFilters[k]).length > 0 && (
+                                                    <span style={{
+                                                        background: '#00D4FF',
+                                                        color: '#000',
+                                                        padding: '2px 6px',
+                                                        borderRadius: 10,
+                                                        fontSize: 11,
+                                                        fontWeight: 700,
+                                                    }}>
+                                                        {Object.keys(scenarioFilters).filter(k => scenarioFilters[k]).length}
+                                                    </span>
+                                                )}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Filter Panel */}
+                                    {showFilters && (
+                                        <ScenarioFilterPanel
+                                            onFilterChange={(filters) => {
+                                                setScenarioFilters(filters);
+                                            }}
+                                            onClose={() => setShowFilters(false)}
+                                            currentFilters={scenarioFilters}
+                                            availableScenarios={(() => {
+                                                const allScenarios = [
+                                                    ...LEVEL_1_SCENARIOS,
+                                                    ...LEVEL_2_SCENARIOS,
+                                                    ...LEVEL_3_SCENARIOS,
+                                                    ...LEVEL_4_SCENARIOS,
+                                                    ...LEVEL_5_SCENARIOS,
+                                                    ...LEVEL_6_SCENARIOS,
+                                                    ...LEVEL_7_SCENARIOS,
+                                                    ...LEVEL_8_SCENARIOS,
+                                                    ...LEVEL_9_SCENARIOS,
+                                                    ...LEVEL_10_SCENARIOS,
+                                                ];
+                                                return allScenarios.length;
+                                            })()}
+                                            filteredCount={(() => {
+                                                const allScenarios = [
+                                                    ...LEVEL_1_SCENARIOS,
+                                                    ...LEVEL_2_SCENARIOS,
+                                                    ...LEVEL_3_SCENARIOS,
+                                                    ...LEVEL_4_SCENARIOS,
+                                                    ...LEVEL_5_SCENARIOS,
+                                                    ...LEVEL_6_SCENARIOS,
+                                                    ...LEVEL_7_SCENARIOS,
+                                                    ...LEVEL_8_SCENARIOS,
+                                                    ...LEVEL_9_SCENARIOS,
+                                                    ...LEVEL_10_SCENARIOS,
+                                                ];
+                                                return filterScenarios(allScenarios, scenarioFilters).length;
+                                            })()}
+                                        />
+                                    )}
+
                                     <div style={styles.levelGrid}>
                                         {LEVELS.map((level, idx) => {
                                             const scenarioCount = getLevelScenarios(level.level);
@@ -2513,7 +2741,7 @@ export default function MemoryGamesPage() {
                                     <div style={styles.vipFeatures}>
                                         Unlimited games • All levels • No diamond cost • Exclusive modes
                                     </div>
-                                    <button style={styles.vipButton}>
+                                    <button style={styles.vipButton} onClick={handleVipUpgrade}>
                                         Upgrade to VIP
                                     </button>
                                 </div>
@@ -2580,6 +2808,51 @@ export default function MemoryGamesPage() {
                             DiamondEngine={DiamondEngine}
                             userId={userId}
                         />
+                    )}
+
+                    {/* AI Generation Loading Overlay */}
+                    {aiGenerating && (
+                        <div style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            background: 'rgba(0, 0, 0, 0.85)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 9999,
+                        }}>
+                            <div style={{
+                                fontSize: 48,
+                                marginBottom: 20,
+                                animation: 'pulse 1.5s infinite',
+                            }}>
+                                🤖
+                            </div>
+                            <div style={{
+                                fontSize: 20,
+                                fontWeight: 600,
+                                color: '#FFD700',
+                                marginBottom: 10,
+                            }}>
+                                Grok AI is generating your scenario...
+                            </div>
+                            <div style={{
+                                fontSize: 14,
+                                color: 'rgba(255, 255, 255, 0.6)',
+                            }}>
+                                Creating a unique, solver-accurate training challenge
+                            </div>
+                            <style>{`
+                                @keyframes pulse {
+                                    0%, 100% { transform: scale(1); }
+                                    50% { transform: scale(1.15); }
+                                }
+                            `}</style>
+                        </div>
                     )}
 
                     {(mode === 'game' || mode === 'result') && currentScenario && (

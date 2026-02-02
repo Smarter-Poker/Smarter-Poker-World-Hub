@@ -59,7 +59,7 @@ export default function DiamondArenaPage() {
         }
     }, [preferences]);
 
-    const menuConfig = getMenuConfig('diamond-arena', null, preferences, {
+    const menuConfig = getMenuConfig('diamond-arena', user, preferences, {
         setSoundEffects: (val) => updatePreference('soundEffects', val),
         setAnimations: (val) => updatePreference('animations', val),
         setAutoRebuy: (val) => updatePreference('autoRebuy', val)

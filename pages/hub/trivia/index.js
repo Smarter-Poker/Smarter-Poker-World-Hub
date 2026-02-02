@@ -51,7 +51,7 @@ export default function TriviaHubPage() {
         }
     }, [preferences]);
 
-    const menuConfig = getMenuConfig('trivia', null, preferences, {
+    const menuConfig = getMenuConfig('trivia', user, preferences, {
         setSoundEffects: (val) => updatePreference('soundEffects', val),
         setShowHints: (val) => updatePreference('showHints', val)
     });

@@ -580,6 +580,211 @@ export const MENU_CONFIGS = {
         bottomLinks: [
             { label: 'Help', href: '/hub/help', icon: MenuIcons.help }
         ]
+    }),
+
+    'avatars': (user, state, handlers) => ({
+        menuItems: [
+            createMenuItem.section('Avatar Options'),
+            createMenuItem.navigation('My Avatars', '/hub/avatars'),
+            createMenuItem.navigation('Create New', '/hub/avatars-complete'),
+            createMenuItem.divider(),
+            createMenuItem.section('Quick Navigation'),
+            createMenuItem.navigation('Profile', '/hub/profile'),
+            createMenuItem.navigation('Settings', '/hub/settings')
+        ],
+        bottomLinks: [
+            { label: 'Help', href: '/hub/help', icon: MenuIcons.help }
+        ]
+    }),
+
+    'profile': (user, state, handlers) => ({
+        menuItems: [
+            createMenuItem.section('Profile'),
+            createMenuItem.navigation('View Profile', '/hub/profile'),
+            createMenuItem.navigation('Edit Profile', '/hub/profile-edit'),
+            createMenuItem.navigation('My Avatars', '/hub/avatars'),
+            createMenuItem.divider(),
+            createMenuItem.section('Activity'),
+            createMenuItem.navigation('My Posts', '/hub/social-media'),
+            createMenuItem.navigation('My Friends', '/hub/friends'),
+            createMenuItem.navigation('Notifications', '/hub/notifications')
+        ],
+        bottomLinks: [
+            { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings }
+        ]
+    }),
+
+    'social': (user, state, handlers) => ({
+        menuItems: [
+            createMenuItem.section('Social Hub'),
+            createMenuItem.navigation('Feed', '/hub/social-media'),
+            createMenuItem.navigation('Friends', '/hub/friends'),
+            createMenuItem.navigation('Messenger', '/hub/messenger'),
+            createMenuItem.navigation('Reels', '/hub/reels'),
+            createMenuItem.divider(),
+            createMenuItem.section('Content'),
+            createMenuItem.navigation('News', '/hub/news'),
+            createMenuItem.navigation('Lives', '/hub/lives'),
+            createMenuItem.navigation('Video Library', '/hub/video-library')
+        ],
+        bottomLinks: [
+            { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings }
+        ]
+    }),
+
+    'notifications': (user, state, handlers) => ({
+        menuItems: [
+            createMenuItem.section('Notifications'),
+            createMenuItem.navigation('All', '/hub/notifications'),
+            createMenuItem.navigation('Mentions', '/hub/notifications?filter=mentions'),
+            createMenuItem.navigation('Friend Requests', '/hub/notifications?filter=friends'),
+            createMenuItem.divider(),
+            createMenuItem.section('Settings'),
+            createMenuItem.toggle('Push Notifications', state.pushEnabled !== false, handlers.setPushEnabled),
+            createMenuItem.toggle('Email Notifications', state.emailEnabled || false, handlers.setEmailEnabled)
+        ],
+        bottomLinks: [
+            { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings }
+        ]
+    }),
+
+    'tournaments': (user, state, handlers) => ({
+        menuItems: [
+            createMenuItem.section('Tournaments'),
+            createMenuItem.navigation('Daily Tournaments', '/hub/daily-tournaments'),
+            createMenuItem.navigation('Events Calendar', '/hub/events-calendar'),
+            createMenuItem.navigation('Leaderboards', '/hub/leaderboards'),
+            createMenuItem.divider(),
+            createMenuItem.section('Quick Links'),
+            createMenuItem.navigation('Poker Near Me', '/hub/poker-near-me'),
+            createMenuItem.navigation('Promotions', '/hub/promotions')
+        ],
+        bottomLinks: [
+            { label: 'Help', href: '/hub/help', icon: MenuIcons.help }
+        ]
+    }),
+
+    'leaderboards': (user, state, handlers) => ({
+        menuItems: [
+            createMenuItem.section('Leaderboards'),
+            createMenuItem.navigation('Overall', '/hub/leaderboards'),
+            createMenuItem.navigation('Weekly', '/hub/leaderboards?period=weekly'),
+            createMenuItem.navigation('Monthly', '/hub/leaderboards?period=monthly'),
+            createMenuItem.divider(),
+            createMenuItem.section('Categories'),
+            createMenuItem.navigation('Training', '/hub/leaderboards?category=training'),
+            createMenuItem.navigation('Tournaments', '/hub/leaderboards?category=tournaments'),
+            createMenuItem.navigation('Social', '/hub/leaderboards?category=social')
+        ],
+        bottomLinks: [
+            { label: 'Help', href: '/hub/help', icon: MenuIcons.help }
+        ]
+    }),
+
+    'events': (user, state, handlers) => ({
+        menuItems: [
+            createMenuItem.section('Events'),
+            createMenuItem.navigation('Calendar', '/hub/events-calendar'),
+            createMenuItem.navigation('Upcoming', '/hub/events-calendar?view=upcoming'),
+            createMenuItem.navigation('Past Events', '/hub/events-calendar?view=past'),
+            createMenuItem.divider(),
+            createMenuItem.section('Quick Links'),
+            createMenuItem.navigation('Daily Tournaments', '/hub/daily-tournaments'),
+            createMenuItem.navigation('Promotions', '/hub/promotions')
+        ],
+        bottomLinks: [
+            { label: 'Help', href: '/hub/help', icon: MenuIcons.help }
+        ]
+    }),
+
+    'promotions': (user, state, handlers) => ({
+        menuItems: [
+            createMenuItem.section('Promotions'),
+            createMenuItem.navigation('All Promotions', '/hub/promotions'),
+            createMenuItem.navigation('VIP Offers', '/hub/vip'),
+            createMenuItem.divider(),
+            createMenuItem.section('Quick Links'),
+            createMenuItem.navigation('Diamond Store', '/hub/diamond-store'),
+            createMenuItem.navigation('Events', '/hub/events-calendar')
+        ],
+        bottomLinks: [
+            { label: 'Help', href: '/hub/help', icon: MenuIcons.help }
+        ]
+    }),
+
+    'vip': (user, state, handlers) => ({
+        menuItems: [
+            createMenuItem.section('VIP Membership'),
+            createMenuItem.navigation('Current Plan', '/hub/vip'),
+            createMenuItem.navigation('Benefits', '/hub/vip#benefits'),
+            createMenuItem.navigation('Upgrade', '/hub/vip#upgrade'),
+            createMenuItem.divider(),
+            createMenuItem.section('Quick Links'),
+            createMenuItem.navigation('Diamond Store', '/hub/diamond-store'),
+            createMenuItem.navigation('Promotions', '/hub/promotions')
+        ],
+        bottomLinks: [
+            { label: 'Help', href: '/hub/help', icon: MenuIcons.help }
+        ]
+    }),
+
+    'help': (user, state, handlers) => ({
+        menuItems: [
+            createMenuItem.section('Help Center'),
+            createMenuItem.navigation('FAQ', '/hub/help'),
+            createMenuItem.navigation('Contact Support', '/hub/help#contact'),
+            createMenuItem.navigation('Report Issue', '/hub/help#report'),
+            createMenuItem.divider(),
+            createMenuItem.section('Quick Links'),
+            createMenuItem.navigation('Settings', '/hub/settings'),
+            createMenuItem.navigation('Home', '/hub')
+        ],
+        bottomLinks: []
+    }),
+
+    'article': (user, state, handlers) => ({
+        menuItems: [
+            createMenuItem.section('Article'),
+            createMenuItem.navigation('Back to News', '/hub/news'),
+            createMenuItem.divider(),
+            createMenuItem.section('Quick Links'),
+            createMenuItem.navigation('Social Hub', '/hub/social-media'),
+            createMenuItem.navigation('Home', '/hub')
+        ],
+        bottomLinks: [
+            { label: 'Help', href: '/hub/help', icon: MenuIcons.help }
+        ]
+    }),
+
+    'club-arena': (user, state, handlers) => ({
+        menuItems: [
+            createMenuItem.section('Club Arena'),
+            createMenuItem.navigation('My Clubs', '/hub/club-arena'),
+            createMenuItem.navigation('Find Clubs', '/hub/club-arena#find'),
+            createMenuItem.divider(),
+            createMenuItem.section('Quick Links'),
+            createMenuItem.navigation('Home', '/hub'),
+            createMenuItem.navigation('Settings', '/hub/settings')
+        ],
+        bottomLinks: [
+            { label: 'Help', href: '/hub/help', icon: MenuIcons.help }
+        ]
+    }),
+
+    'lives': (user, state, handlers) => ({
+        menuItems: [
+            createMenuItem.section('Live Streams'),
+            createMenuItem.navigation('Live Now', '/hub/lives'),
+            createMenuItem.navigation('Upcoming', '/hub/lives?filter=upcoming'),
+            createMenuItem.navigation('Past Streams', '/hub/lives?filter=past'),
+            createMenuItem.divider(),
+            createMenuItem.section('Quick Links'),
+            createMenuItem.navigation('Reels', '/hub/reels'),
+            createMenuItem.navigation('Social Hub', '/hub/social-media')
+        ],
+        bottomLinks: [
+            { label: 'Help', href: '/hub/help', icon: MenuIcons.help }
+        ]
     })
 };
 

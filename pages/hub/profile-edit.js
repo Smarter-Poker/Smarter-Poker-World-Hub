@@ -15,6 +15,8 @@ import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader'
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import { supabase } from '../../src/lib/supabase';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../src/config/hamburgerMenus';
 
 // God-Mode Stack
 import { useProfileStore } from '../../src/stores/profileStore';
@@ -142,7 +144,7 @@ function PokerResumeBadge({ hendonData, onRefresh, isRefreshing, syncStatus }) {
                         padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600,
                         color: '#00FF88'
                     }}>
-                         SYNCED
+                        SYNCED
                     </div>
                 )}
             </div>
@@ -269,6 +271,10 @@ export default function ProfilePage() {
     const [userPhotos, setUserPhotos] = useState([]);
     const [userReels, setUserReels] = useState([]);
     const [userLives, setUserLives] = useState([]);
+
+    // HamburgerMenu state
+    const [menuOpen, setMenuOpen] = useState(false);
+    const menuConfig = getMenuConfig('profile', user, {}, {});
 
     // Profile fields
     const [profile, setProfile] = useState({
@@ -728,7 +734,16 @@ export default function ProfilePage() {
             </Head>
             <div className="profile-page" style={{ minHeight: '100vh', background: '#0a0e1a', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
                 {/* Header - Universal Header with Back navigation (nested page) */}
-                <UniversalHeader pageDepth={2} />
+                <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
+                <HamburgerMenu
+                    isOpen={menuOpen}
+                    onClose={() => setMenuOpen(false)}
+                    direction="right"
+                    theme="dark"
+                    user={user}
+                    menuItems={menuConfig.menuItems}
+                    bottomLinks={menuConfig.bottomLinks}
+                />
 
                 {/* Cover Photo Area - Clickable to upload */}
                 <div

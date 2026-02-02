@@ -90,44 +90,16 @@ export const SPORTS_CAPTION_TEMPLATES = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SPORTS CLIP LIBRARY - Real YouTube video IDs from major sports channels
+// SPORTS CLIP LIBRARY - CLEANED: All fake placeholder video IDs removed
 // ═══════════════════════════════════════════════════════════════════════════
+// NOTE: The previous entries contained fake/placeholder YouTube video IDs 
+// (Rick Roll, Despacito, Gangnam Style, etc.) that were causing broken video posts.
+// This library needs to be populated with VERIFIED real sports video IDs.
+// Until verified IDs are added, the sports clip posting functionality will be disabled.
 export const SPORTS_CLIP_LIBRARY = [
-    // NBA - ESPN
-    { id: 'nba_espn_1', video_id: 'dQw4w9WgXcQ', source_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', source: 'ESPN_NBA', title: 'Top 10 Plays', category: SPORTS_CLIP_CATEGORIES.HIGHLIGHT },
-    { id: 'nba_espn_2', video_id: 'jNQXAC9IVRw', source_url: 'https://www.youtube.com/watch?v=jNQXAC9IVRw', source: 'ESPN_NBA', title: 'Game Winner', category: SPORTS_CLIP_CATEGORIES.BUZZER_BEATER },
-
-    // NBA - Official
-    { id: 'nba_1', video_id: 'y6120QOlsfU', source_url: 'https://www.youtube.com/watch?v=y6120QOlsfU', source: 'NBA', title: 'Best Dunks', category: SPORTS_CLIP_CATEGORIES.DUNK },
-    { id: 'nba_2', video_id: 'kJQP7kiw5Fk', source_url: 'https://www.youtube.com/watch?v=kJQP7kiw5Fk', source: 'NBA', title: 'Highlights', category: SPORTS_CLIP_CATEGORIES.HIGHLIGHT },
-
-    // House of Highlights
-    { id: 'hoh_1', video_id: '3JZ_D3ELwOQ', source_url: 'https://www.youtube.com/watch?v=3JZ_D3ELwOQ', source: 'HOUSE_HIGHLIGHTS', title: 'Ankle Breaker', category: SPORTS_CLIP_CATEGORIES.HIGHLIGHT },
-    { id: 'hoh_2', video_id: 'lp-EO5I60KA', source_url: 'https://www.youtube.com/watch?v=lp-EO5I60KA', source: 'HOUSE_HIGHLIGHTS', title: 'Poster Dunk', category: SPORTS_CLIP_CATEGORIES.DUNK },
-
-    // NFL - ESPN
-    { id: 'nfl_espn_1', video_id: '9bZkp7q19f0', source_url: 'https://www.youtube.com/watch?v=9bZkp7q19f0', source: 'ESPN_NFL', title: 'Top Plays', category: SPORTS_CLIP_CATEGORIES.HIGHLIGHT },
-    { id: 'nfl_espn_2', video_id: 'PSH0eRKq1lE', source_url: 'https://www.youtube.com/watch?v=PSH0eRKq1lE', source: 'ESPN_NFL', title: 'Game Recap', category: SPORTS_CLIP_CATEGORIES.HIGHLIGHT },
-
-    // NFL - Official
-    { id: 'nfl_1', video_id: 'fJ9rUzIMcZQ', source_url: 'https://www.youtube.com/watch?v=fJ9rUzIMcZQ', source: 'NFL', title: 'Touchdown', category: SPORTS_CLIP_CATEGORIES.TOUCHDOWN },
-    { id: 'nfl_2', video_id: 'QH2-TGUlwu4', source_url: 'https://www.youtube.com/watch?v=QH2-TGUlwu4', source: 'NFL', title: 'Big Hit', category: SPORTS_CLIP_CATEGORIES.HIGHLIGHT },
-
-    // MLB
-    { id: 'mlb_1', video_id: 'nfWlot6h_JM', source_url: 'https://www.youtube.com/watch?v=nfWlot6h_JM', source: 'MLB', title: 'Home Run', category: SPORTS_CLIP_CATEGORIES.HIGHLIGHT },
-    { id: 'mlb_2', video_id: '4fndeDfaWCg', source_url: 'https://www.youtube.com/watch?v=4fndeDfaWCg', source: 'MLB', title: 'Amazing Catch', category: SPORTS_CLIP_CATEGORIES.HIGHLIGHT },
-
-    // NHL
-    { id: 'nhl_1', video_id: 'L_jWHffIx5E', source_url: 'https://www.youtube.com/watch?v=L_jWHffIx5E', source: 'NHL', title: 'Goal', category: SPORTS_CLIP_CATEGORIES.GOAL },
-    { id: 'nhl_2', video_id: 'oHg5SJYRHA0', source_url: 'https://www.youtube.com/watch?v=oHg5SJYRHA0', source: 'NHL', title: 'Save', category: SPORTS_CLIP_CATEGORIES.HIGHLIGHT },
-
-    // Soccer
-    { id: 'soccer_1', video_id: 'ZZ5LpwO-An4', source_url: 'https://www.youtube.com/watch?v=ZZ5LpwO-An4', source: 'PREMIER_LEAGUE', title: 'Golazo', category: SPORTS_CLIP_CATEGORIES.GOAL },
-    { id: 'soccer_2', video_id: 'LQCU36pkH7c', source_url: 'https://www.youtube.com/watch?v=LQCU36pkH7c', source: 'UEFA', title: 'Champions League', category: SPORTS_CLIP_CATEGORIES.HIGHLIGHT },
-
-    // General Sports
-    { id: 'espn_1', video_id: 'YQHsXMglC9A', source_url: 'https://www.youtube.com/watch?v=YQHsXMglC9A', source: 'ESPN', title: 'Top 10', category: SPORTS_CLIP_CATEGORIES.HIGHLIGHT },
-    { id: 'br_1', video_id: 'hY7m5jjJ9mM', source_url: 'https://www.youtube.com/watch?v=hY7m5jjJ9mM', source: 'BLEACHER', title: 'Best Moments', category: SPORTS_CLIP_CATEGORIES.HIGHLIGHT },
+    // TODO: Add verified real YouTube video IDs for sports content
+    // Each entry should follow this format:
+    // { id: 'unique_id', video_id: 'VERIFIED_YOUTUBE_ID', source_url: 'https://www.youtube.com/watch?v=VERIFIED_ID', source: 'SOURCE_KEY', title: 'Title', category: SPORTS_CLIP_CATEGORIES.CATEGORY }
 ];
 
 // Track used clips

@@ -10,6 +10,8 @@ import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import { supabase } from '../../src/lib/supabase';
 import { getAuthUser } from '../../src/lib/authUtils';
@@ -148,10 +150,13 @@ function XIcon() {
 
 export default function VipPage() {
     const router = useRouter();
+    const [menuOpen, setMenuOpen] = useState(false);
     const [billingCycle, setBillingCycle] = useState('monthly');
     const [currentTier, setCurrentTier] = useState('free');
     const [expandedFaq, setExpandedFaq] = useState(null);
     const [user, setUser] = useState(null);
+
+    const menuConfig = getMenuConfig('vip', user, {}, {});
 
     // Load user's current VIP status from Supabase (with localStorage fallback)
     useEffect(() => {
@@ -232,7 +237,16 @@ export default function VipPage() {
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
             </Head>
 
-            <UniversalHeader pageDepth={1} />
+            <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
+            <HamburgerMenu
+                isOpen={menuOpen}
+                onClose={() => setMenuOpen(false)}
+                direction="right"
+                theme="dark"
+                user={user}
+                menuItems={menuConfig.menuItems}
+                bottomLinks={menuConfig.bottomLinks}
+            />
 
             <PageTransition>
                 <div style={{ minHeight: '100vh', background: C.bg, paddingTop: 80, paddingBottom: 60 }}>

@@ -43,7 +43,7 @@ export default function MemoryGamesLeaderboard() {
                         </button>
 
                         <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#fff', marginBottom: '30px' }}>
-                            Trophy Memory Games Leaderboard
+                            Memory Games Leaderboard
                         </h1>
 
                         <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', overflow: 'hidden' }}>

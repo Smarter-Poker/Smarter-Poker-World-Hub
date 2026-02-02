@@ -858,7 +858,7 @@ export default function NewsHub() {
         }
     }, [preferences]);
 
-    const menuConfig = getMenuConfig('news', null, preferences, {
+    const menuConfig = getMenuConfig('news', user, preferences, {
         setNotifications: (val) => updatePreference('notifications', val),
         setAutoRefresh: (val) => updatePreference('autoRefresh', val)
     });
