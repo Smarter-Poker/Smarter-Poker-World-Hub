@@ -430,7 +430,7 @@ export default function ClubArena() {
                 await loadClubs(authUser.id);
             } else {
                 // No user — still show page but with limited features
-                setDisclaimerAccepted(false);
+                // DISABLED: Keep disclaimer auto-accepted for all users
             }
         } catch (e) {
             console.error('[ClubArena] Load error:', e);
