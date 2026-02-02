@@ -1,145 +1,67 @@
-/* ═══════════════════════════════════════════════════════════════════════════
-   CLUB ARENA — Leaderboards
-   ═══════════════════════════════════════════════════════════════════════════ */
-
+/* CLUB ARENA — Leaderboard | Facebook Classic */
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 
+const FB = { primary: '#1877F2', background: '#f0f2f5', cardBg: '#ffffff', textPrimary: '#1c1e21', textSecondary: '#65676b', border: '#dddfe2', gold: '#FFD700', silver: '#C0C0C0', bronze: '#CD7F32' };
+
 export default function Leaderboard() {
     const router = useRouter();
-    const [tab, setTab] = useState('weekly');
-    const [entries, setEntries] = useState([]);
+    const { club: clubIdParam } = router.query;
+    const [club, setClub] = useState(null);
+    const [leaders, setLeaders] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        loadLeaderboard();
-    }, [tab]);
+    useEffect(() => { if (clubIdParam) loadData(); }, [clubIdParam]);
 
-    async function loadLeaderboard() {
-        setIsLoading(true);
+    async function loadData() {
         try {
-            const { data } = await supabase
-                .from('commander_leaderboard_entries')
-                .select('*, profiles(username, full_name, avatar_url)')
-                .order('score', { ascending: false })
-                .limit(20);
-            setEntries(data || []);
-        } catch (e) {
-            console.error('[Leaderboard] Error:', e);
-        } finally {
-            setIsLoading(false);
-        }
+            const { data: clubData } = await supabase.from('clubs').select('*').eq('club_id', clubIdParam).single();
+            if (clubData) {
+                setClub(clubData);
+                // Mock leaderboard data
+                setLeaders([
+                    { rank: 1, name: 'PokerPro123', profit: 45600, hands: 2340 },
+                    { rank: 2, name: 'AceHunter', profit: 32100, hands: 1890 },
+                    { rank: 3, name: 'BluffMaster', profit: 28400, hands: 2100 },
+                    { rank: 4, name: 'CardShark99', profit: 21300, hands: 1650 },
+                    { rank: 5, name: 'RiverRat', profit: 18700, hands: 1420 },
+                ]);
+            }
+        } catch (e) { console.error('[Leaderboard] Error:', e); } finally { setIsLoading(false); }
     }
 
-    const tabs = [
-        { id: 'weekly', label: 'WEEKLY' },
-        { id: 'monthly', label: 'MONTHLY' },
-        { id: 'alltime', label: 'ALL TIME' },
-    ];
+    const getMedalColor = (rank) => rank === 1 ? FB.gold : rank === 2 ? FB.silver : rank === 3 ? FB.bronze : FB.textSecondary;
 
-    const rankBadge = (rank) => {
-        if (rank === 1) return { text: '1ST', bg: 'linear-gradient(135deg, #FFD700, #FFC107)' };
-        if (rank === 2) return { text: '2ND', bg: 'linear-gradient(135deg, #C0C0C0, #A0A0A0)' };
-        if (rank === 3) return { text: '3RD', bg: 'linear-gradient(135deg, #CD7F32, #B87333)' };
-        return { text: `#${rank}`, bg: 'rgba(0,212,255,0.15)' };
-    };
+    const S = { page: { minHeight: '100vh', background: FB.background, paddingBottom: '80px', fontFamily: '-apple-system, sans-serif' }, container: { padding: '16px 20px 40px', maxWidth: '600px', margin: '0 auto' }, backBtn: { background: FB.cardBg, border: `1px solid ${FB.border}`, color: FB.primary, padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', marginBottom: '16px', fontSize: '14px', fontWeight: 600 }, pageTitle: { fontSize: '24px', fontWeight: 700, color: FB.textPrimary, marginBottom: '20px' }, loading: { textAlign: 'center', padding: '60px 0', color: FB.textSecondary, fontSize: '15px' }, leaderCard: { display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', borderRadius: '8px', background: FB.cardBg, border: `1px solid ${FB.border}`, marginBottom: '10px' }, rank: { width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 700, color: '#fff' }, name: { flex: 1, fontSize: '15px', fontWeight: 600, color: FB.textPrimary }, profit: { fontSize: '15px', fontWeight: 700, color: '#42b72a' }, hands: { fontSize: '12px', color: FB.textSecondary }, bottomNav: { position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1000, background: FB.cardBg, borderTop: `1px solid ${FB.border}`, boxShadow: '0 -2px 10px rgba(0,0,0,0.1)' }, bottomNavItems: { display: 'flex', justifyContent: 'space-around', padding: '6px 0' }, bottomNavItem: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', flex: 1, padding: '8px 4px', textDecoration: 'none', color: FB.textSecondary }, bottomNavIcon: { width: '24px', height: '24px' }, bottomNavLabel: { fontSize: '11px', fontWeight: 600 } };
 
     return (
         <>
-            <Head>
-                <title>Leaderboards | Club Arena</title>
-                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-                <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-            </Head>
-
-            <div style={{ minHeight: '100vh', background: 'radial-gradient(ellipse at center, #0a1a2e 0%, #020812 70%, #010408 100%)' }}>
+            <Head><title>Leaderboard | Club Arena</title><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" /></Head>
+            <div style={S.page}>
                 <UniversalHeader pageDepth={2} />
-
-                <div style={{ padding: '16px 20px 40px', maxWidth: '600px', margin: '0 auto' }}>
-                    <button onClick={() => router.push('/hub/club-arena')} style={backBtn}>
-                        &#8592; Back to Club Arena
-                    </button>
-
-                    <h1 style={pageTitle}>Leaderboards</h1>
-
-                    {/* Tab bar */}
-                    <div style={{ display: 'flex', gap: '4px', marginBottom: '24px', background: 'rgba(0,0,0,0.3)', borderRadius: '12px', padding: '4px' }}>
-                        {tabs.map(t => (
-                            <button key={t.id} onClick={() => setTab(t.id)} style={{
-                                flex: 1, padding: '10px', borderRadius: '10px', border: 'none',
-                                background: tab === t.id ? 'linear-gradient(135deg, #00D4FF, #0066FF)' : 'transparent',
-                                color: tab === t.id ? '#000' : 'rgba(255,255,255,0.5)',
-                                fontFamily: 'Orbitron, sans-serif', fontSize: '10px', fontWeight: 700,
-                                cursor: 'pointer', letterSpacing: '1px',
-                            }}>
-                                {t.label}
-                            </button>
-                        ))}
-                    </div>
-
-                    {isLoading ? (
-                        <div style={{ textAlign: 'center', padding: '60px 0', color: '#00d4ff', fontFamily: 'Orbitron, sans-serif', fontSize: '14px' }}>
-                            Loading leaderboard...
+                <div style={S.container}>
+                    <button onClick={() => router.push(`/hub/club-arena/lobby?club=${clubIdParam}`)} style={S.backBtn}>&#8592; Back to Lobby</button>
+                    <h1 style={S.pageTitle}>🏆 Leaderboard</h1>
+                    {isLoading ? <div style={S.loading}>Loading...</div> : leaders.map((leader, i) => (
+                        <div key={i} style={S.leaderCard}>
+                            <div style={{ ...S.rank, background: getMedalColor(leader.rank) }}>{leader.rank}</div>
+                            <div style={{ flex: 1 }}><div style={S.name}>{leader.name}</div><div style={S.hands}>{leader.hands.toLocaleString()} hands</div></div>
+                            <div style={S.profit}>+{leader.profit.toLocaleString()}</div>
                         </div>
-                    ) : entries.length > 0 ? (
-                        entries.map((entry, i) => {
-                            const badge = rankBadge(i + 1);
-                            return (
-                                <div key={entry.id || i} style={{
-                                    display: 'flex', alignItems: 'center', gap: '12px',
-                                    padding: '14px', borderRadius: '12px',
-                                    background: i < 3 ? 'rgba(0,212,255,0.06)' : 'rgba(0,0,0,0.2)',
-                                    border: `1px solid ${i < 3 ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.05)'}`,
-                                    marginBottom: '8px',
-                                }}>
-                                    <div style={{
-                                        width: 36, height: 36, borderRadius: '10px',
-                                        background: badge.bg, display: 'flex', alignItems: 'center',
-                                        justifyContent: 'center', fontFamily: 'Orbitron, sans-serif',
-                                        fontSize: '10px', fontWeight: 700, color: i < 3 ? '#000' : '#00d4ff',
-                                        flexShrink: 0,
-                                    }}>
-                                        {badge.text}
-                                    </div>
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ color: '#fff', fontSize: '14px', fontWeight: 600 }}>
-                                            {entry.profiles?.full_name || entry.profiles?.username || `Player ${i + 1}`}
-                                        </div>
-                                    </div>
-                                    <div style={{ fontFamily: 'Orbitron, sans-serif', fontSize: '14px', fontWeight: 700, color: '#00d4ff' }}>
-                                        {(entry.score || 0).toLocaleString()}
-                                    </div>
-                                </div>
-                            );
-                        })
-                    ) : (
-                        <div style={emptyState}>
-                            <p>No leaderboard entries yet. Play games to get on the board.</p>
-                        </div>
-                    )}
+                    ))}
                 </div>
+                {club && <nav style={S.bottomNav}><div style={S.bottomNavItems}>
+                    <Link href={`/hub/club-arena/messages?club=${club.club_id}`} style={S.bottomNavItem}><svg style={S.bottomNavIcon} viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4V4c0-1.1-.9-2-2-2z" /></svg><span style={S.bottomNavLabel}>Messages</span></Link>
+                    <Link href={`/hub/club-arena/players?club=${club.club_id}`} style={S.bottomNavItem}><svg style={S.bottomNavIcon} viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3z" /></svg><span style={S.bottomNavLabel}>Players</span></Link>
+                    <Link href={`/hub/club-arena/cashier?club=${club.club_id}`} style={S.bottomNavItem}><svg style={S.bottomNavIcon} viewBox="0 0 24 24" fill="currentColor"><path d="M19 14V6c0-1.1-.9-2-2-2H3c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2z" /></svg><span style={S.bottomNavLabel}>Cashier</span></Link>
+                    <Link href={`/hub/club-arena/player-stats?club=${club.club_id}`} style={S.bottomNavItem}><svg style={S.bottomNavIcon} viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z" /></svg><span style={S.bottomNavLabel}>Data</span></Link>
+                    <Link href={`/hub/club-arena/admin?club=${club.club_id}`} style={S.bottomNavItem}><svg style={S.bottomNavIcon} viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.488.488 0 00-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 00-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" /></svg><span style={S.bottomNavLabel}>Admin</span></Link>
+                </div></nav>}
             </div>
         </>
     );
 }
-
-const backBtn = {
-    background: 'rgba(0, 212, 255, 0.1)', border: '1px solid rgba(0, 212, 255, 0.3)',
-    color: '#00d4ff', padding: '8px 16px', borderRadius: '8px',
-    cursor: 'pointer', marginBottom: '20px', fontFamily: 'Inter, sans-serif', fontSize: '13px',
-};
-
-const pageTitle = {
-    fontFamily: 'Orbitron, sans-serif', fontSize: '24px', fontWeight: 700,
-    color: '#fff', marginBottom: '24px',
-};
-
-const emptyState = {
-    textAlign: 'center', padding: '40px 20px',
-    background: 'rgba(0, 212, 255, 0.04)',
-    border: '1px solid rgba(0, 212, 255, 0.1)',
-    borderRadius: '14px', color: 'rgba(255,255,255,0.5)', fontSize: '14px',
-};
