@@ -1,8 +1,10 @@
 /**
  * 🎯 GAME UI ROUTER — Routes to Game-Specific UIs
  * ═══════════════════════════════════════════════════════════════════════════
- * Dynamically loads the appropriate game-specific UI component based on gameId
- * Falls back to generic MillionaireQuestion for games without custom UIs
+ * UPDATED: All poker games now use UniversalDynamicTable with avatars
+ * The table dynamically updates per question (hero position, cards, board, etc.)
+ * 
+ * Psychology/Scenario games still use specialized UIs
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -10,25 +12,55 @@ import React from 'react';
 import MillionaireQuestion from './MillionaireQuestion';
 
 // Import game-specific UIs
-import MTTDeepStackUI from './games/MTTDeepStackUI';
-import CashCBetAcademyUI from './games/CashCBetAcademyUI';
+import UniversalDynamicTable from './games/UniversalDynamicTable';
 import PsychologyTiltControlUI from './games/PsychologyTiltControlUI';
-import SpinsICMCalculatorUI from './games/SpinsICMCalculatorUI';
-import AdvancedSolverMimicryUI from './games/AdvancedSolverMimicryUI';
 
-// Game ID to Component mapping
-const GAME_UI_MAP = {
-    'mtt-007': MTTDeepStackUI,
-    'mtt-018': MTTDeepStackUI, // Reuse for Button Warfare
-    'cash-002': CashCBetAcademyUI,
-    'cash-018': CashCBetAcademyUI, // Reuse for Blind vs Blind
-    'spins-003': SpinsICMCalculatorUI,
-    'spins-007': SpinsICMCalculatorUI, // Reuse for 50/50 Survival
-    'psy-003': PsychologyTiltControlUI,
-    'psy-012': PsychologyTiltControlUI, // Reuse for Bankroll Psychology
-    'adv-001': AdvancedSolverMimicryUI,
-    'adv-017': AdvancedSolverMimicryUI, // Reuse for Capped Ranges
+// Game ID to Game Type mapping (for table configuration)
+const GAME_TYPE_MAP = {
+    // Cash Games (6-Max)
+    'cash-001': '6max', 'cash-002': '6max', 'cash-003': '6max',
+    'cash-004': '6max', 'cash-005': '6max', 'cash-006': '6max',
+    'cash-007': '6max', 'cash-008': '6max', 'cash-009': '6max',
+    'cash-010': '6max', 'cash-011': '6max', 'cash-012': '6max',
+    'cash-013': '6max', 'cash-014': '6max', 'cash-015': '6max',
+    'cash-016': '6max', 'cash-017': '6max', 'cash-018': '6max',
+    'cash-019': '6max', 'cash-020': '6max',
+
+    // MTT Games (9-Max)
+    'mtt-001': 'mtt', 'mtt-002': 'mtt', 'mtt-003': 'mtt',
+    'mtt-004': 'mtt', 'mtt-005': 'mtt', 'mtt-006': 'mtt',
+    'mtt-007': 'mtt', 'mtt-008': 'mtt', 'mtt-009': 'mtt',
+    'mtt-010': 'mtt', 'mtt-011': 'mtt', 'mtt-012': 'mtt',
+    'mtt-013': 'mtt', 'mtt-014': 'mtt', 'mtt-015': 'mtt',
+    'mtt-016': 'mtt', 'mtt-017': 'mtt', 'mtt-018': 'mtt',
+    'mtt-019': 'mtt', 'mtt-020': 'mtt',
+
+    // Spins/SNG Games (3-Max)
+    'spins-001': 'spins', 'spins-002': 'spins', 'spins-003': 'spins',
+    'spins-004': 'spins', 'spins-005': 'spins', 'spins-006': 'spins',
+    'spins-007': 'spins', 'spins-008': 'spins', 'spins-009': 'spins',
+    'spins-010': 'spins', 'spins-011': 'spins', 'spins-012': 'spins',
+    'spins-013': 'spins', 'spins-014': 'spins', 'spins-015': 'spins',
+    'spins-016': 'spins', 'spins-017': 'spins', 'spins-018': 'spins',
+    'spins-019': 'spins', 'spins-020': 'spins',
+
+    // Advanced Games (6-Max default)
+    'adv-001': '6max', 'adv-002': '6max', 'adv-003': '6max',
+    'adv-004': '6max', 'adv-005': '6max', 'adv-006': '6max',
+    'adv-007': '6max', 'adv-008': '6max', 'adv-009': '6max',
+    'adv-010': '6max', 'adv-011': '6max', 'adv-012': '6max',
+    'adv-013': '6max', 'adv-014': '6max', 'adv-015': '6max',
+    'adv-016': '6max', 'adv-017': '6max', 'adv-018': '6max',
+    'adv-019': '6max', 'adv-020': '6max',
 };
+
+// Psychology games use specialized UI (no table needed)
+const PSYCHOLOGY_GAMES = [
+    'psy-001', 'psy-002', 'psy-003', 'psy-004', 'psy-005',
+    'psy-006', 'psy-007', 'psy-008', 'psy-009', 'psy-010',
+    'psy-011', 'psy-012', 'psy-013', 'psy-014', 'psy-015',
+    'psy-016', 'psy-017', 'psy-018', 'psy-019', 'psy-020',
+];
 
 export default function GameUIRouter({
     gameId,
@@ -41,11 +73,29 @@ export default function GameUIRouter({
     feedbackResult,
     explanation
 }) {
-    // Get the appropriate UI component for this game
-    const UIComponent = GAME_UI_MAP[gameId] || MillionaireQuestion;
+    // Determine which UI to use based on game type
+    const isPsychologyGame = PSYCHOLOGY_GAMES.includes(gameId) || gameId?.startsWith('psy-');
+    const gameType = GAME_TYPE_MAP[gameId] || '6max'; // Default to 6-max
 
+    // Psychology games use specialized UI with no poker table
+    if (isPsychologyGame) {
+        return (
+            <PsychologyTiltControlUI
+                question={question}
+                level={level}
+                questionNumber={questionNumber}
+                totalQuestions={totalQuestions}
+                onAnswer={onAnswer}
+                showFeedback={showFeedback}
+                feedbackResult={feedbackResult}
+                explanation={explanation}
+            />
+        );
+    }
+
+    // ALL poker games (cash, mtt, spins, adv) use dynamic table with avatars
     return (
-        <UIComponent
+        <UniversalDynamicTable
             question={question}
             level={level}
             questionNumber={questionNumber}
@@ -54,6 +104,7 @@ export default function GameUIRouter({
             showFeedback={showFeedback}
             feedbackResult={feedbackResult}
             explanation={explanation}
+            gameType={gameType}
         />
     );
 }

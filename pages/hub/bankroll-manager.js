@@ -27,6 +27,7 @@ import {
   getDateRangeFilter,
   initializeUserBankroll,
 } from '../../src/lib/bankroll/bankrollSelectors';
+import { formatCurrency, formatCurrencyWithSign } from '../../src/lib/bankroll/currencyUtils';
 
 // Bankroll components
 import LedgerTimeline from '../../src/components/bankroll/LedgerTimeline';
@@ -486,7 +487,7 @@ export default function BankrollManagerPage() {
                 <div style={styles.statsGrid}>
                   <StatCard
                     title="Total Bankroll"
-                    value={stats ? `$${stats.totalBankroll.toLocaleString()}` : '—'}
+                    value={stats ? formatCurrency(stats.totalBankroll, preferences.currencyEUR) : '—'}
                     change={stats?.allInNet}
                     isLoading={isLoading}
                   />
@@ -494,7 +495,7 @@ export default function BankrollManagerPage() {
                     title="All-In Net"
                     value={
                       stats
-                        ? `${stats.allInNet < 0 ? '-' : ''}$${Math.abs(stats.allInNet).toLocaleString()}`
+                        ? formatCurrency(stats.allInNet, preferences.currencyEUR)
                         : '—'
                     }
                     isLoading={isLoading}

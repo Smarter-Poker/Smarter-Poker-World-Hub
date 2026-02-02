@@ -297,6 +297,32 @@ async function generateQuestionFromPIO(pioScenarios, gameId, level, game) {
         };
 
         // Build question with actual GTO data
+        // EXTRACT heroPosition from scenario_hash (e.g., "hu_cash_BTN_100bb_3h7c7s" → "BTN")
+        const scenarioParts = scenario.scenarioHash?.split('_') || [];
+        const extractedPosition = scenarioParts.find(p =>
+            ['BTN', 'SB', 'BB', 'UTG', 'MP', 'CO', 'HJ'].includes(p.toUpperCase())
+        ) || 'BTN';
+
+        // Calculate realistic pot size based on street
+        const potByStreet = {
+            'preflop': 2.5,
+            'flop': 6,
+            'turn': 15,
+            'river': 30
+        };
+        const estimatedPot = potByStreet[scenario.street] || 6;
+
+        // Determine villain position based on hero position
+        const villainPositionMap = {
+            'BTN': 'BB',
+            'SB': 'BB',
+            'BB': 'BTN',
+            'UTG': 'BB',
+            'MP': 'BB',
+            'CO': 'BTN',
+            'HJ': 'BB'
+        };
+
         const question = {
             id: `pio_${scenario.id}_${Date.now()}`,
             type: 'PIO',
@@ -307,8 +333,17 @@ async function generateQuestionFromPIO(pioScenarios, gameId, level, game) {
                 stackDepth: scenario.stackDepth,
                 gameType: scenario.gameType,
                 scenarioHash: scenario.scenarioHash,
-                heroHand: heroHand
+                heroHand: heroHand,
+                // DYNAMIC TABLE DATA - Added for UniversalDynamicTable
+                heroPosition: extractedPosition.toUpperCase(),
+                heroStack: scenario.stackDepth || 100,
+                pot: estimatedPot,
+                villainPosition: villainPositionMap[extractedPosition.toUpperCase()] || 'BB',
+                villainStack: scenario.stackDepth || 100, // Effective stacks
+                action: scenario.street !== 'preflop' ? 'Villain checks' : ''
             },
+            // Add heroCards in the format expected by UniversalDynamicTable
+            heroCards: heroHand ? [heroHand.substring(0, 2), heroHand.substring(2, 4)] : ['As', 'Ks'],
             question: `You hold ${formatHand(heroHand)} on the ${scenario.street} with board ${scenario.board.join(' ')}. Stack: ${scenario.stackDepth}BB. What is the GTO play?`,
             options: readableActions.slice(0, 4).map(a => ({
                 id: a.id,
@@ -510,7 +545,17 @@ async function getChartQuestion(gameId, level, seenIds) {
             position: chart.position,
             stackBB: chart.stack_bb,
             chartType: chart.type,
+            // DYNAMIC TABLE DATA - Added for UniversalDynamicTable
+            heroPosition: chart.position || 'BTN',
+            heroStack: chart.stack_bb || 15,
+            pot: 1.5, // Preflop push/fold typical pot
+            villainPosition: 'BB',
+            villainStack: chart.stack_bb || 15,
+            action: '', // Preflop - no villain action yet
+            board: '' // Preflop - no board
         },
+        // Add heroCards in the format expected by UniversalDynamicTable
+        heroCards: chart.hand ? [chart.hand.substring(0, 2), chart.hand.substring(2, 4)] : ['As', 'Ks'],
         question: chart.question || `Should you ${chart.type} with this hand from ${chart.position}?`,
         hand: chart.hand,
         options: [

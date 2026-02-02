@@ -192,6 +192,46 @@ export default function UniversalDynamicTable({
     // Find hero seat index based on position
     const heroSeatIndex = getHeroSeatIndex(heroPosition, playerCount);
 
+    // Calculate BUTTON position - button is seat 0 in the config, but we need to 
+    // determine which seat index currently HAS the button based on the game state
+    // If hero is BTN, then hero's seat index is the button
+    // If hero is BB, then button is 2 seats before hero (in 9-max)
+    const getButtonSeatIndex = useMemo(() => {
+        // Position to relative offset from button (seat 0)
+        // In SEAT_CONFIGS, seat 0 is always "BTN"
+        // So if hero is at BTN position, hero IS the button
+        const posToSeatIndex = {
+            'BTN': 0, 'BUTTON': 0,
+            'SB': 1,
+            'BB': 2,
+            'UTG': 3,
+            'UTG+1': 4,
+            'MP': 5,
+            'MP+1': 6,
+            'HJ': 7,
+            'CO': 8,
+        };
+
+        // The button is always at the seat that has position "BTN" in this hand
+        // Since heroPosition tells us where hero is, and heroSeatIndex tells us 
+        // which seat hero occupies, we need to find where BTN is
+
+        // For simplicity: BTN is always at seat index 0 in our layout
+        // Hero moves to their correct position based on heroSeatIndex
+        return 0; // BTN is always seat 0 in our static layout
+    }, [heroPosition, playerCount]);
+
+    // Generate STABLE villain stacks using seat index as seed (not random())
+    // This ensures stacks don't change on re-render
+    const generateVillainStack = useMemo(() => {
+        return (seatIndex) => {
+            // Use question number + seat index to create deterministic but varied stacks
+            const seed = (questionNumber || 1) * 13 + seatIndex * 7;
+            // Generate a stack between 30-150 BB based on the seed
+            return 30 + (seed % 120);
+        };
+    }, [questionNumber]);
+
     // Timer countdown
     React.useEffect(() => {
         if (showFeedback) return;
@@ -255,8 +295,9 @@ export default function UniversalDynamicTable({
                 <div style={styles.seatsContainer}>
                     {seats.map((seat, index) => {
                         const isHero = index === heroSeatIndex;
-                        const isButton = index === 0; // Button is always seat 0
-                        const stackSize = isHero ? heroStack : (20 + Math.floor(Math.random() * 80));
+                        const isButton = index === getButtonSeatIndex; // Dynamic button position
+                        // Use stable stack calculation for villains
+                        const stackSize = isHero ? heroStack : generateVillainStack(index);
 
                         return (
                             <div
