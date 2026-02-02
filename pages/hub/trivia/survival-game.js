@@ -234,6 +234,7 @@ export default function SurvivalGamePage() {
                 setCurrentQuestionIndex(prev => prev + 1);
                 setSelectedAnswer(null);
                 setShowResult(false);
+                setEliminatedOptions([]); // Reset 50/50 for next question
             }
         }, 1200);
     }
@@ -518,10 +519,15 @@ export default function SurvivalGamePage() {
 
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                         {currentQuestion.options?.map((option, index) => {
+                                            const isEliminated = eliminatedOptions.includes(index);
                                             let bg = 'rgba(255,255,255,0.05)';
                                             let borderColor = 'rgba(255,255,255,0.1)';
 
-                                            if (showResult) {
+                                            if (isEliminated && !showResult) {
+                                                // Eliminated by 50/50
+                                                bg = 'rgba(100, 100, 100, 0.1)';
+                                                borderColor = 'rgba(100, 100, 100, 0.2)';
+                                            } else if (showResult) {
                                                 if (index === currentQuestion.correct_index) {
                                                     bg = 'rgba(34, 197, 94, 0.2)';
                                                     borderColor = '#22c55e';
@@ -535,7 +541,7 @@ export default function SurvivalGamePage() {
                                                 <button
                                                     key={index}
                                                     onClick={() => selectAnswer(index)}
-                                                    disabled={selectedAnswer !== null}
+                                                    disabled={selectedAnswer !== null || isEliminated}
                                                     style={{
                                                         display: 'flex',
                                                         alignItems: 'center',
@@ -544,11 +550,13 @@ export default function SurvivalGamePage() {
                                                         background: bg,
                                                         border: `2px solid ${borderColor}`,
                                                         borderRadius: '10px',
-                                                        color: 'rgba(255,255,255,0.9)',
+                                                        color: isEliminated ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.9)',
                                                         fontSize: '15px',
                                                         textAlign: 'left',
-                                                        cursor: selectedAnswer !== null ? 'default' : 'pointer',
-                                                        transition: 'all 0.2s'
+                                                        cursor: (selectedAnswer !== null || isEliminated) ? 'default' : 'pointer',
+                                                        transition: 'all 0.2s',
+                                                        textDecoration: isEliminated ? 'line-through' : 'none',
+                                                        opacity: isEliminated ? 0.5 : 1
                                                     }}
                                                 >
                                                     <span style={{
@@ -557,18 +565,61 @@ export default function SurvivalGamePage() {
                                                         display: 'flex',
                                                         alignItems: 'center',
                                                         justifyContent: 'center',
-                                                        background: 'rgba(255,255,255,0.1)',
+                                                        background: isEliminated ? 'rgba(100,100,100,0.2)' : 'rgba(255,255,255,0.1)',
                                                         borderRadius: '6px',
                                                         fontWeight: 700,
                                                         fontSize: '13px'
                                                     }}>
-                                                        {String.fromCharCode(65 + index)}
+                                                        {isEliminated ? '✗' : String.fromCharCode(65 + index)}
                                                     </span>
                                                     <span style={{ flex: 1 }}>{option}</span>
                                                 </button>
                                             );
                                         })}
                                     </div>
+
+                                    {/* 50/50 Lifeline Button */}
+                                    {!showResult && (
+                                        <button
+                                            onClick={useFiftyFifty}
+                                            disabled={eliminatedOptions.length > 0}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: '8px',
+                                                width: '100%',
+                                                marginTop: '20px',
+                                                padding: '14px 20px',
+                                                background: eliminatedOptions.length > 0
+                                                    ? 'rgba(100, 100, 100, 0.2)'
+                                                    : fiftyFiftyUsedFree
+                                                        ? 'linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 150, 200, 0.3))'
+                                                        : 'linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(20, 150, 80, 0.3))',
+                                                border: `2px solid ${eliminatedOptions.length > 0
+                                                    ? '#666'
+                                                    : fiftyFiftyUsedFree
+                                                        ? '#00D4FF'
+                                                        : '#22c55e'}`,
+                                                borderRadius: '12px',
+                                                color: eliminatedOptions.length > 0 ? '#666' : 'white',
+                                                fontSize: '16px',
+                                                fontWeight: 'bold',
+                                                cursor: eliminatedOptions.length > 0 ? 'default' : 'pointer',
+                                                transition: 'all 0.2s'
+                                            }}
+                                        >
+                                            <span style={{ fontSize: '20px' }}>⚡</span>
+                                            <span>50/50</span>
+                                            {eliminatedOptions.length > 0 ? (
+                                                <span style={{ fontSize: '13px', opacity: 0.7 }}>USED</span>
+                                            ) : fiftyFiftyUsedFree ? (
+                                                <span style={{ fontSize: '13px', color: '#00D4FF' }}>5💎</span>
+                                            ) : (
+                                                <span style={{ fontSize: '13px', color: '#22c55e' }}>FREE</span>
+                                            )}
+                                        </button>
+                                    )}
                                 </div>
                             </>
                         )}
