@@ -383,7 +383,7 @@ function FindPlayerModal({ onClose }) {
 export default function ClubArena() {
     const router = useRouter();
     const [user, setUser] = useState(null);
-    const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
+    const [disclaimerAccepted, setDisclaimerAccepted] = useState(true); // DISABLED: Auto-accept disclaimer
     const [isLoading, setIsLoading] = useState(true);
     const [clubs, setClubs] = useState([]);
     const [activeClub, setActiveClub] = useState(null);
