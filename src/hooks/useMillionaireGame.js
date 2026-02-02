@@ -10,7 +10,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { getAuthUser } from '../lib/authUtils';
-import TRAINING_CONFIG, { checkLevelPassed, getXPReward, getRequiredCorrect } from '../config/trainingConfig';
+import TRAINING_CONFIG, { checkLevelPassed, getRequiredCorrect } from '../config/trainingConfig';
 
 const QUESTIONS_PER_LEVEL = 25; // 25 questions per level
 
@@ -30,7 +30,6 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
     const [correctCount, setCorrectCount] = useState(0);
     const [streak, setStreak] = useState(0);
     const [bestStreak, setBestStreak] = useState(0);
-    const [totalXP, setTotalXP] = useState(0);
 
     // Feedback state
     const [showFeedback, setShowFeedback] = useState(false);
@@ -226,7 +225,6 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
                     accuracy,
                     passed,
                     streak: bestStreak,
-                    xpEarned: totalXP,
                     diamondsEarned,
                     timeSpentSeconds,
                 }),
@@ -234,7 +232,7 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
         } catch (err) {
             console.warn('[MillionaireGame] Save progress error:', err);
         }
-    }, [userId, gameId, level, correctCount, bestStreak, totalXP, sessionStartTime]);
+    }, [userId, gameId, level, correctCount, bestStreak, sessionStartTime]);
 
     /**
      * Advance to next question or complete level
@@ -310,7 +308,6 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
         setCorrectCount(0);
         setStreak(0);
         setBestStreak(0);
-        setTotalXP(0);
         setGameComplete(false);
         setLevelPassed(false);
         setPreloadComplete(false);
@@ -340,7 +337,6 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
         correctCount,
         streak,
         bestStreak,
-        totalXP,
         requiredCorrect: getRequiredCorrect(level),
         passThreshold: TRAINING_CONFIG.passThresholds[level],
 

@@ -15,7 +15,6 @@
  *   accuracy: number,
  *   passed: boolean,
  *   streak: number,
- *   xpEarned: number,
  *   diamondsEarned: number,
  *   timeSpentSeconds: number
  * }
@@ -31,7 +30,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
  * Upsert leaderboard entry for user
  * Updates both 'daily' and 'all_time' leaderboards
  */
-async function upsertLeaderboard(sb, userId, gameId, xpEarned, accuracy, passed) {
+async function upsertLeaderboard(sb, userId, gameId, diamondsEarned, accuracy, passed) {
     const now = new Date();
     const periodStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
     const periodEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString();
@@ -40,7 +39,7 @@ async function upsertLeaderboard(sb, userId, gameId, xpEarned, accuracy, passed)
         // Check if entry exists
         const { data: existing } = await sb
             .from('training_leaderboard')
-            .select('id, total_xp, total_games_completed, average_accuracy')
+            .select('id, total_games_completed, average_accuracy, total_mastery_points')
             .eq('user_id', userId)
             .eq('leaderboard_type', leaderboardType)
             .maybeSingle();
@@ -54,8 +53,8 @@ async function upsertLeaderboard(sb, userId, gameId, xpEarned, accuracy, passed)
 
             await sb.from('training_leaderboard')
                 .update({
-                    total_xp: (existing.total_xp || 0) + xpEarned,
                     total_games_completed: newGamesCompleted,
+                    total_mastery_points: (existing.total_mastery_points || 0) + diamondsEarned,
                     average_accuracy: Math.round(newAccuracy),
                     updated_at: now.toISOString(),
                 })
@@ -66,8 +65,8 @@ async function upsertLeaderboard(sb, userId, gameId, xpEarned, accuracy, passed)
                 user_id: userId,
                 leaderboard_type: leaderboardType,
                 game_id: gameId,
-                total_xp: xpEarned,
                 total_games_completed: passed ? 1 : 0,
+                total_mastery_points: diamondsEarned,
                 average_accuracy: accuracy,
                 period_start: leaderboardType === 'daily' ? periodStart : null,
                 period_end: leaderboardType === 'daily' ? periodEnd : null,
@@ -91,7 +90,6 @@ export default async function handler(req, res) {
             accuracy,
             passed,
             streak,
-            xpEarned,
             diamondsEarned,
             timeSpentSeconds
         } = req.body;
@@ -114,7 +112,6 @@ export default async function handler(req, res) {
                 passed: passed,
                 time_spent_seconds: timeSpentSeconds,
                 best_streak: streak,
-                xp_earned: xpEarned,
                 diamonds_earned: diamondsEarned
             })
             .select()
@@ -138,7 +135,6 @@ export default async function handler(req, res) {
                 .from('training_progress')
                 .update({
                     level: passed ? Math.min(level + 1, 10) : level,
-                    xp: (existingProgress.xp || 0) + xpEarned,
                     hands_played: (existingProgress.hands_played || 0) + questionsAnswered,
                     correct_answers: (existingProgress.correct_answers || 0) + questionsCorrect,
                     total_answers: (existingProgress.total_answers || 0) + questionsAnswered,
@@ -158,7 +154,7 @@ export default async function handler(req, res) {
 
             // 3. Upsert leaderboard entry
             try {
-                await upsertLeaderboard(supabase, userId, gameId, xpEarned, accuracy, passed);
+                await upsertLeaderboard(supabase, userId, gameId, diamondsEarned, accuracy, passed);
             } catch (lbError) {
                 console.warn('Leaderboard upsert failed:', lbError.message);
             }
@@ -176,7 +172,6 @@ export default async function handler(req, res) {
                     user_id: userId,
                     game_id: gameId,
                     level: passed ? Math.min(level + 1, 10) : level,
-                    xp: xpEarned,
                     hands_played: questionsAnswered,
                     correct_answers: questionsCorrect,
                     total_answers: questionsAnswered,
@@ -194,7 +189,7 @@ export default async function handler(req, res) {
 
             // 3. Upsert leaderboard entry
             try {
-                await upsertLeaderboard(supabase, userId, gameId, xpEarned, accuracy, passed);
+                await upsertLeaderboard(supabase, userId, gameId, diamondsEarned, accuracy, passed);
             } catch (lbError) {
                 console.warn('Leaderboard upsert failed:', lbError.message);
             }
