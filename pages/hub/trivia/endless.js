@@ -741,7 +741,7 @@ export default function EndlessModePage() {
                                             {/* Skip Question Button */}
                                             <button
                                                 onClick={useSkipQuestion}
-                                                disabled={userDiamonds < 3}
+                                                disabled={userDiamonds < LIFELINE_COST || lifelinesUsedThisGame >= MAX_LIFELINES_PER_GAME}
                                                 style={{
                                                     flex: 1,
                                                     display: 'flex',
@@ -750,27 +750,27 @@ export default function EndlessModePage() {
                                                     justifyContent: 'center',
                                                     gap: '4px',
                                                     padding: '12px 8px',
-                                                    background: userDiamonds < 3
+                                                    background: (userDiamonds < LIFELINE_COST || lifelinesUsedThisGame >= MAX_LIFELINES_PER_GAME)
                                                         ? 'rgba(100, 100, 100, 0.2)'
                                                         : 'linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(200, 150, 30, 0.3))',
-                                                    border: `2px solid ${userDiamonds < 3 ? '#666' : '#fbbf24'}`,
+                                                    border: `2px solid ${(userDiamonds < LIFELINE_COST || lifelinesUsedThisGame >= MAX_LIFELINES_PER_GAME) ? '#666' : '#fbbf24'}`,
                                                     borderRadius: '12px',
-                                                    color: userDiamonds < 3 ? '#666' : 'white',
+                                                    color: (userDiamonds < LIFELINE_COST || lifelinesUsedThisGame >= MAX_LIFELINES_PER_GAME) ? '#666' : 'white',
                                                     fontSize: '13px',
                                                     fontWeight: 'bold',
-                                                    cursor: userDiamonds < 3 ? 'default' : 'pointer',
+                                                    cursor: (userDiamonds < LIFELINE_COST || lifelinesUsedThisGame >= MAX_LIFELINES_PER_GAME) ? 'default' : 'pointer',
                                                     transition: 'all 0.2s'
                                                 }}
                                             >
                                                 <span style={{ fontSize: '20px' }}>⏭️</span>
                                                 <span>Skip</span>
-                                                <span style={{ fontSize: '11px', color: '#fbbf24' }}>3💎</span>
+                                                <span style={{ fontSize: '11px', color: '#fbbf24' }}>5💎</span>
                                             </button>
 
                                             {/* Double Chance Button */}
                                             <button
                                                 onClick={useDoubleChance}
-                                                disabled={doubleChanceUsedThisQuestion || doubleChanceActive || userDiamonds < 3}
+                                                disabled={doubleChanceUsedThisQuestion || doubleChanceActive || userDiamonds < LIFELINE_COST || lifelinesUsedThisGame >= MAX_LIFELINES_PER_GAME}
                                                 style={{
                                                     flex: 1,
                                                     display: 'flex',
@@ -779,15 +779,15 @@ export default function EndlessModePage() {
                                                     justifyContent: 'center',
                                                     gap: '4px',
                                                     padding: '12px 8px',
-                                                    background: (doubleChanceUsedThisQuestion || doubleChanceActive || userDiamonds < 3)
+                                                    background: (doubleChanceUsedThisQuestion || doubleChanceActive || userDiamonds < LIFELINE_COST || lifelinesUsedThisGame >= MAX_LIFELINES_PER_GAME)
                                                         ? 'rgba(100, 100, 100, 0.2)'
                                                         : 'linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(120, 60, 180, 0.3))',
-                                                    border: `2px solid ${(doubleChanceUsedThisQuestion || doubleChanceActive || userDiamonds < 3) ? '#666' : '#a855f7'}`,
+                                                    border: `2px solid ${(doubleChanceUsedThisQuestion || doubleChanceActive || userDiamonds < LIFELINE_COST || lifelinesUsedThisGame >= MAX_LIFELINES_PER_GAME) ? '#666' : '#a855f7'}`,
                                                     borderRadius: '12px',
-                                                    color: (doubleChanceUsedThisQuestion || doubleChanceActive || userDiamonds < 3) ? '#666' : 'white',
+                                                    color: (doubleChanceUsedThisQuestion || doubleChanceActive || userDiamonds < LIFELINE_COST || lifelinesUsedThisGame >= MAX_LIFELINES_PER_GAME) ? '#666' : 'white',
                                                     fontSize: '13px',
                                                     fontWeight: 'bold',
-                                                    cursor: (doubleChanceUsedThisQuestion || doubleChanceActive || userDiamonds < 3) ? 'default' : 'pointer',
+                                                    cursor: (doubleChanceUsedThisQuestion || doubleChanceActive || userDiamonds < LIFELINE_COST || lifelinesUsedThisGame >= MAX_LIFELINES_PER_GAME) ? 'default' : 'pointer',
                                                     transition: 'all 0.2s'
                                                 }}
                                             >
@@ -798,7 +798,7 @@ export default function EndlessModePage() {
                                                 ) : doubleChanceUsedThisQuestion ? (
                                                     <span style={{ fontSize: '11px', opacity: 0.7 }}>USED</span>
                                                 ) : (
-                                                    <span style={{ fontSize: '11px', color: '#a855f7' }}>3💎</span>
+                                                    <span style={{ fontSize: '11px', color: '#a855f7' }}>5💎</span>
                                                 )}
                                             </button>
                                         </div>
@@ -820,7 +820,7 @@ export default function EndlessModePage() {
                                         💎 +{multiplier} diamonds for correct answer
                                     </div>
                                 </div>
-                            </>
+                            </div>
                         )}
 
                         {/* Game Over State */}
