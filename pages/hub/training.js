@@ -1390,4 +1390,36 @@ const styles = {
         marginTop: 'var(--vp-space-xl, 4vw)',
     },
 };
+
+// Gamification Quick-Access Nav Styles
+const gamificationNavStyles = {
+    container: {
+        display: 'flex',
+        justifyContent: 'center',
+        gap: 12,
+        padding: '12px 16px',
+        background: 'linear-gradient(135deg, rgba(138, 43, 226, 0.08), rgba(0, 212, 255, 0.06))',
+        borderBottom: '1px solid rgba(138, 43, 226, 0.2)',
+    },
+    navButton: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+        padding: '8px 16px',
+        background: 'rgba(255, 255, 255, 0.06)',
+        border: '1px solid rgba(255, 255, 255, 0.12)',
+        borderRadius: 20,
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+    },
+    icon: {
+        fontSize: 16,
+    },
+    label: {
+        fontSize: 12,
+        fontWeight: 600,
+        color: '#fff',
+        letterSpacing: 0.3,
+    },
+};
 // Deploy trigger Thu Jan 29 00:08:41 CST 2026
