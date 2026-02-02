@@ -26,53 +26,13 @@ import { TRIVIA_ACHIEVEMENTS, checkNewUnlocks } from '../../../src/config/trivia
 // Phase 2 Enhancement Imports
 import DoubleOrNothing from '../../../src/components/trivia/DoubleOrNothing';
 
-// Inline Survival Mode for debugging - renders simple game
-function SurvivalModeGame({ questions, onComplete, userId }) {
-    const [currentIndex, setCurrentIndex] = React.useState(0);
-    const [streak, setStreak] = React.useState(0);
-    const [isGameOver, setIsGameOver] = React.useState(false);
-    const currentQuestion = questions?.[currentIndex];
-
-    const selectAnswer = (index) => {
-        if (index === currentQuestion?.correct_index) {
-            setStreak(s => s + 1);
-            setCurrentIndex(i => i + 1);
-        } else {
-            setIsGameOver(true);
-            onComplete({ correctCount: streak, totalQuestions: streak + 1, diamondsEarned: streak, streak });
-        }
-    };
-
-    if (isGameOver) {
-        return React.createElement('div', { style: { textAlign: 'center', padding: '48px', color: 'white' } },
-            React.createElement('h2', null, 'GAME OVER - Streak: ' + streak)
-        );
-    }
-
-    if (!currentQuestion) {
-        return React.createElement('div', { style: { textAlign: 'center', padding: '48px', color: 'white' } }, 'Loading...');
-    }
-
-    return React.createElement('div', { style: { maxWidth: '700px', margin: '0 auto', padding: '20px' } },
-        React.createElement('div', { style: { color: 'white', marginBottom: '20px' } }, 'Streak: ' + streak),
-        React.createElement('h2', { style: { color: 'white', marginBottom: '20px' } }, currentQuestion.question),
-        currentQuestion.options?.map((opt, i) =>
-            React.createElement('button', {
-                key: i,
-                onClick: () => selectAnswer(i),
-                style: { display: 'block', width: '100%', padding: '16px', marginBottom: '8px', background: '#1e293b', border: '1px solid #444', borderRadius: '8px', color: 'white', cursor: 'pointer', textAlign: 'left' }
-            }, String.fromCharCode(65 + i) + ') ' + opt)
-        )
-    );
-}
-
 const CATEGORY_MAP = {
     daily: null,
     history: ['poker_history', 'famous_hands', 'player_profiles'],
     rules: ['rule_knowledge'],
     pro: ['gto_theory', 'tournament_facts'],
-    arcade: null,
-    survival: null // Uses all categories
+    arcade: null
+    // survival mode temporarily disabled - TODO: create separate page
 };
 
 export default function TriviaModePage() {
@@ -664,18 +624,7 @@ export default function TriviaModePage() {
                         />
                     )}
 
-                    {gameState === 'playing' && mode === 'survival' && (
-                        <SurvivalModeGame
-                            questions={questions}
-                            onComplete={handleComplete}
-                            userId={userId}
-                            onLoadMoreQuestions={async () => {
-                                // Load more questions when running low
-                                const moreQuestions = await loadQuestions('survival', 20);
-                                setQuestions(prev => [...prev, ...moreQuestions]);
-                            }}
-                        />
-                    )}
+                    {/* TODO: Survival mode moved to separate page at /hub/trivia/survival-game */}
 
                     {gameState === 'results' && result && (
                         <div className="results-section">
