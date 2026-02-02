@@ -3,19 +3,25 @@
  * Handles daily challenge queries and completions
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../lib/supabase';
 
 class DailyChallengeService {
     constructor() {
-        this.supabase = null;
+        // Use singleton client directly - no external initialization needed
+        this.supabase = supabase;
     }
 
     /**
-     * Initialize with Supabase client
+     * Initialize with optional Supabase client override
+     * @deprecated Use singleton client directly
      */
     async initialize(supabaseClient) {
-        this.supabase = supabaseClient;
+        // Allow override for backwards compatibility but prefer singleton
+        if (supabaseClient) {
+            this.supabase = supabaseClient;
+        }
     }
+
 
     /**
      * Get today's daily challenge
