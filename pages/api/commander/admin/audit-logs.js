@@ -53,7 +53,7 @@ async function handler(req, res) {
       return res.status(403).json({ error: 'Manager access required' });
     }
 
-    const allowedVenueIds = staffRecords.map(s => s.venue_id);
+    const allowedVenueIds = staffRecords.map(s => String(s.venue_id));
 
     // Build query
     let query = supabase

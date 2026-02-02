@@ -133,7 +133,7 @@ export default function PlayerTournamentsHub() {
       const token = localStorage.getItem('smarter-poker-auth');
 
       // Load public tournaments
-      const res = await fetch('/api/commander/tournaments?status=registering,running', {
+      const res = await fetch('/api/commander/tournaments?status=active', {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
       const data = await res.json();
