@@ -5,7 +5,7 @@
 
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 
@@ -25,13 +25,46 @@ import { TRIVIA_ACHIEVEMENTS, checkNewUnlocks } from '../../../src/config/trivia
 
 // Phase 2 Enhancement Imports
 import DoubleOrNothing from '../../../src/components/trivia/DoubleOrNothing';
-import dynamic from 'next/dynamic';
 
-// Dynamic import to prevent SSR issues
-const SurvivalModeGame = dynamic(
-    () => import('../../../src/components/trivia/SurvivalModeGame'),
-    { ssr: false, loading: () => <div>Loading Survival Mode...</div> }
-);
+// Inline Survival Mode for debugging - renders simple game
+function SurvivalModeGame({ questions, onComplete, userId }) {
+    const [currentIndex, setCurrentIndex] = React.useState(0);
+    const [streak, setStreak] = React.useState(0);
+    const [isGameOver, setIsGameOver] = React.useState(false);
+    const currentQuestion = questions?.[currentIndex];
+
+    const selectAnswer = (index) => {
+        if (index === currentQuestion?.correct_index) {
+            setStreak(s => s + 1);
+            setCurrentIndex(i => i + 1);
+        } else {
+            setIsGameOver(true);
+            onComplete({ correctCount: streak, totalQuestions: streak + 1, diamondsEarned: streak, streak });
+        }
+    };
+
+    if (isGameOver) {
+        return React.createElement('div', { style: { textAlign: 'center', padding: '48px', color: 'white' } },
+            React.createElement('h2', null, 'GAME OVER - Streak: ' + streak)
+        );
+    }
+
+    if (!currentQuestion) {
+        return React.createElement('div', { style: { textAlign: 'center', padding: '48px', color: 'white' } }, 'Loading...');
+    }
+
+    return React.createElement('div', { style: { maxWidth: '700px', margin: '0 auto', padding: '20px' } },
+        React.createElement('div', { style: { color: 'white', marginBottom: '20px' } }, 'Streak: ' + streak),
+        React.createElement('h2', { style: { color: 'white', marginBottom: '20px' } }, currentQuestion.question),
+        currentQuestion.options?.map((opt, i) =>
+            React.createElement('button', {
+                key: i,
+                onClick: () => selectAnswer(i),
+                style: { display: 'block', width: '100%', padding: '16px', marginBottom: '8px', background: '#1e293b', border: '1px solid #444', borderRadius: '8px', color: 'white', cursor: 'pointer', textAlign: 'left' }
+            }, String.fromCharCode(65 + i) + ') ' + opt)
+        )
+    );
+}
 
 const CATEGORY_MAP = {
     daily: null,

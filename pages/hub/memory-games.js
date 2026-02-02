@@ -1675,6 +1675,16 @@ export default function MemoryGamesPage() {
     const [menuOpen, setMenuOpen] = useState(false);
     const [showOutOfDiamondsModal, setShowOutOfDiamondsModal] = useState(false);
 
+    // Grok Explain Modal state
+    const [explainModal, setExplainModal] = useState({
+        show: false,
+        hand: null,
+        correctAction: null,
+        userAction: null,
+        explanation: null,
+        loading: false
+    });
+
     // Hamburger menu preferences
     const [preferences, setPreferences] = useState({
         soundEffects: true,
@@ -2124,6 +2134,48 @@ export default function MemoryGamesPage() {
     // Next scenario
     const handleNext = () => {
         startGame(currentLevel);
+    };
+
+    // Fetch Grok explanation for a hand
+    const fetchGrokExplanation = async (hand, correctAction, userAction) => {
+        setExplainModal({
+            show: true,
+            hand,
+            correctAction,
+            userAction,
+            explanation: null,
+            loading: true
+        });
+
+        try {
+            const response = await fetch('/api/gto/explain-hand', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    hand,
+                    position: currentScenario?.position,
+                    stackDepth: currentScenario?.stackDepth,
+                    correctAction,
+                    userAction,
+                    scenario: currentScenario
+                })
+            });
+
+            const result = await response.json();
+
+            setExplainModal(prev => ({
+                ...prev,
+                explanation: result.explanation || 'Unable to generate explanation.',
+                loading: false
+            }));
+        } catch (error) {
+            console.error('[MemoryGames] Explain error:', error);
+            setExplainModal(prev => ({
+                ...prev,
+                explanation: 'Failed to get explanation. Please try again.',
+                loading: false
+            }));
+        }
     };
 
     // Load leaderboard data
@@ -3611,12 +3663,122 @@ export default function MemoryGamesPage() {
                                             Diamonds +{lastReward.diamonds} Diamonds earned! (×{multiplier} multiplier)
                                         </div>
                                     )}
+
+                                    {/* Ask Grok Why Button - shows when there are mistakes */}
+                                    {(gradeResult.missedHands.length > 0 || gradeResult.wrongActionHands.length > 0) && (
+                                        <button
+                                            onClick={() => {
+                                                const firstMistake = gradeResult.wrongActionHands[0] || gradeResult.missedHands[0];
+                                                const correctAction = currentScenario?.solution?.[firstMistake] || 'call';
+                                                const userAction = userGrid[firstMistake] || 'fold';
+                                                fetchGrokExplanation(firstMistake, correctAction, userAction);
+                                            }}
+                                            style={{
+                                                marginTop: 16,
+                                                padding: '12px 24px',
+                                                background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(59, 130, 246, 0.3))',
+                                                border: '1px solid rgba(139, 92, 246, 0.5)',
+                                                borderRadius: 12,
+                                                color: '#fff',
+                                                fontSize: 14,
+                                                fontWeight: 600,
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: 8,
+                                                width: '100%'
+                                            }}
+                                        >
+                                            🤖 Ask Grok: Why was I wrong?
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Grok Explain Modal */}
+                            {explainModal.show && (
+                                <div style={{
+                                    position: 'fixed',
+                                    top: 0, left: 0, right: 0, bottom: 0,
+                                    background: 'rgba(0, 0, 0, 0.85)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    zIndex: 9999,
+                                    padding: 20
+                                }}>
+                                    <div style={{
+                                        background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
+                                        border: '1px solid rgba(139, 92, 246, 0.3)',
+                                        borderRadius: 16,
+                                        padding: 24,
+                                        maxWidth: 480,
+                                        width: '100%',
+                                        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)'
+                                    }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                                <span style={{ fontSize: 32 }}>🤖</span>
+                                                <span style={{ fontFamily: 'Orbitron', fontSize: 18, color: '#A78BFA' }}>Grok GTO Coach</span>
+                                            </div>
+                                            <button
+                                                onClick={() => setExplainModal(prev => ({ ...prev, show: false }))}
+                                                style={{
+                                                    background: 'rgba(255, 255, 255, 0.1)',
+                                                    border: 'none',
+                                                    borderRadius: 8,
+                                                    padding: '8px 12px',
+                                                    color: '#fff',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+
+                                        <div style={{
+                                            background: 'rgba(0, 0, 0, 0.3)',
+                                            borderRadius: 12,
+                                            padding: 16,
+                                            marginBottom: 16
+                                        }}>
+                                            <div style={{ fontFamily: 'Orbitron', fontSize: 24, color: '#fff', marginBottom: 8 }}>
+                                                {explainModal.hand}
+                                            </div>
+                                            <div style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.6)' }}>
+                                                You chose: <span style={{ color: '#EF4444', fontWeight: 600 }}>{explainModal.userAction?.toUpperCase()}</span>
+                                                {' → '}
+                                                Correct: <span style={{ color: '#10B981', fontWeight: 600 }}>{explainModal.correctAction?.toUpperCase()}</span>
+                                            </div>
+                                        </div>
+
+                                        <div style={{
+                                            background: 'rgba(139, 92, 246, 0.1)',
+                                            border: '1px solid rgba(139, 92, 246, 0.2)',
+                                            borderRadius: 12,
+                                            padding: 16,
+                                            minHeight: 80
+                                        }}>
+                                            {explainModal.loading ? (
+                                                <div style={{ textAlign: 'center', color: 'rgba(255, 255, 255, 0.6)' }}>
+                                                    <div style={{ marginBottom: 8 }}>🤔</div>
+                                                    Analyzing with Grok...
+                                                </div>
+                                            ) : (
+                                                <div style={{ color: 'rgba(255, 255, 255, 0.9)', lineHeight: 1.6 }}>
+                                                    {explainModal.explanation}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                             )}
                         </>
                     )}
                 </div>
             </div >
+
 
             {/* Inject shake animation */}
             < style jsx global > {`
@@ -3631,7 +3793,7 @@ export default function MemoryGamesPage() {
                     50% { transform: scale(1.1); }
                 }
             `}</style >
-        </PageTransition>
+        </PageTransition >
     );
 }
 
