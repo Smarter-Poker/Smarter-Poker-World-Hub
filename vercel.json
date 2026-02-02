@@ -63,7 +63,7 @@
       "schedule": "0 4 * * *"
     },
     {
-      "path": "/api/cron/generate-trivia",
+      "path": "/api/cron/trivia-daily-generator",
       "schedule": "59 5 * * *"
     },
     {

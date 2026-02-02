@@ -9,6 +9,7 @@ import { Zap, Trophy, BookOpen, GraduationCap, Gem, Lock, ChevronRight, Flame } 
 import MetalFrame from '../ui/MetalFrame';
 import HexButton from '../ui/HexButton';
 import PortholeIcon from '../ui/PortholeIcon';
+import StreakBadge from './StreakBadge';
 
 const MODE_CARDS = [
     {
@@ -90,10 +91,12 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
                             <li>• Build your knowledge streak</li>
                         </ul>
                         {currentStreak > 0 && (
-                            <div className="streak-badge">
-                                <Flame size={16} />
-                                <span>{currentStreak} Day Streak</span>
-                            </div>
+                            <StreakBadge
+                                streakDays={currentStreak}
+                                size="md"
+                                showProgress={true}
+                                showMultiplier={true}
+                            />
                         )}
                     </div>
                     <HexButton

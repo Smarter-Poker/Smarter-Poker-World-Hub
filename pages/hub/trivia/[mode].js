@@ -16,6 +16,13 @@ import TriviaResult from '../../../src/components/trivia/TriviaResult';
 import LeaderboardDisplay from '../../../src/components/trivia/LeaderboardDisplay';
 import { TRIVIA_MODES, calculateDiamonds } from '../../../src/lib/trivia/triviaEngine';
 
+// Phase 1 Enhancement Imports
+import PrizeWheel from '../../../src/components/trivia/PrizeWheel';
+import StreakBadge from '../../../src/components/trivia/StreakBadge';
+import { useCelebrations } from '../../../src/components/trivia/CelebrationEffects';
+import { getStreakTier, calculateRewardWithMultiplier, isStreakMilestone } from '../../../src/config/triviaStreakSystem';
+import { TRIVIA_ACHIEVEMENTS, checkNewUnlocks } from '../../../src/config/triviaAchievements';
+
 const CATEGORY_MAP = {
     daily: null,
     history: ['poker_history', 'famous_hands', 'player_profiles'],
@@ -36,6 +43,11 @@ export default function TriviaModePage() {
     const [userId, setUserId] = useState(null);
     const [userDiamonds, setUserDiamonds] = useState(0);
     const [error, setError] = useState(null);
+
+    // Phase 1: Prize wheel and celebration states
+    const [showPrizeWheel, setShowPrizeWheel] = useState(false);
+    const [isPerfectScore, setIsPerfectScore] = useState(false);
+    const celebrations = useCelebrations();
 
     // Using existing supabase instance from lib
     const modeConfig = mode ? TRIVIA_MODES[mode] : null;
@@ -267,8 +279,21 @@ export default function TriviaModePage() {
     const handleComplete = async (gameResult) => {
         const { correctCount, totalQuestions, timeSpent, timeRemaining } = gameResult;
 
-        // Calculate rewards - XP system removed
-        const diamondsEarned = calculateDiamonds(mode, correctCount, totalQuestions, timeRemaining);
+        // Calculate rewards with streak multiplier
+        const baseDiamonds = calculateDiamonds(mode, correctCount, totalQuestions, timeRemaining);
+        const streakTier = getStreakTier(userStreak);
+        const diamondsEarned = calculateRewardWithMultiplier(baseDiamonds, userStreak);
+
+        // Check for perfect score (100% correct)
+        const isPerfect = correctCount === totalQuestions && totalQuestions > 0;
+        setIsPerfectScore(isPerfect);
+
+        // Trigger celebration effects
+        if (isPerfect) {
+            celebrations.triggerPerfect();
+        } else if (correctCount > 0) {
+            celebrations.triggerConfetti();
+        }
 
         // Update streak for daily mode
         let newStreak = userStreak;
@@ -338,6 +363,8 @@ export default function TriviaModePage() {
         setResult({
             mode,
             correctCount,
+            isPerfect,
+            streakMultiplier: streakTier.multiplier,
             totalQuestions,
             timeSpent,
             timeRemaining: timeRemaining || 0,
@@ -448,6 +475,8 @@ export default function TriviaModePage() {
                             <TriviaResult
                                 {...result}
                                 onPlayAgain={handlePlayAgain}
+                                onSpinWheel={() => setShowPrizeWheel(true)}
+                                showSpinButton={isPerfectScore && !showPrizeWheel}
                             />
 
                             {mode === 'arcade' && leaderboard.length > 0 && (
@@ -457,6 +486,28 @@ export default function TriviaModePage() {
                             )}
                         </div>
                     )}
+
+                    {/* Prize Wheel - only shows on 100% perfect score */}
+                    {showPrizeWheel && (
+                        <PrizeWheel
+                            streakMultiplier={getStreakTier(userStreak).multiplier}
+                            onComplete={async (reward) => {
+                                // Award the prize
+                                if (reward.type === 'diamonds' && userId) {
+                                    await supabase
+                                        .from('profiles')
+                                        .update({ diamonds: userDiamonds + reward.amount })
+                                        .eq('id', userId);
+                                    setUserDiamonds(prev => prev + reward.amount);
+                                }
+                                setShowPrizeWheel(false);
+                            }}
+                            onClose={() => setShowPrizeWheel(false)}
+                        />
+                    )}
+
+                    {/* Celebration Effects */}
+                    <celebrations.CelebrationComponents />
                 </div>
             </div>
 

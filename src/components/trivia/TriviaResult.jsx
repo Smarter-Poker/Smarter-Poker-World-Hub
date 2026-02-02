@@ -17,12 +17,17 @@ export default function TriviaResult({
     xpEarned,
     diamondsEarned,
     streak,
+    streakMultiplier = 1,
+    isPerfect: isPerfectProp,
+    showSpinButton = false,
     onPlayAgain,
+    onSpinWheel,
     onGoHome
 }) {
     const accuracy = Math.round((correctCount / totalQuestions) * 100);
-    const isPerfect = correctCount === totalQuestions;
+    const isPerfect = isPerfectProp || correctCount === totalQuestions;
     const isArcade = mode === 'arcade';
+    const hasMultiplier = streakMultiplier > 1;
 
     useEffect(() => {
         if (accuracy >= 70) {
@@ -101,6 +106,14 @@ export default function TriviaResult({
                             <div className="stat-label">Diamonds</div>
                         </div>
                     )}
+
+                    {hasMultiplier && (
+                        <div className="stat-item multiplier">
+                            <Zap size={24} className="stat-icon mult" />
+                            <div className="stat-value">{streakMultiplier}x</div>
+                            <div className="stat-label">Streak Bonus</div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Streak Info */}
@@ -135,6 +148,14 @@ export default function TriviaResult({
                         <button className="action-btn primary" onClick={onPlayAgain}>
                             <ChevronRight size={18} />
                             Play Again (10 <Gem size={14} />)
+                        </button>
+                    )}
+
+                    {/* Spin Wheel Button - only for perfect scores */}
+                    {showSpinButton && onSpinWheel && (
+                        <button className="action-btn spin-wheel" onClick={onSpinWheel}>
+                            <Trophy size={18} />
+                            Spin Prize Wheel!
                         </button>
                     )}
                 </div>
@@ -236,6 +257,15 @@ export default function TriviaResult({
                 .stat-icon.diamond {
                     color: #06b6d4;
                 }
+                
+                .stat-icon.mult {
+                    color: #ffd700;
+                }
+                
+                .stat-item.multiplier {
+                    background: rgba(255, 215, 0, 0.1);
+                    border: 1px solid rgba(255, 215, 0, 0.3);
+                }
 
                 .stat-value {
                     font-size: 24px;
@@ -317,6 +347,23 @@ export default function TriviaResult({
                 .action-btn.primary:hover {
                     transform: translateY(-2px);
                     box-shadow: 0 4px 20px rgba(14, 165, 233, 0.4);
+                }
+                
+                .action-btn.spin-wheel {
+                    background: linear-gradient(135deg, #ffd700, #ff8c00);
+                    border: none;
+                    color: #000;
+                    animation: pulse 1.5s ease-in-out infinite;
+                }
+                
+                .action-btn.spin-wheel:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 20px rgba(255, 215, 0, 0.5);
+                }
+                
+                @keyframes pulse {
+                    0%, 100% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
+                    50% { box-shadow: 0 0 25px rgba(255, 215, 0, 0.8); }
                 }
             `}</style>
         </div>
