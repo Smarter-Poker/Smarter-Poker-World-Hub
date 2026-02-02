@@ -55,7 +55,7 @@ export default async function handler(req, res) {
     if (limits) {
       const { data: sessions } = await supabase
         .from('commander_player_sessions')
-        .select('total_buyin, total_cashout')
+        .select('total_buyin')
         .eq('player_id', playerId)
         .gte('check_in_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
 
