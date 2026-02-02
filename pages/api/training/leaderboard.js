@@ -41,7 +41,7 @@ export default async function handler(req, res) {
                 periodKey = now.toISOString().split('T')[0];
         }
 
-        // Fetch leaderboard
+        // Fetch leaderboard - use left join to handle missing profiles
         const { data: leaderboard, error } = await supabase
             .from('training_leaderboard')
             .select(`
@@ -51,8 +51,7 @@ export default async function handler(req, res) {
                 questions_correct,
                 accuracy,
                 total_xp,
-                best_streak,
-                profiles!inner(username, avatar_url)
+                best_streak
             `)
             .eq('period_type', period)
             .eq('period_key', periodKey)
@@ -62,12 +61,28 @@ export default async function handler(req, res) {
 
         if (error) throw error;
 
+        // Fetch profiles separately for any entries
+        const userIds = (leaderboard || []).map(e => e.user_id);
+        let profilesMap = {};
+
+        if (userIds.length > 0) {
+            const { data: profiles } = await supabase
+                .from('profiles')
+                .select('id, username, avatar_url')
+                .in('id', userIds);
+
+            profilesMap = (profiles || []).reduce((acc, p) => {
+                acc[p.id] = p;
+                return acc;
+            }, {});
+        }
+
         // Format response with rankings
         const rankings = (leaderboard || []).map((entry, index) => ({
             rank: index + 1,
             userId: entry.user_id,
-            username: entry.profiles?.username || 'Anonymous',
-            avatarUrl: entry.profiles?.avatar_url,
+            username: profilesMap[entry.user_id]?.username || 'Anonymous',
+            avatarUrl: profilesMap[entry.user_id]?.avatar_url,
             accuracy: entry.accuracy,
             sessionsCompleted: entry.sessions_completed,
             questionsCorrect: entry.questions_correct,
@@ -85,6 +100,6 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('[Leaderboard] Error:', error.message);
-        return res.status(500).json({ error: 'Failed to fetch leaderboard' });
+        return res.status(500).json({ error: 'Failed to fetch leaderboard', details: error.message });
     }
 }

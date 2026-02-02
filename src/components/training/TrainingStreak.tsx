@@ -173,12 +173,12 @@ const styles = {
         color: '#ff6b35'
     },
     loading: {
-        textAlign: 'center',
+        textAlign: 'center' as const,
         padding: 20,
         color: '#666'
     },
     streakDisplay: {
-        textAlign: 'center',
+        textAlign: 'center' as const,
         padding: '20px 0'
     },
     streakNumber: {
@@ -282,8 +282,8 @@ const styles = {
         background: 'rgba(255,255,255,0.05)',
         borderRadius: 8,
         border: '1px solid',
-        textAlign: 'center',
-        position: 'relative'
+        textAlign: 'center' as const,
+        position: 'relative' as const
     },
     mDays: {
         fontSize: 12,
@@ -295,7 +295,7 @@ const styles = {
         color: '#888'
     },
     claimed: {
-        position: 'absolute',
+        position: 'absolute' as const,
         top: -4,
         right: -4,
         width: 16,

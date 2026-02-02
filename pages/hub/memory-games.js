@@ -1695,6 +1695,7 @@ export default function MemoryGamesPage() {
     // Adaptive training state
     const [weakSpots, setWeakSpots] = useState([]);
     const [adaptiveLoading, setAdaptiveLoading] = useState(false);
+    const [lobbySuggestions, setLobbySuggestions] = useState([]);
 
     // Hamburger menu preferences
     const [preferences, setPreferences] = useState({
@@ -2368,10 +2369,27 @@ export default function MemoryGamesPage() {
         }
     };
 
-    // Fetch weak spots on mount when user is available
+    // Fetch lobby suggestions for proactive learning
+    const fetchLobbySuggestions = async () => {
+        if (!userId) return;
+
+        try {
+            const response = await fetch(`/api/gto/lobby-suggestions?userId=${userId}`);
+            const result = await response.json();
+
+            if (result.success && result.suggestions) {
+                setLobbySuggestions(result.suggestions);
+            }
+        } catch (error) {
+            console.error('[MemoryGames] Lobby suggestions error:', error);
+        }
+    };
+
+    // Fetch weak spots and suggestions on mount when user is available
     useEffect(() => {
         if (userId && gameState === 'lobby') {
             fetchWeakSpots();
+            fetchLobbySuggestions();
         }
     }, [userId, gameState]);
 
@@ -2749,6 +2767,62 @@ export default function MemoryGamesPage() {
                                             ? `Train ${weakSpots[0]?.area}`
                                             : 'Start Smart Practice'}
                                     </button>
+                                </div>
+                            )}
+
+                            {/* Jarvis Suggestions Panel */}
+                            {userId && lobbySuggestions.length > 0 && (
+                                <div style={{
+                                    background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(236, 72, 153, 0.12))',
+                                    border: '1px solid rgba(139, 92, 246, 0.25)',
+                                    borderRadius: 16,
+                                    padding: 16,
+                                    marginBottom: 20
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                                        <span style={{ fontSize: 14, color: '#A78BFA' }}>Jarvis Suggests</span>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                        {lobbySuggestions.map((suggestion, i) => (
+                                            <div
+                                                key={i}
+                                                onClick={() => {
+                                                    if (suggestion.actionType === 'daily_challenge') {
+                                                        // Start daily challenge
+                                                        startDailyChallenge && startDailyChallenge();
+                                                    } else if (suggestion.actionType === 'start_level') {
+                                                        // Start specific level
+                                                        const levelData = LEVEL_CONFIGS.find(l => l.id === suggestion.levelId);
+                                                        if (levelData) selectLevel(levelData);
+                                                    } else if (suggestion.actionType === 'adaptive_training') {
+                                                        startAdaptiveTraining();
+                                                    }
+                                                }}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'space-between',
+                                                    background: 'rgba(0, 0, 0, 0.25)',
+                                                    borderRadius: 10,
+                                                    padding: '10px 14px',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.2s ease'
+                                                }}
+                                            >
+                                                <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>
+                                                    {suggestion.message}
+                                                </span>
+                                                <span style={{
+                                                    fontSize: 11,
+                                                    color: '#8B5CF6',
+                                                    fontWeight: 600,
+                                                    whiteSpace: 'nowrap'
+                                                }}>
+                                                    {suggestion.action}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             )}
 

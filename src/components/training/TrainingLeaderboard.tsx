@@ -157,15 +157,15 @@ const styles = {
     list: {
         padding: 12,
         maxHeight: 400,
-        overflowY: 'auto'
+        overflowY: 'auto' as const
     },
     loading: {
-        textAlign: 'center',
+        textAlign: 'center' as const,
         padding: 20,
         color: '#666'
     },
     empty: {
-        textAlign: 'center',
+        textAlign: 'center' as const,
         padding: 30,
         color: '#666'
     },
@@ -200,7 +200,7 @@ const styles = {
         width: 40,
         height: 40,
         borderRadius: '50%',
-        objectFit: 'cover'
+        objectFit: 'cover' as const
     },
     avatarPlaceholder: {
         width: 40,

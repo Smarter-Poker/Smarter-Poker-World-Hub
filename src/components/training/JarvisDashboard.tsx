@@ -186,12 +186,12 @@ const styles = {
         color: '#888'
     },
     loading: {
-        textAlign: 'center',
+        textAlign: 'center' as const,
         padding: 40,
         color: '#00d4ff'
     },
     empty: {
-        textAlign: 'center',
+        textAlign: 'center' as const,
         padding: 40,
         color: '#666'
     },
@@ -205,7 +205,7 @@ const styles = {
         background: 'rgba(0,212,255,0.1)',
         borderRadius: 10,
         padding: 12,
-        textAlign: 'center'
+        textAlign: 'center' as const
     },
     statValue: {
         fontSize: 20,
@@ -244,7 +244,7 @@ const styles = {
     },
     insightsSection: {
         display: 'flex',
-        flexDirection: 'column',
+        flexDirection: 'column' as const,
         gap: 10,
         marginBottom: 16
     },
@@ -319,7 +319,7 @@ const styles = {
         background: 'rgba(255,255,255,0.05)',
         borderRadius: 8,
         padding: 10,
-        textAlign: 'center'
+        textAlign: 'center' as const
     },
     weeklyValue: {
         display: 'block',

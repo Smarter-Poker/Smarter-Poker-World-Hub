@@ -159,7 +159,7 @@ const styles = {
         display: 'flex',
         gap: 6,
         marginTop: 12,
-        flexWrap: 'wrap'
+        flexWrap: 'wrap' as const
     },
     catBtn: {
         padding: '4px 10px',
@@ -177,13 +177,13 @@ const styles = {
     grid: {
         padding: 12,
         display: 'flex',
-        flexDirection: 'column',
+        flexDirection: 'column' as const,
         gap: 10,
         maxHeight: 400,
-        overflowY: 'auto'
+        overflowY: 'auto' as const
     },
     loading: {
-        textAlign: 'center',
+        textAlign: 'center' as const,
         padding: 20,
         color: '#666'
     },
@@ -198,7 +198,7 @@ const styles = {
     icon: {
         fontSize: 28,
         width: 40,
-        textAlign: 'center'
+        textAlign: 'center' as const
     },
     achInfo: {
         flex: 1
@@ -227,7 +227,7 @@ const styles = {
     },
     reward: {
         display: 'flex',
-        flexDirection: 'column',
+        flexDirection: 'column' as const,
         alignItems: 'flex-end'
     },
     diamonds: {
