@@ -100,7 +100,7 @@ const GamificationService = {
                     userId,
                     sessionData: {
                         accuracy,
-                        category: gameId?.split('_')[0] || 'general', // Extract category from gameId
+                        gameId, // Pass full gameId for category detection
                         isPerfect: accuracy === 100
                     }
                 })

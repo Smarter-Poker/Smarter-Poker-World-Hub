@@ -8,9 +8,10 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 
-export default function AchievementToast({ achievements = [], onDismiss }) {
+export default function AchievementToast({ achievements = [], onDismiss, userId }) {
     const [visible, setVisible] = useState(achievements.length > 0);
     const [currentIndex, setCurrentIndex] = useState(0);
+    const [sharing, setSharing] = useState(false);
 
     useEffect(() => {
         if (achievements.length === 0) return;
@@ -28,10 +29,42 @@ export default function AchievementToast({ achievements = [], onDismiss }) {
                 setVisible(false);
                 onDismiss?.();
             }
-        }, 4000);
+        }, 6000); // Increased to give time to share
 
         return () => clearTimeout(timer);
     }, [visible, currentIndex, achievements.length, onDismiss]);
+
+    const handleShare = async (achievement) => {
+        if (!userId || sharing) return;
+        setSharing(true);
+
+        try {
+            const res = await fetch('/api/training/share', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId,
+                    shareType: 'achievement',
+                    data: {
+                        name: achievement.name,
+                        description: achievement.description,
+                        icon: achievement.icon,
+                        diamonds: achievement.diamond_reward
+                    }
+                })
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                // Show confirmation
+                alert('🎉 Shared to your feed!');
+            }
+        } catch (error) {
+            console.error('Share error:', error);
+        } finally {
+            setSharing(false);
+        }
+    };
 
     const achievement = achievements[currentIndex];
     if (!achievement || !visible) return null;
@@ -57,12 +90,23 @@ export default function AchievementToast({ achievements = [], onDismiss }) {
                         </div>
                     )}
                 </div>
-                <button
-                    onClick={() => { setVisible(false); onDismiss?.(); }}
-                    style={styles.closeBtn}
-                >
-                    ✕
-                </button>
+                <div style={styles.actions}>
+                    {userId && (
+                        <button
+                            onClick={() => handleShare(achievement)}
+                            disabled={sharing}
+                            style={styles.shareBtn}
+                        >
+                            {sharing ? '...' : '📢'}
+                        </button>
+                    )}
+                    <button
+                        onClick={() => { setVisible(false); onDismiss?.(); }}
+                        style={styles.closeBtn}
+                    >
+                        ✕
+                    </button>
+                </div>
             </motion.div>
         </AnimatePresence>
     );
@@ -118,6 +162,21 @@ const styles = {
         color: '#22d3ee',
         marginTop: 4,
     },
+    actions: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+    },
+    shareBtn: {
+        background: 'linear-gradient(135deg, #00E0FF, #0099FF)',
+        border: 'none',
+        borderRadius: 8,
+        color: '#fff',
+        fontSize: 16,
+        cursor: 'pointer',
+        padding: '8px 12px',
+        fontWeight: 600,
+    },
     closeBtn: {
         background: 'transparent',
         border: 'none',
@@ -127,3 +186,4 @@ const styles = {
         padding: 4,
     }
 };
+

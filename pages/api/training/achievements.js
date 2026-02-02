@@ -6,6 +6,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { notifyAchievementUnlock } from '../../../src/utils/trainingNotifications';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -167,6 +168,14 @@ export default async function handler(req, res) {
                             p_amount: def.diamond_reward
                         });
                     }
+
+                    // Send push notification
+                    await notifyAchievementUnlock(userId, {
+                        id: def.id,
+                        name: def.name,
+                        icon: def.icon,
+                        diamondReward: def.diamond_reward
+                    }).catch(e => console.warn('[Achievements] Push failed:', e.message));
 
                     newlyUnlocked.push({
                         ...def,

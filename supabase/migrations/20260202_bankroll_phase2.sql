@@ -14,9 +14,9 @@ CREATE TABLE IF NOT EXISTS bankroll_goals (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Add notes and media to ledger entries (for session deep dive)
-ALTER TABLE ledger_entries ADD COLUMN IF NOT EXISTS notes TEXT;
-ALTER TABLE ledger_entries ADD COLUMN IF NOT EXISTS media_urls JSONB;
+-- Add notes and media to bankroll_ledger (for session deep dive)
+ALTER TABLE bankroll_ledger ADD COLUMN IF NOT EXISTS notes TEXT;
+ALTER TABLE bankroll_ledger ADD COLUMN IF NOT EXISTS media_urls JSONB;
 
 -- Geofence Visits Table (for 12-hour reminder)
 CREATE TABLE IF NOT EXISTS geofence_visits (

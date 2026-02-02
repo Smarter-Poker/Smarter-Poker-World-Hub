@@ -33,7 +33,7 @@ export default async function handler(req, res) {
     try {
         // Fetch historical data for variance calculation
         const { data: entries, error } = await supabase
-            .from('ledger_entries')
+            .from('bankroll_ledger')
             .select('gross_in, gross_out, entry_date')
             .eq('user_id', userId)
             .order('entry_date', { ascending: false })

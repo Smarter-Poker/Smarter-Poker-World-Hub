@@ -26,7 +26,7 @@ export default async function handler(req, res) {
     try {
         // Build query
         let query = supabase
-            .from('ledger_entries')
+            .from('bankroll_ledger')
             .select(`
                 id,
                 entry_date,

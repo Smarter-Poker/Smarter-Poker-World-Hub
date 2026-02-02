@@ -1,56 +1,405 @@
-/* CLUB ARENA — Player Stats | Facebook Dark Theme */
+/* ═══════════════════════════════════════════════════════════════════════════════
+   CLUB ARENA — Player Stats | FULLY WIRED
+   Facebook Dark Theme | Real Stats from Hand History & Gameplay
+   ═══════════════════════════════════════════════════════════════════════════════ */
+import { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { useState, useEffect } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 
-const FB = { primary: '#2374E1', background: '#18191A', cardBg: '#242526', textPrimary: '#E4E6EB', textSecondary: '#B0B3B8', border: '#3E4042', success: '#31A24C' };
+// Facebook Dark Color Scheme
+const FB = {
+    primary: '#2374E1',
+    background: '#18191A',
+    cardBg: '#242526',
+    textPrimary: '#E4E6EB',
+    textSecondary: '#B0B3B8',
+    border: '#3E4042',
+    success: '#31A24C',
+    danger: '#FA383E',
+    gold: '#F7C52A',
+    hover: '#3A3B3C',
+};
 
 export default function PlayerStats() {
     const router = useRouter();
     const { club: clubIdParam } = router.query;
+
+    // State
+    const [user, setUser] = useState(null);
     const [club, setClub] = useState(null);
+    const [membership, setMembership] = useState(null);
+    const [stats, setStats] = useState({
+        handsPlayed: 0,
+        handsWon: 0,
+        winRate: 0,
+        totalWinnings: 0,
+        biggestPot: 0,
+        bestHand: null,
+        sessionsPlayed: 0,
+        hoursPlayed: 0,
+        vpip: 0, // Voluntarily Put $ In Pot %
+        pfr: 0,  // Pre-Flop Raise %
+        avgPot: 0,
+    });
+    const [recentActivity, setRecentActivity] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => { if (clubIdParam) loadData(); }, [clubIdParam]);
+    // Time period filter
+    const [period, setPeriod] = useState('all'); // 'week' | 'month' | 'all'
 
-    async function loadData() {
+    // ═══════════════════════════════════════════════════════════════════════════
+    // LOAD DATA
+    // ═══════════════════════════════════════════════════════════════════════════
+    const loadData = useCallback(async () => {
+        if (!clubIdParam) return;
+        setIsLoading(true);
         try {
-            const { data: clubData } = await supabase.from('clubs').select('*').eq('club_id', clubIdParam).single();
-            if (clubData) setClub(clubData);
-        } catch (e) { console.error('[PlayerStats] Error:', e); } finally { setIsLoading(false); }
-    }
+            // Get authenticated user
+            let authUser = null;
+            if (typeof window !== 'undefined') {
+                const explicitAuth = localStorage.getItem('smarter-poker-auth');
+                if (explicitAuth) authUser = JSON.parse(explicitAuth)?.user || null;
+                if (!authUser) {
+                    const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+                    if (sbKeys.length > 0) authUser = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}')?.user || null;
+                }
+            }
+            if (!authUser) {
+                const { data: { user: supaUser } } = await supabase.auth.getUser();
+                authUser = supaUser;
+            }
+            setUser(authUser);
 
-    const S = { page: { minHeight: '100vh', background: FB.background, paddingBottom: '80px', fontFamily: '-apple-system, sans-serif' }, container: { padding: '16px 20px 40px', maxWidth: '600px', margin: '0 auto' }, backBtn: { background: FB.cardBg, border: `1px solid ${FB.border}`, color: FB.primary, padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', marginBottom: '16px', fontSize: '14px', fontWeight: 600 }, pageTitle: { fontSize: '24px', fontWeight: 700, color: FB.textPrimary, marginBottom: '20px' }, loading: { textAlign: 'center', padding: '60px 0', color: FB.textSecondary, fontSize: '15px' }, statGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }, statCard: { padding: '20px 16px', borderRadius: '8px', background: FB.cardBg, border: `1px solid ${FB.border}`, textAlign: 'center' }, statValue: { fontSize: '28px', fontWeight: 700, color: FB.primary }, statLabel: { fontSize: '12px', color: FB.textSecondary, marginTop: '6px', fontWeight: 600, textTransform: 'uppercase' }, sectionTitle: { fontSize: '12px', fontWeight: 700, color: FB.textSecondary, marginBottom: '12px', marginTop: '24px', textTransform: 'uppercase', letterSpacing: '0.5px' }, listItem: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderRadius: '8px', background: FB.cardBg, border: `1px solid ${FB.border}`, marginBottom: '8px' }, itemLabel: { color: FB.textPrimary, fontSize: '15px', fontWeight: 500 }, itemValue: { color: FB.textSecondary, fontSize: '14px' }, bottomNav: { position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1000, background: FB.cardBg, borderTop: `1px solid ${FB.border}`, boxShadow: '0 -2px 10px rgba(0,0,0,0.3)' }, bottomNavItems: { display: 'flex', justifyContent: 'space-around', padding: '6px 0' }, bottomNavItem: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', flex: 1, padding: '8px 4px', textDecoration: 'none', color: FB.textSecondary }, bottomNavIcon: { width: '24px', height: '24px' }, bottomNavLabel: { fontSize: '11px', fontWeight: 600 } };
+            // Get club data
+            const { data: clubData } = await supabase
+                .from('clubs')
+                .select('*')
+                .eq('club_id', clubIdParam)
+                .single();
 
-    const stats = [
-        { value: '0', label: 'Hands Played' },
-        { value: '0', label: 'Win Rate' },
-        { value: '0', label: 'Best Hand' },
-        { value: '0', label: 'Tournaments' },
-    ];
+            if (clubData) {
+                setClub(clubData);
+
+                // Get membership
+                if (authUser) {
+                    const { data: memberData } = await supabase
+                        .from('club_members')
+                        .select('*')
+                        .eq('club_id', clubData.id)
+                        .eq('user_id', authUser.id)
+                        .single();
+                    setMembership(memberData);
+
+                    // Calculate date range
+                    let dateFilter = null;
+                    const now = new Date();
+                    if (period === 'week') {
+                        dateFilter = new Date(now.setDate(now.getDate() - 7)).toISOString();
+                    } else if (period === 'month') {
+                        dateFilter = new Date(now.setMonth(now.getMonth() - 1)).toISOString();
+                    }
+
+                    // Fetch hand history for this user in this club
+                    let handQuery = supabase
+                        .from('hand_history')
+                        .select('*')
+                        .eq('user_id', authUser.id)
+                        .eq('club_id', clubData.id);
+
+                    if (dateFilter) {
+                        handQuery = handQuery.gte('created_at', dateFilter);
+                    }
+
+                    const { data: hands } = await handQuery.order('created_at', { ascending: false });
+
+                    // Calculate stats from hands
+                    if (hands && hands.length > 0) {
+                        const handsPlayed = hands.length;
+                        const handsWon = hands.filter(h => h.result === 'win' || h.profit > 0).length;
+                        const totalWinnings = hands.reduce((sum, h) => sum + (h.profit || 0), 0);
+                        const biggestPot = Math.max(...hands.map(h => Math.abs(h.pot_size || h.profit || 0)));
+
+                        // Find best hand (if stored)
+                        const bestHandEntry = hands.find(h => h.winning_hand);
+
+                        setStats({
+                            handsPlayed,
+                            handsWon,
+                            winRate: handsPlayed > 0 ? Math.round((handsWon / handsPlayed) * 100) : 0,
+                            totalWinnings,
+                            biggestPot,
+                            bestHand: bestHandEntry?.winning_hand || null,
+                            sessionsPlayed: memberData?.sessions_played || 0,
+                            hoursPlayed: memberData?.hours_played || 0,
+                            vpip: memberData?.vpip || 0,
+                            pfr: memberData?.pfr || 0,
+                            avgPot: handsPlayed > 0 ? Math.round(totalWinnings / handsPlayed) : 0,
+                        });
+
+                        // Recent activity (last 10 hands)
+                        setRecentActivity(hands.slice(0, 10).map(h => ({
+                            id: h.id,
+                            type: h.result === 'win' || h.profit > 0 ? 'win' : 'loss',
+                            amount: Math.abs(h.profit || 0),
+                            hand: h.winning_hand || h.hand_type || 'Hand',
+                            date: h.created_at,
+                            tableName: h.table_name || 'Table',
+                        })));
+                    } else {
+                        // Try to get stats from chip_transactions as fallback
+                        let txQuery = supabase
+                            .from('chip_transactions')
+                            .select('*')
+                            .eq('user_id', authUser.id)
+                            .eq('club_id', clubData.id)
+                            .in('type', ['win', 'loss', 'table_win', 'table_loss']);
+
+                        if (dateFilter) {
+                            txQuery = txQuery.gte('created_at', dateFilter);
+                        }
+
+                        const { data: txns } = await txQuery.order('created_at', { ascending: false });
+
+                        if (txns && txns.length > 0) {
+                            const wins = txns.filter(t => t.type === 'win' || t.type === 'table_win' || t.amount > 0);
+                            const totalWinnings = txns.reduce((sum, t) => sum + (t.amount || 0), 0);
+
+                            setStats({
+                                handsPlayed: txns.length,
+                                handsWon: wins.length,
+                                winRate: txns.length > 0 ? Math.round((wins.length / txns.length) * 100) : 0,
+                                totalWinnings,
+                                biggestPot: Math.max(...txns.map(t => Math.abs(t.amount || 0))),
+                                bestHand: null,
+                                sessionsPlayed: memberData?.sessions_played || 0,
+                                hoursPlayed: memberData?.hours_played || 0,
+                                vpip: 0,
+                                pfr: 0,
+                                avgPot: txns.length > 0 ? Math.round(totalWinnings / txns.length) : 0,
+                            });
+
+                            setRecentActivity(txns.slice(0, 10).map(t => ({
+                                id: t.id,
+                                type: t.amount > 0 ? 'win' : 'loss',
+                                amount: Math.abs(t.amount || 0),
+                                hand: t.notes || 'Table Session',
+                                date: t.created_at,
+                                tableName: 'Cash Game',
+                            })));
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('[PlayerStats] Error loading data:', e);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [clubIdParam, period]);
+
+    useEffect(() => { loadData(); }, [loadData]);
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // STYLES
+    // ═══════════════════════════════════════════════════════════════════════════
+    const S = {
+        page: { minHeight: '100vh', background: FB.background, paddingBottom: '80px', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif' },
+        container: { padding: '16px 20px 40px', maxWidth: '600px', margin: '0 auto' },
+        backBtn: { background: FB.cardBg, border: `1px solid ${FB.border}`, color: FB.primary, padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', marginBottom: '16px', fontSize: '14px', fontWeight: 600 },
+        pageTitle: { fontSize: '24px', fontWeight: 700, color: FB.textPrimary, marginBottom: '20px' },
+        loading: { textAlign: 'center', padding: '60px 0', color: FB.textSecondary, fontSize: '15px' },
+        emptyState: { textAlign: 'center', padding: '40px 20px', background: FB.cardBg, border: `1px solid ${FB.border}`, borderRadius: '8px', color: FB.textSecondary },
+
+        // Period tabs
+        periodTabs: { display: 'flex', gap: '8px', marginBottom: '20px' },
+        periodTab: { flex: 1, padding: '10px', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' },
+
+        // Stats grid
+        statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '24px' },
+        statCard: { padding: '16px', borderRadius: '8px', background: FB.cardBg, border: `1px solid ${FB.border}`, textAlign: 'center' },
+        statIcon: { fontSize: '24px', marginBottom: '8px' },
+        statValue: { fontSize: '24px', fontWeight: 700, color: FB.primary },
+        statLabel: { fontSize: '11px', color: FB.textSecondary, marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' },
+
+        // Big stat card
+        bigStatCard: { padding: '24px', borderRadius: '8px', background: `linear-gradient(135deg, ${FB.primary} 0%, #1A5DC8 100%)`, textAlign: 'center', marginBottom: '20px' },
+        bigStatValue: { fontSize: '36px', fontWeight: 700, color: '#fff' },
+        bigStatLabel: { fontSize: '14px', color: 'rgba(255,255,255,0.8)', marginTop: '4px' },
+
+        sectionTitle: { fontSize: '12px', fontWeight: 700, color: FB.textSecondary, marginBottom: '12px', marginTop: '24px', textTransform: 'uppercase', letterSpacing: '0.5px' },
+
+        // Activity row
+        activityRow: { display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '8px', background: FB.cardBg, border: `1px solid ${FB.border}`, marginBottom: '8px' },
+        activityIcon: { width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 },
+        activityInfo: { flex: 1, minWidth: 0 },
+        activityTitle: { color: FB.textPrimary, fontSize: '14px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+        activityMeta: { color: FB.textSecondary, fontSize: '12px' },
+        activityAmount: { fontSize: '15px', fontWeight: 700, textAlign: 'right' },
+    };
+
+    const formatHandRank = (hand) => {
+        if (!hand) return null;
+        const ranks = {
+            'royal_flush': '🏆 Royal Flush',
+            'straight_flush': '🔥 Straight Flush',
+            'four_of_a_kind': '💎 Four of a Kind',
+            'full_house': '🏠 Full House',
+            'flush': '♠️ Flush',
+            'straight': '📏 Straight',
+            'three_of_a_kind': '🎲 Three of a Kind',
+            'two_pair': '👥 Two Pair',
+            'one_pair': '👆 One Pair',
+            'high_card': '🃏 High Card',
+        };
+        return ranks[hand.toLowerCase().replace(/\s+/g, '_')] || hand;
+    };
+
+    const formatDate = (dateStr) => {
+        if (!dateStr) return 'N/A';
+        const d = new Date(dateStr);
+        const now = new Date();
+        const diffMs = now - d;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMins / 60);
+        const diffDays = Math.floor(diffHours / 24);
+
+        if (diffMins < 60) return `${diffMins}m ago`;
+        if (diffHours < 24) return `${diffHours}h ago`;
+        if (diffDays < 7) return `${diffDays}d ago`;
+        return d.toLocaleDateString();
+    };
 
     return (
         <>
-            <Head><title>Player Stats | Club Arena</title><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" /></Head>
+            <Head>
+                <title>My Stats | Club Arena</title>
+                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+            </Head>
+
             <div style={S.page}>
                 <UniversalHeader pageDepth={2} />
+
                 <div style={S.container}>
-                    <button onClick={() => router.push(`/hub/club-arena/lobby?club=${clubIdParam}`)} style={S.backBtn}>&#8592; Back to Lobby</button>
-                    <h1 style={S.pageTitle}>Player Stats</h1>
-                    {isLoading ? <div style={S.loading}>Loading...</div> : (
+                    <button onClick={() => router.push(`/hub/club-arena/lobby?club=${clubIdParam}`)} style={S.backBtn}>
+                        &#8592; Back to Lobby
+                    </button>
+
+                    <h1 style={S.pageTitle}>📊 My Stats</h1>
+
+                    {/* Period Tabs */}
+                    <div style={S.periodTabs}>
+                        {[
+                            { id: 'week', label: 'This Week' },
+                            { id: 'month', label: 'This Month' },
+                            { id: 'all', label: 'All Time' },
+                        ].map(p => (
+                            <button
+                                key={p.id}
+                                style={{
+                                    ...S.periodTab,
+                                    background: period === p.id ? FB.primary : FB.cardBg,
+                                    color: period === p.id ? '#fff' : FB.textSecondary,
+                                }}
+                                onClick={() => setPeriod(p.id)}
+                            >
+                                {p.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {isLoading ? (
+                        <div style={S.loading}>Loading stats...</div>
+                    ) : !user ? (
+                        <div style={S.emptyState}><p>Sign in to view your stats</p></div>
+                    ) : (
                         <>
-                            <div style={S.statGrid}>
-                                {stats.map((stat, i) => <div key={i} style={S.statCard}><div style={S.statValue}>{stat.value}</div><div style={S.statLabel}>{stat.label}</div></div>)}
+                            {/* Net Winnings Card */}
+                            <div style={{
+                                ...S.bigStatCard,
+                                background: stats.totalWinnings >= 0
+                                    ? `linear-gradient(135deg, ${FB.success} 0%, #259A3E 100%)`
+                                    : `linear-gradient(135deg, ${FB.danger} 0%, #D32F2F 100%)`
+                            }}>
+                                <div style={S.bigStatValue}>
+                                    {stats.totalWinnings >= 0 ? '+' : ''}{stats.totalWinnings.toLocaleString()}
+                                </div>
+                                <div style={S.bigStatLabel}>Net Profit/Loss ({period === 'week' ? 'Week' : period === 'month' ? 'Month' : 'All Time'})</div>
                             </div>
+
+                            {/* Stats Grid */}
+                            <div style={S.statsGrid}>
+                                <div style={S.statCard}>
+                                    <div style={S.statIcon}>🃏</div>
+                                    <div style={S.statValue}>{stats.handsPlayed.toLocaleString()}</div>
+                                    <div style={S.statLabel}>Hands Played</div>
+                                </div>
+                                <div style={S.statCard}>
+                                    <div style={S.statIcon}>🏆</div>
+                                    <div style={{ ...S.statValue, color: FB.success }}>{stats.winRate}%</div>
+                                    <div style={S.statLabel}>Win Rate</div>
+                                </div>
+                                <div style={S.statCard}>
+                                    <div style={S.statIcon}>💰</div>
+                                    <div style={{ ...S.statValue, color: FB.gold }}>{stats.biggestPot.toLocaleString()}</div>
+                                    <div style={S.statLabel}>Biggest Pot</div>
+                                </div>
+                                <div style={S.statCard}>
+                                    <div style={S.statIcon}>✅</div>
+                                    <div style={S.statValue}>{stats.handsWon.toLocaleString()}</div>
+                                    <div style={S.statLabel}>Hands Won</div>
+                                </div>
+                            </div>
+
+                            {/* Best Hand */}
+                            {stats.bestHand && (
+                                <>
+                                    <h2 style={S.sectionTitle}>Best Hand</h2>
+                                    <div style={{ ...S.statCard, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
+                                        <span style={{ fontSize: '32px' }}>🏆</span>
+                                        <span style={{ fontSize: '18px', fontWeight: 700, color: FB.gold }}>
+                                            {formatHandRank(stats.bestHand)}
+                                        </span>
+                                    </div>
+                                </>
+                            )}
+
+                            {/* Recent Activity */}
                             <h2 style={S.sectionTitle}>Recent Activity</h2>
-                            <div style={S.listItem}><span style={S.itemLabel}>No activity yet</span><span style={S.itemValue}>—</span></div>
+                            {recentActivity.length > 0 ? recentActivity.map(activity => (
+                                <div key={activity.id} style={S.activityRow}>
+                                    <div style={{
+                                        ...S.activityIcon,
+                                        background: activity.type === 'win' ? FB.success : FB.danger
+                                    }}>
+                                        {activity.type === 'win' ? '✓' : '✗'}
+                                    </div>
+                                    <div style={S.activityInfo}>
+                                        <div style={S.activityTitle}>{activity.hand}</div>
+                                        <div style={S.activityMeta}>
+                                            {activity.tableName} • {formatDate(activity.date)}
+                                        </div>
+                                    </div>
+                                    <div style={{
+                                        ...S.activityAmount,
+                                        color: activity.type === 'win' ? FB.success : FB.danger
+                                    }}>
+                                        {activity.type === 'win' ? '+' : '-'}{activity.amount.toLocaleString()}
+                                    </div>
+                                </div>
+                            )) : (
+                                <div style={S.emptyState}>
+                                    <span style={{ fontSize: '40px', display: 'block', marginBottom: '12px' }}>🎮</span>
+                                    <p>No activity yet. Play some hands to see your stats!</p>
+                                </div>
+                            )}
                         </>
                     )}
                 </div>
-                <ClubArenaBottomNav clubId={clubIdParam} activePage="data" />
+
+                <ClubArenaBottomNav clubId={clubIdParam} activePage="player-stats" />
             </div>
         </>
     );

@@ -181,6 +181,34 @@ export default function StreaksPage() {
                                 Best: {streak.longestStreak} days
                             </div>
                         )}
+                        {streak.currentStreak >= 3 && (
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        const res = await fetch('/api/training/share', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({
+                                                userId: user.id,
+                                                shareType: 'streak',
+                                                data: {
+                                                    days: streak.currentStreak
+                                                }
+                                            })
+                                        });
+                                        const data = await res.json();
+                                        if (data.success) {
+                                            alert('🔥 Streak shared to your feed!');
+                                        }
+                                    } catch (e) {
+                                        console.error('Share error:', e);
+                                    }
+                                }}
+                                style={styles.shareStreakBtn}
+                            >
+                                📢 Share Streak
+                            </button>
+                        )}
                     </motion.div>
 
                     {/* Next Milestone Progress */}
@@ -345,6 +373,21 @@ const styles = {
         padding: '8px 16px',
         borderRadius: '20px',
         display: 'inline-block'
+    },
+    shareStreakBtn: {
+        marginTop: '20px',
+        padding: '12px 24px',
+        background: 'linear-gradient(135deg, #00E0FF, #0099FF)',
+        border: 'none',
+        borderRadius: '12px',
+        color: '#fff',
+        fontWeight: 600,
+        fontSize: '14px',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        margin: '20px auto 0'
     },
     nextMilestoneCard: {
         background: '#1a1a1a',

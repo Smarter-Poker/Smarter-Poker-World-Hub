@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { Zap, Trophy, BookOpen, GraduationCap, Gem, Lock, ChevronRight, Flame, Heart, Skull, Infinity } from 'lucide-react';
+import { Zap, Trophy, BookOpen, GraduationCap, Gem, Lock, ChevronRight, Flame, Heart, Skull, Infinity, Shuffle, Swords, Calendar } from 'lucide-react';
 import MetalFrame from '../ui/MetalFrame';
 import HexButton from '../ui/HexButton';
 import PortholeIcon from '../ui/PortholeIcon';
@@ -61,6 +61,36 @@ const MODE_CARDS = [
         glowColor: '#8b5cf6',
         diamondReward: '1+/Q',
         perfectBonus: null
+    },
+    {
+        id: 'mixed',
+        name: 'Mixed Mode',
+        description: 'Rotating categories: History → Rules → Pro',
+        icon: Shuffle,
+        color: '#00D4FF',
+        glowColor: '#00D4FF',
+        diamondReward: '1/Q',
+        perfectBonus: null
+    },
+    {
+        id: 'pvp',
+        name: '1v1 Battle',
+        description: 'Challenge real players for diamonds!',
+        icon: Swords,
+        color: '#ef4444',
+        glowColor: '#ef4444',
+        diamondReward: '2x stake',
+        perfectBonus: null
+    },
+    {
+        id: 'tournaments',
+        name: 'Tournaments',
+        description: 'Weekly competitions with big prizes!',
+        icon: Calendar,
+        color: '#FFD700',
+        glowColor: '#FFD700',
+        diamondReward: 'Prize pool',
+        perfectBonus: null
     }
 ];
 
@@ -75,9 +105,25 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
         if (modeId === 'daily' && dailyCompleted) {
             return;
         }
-        // Survival Mode uses standalone page with 10 levels
+        // Standalone pages for specialized modes
         if (modeId === 'survival') {
             router.push('/hub/trivia/survival-game');
+            return;
+        }
+        if (modeId === 'endless') {
+            router.push('/hub/trivia/endless');
+            return;
+        }
+        if (modeId === 'mixed') {
+            router.push('/hub/trivia/mixed');
+            return;
+        }
+        if (modeId === 'pvp') {
+            router.push('/hub/trivia/pvp');
+            return;
+        }
+        if (modeId === 'tournaments') {
+            router.push('/hub/trivia/tournaments');
             return;
         }
         router.push(`/hub/trivia/${modeId}`);

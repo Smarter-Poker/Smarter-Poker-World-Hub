@@ -64,7 +64,7 @@ export default async function handler(req, res) {
             const visitDate = new Date(visit.entered_at).toISOString().split('T')[0];
 
             const { data: existingSession } = await supabase
-                .from('ledger_entries')
+                .from('bankroll_ledger')
                 .select('id')
                 .eq('user_id', visit.user_id)
                 .eq('entry_date', visitDate)

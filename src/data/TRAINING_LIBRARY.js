@@ -90,7 +90,7 @@ export const TRAINING_LIBRARY = [
     { id: 'mtt-022', name: 'Clock Management', focus: 'Time bank strategy', category: 'MTT', difficulty: 2, icon: '⏰', tags: ['exploitative'] },
     { id: 'mtt-023', name: 'Registration Edge', focus: 'Late reg advantages', category: 'MTT', difficulty: 2, icon: '📝', tags: ['math'] },
     { id: 'mtt-024', name: 'Triple Barrel', focus: 'MTT bluff sequences', category: 'MTT', difficulty: 4, icon: '🎰', tags: ['exploitative'] },
-    { id: 'mtt-025', name: 'Level 10: MTT Champion', focus: 'Full tourney simulation', category: 'MTT', difficulty: 5, icon: '🏅', tags: ['gto', 'math', 'exploitative'] },
+    { id: 'mtt-025', name: 'Level 10: MTT Champion', focus: 'Full tourney simulation', category: 'MTT', difficulty: 5, icon: '🏅', tags: ['gto', 'math', 'exploitative'], vipOnly: true },
 
     // ═══════════════════════════════════════════════════════════════════════
     // CASH GAMES (25)
@@ -119,7 +119,7 @@ export const TRAINING_LIBRARY = [
     { id: 'cash-022', name: 'Texture Reading', focus: 'Board analysis', category: 'CASH', difficulty: 3, icon: '🔬', tags: ['gto'] },
     { id: 'cash-023', name: 'Equity Denial', focus: 'Protection betting', category: 'CASH', difficulty: 3, icon: '🚫', tags: ['gto'] },
     { id: 'cash-024', name: 'Pot Control', focus: 'Medium strength hands', category: 'CASH', difficulty: 3, icon: '⚖️', tags: ['gto'] },
-    { id: 'cash-025', name: 'Level 10: Cash King', focus: 'Full session grind', category: 'CASH', difficulty: 5, icon: '👑', tags: ['gto', 'math', 'exploitative'] },
+    { id: 'cash-025', name: 'Level 10: Cash King', focus: 'Full session grind', category: 'CASH', difficulty: 5, icon: '👑', tags: ['gto', 'math', 'exploitative'], vipOnly: true },
 
     // ═══════════════════════════════════════════════════════════════════════
     // SPINS (10)
@@ -133,7 +133,7 @@ export const TRAINING_LIBRARY = [
     { id: 'spins-007', name: '50/50 Survival', focus: 'Extreme ICM', category: 'SPINS', difficulty: 4, icon: '⚖️', tags: ['math', 'gto'] },
     { id: 'spins-008', name: 'Aggression Mode', focus: 'Constant pressure', category: 'SPINS', difficulty: 3, icon: '🔥', tags: ['exploitative'] },
     { id: 'spins-009', name: 'Chip Lead Lock', focus: 'Protecting the lead', category: 'SPINS', difficulty: 3, icon: '🔒', tags: ['gto'] },
-    { id: 'spins-010', name: 'Level 10: Spin Master', focus: 'Full spin simulation', category: 'SPINS', difficulty: 5, icon: '🌀', tags: ['gto', 'math', 'exploitative'] },
+    { id: 'spins-010', name: 'Level 10: Spin Master', focus: 'Full spin simulation', category: 'SPINS', difficulty: 5, icon: '🌀', tags: ['gto', 'math', 'exploitative'], vipOnly: true },
 
     // ═══════════════════════════════════════════════════════════════════════
     // PSYCHOLOGY (20)
@@ -157,18 +157,18 @@ export const TRAINING_LIBRARY = [
     { id: 'psy-017', name: 'Study Habits', focus: 'Effective learning', category: 'PSYCHOLOGY', difficulty: 2, icon: '📖', tags: [] },
     { id: 'psy-018', name: 'Table Image', focus: 'Perception awareness', category: 'PSYCHOLOGY', difficulty: 3, icon: '🎭', tags: ['exploitative'] },
     { id: 'psy-019', name: 'Autopilot Escape', focus: 'Staying present', category: 'PSYCHOLOGY', difficulty: 3, icon: '✈️', tags: [] },
-    { id: 'psy-020', name: 'Level 10: Mind Master', focus: 'Full mental game', category: 'PSYCHOLOGY', difficulty: 5, icon: '🧠', tags: [] },
+    { id: 'psy-020', name: 'Level 10: Mind Master', focus: 'Full mental game', category: 'PSYCHOLOGY', difficulty: 5, icon: '🧠', tags: [], vipOnly: true },
 
     // ═══════════════════════════════════════════════════════════════════════
     // ADVANCED (20)
     // ═══════════════════════════════════════════════════════════════════════
     { id: 'adv-001', name: 'Solver Mimicry', focus: 'GTO execution', category: 'ADVANCED', difficulty: 4, icon: '🤖', tags: ['gto'] },
     { id: 'adv-002', name: 'Blocker Logic', focus: 'Card removal effects', category: 'ADVANCED', difficulty: 4, icon: '🚫', tags: ['gto', 'math'] },
-    { id: 'adv-003', name: 'Node Locking', focus: 'Exploitative trees', category: 'ADVANCED', difficulty: 5, icon: '🔒', tags: ['exploitative'] },
+    { id: 'adv-003', name: 'Node Locking', focus: 'Exploitative trees', category: 'ADVANCED', difficulty: 5, icon: '🔒', tags: ['exploitative'], vipOnly: true },
     { id: 'adv-004', name: 'Range Construction', focus: 'Building strategies', category: 'ADVANCED', difficulty: 4, icon: '🏗️', tags: ['gto'] },
     { id: 'adv-005', name: 'Frequency Math', focus: 'Mixed strategy %', category: 'ADVANCED', difficulty: 4, icon: '📊', tags: ['gto', 'math'] },
     { id: 'adv-006', name: 'EV Calculations', focus: 'Expected value math', category: 'ADVANCED', difficulty: 4, icon: '🧮', tags: ['math'] },
-    { id: 'adv-007', name: 'Indifference Theory', focus: 'Making villains neutral', category: 'ADVANCED', difficulty: 5, icon: '⚖️', tags: ['gto', 'math'] },
+    { id: 'adv-007', name: 'Indifference Theory', focus: 'Making villains neutral', category: 'ADVANCED', difficulty: 5, icon: '⚖️', tags: ['gto', 'math'], vipOnly: true },
     { id: 'adv-008', name: 'Range Advantage', focus: 'Equity distribution', category: 'ADVANCED', difficulty: 4, icon: '📈', tags: ['gto'] },
     { id: 'adv-009', name: 'Nut Advantage', focus: 'Polarization spots', category: 'ADVANCED', difficulty: 4, icon: '🥜', tags: ['gto'] },
     { id: 'adv-010', name: 'Board Coverage', focus: 'Range composition', category: 'ADVANCED', difficulty: 4, icon: '🎨', tags: ['gto'] },
@@ -179,9 +179,9 @@ export const TRAINING_LIBRARY = [
     { id: 'adv-015', name: 'Population Reads', focus: 'Pool tendencies', category: 'ADVANCED', difficulty: 3, icon: '👥', tags: ['exploitative'] },
     { id: 'adv-016', name: 'Exploit Ladder', focus: 'Deviation strategy', category: 'ADVANCED', difficulty: 4, icon: '🪜', tags: ['exploitative'] },
     { id: 'adv-017', name: 'Capped Ranges', focus: 'Playing condensed', category: 'ADVANCED', difficulty: 4, icon: '📦', tags: ['gto'] },
-    { id: 'adv-018', name: 'Polarity Index', focus: 'Range splitting', category: 'ADVANCED', difficulty: 5, icon: '🧲', tags: ['gto'] },
-    { id: 'adv-019', name: 'Solver Scripts', focus: 'Sim interpretation', category: 'ADVANCED', difficulty: 5, icon: '💻', tags: ['gto'] },
-    { id: 'adv-020', name: 'Level 10: GTO Apex', focus: 'Ultimate theory test', category: 'ADVANCED', difficulty: 5, icon: '🏛️', tags: ['gto', 'math', 'exploitative'] },
+    { id: 'adv-018', name: 'Polarity Index', focus: 'Range splitting', category: 'ADVANCED', difficulty: 5, icon: '🧲', tags: ['gto'], vipOnly: true },
+    { id: 'adv-019', name: 'Solver Scripts', focus: 'Sim interpretation', category: 'ADVANCED', difficulty: 5, icon: '💻', tags: ['gto'], vipOnly: true },
+    { id: 'adv-020', name: 'Level 10: GTO Apex', focus: 'Ultimate theory test', category: 'ADVANCED', difficulty: 5, icon: '🏛️', tags: ['gto', 'math', 'exploitative'], vipOnly: true },
 ];
 
 // Helper functions
@@ -207,6 +207,18 @@ export const getBossGames = () =>
 
 export const getGamesByDifficulty = (min, max) =>
     TRAINING_LIBRARY.filter(g => g.difficulty >= min && g.difficulty <= max);
+
+// VIP-only games
+export const getVIPGames = () =>
+    TRAINING_LIBRARY.filter(g => g.vipOnly === true);
+
+// Check if a game requires VIP
+export const isVIPGame = (gameId) =>
+    TRAINING_LIBRARY.find(g => g.id === gameId)?.vipOnly === true;
+
+// Get count of VIP games
+export const getVIPGameCount = () =>
+    TRAINING_LIBRARY.filter(g => g.vipOnly === true).length;
 
 // Lane definitions for the training hub
 export const TRAINING_LANES = [

@@ -645,10 +645,133 @@ export default function BankrollManagerPage() {
             {activeSection === 'reports' && (
               <div style={styles.activitySection}>
                 <h2 style={styles.sectionTitle}>Performance Reports</h2>
-                <div style={{ padding: '40px 20px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.5 }}>📊</div>
-                  <p style={{ fontSize: 16, fontWeight: 600, color: '#fff', margin: '0 0 8px' }}>Reports Coming Soon</p>
-                  <p style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.5)', margin: 0 }}>Detailed performance analytics, charts, and export options</p>
+
+                {/* Quick Stats Summary */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gap: 12,
+                  marginBottom: 20
+                }}>
+                  <div style={styles.reportStatBox}>
+                    <span style={styles.reportStatLabel}>Total Sessions</span>
+                    <span style={styles.reportStatValue}>{entries?.length || 0}</span>
+                  </div>
+                  <div style={styles.reportStatBox}>
+                    <span style={styles.reportStatLabel}>Win Rate</span>
+                    <span style={styles.reportStatValue}>
+                      {entries?.length > 0
+                        ? Math.round((entries.filter(e => (e.gross_out - e.gross_in) > 0).length / entries.length) * 100)
+                        : 0}%
+                    </span>
+                  </div>
+                  <div style={styles.reportStatBox}>
+                    <span style={styles.reportStatLabel}>Net P/L</span>
+                    <span style={{
+                      ...styles.reportStatValue,
+                      color: (stats?.totalNetResult || 0) >= 0 ? '#22c55e' : '#ef4444'
+                    }}>
+                      {(stats?.totalNetResult || 0) >= 0 ? '+' : ''}${Math.abs(stats?.totalNetResult || 0).toLocaleString()}
+                    </span>
+                  </div>
+                  <div style={styles.reportStatBox}>
+                    <span style={styles.reportStatLabel}>Avg Session</span>
+                    <span style={styles.reportStatValue}>
+                      ${entries?.length > 0
+                        ? Math.round(entries.reduce((sum, e) => sum + (e.gross_out - e.gross_in), 0) / entries.length)
+                        : 0}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {/* Run Projection */}
+                  <button
+                    onClick={() => setShowProjection(true)}
+                    style={styles.reportActionBtn}
+                  >
+                    <span style={{ fontSize: 24 }}>📈</span>
+                    <div style={{ flex: 1, textAlign: 'left' }}>
+                      <div style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>Run Projection</div>
+                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
+                        Monte Carlo simulation for bankroll growth
+                      </div>
+                    </div>
+                    <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
+                  </button>
+
+                  {/* Export CSV */}
+                  <button
+                    onClick={async () => {
+                      if (!userId) return;
+                      try {
+                        const res = await fetch('/api/bankroll/export', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ userId, format: 'csv' })
+                        });
+                        const data = await res.json();
+                        if (data.success && data.csv) {
+                          const blob = new Blob([data.csv], { type: 'text/csv' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `bankroll_export_${new Date().toISOString().split('T')[0]}.csv`;
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        }
+                      } catch (err) {
+                        console.error('Export failed:', err);
+                      }
+                    }}
+                    style={styles.reportActionBtn}
+                  >
+                    <span style={{ fontSize: 24 }}>📥</span>
+                    <div style={{ flex: 1, textAlign: 'left' }}>
+                      <div style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>Export to CSV</div>
+                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
+                        Download all sessions for spreadsheet analysis
+                      </div>
+                    </div>
+                    <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
+                  </button>
+
+                  {/* Export JSON */}
+                  <button
+                    onClick={async () => {
+                      if (!userId) return;
+                      try {
+                        const res = await fetch('/api/bankroll/export', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ userId, format: 'json' })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                          const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `bankroll_export_${new Date().toISOString().split('T')[0]}.json`;
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        }
+                      } catch (err) {
+                        console.error('Export failed:', err);
+                      }
+                    }}
+                    style={styles.reportActionBtn}
+                  >
+                    <span style={{ fontSize: 24 }}>📄</span>
+                    <div style={{ flex: 1, textAlign: 'left' }}>
+                      <div style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>Export to JSON</div>
+                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
+                        Full data export for backup or API use
+                      </div>
+                    </div>
+                    <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
+                  </button>
                 </div>
               </div>
             )}
@@ -669,7 +792,7 @@ export default function BankrollManagerPage() {
                   </label>
                 </div>
                 <button
-                  onClick={() => router.push('/hub/bankroll-manager/export')}
+                  onClick={() => setActiveSection('reports')}
                   style={{ width: '100%', padding: '14px 18px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 500, cursor: 'pointer', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
                 >
                   Export Data
@@ -1146,5 +1269,36 @@ const styles = {
   },
   logArrow: {
     fontSize: 18,
+  },
+  reportStatBox: {
+    padding: 16,
+    background: 'rgba(255, 255, 255, 0.03)',
+    border: '1px solid rgba(255, 255, 255, 0.06)',
+    borderRadius: 10,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 6,
+  },
+  reportStatLabel: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.5)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+  },
+  reportStatValue: {
+    fontSize: 20,
+    fontWeight: 700,
+    color: '#fff',
+  },
+  reportActionBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 14,
+    padding: '16px 18px',
+    background: 'rgba(255, 255, 255, 0.03)',
+    border: '1px solid rgba(255, 255, 255, 0.08)',
+    borderRadius: 12,
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
   },
 };

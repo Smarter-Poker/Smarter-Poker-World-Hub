@@ -48,6 +48,7 @@ import GamificationService from '../../services/GamificationService';
 import AchievementToast from '../../src/components/training/AchievementToast';
 import ChallengesWidget from '../../src/components/training/ChallengesWidget';
 import JarvisRecommendations from '../../src/components/training/JarvisRecommendations';
+import DailyBonusWidget from '../../src/components/training/DailyBonusWidget';
 import useTrainingRealtime from '../../src/hooks/useTrainingRealtime';
 
 
@@ -1062,6 +1063,16 @@ export default function TrainingPage() {
                                 <span style={gamificationNavStyles.label}>Jarvis</span>
                             </div>
                         </div>
+
+                        {/* 🎁 Daily Bonus Widget */}
+                        {userId && activeFilter === 'ALL' && (
+                            <DailyBonusWidget
+                                userId={userId}
+                                onBonusClaimed={(amount) => {
+                                    toast.success(`💎 +${amount} daily bonus claimed!`);
+                                }}
+                            />
+                        )}
 
                         {/* 🎯 Weekly/Monthly Challenges Widget */}
                         {userId && activeFilter === 'ALL' && (

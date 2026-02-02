@@ -30,7 +30,7 @@ export default async function handler(req, res) {
         ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
         const { data: entries, error: entriesError } = await supabase
-            .from('ledger_entries')
+            .from('bankroll_ledger')
             .select('*')
             .eq('user_id', userId)
             .gte('entry_date', ninetyDaysAgo.toISOString().split('T')[0])

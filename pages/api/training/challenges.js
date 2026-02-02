@@ -1,14 +1,37 @@
 /**
- * 🎯 TRAINING CHALLENGES API
+ * 🎯 TRAINING CHALLENGES API - ENHANCED
  * ═══════════════════════════════════════════════════════════════════════════
- * Weekly and monthly rotating challenges with rewards
+ * Weekly and monthly rotating challenges with full progress tracking
+ * Supports: sessions, perfect_rounds, category_sessions, accuracy_avg, 
+ *           streak_days, unique_categories
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { notifyChallengeComplete } from '../../../src/utils/trainingNotifications';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+// Game ID to category mapping (extracted from TRAINING_LIBRARY)
+const CATEGORY_MAP = {
+    'mtt': 'mtt',
+    'cash': 'cash',
+    'spins': 'spins',
+    'psychology': 'psychology',
+    'psych': 'psychology',
+    'advanced': 'advanced',
+    'adv': 'advanced',
+    'preflop': 'preflop',
+    'postflop': 'postflop'
+};
+
+// Extract category from gameId (e.g., 'mtt-001' -> 'mtt', 'cash-025' -> 'cash')
+function getGameCategory(gameId) {
+    if (!gameId) return 'general';
+    const prefix = gameId.split('-')[0].toLowerCase();
+    return CATEGORY_MAP[prefix] || 'general';
+}
 
 // Get current period keys
 function getPeriodKeys() {
@@ -26,6 +49,78 @@ function getPeriodKeys() {
         weekly: `${year}-W${String(weekNum).padStart(2, '0')}`,
         monthly: `${year}-${month}`
     };
+}
+
+// Calculate average accuracy for a period
+async function getAverageAccuracy(supabase, userId, periodKey, isWeekly) {
+    // Get period start date
+    const now = new Date();
+    let startDate;
+
+    if (isWeekly) {
+        // Start of week (Monday)
+        const day = now.getDay() || 7;
+        startDate = new Date(now);
+        startDate.setDate(now.getDate() - day + 1);
+        startDate.setHours(0, 0, 0, 0);
+    } else {
+        // Start of month
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+
+    const { data: sessions } = await supabase
+        .from('jarvis_training_sessions')
+        .select('accuracy')
+        .eq('user_id', userId)
+        .gte('created_at', startDate.toISOString())
+        .not('accuracy', 'is', null);
+
+    if (!sessions?.length) return 0;
+
+    const sum = sessions.reduce((acc, s) => acc + (s.accuracy || 0), 0);
+    return Math.round(sum / sessions.length);
+}
+
+// Get unique categories played in period
+async function getUniqueCategoriesPlayed(supabase, userId, periodKey, isWeekly) {
+    const now = new Date();
+    let startDate;
+
+    if (isWeekly) {
+        const day = now.getDay() || 7;
+        startDate = new Date(now);
+        startDate.setDate(now.getDate() - day + 1);
+        startDate.setHours(0, 0, 0, 0);
+    } else {
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+
+    const { data: sessions } = await supabase
+        .from('jarvis_training_sessions')
+        .select('game_id')
+        .eq('user_id', userId)
+        .gte('created_at', startDate.toISOString());
+
+    if (!sessions?.length) return 0;
+
+    const categories = new Set();
+    sessions.forEach(s => {
+        const cat = getGameCategory(s.game_id);
+        if (cat && cat !== 'general') categories.add(cat);
+    });
+
+    return categories.size;
+}
+
+// Get current streak from streaks table
+async function getCurrentStreak(supabase, userId) {
+    const { data } = await supabase
+        .from('training_streaks')
+        .select('current_streak')
+        .eq('user_id', userId)
+        .single();
+
+    return data?.current_streak || 0;
 }
 
 export default async function handler(req, res) {
@@ -59,18 +154,42 @@ export default async function handler(req, res) {
                 (userProgress || []).map(p => [`${p.challenge_id}-${p.period_key}`, p])
             );
 
+            // Calculate dynamic progress for some challenge types
+            const avgAccuracyWeekly = await getAverageAccuracy(supabase, userId, periods.weekly, true);
+            const avgAccuracyMonthly = await getAverageAccuracy(supabase, userId, periods.monthly, false);
+            const uniqueCategoriesMonthly = await getUniqueCategoriesPlayed(supabase, userId, periods.monthly, false);
+            const currentStreak = await getCurrentStreak(supabase, userId);
+
             // Combine definitions with progress
             const challenges = (definitions || []).map(def => {
                 const periodKey = def.challenge_type === 'weekly' ? periods.weekly : periods.monthly;
-                const progress = progressMap.get(`${def.id}-${periodKey}`);
+                const existingProgress = progressMap.get(`${def.id}-${periodKey}`);
+
+                // Determine current progress based on target type
+                let progress = existingProgress?.progress || 0;
+
+                // Dynamic progress for certain types
+                switch (def.target_type) {
+                    case 'accuracy_avg':
+                        progress = def.challenge_type === 'weekly' ? avgAccuracyWeekly : avgAccuracyMonthly;
+                        break;
+                    case 'unique_categories':
+                        progress = uniqueCategoriesMonthly;
+                        break;
+                    case 'streak_days':
+                        progress = currentStreak;
+                        break;
+                }
+
+                const completed = progress >= def.target_value;
 
                 return {
                     ...def,
                     periodKey,
-                    progress: progress?.progress || 0,
-                    completed: progress?.completed || false,
-                    claimed: progress?.claimed || false,
-                    percentage: Math.min(100, Math.round(((progress?.progress || 0) / def.target_value) * 100))
+                    progress,
+                    completed: completed || existingProgress?.completed || false,
+                    claimed: existingProgress?.claimed || false,
+                    percentage: Math.min(100, Math.round((progress / def.target_value) * 100))
                 };
             });
 
@@ -84,7 +203,8 @@ export default async function handler(req, res) {
                 weekly,
                 monthly,
                 totalCompleted: challenges.filter(c => c.completed).length,
-                totalClaimed: challenges.filter(c => c.claimed).length
+                totalClaimed: challenges.filter(c => c.claimed).length,
+                debug: { avgAccuracyWeekly, avgAccuracyMonthly, uniqueCategoriesMonthly, currentStreak }
             });
 
         } catch (error) {
@@ -104,9 +224,12 @@ export default async function handler(req, res) {
         try {
             const {
                 accuracy = 0,
-                category = 'general',
+                gameId = '',
                 isPerfect = false
             } = sessionData || {};
+
+            // Determine category from gameId
+            const category = getGameCategory(gameId);
 
             // Get active challenges
             const { data: definitions } = await supabase
@@ -119,69 +242,109 @@ export default async function handler(req, res) {
             for (const def of definitions || []) {
                 const periodKey = def.challenge_type === 'weekly' ? periods.weekly : periods.monthly;
                 let incrementBy = 0;
+                let directProgress = null;
 
                 // Determine if this session contributes to the challenge
                 switch (def.target_type) {
                     case 'sessions':
                         incrementBy = 1;
                         break;
+
                     case 'perfect_rounds':
                         if (isPerfect || accuracy === 100) incrementBy = 1;
                         break;
+
                     case 'category_sessions':
-                        if (def.target_category && category.toLowerCase().includes(def.target_category.toLowerCase())) {
+                        // Check if category matches
+                        const targetCat = def.target_category?.toLowerCase();
+                        if (targetCat && category === targetCat) {
+                            incrementBy = 1;
+                        }
+                        // Also match preflop/postflop based on game focus
+                        if (targetCat === 'preflop' && gameId.toLowerCase().includes('preflop')) {
+                            incrementBy = 1;
+                        }
+                        if (targetCat === 'postflop' && (
+                            gameId.toLowerCase().includes('postflop') ||
+                            gameId.toLowerCase().includes('c-bet') ||
+                            gameId.toLowerCase().includes('river')
+                        )) {
                             incrementBy = 1;
                         }
                         break;
-                    // accuracy_avg and streak_days are calculated differently
+
+                    case 'accuracy_avg':
+                        // This is calculated dynamically on GET, but we update the record
+                        const isWeekly = def.challenge_type === 'weekly';
+                        directProgress = await getAverageAccuracy(supabase, userId, periodKey, isWeekly);
+                        break;
+
+                    case 'unique_categories':
+                        // Recalculate unique categories
+                        directProgress = await getUniqueCategoriesPlayed(supabase, userId, periodKey, def.challenge_type === 'weekly');
+                        break;
+
+                    case 'streak_days':
+                        // Get current streak value
+                        directProgress = await getCurrentStreak(supabase, userId);
+                        break;
                 }
 
-                if (incrementBy > 0) {
-                    // Upsert progress
-                    const { data: existing } = await supabase
+                // Skip if no change needed
+                if (incrementBy === 0 && directProgress === null) continue;
+
+                // Upsert progress
+                const { data: existing } = await supabase
+                    .from('training_user_challenges')
+                    .select('*')
+                    .eq('user_id', userId)
+                    .eq('challenge_id', def.id)
+                    .eq('period_key', periodKey)
+                    .single();
+
+                const newProgress = directProgress !== null
+                    ? directProgress
+                    : (existing?.progress || 0) + incrementBy;
+
+                const isNowComplete = newProgress >= def.target_value;
+
+                if (existing) {
+                    await supabase
                         .from('training_user_challenges')
-                        .select('*')
-                        .eq('user_id', userId)
-                        .eq('challenge_id', def.id)
-                        .eq('period_key', periodKey)
-                        .single();
-
-                    const newProgress = (existing?.progress || 0) + incrementBy;
-                    const isNowComplete = newProgress >= def.target_value;
-
-                    if (existing) {
-                        await supabase
-                            .from('training_user_challenges')
-                            .update({
-                                progress: newProgress,
-                                completed: isNowComplete,
-                                completed_at: isNowComplete && !existing.completed ? new Date().toISOString() : existing.completed_at
-                            })
-                            .eq('id', existing.id);
-                    } else {
-                        await supabase
-                            .from('training_user_challenges')
-                            .insert({
-                                user_id: userId,
-                                challenge_id: def.id,
-                                period_key: periodKey,
-                                progress: newProgress,
-                                completed: isNowComplete,
-                                completed_at: isNowComplete ? new Date().toISOString() : null
-                            });
-                    }
-
-                    if (isNowComplete && !existing?.completed) {
-                        updatedChallenges.push({
-                            ...def,
-                            justCompleted: true
+                        .update({
+                            progress: newProgress,
+                            completed: isNowComplete,
+                            completed_at: isNowComplete && !existing.completed ? new Date().toISOString() : existing.completed_at
+                        })
+                        .eq('id', existing.id);
+                } else {
+                    await supabase
+                        .from('training_user_challenges')
+                        .insert({
+                            user_id: userId,
+                            challenge_id: def.id,
+                            period_key: periodKey,
+                            progress: newProgress,
+                            completed: isNowComplete,
+                            completed_at: isNowComplete ? new Date().toISOString() : null
                         });
-                    }
+                }
+
+                if (isNowComplete && !existing?.completed) {
+                    // Send push notification
+                    await notifyChallengeComplete(userId, def)
+                        .catch(e => console.warn('[Challenges] Push failed:', e.message));
+
+                    updatedChallenges.push({
+                        ...def,
+                        justCompleted: true
+                    });
                 }
             }
 
             return res.status(200).json({
                 success: true,
+                category,
                 updatedChallenges,
                 newlyCompleted: updatedChallenges.filter(c => c.justCompleted)
             });
