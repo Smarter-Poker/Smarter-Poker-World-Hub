@@ -33,7 +33,7 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'GET') {
-        const { id, slug, page_type, owner_id, category, search, user_id, followed_only, limit = '20', offset = '0' } = req.query;
+        const { id, slug, page_type, owner_id, category, search, user_id, followed_only, linked_venue_id, limit = '20', offset = '0' } = req.query;
 
         // Single page by ID
         if (id) {
@@ -84,6 +84,18 @@ export default async function handler(req, res) {
 
             if (error) return res.status(404).json({ error: 'Page not found' });
             return res.status(200).json({ success: true, data });
+        }
+
+        // Lookup by linked venue ID (returns matching social page for a venue)
+        if (linked_venue_id) {
+            const { data, error } = await supabase
+                .from('social_pages')
+                .select('*')
+                .eq('linked_venue_id', String(linked_venue_id))
+                .limit(parseInt(limit, 10) || 1);
+
+            if (error) return res.status(500).json({ error: error.message });
+            return res.status(200).json({ success: true, data: data || [] });
         }
 
         // List pages with filters
