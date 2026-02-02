@@ -27,6 +27,55 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+/**
+ * Upsert leaderboard entry for user
+ * Updates both 'daily' and 'all_time' leaderboards
+ */
+async function upsertLeaderboard(sb, userId, gameId, xpEarned, accuracy, passed) {
+    const now = new Date();
+    const periodStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+    const periodEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString();
+
+    for (const leaderboardType of ['daily', 'all_time']) {
+        // Check if entry exists
+        const { data: existing } = await sb
+            .from('training_leaderboard')
+            .select('id, total_xp, total_games_completed, average_accuracy')
+            .eq('user_id', userId)
+            .eq('leaderboard_type', leaderboardType)
+            .maybeSingle();
+
+        if (existing) {
+            // Update existing entry
+            const newGamesCompleted = (existing.total_games_completed || 0) + (passed ? 1 : 0);
+            const newAccuracy = newGamesCompleted > 0
+                ? ((existing.average_accuracy || 0) * (existing.total_games_completed || 0) + accuracy) / newGamesCompleted
+                : accuracy;
+
+            await sb.from('training_leaderboard')
+                .update({
+                    total_xp: (existing.total_xp || 0) + xpEarned,
+                    total_games_completed: newGamesCompleted,
+                    average_accuracy: Math.round(newAccuracy),
+                    updated_at: now.toISOString(),
+                })
+                .eq('id', existing.id);
+        } else {
+            // Insert new entry
+            await sb.from('training_leaderboard').insert({
+                user_id: userId,
+                leaderboard_type: leaderboardType,
+                game_id: gameId,
+                total_xp: xpEarned,
+                total_games_completed: passed ? 1 : 0,
+                average_accuracy: accuracy,
+                period_start: leaderboardType === 'daily' ? periodStart : null,
+                period_end: leaderboardType === 'daily' ? periodEnd : null,
+            });
+        }
+    }
+}
+
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
@@ -114,6 +163,13 @@ export default async function handler(req, res) {
                 return res.status(500).json({ error: 'Failed to update progress' });
             }
 
+            // 3. Upsert leaderboard entry
+            try {
+                await upsertLeaderboard(supabase, userId, gameId, xpEarned, accuracy, passed);
+            } catch (lbError) {
+                console.warn('Leaderboard upsert failed:', lbError.message);
+            }
+
             return res.status(200).json({
                 success: true,
                 progress: updatedProgress,
@@ -145,6 +201,13 @@ export default async function handler(req, res) {
             if (insertError) {
                 console.error('Error creating progress:', insertError);
                 return res.status(500).json({ error: 'Failed to create progress' });
+            }
+
+            // 3. Upsert leaderboard entry
+            try {
+                await upsertLeaderboard(supabase, userId, gameId, xpEarned, accuracy, passed);
+            } catch (lbError) {
+                console.warn('Leaderboard upsert failed:', lbError.message);
             }
 
             return res.status(200).json({

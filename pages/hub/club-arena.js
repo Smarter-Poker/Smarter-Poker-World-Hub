@@ -553,11 +553,12 @@ const S = {
         position: 'relative', padding: '0 0 20px', zIndex: 1,
     },
 
-    // ACTION BAR (baked image) - Full width, no bottom margin
+    // ACTION BAR (baked image) - 15px below header
     actionBarWrapper: {
         position: 'relative',
         width: '100%',
-        margin: '0',
+        marginTop: '15px',
+        marginBottom: '0',
     },
     actionBarImage: {
         width: '100%',
@@ -573,12 +574,12 @@ const S = {
         cursor: 'pointer',
     },
 
-    // SHARK CLUB CARD (baked image) - overlaps UP into action bar aggressively
+    // SHARK CLUB CARD (baked image) - 15px below action bar (equal spacing)
     sharkClubWrapper: {
         position: 'relative',
         width: '100%',
-        marginTop: '-150px',
-        marginBottom: '10px',
+        marginTop: '15px',
+        marginBottom: '15px',
         cursor: 'pointer',
         overflow: 'hidden',
         animation: 'ca-glow 4s ease-in-out infinite',
@@ -624,23 +625,32 @@ const S = {
         marginTop: '4px',
     },
 
-    // BOTTOM TILES (baked images) - Full width, uniform
+    // BOTTOM TILES - Horizontal scroll slider, fixed 108x162 (World Hub size)
     tilesGrid: {
         display: 'flex',
-        justifyContent: 'space-between',
-        gap: '8px',
-        padding: '0 8px',
+        gap: '12px',
+        padding: '0 16px',
         marginTop: '0',
+        overflowX: 'auto',
+        overflowY: 'visible',
+        scrollSnapType: 'x mandatory',
+        WebkitOverflowScrolling: 'touch',
+        scrollbarWidth: 'thin',
+        scrollbarColor: 'rgba(0,212,255,0.6) rgba(0,30,60,0.4)',
     },
     tileWrapper: {
-        flex: 1,
+        flexShrink: 0,
+        width: '108px',
+        height: '162px',
         borderRadius: '8px',
         overflow: 'hidden',
         transition: 'transform 0.2s',
+        scrollSnapAlign: 'start',
     },
     tileImage: {
         width: '100%',
-        height: 'auto',
+        height: '100%',
+        objectFit: 'cover',
         display: 'block',
     },
 };

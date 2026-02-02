@@ -100,7 +100,7 @@ export default async function handler(req, res) {
                 .order('started_at', { ascending: false })
                 .limit(1)
                 .maybeSingle();
-            
+
             if (sessionData) {
                 roundNumber = (sessionData.hands_played || 0) + 1;
             }
@@ -110,26 +110,41 @@ export default async function handler(req, res) {
 
         // 3. Record in hand history
         try {
-            await supabase.from('god_mode_hand_history').insert({
-                user_id: userId,
-                game_id: gameId,
-                source_file_id: effectiveFileId || 'unknown',
-                variant_hash: effectiveVariantHash || '0',
-                hero_hand: effectiveHeroHand || '',
-                board: effectiveBoard || '',
-                level_at_play: level,
-                round_hand_number: roundNumber,
-                round_hand_number: 1, // TODO: Track properly
-                user_action: action,
-                user_sizing: sizing,
-                gto_action: damageResult.gtoAction,
-                gto_frequency: damageResult.gtoFrequency,
-                ev_of_user_action: damageResult.userEv,
-                ev_of_gto_action: damageResult.maxEv,
-                is_correct: damageResult.isCorrect,
-                is_indifferent: damageResult.isIndifferent,
-                chip_penalty: damageResult.chipPenalty,
-            });
+            // Lookup game UUID from game_registry by slug
+            let gameUUID = null;
+            if (gameId) {
+                const { data: gameData } = await supabase
+                    .from('game_registry')
+                    .select('id')
+                    .eq('slug', gameId)
+                    .maybeSingle();
+                gameUUID = gameData?.id || null;
+            }
+
+            // Only insert if we have a valid game UUID
+            if (gameUUID) {
+                await supabase.from('god_mode_hand_history').insert({
+                    user_id: userId,
+                    game_id: gameUUID,
+                    source_file_id: effectiveFileId || 'unknown',
+                    variant_hash: effectiveVariantHash || '0',
+                    hero_hand: effectiveHeroHand || '',
+                    board: effectiveBoard || '',
+                    level_at_play: level,
+                    round_hand_number: roundNumber,
+                    user_action: action,
+                    user_sizing: sizing,
+                    gto_action: damageResult.gtoAction || 'unknown',
+                    gto_frequency: damageResult.gtoFrequency || 0,
+                    ev_of_user_action: damageResult.userEv || 0,
+                    ev_of_gto_action: damageResult.maxEv || 0,
+                    is_correct: damageResult.isCorrect || false,
+                    is_indifferent: damageResult.isIndifferent || false,
+                    chip_penalty: damageResult.chipPenalty || 0,
+                });
+            } else {
+                console.warn('Could not find game UUID for slug:', gameId);
+            }
         } catch (dbError) {
             console.warn('Failed to record hand history:', dbError.message);
             // Continue even if recording fails
