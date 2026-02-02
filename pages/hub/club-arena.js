@@ -553,11 +553,11 @@ const S = {
         position: 'relative', padding: '0 0 20px', zIndex: 1,
     },
 
-    // ACTION BAR (baked image) - Full width, overlaps with content below
+    // ACTION BAR (baked image) - Full width, no bottom margin
     actionBarWrapper: {
         position: 'relative',
         width: '100%',
-        marginBottom: '-40px',
+        margin: '0',
     },
     actionBarImage: {
         width: '100%',
@@ -573,11 +573,11 @@ const S = {
         cursor: 'pointer',
     },
 
-    // SHARK CLUB CARD (baked image) - Full width, overlaps with tiles
+    // SHARK CLUB CARD (baked image) - Full width, overlaps UP into action bar
     sharkClubWrapper: {
         position: 'relative',
         width: '100%',
-        marginBottom: '-25px',
+        marginTop: '-80px',
         cursor: 'pointer',
         overflow: 'hidden',
         animation: 'ca-glow 4s ease-in-out infinite',
@@ -623,12 +623,13 @@ const S = {
         marginTop: '4px',
     },
 
-    // BOTTOM TILES (baked images) - Full width, uniform
+    // BOTTOM TILES (baked images) - Full width, overlaps up into card
     tilesGrid: {
         display: 'flex',
         justifyContent: 'space-between',
-        gap: '6px',
+        gap: '8px',
         padding: '0 8px',
+        marginTop: '-15px',
     },
     tileWrapper: {
         flex: 1,
