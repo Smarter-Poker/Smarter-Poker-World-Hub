@@ -3,19 +3,24 @@
  * Handles leaderboard queries and updates
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../lib/supabase';
 
 class LeaderboardService {
     constructor() {
-        this.supabase = null;
+        // Use singleton client directly - no external initialization needed
+        this.supabase = supabase;
     }
 
     /**
-     * Initialize with Supabase client
+     * Initialize with optional Supabase client override
+     * @deprecated Use singleton client directly
      */
     async initialize(supabaseClient) {
-        this.supabase = supabaseClient;
+        if (supabaseClient) {
+            this.supabase = supabaseClient;
+        }
     }
+
 
     /**
      * Get leaderboard for a specific game mode and level
