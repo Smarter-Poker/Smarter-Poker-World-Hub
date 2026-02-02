@@ -211,6 +211,18 @@ export default function CreateSocialPage() {
                                     <input type="url" value={form.website} onChange={e => update('website', e.target.value)}
                                         placeholder="https://..." style={inputStyle} />
                                 </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                                    <div>
+                                        <label style={labelStyle}>Contact Email</label>
+                                        <input type="email" value={form.contact_email} onChange={e => update('contact_email', e.target.value)}
+                                            placeholder="contact@example.com" style={inputStyle} />
+                                    </div>
+                                    <div>
+                                        <label style={labelStyle}>Phone</label>
+                                        <input type="tel" value={form.phone} onChange={e => update('phone', e.target.value)}
+                                            placeholder="(555) 123-4567" style={inputStyle} />
+                                    </div>
+                                </div>
 
                                 {/* Settings */}
                                 <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 16 }}>

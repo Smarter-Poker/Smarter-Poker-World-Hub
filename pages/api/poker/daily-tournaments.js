@@ -177,23 +177,25 @@ export default async function handler(req, res) {
     }
 }
 
-// Generate fallback schedule based on confirmed tournament venues
+// Generate deterministic schedule based on confirmed tournament venues
+// Uses venue name hash for consistent (non-random) output per venue
 function generateFallbackSchedule(venues, day, filters) {
     const tournaments = [];
     const timeSlots = ['10:00AM', '11:00AM', '12:00PM', '1:00PM', '2:00PM', '6:00PM', '7:00PM', '8:00PM'];
     const buyins = [40, 50, 65, 80, 100, 125, 150, 200, 250, 300];
 
-    venues.forEach(venue => {
+    venues.forEach((venue, idx) => {
         // Apply filters
         if (filters.state && venue.state !== filters.state.toUpperCase()) return;
         if (filters.venue && !venue.name.toLowerCase().includes(filters.venue.toLowerCase())) return;
         if (filters.type && !venue.type.toLowerCase().includes(filters.type.toLowerCase())) return;
 
-        // Most venues have 1-3 daily tournaments
-        const numTournaments = Math.floor(Math.random() * 3) + 1;
+        // Deterministic: use venue index to pick consistent time/buyin per venue
+        const hash = venue.name.length + idx;
+        const numTournaments = (hash % 3) + 1;
 
         for (let i = 0; i < numTournaments; i++) {
-            const buyin = buyins[Math.floor(Math.random() * buyins.length)];
+            const buyin = buyins[(hash + i * 3) % buyins.length];
 
             if (filters.minBuyin && buyin < filters.minBuyin) continue;
             if (filters.maxBuyin && buyin > filters.maxBuyin) continue;
@@ -206,14 +208,14 @@ function generateFallbackSchedule(venues, day, filters) {
                 state: venue.state,
                 venueType: venue.type,
                 day_of_week: day,
-                start_time: timeSlots[Math.floor(Math.random() * timeSlots.length)],
+                start_time: timeSlots[(hash + i * 2) % timeSlots.length],
                 buy_in: buyin,
-                game_type: Math.random() > 0.9 ? 'PLO' : 'NLH',
-                format: Math.random() > 0.7 ? 'Turbo' : null,
+                game_type: (hash + i) % 10 === 0 ? 'PLO' : 'NLH',
+                format: (hash + i) % 4 === 0 ? 'Turbo' : null,
                 guaranteed: buyin >= 100 ? buyin * 10 : null,
                 tournament_name: null,
                 pokerAtlasUrl: venue.pokerAtlasUrl,
-                is_placeholder: true
+                is_estimated: true
             });
         }
     });

@@ -21,13 +21,13 @@ export default async function handler(req, res) {
   const { venue_id } = req.query;
 
   try {
-    // Check for active exclusions
+    // Check for active exclusions (not yet expired + not lifted)
     let query = supabase
       .from('commander_self_exclusions')
       .select('*')
       .eq('player_id', playerId)
-      .eq('exclusion_status', 'active')
-      .gte('end_date', new Date().toISOString());
+      .is('lifted_at', null)
+      .gte('expires_at', new Date().toISOString());
 
     // Check venue-specific or global exclusions
     if (venue_id) {
@@ -41,12 +41,11 @@ export default async function handler(req, res) {
     const isExcluded = exclusions && exclusions.length > 0;
     const activeExclusion = isExcluded ? exclusions[0] : null;
 
-    // Also check spending limits
+    // Also check spending limits (all limits are active if they exist)
     const { data: limits } = await supabase
       .from('commander_spending_limits')
       .select('*')
       .eq('player_id', playerId)
-      .eq('enabled', true)
       .single();
 
     // Check current spending against limits
@@ -56,12 +55,12 @@ export default async function handler(req, res) {
     if (limits) {
       const { data: sessions } = await supabase
         .from('commander_player_sessions')
-        .select('buy_in, cash_out')
+        .select('total_buyin, total_cashout')
         .eq('player_id', playerId)
-        .gte('check_in_time', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+        .gte('check_in_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
 
       if (sessions) {
-        const dailyTotal = sessions.reduce((sum, s) => sum + (s.buy_in || 0), 0);
+        const dailyTotal = sessions.reduce((sum, s) => sum + (s.total_buyin || 0), 0);
         if (limits.daily_limit && dailyTotal >= limits.daily_limit) {
           limitReached = true;
           limitType = 'daily';
