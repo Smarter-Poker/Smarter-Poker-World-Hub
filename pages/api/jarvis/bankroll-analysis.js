@@ -165,6 +165,7 @@ function calculateMetrics(entries) {
     const totalSessions = entries.length;
     const winRate = totalSessions > 0 ? Math.round((winCount / totalSessions) * 100) : 0;
     const avgSession = totalSessions > 0 ? Math.round(netPL / totalSessions) : 0;
+    const avgBuyIn = totalSessions > 0 ? Math.round(totalIn / totalSessions) : 0;
 
     // Find worst category/day
     let worstCategory = null;
@@ -185,11 +186,33 @@ function calculateMetrics(entries) {
         }
     });
 
+    // Tilt Detection
+    const tiltSignals = detectTiltPatterns(entries);
+
+    // Best/Worst time
+    let bestTimeSlot = null;
+    let bestTimeSlotPL = -Infinity;
+    let worstTimeSlot = null;
+    let worstTimeSlotPL = Infinity;
+    Object.entries(sessionsByHour).forEach(([slot, data]) => {
+        if (data.count >= 2) {
+            if (data.netPL > bestTimeSlotPL) {
+                bestTimeSlot = slot;
+                bestTimeSlotPL = data.netPL;
+            }
+            if (data.netPL < worstTimeSlotPL) {
+                worstTimeSlot = slot;
+                worstTimeSlotPL = data.netPL;
+            }
+        }
+    });
+
     return {
         totalSessions,
         netPL,
         winRate,
         avgSession,
+        avgBuyIn,
         winCount,
         lossCount,
         biggestWin,
@@ -200,7 +223,81 @@ function calculateMetrics(entries) {
         worstCategory,
         worstCategoryLoss,
         worstDay,
-        worstDayLoss
+        worstDayLoss,
+        tiltSignals,
+        bestTimeSlot,
+        bestTimeSlotPL,
+        worstTimeSlot,
+        worstTimeSlotPL
+    };
+}
+
+/**
+ * Detect tilt patterns from session history
+ */
+function detectTiltPatterns(entries) {
+    let multipleSameDayAfterLoss = false;
+    let increasingBuyInsAfterLoss = false;
+    let immediateSessionAfterBigLoss = false;
+
+    // Sort entries by date (newest first already)
+    const sortedEntries = [...entries].sort((a, b) =>
+        new Date(b.entry_date) - new Date(a.entry_date)
+    );
+
+    // Group by date
+    const byDate = {};
+    sortedEntries.forEach(e => {
+        const date = e.entry_date;
+        if (!byDate[date]) byDate[date] = [];
+        byDate[date].push(e);
+    });
+
+    // Check patterns
+    Object.values(byDate).forEach(daySessions => {
+        if (daySessions.length >= 2) {
+            // Multiple sessions same day - check if first was a loss
+            const firstNet = (daySessions[daySessions.length - 1].gross_out || 0) -
+                (daySessions[daySessions.length - 1].gross_in || 0);
+            if (firstNet < 0) {
+                multipleSameDayAfterLoss = true;
+            }
+        }
+    });
+
+    // Check for increasing buy-ins after losses
+    for (let i = 0; i < sortedEntries.length - 1; i++) {
+        const current = sortedEntries[i];
+        const prev = sortedEntries[i + 1];
+        const prevNet = (prev.gross_out || 0) - (prev.gross_in || 0);
+
+        if (prevNet < 0) {
+            const currentBuyIn = current.gross_in || 0;
+            const prevBuyIn = prev.gross_in || 0;
+            if (currentBuyIn > prevBuyIn * 1.5 && prevBuyIn > 0) {
+                increasingBuyInsAfterLoss = true;
+            }
+        }
+    }
+
+    // Check if session happened right after big loss (same day)
+    const avgBuyIn = sortedEntries.reduce((sum, e) => sum + (e.gross_in || 0), 0) / sortedEntries.length;
+    Object.values(byDate).forEach(daySessions => {
+        for (let i = 0; i < daySessions.length - 1; i++) {
+            const session = daySessions[i];
+            const net = (session.gross_out || 0) - (session.gross_in || 0);
+            if (net < -avgBuyIn * 2) {
+                // Big loss - check if another session same day
+                immediateSessionAfterBigLoss = true;
+            }
+        }
+    });
+
+    return {
+        multipleSameDayAfterLoss,
+        increasingBuyInsAfterLoss,
+        immediateSessionAfterBigLoss,
+        hasTiltRisk: multipleSameDayAfterLoss || increasingBuyInsAfterLoss || immediateSessionAfterBigLoss
     };
 }
 
@@ -232,17 +329,35 @@ ${Object.entries(metrics.sessionsByDay).map(([day, data]) =>
         `- ${day}: ${data.count} sessions, $${data.netPL > 0 ? '+' : ''}${data.netPL}`
     ).join('\n')}
 
+Time of Day Breakdown:
+${Object.entries(metrics.sessionsByHour).map(([slot, data]) =>
+        `- ${slot}: ${data.count} sessions, $${data.netPL > 0 ? '+' : ''}${data.netPL}`
+    ).join('\n') || 'No time data available'}
+
 Recent Sessions:
 ${recentEntries.map(e => `- ${e.date} ${e.category}: $${e.net > 0 ? '+' : ''}${e.net}`).join('\n')}
 
 ${metrics.worstCategory ? `Worst Category: ${metrics.worstCategory} (down $${Math.abs(metrics.worstCategoryLoss)})` : ''}
 ${metrics.worstDay ? `Worst Day: ${metrics.worstDay} (down $${Math.abs(metrics.worstDayLoss)})` : ''}
 
+Tilt Detection Signals:
+- Multiple sessions same day after loss?: ${metrics.tiltSignals?.multipleSameDayAfterLoss ? 'YES' : 'No'}
+- Increasing buy-ins after losses?: ${metrics.tiltSignals?.increasingBuyInsAfterLoss ? 'YES' : 'No'}
+- Sessions right after big loss?: ${metrics.tiltSignals?.immediateSessionAfterBigLoss ? 'YES' : 'No'}
+
+Bankroll Context:
+- Average buy-in: $${metrics.avgBuyIn || 0}
+${metrics.estimatedBankroll ? `- Estimated bankroll: $${metrics.estimatedBankroll}` : ''}
+${metrics.buyInToRollRatio ? `- Buy-in to bankroll ratio: ${metrics.buyInToRollRatio}%` : ''}
+
 Provide a brief analysis with:
 1. One sentence summary of their current state
 2. 2-3 pattern observations (good or bad)
-3. 2-3 actionable recommendations
-4. Overall risk assessment (low/medium/high)
+3. TIME ANALYSIS: Best and worst times to play based on the data
+4. TILT ALERT: Any concerning emotional patterns detected
+5. STAKE RECOMMENDATION: Should they move up, stay, or move down?
+6. 2-3 actionable recommendations
+7. Overall risk assessment (low/medium/high)
 
 Format your response as:
 SUMMARY: [one sentence]
