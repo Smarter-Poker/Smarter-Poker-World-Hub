@@ -45,15 +45,19 @@ export default function useTrainingProgress() {
                             // Convert array to object keyed by game_id
                             const progressObj = {};
                             data.progress.forEach(p => {
+                                // Calculate mastery percentage from correct/total answers
+                                const mastery = p.total_answers > 0
+                                    ? Math.round((p.correct_answers / p.total_answers) * 100)
+                                    : 0;
                                 progressObj[p.game_id] = {
-                                    attempts: p.total_questions_answered || 0,
-                                    levelsCompleted: p.highest_level_completed || 0,
-                                    mastery: p.mastery_percentage || 0,
+                                    attempts: p.hands_played || p.total_answers || 0,
+                                    levelsCompleted: Math.max(0, (p.level || 1) - 1), // level 2 means 1 level completed
+                                    mastery: mastery,
                                     bestScore: 0, // Not tracked yet
-                                    totalXP: p.total_xp_earned || 0,
+                                    totalXP: p.xp || 0,
                                     lastPlayed: p.last_played_at,
                                     streakBest: p.best_streak || 0,
-                                    currentLevel: p.current_level || 1,
+                                    currentLevel: p.level || 1,
                                 };
                             });
                             setProgress(progressObj);
