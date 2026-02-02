@@ -3009,7 +3009,7 @@ export default function MemoryGamesPage() {
                                             </div>
 
                                             <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 20 }}>
-                                                {dailyChallenge.description || `Score ${dailyChallenge.target_score || 80}% or higher to complete the challenge.`}
+                                                {dailyChallenge.description || `Score ${dailyChallenge.target_accuracy || 80}% or higher to complete the challenge.`}
                                             </p>
 
                                             <div style={{
@@ -3022,7 +3022,7 @@ export default function MemoryGamesPage() {
                                             }}>
                                                 <div>
                                                     <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>TARGET SCORE</div>
-                                                    <div style={{ fontSize: 20, fontWeight: 700, color: '#00ff88' }}>{dailyChallenge.target_score || 80}%</div>
+                                                    <div style={{ fontSize: 20, fontWeight: 700, color: '#00ff88' }}>{dailyChallenge.target_accuracy || 80}%</div>
                                                 </div>
                                                 <div style={{ textAlign: 'right' }}>
                                                     <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>REWARD</div>
