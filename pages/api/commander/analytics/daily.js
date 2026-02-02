@@ -172,7 +172,8 @@ async function calculateDailyAnalytics(req, res) {
     const uniquePlayers = new Set(sessions?.map(s => s.player_id).filter(Boolean));
     const totalMinutes = sessions?.reduce((sum, s) => sum + (s.total_time_minutes || 0), 0) || 0;
     const totalBuyin = sessions?.reduce((sum, s) => sum + (s.total_buyin || 0), 0) || 0;
-    const totalCashout = sessions?.reduce((sum, s) => sum + (s.total_cashout || 0), 0) || 0;
+    // Note: commander_player_sessions does not have total_cashout column
+    const totalCashout = 0;
 
     const analytics = {
       venue_id: venue_id,
