@@ -551,21 +551,21 @@ const S = {
         zIndex: -2,
     },
     mainContent: {
-        position: 'relative', padding: '8px 12px 40px', zIndex: 1,
+        position: 'relative', padding: '4px 8px 20px', zIndex: 1,
     },
 
-    // ACTION BAR (baked image) - 80% width, centered
+    // ACTION BAR (baked image) - 70% width, centered, compact
     actionBarWrapper: {
         position: 'relative',
-        width: '85%',
-        maxWidth: '420px',
-        margin: '0 auto 12px',
+        width: '70%',
+        maxWidth: '320px',
+        margin: '0 auto 8px',
     },
     actionBarImage: {
         width: '100%',
         height: 'auto',
         display: 'block',
-        borderRadius: '10px',
+        borderRadius: '8px',
     },
     actionZone: {
         position: 'absolute',
@@ -576,14 +576,14 @@ const S = {
         cursor: 'pointer',
     },
 
-    // SHARK CLUB CARD (baked image) - 75% width, centered
+    // SHARK CLUB CARD (baked image) - 55% width, centered, compact
     sharkClubWrapper: {
         position: 'relative',
-        width: '75%',
-        maxWidth: '340px',
-        margin: '0 auto 14px',
+        width: '55%',
+        maxWidth: '260px',
+        margin: '0 auto 10px',
         cursor: 'pointer',
-        borderRadius: '12px',
+        borderRadius: '10px',
         overflow: 'hidden',
         animation: 'ca-glow 4s ease-in-out infinite',
     },
@@ -628,23 +628,23 @@ const S = {
         marginTop: '4px',
     },
 
-    // BOTTOM TILES (baked images) - uniform fixed size
+    // BOTTOM TILES (baked images) - uniform fixed height
     tilesGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(5, 1fr)',
-        gap: '6px',
+        display: 'flex',
+        justifyContent: 'center',
+        gap: '4px',
         padding: '0 4px',
     },
     tileWrapper: {
-        borderRadius: '8px',
+        width: '18%',
+        maxWidth: '72px',
+        borderRadius: '6px',
         overflow: 'hidden',
-        transition: 'transform 0.2s, box-shadow 0.2s',
-        aspectRatio: '1 / 1.3',
+        transition: 'transform 0.2s',
     },
     tileImage: {
         width: '100%',
-        height: '100%',
-        objectFit: 'cover',
+        height: 'auto',
         display: 'block',
     },
 };
