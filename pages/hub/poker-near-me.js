@@ -442,6 +442,7 @@ export default function PokerNearMePage() {
     const [showFilters, setShowFilters] = useState(false);
     const [selectedCity, setSelectedCity] = useState(null);
     const [nearestDistance, setNearestDistance] = useState(null);
+    const [hasSearched, setHasSearched] = useState(false);
 
     // Geofence alert state
     const [geofenceAlert, setGeofenceAlert] = useState(null);
@@ -523,9 +524,17 @@ export default function PokerNearMePage() {
             .catch(function () { setAllVenuesForMap([]); });
     }, []);
 
-    // Fetch all data on mount and when filters change
+    // Fetch non-venue data on mount (tours, series, daily tournaments)
     useEffect(() => {
         fetchAllData();
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // When city or GPS location is set, search for venues
+    useEffect(() => {
+        if (selectedCity || userLocation) {
+            setHasSearched(true);
+            fetchVenues();
+        }
     }, [selectedCity, userLocation]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // ---------- Geofence monitoring ----------
@@ -725,14 +734,13 @@ export default function PokerNearMePage() {
         setShowNewcomerFriendly: (val) => updatePreference('showNewcomerFriendly', val)
     });
 
-    const fetchAllData = async () => {
+    const fetchAllData = async ({ includeVenues = false } = {}) => {
         setLoading(true);
-        await Promise.all([
-            fetchVenues(),
-            fetchTours(),
-            fetchSeries(),
-            fetchDailyTournaments()
-        ]);
+        const fetches = [fetchTours(), fetchSeries(), fetchDailyTournaments()];
+        if (includeVenues) {
+            fetches.push(fetchVenues());
+        }
+        await Promise.all(fetches);
         setLoading(false);
     };
 
@@ -868,7 +876,8 @@ export default function PokerNearMePage() {
         e.preventDefault();
         addToSearchHistory(searchQuery);
         setShowSearchHistory(false);
-        fetchAllData();
+        setHasSearched(true);
+        fetchAllData({ includeVenues: true });
     };
 
     const handleCityClick = (city) => {
@@ -880,6 +889,9 @@ export default function PokerNearMePage() {
         setSelectedCity(null);
         setUserLocation(null);
         setSearchQuery('');
+        setHasSearched(false);
+        setVenues([]);
+        setDisplayCount(prev => ({ ...prev, venues: 24 }));
         setFilters({
             venueType: 'all',
             hasNLH: false,
@@ -929,6 +941,11 @@ export default function PokerNearMePage() {
             return renderLiveGames();
         }
 
+        // For venues tab: show search landing if no search yet, skip skeleton
+        if (activeTab === 'venues' && !hasSearched) {
+            return renderVenues();
+        }
+
         if (loading) {
             return renderSkeletons(8);
         }
@@ -957,6 +974,20 @@ export default function PokerNearMePage() {
     };
 
     const renderVenues = () => {
+        if (!hasSearched) {
+            return (
+                <div className="search-landing">
+                    <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="rgba(212,168,83,0.4)" strokeWidth="1.5">
+                        <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+                    </svg>
+                    <h3 style={{ color: '#fff', fontSize: 20, fontWeight: 600, margin: '16px 0 8px' }}>Search 483 Poker Venues</h3>
+                    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, margin: 0, lineHeight: 1.6 }}>
+                        Enter a city or venue name, select a popular city, or use GPS to find poker rooms near you.
+                    </p>
+                </div>
+            );
+        }
+
         if (venues.length === 0) {
             return (
                 <div className="empty-state">
@@ -975,7 +1006,7 @@ export default function PokerNearMePage() {
             <>
                 {/* Sort & Results Bar */}
                 <div className="results-bar">
-                    <span className="results-count">Showing {displayed.length} of {venues.length} venues</span>
+                    <span className="results-count">{venues.length} result{venues.length !== 1 ? 's' : ''} found</span>
                     <div className="sort-controls">
                         <label>Sort:</label>
                         <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="sort-select">
@@ -1054,7 +1085,7 @@ export default function PokerNearMePage() {
                 {displayCount.venues < venues.length && (
                     <div className="load-more">
                         <button className="load-more-btn" onClick={() => loadMore('venues')}>
-                            Load More ({venues.length - displayCount.venues} remaining)
+                            Show More Results ({venues.length - displayed.length} more)
                         </button>
                     </div>
                 )}
@@ -1543,7 +1574,7 @@ export default function PokerNearMePage() {
                                         </div>
                                         {searchHistory.map((item, i) => (
                                             <button key={i} type="button" className="search-history-item"
-                                                onClick={() => { setSearchQuery(item); setShowSearchHistory(false); setTimeout(() => fetchAllData(), 0); }}>
+                                                onClick={() => { setSearchQuery(item); setShowSearchHistory(false); setHasSearched(true); setTimeout(() => fetchAllData({ includeVenues: true }), 0); }}>
                                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
                                                 {item}
                                             </button>
@@ -1689,7 +1720,7 @@ export default function PokerNearMePage() {
                             </div>
                         )}
 
-                        <button className="btn-apply" onClick={() => { fetchAllData(); setShowFilters(false); }}>
+                        <button className="btn-apply" onClick={() => { fetchAllData({ includeVenues: hasSearched }); setShowFilters(false); }}>
                             Apply Filters
                         </button>
                     </div>
@@ -1703,7 +1734,7 @@ export default function PokerNearMePage() {
                                 <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
                             </svg>
                         </span>
-                        Venues <span className="tab-count">{counts.venues}</span>
+                        Venues <span className="tab-count">{hasSearched ? counts.venues : 483}</span>
                     </button>
                     <button className={'tab' + (activeTab === 'tours' ? ' active' : '')} onClick={() => setActiveTab('tours')}>
                         <span className="tab-icon">
@@ -2077,13 +2108,14 @@ export default function PokerNearMePage() {
                     }
 
                     /* Loading / Empty State */
-                    .loading-state, .empty-state {
+                    .loading-state, .empty-state, .search-landing {
                         display: flex;
                         flex-direction: column;
                         align-items: center;
                         justify-content: center;
                         padding: 80px 20px;
                         color: rgba(255,255,255,0.5);
+                        text-align: center;
                     }
                     .spinner {
                         width: 40px;
