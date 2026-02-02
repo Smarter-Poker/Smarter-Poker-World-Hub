@@ -31,7 +31,7 @@ export default function NotificationPrompt({ userId, onDismiss }) {
     useEffect(() => {
         if (isInitialized && userId && playerId && isSubscribed) {
             // Always try to link, even if already subscribed (fixes users who subscribed before linking was added)
-            console.log('[NotificationPrompt] Attempting to link user:', userId, 'playerId:', playerId);
+            if (process.env.NODE_ENV === 'development') console.log('[NotificationPrompt] Attempting to link user:', userId, 'playerId:', playerId);
             setExternalUserId(userId);
         }
     }, [isInitialized, userId, isSubscribed, playerId, setExternalUserId]);

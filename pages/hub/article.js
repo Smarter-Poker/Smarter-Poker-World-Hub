@@ -9,6 +9,8 @@ import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { ArrowLeft, Clock, Eye, Calendar, Share2, Bookmark, User } from 'lucide-react';
 import { supabase } from '../../src/lib/supabase';
+import { getAuthUser } from '../../src/lib/authUtils';
+import toast from '../../src/stores/toastStore';
 
 // God-Mode Stack
 import { useArticleStore } from '../../src/stores/articleStore';
@@ -21,12 +23,68 @@ export default function ArticlePage() {
     const [article, setArticle] = useState(null);
     const [loading, setLoading] = useState(true);
     const [related, setRelated] = useState([]);
+    const [isBookmarked, setIsBookmarked] = useState(false);
+    const [userId, setUserId] = useState(null);
+
+    useEffect(() => {
+        async function loadUser() {
+            try {
+                const user = await getAuthUser();
+                if (user?.id) setUserId(user.id);
+            } catch {}
+        }
+        loadUser();
+    }, []);
 
     useEffect(() => {
         if (id || slug) {
             fetchArticle();
         }
     }, [id, slug]);
+
+    useEffect(() => {
+        if (userId && article?.id) {
+            checkBookmark();
+        }
+    }, [userId, article?.id]);
+
+    const checkBookmark = async () => {
+        try {
+            const { data } = await supabase
+                .from('article_bookmarks')
+                .select('id')
+                .eq('user_id', userId)
+                .eq('article_id', article.id)
+                .maybeSingle();
+            setIsBookmarked(!!data);
+        } catch {}
+    };
+
+    const handleBookmark = async () => {
+        if (!userId) {
+            toast.info('Sign in to bookmark articles');
+            return;
+        }
+        try {
+            if (isBookmarked) {
+                await supabase
+                    .from('article_bookmarks')
+                    .delete()
+                    .eq('user_id', userId)
+                    .eq('article_id', article.id);
+                setIsBookmarked(false);
+                toast.success('Bookmark removed');
+            } else {
+                await supabase
+                    .from('article_bookmarks')
+                    .insert({ user_id: userId, article_id: article.id });
+                setIsBookmarked(true);
+                toast.success('Article bookmarked');
+            }
+        } catch {
+            toast.error('Failed to update bookmark');
+        }
+    };
 
     const fetchArticle = async () => {
         setLoading(true);
@@ -81,7 +139,7 @@ export default function ArticlePage() {
             });
         } else {
             navigator.clipboard.writeText(window.location.href);
-            alert('Link copied to clipboard!');
+            toast.success('Link copied to clipboard');
         }
     };
 
@@ -131,7 +189,9 @@ export default function ArticlePage() {
                     </div>
                     <div className="actions">
                         <button onClick={handleShare}><Share2 size={18} /></button>
-                        <button><Bookmark size={18} /></button>
+                        <button onClick={handleBookmark} style={isBookmarked ? { background: 'rgba(0,212,255,0.2)', borderColor: '#00d4ff' } : {}}>
+                            <Bookmark size={18} fill={isBookmarked ? '#00d4ff' : 'none'} color={isBookmarked ? '#00d4ff' : '#fff'} />
+                        </button>
                     </div>
                 </header>
 

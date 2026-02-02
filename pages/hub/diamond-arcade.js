@@ -122,6 +122,7 @@ export default function DiamondArcade() {
     const [duelSearching, setDuelSearching] = useState(null);
     const [duelResult, setDuelResult] = useState(null);
     const timerRef = useRef(null);
+    const duelPollRef = useRef(null);
     const questionStartTime = useRef(0);
 
     // 🎬 INTRO VIDEO STATE - Video plays while page loads in background
@@ -160,7 +161,10 @@ export default function DiamondArcade() {
         const interval = setInterval(() => {
             setResetTime(getTimeUntilReset());
         }, 1000);
-        return () => clearInterval(interval);
+        return () => {
+            clearInterval(interval);
+            if (duelPollRef.current) clearInterval(duelPollRef.current);
+        };
     }, []);
 
     async function loadUser() {
@@ -313,6 +317,7 @@ export default function DiamondArcade() {
             const json = await res.json();
             if (json.error) {
                 setDuelResult({ error: json.error });
+                setDuelSearching(null);
                 setTimeout(() => setDuelResult(null), 3000);
             } else if (json.status === 'matched') {
                 setBalance(prev => prev - (costs[duelType] || 25));
@@ -324,24 +329,48 @@ export default function DiamondArcade() {
                     startGame('hand-snap');
                 }, 1500);
             } else {
-                // Queued - simulate finding match after delay
+                // Queued - poll for a match
                 setDuelResult({ queued: true, message: json.message || 'Searching...' });
-                setTimeout(() => {
-                    setBalance(prev => prev - (costs[duelType] || 25));
-                    setDuelResult({ matched: true, message: 'Opponent found! Starting duel...' });
-                    setTimeout(() => {
+                const queueId = json.queue_id;
+                const pollStart = Date.now();
+                if (duelPollRef.current) clearInterval(duelPollRef.current);
+                duelPollRef.current = setInterval(async () => {
+                    try {
+                        const pollRes = await fetch(`/api/arcade/check-duel?queue_id=${queueId}`);
+                        const pollJson = await pollRes.json();
+                        if (pollJson.status === 'matched') {
+                            clearInterval(duelPollRef.current);
+                            duelPollRef.current = null;
+                            setBalance(prev => prev - (costs[duelType] || 25));
+                            setDuelResult({ matched: true, message: 'Opponent found! Starting duel...' });
+                            setTimeout(() => {
+                                setDuelSearching(null);
+                                setDuelResult(null);
+                                startGame('hand-snap');
+                            }, 1500);
+                        } else if (Date.now() - pollStart >= 30000) {
+                            clearInterval(duelPollRef.current);
+                            duelPollRef.current = null;
+                            setDuelResult({ error: 'No opponent found. Entry fee refunded.' });
+                            setDuelSearching(null);
+                            setTimeout(() => setDuelResult(null), 3000);
+                        }
+                    } catch (pollErr) {
+                        console.error('Duel poll error:', pollErr);
+                        clearInterval(duelPollRef.current);
+                        duelPollRef.current = null;
+                        setDuelResult({ error: 'Matchmaking failed. Try again.' });
                         setDuelSearching(null);
-                        setDuelResult(null);
-                        startGame('hand-snap');
-                    }, 1500);
-                }, 3000);
+                        setTimeout(() => setDuelResult(null), 3000);
+                    }
+                }, 2000);
             }
         } catch (err) {
             console.error('Duel match error:', err);
             setDuelResult({ error: 'Matchmaking failed. Try again.' });
+            setDuelSearching(null);
             setTimeout(() => setDuelResult(null), 3000);
         }
-        setDuelSearching(null);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
