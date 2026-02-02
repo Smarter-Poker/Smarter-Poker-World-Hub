@@ -1692,6 +1692,10 @@ export default function MemoryGamesPage() {
         analysis: null
     });
 
+    // Adaptive training state
+    const [weakSpots, setWeakSpots] = useState([]);
+    const [adaptiveLoading, setAdaptiveLoading] = useState(false);
+
     // Hamburger menu preferences
     const [preferences, setPreferences] = useState({
         soundEffects: true,
@@ -2254,6 +2258,59 @@ export default function MemoryGamesPage() {
         }
     };
 
+    // Fetch user's weak spots for adaptive training
+    const fetchWeakSpots = async () => {
+        if (!userId) return;
+
+        try {
+            const response = await fetch(`/api/gto/get-weak-spots?userId=${userId}`);
+            const result = await response.json();
+
+            if (result.success && result.weakSpots) {
+                setWeakSpots(result.weakSpots);
+            }
+        } catch (error) {
+            console.error('[MemoryGames] Fetch weak spots error:', error);
+        }
+    };
+
+    // Start adaptive training targeting weaknesses
+    const startAdaptiveTraining = async () => {
+        if (!userId) return;
+
+        setAdaptiveLoading(true);
+
+        try {
+            const response = await fetch('/api/gto/generate-adaptive', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId })
+            });
+
+            const result = await response.json();
+
+            if (result.success && result.scenario) {
+                // Load the adaptive scenario
+                setCurrentScenario(result.scenario);
+                setGameState('playing');
+                setUserGrid({});
+                setGradeResult(null);
+                setCoachAnalysis({ show: false, loading: false, analysis: null });
+            }
+        } catch (error) {
+            console.error('[MemoryGames] Adaptive training error:', error);
+        } finally {
+            setAdaptiveLoading(false);
+        }
+    };
+
+    // Fetch weak spots on mount when user is available
+    useEffect(() => {
+        if (userId && gameState === 'lobby') {
+            fetchWeakSpots();
+        }
+    }, [userId, gameState]);
+
     // Load leaderboard data
 
     const loadLeaderboard = useCallback(async () => {
@@ -2559,6 +2616,77 @@ export default function MemoryGamesPage() {
                                     }
                                 }}
                             />
+
+                            {/* Smart Practice Card - Adaptive Training */}
+                            {userId && (
+                                <div style={{
+                                    background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(6, 182, 212, 0.15))',
+                                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                                    borderRadius: 16,
+                                    padding: 20,
+                                    marginBottom: 20
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                                        <span style={{ fontSize: 20, fontWeight: 'bold', color: '#10B981' }}>J</span>
+                                        <span style={{ fontFamily: 'Orbitron', fontSize: 16, color: '#10B981' }}>
+                                            Smart Practice
+                                        </span>
+                                    </div>
+
+                                    <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, marginBottom: 16, lineHeight: 1.5 }}>
+                                        Jarvis analyzes your history and creates personalized training.
+                                    </p>
+
+                                    {/* Weak Spots Display */}
+                                    {weakSpots.length > 0 && (
+                                        <div style={{ marginBottom: 16 }}>
+                                            <div style={{ fontSize: 12, color: '#06B6D4', marginBottom: 8 }}>
+                                                Areas to Improve:
+                                            </div>
+                                            {weakSpots.slice(0, 2).map((spot, i) => (
+                                                <div key={i} style={{
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
+                                                    alignItems: 'center',
+                                                    background: 'rgba(0, 0, 0, 0.2)',
+                                                    borderRadius: 8,
+                                                    padding: '8px 12px',
+                                                    marginBottom: 6,
+                                                    fontSize: 13
+                                                }}>
+                                                    <span style={{ color: '#FFD700' }}>{spot.area}</span>
+                                                    <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>
+                                                        {spot.errorCount} errors
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    <button
+                                        onClick={startAdaptiveTraining}
+                                        disabled={adaptiveLoading}
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px 20px',
+                                            background: adaptiveLoading
+                                                ? 'rgba(16, 185, 129, 0.3)'
+                                                : 'linear-gradient(135deg, #10B981, #06B6D4)',
+                                            border: 'none',
+                                            borderRadius: 12,
+                                            color: '#fff',
+                                            fontSize: 14,
+                                            fontWeight: 600,
+                                            cursor: adaptiveLoading ? 'wait' : 'pointer',
+                                            opacity: adaptiveLoading ? 0.7 : 1
+                                        }}
+                                    >
+                                        {adaptiveLoading ? 'Generating...' : weakSpots.length > 0
+                                            ? `Train ${weakSpots[0]?.area}`
+                                            : 'Start Smart Practice'}
+                                    </button>
+                                </div>
+                            )}
 
                             {/* Game Mode Tabs */}
                             <div style={styles.gameModeTabs}>

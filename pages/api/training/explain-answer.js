@@ -1,12 +1,32 @@
 /**
- * 🧠 REAL-TIME GTO EXPLANATION ENGINE
+ * 🧠 REAL-TIME GTO EXPLANATION ENGINE (WITH CACHING)
  * ═══════════════════════════════════════════════════════════════════════════
  * Provides deep solver-level analysis for any training answer
- * Uses Grok to generate contextual, educational explanations
+ * CACHES Grok responses to prevent redundant API calls
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
 import { getGrokClient } from '../../../src/lib/grokClient';
+import { createClient } from '@supabase/supabase-js';
+import crypto from 'crypto';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+// Generate a hash key for the scenario (for cache lookup)
+function generateCacheKey(question, correctAnswer) {
+    const scenario = question.scenario || {};
+    const keyData = JSON.stringify({
+        q: question.question,
+        heroPos: scenario.heroPosition,
+        heroHand: scenario.heroHand,
+        board: scenario.board,
+        action: scenario.action,
+        villainPos: scenario.villainPosition,
+        correctAnswer
+    });
+    return crypto.createHash('md5').update(keyData).digest('hex');
+}
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -26,7 +46,32 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Missing required fields' });
     }
 
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    const cacheKey = generateCacheKey(question, correctAnswer);
+
     try {
+        // 🔍 CHECK CACHE FIRST
+        const { data: cached } = await supabase
+            .from('grok_explanation_cache')
+            .select('explanation, was_correct')
+            .eq('cache_key', cacheKey)
+            .eq('was_correct', wasCorrect)
+            .single();
+
+        if (cached?.explanation) {
+            console.log(`[GrokExplain] ⚡ Cache HIT for ${cacheKey.slice(0, 8)}...`);
+            return res.status(200).json({
+                success: true,
+                explanation: cached.explanation,
+                wasCorrect,
+                generatedBy: 'cache',
+                cached: true
+            });
+        }
+
+        console.log(`[GrokExplain] 🔄 Cache MISS - querying Grok for ${cacheKey.slice(0, 8)}...`);
+
+        // 🧠 QUERY GROK
         const grok = getGrokClient();
         const scenario = question.scenario || {};
 
@@ -80,13 +125,27 @@ Keep explanations concise but insightful. Use poker terminology appropriately fo
         const jsonMatch = content.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
             const explanation = JSON.parse(jsonMatch[0]);
-            console.log(`[GrokExplain] ✅ Generated explanation for ${gameId}`);
+
+            // 💾 SAVE TO CACHE
+            await supabase
+                .from('grok_explanation_cache')
+                .upsert({
+                    cache_key: cacheKey,
+                    was_correct: wasCorrect,
+                    question_hash: cacheKey,
+                    game_id: gameId,
+                    explanation,
+                    hit_count: 1,
+                    created_at: new Date().toISOString()
+                }, { onConflict: 'cache_key,was_correct' })
+                .then(() => console.log(`[GrokExplain] 💾 Cached response for ${cacheKey.slice(0, 8)}...`));
 
             return res.status(200).json({
                 success: true,
                 explanation,
                 wasCorrect,
-                generatedBy: 'grok-3'
+                generatedBy: 'grok-3',
+                cached: false
             });
         }
 
@@ -103,7 +162,8 @@ Keep explanations concise but insightful. Use poker terminology appropriately fo
                 confidence: 0.5
             },
             wasCorrect,
-            generatedBy: 'grok-3-fallback'
+            generatedBy: 'grok-3-fallback',
+            cached: false
         });
 
     } catch (error) {
@@ -121,7 +181,8 @@ Keep explanations concise but insightful. Use poker terminology appropriately fo
                 confidence: 0.3
             },
             wasCorrect,
-            generatedBy: 'fallback'
+            generatedBy: 'fallback',
+            cached: false
         });
     }
 }
