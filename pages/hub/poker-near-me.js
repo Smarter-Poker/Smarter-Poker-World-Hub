@@ -13,6 +13,7 @@ import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getPokerNearMePreferences, updatePokerNearMePreferences } from '../../src/services/pokerNearMePreferences';
 import { getVenueFavorites, addVenueFavorite, removeVenueFavorite } from '../../src/services/pokerNearMeFavorites';
+import UniversalHeader from '../../src/components/ui/UniversalHeader';
 
 const POPULAR_CITIES = [
     { name: 'Las Vegas', state: 'NV' },
@@ -422,7 +423,7 @@ export default function PokerNearMePage() {
             setActiveTab(router.query.tab);
         }
         if (router.query.filter) {
-            setVenueTypeFilter(router.query.filter);
+            setFilters(prev => ({ ...prev, venueType: router.query.filter }));
         }
     }, [router.query]);
 
