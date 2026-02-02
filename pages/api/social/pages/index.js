@@ -83,7 +83,34 @@ export default async function handler(req, res) {
                 .single();
 
             if (error) return res.status(404).json({ error: 'Page not found' });
-            return res.status(200).json({ success: true, data });
+
+            // Enrich with owner profile (same as ID lookup)
+            let owner = null;
+            if (data.owner_id) {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('id, username, full_name, avatar_url')
+                    .eq('id', data.owner_id)
+                    .single();
+                owner = profile;
+            }
+
+            // Check if user follows
+            let is_following = false;
+            if (user_id) {
+                const { data: follow } = await supabase
+                    .from('social_page_followers')
+                    .select('id')
+                    .eq('page_id', data.id)
+                    .eq('user_id', user_id)
+                    .maybeSingle();
+                is_following = !!follow;
+            }
+
+            return res.status(200).json({
+                success: true,
+                data: { ...data, owner, is_following }
+            });
         }
 
         // Lookup by linked venue ID (returns matching social page for a venue)

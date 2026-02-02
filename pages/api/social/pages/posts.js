@@ -149,16 +149,14 @@ export default async function handler(req, res) {
         if (!post) return res.status(404).json({ error: 'Post not found' });
 
         const isAuthor = post.author_id === author_id;
-        let isPageAdmin = false;
 
-        if (!isAuthor) {
-            const { data: page } = await supabase
-                .from('social_pages')
-                .select('owner_id')
-                .eq('id', post.page_id)
-                .single();
-            isPageAdmin = page?.owner_id === author_id;
-        }
+        // Always check page admin status (needed for pin permission)
+        const { data: page } = await supabase
+            .from('social_pages')
+            .select('owner_id')
+            .eq('id', post.page_id)
+            .single();
+        const isPageAdmin = page?.owner_id === author_id;
 
         if (!isAuthor && !isPageAdmin) {
             return res.status(403).json({ error: 'Not authorized' });

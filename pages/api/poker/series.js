@@ -206,7 +206,7 @@ export default async function handler(req, res) {
       }
 
       if (tour) {
-        query = query.or(`tour.ilike.%${tour}%,tour_code.ilike.%${tour}%`);
+        query = query.or(`tour.ilike.%${tour}%,short_name.ilike.%${tour}%`);
       }
 
       if (search) {

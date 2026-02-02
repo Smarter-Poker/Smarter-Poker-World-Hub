@@ -131,7 +131,14 @@ function PostCard({ post, user, onLike, onComment }) {
                 {[
                     { label: post.user_liked ? 'Liked' : 'Like', action: () => onLike(post.id), active: post.user_liked },
                     { label: 'Comment', action: fetchComments },
-                    { label: 'Share', action: () => {} },
+                    { label: 'Share', action: () => {
+                        const url = window.location.href;
+                        if (navigator.share) {
+                            navigator.share({ title: post.content?.slice(0, 60) || 'Post', url }).catch(() => {});
+                        } else {
+                            navigator.clipboard.writeText(url).then(() => alert('Link copied!')).catch(() => {});
+                        }
+                    } },
                 ].map((btn, i) => (
                     <button key={i} onClick={btn.action} style={{
                         flex: 1, padding: '10px 0', border: 'none', background: 'none',
@@ -221,15 +228,17 @@ export default function SocialPageDetail() {
         if (!pageId) return;
         setLoading(true);
         try {
-            const params = new URLSearchParams({ id: pageId });
-            if (user?.id) params.set('user_id', user.id);
+            // Detect if pageId is a UUID or a slug to avoid a wasted request
+            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pageId);
+            const userParam = user?.id ? `&user_id=${user.id}` : '';
 
-            // Try by ID first, then by slug
-            let res = await fetch(`/api/social/pages?${params}`);
-            let json = await res.json();
-
-            if (!json.success) {
-                res = await fetch(`/api/social/pages?slug=${pageId}${user ? `&user_id=${user.id}` : ''}`);
+            let json;
+            if (isUUID) {
+                const res = await fetch(`/api/social/pages?id=${pageId}${userParam}`);
+                json = await res.json();
+            } else {
+                // Slug-based lookup directly
+                const res = await fetch(`/api/social/pages?slug=${pageId}${userParam}`);
                 json = await res.json();
             }
 

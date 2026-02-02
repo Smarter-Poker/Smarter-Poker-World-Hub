@@ -41,7 +41,7 @@ export default async function handler(req, res) {
       const { data, error } = await supabase
         .from('venue_reviews')
         .insert({
-          venue_id: venueIdNum,
+          venue_id: String(venueIdNum),
           user_id,
           rating: ratingNum,
           review_text,
@@ -79,7 +79,7 @@ export default async function handler(req, res) {
       const { data: reviews, error: reviewError } = await supabase
         .from('venue_reviews')
         .select('*')
-        .eq('venue_id', venueIdNum)
+        .eq('venue_id', String(venueIdNum))
         .order('created_at', { ascending: false })
         .range(offsetNum, offsetNum + limitNum - 1);
 
@@ -92,7 +92,7 @@ export default async function handler(req, res) {
       const { data: allRatings, error: ratingsError } = await supabase
         .from('venue_reviews')
         .select('rating')
-        .eq('venue_id', venueIdNum);
+        .eq('venue_id', String(venueIdNum));
 
       if (ratingsError) {
         console.error('Error fetching ratings:', ratingsError);
