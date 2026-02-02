@@ -282,8 +282,20 @@ export default async function handler(req, res) {
                         let bestFreq = 0;
                         const baseEv = handEv || 10; // Base EV for the hand
 
+                        // Calculate total frequency for normalization
+                        // PIO data frequencies may be raw values that don't sum to 1
+                        let totalFreq = 0;
                         for (const action of availableActions) {
-                            const freq = frequencies[action]?.[heroHandKey] || 0;
+                            totalFreq += frequencies[action]?.[heroHandKey] || 0;
+                        }
+                        const needsNormalization = totalFreq > 1.5; // If sum > 1.5, normalize
+
+                        for (const action of availableActions) {
+                            const rawFreq = frequencies[action]?.[heroHandKey] || 0;
+                            // Normalize frequency to 0-1 range if needed
+                            const freq = needsNormalization && totalFreq > 0
+                                ? rawFreq / totalFreq
+                                : rawFreq;
                             // EV scales with frequency - 100% freq = full EV, 0% freq = penalty
                             const actionEv = freq > 0.01 ? baseEv * freq : -5; // Penalty for actions not in strategy
                             const displayName = translateAction(action);

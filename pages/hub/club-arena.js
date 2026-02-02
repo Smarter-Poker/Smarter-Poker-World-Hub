@@ -557,7 +557,7 @@ const S = {
     actionBarWrapper: {
         position: 'relative',
         width: '100%',
-        marginBottom: '-20px',
+        marginBottom: '-40px',
     },
     actionBarImage: {
         width: '100%',
@@ -577,7 +577,7 @@ const S = {
     sharkClubWrapper: {
         position: 'relative',
         width: '100%',
-        marginBottom: '-10px',
+        marginBottom: '-25px',
         cursor: 'pointer',
         overflow: 'hidden',
         animation: 'ca-glow 4s ease-in-out infinite',
