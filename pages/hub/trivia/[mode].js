@@ -23,6 +23,9 @@ import { useCelebrations } from '../../../src/components/trivia/CelebrationEffec
 import { getStreakTier, calculateRewardWithMultiplier, isStreakMilestone } from '../../../src/config/triviaStreakSystem';
 import { TRIVIA_ACHIEVEMENTS, checkNewUnlocks } from '../../../src/config/triviaAchievements';
 
+// Phase 2 Enhancement Imports
+import DoubleOrNothing from '../../../src/components/trivia/DoubleOrNothing';
+
 const CATEGORY_MAP = {
     daily: null,
     history: ['poker_history', 'famous_hands', 'player_profiles'],
@@ -48,6 +51,10 @@ export default function TriviaModePage() {
     const [showPrizeWheel, setShowPrizeWheel] = useState(false);
     const [isPerfectScore, setIsPerfectScore] = useState(false);
     const celebrations = useCelebrations();
+
+    // Phase 2: Double or Nothing state
+    const [showDoubleOrNothing, setShowDoubleOrNothing] = useState(false);
+    const [doubleQuestion, setDoubleQuestion] = useState(null);
 
     // Using existing supabase instance from lib
     const modeConfig = mode ? TRIVIA_MODES[mode] : null;
@@ -467,6 +474,23 @@ export default function TriviaModePage() {
                             mode={mode}
                             timeLimit={modeConfig.timeLimit}
                             onComplete={handleComplete}
+                            userDiamonds={userDiamonds}
+                            enableHints={mode !== 'arcade'}
+                            onDiamondsChange={async (delta) => {
+                                if (!userId) return;
+                                const { data: profile } = await supabase
+                                    .from('profiles')
+                                    .select('diamonds')
+                                    .eq('id', userId)
+                                    .single();
+                                if (profile) {
+                                    await supabase
+                                        .from('profiles')
+                                        .update({ diamonds: Math.max(0, (profile.diamonds || 0) + delta) })
+                                        .eq('id', userId);
+                                    setUserDiamonds(Math.max(0, (profile.diamonds || 0) + delta));
+                                }
+                            }}
                         />
                     )}
 
@@ -477,6 +501,13 @@ export default function TriviaModePage() {
                                 onPlayAgain={handlePlayAgain}
                                 onSpinWheel={() => setShowPrizeWheel(true)}
                                 showSpinButton={isPerfectScore && !showPrizeWheel}
+                                onDoubleOrNothing={result.diamondsEarned > 0 ? () => {
+                                    // Prepare a random question for Double or Nothing
+                                    const randomQ = questions[Math.floor(Math.random() * questions.length)];
+                                    setDoubleQuestion(randomQ);
+                                    setShowDoubleOrNothing(true);
+                                } : null}
+                                showDoubleButton={result.diamondsEarned > 0 && !showDoubleOrNothing}
                             />
 
                             {mode === 'arcade' && leaderboard.length > 0 && (
@@ -485,6 +516,53 @@ export default function TriviaModePage() {
                                 </div>
                             )}
                         </div>
+                    )}
+
+                    {/* Double or Nothing Modal */}
+                    {showDoubleOrNothing && doubleQuestion && (
+                        <DoubleOrNothing
+                            question={doubleQuestion}
+                            currentWinnings={result?.diamondsEarned || 0}
+                            onComplete={async (won, finalAmount) => {
+                                if (userId && won) {
+                                    // Award the extra diamonds
+                                    const bonus = finalAmount - (result?.diamondsEarned || 0);
+                                    if (bonus > 0) {
+                                        const { data: profile } = await supabase
+                                            .from('profiles')
+                                            .select('diamonds')
+                                            .eq('id', userId)
+                                            .single();
+                                        if (profile) {
+                                            await supabase
+                                                .from('profiles')
+                                                .update({ diamonds: (profile.diamonds || 0) + bonus })
+                                                .eq('id', userId);
+                                            setUserDiamonds(prev => prev + bonus);
+                                        }
+                                    }
+                                } else if (userId && !won) {
+                                    // Deduct the original winnings (they lost)
+                                    const loss = result?.diamondsEarned || 0;
+                                    if (loss > 0) {
+                                        const { data: profile } = await supabase
+                                            .from('profiles')
+                                            .select('diamonds')
+                                            .eq('id', userId)
+                                            .single();
+                                        if (profile) {
+                                            await supabase
+                                                .from('profiles')
+                                                .update({ diamonds: Math.max(0, (profile.diamonds || 0) - loss) })
+                                                .eq('id', userId);
+                                            setUserDiamonds(prev => Math.max(0, prev - loss));
+                                        }
+                                    }
+                                }
+                                setShowDoubleOrNothing(false);
+                            }}
+                            onDecline={() => setShowDoubleOrNothing(false)}
+                        />
                     )}
 
                     {/* Prize Wheel - only shows on 100% perfect score */}

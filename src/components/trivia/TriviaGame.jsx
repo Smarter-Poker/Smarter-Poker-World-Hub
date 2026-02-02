@@ -5,13 +5,17 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, ChevronRight, ChevronDown, ChevronUp, CheckCircle, XCircle, Zap } from 'lucide-react';
+import HintButtons, { applyHint } from './HintButtons';
 
 export default function TriviaGame({
     questions,
     mode,
     timeLimit = null,
     onComplete,
-    onAnswer
+    onAnswer,
+    userDiamonds = 0,
+    onDiamondsChange,
+    enableHints = true
 }) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [selectedAnswer, setSelectedAnswer] = useState(null);
@@ -19,6 +23,11 @@ export default function TriviaGame({
     const [answers, setAnswers] = useState([]);
     const [timeRemaining, setTimeRemaining] = useState(timeLimit);
     const [isLocked, setIsLocked] = useState(false);
+
+    // Hint system state
+    const [hintsUsed, setHintsUsed] = useState({ fiftyFifty: false, skip: false, extraTime: false });
+    const [eliminatedOptions, setEliminatedOptions] = useState([]);
+    const [diamonds, setDiamonds] = useState(userDiamonds);
 
     const timerRef = useRef(null);
     const startTimeRef = useRef(Date.now());
@@ -61,8 +70,8 @@ export default function TriviaGame({
         try {
             const audio = new Audio(isCorrect ? '/sounds/correct.mp3' : '/sounds/incorrect.mp3');
             audio.volume = isCorrect ? 0.6 : 0.5;
-            audio.play().catch(() => {});
-        } catch (e) {}
+            audio.play().catch(() => { });
+        } catch (e) { }
     };
 
     const selectAnswer = (index) => {
@@ -110,6 +119,7 @@ export default function TriviaGame({
             setSelectedAnswer(null);
             setShowExplanation(false);
             setIsLocked(false);
+            setEliminatedOptions([]); // Reset 50/50 for next question
         }
     };
 
@@ -195,7 +205,13 @@ export default function TriviaGame({
                     {/* Answer Options */}
                     <div className="options">
                         {currentQuestion.options.map((option, index) => {
+                            // Check if eliminated by 50/50
+                            const isEliminated = eliminatedOptions.includes(index);
+
                             let optionClass = 'option';
+                            if (isEliminated) {
+                                optionClass += ' eliminated';
+                            }
                             if (selectedAnswer !== null) {
                                 if (index === currentQuestion.correct_index) {
                                     optionClass += ' correct';
@@ -209,12 +225,12 @@ export default function TriviaGame({
                                     key={index}
                                     className={optionClass}
                                     onClick={() => selectAnswer(index)}
-                                    disabled={isLocked}
+                                    disabled={isLocked || isEliminated}
                                 >
                                     <span className="option-letter">
                                         {String.fromCharCode(65 + index)}
                                     </span>
-                                    <span className="option-text">{option}</span>
+                                    <span className="option-text">{isEliminated ? '---' : option}</span>
                                     {selectedAnswer !== null && index === currentQuestion.correct_index && (
                                         <CheckCircle size={20} className="result-icon correct" />
                                     )}
@@ -225,6 +241,43 @@ export default function TriviaGame({
                             );
                         })}
                     </div>
+
+                    {/* Hint Buttons - only show when answer not selected and hints enabled */}
+                    {enableHints && !isArcadeMode && selectedAnswer === null && (
+                        <div className="hints-section">
+                            <HintButtons
+                                userDiamonds={diamonds}
+                                hintsUsed={hintsUsed}
+                                hasTimeLimit={!!timeLimit}
+                                onUseHint={(hintType, cost) => {
+                                    const result = applyHint(
+                                        hintType,
+                                        currentQuestion,
+                                        eliminatedOptions,
+                                        timeRemaining
+                                    );
+
+                                    // Apply hint effects
+                                    if (result.eliminatedOptions) {
+                                        setEliminatedOptions(result.eliminatedOptions);
+                                    }
+                                    if (result.addTime) {
+                                        setTimeRemaining(prev => (prev || 0) + result.addTime);
+                                    }
+                                    if (result.skipQuestion) {
+                                        advanceQuestion([...answers, -1]); // -1 indicates skipped
+                                    }
+
+                                    // Deduct diamonds
+                                    setDiamonds(prev => prev - cost);
+                                    onDiamondsChange?.(-cost);
+
+                                    // Mark hint as used
+                                    setHintsUsed(prev => ({ ...prev, [hintType]: true }));
+                                }}
+                            />
+                        </div>
+                    )}
 
                     {/* Explanation (non-arcade mode) */}
                     {!isArcadeMode && selectedAnswer !== null && currentQuestion.explanation && (
@@ -499,6 +552,23 @@ export default function TriviaGame({
                 .next-button:hover {
                     transform: translateY(-2px);
                     box-shadow: 0 4px 20px rgba(14, 165, 233, 0.4);
+                }
+
+                .option.eliminated {
+                    opacity: 0.4;
+                    background: rgba(255, 255, 255, 0.02);
+                    border-color: rgba(255, 255, 255, 0.05);
+                    cursor: not-allowed;
+                }
+
+                .option.eliminated .option-text {
+                    text-decoration: line-through;
+                }
+
+                .hints-section {
+                    margin-top: 20px;
+                    padding-top: 16px;
+                    border-top: 1px solid rgba(255, 255, 255, 0.08);
                 }
             `}</style>
         </div>

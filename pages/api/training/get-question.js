@@ -172,6 +172,17 @@ export default async function handler(req, res) {
 /**
  * Generate question from PIO solver data
  * Transforms raw PIO scenarios into training questions
+ * 
+ * Strategy Matrix Format (ACTUAL):
+ * {
+ *   "actions": ["b16", "c", "b45", "f"],   // bet 16%, check, bet 45%, fold
+ *   "frequencies": {
+ *     "c": { "AA": 1.0, "KK": 0.83, ... },  // check frequencies per hand
+ *     "b16": { "AA": 0, "KK": 0.17, ... },  // bet 16% frequencies
+ *     ...
+ *   },
+ *   "hand_evs": { "AA": 1.5, ... }          // EV per hand
+ * }
  */
 async function generateQuestionFromPIO(pioScenarios, gameId, level, game) {
     try {
@@ -181,56 +192,112 @@ async function generateQuestionFromPIO(pioScenarios, gameId, level, game) {
         console.log('[Training] 📊 Generating question from PIO scenario:', scenario.scenarioHash);
 
         // Extract strategy matrix
-        const strategies = scenario.strategies || {};
-        const strategyKeys = Object.keys(strategies);
+        const strategyMatrix = scenario.strategies || {};
+        const actions = strategyMatrix.actions || [];
+        const frequencies = strategyMatrix.frequencies || {};
 
-        if (strategyKeys.length === 0) {
-            console.log('[Training] ⚠️ No strategies in scenario, falling back');
+        if (actions.length === 0) {
+            console.log('[Training] ⚠️ No actions in scenario, falling back');
             return null;
         }
 
-        // Get a few sample hands from the strategy matrix
-        const sampleHands = strategyKeys.slice(0, 5).map(key => {
-            const strategy = strategies[key];
-            return {
-                hand: strategy.hand || key,
-                action: strategy.action || 'Unknown',
-                ev: strategy.ev || 0
-            };
+        // Select a random hero hand from the frequency data
+        const sampleAction = actions[0];
+        const handFreqs = frequencies[sampleAction] || {};
+        const allHands = Object.keys(handFreqs);
+
+        if (allHands.length === 0) {
+            console.log('[Training] ⚠️ No hand frequencies in scenario, falling back');
+            return null;
+        }
+
+        // Pick a random hand for the question
+        const heroHand = allHands[Math.floor(Math.random() * allHands.length)];
+
+        // Find the optimal action for this hand (highest frequency)
+        let optimalAction = null;
+        let maxFreq = -1;
+        const handActions = {};
+
+        actions.forEach(action => {
+            const freq = frequencies[action]?.[heroHand] || 0;
+            handActions[action] = freq;
+            if (freq > maxFreq) {
+                maxFreq = freq;
+                optimalAction = action;
+            }
         });
 
-        // Find the optimal action (most common action in the matrix)
-        const actionCounts = {};
-        strategyKeys.forEach(key => {
-            const action = strategies[key].action || 'Check';
-            actionCounts[action] = (actionCounts[action] || 0) + 1;
-        });
+        // Map action codes to readable names
+        const actionNameMap = {
+            'c': 'Check',
+            'f': 'Fold',
+            'x': 'Check',
+            'b': 'Bet',
+            'b16': 'Bet Small (16%)',
+            'b25': 'Bet 25%',
+            'b33': 'Bet 33%',
+            'b45': 'Bet Medium (45%)',
+            'b50': 'Bet Half Pot',
+            'b66': 'Bet 2/3 Pot',
+            'b75': 'Bet 75%',
+            'b100': 'Bet Pot',
+            'b150': 'Overbet 150%',
+            'allin': 'All-In',
+            'r': 'Raise'
+        };
 
-        const optimalAction = Object.keys(actionCounts).reduce((a, b) =>
-            actionCounts[a] > actionCounts[b] ? a : b
-        );
+        const readableActions = actions.map(a => ({
+            id: a,
+            text: actionNameMap[a] || a.toUpperCase(),
+            frequency: handActions[a]
+        }));
 
-        // Build question
+        // Format hero hand for display (e.g., "AKs" → "A♠K♠")
+        const formatHand = (hand) => {
+            if (!hand) return 'Unknown';
+            const suitMap = { 's': '♠', 'h': '♥', 'd': '♦', 'c': '♣', 'o': '' };
+            if (hand.length === 2) return hand; // Pair like "AA"
+            if (hand.length === 3) {
+                const [r1, r2, suit] = [hand[0], hand[1], hand[2]];
+                if (suit === 's') return `${r1}♠${r2}♠`;
+                if (suit === 'o') return `${r1}♠${r2}♥`;
+            }
+            return hand;
+        };
+
+        // Build question with actual GTO data
         const question = {
             id: `pio_${scenario.id}_${Date.now()}`,
             type: 'PIO',
             source: 'PIO_DATABASE',
             scenario: {
-                board: scenario.board.join(' '),
+                board: scenario.board.join(' ') || 'Unknown Board',
                 street: scenario.street,
                 stackDepth: scenario.stackDepth,
                 gameType: scenario.gameType,
-                scenarioHash: scenario.scenarioHash
+                scenarioHash: scenario.scenarioHash,
+                heroHand: heroHand
             },
-            question: `On the ${scenario.street}, the board is ${scenario.board.join(' ')}. You have ${scenario.stackDepth}BB. What is the GTO play?`,
-            options: buildOptionsFromActions(Object.keys(actionCounts)),
-            correctAnswer: optimalAction.toLowerCase().replace(/\s/g, '_'),
-            explanation: `According to PIO solver data, the optimal action on this ${scenario.street} is to ${optimalAction}. This board texture favors this line based on range advantage and equity distribution.`,
+            question: `You hold ${formatHand(heroHand)} on the ${scenario.street} with board ${scenario.board.join(' ')}. Stack: ${scenario.stackDepth}BB. What is the GTO play?`,
+            options: readableActions.slice(0, 4).map(a => ({
+                id: a.id,
+                text: a.text
+            })),
+            correctAnswer: optimalAction,
+            correctAnswerText: actionNameMap[optimalAction] || optimalAction,
+            frequencies: handActions,
+            explanation: maxFreq >= 0.95
+                ? `According to GTO, this is a pure ${actionNameMap[optimalAction] || optimalAction} (${(maxFreq * 100).toFixed(0)}% frequency).`
+                : `GTO mixes here: ${Object.entries(handActions)
+                    .filter(([, f]) => f > 0.01)
+                    .map(([a, f]) => `${actionNameMap[a] || a} ${(f * 100).toFixed(0)}%`)
+                    .join(', ')}. The highest frequency play is ${actionNameMap[optimalAction] || optimalAction}.`,
             difficulty: level,
-            sampleHands: sampleHands.slice(0, 3) // Include a few example hands
+            heroHand: heroHand
         };
 
-        console.log('[Training] ✅ Generated PIO question:', question.question);
+        console.log('[Training] ✅ Generated PIO question for', heroHand, '- Optimal:', optimalAction);
         return question;
 
     } catch (error) {
