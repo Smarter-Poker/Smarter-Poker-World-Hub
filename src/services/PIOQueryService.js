@@ -185,47 +185,48 @@ export class PIOQueryService {
 
     /**
      * Get game configuration for PIO queries
+     * NOTE: Database has game_type='6max_cash' and stack_depth=8
      */
     getGameConfig(gameId) {
         const configs = {
-            // Cash Games (PioSOLVER)
-            'cash-001': { id: 'cash-001', sourceOfTruth: 'PioSOLVER', pioGameType: 'Cash', pioStackDepth: 100 },
-            'cash-002': { id: 'cash-002', sourceOfTruth: 'PioSOLVER', pioGameType: 'Cash', pioStackDepth: 100 },
-            'cash-003': { id: 'cash-003', sourceOfTruth: 'PioSOLVER', pioGameType: 'Cash', pioStackDepth: 100 },
-            'cash-004': { id: 'cash-004', sourceOfTruth: 'PioSOLVER', pioGameType: 'Cash', pioStackDepth: 100 },
-            'cash-005': { id: 'cash-005', sourceOfTruth: 'PioSOLVER', pioGameType: 'Cash', pioStackDepth: 100 },
-            'cash-006': { id: 'cash-006', sourceOfTruth: 'PioSOLVER', pioGameType: 'Cash', pioStackDepth: 100 },
-            'cash-007': { id: 'cash-007', sourceOfTruth: 'PioSOLVER', pioGameType: 'Cash', pioStackDepth: 100 },
-            'cash-009': { id: 'cash-009', sourceOfTruth: 'PioSOLVER', pioGameType: 'Cash', pioStackDepth: 200 },
-            'cash-012': { id: 'cash-012', sourceOfTruth: 'PioSOLVER', pioGameType: 'Cash', pioStackDepth: 100 },
-            'cash-014': { id: 'cash-014', sourceOfTruth: 'PioSOLVER', pioGameType: 'Cash', pioStackDepth: 100 },
-            'cash-015': { id: 'cash-015', sourceOfTruth: 'PioSOLVER', pioGameType: 'Cash', pioStackDepth: 100 },
-            'cash-016': { id: 'cash-016', sourceOfTruth: 'PioSOLVER', pioGameType: 'Cash', pioStackDepth: 100 },
-            'cash-018': { id: 'cash-018', sourceOfTruth: 'PioSOLVER', pioGameType: 'Cash', pioStackDepth: 100 },
-            'cash-022': { id: 'cash-022', sourceOfTruth: 'PioSOLVER', pioGameType: 'Cash', pioStackDepth: 100 },
-            'cash-023': { id: 'cash-023', sourceOfTruth: 'PioSOLVER', pioGameType: 'Cash', pioStackDepth: 100 },
-            'cash-024': { id: 'cash-024', sourceOfTruth: 'PioSOLVER', pioGameType: 'Cash', pioStackDepth: 100 },
+            // Cash Games (PioSOLVER) - Database has: game_type='6max_cash', stack_depth=8
+            'cash-001': { id: 'cash-001', sourceOfTruth: 'PioSOLVER', pioGameType: '6max_cash', pioStackDepth: 8 },
+            'cash-002': { id: 'cash-002', sourceOfTruth: 'PioSOLVER', pioGameType: '6max_cash', pioStackDepth: 8 },
+            'cash-003': { id: 'cash-003', sourceOfTruth: 'PioSOLVER', pioGameType: '6max_cash', pioStackDepth: 8 },
+            'cash-004': { id: 'cash-004', sourceOfTruth: 'PioSOLVER', pioGameType: '6max_cash', pioStackDepth: 8 },
+            'cash-005': { id: 'cash-005', sourceOfTruth: 'PioSOLVER', pioGameType: '6max_cash', pioStackDepth: 8 },
+            'cash-006': { id: 'cash-006', sourceOfTruth: 'PioSOLVER', pioGameType: '6max_cash', pioStackDepth: 8 },
+            'cash-007': { id: 'cash-007', sourceOfTruth: 'PioSOLVER', pioGameType: '6max_cash', pioStackDepth: 8 },
+            'cash-009': { id: 'cash-009', sourceOfTruth: 'PioSOLVER', pioGameType: '6max_cash', pioStackDepth: 8 },
+            'cash-012': { id: 'cash-012', sourceOfTruth: 'PioSOLVER', pioGameType: '6max_cash', pioStackDepth: 8 },
+            'cash-014': { id: 'cash-014', sourceOfTruth: 'PioSOLVER', pioGameType: '6max_cash', pioStackDepth: 8 },
+            'cash-015': { id: 'cash-015', sourceOfTruth: 'PioSOLVER', pioGameType: '6max_cash', pioStackDepth: 8 },
+            'cash-016': { id: 'cash-016', sourceOfTruth: 'PioSOLVER', pioGameType: '6max_cash', pioStackDepth: 8 },
+            'cash-018': { id: 'cash-018', sourceOfTruth: 'PioSOLVER', pioGameType: '6max_cash', pioStackDepth: 8 },
+            'cash-022': { id: 'cash-022', sourceOfTruth: 'PioSOLVER', pioGameType: '6max_cash', pioStackDepth: 8 },
+            'cash-023': { id: 'cash-023', sourceOfTruth: 'PioSOLVER', pioGameType: '6max_cash', pioStackDepth: 8 },
+            'cash-024': { id: 'cash-024', sourceOfTruth: 'PioSOLVER', pioGameType: '6max_cash', pioStackDepth: 8 },
 
-            // MTT Games (PioSOLVER)
-            'mtt-007': { id: 'mtt-007', sourceOfTruth: 'PioSOLVER', pioGameType: 'MTT', pioStackDepth: 100 },
-            'mtt-015': { id: 'mtt-015', sourceOfTruth: 'PioSOLVER', pioGameType: 'MTT', pioStackDepth: 100 },
-            'mtt-018': { id: 'mtt-018', sourceOfTruth: 'PioSOLVER', pioGameType: 'MTT', pioStackDepth: 100 },
-            'mtt-021': { id: 'mtt-021', sourceOfTruth: 'PioSOLVER', pioGameType: 'MTT', pioStackDepth: 100 },
-            'mtt-024': { id: 'mtt-024', sourceOfTruth: 'PioSOLVER', pioGameType: 'MTT', pioStackDepth: 100 },
+            // MTT Games - Use same data until MTT-specific data is imported
+            'mtt-007': { id: 'mtt-007', sourceOfTruth: 'PioSOLVER', pioGameType: '6max_cash', pioStackDepth: 8 },
+            'mtt-015': { id: 'mtt-015', sourceOfTruth: 'PioSOLVER', pioGameType: '6max_cash', pioStackDepth: 8 },
+            'mtt-018': { id: 'mtt-018', sourceOfTruth: 'PioSOLVER', pioGameType: '6max_cash', pioStackDepth: 8 },
+            'mtt-021': { id: 'mtt-021', sourceOfTruth: 'PioSOLVER', pioGameType: '6max_cash', pioStackDepth: 8 },
+            'mtt-024': { id: 'mtt-024', sourceOfTruth: 'PioSOLVER', pioGameType: '6max_cash', pioStackDepth: 8 },
 
-            // Chart Games (ICMIZER)
+            // Chart Games (ICMIZER) - Use memory_charts_gold
             'mtt-001': { id: 'mtt-001', sourceOfTruth: 'ICMIZER', pioStackDepth: 15 },
             'mtt-016': { id: 'mtt-016', sourceOfTruth: 'ICMIZER', pioStackDepth: 1 },
             'cash-010': { id: 'cash-010', sourceOfTruth: 'ICMIZER', pioStackDepth: 40 },
 
-            // Advanced Theory (PioSOLVER)
-            'adv-001': { id: 'adv-001', sourceOfTruth: 'PioSOLVER', pioGameType: 'Cash', pioStackDepth: 100 },
-            'adv-002': { id: 'adv-002', sourceOfTruth: 'PioSOLVER', pioGameType: 'Cash', pioStackDepth: 100 },
-            'adv-008': { id: 'adv-008', sourceOfTruth: 'PioSOLVER', pioGameType: 'Cash', pioStackDepth: 100 },
-            'adv-009': { id: 'adv-009', sourceOfTruth: 'PioSOLVER', pioGameType: 'Cash', pioStackDepth: 100 },
-            'adv-017': { id: 'adv-017', sourceOfTruth: 'PioSOLVER', pioGameType: 'Cash', pioStackDepth: 100 },
-            'adv-018': { id: 'adv-018', sourceOfTruth: 'PioSOLVER', pioGameType: 'Cash', pioStackDepth: 100 },
-            'adv-020': { id: 'adv-020', sourceOfTruth: 'PioSOLVER', pioGameType: 'Cash', pioStackDepth: 100 },
+            // Advanced Theory (PioSOLVER) - Use same data
+            'adv-001': { id: 'adv-001', sourceOfTruth: 'PioSOLVER', pioGameType: '6max_cash', pioStackDepth: 8 },
+            'adv-002': { id: 'adv-002', sourceOfTruth: 'PioSOLVER', pioGameType: '6max_cash', pioStackDepth: 8 },
+            'adv-008': { id: 'adv-008', sourceOfTruth: 'PioSOLVER', pioGameType: '6max_cash', pioStackDepth: 8 },
+            'adv-009': { id: 'adv-009', sourceOfTruth: 'PioSOLVER', pioGameType: '6max_cash', pioStackDepth: 8 },
+            'adv-017': { id: 'adv-017', sourceOfTruth: 'PioSOLVER', pioGameType: '6max_cash', pioStackDepth: 8 },
+            'adv-018': { id: 'adv-018', sourceOfTruth: 'PioSOLVER', pioGameType: '6max_cash', pioStackDepth: 8 },
+            'adv-020': { id: 'adv-020', sourceOfTruth: 'PioSOLVER', pioGameType: '6max_cash', pioStackDepth: 8 },
         };
 
         return configs[gameId] || null;
