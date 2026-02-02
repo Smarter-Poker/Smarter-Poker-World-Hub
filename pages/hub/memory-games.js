@@ -2531,9 +2531,9 @@ export default function MemoryGamesPage() {
                                         Time gets shorter the better you do. 3 lives, don't lose them!
                                     </p>
                                     <button
-                                        onClick={() => {
+                                        onClick={async () => {
                                             if (!isVIP) {
-                                                const result = DiamondEngine.deduct(GAME_COST);
+                                                const result = await DiamondEngine.deduct(GAME_COST);
                                                 if (!result.success) {
                                                     setShowOutOfDiamondsModal(true);
                                                     return;
@@ -2566,9 +2566,9 @@ export default function MemoryGamesPage() {
                                         <span style={{ color: '#ff4444' }}>Can you defuse the bomb? 💣</span>
                                     </p>
                                     <button
-                                        onClick={() => {
+                                        onClick={async () => {
                                             if (!isVIP) {
-                                                const result = DiamondEngine.deduct(GAME_COST);
+                                                const result = await DiamondEngine.deduct(GAME_COST);
                                                 if (!result.success) {
                                                     setShowOutOfDiamondsModal(true);
                                                     return;
@@ -2604,9 +2604,9 @@ export default function MemoryGamesPage() {
                                         Train your GTO intuition across 8 patterns.
                                     </p>
                                     <button
-                                        onClick={() => {
+                                        onClick={async () => {
                                             if (!isVIP) {
-                                                const result = DiamondEngine.deduct(GAME_COST);
+                                                const result = await DiamondEngine.deduct(GAME_COST);
                                                 if (!result.success) {
                                                     setShowOutOfDiamondsModal(true);
                                                     return;
@@ -2642,9 +2642,9 @@ export default function MemoryGamesPage() {
                                         10 Rounds of high-precision training.
                                     </p>
                                     <button
-                                        onClick={() => {
+                                        onClick={async () => {
                                             if (!isVIP) {
-                                                const result = DiamondEngine.deduct(GAME_COST);
+                                                const result = await DiamondEngine.deduct(GAME_COST);
                                                 if (!result.success) {
                                                     setShowOutOfDiamondsModal(true);
                                                     return;
@@ -2680,9 +2680,9 @@ export default function MemoryGamesPage() {
                                         Compare your EV to optimal GTO play.
                                     </p>
                                     <button
-                                        onClick={() => {
+                                        onClick={async () => {
                                             if (!isVIP) {
-                                                const result = DiamondEngine.deduct(GAME_COST);
+                                                const result = await DiamondEngine.deduct(GAME_COST);
                                                 if (!result.success) {
                                                     setShowOutOfDiamondsModal(true);
                                                     return;
@@ -2718,9 +2718,9 @@ export default function MemoryGamesPage() {
                                         <span style={{ color: '#EC4899' }}>Win diamonds & bragging rights!</span>
                                     </p>
                                     <button
-                                        onClick={() => {
+                                        onClick={async () => {
                                             if (!isVIP) {
-                                                const result = DiamondEngine.deduct(GAME_COST);
+                                                const result = await DiamondEngine.deduct(GAME_COST);
                                                 if (!result.success) {
                                                     setShowOutOfDiamondsModal(true);
                                                     return;
@@ -3095,9 +3095,9 @@ export default function MemoryGamesPage() {
                                         Learn to navigate complex spots optimally.
                                     </p>
                                     <button
-                                        onClick={() => {
+                                        onClick={async () => {
                                             if (!isVIP) {
-                                                const result = DiamondEngine.deduct(GAME_COST);
+                                                const result = await DiamondEngine.deduct(GAME_COST);
                                                 if (!result.success) {
                                                     alert(`Not enough diamonds!`);
                                                     return;
@@ -3133,9 +3133,9 @@ export default function MemoryGamesPage() {
                                         Earn diamonds and prove your skills!
                                     </p>
                                     <button
-                                        onClick={() => {
+                                        onClick={async () => {
                                             if (!isVIP) {
-                                                const result = DiamondEngine.deduct(GAME_COST);
+                                                const result = await DiamondEngine.deduct(GAME_COST);
                                                 if (!result.success) {
                                                     alert(`Not enough diamonds!`);
                                                     return;
