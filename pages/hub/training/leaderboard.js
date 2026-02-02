@@ -32,61 +32,32 @@ export default function TrainingLeaderboard() {
             const authUser = await getAuthUser();
             setUser(authUser);
 
-            // Calculate date filter
-            let dateFilter = null;
-            if (timeframe === 'daily') {
-                dateFilter = new Date();
-                dateFilter.setHours(0, 0, 0, 0);
-            } else if (timeframe === 'weekly') {
-                dateFilter = new Date();
-                dateFilter.setDate(dateFilter.getDate() - 7);
+            // Map timeframe to API period format
+            const periodMap = {
+                'daily': 'daily',
+                'weekly': 'weekly',
+                'all-time': 'alltime'
+            };
+            const period = periodMap[timeframe] || 'alltime';
+
+            // Fetch from new leaderboard API
+            const response = await fetch(`/api/training/leaderboard?period=${period}&limit=100`);
+            const data = await response.json();
+
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to load leaderboard');
             }
 
-            // Build query
-            let query = supabase
-                .from('training_sessions')
-                .select('user_id, questions_answered, correct_answers, created_at, profiles(username, avatar_url)');
-
-            if (dateFilter) {
-                query = query.gte('created_at', dateFilter.toISOString());
-            }
-
-            const { data: sessions, error } = await query;
-
-            if (error) throw error;
-
-            // Aggregate by user
-            const userStats = {};
-            sessions?.forEach(session => {
-                const userId = session.user_id;
-                if (!userStats[userId]) {
-                    userStats[userId] = {
-                        userId,
-                        username: session.profiles?.username || 'Anonymous',
-                        avatarUrl: session.profiles?.avatar_url,
-                        totalQuestions: 0,
-                        correctAnswers: 0,
-                        accuracy: 0,
-                        score: 0
-                    };
-                }
-                userStats[userId].totalQuestions += session.questions_answered || 0;
-                userStats[userId].correctAnswers += session.correct_answers || 0;
-            });
-
-            // Calculate accuracy and score
-            Object.values(userStats).forEach(stats => {
-                stats.accuracy = stats.totalQuestions > 0
-                    ? Math.round((stats.correctAnswers / stats.totalQuestions) * 100)
-                    : 0;
-                // Score = correct answers * accuracy bonus
-                stats.score = stats.correctAnswers * (1 + stats.accuracy / 100);
-            });
-
-            // Sort by score
-            const sorted = Object.values(userStats)
-                .sort((a, b) => b.score - a.score)
-                .slice(0, 100); // Top 100
+            // Transform API response to match expected format
+            const sorted = data.leaderboard.map(entry => ({
+                userId: entry.userId,
+                username: entry.username,
+                avatarUrl: entry.avatarUrl,
+                totalQuestions: entry.questionsCorrect || 0,
+                correctAnswers: entry.questionsCorrect || 0,
+                accuracy: entry.accuracy || 0,
+                score: (entry.questionsCorrect || 0) * (1 + (entry.accuracy || 0) / 100)
+            }));
 
             setLeaderboard(sorted);
 
@@ -102,6 +73,7 @@ export default function TrainingLeaderboard() {
             setLoading(false);
         }
     };
+
 
     return (
         <PageTransition>

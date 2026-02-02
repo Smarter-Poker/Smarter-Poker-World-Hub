@@ -2387,11 +2387,11 @@ export default function MemoryGamesPage() {
 
     // Fetch weak spots and suggestions on mount when user is available
     useEffect(() => {
-        if (userId && gameState === 'lobby') {
+        if (userId && mode === 'menu') {
             fetchWeakSpots();
             fetchLobbySuggestions();
         }
-    }, [userId, gameState]);
+    }, [userId, mode]);
 
     // Load leaderboard data
 
