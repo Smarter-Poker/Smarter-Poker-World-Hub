@@ -49,6 +49,11 @@ export default function SurvivalGamePage() {
     const [showResult, setShowResult] = useState(false);
     const [totalDiamondsEarned, setTotalDiamondsEarned] = useState(0);
 
+    // 50/50 Lifeline state
+    const [fiftyFiftyUsedFree, setFiftyFiftyUsedFree] = useState(false); // One free per level
+    const [eliminatedOptions, setEliminatedOptions] = useState([]); // Indices of eliminated wrong answers
+    const [userDiamonds, setUserDiamonds] = useState(0); // Current diamond balance
+
     // User state
     const [userId, setUserId] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -62,8 +67,22 @@ export default function SurvivalGamePage() {
         if (user) {
             setUserId(user.id);
             loadUserProgress(user.id);
+            loadUserDiamonds(user.id);
         }
     }, []);
+
+    async function loadUserDiamonds(uid) {
+        try {
+            const { data } = await supabase
+                .from('profiles')
+                .select('diamonds')
+                .eq('id', uid)
+                .single();
+            if (data) setUserDiamonds(data.diamonds || 0);
+        } catch (e) {
+            // Ignore
+        }
+    }
 
     async function loadUserProgress(uid) {
         try {
@@ -129,9 +148,56 @@ export default function SurvivalGamePage() {
         setIncorrectCount(0);
         setSelectedAnswer(null);
         setShowResult(false);
+        setFiftyFiftyUsedFree(false); // Reset free 50/50 for new level
+        setEliminatedOptions([]); // Clear eliminated options
         loadQuestionsForLevel(level);
         setGameState('playing');
         startTimeRef.current = Date.now();
+    }
+
+    // 50/50 Lifeline - removes 2 wrong answers
+    async function useFiftyFifty() {
+        if (eliminatedOptions.length > 0 || showResult) return; // Already used on this question or answered
+
+        const currentQuestion = questions[currentQuestionIndex];
+        if (!currentQuestion) return;
+
+        // Check if we need to pay diamonds
+        const needsToPay = fiftyFiftyUsedFree;
+
+        if (needsToPay) {
+            // Check if user has enough diamonds
+            if (userDiamonds < 5) {
+                alert('Not enough diamonds! You need 5💎 for an additional 50/50.');
+                return;
+            }
+            // Deduct diamonds
+            if (userId) {
+                try {
+                    await supabase
+                        .from('profiles')
+                        .update({ diamonds: userDiamonds - 5 })
+                        .eq('id', userId);
+                    setUserDiamonds(prev => prev - 5);
+                } catch (e) {
+                    console.error('Failed to deduct diamonds:', e);
+                    return;
+                }
+            }
+        } else {
+            // Mark free use as consumed
+            setFiftyFiftyUsedFree(true);
+        }
+
+        // Find wrong answer indices (not the correct one)
+        const wrongIndices = currentQuestion.options
+            .map((_, idx) => idx)
+            .filter(idx => idx !== currentQuestion.correct_index);
+
+        // Randomly select 2 to eliminate
+        const shuffled = wrongIndices.sort(() => Math.random() - 0.5);
+        const toEliminate = shuffled.slice(0, 2);
+        setEliminatedOptions(toEliminate);
     }
 
     function selectAnswer(index) {

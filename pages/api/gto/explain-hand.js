@@ -1,5 +1,5 @@
 /**
- * 🤖 Explain Hand API
+ * Explain Hand API
  * 
  * Uses Grok to explain why a specific poker action is GTO-correct.
  * Returns natural language explanation of the solver logic.
@@ -9,6 +9,7 @@
  */
 
 import { getGrokClient } from '../../../src/lib/grokClient';
+import { getCachedResponse, setCachedResponse } from '../../../src/lib/jarvisCache';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -28,6 +29,17 @@ export default async function handler(req, res) {
         if (!hand || !correctAction) {
             return res.status(400).json({
                 error: 'Missing required fields: hand, correctAction'
+            });
+        }
+
+        // Check cache first
+        const cacheParams = { hand, position, stackDepth, correctAction, scenarioTitle: scenario?.title };
+        const cached = await getCachedResponse('explain-hand', cacheParams);
+
+        if (cached) {
+            return res.status(200).json({
+                ...cached,
+                fromCache: true
             });
         }
 
@@ -67,14 +79,19 @@ export default async function handler(req, res) {
             throw new Error('Empty response from Grok');
         }
 
-        return res.status(200).json({
+        const response = {
             success: true,
             hand,
             correctAction,
             userAction,
             explanation: explanation.trim(),
             generatedAt: new Date().toISOString(),
-        });
+        };
+
+        // Cache the response
+        await setCachedResponse('explain-hand', cacheParams, response, 30);
+
+        return res.status(200).json(response);
 
     } catch (error) {
         console.error('[ExplainHand] Error:', error);

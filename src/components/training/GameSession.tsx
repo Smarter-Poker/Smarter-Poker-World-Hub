@@ -826,6 +826,60 @@ const GameSession: React.FC<GameSessionProps> = ({
             console.error('[GameSession] Failed to push to Jarvis:', error);
         }
 
+        // 🔥 Update training streak
+        try {
+            await fetch('/api/training/streak', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId })
+            });
+            console.log('[GameSession] 🔥 Streak updated');
+        } catch (error) {
+            console.error('[GameSession] Failed to update streak:', error);
+        }
+
+        // 🏅 Check for new achievements
+        try {
+            await fetch('/api/training/achievements', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId,
+                    stats: {
+                        accuracy,
+                        perfectRounds: accuracy === 100 ? 1 : 0,
+                        currentStreak: 1, // Will be updated by streak API
+                        totalSessions: 1,
+                        totalCorrect: correctCount
+                    }
+                })
+            });
+            console.log('[GameSession] 🏅 Achievements checked');
+        } catch (error) {
+            console.error('[GameSession] Failed to check achievements:', error);
+        }
+
+        // 🏆 Update leaderboard
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            await fetch('/api/training/update-leaderboard', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId,
+                    periodType: 'daily',
+                    periodKey: today,
+                    questionsAnswered: handNumber,
+                    questionsCorrect: correctCount,
+                    accuracy,
+                    xpEarned: correctCount * 10 + (passed ? 100 : 0)
+                })
+            });
+            console.log('[GameSession] 🏆 Leaderboard updated');
+        } catch (error) {
+            console.error('[GameSession] Failed to update leaderboard:', error);
+        }
+
         onSessionComplete?.(stats);
     }, [handNumber, correctCount, currentLevel, health, userId, gameId, gameName, engineType, sessionAnswers, sessionStartTime, onSessionComplete]);
 

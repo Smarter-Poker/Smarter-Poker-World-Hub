@@ -9,6 +9,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { getGrokClient } from '../../../src/lib/grokClient';
+import { getCachedResponse, setCachedResponse } from '../../../src/lib/jarvisCache';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -102,8 +103,22 @@ async function fetchWeakSpots(userId) {
 }
 
 async function generateTargetedScenario(weakness) {
-    const grok = getGrokClient();
+    const position = weakness.value || 'CO';
 
+    // Check cache first - cache by position so multiple users can benefit
+    const cacheParams = { position, type: 'adaptive-scenario' };
+    const cached = await getCachedResponse('generate-adaptive', cacheParams);
+
+    if (cached) {
+        // Return cached scenario with fresh ID
+        return {
+            ...cached,
+            id: `adaptive_${position}_${Date.now()}`,
+            fromCache: true
+        };
+    }
+
+    const grok = getGrokClient();
     const prompt = buildAdaptivePrompt(weakness);
 
     try {
@@ -136,6 +151,9 @@ async function generateTargetedScenario(weakness) {
         const scenario = JSON.parse(cleanedResponse);
         scenario.isAdaptive = true;
         scenario.targetedWeakness = weakness.area;
+
+        // Cache the scenario by position
+        await setCachedResponse('generate-adaptive', cacheParams, scenario, 14); // 14 day TTL
 
         return scenario;
 

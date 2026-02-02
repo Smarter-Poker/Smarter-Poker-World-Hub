@@ -1,5 +1,5 @@
 /**
- * 🤖 Jarvis Post-Game Analysis API
+ * Jarvis Post-Game Analysis API
  * 
  * Analyzes all mistakes from a completed game session and provides
  * a comprehensive breakdown with learning recommendations.
@@ -9,6 +9,7 @@
  */
 
 import { getGrokClient } from '../../../src/lib/grokClient';
+import { getCachedResponse, setCachedResponse } from '../../../src/lib/jarvisCache';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -32,6 +33,23 @@ export default async function handler(req, res) {
                     recommendations: ["Keep practicing to maintain your edge!"],
                     patternInsights: []
                 }
+            });
+        }
+
+        // Create cache key from sorted mistakes
+        const sortedMistakes = mistakes.map(m => `${m.hand}:${m.userAction}`).sort().join('|');
+        const cacheParams = {
+            mistakesHash: sortedMistakes,
+            scenarioTitle: scenario?.title,
+            position,
+            stackDepth
+        };
+
+        const cached = await getCachedResponse('analyze-game', cacheParams);
+        if (cached) {
+            return res.status(200).json({
+                ...cached,
+                fromCache: true
             });
         }
 
@@ -80,7 +98,7 @@ export default async function handler(req, res) {
             };
         }
 
-        return res.status(200).json({
+        const response = {
             success: true,
             analysis,
             meta: {
@@ -88,7 +106,12 @@ export default async function handler(req, res) {
                 score: finalScore,
                 generatedAt: new Date().toISOString(),
             }
-        });
+        };
+
+        // Cache the response
+        await setCachedResponse('analyze-game', cacheParams, response, 30);
+
+        return res.status(200).json(response);
 
     } catch (error) {
         console.error('[AnalyzeGame] Error:', error);
