@@ -119,7 +119,7 @@ function gradeUserGrid(userGrid, solution) {
 // ═══════════════════════════════════════════════════════════════════════════
 // ++ SPEED DRILL GAME COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
-function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) {
+function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, DiamondEngine, userId }) {
     const [gameState, setGameState] = useState('ready'); // ready | playing | revealed | gameover
     const [currentHand, setCurrentHand] = useState(null);
     const [score, setScore] = useState(0);
@@ -208,11 +208,43 @@ function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) {
                     const newBalance = DiamondEngine.award(diamondReward);
                     onScoreUpdate?.(newBalance);
                 }
+
+                // ═══════════════════════════════════════════════════════════════════════════
+                // 📊 PERSIST TO SUPABASE — Session, Achievements
+                // ═══════════════════════════════════════════════════════════════════════════
+                if (userId) {
+                    const accuracy = handsPlayed > 0 ? Math.round((score / (handsPlayed * 100)) * 100) : 0;
+
+                    // Record game session
+                    gameSessionService.recordSession(userId, {
+                        gameMode: 'speed_drill',
+                        level,
+                        scenarioId: currentHand?.scenario?.title,
+                        score,
+                        accuracy,
+                        timeTaken: 0,
+                        diamondsSpent: 0,
+                        diamondsEarned: diamondReward,
+                        completed: true
+                    }).then(r => console.log('[SpeedDrill] Session recorded:', r))
+                        .catch(e => console.warn('[SpeedDrill] Session failed:', e));
+
+                    // Check achievements
+                    achievementService.checkAndUnlock(userId, {
+                        gamesPlayed: 1,
+                        accuracy,
+                        level,
+                        gameMode: 'speed_drill',
+                        currentStreak: maxStreak,
+                        modesPlayed: ['speed_drill']
+                    }).then(u => u.length > 0 && console.log('[SpeedDrill] Achievements:', u))
+                        .catch(e => console.warn('[SpeedDrill] Achievement check failed:', e));
+                }
             } else {
                 nextHand();
             }
         }, 800);
-    }, [gameState, currentHand, streak, lives, score, nextHand, DiamondEngine, onScoreUpdate]);
+    }, [gameState, currentHand, streak, lives, score, nextHand, DiamondEngine, onScoreUpdate, userId, handsPlayed, level, maxStreak]);
 
     // Timer
     useEffect(() => {
@@ -385,7 +417,7 @@ function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) {
 //  PRESSURE COOKER GAME COMPONENT
 // Bomb defusal style - answer 10 spots before time runs out!
 // ═══════════════════════════════════════════════════════════════════════════
-function PressureCookerGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) {
+function PressureCookerGame({ level = 1, onExit, onScoreUpdate, DiamondEngine, userId }) {
     const [gameState, setGameState] = useState('ready'); // ready | playing | revealed | success | failed
     const [currentHand, setCurrentHand] = useState(null);
     const [score, setScore] = useState(0);
@@ -461,13 +493,43 @@ function PressureCookerGame({ level = 1, onExit, onScoreUpdate, DiamondEngine })
                     const newBalance = DiamondEngine.award(diamondReward);
                     onScoreUpdate?.(newBalance);
                 }
+
+                // ═══════════════════════════════════════════════════════════════════════════
+                // 📊 PERSIST TO SUPABASE — Session, Achievements
+                // ═══════════════════════════════════════════════════════════════════════════
+                if (userId) {
+                    const accuracy = Math.round((score / (newHandsCompleted * 100)) * 100);
+
+                    gameSessionService.recordSession(userId, {
+                        gameMode: 'pressure_cooker',
+                        level,
+                        scenarioId: currentHand?.scenario?.title,
+                        score,
+                        accuracy,
+                        timeTaken: Math.round((INITIAL_TIME - timeRemaining) / 1000),
+                        diamondsSpent: 0,
+                        diamondsEarned: diamondReward,
+                        completed: true
+                    }).then(r => console.log('[PressureCooker] Session recorded:', r))
+                        .catch(e => console.warn('[PressureCooker] Session failed:', e));
+
+                    achievementService.checkAndUnlock(userId, {
+                        gamesPlayed: 1,
+                        accuracy,
+                        level,
+                        gameMode: 'pressure_cooker',
+                        currentStreak: streak,
+                        modesPlayed: ['pressure_cooker']
+                    }).then(u => u.length > 0 && console.log('[PressureCooker] Achievements:', u))
+                        .catch(e => console.warn('[PressureCooker] Achievement check failed:', e));
+                }
             } else if (timeRemaining <= 0) {
                 // Already failed (handled by timer)
             } else {
                 nextHand();
             }
         }, 600);
-    }, [gameState, currentHand, streak, handsCompleted, handsRequired, timeRemaining, score, nextHand, DiamondEngine, onScoreUpdate]);
+    }, [gameState, currentHand, streak, handsCompleted, handsRequired, timeRemaining, score, nextHand, DiamondEngine, onScoreUpdate, userId, level]);
 
     // Timer countdown
     useEffect(() => {
@@ -661,7 +723,7 @@ function PressureCookerGame({ level = 1, onExit, onScoreUpdate, DiamondEngine })
 // Pattern PATTERN RECOGNITION GAME COMPONENT
 // Identify the pattern - what action does this range shape represent?
 // ═══════════════════════════════════════════════════════════════════════════
-function PatternRecognitionGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) {
+function PatternRecognitionGame({ level = 1, onExit, onScoreUpdate, DiamondEngine, userId }) {
     const [gameState, setGameState] = useState('ready'); // ready | playing | revealed | gameover
     const [currentPattern, setCurrentPattern] = useState(null);
     const [score, setScore] = useState(0);
@@ -723,6 +785,36 @@ function PatternRecognitionGame({ level = 1, onExit, onScoreUpdate, DiamondEngin
                 const newBalance = DiamondEngine.award(diamondReward);
                 onScoreUpdate?.(newBalance);
             }
+
+            // ═══════════════════════════════════════════════════════════════════════════
+            // 📊 PERSIST TO SUPABASE — Session, Achievements
+            // ═══════════════════════════════════════════════════════════════════════════
+            if (userId) {
+                const accuracy = Math.round((correctAnswers / maxRounds) * 100);
+
+                gameSessionService.recordSession(userId, {
+                    gameMode: 'pattern_recognition',
+                    level,
+                    scenarioId: currentPattern?.scenario?.title,
+                    score,
+                    accuracy,
+                    timeTaken: 0,
+                    diamondsSpent: 0,
+                    diamondsEarned: diamondReward,
+                    completed: true
+                }).then(r => console.log('[PatternRecognition] Session recorded:', r))
+                    .catch(e => console.warn('[PatternRecognition] Session failed:', e));
+
+                achievementService.checkAndUnlock(userId, {
+                    gamesPlayed: 1,
+                    accuracy,
+                    level,
+                    gameMode: 'pattern_recognition',
+                    currentStreak: streak,
+                    modesPlayed: ['pattern_recognition']
+                }).then(u => u.length > 0 && console.log('[PatternRecognition] Achievements:', u))
+                    .catch(e => console.warn('[PatternRecognition] Achievement check failed:', e));
+            }
             return;
         }
         const pattern = generatePattern();
@@ -731,7 +823,7 @@ function PatternRecognitionGame({ level = 1, onExit, onScoreUpdate, DiamondEngin
         setGameState('playing');
         setRound(prev => prev + 1);
         setUserAnswer(null);
-    }, [round, maxRounds, generatePattern, correctAnswers, score, DiamondEngine, onScoreUpdate]);
+    }, [round, maxRounds, generatePattern, correctAnswers, score, DiamondEngine, onScoreUpdate, userId, level, streak, currentPattern]);
 
     const handleAnswer = useCallback((action) => {
         if (gameState !== 'playing' || !currentPattern) return;
@@ -929,7 +1021,7 @@ function PatternRecognitionGame({ level = 1, onExit, onScoreUpdate, DiamondEngin
 // Mix MIXED STRATEGY GAME COMPONENT
 // Slider-based frequency training for complex spots
 // ═══════════════════════════════════════════════════════════════════════════
-function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) {
+function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, DiamondEngine, userId }) {
     const [gameState, setGameState] = useState('ready'); // ready | playing | revealed | gameover
     const [currentScenario, setCurrentScenario] = useState(null);
     const [targetAction, setTargetAction] = useState(null);
@@ -970,6 +1062,36 @@ function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) 
                 const newBalance = DiamondEngine.award(diamondReward);
                 onScoreUpdate?.(newBalance);
             }
+
+            // ═══════════════════════════════════════════════════════════════════════════
+            // 📊 PERSIST TO SUPABASE — Session, Achievements
+            // ═══════════════════════════════════════════════════════════════════════════
+            if (userId) {
+                const accuracy = Math.round((score / (roundsPlayed * 500)) * 100);
+
+                gameSessionService.recordSession(userId, {
+                    gameMode: 'mixed_strategy',
+                    level,
+                    scenarioId: currentScenario?.title,
+                    score,
+                    accuracy,
+                    timeTaken: 0,
+                    diamondsSpent: 0,
+                    diamondsEarned: diamondReward,
+                    completed: true
+                }).then(r => console.log('[MixedStrategy] Session recorded:', r))
+                    .catch(e => console.warn('[MixedStrategy] Session failed:', e));
+
+                achievementService.checkAndUnlock(userId, {
+                    gamesPlayed: 1,
+                    accuracy,
+                    level,
+                    gameMode: 'mixed_strategy',
+                    currentStreak: streak,
+                    modesPlayed: ['mixed_strategy']
+                }).then(u => u.length > 0 && console.log('[MixedStrategy] Achievements:', u))
+                    .catch(e => console.warn('[MixedStrategy] Achievement check failed:', e));
+            }
             return;
         }
 
@@ -979,7 +1101,7 @@ function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) 
         setGameState('playing');
         setUserFreq(50);
         setRoundsPlayed(prev => prev + 1);
-    }, [roundsPlayed, maxRounds, getMixedScenario, score, DiamondEngine, onScoreUpdate]);
+    }, [roundsPlayed, maxRounds, getMixedScenario, score, DiamondEngine, onScoreUpdate, userId, level, streak, currentScenario]);
 
     const handleSubmit = () => {
         if (gameState !== 'playing') return;
@@ -2938,6 +3060,7 @@ export default function MemoryGamesPage() {
                             onExit={() => setMode('menu')}
                             onScoreUpdate={(newBalance) => setDiamondBalance(newBalance)}
                             DiamondEngine={DiamondEngine}
+                            userId={userId}
                         />
                     )}
 
@@ -2948,6 +3071,7 @@ export default function MemoryGamesPage() {
                             onExit={() => setMode('menu')}
                             onScoreUpdate={(newBalance) => setDiamondBalance(newBalance)}
                             DiamondEngine={DiamondEngine}
+                            userId={userId}
                         />
                     )}
 
@@ -2958,6 +3082,7 @@ export default function MemoryGamesPage() {
                             onExit={() => setMode('menu')}
                             onScoreUpdate={(newBalance) => setDiamondBalance(newBalance)}
                             DiamondEngine={DiamondEngine}
+                            userId={userId}
                         />
                     )}
 
@@ -2968,6 +3093,7 @@ export default function MemoryGamesPage() {
                             onExit={() => setMode('menu')}
                             onScoreUpdate={(newBalance) => setDiamondBalance(newBalance)}
                             DiamondEngine={DiamondEngine}
+                            userId={userId}
                         />
                     )}
 
@@ -2978,6 +3104,7 @@ export default function MemoryGamesPage() {
                             onExit={() => setMode('menu')}
                             onScoreUpdate={(newBalance) => setDiamondBalance(newBalance)}
                             DiamondEngine={DiamondEngine}
+                            userId={userId}
                         />
                     )}
 

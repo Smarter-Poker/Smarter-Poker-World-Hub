@@ -34,7 +34,67 @@ const CONFIG = {
     REQUEST_TIMEOUT: 10000
 };
 
-// Source-specific fallback images (using reliable Pexels poker images)
+// Contextual fallback images based on article keywords (using reliable Pexels poker images)
+// This prevents all articles from showing the same generic fallback
+const KEYWORD_IMAGES = {
+    // Tournament & competition keywords
+    tournament: 'https://images.pexels.com/photos/6664248/pexels-photo-6664248.jpeg?auto=compress&cs=tinysrgb&w=600',
+    wsop: 'https://images.pexels.com/photos/6664248/pexels-photo-6664248.jpeg?auto=compress&cs=tinysrgb&w=600',
+    bracelet: 'https://images.pexels.com/photos/6664248/pexels-photo-6664248.jpeg?auto=compress&cs=tinysrgb&w=600',
+    ring: 'https://images.pexels.com/photos/6664248/pexels-photo-6664248.jpeg?auto=compress&cs=tinysrgb&w=600',
+    wpt: 'https://images.pexels.com/photos/3279691/pexels-photo-3279691.jpeg?auto=compress&cs=tinysrgb&w=600',
+    win: 'https://images.pexels.com/photos/6664248/pexels-photo-6664248.jpeg?auto=compress&cs=tinysrgb&w=600',
+    victory: 'https://images.pexels.com/photos/6664248/pexels-photo-6664248.jpeg?auto=compress&cs=tinysrgb&w=600',
+    champion: 'https://images.pexels.com/photos/6664248/pexels-photo-6664248.jpeg?auto=compress&cs=tinysrgb&w=600',
+    // High stakes / money keywords
+    million: 'https://images.pexels.com/photos/4386366/pexels-photo-4386366.jpeg?auto=compress&cs=tinysrgb&w=600',
+    'high stakes': 'https://images.pexels.com/photos/4386366/pexels-photo-4386366.jpeg?auto=compress&cs=tinysrgb&w=600',
+    pot: 'https://images.pexels.com/photos/4386366/pexels-photo-4386366.jpeg?auto=compress&cs=tinysrgb&w=600',
+    cash: 'https://images.pexels.com/photos/4386366/pexels-photo-4386366.jpeg?auto=compress&cs=tinysrgb&w=600',
+    // Online poker keywords
+    online: 'https://images.pexels.com/photos/4254890/pexels-photo-4254890.jpeg?auto=compress&cs=tinysrgb&w=600',
+    ggpoker: 'https://images.pexels.com/photos/4254890/pexels-photo-4254890.jpeg?auto=compress&cs=tinysrgb&w=600',
+    pokerstars: 'https://images.pexels.com/photos/4254890/pexels-photo-4254890.jpeg?auto=compress&cs=tinysrgb&w=600',
+    // Legal / industry keywords
+    casino: 'https://images.pexels.com/photos/3279691/pexels-photo-3279691.jpeg?auto=compress&cs=tinysrgb&w=600',
+    bill: 'https://images.pexels.com/photos/4386331/pexels-photo-4386331.jpeg?auto=compress&cs=tinysrgb&w=600',
+    law: 'https://images.pexels.com/photos/4386331/pexels-photo-4386331.jpeg?auto=compress&cs=tinysrgb&w=600',
+    legal: 'https://images.pexels.com/photos/4386331/pexels-photo-4386331.jpeg?auto=compress&cs=tinysrgb&w=600',
+    tax: 'https://images.pexels.com/photos/4386331/pexels-photo-4386331.jpeg?auto=compress&cs=tinysrgb&w=600',
+    // Player-focused keywords
+    player: 'https://images.pexels.com/photos/1871508/pexels-photo-1871508.jpeg?auto=compress&cs=tinysrgb&w=600',
+    pro: 'https://images.pexels.com/photos/1871508/pexels-photo-1871508.jpeg?auto=compress&cs=tinysrgb&w=600'
+};
+
+// Rotate through these for variety when no keyword matches
+const POKER_IMAGE_ROTATION = [
+    'https://images.pexels.com/photos/1871508/pexels-photo-1871508.jpeg?auto=compress&cs=tinysrgb&w=600', // Cards
+    'https://images.pexels.com/photos/3279691/pexels-photo-3279691.jpeg?auto=compress&cs=tinysrgb&w=600', // Casino chips
+    'https://images.pexels.com/photos/6664248/pexels-photo-6664248.jpeg?auto=compress&cs=tinysrgb&w=600', // Tournament
+    'https://images.pexels.com/photos/4254890/pexels-photo-4254890.jpeg?auto=compress&cs=tinysrgb&w=600', // Online
+    'https://images.pexels.com/photos/4386366/pexels-photo-4386366.jpeg?auto=compress&cs=tinysrgb&w=600', // Money
+    'https://images.pexels.com/photos/4386331/pexels-photo-4386331.jpeg?auto=compress&cs=tinysrgb&w=600'  // Industry
+];
+let rotationIndex = 0;
+
+// Get contextual image based on article title
+function getContextualFallbackImage(title) {
+    const lowerTitle = title.toLowerCase();
+
+    // Check for keyword matches
+    for (const [keyword, imageUrl] of Object.entries(KEYWORD_IMAGES)) {
+        if (lowerTitle.includes(keyword)) {
+            return imageUrl;
+        }
+    }
+
+    // Rotate through variety of poker images if no keyword match
+    const image = POKER_IMAGE_ROTATION[rotationIndex % POKER_IMAGE_ROTATION.length];
+    rotationIndex++;
+    return image;
+}
+
+// Legacy source-specific fallback (still used as ultimate fallback)
 const SOURCE_FALLBACK_IMAGES = {
     'PokerNews': 'https://images.pexels.com/photos/1871508/pexels-photo-1871508.jpeg?auto=compress&cs=tinysrgb&w=600',
     'MSPT': 'https://images.pexels.com/photos/3279691/pexels-photo-3279691.jpeg?auto=compress&cs=tinysrgb&w=600',
@@ -381,7 +441,7 @@ async function scrapeRSS(source) {
 
             // Use source fallback if no image found
             if (!image) {
-                image = SOURCE_FALLBACK_IMAGES[source.name];
+                image = getContextualFallbackImage(title);
                 console.log(`   Using fallback image for: ${title.substring(0, 30)}...`);
             }
 
@@ -436,7 +496,7 @@ async function scrapeMSPT(html, source) {
 
         // Use source fallback if no image found
         if (!image) {
-            image = SOURCE_FALLBACK_IMAGES[source.name];
+            image = getContextualFallbackImage(title);
             console.log(`   Using fallback image for MSPT: ${title.substring(0, 30)}...`);
         }
 
@@ -494,7 +554,7 @@ async function scrapeWSOP(html, source) {
 
             // Use source fallback if no image found
             if (!image) {
-                image = SOURCE_FALLBACK_IMAGES[source.name];
+                image = getContextualFallbackImage(title);
                 console.log(`   Using fallback image for WSOP: ${title.substring(0, 30)}...`);
             }
 
@@ -550,7 +610,7 @@ async function scrapePokerfuse(html, source) {
 
             // Use source fallback if no image found
             if (!image) {
-                image = SOURCE_FALLBACK_IMAGES[source.name];
+                image = getContextualFallbackImage(title);
                 console.log(`   Using fallback image for Pokerfuse: ${title.substring(0, 30)}...`);
             }
 
@@ -607,7 +667,7 @@ async function scrapeCardPlayer(html, source) {
 
             // Use source fallback if no image found
             if (!image) {
-                image = SOURCE_FALLBACK_IMAGES[source.name];
+                image = getContextualFallbackImage(title);
                 console.log(`   Using fallback image for CardPlayer: ${title.substring(0, 30)}...`);
             }
 
@@ -630,33 +690,33 @@ async function scrapePokerOrg(html, source) {
     const now = new Date();
     const year = now.getUTCFullYear();
     const month = now.getUTCMonth() + 1; // 1-indexed
-    
+
     // Try current month first, then previous month as fallback
     const sitemapUrls = [
         `https://www.poker.org/sitemaps/article-${year}-${month}.xml`,
         `https://www.poker.org/sitemaps/article-${year}-${month - 1 > 0 ? month - 1 : 12}.xml`
     ];
-    
+
     for (const sitemapUrl of sitemapUrls) {
         if (articles.length >= CONFIG.MAX_ARTICLES_PER_SOURCE) break;
-        
+
         console.log(`   Fetching Poker.org sitemap: ${sitemapUrl}`);
         const sitemapXml = await fetchPage(sitemapUrl);
         if (!sitemapXml) continue;
-        
+
         // Parse sitemap XML - extract <loc> URLs for latest-news articles
         const urlMatches = sitemapXml.matchAll(/<loc>([^<]+)<\/loc>/gi);
-        
+
         for (const match of urlMatches) {
             if (articles.length >= CONFIG.MAX_ARTICLES_PER_SOURCE) break;
-            
+
             const url = match[1];
-            
+
             // Only include news articles (skip videos, strategy pages, etc.)
             if (!url.includes('/latest-news/')) continue;
             if (seen.has(url)) continue;
             seen.add(url);
-            
+
             // Extract title from URL slug (last segment before the ID)
             const urlPath = url.replace('https://www.poker.org', '').replace(/\/$/, '');
             const segments = urlPath.split('/');
@@ -668,27 +728,27 @@ async function scrapePokerOrg(html, source) {
                 .map(word => word.charAt(0).toUpperCase() + word.slice(1))
                 .join(' ')
                 .slice(0, 100);
-            
+
             if (!title || title.length < 15) continue;
-            
+
             console.log(`   Checking Poker.org: ${title.substring(0, 40)}...`);
-            
+
             // Fetch article page for image
             const articleHtml = await fetchPage(url);
             let image = extractArticleImage(articleHtml, url);
-            
+
             // Use source fallback if no image found
             if (!image) {
-                image = SOURCE_FALLBACK_IMAGES[source.name];
+                image = getContextualFallbackImage(title);
                 console.log(`   Using fallback image for Poker.org: ${title.substring(0, 30)}...`);
             }
-            
+
             if (image) {
                 articles.push({ url, title, image, source });
             }
         }
     }
-    
+
     return articles;
 }
 
@@ -722,7 +782,7 @@ async function scrapePokerNewsVideos(html, source) {
 
         // Use fallback if no image
         if (!image) {
-            image = SOURCE_FALLBACK_IMAGES[source.name];
+            image = getContextualFallbackImage(title);
         }
 
         if (image) {
@@ -782,7 +842,7 @@ async function scrapePokerNews(html, source) {
 
             // Use source fallback if no image found
             if (!image) {
-                image = SOURCE_FALLBACK_IMAGES[source.name];
+                image = getContextualFallbackImage(title);
                 console.log(`   Using fallback image for PokerNews: ${title.substring(0, 30)}...`);
             }
 
