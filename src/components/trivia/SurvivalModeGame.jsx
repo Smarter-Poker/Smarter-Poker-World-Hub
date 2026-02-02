@@ -4,7 +4,6 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, Skull, Gem, CheckCircle, XCircle, Trophy, Flame } from 'lucide-react';
 import { calculateDiamonds } from '../../lib/trivia/triviaEngine';
 import './SurvivalModeGame.css';
@@ -25,7 +24,7 @@ export default function SurvivalModeGame({
     const [multiplier, setMultiplier] = useState(1);
 
     const startTimeRef = useRef(Date.now());
-    const currentQuestion = questions[currentIndex];
+    const currentQuestion = questions?.[currentIndex];
 
     // Calculate current multiplier (increases every 5 questions)
     useEffect(() => {
@@ -34,10 +33,10 @@ export default function SurvivalModeGame({
 
     // Load more questions when running low
     useEffect(() => {
-        if (currentIndex >= questions.length - 3 && onLoadMoreQuestions) {
+        if (questions && currentIndex >= questions.length - 3 && onLoadMoreQuestions) {
             onLoadMoreQuestions();
         }
-    }, [currentIndex, questions.length, onLoadMoreQuestions]);
+    }, [currentIndex, questions?.length, onLoadMoreQuestions]);
 
     const playSound = (isCorrect) => {
         try {
@@ -53,7 +52,7 @@ export default function SurvivalModeGame({
         setSelectedAnswer(index);
         setShowResult(true);
 
-        const correct = index === currentQuestion.correct_index;
+        const correct = index === currentQuestion?.correct_index;
         playSound(correct);
 
         const newAnswers = [...answers, index];
@@ -91,10 +90,10 @@ export default function SurvivalModeGame({
     };
 
     const getMultiplierColor = (mult) => {
-        if (mult >= 5) return '#FFD700'; // Gold
-        if (mult >= 3) return '#A855F7'; // Purple
-        if (mult >= 2) return '#06B6D4'; // Cyan
-        return '#22C55E'; // Green
+        if (mult >= 5) return '#FFD700';
+        if (mult >= 3) return '#A855F7';
+        if (mult >= 2) return '#06B6D4';
+        return '#22C55E';
     };
 
     if (!currentQuestion && !isGameOver) {
@@ -106,9 +105,34 @@ export default function SurvivalModeGame({
         );
     }
 
+    if (isGameOver) {
+        return (
+            <div className="survival-game">
+                <div className="game-over-card">
+                    <div className="game-over-icon">
+                        <Skull size={64} />
+                    </div>
+                    <h2>GAME OVER</h2>
+                    <div className="final-stats">
+                        <div className="stat">
+                            <Trophy size={24} />
+                            <span className="stat-value">{streak}</span>
+                            <span className="stat-label">Questions Answered</span>
+                        </div>
+                        <div className="stat">
+                            <Gem size={24} />
+                            <span className="stat-value">{calculateDiamonds('survival', streak, streak + 1, 0)}</span>
+                            <span className="stat-label">Diamonds Earned</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="survival-game">
-            {/* Survival Header - Lives & Score */}
+            {/* Survival Header */}
             <div className="survival-header">
                 <div className="lives-display">
                     <Heart size={24} fill="#ef4444" color="#ef4444" />
@@ -151,87 +175,52 @@ export default function SurvivalModeGame({
             </div>
 
             {/* Question Card */}
-            <AnimatePresence mode="wait">
-                {!isGameOver ? (
-                    <motion.div
-                        key={currentIndex}
-                        className="survival-question-card"
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        transition={{ duration: 0.2 }}
-                    >
-                        <div className="question-number">
-                            Question #{streak + 1}
-                        </div>
+            <div className="survival-question-card">
+                <div className="question-number">
+                    Question #{streak + 1}
+                </div>
 
-                        <h2 className="survival-question-text">{currentQuestion?.question}</h2>
+                <h2 className="survival-question-text">{currentQuestion?.question}</h2>
 
-                        <div className="survival-options">
-                            {currentQuestion?.options.map((option, index) => {
-                                let optionClass = 'survival-option';
-                                if (showResult) {
-                                    if (index === currentQuestion.correct_index) {
-                                        optionClass += ' correct';
-                                    } else if (index === selectedAnswer) {
-                                        optionClass += ' incorrect';
-                                    }
-                                }
+                <div className="survival-options">
+                    {currentQuestion?.options?.map((option, index) => {
+                        let optionClass = 'survival-option';
+                        if (showResult) {
+                            if (index === currentQuestion.correct_index) {
+                                optionClass += ' correct';
+                            } else if (index === selectedAnswer) {
+                                optionClass += ' incorrect';
+                            }
+                        }
 
-                                return (
-                                    <button
-                                        key={index}
-                                        className={optionClass}
-                                        onClick={() => selectAnswer(index)}
-                                        disabled={selectedAnswer !== null}
-                                    >
-                                        <span className="option-letter">
-                                            {String.fromCharCode(65 + index)}
-                                        </span>
-                                        <span className="option-text">{option}</span>
-                                        {showResult && index === currentQuestion.correct_index && (
-                                            <CheckCircle size={20} className="result-icon correct" />
-                                        )}
-                                        {showResult && index === selectedAnswer && index !== currentQuestion.correct_index && (
-                                            <XCircle size={20} className="result-icon incorrect" />
-                                        )}
-                                    </button>
-                                );
-                            })}
-                        </div>
+                        return (
+                            <button
+                                key={index}
+                                className={optionClass}
+                                onClick={() => selectAnswer(index)}
+                                disabled={selectedAnswer !== null}
+                            >
+                                <span className="option-letter">
+                                    {String.fromCharCode(65 + index)}
+                                </span>
+                                <span className="option-text">{option}</span>
+                                {showResult && index === currentQuestion.correct_index && (
+                                    <CheckCircle size={20} className="result-icon correct" />
+                                )}
+                                {showResult && index === selectedAnswer && index !== currentQuestion.correct_index && (
+                                    <XCircle size={20} className="result-icon incorrect" />
+                                )}
+                            </button>
+                        );
+                    })}
+                </div>
 
-                        {/* Reward Preview */}
-                        <div className="reward-preview">
-                            <Gem size={14} />
-                            <span>+{multiplier} for correct answer</span>
-                        </div>
-                    </motion.div>
-                ) : (
-                    <motion.div
-                        className="game-over-card"
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.3 }}
-                    >
-                        <div className="game-over-icon">
-                            <Skull size={64} />
-                        </div>
-                        <h2>GAME OVER</h2>
-                        <div className="final-stats">
-                            <div className="stat">
-                                <Trophy size={24} />
-                                <span className="stat-value">{streak}</span>
-                                <span className="stat-label">Questions Answered</span>
-                            </div>
-                            <div className="stat">
-                                <Gem size={24} />
-                                <span className="stat-value">{calculateDiamonds('survival', streak, streak + 1, 0)}</span>
-                                <span className="stat-label">Diamonds Earned</span>
-                            </div>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                {/* Reward Preview */}
+                <div className="reward-preview">
+                    <Gem size={14} />
+                    <span>+{multiplier} for correct answer</span>
+                </div>
+            </div>
         </div>
     );
 }
