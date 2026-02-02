@@ -434,12 +434,8 @@ export default function ClubArenaPage() {
                     <div
                         style={S.sharkClubWrapper}
                         onClick={() => {
-                            // Navigate to club lobby or show create modal
-                            if (activeClub) {
-                                router.push(`/hub/club-arena/lobby?club=${activeClub.club_id}`);
-                            } else {
-                                user ? setShowCreateClub(true) : alert('Please sign in first');
-                            }
+                            // Navigate to Shark Club lobby (club_id 25450 is the featured Shark Club)
+                            router.push('/hub/club-arena/lobby?club=25450');
                         }}
                     >
                         <img
