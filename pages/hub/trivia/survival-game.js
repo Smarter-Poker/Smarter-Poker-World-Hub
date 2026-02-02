@@ -265,6 +265,23 @@ export default function SurvivalGamePage() {
         const config = LEVEL_CONFIG[level - 1];
 
         try {
+            // 60-day non-repeat: Get user's recently seen question IDs
+            let excludeIds = [];
+            if (userId) {
+                const sixtyDaysAgo = new Date();
+                sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+
+                const { data: history } = await supabase
+                    .from('trivia_user_question_history')
+                    .select('question_id')
+                    .eq('user_id', userId)
+                    .gte('seen_at', sixtyDaysAgo.toISOString());
+
+                if (history) {
+                    excludeIds = history.map(h => h.question_id);
+                }
+            }
+
             // Get questions with appropriate difficulty
             let query = supabase
                 .from('trivia_questions')
@@ -277,21 +294,35 @@ export default function SurvivalGamePage() {
                 query = query.in('difficulty', ['medium', 'easy']);
             }
 
-            const { data, error } = await query.limit(100);
+            // Fetch more questions to allow for exclusion filtering
+            const { data, error } = await query.limit(200);
 
-            if (!error && data && data.length >= QUESTIONS_PER_LEVEL) {
-                // Shuffle and take 20
-                const shuffled = data.sort(() => Math.random() - 0.5).slice(0, QUESTIONS_PER_LEVEL);
-                setQuestions(shuffled);
-            } else {
-                // Fallback: get any questions
-                const { data: fallbackData } = await supabase
-                    .from('trivia_questions')
-                    .select('*')
-                    .limit(QUESTIONS_PER_LEVEL);
+            if (!error && data) {
+                // Filter out recently seen questions
+                let available = excludeIds.length > 0
+                    ? data.filter(q => !excludeIds.includes(q.id))
+                    : data;
 
-                if (fallbackData) {
-                    setQuestions(fallbackData.sort(() => Math.random() - 0.5));
+                // If not enough unseen questions, fall back to all questions
+                if (available.length < QUESTIONS_PER_LEVEL) {
+                    console.log(`[Survival] Not enough unseen questions (${available.length}), using all available`);
+                    available = data;
+                }
+
+                if (available.length >= QUESTIONS_PER_LEVEL) {
+                    // Shuffle and take 20
+                    const shuffled = available.sort(() => Math.random() - 0.5).slice(0, QUESTIONS_PER_LEVEL);
+                    setQuestions(shuffled);
+                } else {
+                    // Ultimate fallback: get any questions
+                    const { data: fallbackData } = await supabase
+                        .from('trivia_questions')
+                        .select('*')
+                        .limit(QUESTIONS_PER_LEVEL);
+
+                    if (fallbackData) {
+                        setQuestions(fallbackData.sort(() => Math.random() - 0.5));
+                    }
                 }
             }
         } catch (e) {
@@ -559,6 +590,23 @@ export default function SurvivalGamePage() {
                 ...prev,
                 highestLevel: Math.max(level, prev.highestLevel)
             }));
+
+            // Record question history for 60-day non-repeat
+            if (questions && questions.length > 0) {
+                const historyRecords = questions.map(q => ({
+                    user_id: userId,
+                    question_id: q.id,
+                    seen_at: new Date().toISOString(),
+                    mode: 'survival'
+                }));
+
+                await supabase
+                    .from('trivia_user_question_history')
+                    .upsert(historyRecords, {
+                        onConflict: 'user_id,question_id',
+                        ignoreDuplicates: false
+                    });
+            }
         } catch (e) {
             console.error('Failed to save progress:', e);
         }
