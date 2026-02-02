@@ -34,13 +34,25 @@ export default function EndlessModePage() {
     const [eliminatedOptions, setEliminatedOptions] = useState([]);
     const [userDiamonds, setUserDiamonds] = useState(0);
 
-    // Skip Question Lifeline state (3💎 each use)
+    // Lifeline usage tracking (max 3 per game, all cost 5💎)
+    const [lifelinesUsedThisGame, setLifelinesUsedThisGame] = useState(0);
+    const LIFELINE_COST = 5;
+    const MAX_LIFELINES_PER_GAME = 3;
+
+    // Skip Question Lifeline state
     const [skipUsedThisQuestion, setSkipUsedThisQuestion] = useState(false);
 
-    // Double Chance Lifeline state (3💎 - get 2 attempts)
+    // Double Chance Lifeline state
     const [doubleChanceActive, setDoubleChanceActive] = useState(false);
     const [doubleChanceUsedThisQuestion, setDoubleChanceUsedThisQuestion] = useState(false);
     const [firstAttemptWrong, setFirstAttemptWrong] = useState(null);
+
+    // 24-Second Shot Clock State
+    const [timeLeft, setTimeLeft] = useState(24);
+    const [isTimerRunning, setIsTimerRunning] = useState(false);
+    const [screenShake, setScreenShake] = useState(false);
+    const timerRef = useRef(null);
+    const heartbeatIntervalRef = useRef(null);
 
     const startTimeRef = useRef(null);
 
@@ -124,7 +136,82 @@ export default function EndlessModePage() {
         setDoubleChanceActive(false);
         setDoubleChanceUsedThisQuestion(false);
         setFirstAttemptWrong(null);
+        setLifelinesUsedThisGame(0);
+        // Start shot clock
+        setTimeLeft(24);
+        setIsTimerRunning(true);
+        setScreenShake(false);
         startTimeRef.current = Date.now();
+    }
+
+    // Shot Clock Timer Effect - 24 seconds with haptics/audio/shake
+    useEffect(() => {
+        if (!isTimerRunning || showResult) {
+            if (timerRef.current) clearInterval(timerRef.current);
+            if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
+            setScreenShake(false);
+            return;
+        }
+
+        timerRef.current = setInterval(() => {
+            setTimeLeft(prev => {
+                const newTime = prev - 1;
+                if ('vibrate' in navigator) {
+                    if (newTime <= 3) navigator.vibrate(100);
+                    else if (newTime <= 8) navigator.vibrate(50);
+                    else navigator.vibrate(20);
+                }
+                if (newTime <= 3 && newTime > 0) setScreenShake(true);
+                else setScreenShake(false);
+
+                if (newTime <= 0) {
+                    clearInterval(timerRef.current);
+                    clearInterval(heartbeatIntervalRef.current);
+                    handleTimeOut();
+                    return 0;
+                }
+                return newTime;
+            });
+        }, 1000);
+
+        if (timeLeft <= 8 && timeLeft > 0) {
+            const playHeartbeat = () => {
+                try {
+                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.frequency.value = 80;
+                    osc.type = 'sine';
+                    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+                    osc.start(ctx.currentTime);
+                    osc.stop(ctx.currentTime + 0.15);
+                } catch (e) { }
+            };
+            const speed = Math.max(200, 600 - ((8 - timeLeft) * 50));
+            if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
+            heartbeatIntervalRef.current = setInterval(playHeartbeat, speed);
+            playHeartbeat();
+        }
+
+        return () => {
+            if (timerRef.current) clearInterval(timerRef.current);
+            if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
+        };
+    }, [isTimerRunning, showResult, timeLeft]);
+
+    // Handle timeout - game over
+    function handleTimeOut() {
+        setIsTimerRunning(false);
+        setScreenShake(false);
+        if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
+        setShowResult(true);
+        setTimeout(() => {
+            setGameState('gameover');
+            saveGameResult();
+        }, 1500);
     }
 
     // 50/50 Lifeline Function
@@ -169,23 +256,26 @@ export default function EndlessModePage() {
         setEliminatedOptions(toEliminate);
     }
 
-    // Skip Question Function (costs 3💎)
+    // Skip Question Function (costs 5💎)
     async function useSkipQuestion() {
         if (showResult || skipUsedThisQuestion) return;
-
-        if (userDiamonds < 3) {
-            alert('Not enough diamonds! You need 3💎 to skip.');
+        if (lifelinesUsedThisGame >= MAX_LIFELINES_PER_GAME) {
+            alert(`Lifeline limit reached! Only ${MAX_LIFELINES_PER_GAME} lifelines per game.`);
+            return;
+        }
+        if (userDiamonds < LIFELINE_COST) {
+            alert(`Not enough diamonds! You need ${LIFELINE_COST}💎 to skip.`);
             return;
         }
 
-        // Deduct diamonds
         if (userId) {
             try {
                 await supabase
                     .from('profiles')
-                    .update({ diamonds: userDiamonds - 3 })
+                    .update({ diamonds: userDiamonds - LIFELINE_COST })
                     .eq('id', userId);
-                setUserDiamonds(prev => prev - 3);
+                setUserDiamonds(prev => prev - LIFELINE_COST);
+                setLifelinesUsedThisGame(prev => prev + 1);
             } catch (e) {
                 console.error('Failed to deduct diamonds:', e);
                 return;
@@ -193,6 +283,7 @@ export default function EndlessModePage() {
         }
 
         setSkipUsedThisQuestion(true);
+        setIsTimerRunning(false);
 
         // Move to next question without penalty (keep streak)
         setCurrentIndex(prev => prev + 1);
@@ -203,25 +294,29 @@ export default function EndlessModePage() {
         setDoubleChanceActive(false);
         setDoubleChanceUsedThisQuestion(false);
         setFirstAttemptWrong(null);
+        setTimeLeft(24);
+        setIsTimerRunning(true);
     }
 
-    // Double Chance Function (costs 3💎 - gives 2 attempts)
     async function useDoubleChance() {
         if (showResult || doubleChanceUsedThisQuestion || doubleChanceActive) return;
-
-        if (userDiamonds < 3) {
-            alert('Not enough diamonds! You need 3💎 for Double Chance.');
+        if (lifelinesUsedThisGame >= MAX_LIFELINES_PER_GAME) {
+            alert(`Lifeline limit reached! Only ${MAX_LIFELINES_PER_GAME} lifelines per game.`);
+            return;
+        }
+        if (userDiamonds < LIFELINE_COST) {
+            alert(`Not enough diamonds! You need ${LIFELINE_COST}💎 for Double Chance.`);
             return;
         }
 
-        // Deduct diamonds
         if (userId) {
             try {
                 await supabase
                     .from('profiles')
-                    .update({ diamonds: userDiamonds - 3 })
+                    .update({ diamonds: userDiamonds - LIFELINE_COST })
                     .eq('id', userId);
-                setUserDiamonds(prev => prev - 3);
+                setUserDiamonds(prev => prev - LIFELINE_COST);
+                setLifelinesUsedThisGame(prev => prev + 1);
             } catch (e) {
                 console.error('Failed to deduct diamonds:', e);
                 return;
@@ -235,15 +330,20 @@ export default function EndlessModePage() {
     function selectAnswer(index) {
         if (selectedAnswer !== null) return;
 
+        // Stop timer
+        setIsTimerRunning(false);
+
         // If Double Chance active and this is first attempt
         if (doubleChanceActive && firstAttemptWrong === null) {
             const currentQuestion = questions[currentIndex];
             const correct = index === currentQuestion?.correct_index;
 
             if (!correct) {
-                // First wrong attempt - allow second try
+                // First wrong attempt - allow second try, reset timer
                 setFirstAttemptWrong(index);
-                return; // Don't show result yet, let them try again
+                setTimeLeft(24);
+                setIsTimerRunning(true);
+                return;
             }
         }
 
@@ -267,6 +367,8 @@ export default function EndlessModePage() {
                 setDoubleChanceActive(false);
                 setDoubleChanceUsedThisQuestion(false);
                 setFirstAttemptWrong(null);
+                setTimeLeft(24);
+                setIsTimerRunning(true);
             }, 1000);
         } else {
             setTimeout(() => {
@@ -431,7 +533,59 @@ export default function EndlessModePage() {
 
                         {/* Playing State */}
                         {gameState === 'playing' && currentQuestion && (
-                            <>
+                            <div style={{
+                                animation: screenShake ? 'shake 0.1s infinite' : 'none'
+                            }}>
+                                <style>{`
+                                    @keyframes shake {
+                                        0%, 100% { transform: translateX(0); }
+                                        25% { transform: translateX(-5px); }
+                                        75% { transform: translateX(5px); }
+                                    }
+                                `}</style>
+
+                                {/* Shot Clock Timer */}
+                                <div style={{
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    marginBottom: '12px'
+                                }}>
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '10px',
+                                        padding: '12px 24px',
+                                        background: timeLeft <= 3 ? 'rgba(239, 68, 68, 0.3)' :
+                                            timeLeft <= 8 ? 'rgba(251, 191, 36, 0.2)' :
+                                                'rgba(139, 92, 246, 0.15)',
+                                        border: `2px solid ${timeLeft <= 3 ? '#ef4444' :
+                                            timeLeft <= 8 ? '#fbbf24' : '#8b5cf6'}`,
+                                        borderRadius: '50px'
+                                    }}>
+                                        <span style={{ fontSize: '18px' }}>⏱️</span>
+                                        <span style={{
+                                            fontSize: '28px',
+                                            fontWeight: 'bold',
+                                            fontFamily: 'monospace',
+                                            color: timeLeft <= 3 ? '#ef4444' :
+                                                timeLeft <= 8 ? '#fbbf24' : '#8b5cf6',
+                                            minWidth: '40px',
+                                            textAlign: 'center'
+                                        }}>
+                                            {timeLeft}
+                                        </span>
+                                        {lifelinesUsedThisGame > 0 && (
+                                            <span style={{
+                                                fontSize: '11px',
+                                                color: 'rgba(255,255,255,0.6)',
+                                                marginLeft: '8px'
+                                            }}>
+                                                ⚡{lifelinesUsedThisGame}/{MAX_LIFELINES_PER_GAME}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+
                                 {/* Multiplier Progress */}
                                 <div style={{
                                     display: 'flex',
