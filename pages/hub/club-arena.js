@@ -551,21 +551,19 @@ const S = {
         zIndex: -2,
     },
     mainContent: {
-        position: 'relative', padding: '4px 8px 20px', zIndex: 1,
+        position: 'relative', padding: '0 0 20px', zIndex: 1,
     },
 
-    // ACTION BAR (baked image) - 70% width, centered, compact
+    // ACTION BAR (baked image) - Full width, overlaps with content below
     actionBarWrapper: {
         position: 'relative',
-        width: '70%',
-        maxWidth: '320px',
-        margin: '0 auto 8px',
+        width: '100%',
+        marginBottom: '-20px',
     },
     actionBarImage: {
         width: '100%',
         height: 'auto',
         display: 'block',
-        borderRadius: '8px',
     },
     actionZone: {
         position: 'absolute',
@@ -576,14 +574,12 @@ const S = {
         cursor: 'pointer',
     },
 
-    // SHARK CLUB CARD (baked image) - 55% width, centered, compact
+    // SHARK CLUB CARD (baked image) - Full width, overlaps with tiles
     sharkClubWrapper: {
         position: 'relative',
-        width: '55%',
-        maxWidth: '260px',
-        margin: '0 auto 10px',
+        width: '100%',
+        marginBottom: '-10px',
         cursor: 'pointer',
-        borderRadius: '10px',
         overflow: 'hidden',
         animation: 'ca-glow 4s ease-in-out infinite',
     },
@@ -628,17 +624,16 @@ const S = {
         marginTop: '4px',
     },
 
-    // BOTTOM TILES (baked images) - uniform fixed height
+    // BOTTOM TILES (baked images) - Full width, uniform
     tilesGrid: {
         display: 'flex',
-        justifyContent: 'center',
-        gap: '4px',
-        padding: '0 4px',
+        justifyContent: 'space-between',
+        gap: '6px',
+        padding: '0 8px',
     },
     tileWrapper: {
-        width: '18%',
-        maxWidth: '72px',
-        borderRadius: '6px',
+        flex: 1,
+        borderRadius: '8px',
         overflow: 'hidden',
         transition: 'transform 0.2s',
     },
