@@ -6,27 +6,28 @@ module.exports = {
   // Force complete cache invalidation - v20 Diamond Arcade Deploy
   // Build timestamp: 2026-01-24T10:00:00Z
   generateBuildId: async () => {
-    return 'build-v20-club-arena-proxy-' + Date.now();
+    return 'build-v19-2-baked-assets-' + Date.now();
   },
 
-  // Club Arena is served via rewrite proxy from club-arena.vercel.app
-  // The Next.js page at pages/hub/club-arena.js has been DELETED to allow this proxy
+  // Club Arena static assets are proxied from the Club Arena Vercel deployment
+  // The pages/hub/club-arena.js pages render the UI, but images/videos come from club-arena.vercel.app
   async rewrites() {
-    return {
-      // beforeFiles rewrites run BEFORE filesystem routes are checked
-      // This ensures /hub/club-arena is proxied even if a page file existed
-      beforeFiles: [
-        // Main Club Arena route - proxy to external Vercel app
-        {
-          source: '/hub/club-arena',
-          destination: 'https://club-arena.vercel.app/hub/club-arena',
-        },
-        // All Club Arena sub-routes
-        {
-          source: '/hub/club-arena/:path*',
-          destination: 'https://club-arena.vercel.app/hub/club-arena/:path*',
-        },
-      ],
-    };
+    return [
+      // Club Arena images (action bar, tiles, cards, etc.)
+      {
+        source: '/hub/club-arena/images/:path*',
+        destination: 'https://club-arena.vercel.app/images/:path*',
+      },
+      // Club Arena videos
+      {
+        source: '/hub/club-arena/videos/:path*',
+        destination: 'https://club-arena.vercel.app/videos/:path*',
+      },
+      // Club Arena manifest and other static files
+      {
+        source: '/hub/club-arena/manifest.json',
+        destination: 'https://club-arena.vercel.app/manifest.json',
+      },
+    ];
   },
 }
