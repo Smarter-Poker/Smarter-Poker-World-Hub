@@ -1,8 +1,8 @@
 /**
  * 🎰 BATCH QUESTION PRE-LOADER — API Endpoint
  * ═══════════════════════════════════════════════════════════════════════════
- * Fetches ALL 25 questions for a game level at once
- * Returns array of questions for instant client-side serving
+ * Fetches ALL questions for a game level at once
+ * Falls back to get-question API if cache is empty
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -11,18 +11,16 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Missing Supabase environment variables');
-}
-
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = supabaseUrl && supabaseKey
+    ? createClient(supabaseUrl, supabaseKey)
+    : null;
 
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const { gameId, level = '1', count = '25' } = req.query;
+    const { gameId, level = '1', count = '25', userId } = req.query;
 
     if (!gameId) {
         return res.status(400).json({ error: 'gameId is required' });
@@ -34,42 +32,75 @@ export default async function handler(req, res) {
 
         console.log(`[BatchPreload] Fetching ${questionCount} questions for ${gameId} level ${gameLevel}`);
 
-        // Fetch questions from cache
-        const { data: questions, error } = await supabase
-            .from('training_question_cache')
-            .select('*')
-            .eq('game_id', gameId)
-            .eq('level', gameLevel)
-            .limit(questionCount);
+        // Try to fetch from cache first
+        let questions = [];
 
-        if (error) {
-            console.error('[BatchPreload] Supabase error:', error);
-            return res.status(500).json({ error: 'Failed to fetch questions' });
+        if (supabase) {
+            const { data: cachedQuestions, error } = await supabase
+                .from('training_question_cache')
+                .select('*')
+                .eq('game_id', gameId)
+                .eq('level', gameLevel)
+                .limit(questionCount);
+
+            if (!error && cachedQuestions && cachedQuestions.length > 0) {
+                questions = cachedQuestions.map(q => q.question_data);
+                console.log(`[BatchPreload] Found ${questions.length} cached questions for ${gameId}`);
+            }
         }
 
-        if (!questions || questions.length === 0) {
-            console.warn(`[BatchPreload] No questions found for ${gameId} level ${gameLevel}`);
-            return res.status(404).json({ error: 'No questions available for this game/level' });
+        // If cache is empty, generate questions on-demand using get-question logic
+        if (questions.length === 0) {
+            console.log(`[BatchPreload] Cache empty, generating ${questionCount} questions on-demand`);
+
+            // Generate questions by calling get-question multiple times
+            const baseUrl = process.env.VERCEL_URL
+                ? `https://${process.env.VERCEL_URL}`
+                : process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+
+            const questionPromises = [];
+            for (let i = 0; i < questionCount; i++) {
+                const url = `${baseUrl}/api/training/get-question?gameId=${gameId}&level=${gameLevel}&userId=${userId || 'anon'}`;
+                questionPromises.push(
+                    fetch(url)
+                        .then(r => r.json())
+                        .then(data => data.question)
+                        .catch(() => null)
+                );
+            }
+
+            const generatedQuestions = await Promise.all(questionPromises);
+            questions = generatedQuestions.filter(q => q !== null);
+
+            console.log(`[BatchPreload] Generated ${questions.length} questions on-demand`);
         }
 
         // Shuffle questions for variety
         const shuffled = questions.sort(() => Math.random() - 0.5);
 
-        // Return exactly the requested count
+        // Return exactly the requested count (or whatever we have)
         const batch = shuffled.slice(0, questionCount);
 
-        console.log(`[BatchPreload] Returning ${batch.length} questions for ${gameId}`);
-
+        // Always return success with whatever questions we have
         return res.status(200).json({
             success: true,
             gameId,
             level: gameLevel,
             count: batch.length,
-            questions: batch.map(q => q.question_data)
+            questions: batch,
+            source: questions.length > 0 ? 'generated' : 'fallback'
         });
 
     } catch (err) {
         console.error('[BatchPreload] Unexpected error:', err);
-        return res.status(500).json({ error: 'Internal server error' });
+        // Return empty batch instead of error - client can fall back to single-question mode
+        return res.status(200).json({
+            success: true,
+            gameId,
+            level: parseInt(req.query.level || '1', 10),
+            count: 0,
+            questions: [],
+            source: 'error_fallback'
+        });
     }
 }

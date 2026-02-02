@@ -25,13 +25,15 @@ import { TRIVIA_ACHIEVEMENTS, checkNewUnlocks } from '../../../src/config/trivia
 
 // Phase 2 Enhancement Imports
 import DoubleOrNothing from '../../../src/components/trivia/DoubleOrNothing';
+import SurvivalModeGame from '../../../src/components/trivia/SurvivalModeGame';
 
 const CATEGORY_MAP = {
     daily: null,
     history: ['poker_history', 'famous_hands', 'player_profiles'],
     rules: ['rule_knowledge'],
     pro: ['gto_theory', 'tournament_facts'],
-    arcade: null
+    arcade: null,
+    survival: null // Uses all categories
 };
 
 export default function TriviaModePage() {
@@ -597,7 +599,7 @@ export default function TriviaModePage() {
                         </div>
                     )}
 
-                    {gameState === 'playing' && (
+                    {gameState === 'playing' && mode !== 'survival' && (
                         <TriviaGame
                             questions={questions}
                             mode={mode}
@@ -619,6 +621,19 @@ export default function TriviaModePage() {
                                         .eq('id', userId);
                                     setUserDiamonds(Math.max(0, (profile.diamonds || 0) + delta));
                                 }
+                            }}
+                        />
+                    )}
+
+                    {gameState === 'playing' && mode === 'survival' && (
+                        <SurvivalModeGame
+                            questions={questions}
+                            onComplete={handleComplete}
+                            userId={userId}
+                            onLoadMoreQuestions={async () => {
+                                // Load more questions when running low
+                                const moreQuestions = await loadQuestions('survival', 20);
+                                setQuestions(prev => [...prev, ...moreQuestions]);
                             }}
                         />
                     )}

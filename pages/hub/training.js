@@ -926,6 +926,13 @@ export default function TrainingPage() {
                         onAccept={(clinic) => console.log('[LAW 1] Starting clinic:', clinic.name)}
                     />
 
+                    {/* 💎 Out of Diamonds Modal */}
+                    <OutOfDiamondsModal
+                        isOpen={showOutOfDiamondsModal}
+                        onClose={() => setShowOutOfDiamondsModal(false)}
+                        gameCost={GAME_COST}
+                    />
+
                     <div className="training-page" style={styles.page}>
                         {/* Fixed Header - Universal Header with Hub navigation + Settings Menu */}
                         <UniversalHeader

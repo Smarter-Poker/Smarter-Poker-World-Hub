@@ -2196,41 +2196,54 @@ export default function PokerNearMePage() {
                     /* Entity Cards - Metal Frame Style (GLOBAL to apply to dynamically rendered cards) */
                     :global(.entity-card) {
                         position: relative;
-                        background: linear-gradient(180deg, #3d4f5f 0%, #1a2332 50%, #0d1117 100%) !important;
+                        background: 
+                            linear-gradient(180deg, #3d4f5f 0%, #1a2332 50%, #0d1117 100%) !important;
                         border: 2px solid #3d4f5f !important;
+                        border-left: 4px solid #00D4FF !important;
                         border-radius: 12px;
                         padding: 20px;
+                        padding-left: 24px;
                         transition: all 0.3s ease;
                         box-shadow: 
                             inset 0 1px 0 rgba(255,255,255,0.1),
                             inset 0 -1px 0 rgba(0,0,0,0.3),
-                            0 4px 20px rgba(0,0,0,0.5) !important;
+                            0 4px 20px rgba(0,0,0,0.5),
+                            -4px 0 15px rgba(0, 212, 255, 0.3) !important;
+                        overflow: hidden;
                     }
+                    /* Top corner bolts */
                     :global(.entity-card)::before,
                     :global(.entity-card)::after {
                         content: '+';
                         position: absolute;
-                        width: 12px;
-                        height: 12px;
-                        background: radial-gradient(circle, #5a6a7a 30%, #3a4a5a 70%);
+                        width: 14px;
+                        height: 14px;
+                        background: radial-gradient(circle, #6a7a8a 20%, #4a5a6a 50%, #3a4a5a 80%);
                         border-radius: 50%;
                         border: 1px solid #2a3a4a;
-                        font-size: 8px;
+                        font-size: 9px;
                         color: #1a2a3a;
                         display: flex;
                         align-items: center;
                         justify-content: center;
                         font-weight: bold;
-                        box-shadow: inset 0 1px 2px rgba(255,255,255,0.2), 0 2px 4px rgba(0,0,0,0.3);
+                        box-shadow: 
+                            inset 0 2px 3px rgba(255,255,255,0.3),
+                            inset 0 -1px 2px rgba(0,0,0,0.4),
+                            0 2px 4px rgba(0,0,0,0.4);
+                        z-index: 5;
                     }
-                    :global(.entity-card)::before { top: 8px; left: 8px; }
-                    :global(.entity-card)::after { top: 8px; right: 8px; }
+                    :global(.entity-card)::before { top: 10px; left: 12px; }
+                    :global(.entity-card)::after { top: 10px; right: 10px; }
                     :global(.entity-card:hover) {
                         border-color: #00D4FF !important;
+                        border-left-color: #00D4FF !important;
                         box-shadow: 
-                            inset 0 1px 0 rgba(255,255,255,0.1),
-                            0 0 15px rgba(0, 212, 255, 0.6),
+                            inset 0 1px 0 rgba(255,255,255,0.15),
+                            0 0 20px rgba(0, 212, 255, 0.5),
+                            0 0 40px rgba(0, 212, 255, 0.2),
                             0 4px 25px rgba(0,0,0,0.6) !important;
+                        transform: translateY(-2px);
                     }
                     :global(.card-header) {
                         display: flex;
@@ -2354,25 +2367,40 @@ export default function PokerNearMePage() {
                     }
                     .card-actions {
                         display: flex;
-                        gap: 8px;
+                        gap: 10px;
                     }
                     .action-btn {
-                        padding: 6px 12px;
+                        padding: 8px 16px;
                         font-size: 12px;
-                        font-weight: 500;
-                        color: rgba(255,255,255,0.7);
+                        font-weight: 600;
+                        font-family: 'Rajdhani', sans-serif;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                        color: rgba(255,255,255,0.8);
                         text-decoration: none;
-                        border: 1px solid rgba(255,255,255,0.15);
-                        border-radius: 6px;
-                        transition: all 0.2s;
+                        background: linear-gradient(180deg, rgba(61, 79, 95, 0.4) 0%, rgba(26, 35, 50, 0.6) 100%);
+                        border: 1px solid rgba(255,255,255,0.2);
+                        border-radius: 8px;
+                        transition: all 0.3s ease;
+                        cursor: pointer;
                     }
                     .action-btn:hover {
-                        background: rgba(255,255,255,0.05);
+                        background: linear-gradient(180deg, rgba(0, 212, 255, 0.15) 0%, rgba(0, 212, 255, 0.08) 100%);
+                        border-color: rgba(0, 212, 255, 0.5);
+                        color: #00D4FF;
+                        box-shadow: 0 0 12px rgba(0, 212, 255, 0.3);
+                        transform: translateY(-1px);
                     }
                     .action-btn.primary {
-                        background: rgba(0,212,255,0.15);
-                        border-color: rgba(0,212,255,0.3);
+                        background: linear-gradient(135deg, rgba(0, 212, 255, 0.25) 0%, rgba(0, 153, 204, 0.15) 100%);
+                        border: 1px solid rgba(0, 212, 255, 0.5);
                         color: #00D4FF;
+                        box-shadow: 0 0 8px rgba(0, 212, 255, 0.2);
+                    }
+                    .action-btn.primary:hover {
+                        background: linear-gradient(135deg, rgba(0, 212, 255, 0.4) 0%, rgba(0, 153, 204, 0.25) 100%);
+                        border-color: #00D4FF;
+                        box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
                     }
 
                     /* Tour-specific */

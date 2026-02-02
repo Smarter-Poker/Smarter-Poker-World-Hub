@@ -137,6 +137,14 @@
     {
       "path": "/api/cron/memory-matrix-daily-challenge",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/generate-trivia-questions",
+      "schedule": "0 */4 * * *"
+    },
+    {
+      "path": "/api/cron/training-daily-challenge",
+      "schedule": "5 6 * * *"
     }
   ]
 }
