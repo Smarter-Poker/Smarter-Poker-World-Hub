@@ -186,25 +186,7 @@ export default function VipPage() {
                 }
             }
         }
-<<<<<<< HEAD
-        // Also load from Supabase as source of truth
-        const loadFromSupabase = async () => {
-            const authUser = getAuthUser();
-            if (!authUser?.id) return;
-            const { data } = await supabase
-                .from('profiles')
-                .select('vip_tier')
-                .eq('id', authUser.id)
-                .single();
-            if (data?.vip_tier) {
-                setCurrentTier(data.vip_tier);
-                localStorage.setItem('sp-vip-tier', data.vip_tier);
-            }
-        };
-        loadFromSupabase();
-=======
         loadVipStatus();
->>>>>>> origin/main
     }, []);
 
     const handleSubscribe = async (tierId) => {
