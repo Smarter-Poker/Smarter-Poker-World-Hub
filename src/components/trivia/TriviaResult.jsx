@@ -20,8 +20,10 @@ export default function TriviaResult({
     streakMultiplier = 1,
     isPerfect: isPerfectProp,
     showSpinButton = false,
+    showDoubleButton = false,
     onPlayAgain,
     onSpinWheel,
+    onDoubleOrNothing,
     onGoHome
 }) {
     const accuracy = Math.round((correctCount / totalQuestions) * 100);
@@ -156,6 +158,14 @@ export default function TriviaResult({
                         <button className="action-btn spin-wheel" onClick={onSpinWheel}>
                             <Trophy size={18} />
                             Spin Prize Wheel!
+                        </button>
+                    )}
+
+                    {/* Double or Nothing Button */}
+                    {showDoubleButton && onDoubleOrNothing && (
+                        <button className="action-btn double-or-nothing" onClick={onDoubleOrNothing}>
+                            <Zap size={18} />
+                            Double or Nothing ({diamondsEarned} → {diamondsEarned * 2} <Gem size={14} />)
                         </button>
                     )}
                 </div>
@@ -364,6 +374,23 @@ export default function TriviaResult({
                 @keyframes pulse {
                     0%, 100% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
                     50% { box-shadow: 0 0 25px rgba(255, 215, 0, 0.8); }
+                }
+
+                .action-btn.double-or-nothing {
+                    background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+                    border: none;
+                    color: #fff;
+                    animation: pulse-purple 2s ease-in-out infinite;
+                }
+
+                .action-btn.double-or-nothing:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 20px rgba(139, 92, 246, 0.5);
+                }
+
+                @keyframes pulse-purple {
+                    0%, 100% { box-shadow: 0 0 10px rgba(139, 92, 246, 0.4); }
+                    50% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.7); }
                 }
             `}</style>
         </div>

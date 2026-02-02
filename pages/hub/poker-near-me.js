@@ -143,7 +143,7 @@ function GeofenceAlertBanner({ venue, onCheckin, onReview, onDismiss }) {
                 margin: '0 auto',
                 background: 'rgba(15, 23, 42, 0.95)',
                 backdropFilter: 'blur(16px)',
-                border: '1px solid rgba(212, 168, 83, 0.4)',
+                border: '1px solid rgba(0, 212, 255, 0.4)',
                 borderRadius: 14,
                 padding: '16px 20px',
                 display: 'flex',
@@ -155,18 +155,18 @@ function GeofenceAlertBanner({ venue, onCheckin, onReview, onDismiss }) {
                 {/* Venue icon */}
                 <div style={{
                     width: 44, height: 44, borderRadius: 10,
-                    background: 'rgba(212,168,83,0.15)',
-                    border: '1px solid rgba(212,168,83,0.3)',
+                    background: 'rgba(0,212,255,0.15)',
+                    border: '1px solid rgba(0,212,255,0.3)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 }}>
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2">
                         <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
                         <circle cx="12" cy="10" r="3" />
                     </svg>
                 </div>
 
                 <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: '#d4a853', marginBottom: 2 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: '#00D4FF', marginBottom: 2 }}>
                         You are near a poker venue!
                     </div>
                     <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -177,7 +177,7 @@ function GeofenceAlertBanner({ venue, onCheckin, onReview, onDismiss }) {
                 <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                     <button onClick={onCheckin} style={{
                         padding: '8px 14px', borderRadius: 8,
-                        background: 'linear-gradient(135deg, #d4a853, #b8860b)',
+                        background: 'linear-gradient(135deg, #00D4FF, #0099CC)',
                         border: 'none', color: '#000', fontSize: 13, fontWeight: 600, cursor: 'pointer',
                     }}>Check In</button>
                     <button onClick={onReview} style={{
@@ -251,7 +251,7 @@ function VenueMap({ venues, userLocation }) {
         // Add venue markers
         const goldIcon = L.divIcon({
             className: 'venue-map-marker',
-            html: '<div style="width:14px;height:14px;border-radius:50%;background:#d4a853;border:2px solid #fff;box-shadow:0 0 8px rgba(212,168,83,0.6);"></div>',
+            html: '<div style="width:14px;height:14px;border-radius:50%;background:#00D4FF;border:2px solid #fff;box-shadow:0 0 8px rgba(0,212,255,0.6);"></div>',
             iconSize: [18, 18],
             iconAnchor: [9, 9],
             popupAnchor: [0, -12],
@@ -265,7 +265,7 @@ function VenueMap({ venues, userLocation }) {
                 if (count > 50) size = 48;
                 else if (count > 20) size = 42;
                 return L.divIcon({
-                    html: '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;background:rgba(212,168,83,0.85);border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#000;box-shadow:0 2px 10px rgba(0,0,0,0.4);">' + count + '</div>',
+                    html: '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;background:rgba(0,212,255,0.85);border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#000;box-shadow:0 2px 10px rgba(0,0,0,0.4);">' + count + '</div>',
                     className: 'venue-cluster-icon',
                     iconSize: [size, size],
                 });
@@ -286,7 +286,7 @@ function VenueMap({ venues, userLocation }) {
                 '</div>' +
                 '<div style="font-size:12px;color:' + trust.color + ';font-weight:600;margin-bottom:8px;">Trust: ' + trust.label + ' (' + (venue.trust_score || '-') + '/5)</div>' +
                 '<div style="display:flex;gap:6px;">' +
-                '<a href="/hub/venues/' + venue.id + '" style="padding:6px 12px;border-radius:6px;background:#d4a853;color:#000;text-decoration:none;font-size:12px;font-weight:600;">View Details</a>' +
+                '<a href="/hub/venues/' + venue.id + '" style="padding:6px 12px;border-radius:6px;background:#00D4FF;color:#000;text-decoration:none;font-size:12px;font-weight:600;">View Details</a>' +
                 '<a href="/hub/venues/' + venue.id + '?action=checkin" style="padding:6px 12px;border-radius:6px;background:#1e40af;color:#fff;text-decoration:none;font-size:12px;font-weight:600;">Check In</a>' +
                 '<a href="/hub/venues/' + venue.id + '?action=review" style="padding:6px 12px;border-radius:6px;background:#374151;color:#fff;text-decoration:none;font-size:12px;font-weight:600;">Review</a>' +
                 '</div>' +
@@ -299,10 +299,10 @@ function VenueMap({ venues, userLocation }) {
             const radius = getGeofenceRadius(venue.venue_type);
             const circle = L.circle([venue.latitude, venue.longitude], {
                 radius: radius,
-                color: '#d4a853',
+                color: '#00D4FF',
                 weight: 1,
                 opacity: 0.35,
-                fillColor: '#d4a853',
+                fillColor: '#00D4FF',
                 fillOpacity: 0.08,
             });
 
@@ -386,7 +386,7 @@ function VenueMap({ venues, userLocation }) {
                 }}>
                     <div style={{
                         width: 40, height: 40, border: '3px solid rgba(255,255,255,0.1)',
-                        borderTopColor: '#d4a853', borderRadius: '50%',
+                        borderTopColor: '#00D4FF', borderRadius: '50%',
                         animation: 'spin 1s linear infinite',
                     }} />
                     <span>Loading map...</span>
@@ -1331,7 +1331,7 @@ export default function PokerNearMePage() {
                                         <span className="live-game-stakes">{game.stakes || '-'}</span>
                                         <span className="live-game-tables">{game.table_count || 1} table{(game.table_count || 1) !== 1 ? 's' : ''}</span>
                                         {game.wait_time !== null && game.wait_time !== undefined && (
-                                            <span className="live-game-wait" style={{ color: game.wait_time <= 10 ? '#22c55e' : game.wait_time <= 30 ? '#d4a853' : '#ef4444' }}>
+                                            <span className="live-game-wait" style={{ color: game.wait_time <= 10 ? '#22c55e' : game.wait_time <= 30 ? '#00D4FF' : '#ef4444' }}>
                                                 {game.wait_time === 0 ? 'No wait' : game.wait_time + ' min wait'}
                                             </span>
                                         )}
@@ -1828,7 +1828,7 @@ export default function PokerNearMePage() {
                         letter-spacing: 2px;
                     }
                     .pnm-header .white { color: #fff; }
-                    .pnm-header .gold { color: #d4a853; }
+                    .pnm-header .gold { color: #00D4FF; }
                     .pnm-header .subtitle {
                         display: block;
                         font-size: 12px;
@@ -1866,7 +1866,7 @@ export default function PokerNearMePage() {
                     /* search-form input styles moved to .search-input-wrapper */
                     .search-btn {
                         padding: 14px 24px;
-                        background: linear-gradient(135deg, #d4a853, #b8860b);
+                        background: linear-gradient(135deg, #00D4FF, #0099CC);
                         border: none;
                         border-radius: 12px;
                         color: #000;
@@ -1908,9 +1908,9 @@ export default function PokerNearMePage() {
                         color: #22c55e;
                     }
                     .btn-filters.active {
-                        background: rgba(212,168,83,0.2);
-                        border-color: rgba(212,168,83,0.5);
-                        color: #d4a853;
+                        background: rgba(0,212,255,0.2);
+                        border-color: rgba(0,212,255,0.5);
+                        color: #00D4FF;
                     }
 
                     .city-chips {
@@ -1932,9 +1932,9 @@ export default function PokerNearMePage() {
                         background: rgba(255,255,255,0.1);
                     }
                     .city-chip.active {
-                        background: rgba(212,168,83,0.2);
-                        border-color: rgba(212,168,83,0.5);
-                        color: #d4a853;
+                        background: rgba(0,212,255,0.2);
+                        border-color: rgba(0,212,255,0.5);
+                        color: #00D4FF;
                     }
                     .city-chip.clear {
                         background: rgba(239,68,68,0.2);
@@ -1991,9 +1991,9 @@ export default function PokerNearMePage() {
                         cursor: pointer;
                     }
                     .chip.active {
-                        background: rgba(212,168,83,0.2);
-                        border-color: rgba(212,168,83,0.5);
-                        color: #d4a853;
+                        background: rgba(0,212,255,0.2);
+                        border-color: rgba(0,212,255,0.5);
+                        color: #00D4FF;
                     }
                     .filter-inputs {
                         display: flex;
@@ -2015,7 +2015,7 @@ export default function PokerNearMePage() {
                     .btn-apply {
                         width: 100%;
                         padding: 12px;
-                        background: linear-gradient(135deg, #d4a853, #b8860b);
+                        background: linear-gradient(135deg, #00D4FF, #0099CC);
                         border: none;
                         border-radius: 10px;
                         color: #000;
@@ -2051,9 +2051,9 @@ export default function PokerNearMePage() {
                         background: rgba(255,255,255,0.1);
                     }
                     .tab.active {
-                        background: rgba(212,168,83,0.2);
-                        border-color: rgba(212,168,83,0.5);
-                        color: #d4a853;
+                        background: rgba(0,212,255,0.2);
+                        border-color: rgba(0,212,255,0.5);
+                        color: #00D4FF;
                     }
                     .tab-icon {
                         display: flex;
@@ -2066,7 +2066,7 @@ export default function PokerNearMePage() {
                         font-size: 12px;
                     }
                     .tab.active .tab-count {
-                        background: rgba(212,168,83,0.3);
+                        background: rgba(0,212,255,0.3);
                     }
 
                     /* Main Content */
@@ -2089,7 +2089,7 @@ export default function PokerNearMePage() {
                         width: 40px;
                         height: 40px;
                         border: 3px solid rgba(255,255,255,0.1);
-                        border-top-color: #d4a853;
+                        border-top-color: #00D4FF;
                         border-radius: 50%;
                         animation: spin 1s linear infinite;
                         margin-bottom: 16px;
@@ -2098,10 +2098,10 @@ export default function PokerNearMePage() {
                     .empty-state button {
                         margin-top: 16px;
                         padding: 12px 24px;
-                        background: rgba(212,168,83,0.2);
-                        border: 1px solid rgba(212,168,83,0.4);
+                        background: rgba(0,212,255,0.2);
+                        border: 1px solid rgba(0,212,255,0.4);
                         border-radius: 8px;
-                        color: #d4a853;
+                        color: #00D4FF;
                         cursor: pointer;
                     }
 
@@ -2192,8 +2192,8 @@ export default function PokerNearMePage() {
                         color: #4ade80;
                     }
                     .badge.game-type {
-                        background: rgba(212,168,83,0.2);
-                        color: #d4a853;
+                        background: rgba(0,212,255,0.2);
+                        color: #00D4FF;
                     }
 
                     /* Tags */
@@ -2226,8 +2226,8 @@ export default function PokerNearMePage() {
                         color: #a78bfa;
                     }
                     .tag.buyin {
-                        background: rgba(212,168,83,0.15);
-                        color: #d4a853;
+                        background: rgba(0,212,255,0.15);
+                        color: #00D4FF;
                     }
                     .tag.gtd {
                         background: rgba(34,197,94,0.15);
@@ -2277,9 +2277,9 @@ export default function PokerNearMePage() {
                         background: rgba(255,255,255,0.05);
                     }
                     .action-btn.primary {
-                        background: rgba(212,168,83,0.15);
-                        border-color: rgba(212,168,83,0.3);
-                        color: #d4a853;
+                        background: rgba(0,212,255,0.15);
+                        border-color: rgba(0,212,255,0.3);
+                        color: #00D4FF;
                     }
 
                     /* Tour-specific */
@@ -2301,7 +2301,7 @@ export default function PokerNearMePage() {
                     }
                     .upcoming-date {
                         font-size: 12px;
-                        color: #d4a853;
+                        color: #00D4FF;
                     }
 
                     /* Daily tournaments */
@@ -2323,9 +2323,9 @@ export default function PokerNearMePage() {
                         cursor: pointer;
                     }
                     .day-btn.active {
-                        background: rgba(212,168,83,0.2);
-                        border-color: rgba(212,168,83,0.5);
-                        color: #d4a853;
+                        background: rgba(0,212,255,0.2);
+                        border-color: rgba(0,212,255,0.5);
+                        color: #00D4FF;
                     }
                     .time-badge {
                         padding: 4px 10px;
@@ -2415,9 +2415,9 @@ export default function PokerNearMePage() {
                         letter-spacing: 0.3px;
                     }
                     .featured-badge {
-                        background: rgba(212,168,83,0.2);
-                        color: #d4a853;
-                        border: 1px solid rgba(212,168,83,0.3);
+                        background: rgba(0,212,255,0.2);
+                        color: #00D4FF;
+                        border: 1px solid rgba(0,212,255,0.3);
                     }
                     .newcomer-badge {
                         background: rgba(34,197,94,0.15);
@@ -2482,17 +2482,17 @@ export default function PokerNearMePage() {
                     }
                     .load-more-btn {
                         padding: 12px 32px;
-                        background: rgba(212,168,83,0.15);
-                        border: 1px solid rgba(212,168,83,0.3);
+                        background: rgba(0,212,255,0.15);
+                        border: 1px solid rgba(0,212,255,0.3);
                         border-radius: 10px;
-                        color: #d4a853;
+                        color: #00D4FF;
                         font-size: 14px;
                         font-weight: 500;
                         cursor: pointer;
                         transition: all 0.2s;
                     }
                     .load-more-btn:hover {
-                        background: rgba(212,168,83,0.25);
+                        background: rgba(0,212,255,0.25);
                     }
 
                     /* Live Games */
@@ -2527,7 +2527,7 @@ export default function PokerNearMePage() {
                     }
                     .live-game-type {
                         font-weight: 600;
-                        color: #d4a853;
+                        color: #00D4FF;
                         min-width: 40px;
                     }
                     .live-game-stakes {
@@ -2594,9 +2594,9 @@ export default function PokerNearMePage() {
                         transition: all 0.2s;
                     }
                     .view-btn.active {
-                        background: rgba(212,168,83,0.15);
-                        border-color: rgba(212,168,83,0.3);
-                        color: #d4a853;
+                        background: rgba(0,212,255,0.15);
+                        border-color: rgba(0,212,255,0.3);
+                        color: #00D4FF;
                     }
 
                     /* Calendar View */
@@ -2613,7 +2613,7 @@ export default function PokerNearMePage() {
                     .calendar-month-title {
                         font-size: 18px;
                         font-weight: 600;
-                        color: #d4a853;
+                        color: #00D4FF;
                         margin: 0 0 12px;
                         text-align: center;
                     }
@@ -2647,8 +2647,8 @@ export default function PokerNearMePage() {
                         border: none;
                     }
                     .cal-cell.today {
-                        border-color: rgba(212,168,83,0.4);
-                        background: rgba(212,168,83,0.08);
+                        border-color: rgba(0,212,255,0.4);
+                        background: rgba(0,212,255,0.08);
                     }
                     .cal-cell.has-events {
                         background: rgba(59,130,246,0.06);
@@ -2660,7 +2660,7 @@ export default function PokerNearMePage() {
                         margin-bottom: 2px;
                     }
                     .cal-cell.today .cal-day-num {
-                        color: #d4a853;
+                        color: #00D4FF;
                         font-weight: 700;
                     }
                     .cal-event {
@@ -2699,7 +2699,7 @@ export default function PokerNearMePage() {
                         outline: none;
                     }
                     .search-input-wrapper input:focus {
-                        border-color: rgba(212,168,83,0.5);
+                        border-color: rgba(0,212,255,0.5);
                     }
                     .search-input-wrapper input::placeholder { color: rgba(255,255,255,0.4); }
                     .search-history-dropdown {
@@ -2726,7 +2726,7 @@ export default function PokerNearMePage() {
                     .search-history-header button {
                         background: none;
                         border: none;
-                        color: #d4a853;
+                        color: #00D4FF;
                         font-size: 11px;
                         cursor: pointer;
                     }

@@ -1,5 +1,6 @@
 /**
  * OneSignal Push Notification Provider
+ * Updated for OneSignal Web SDK v16+
  * Dark industrial sci-fi gaming theme
  *
  * Usage in _app.js:
@@ -19,8 +20,8 @@ const PushContext = createContext({
   isSupported: false,
   isSubscribed: false,
   permission: 'default',
-  subscribe: () => {},
-  unsubscribe: () => {},
+  subscribe: () => { },
+  unsubscribe: () => { },
 });
 
 export function usePushNotifications() {
@@ -31,7 +32,7 @@ export default function PushNotificationProvider({ children }) {
   const [isSupported, setIsSupported] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [permission, setPermission] = useState('default');
-  const [OneSignal, setOneSignal] = useState(null);
+  const [sdkReady, setSdkReady] = useState(false);
 
   useEffect(() => {
     // Check if OneSignal is configured
@@ -50,53 +51,57 @@ export default function PushNotificationProvider({ children }) {
     setIsSupported(true);
     setPermission(Notification.permission);
 
-    // Load OneSignal SDK
+    // Load OneSignal SDK v16+
     const loadOneSignal = async () => {
       try {
-        // Add OneSignal script
-        if (!window.OneSignal) {
+        // Add OneSignal script if not already loaded
+        if (!window.OneSignalDeferred) {
+          window.OneSignalDeferred = window.OneSignalDeferred || [];
+
           const script = document.createElement('script');
-          script.src = 'https://cdn.onesignal.com/sdks/OneSignalSDK.js';
+          script.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js';
           script.async = true;
+          script.defer = true;
           document.head.appendChild(script);
 
-          await new Promise((resolve) => {
+          await new Promise((resolve, reject) => {
             script.onload = resolve;
+            script.onerror = reject;
           });
         }
 
-        window.OneSignal = window.OneSignal || [];
+        // Initialize OneSignal with v16 API
+        window.OneSignalDeferred.push(async function (OneSignal) {
+          try {
+            await OneSignal.init({
+              appId: appId,
+              safari_web_id: process.env.NEXT_PUBLIC_ONESIGNAL_SAFARI_WEB_ID,
+              notifyButton: {
+                enable: false, // We'll use our own UI
+              },
+              allowLocalhostAsSecureOrigin: process.env.NODE_ENV === 'development',
+            });
 
-        window.OneSignal.push(function() {
-          window.OneSignal.init({
-            appId: appId,
-            safari_web_id: process.env.NEXT_PUBLIC_ONESIGNAL_SAFARI_WEB_ID,
-            notifyButton: {
-              enable: false, // We'll use our own UI
-            },
-            allowLocalhostAsSecureOrigin: process.env.NODE_ENV === 'development',
-          });
+            // Check subscription status using v16 API
+            const isPushEnabled = await OneSignal.Notifications.permission;
+            const isOptedIn = await OneSignal.User.PushSubscription.optedIn;
+            setIsSubscribed(isPushEnabled && isOptedIn);
+            setPermission(isPushEnabled ? 'granted' : Notification.permission);
 
-          // Check subscription status
-          window.OneSignal.isPushNotificationsEnabled(function(isEnabled) {
-            setIsSubscribed(isEnabled);
-          });
+            // Listen for subscription changes (v16 API)
+            OneSignal.User.PushSubscription.addEventListener('change', (event) => {
+              setIsSubscribed(event.current.optedIn);
+            });
 
-          // Listen for subscription changes
-          window.OneSignal.on('subscriptionChange', function(isSubscribed) {
-            setIsSubscribed(isSubscribed);
-          });
+            // Listen for permission changes
+            OneSignal.Notifications.addEventListener('permissionChange', (permission) => {
+              setPermission(permission ? 'granted' : 'denied');
+            });
 
-          // Listen for permission changes
-          window.OneSignal.on('permissionPromptDisplay', function() {
-            setPermission('prompt');
-          });
-
-          window.OneSignal.on('notificationPermissionChange', function(permissionChange) {
-            setPermission(permissionChange.to);
-          });
-
-          setOneSignal(window.OneSignal);
+            setSdkReady(true);
+          } catch (initError) {
+            console.error('OneSignal init error:', initError);
+          }
         });
       } catch (err) {
         console.error('Failed to load OneSignal:', err);
@@ -107,23 +112,29 @@ export default function PushNotificationProvider({ children }) {
   }, []);
 
   const subscribe = async () => {
-    if (!OneSignal) return false;
+    if (!sdkReady || typeof window === 'undefined') return false;
 
     try {
-      await new Promise((resolve) => {
-        OneSignal.push(function() {
-          OneSignal.showNativePrompt();
-          resolve();
+      await new Promise((resolve, reject) => {
+        window.OneSignalDeferred.push(async function (OneSignal) {
+          try {
+            // Request permission and opt in (v16 API)
+            await OneSignal.Notifications.requestPermission();
+            await OneSignal.User.PushSubscription.optIn();
+
+            // Set external user ID if user is logged in
+            const userId = localStorage.getItem('smarter-poker-user-id');
+            if (userId) {
+              await OneSignal.login(userId);
+            }
+
+            setIsSubscribed(true);
+            resolve();
+          } catch (err) {
+            reject(err);
+          }
         });
       });
-
-      // Set external user ID if user is logged in
-      const userId = localStorage.getItem('smarter-poker-user-id');
-      if (userId) {
-        OneSignal.push(function() {
-          OneSignal.setExternalUserId(userId);
-        });
-      }
 
       return true;
     } catch (err) {
@@ -133,16 +144,22 @@ export default function PushNotificationProvider({ children }) {
   };
 
   const unsubscribe = async () => {
-    if (!OneSignal) return false;
+    if (!sdkReady || typeof window === 'undefined') return false;
 
     try {
-      await new Promise((resolve) => {
-        OneSignal.push(function() {
-          OneSignal.setSubscription(false);
-          resolve();
+      await new Promise((resolve, reject) => {
+        window.OneSignalDeferred.push(async function (OneSignal) {
+          try {
+            // Opt out using v16 API
+            await OneSignal.User.PushSubscription.optOut();
+            setIsSubscribed(false);
+            resolve();
+          } catch (err) {
+            reject(err);
+          }
         });
       });
-      setIsSubscribed(false);
+
       return true;
     } catch (err) {
       console.error('Unsubscribe error:', err);
@@ -150,21 +167,29 @@ export default function PushNotificationProvider({ children }) {
     }
   };
 
-  // Set external user ID when user logs in
+  // Set external user ID when user logs in (v16 API uses login())
   const setUserId = (userId) => {
-    if (!OneSignal || !userId) return;
+    if (!sdkReady || !userId || typeof window === 'undefined') return;
 
-    OneSignal.push(function() {
-      OneSignal.setExternalUserId(userId);
+    window.OneSignalDeferred.push(async function (OneSignal) {
+      try {
+        await OneSignal.login(userId);
+      } catch (err) {
+        console.error('Failed to set user ID:', err);
+      }
     });
   };
 
-  // Add tags for targeting (e.g., venue_id)
+  // Add tags for targeting (e.g., venue_id) - v16 API
   const addTags = (tags) => {
-    if (!OneSignal) return;
+    if (!sdkReady || typeof window === 'undefined') return;
 
-    OneSignal.push(function() {
-      OneSignal.sendTags(tags);
+    window.OneSignalDeferred.push(async function (OneSignal) {
+      try {
+        await OneSignal.User.addTags(tags);
+      } catch (err) {
+        console.error('Failed to add tags:', err);
+      }
     });
   };
 

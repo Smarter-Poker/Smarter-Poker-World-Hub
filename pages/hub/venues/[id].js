@@ -95,14 +95,14 @@ function TrustDots({ score }) {
           transition: background 0.2s;
         }
         .trust-dot.filled {
-          background: #d4a853;
-          border-color: #d4a853;
-          box-shadow: 0 0 4px rgba(212, 168, 83, 0.4);
+          background: #00D4FF;
+          border-color: #00D4FF;
+          box-shadow: 0 0 4px rgba(0, 212, 255, 0.4);
         }
         .trust-label {
           margin-left: 6px;
           font-size: 13px;
-          color: #d4a853;
+          color: #00D4FF;
           font-weight: 600;
         }
       `}</style>
@@ -113,7 +113,7 @@ function TrustDots({ score }) {
 function VenueTypeBadge({ type }) {
   const label = VENUE_TYPE_LABELS[type] || type || 'Venue';
   const colorMap = {
-    casino: { bg: 'rgba(212, 168, 83, 0.15)', border: '#d4a853', text: '#d4a853' },
+    casino: { bg: 'rgba(0, 212, 255, 0.15)', border: '#00D4FF', text: '#00D4FF' },
     card_room: { bg: 'rgba(59, 130, 246, 0.15)', border: '#3b82f6', text: '#3b82f6' },
     poker_club: { bg: 'rgba(139, 92, 246, 0.15)', border: '#8b5cf6', text: '#8b5cf6' },
     home_game: { bg: 'rgba(34, 197, 94, 0.15)', border: '#22c55e', text: '#22c55e' },
@@ -154,8 +154,8 @@ function StarRating({ rating, size, interactive, onRate }) {
             width={sz}
             height={sz}
             viewBox="0 0 24 24"
-            fill={star <= rating ? '#d4a853' : 'none'}
-            stroke={star <= rating ? '#d4a853' : 'rgba(255,255,255,0.25)'}
+            fill={star <= rating ? '#00D4FF' : 'none'}
+            stroke={star <= rating ? '#00D4FF' : 'rgba(255,255,255,0.25)'}
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -511,7 +511,7 @@ export default function VenueDetailPage() {
 
     var goldIcon = L.divIcon({
       className: 'venue-detail-marker',
-      html: '<div style="width:20px;height:20px;border-radius:50%;background:#d4a853;border:3px solid #fff;box-shadow:0 0 12px rgba(212,168,83,0.8);"></div>',
+      html: '<div style="width:20px;height:20px;border-radius:50%;background:#00D4FF;border:3px solid #fff;box-shadow:0 0 12px rgba(0,212,255,0.8);"></div>',
       iconSize: [26, 26],
       iconAnchor: [13, 13],
     });
@@ -760,14 +760,14 @@ export default function VenueDetailPage() {
   var getWaitTimeColor = function(waitTime) {
     if (waitTime === null || waitTime === undefined) return '#94a3b8';
     if (waitTime <= 10) return '#22c55e';
-    if (waitTime <= 30) return '#d4a853';
+    if (waitTime <= 30) return '#00D4FF';
     return '#ef4444';
   };
 
   var getActivityTypeStyle = function(type) {
     var styles = {
       update: { bg: 'rgba(59, 130, 246, 0.12)', border: 'rgba(59, 130, 246, 0.25)', color: '#60a5fa' },
-      announcement: { bg: 'rgba(212, 168, 83, 0.12)', border: 'rgba(212, 168, 83, 0.25)', color: '#d4a853' },
+      announcement: { bg: 'rgba(0, 212, 255, 0.12)', border: 'rgba(0, 212, 255, 0.25)', color: '#00D4FF' },
       promotion: { bg: 'rgba(34, 197, 94, 0.12)', border: 'rgba(34, 197, 94, 0.25)', color: '#4ade80' },
       result: { bg: 'rgba(139, 92, 246, 0.12)', border: 'rgba(139, 92, 246, 0.25)', color: '#a78bfa' },
     };
@@ -849,7 +849,7 @@ export default function VenueDetailPage() {
               <div className="venue-location">
                 {venue.city && venue.state && (
                   <span className="location-text">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px', verticalAlign: 'middle' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px', verticalAlign: 'middle' }}>
                       <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                       <circle cx="12" cy="10" r="3" />
                     </svg>
@@ -868,7 +868,7 @@ export default function VenueDetailPage() {
                   className={'action-btn follow-btn' + (isFollowed ? ' followed' : '')}
                   onClick={handleFollow}
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill={isFollowed ? '#d4a853' : 'none'} stroke={isFollowed ? '#d4a853' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill={isFollowed ? '#00D4FF' : 'none'} stroke={isFollowed ? '#00D4FF' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                   </svg>
                   {isFollowed ? 'Following' : 'Follow'}
@@ -894,7 +894,7 @@ export default function VenueDetailPage() {
                 {/* Address */}
                 <div className="info-card">
                   <div className="info-icon">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                       <circle cx="12" cy="10" r="3" />
                     </svg>
@@ -918,7 +918,7 @@ export default function VenueDetailPage() {
                 {/* Phone */}
                 <div className="info-card">
                   <div className="info-icon">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
                     </svg>
                   </div>
@@ -935,7 +935,7 @@ export default function VenueDetailPage() {
                 {/* Website */}
                 <div className="info-card">
                   <div className="info-icon">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <circle cx="12" cy="12" r="10" />
                       <line x1="2" y1="12" x2="22" y2="12" />
                       <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
@@ -956,7 +956,7 @@ export default function VenueDetailPage() {
                 {/* Hours */}
                 <div className="info-card">
                   <div className="info-icon">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <circle cx="12" cy="12" r="10" />
                       <polyline points="12 6 12 12 16 14" />
                     </svg>
@@ -970,7 +970,7 @@ export default function VenueDetailPage() {
                 {/* PokerAtlas */}
                 <div className="info-card">
                   <div className="info-icon">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
                       <polyline points="15 3 21 3 21 9" />
                       <line x1="10" y1="14" x2="21" y2="3" />
@@ -991,7 +991,7 @@ export default function VenueDetailPage() {
                 {/* Has Tournaments */}
                 <div className="info-card">
                   <div className="info-icon">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 7 7 7 7" />
                       <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5C17 4 17 7 17 7" />
                       <path d="M4 22h16" />
@@ -1015,7 +1015,7 @@ export default function VenueDetailPage() {
             {venue.latitude && venue.longitude && (
               <section className="map-section">
                 <h2 className="section-title">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                     <circle cx="12" cy="10" r="3" />
                   </svg>
@@ -1064,7 +1064,7 @@ export default function VenueDetailPage() {
                               <div key={idx} className="schedule-card">
                                 <div className="schedule-row">
                                   <div className="schedule-time">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px', verticalAlign: 'middle' }}>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px', verticalAlign: 'middle' }}>
                                       <circle cx="12" cy="12" r="10" />
                                       <polyline points="12 6 12 12 16 14" />
                                     </svg>
@@ -1124,7 +1124,7 @@ export default function VenueDetailPage() {
             <section className="live-games-section">
               <div className="section-header-row">
                 <h2 className="section-title">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
                     <circle cx="12" cy="12" r="10" />
                     <circle cx="12" cy="12" r="3" />
                   </svg>
@@ -1268,7 +1268,7 @@ export default function VenueDetailPage() {
             <section id="checkins-section" className="checkins-section">
               <div className="section-header-row">
                 <h2 className="section-title">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                     <circle cx="12" cy="10" r="3" />
                   </svg>
@@ -1372,7 +1372,7 @@ export default function VenueDetailPage() {
             <section id="reviews-section" className="reviews-section">
               <div className="section-header-row">
                 <h2 className="section-title">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                   </svg>
                   Reviews &amp; Ratings
@@ -1401,7 +1401,7 @@ export default function VenueDetailPage() {
                         return (
                           <div key={star} className="rating-bar-row">
                             <span className="rating-bar-label">{star}</span>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="#d4a853" stroke="none">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="#00D4FF" stroke="none">
                               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                             </svg>
                             <div className="rating-bar-track">
@@ -1517,7 +1517,7 @@ export default function VenueDetailPage() {
             <section className="activity-section">
               <div className="section-header-row">
                 <h2 className="section-title">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
                     <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
                   </svg>
                   Activity Feed
@@ -1604,7 +1604,7 @@ export default function VenueDetailPage() {
               <section className="promotions-section">
                 <div className="section-header-row">
                   <h2 className="section-title">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
                       <polyline points="20 12 20 22 4 22 4 12" />
                       <rect x="2" y="7" width="20" height="5" />
                       <line x1="12" y1="22" x2="12" y2="7" />
@@ -1640,7 +1640,7 @@ export default function VenueDetailPage() {
             {relatedSeries.length > 0 && (
               <section className="related-series-section">
                 <h2 className="section-title">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
                     <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 7 7 7 7" />
                     <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5C17 4 17 7 17 7" />
                     <path d="M4 22h16" />
@@ -1680,7 +1680,7 @@ export default function VenueDetailPage() {
             {nearbyVenues.length > 0 && (
               <section className="nearby-venues-section">
                 <h2 className="section-title">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
                     <circle cx="12" cy="12" r="10" />
                     <line x1="2" y1="12" x2="22" y2="12" />
                     <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
@@ -1739,7 +1739,7 @@ export default function VenueDetailPage() {
               ) : claimStatus === 'pending' ? (
                 <div className="claim-pending-card">
                   <div className="claim-pending-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <circle cx="12" cy="12" r="10" />
                       <polyline points="12 6 12 12 16 14" />
                     </svg>
@@ -1875,8 +1875,8 @@ export default function VenueDetailPage() {
         .spinner {
           width: 36px;
           height: 36px;
-          border: 3px solid rgba(212, 168, 83, 0.2);
-          border-top-color: #d4a853;
+          border: 3px solid rgba(0, 212, 255, 0.2);
+          border-top-color: #00D4FF;
           border-radius: 50%;
           animation: spin 0.8s linear infinite;
         }
@@ -1921,17 +1921,17 @@ export default function VenueDetailPage() {
         .back-link-btn {
           margin-top: 8px;
           padding: 10px 24px;
-          background: rgba(212, 168, 83, 0.15);
-          border: 1px solid #d4a853;
+          background: rgba(0, 212, 255, 0.15);
+          border: 1px solid #00D4FF;
           border-radius: 8px;
-          color: #d4a853;
+          color: #00D4FF;
           font-size: 14px;
           font-weight: 600;
           text-decoration: none;
           transition: background 0.2s;
         }
         .back-link-btn:hover {
-          background: rgba(212, 168, 83, 0.25);
+          background: rgba(0, 212, 255, 0.25);
         }
 
         /* Back Navigation */
@@ -1951,7 +1951,7 @@ export default function VenueDetailPage() {
           transition: color 0.2s;
         }
         .back-link:hover {
-          color: #d4a853;
+          color: #00D4FF;
         }
 
         /* Header Section */
@@ -1992,9 +1992,9 @@ export default function VenueDetailPage() {
           font-weight: 700;
           letter-spacing: 0.5px;
           text-transform: uppercase;
-          background: linear-gradient(135deg, rgba(212, 168, 83, 0.2), rgba(212, 168, 83, 0.1));
-          border: 1px solid rgba(212, 168, 83, 0.4);
-          color: #d4a853;
+          background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 212, 255, 0.1));
+          border: 1px solid rgba(0, 212, 255, 0.4);
+          color: #00D4FF;
         }
         .verified-inline-badge {
           display: inline-flex;
@@ -2054,14 +2054,14 @@ export default function VenueDetailPage() {
           color: #cbd5e1;
         }
         .follow-btn:hover {
-          border-color: #d4a853;
-          color: #d4a853;
-          background: rgba(212, 168, 83, 0.08);
+          border-color: #00D4FF;
+          color: #00D4FF;
+          background: rgba(0, 212, 255, 0.08);
         }
         .follow-btn.followed {
-          background: rgba(212, 168, 83, 0.12);
-          border-color: #d4a853;
-          color: #d4a853;
+          background: rgba(0, 212, 255, 0.12);
+          border-color: #00D4FF;
+          color: #00D4FF;
         }
         .share-btn {
           background: rgba(15, 23, 42, 0.5);
@@ -2080,10 +2080,10 @@ export default function VenueDetailPage() {
           height: 20px;
           padding: 0 6px;
           border-radius: 10px;
-          background: rgba(212, 168, 83, 0.2);
+          background: rgba(0, 212, 255, 0.2);
           font-size: 11px;
           font-weight: 700;
-          color: #d4a853;
+          color: #00D4FF;
         }
 
         /* Section Titles */
@@ -2117,15 +2117,15 @@ export default function VenueDetailPage() {
           cursor: pointer;
           transition: all 0.2s;
           font-family: inherit;
-          background: rgba(212, 168, 83, 0.1);
-          border: 1px solid rgba(212, 168, 83, 0.3);
-          color: #d4a853;
+          background: rgba(0, 212, 255, 0.1);
+          border: 1px solid rgba(0, 212, 255, 0.3);
+          color: #00D4FF;
           white-space: nowrap;
           margin-top: 2px;
         }
         .section-action-btn:hover {
-          background: rgba(212, 168, 83, 0.2);
-          border-color: #d4a853;
+          background: rgba(0, 212, 255, 0.2);
+          border-color: #00D4FF;
         }
 
         /* Info Section */
@@ -2160,7 +2160,7 @@ export default function VenueDetailPage() {
           display: flex;
           align-items: center;
           justify-content: center;
-          background: rgba(212, 168, 83, 0.08);
+          background: rgba(0, 212, 255, 0.08);
           border-radius: 8px;
         }
         .info-content {
@@ -2190,7 +2190,7 @@ export default function VenueDetailPage() {
           color: #22c55e;
         }
         .info-link {
-          color: #d4a853;
+          color: #00D4FF;
           text-decoration: none;
           transition: color 0.2s;
         }
@@ -2218,8 +2218,8 @@ export default function VenueDetailPage() {
           backdrop-filter: blur(12px);
         }
         .day-group.today {
-          border-color: rgba(212, 168, 83, 0.3);
-          box-shadow: 0 0 20px rgba(212, 168, 83, 0.05);
+          border-color: rgba(0, 212, 255, 0.3);
+          box-shadow: 0 0 20px rgba(0, 212, 255, 0.05);
         }
         .day-header {
           display: flex;
@@ -2242,9 +2242,9 @@ export default function VenueDetailPage() {
           letter-spacing: 0.5px;
           padding: 2px 10px;
           border-radius: 10px;
-          background: rgba(212, 168, 83, 0.15);
-          border: 1px solid rgba(212, 168, 83, 0.3);
-          color: #d4a853;
+          background: rgba(0, 212, 255, 0.15);
+          border: 1px solid rgba(0, 212, 255, 0.3);
+          color: #00D4FF;
         }
         .schedule-cards {
           padding: 12px 18px;
@@ -2279,7 +2279,7 @@ export default function VenueDetailPage() {
         .schedule-buyin {
           font-size: 15px;
           font-weight: 700;
-          color: #d4a853;
+          color: #00D4FF;
         }
         .schedule-details {
           display: flex;
@@ -2333,7 +2333,7 @@ export default function VenueDetailPage() {
         }
         .pa-link {
           display: inline-block;
-          color: #d4a853;
+          color: #00D4FF;
           font-size: 14px;
           font-weight: 600;
           text-decoration: none;
@@ -2347,7 +2347,7 @@ export default function VenueDetailPage() {
         /* ========================================= */
         .inline-form {
           background: rgba(15, 23, 42, 0.5);
-          border: 1px solid rgba(212, 168, 83, 0.2);
+          border: 1px solid rgba(0, 212, 255, 0.2);
           border-radius: 12px;
           padding: 20px;
           margin-bottom: 16px;
@@ -2390,7 +2390,7 @@ export default function VenueDetailPage() {
         .form-input:focus,
         .form-select:focus,
         .form-textarea:focus {
-          border-color: rgba(212, 168, 83, 0.5);
+          border-color: rgba(0, 212, 255, 0.5);
         }
         .form-input::placeholder,
         .form-textarea::placeholder {
@@ -2407,10 +2407,10 @@ export default function VenueDetailPage() {
         .form-submit-btn {
           align-self: flex-start;
           padding: 10px 24px;
-          background: rgba(212, 168, 83, 0.15);
-          border: 1px solid #d4a853;
+          background: rgba(0, 212, 255, 0.15);
+          border: 1px solid #00D4FF;
           border-radius: 8px;
-          color: #d4a853;
+          color: #00D4FF;
           font-size: 14px;
           font-weight: 600;
           cursor: pointer;
@@ -2418,7 +2418,7 @@ export default function VenueDetailPage() {
           font-family: inherit;
         }
         .form-submit-btn:hover:not(:disabled) {
-          background: rgba(212, 168, 83, 0.25);
+          background: rgba(0, 212, 255, 0.25);
         }
         .form-submit-btn:disabled {
           opacity: 0.5;
@@ -2498,13 +2498,13 @@ export default function VenueDetailPage() {
         .live-game-card {
           padding: 16px 18px;
           background: rgba(15, 23, 42, 0.5);
-          border: 1px solid rgba(212, 168, 83, 0.15);
+          border: 1px solid rgba(0, 212, 255, 0.15);
           border-radius: 12px;
           backdrop-filter: blur(12px);
           transition: border-color 0.2s;
         }
         .live-game-card:hover {
-          border-color: rgba(212, 168, 83, 0.3);
+          border-color: rgba(0, 212, 255, 0.3);
         }
         .live-game-header {
           display: flex;
@@ -2516,7 +2516,7 @@ export default function VenueDetailPage() {
         .live-game-type {
           font-size: 13px;
           font-weight: 700;
-          color: #d4a853;
+          color: #00D4FF;
           text-transform: uppercase;
           letter-spacing: 0.3px;
         }
@@ -2627,14 +2627,14 @@ export default function VenueDetailPage() {
           width: 36px;
           height: 36px;
           border-radius: 50%;
-          background: rgba(212, 168, 83, 0.15);
-          border: 1px solid rgba(212, 168, 83, 0.3);
+          background: rgba(0, 212, 255, 0.15);
+          border: 1px solid rgba(0, 212, 255, 0.3);
           display: flex;
           align-items: center;
           justify-content: center;
           font-size: 14px;
           font-weight: 700;
-          color: #d4a853;
+          color: #00D4FF;
           flex-shrink: 0;
         }
         .checkin-info {
@@ -2690,7 +2690,7 @@ export default function VenueDetailPage() {
         .rating-big-number {
           font-size: 42px;
           font-weight: 800;
-          color: #d4a853;
+          color: #00D4FF;
           line-height: 1;
         }
         .rating-total {
@@ -2725,7 +2725,7 @@ export default function VenueDetailPage() {
         }
         .rating-bar-fill {
           height: 100%;
-          background: #d4a853;
+          background: #00D4FF;
           border-radius: 4px;
           transition: width 0.3s ease;
           min-width: 0;
@@ -2743,7 +2743,7 @@ export default function VenueDetailPage() {
         }
         .star-selector-label {
           font-size: 14px;
-          color: #d4a853;
+          color: #00D4FF;
           font-weight: 600;
         }
         .reviews-list {
@@ -2884,7 +2884,7 @@ export default function VenueDetailPage() {
         }
         .claim-cta-card {
           background: rgba(15, 23, 42, 0.5);
-          border: 1px solid rgba(212, 168, 83, 0.15);
+          border: 1px solid rgba(0, 212, 255, 0.15);
           border-radius: 12px;
           padding: 28px 24px;
           text-align: center;
@@ -2914,10 +2914,10 @@ export default function VenueDetailPage() {
           gap: 8px;
           margin-top: 8px;
           padding: 12px 28px;
-          background: rgba(212, 168, 83, 0.12);
-          border: 1px solid #d4a853;
+          background: rgba(0, 212, 255, 0.12);
+          border: 1px solid #00D4FF;
           border-radius: 8px;
-          color: #d4a853;
+          color: #00D4FF;
           font-size: 15px;
           font-weight: 700;
           cursor: pointer;
@@ -2925,7 +2925,7 @@ export default function VenueDetailPage() {
           font-family: inherit;
         }
         .claim-cta-btn:hover {
-          background: rgba(212, 168, 83, 0.25);
+          background: rgba(0, 212, 255, 0.25);
         }
         .claim-form {
           margin-top: 16px;
@@ -2943,8 +2943,8 @@ export default function VenueDetailPage() {
           border: 1px solid rgba(34, 197, 94, 0.2);
         }
         .claim-pending-card {
-          background: rgba(212, 168, 83, 0.06);
-          border: 1px solid rgba(212, 168, 83, 0.2);
+          background: rgba(0, 212, 255, 0.06);
+          border: 1px solid rgba(0, 212, 255, 0.2);
         }
         .claim-verified-icon,
         .claim-pending-icon {
@@ -2960,7 +2960,7 @@ export default function VenueDetailPage() {
           background: rgba(34, 197, 94, 0.1);
         }
         .claim-pending-icon {
-          background: rgba(212, 168, 83, 0.1);
+          background: rgba(0, 212, 255, 0.1);
         }
         .claim-verified-text,
         .claim-pending-text {
@@ -2976,7 +2976,7 @@ export default function VenueDetailPage() {
         .claim-pending-title {
           font-size: 16px;
           font-weight: 700;
-          color: #d4a853;
+          color: #00D4FF;
         }
         .claim-verified-desc,
         .claim-pending-desc {
@@ -3014,14 +3014,14 @@ export default function VenueDetailPage() {
           transition: color 0.2s;
         }
         .breadcrumb-link:hover {
-          color: #d4a853;
+          color: #00D4FF;
         }
         .breadcrumb-sep {
           margin: 0 8px;
           color: #475569;
         }
         .breadcrumb-current {
-          color: #d4a853;
+          color: #00D4FF;
           font-weight: 600;
           max-width: 280px;
           white-space: nowrap;
@@ -3059,10 +3059,10 @@ export default function VenueDetailPage() {
           align-items: center;
           gap: 8px;
           padding: 10px 24px;
-          background: rgba(212, 168, 83, 0.12);
-          border: 1px solid #d4a853;
+          background: rgba(0, 212, 255, 0.12);
+          border: 1px solid #00D4FF;
           border-radius: 8px;
-          color: #d4a853;
+          color: #00D4FF;
           font-size: 14px;
           font-weight: 700;
           text-decoration: none;
@@ -3071,7 +3071,7 @@ export default function VenueDetailPage() {
           flex-shrink: 0;
         }
         .directions-btn:hover {
-          background: rgba(212, 168, 83, 0.25);
+          background: rgba(0, 212, 255, 0.25);
         }
         .map-address-text {
           font-size: 13px;
@@ -3095,12 +3095,12 @@ export default function VenueDetailPage() {
         .promo-card {
           padding: 16px 18px;
           background: rgba(15, 23, 42, 0.5);
-          border: 1px solid rgba(212, 168, 83, 0.12);
+          border: 1px solid rgba(0, 212, 255, 0.12);
           border-radius: 12px;
           transition: border-color 0.2s;
         }
         .promo-card:hover {
-          border-color: rgba(212, 168, 83, 0.3);
+          border-color: rgba(0, 212, 255, 0.3);
         }
         .promo-header {
           display: flex;
@@ -3164,8 +3164,8 @@ export default function VenueDetailPage() {
           cursor: pointer;
         }
         .related-series-card:hover {
-          border-color: rgba(212, 168, 83, 0.3);
-          background: rgba(212, 168, 83, 0.04);
+          border-color: rgba(0, 212, 255, 0.3);
+          background: rgba(0, 212, 255, 0.04);
         }
         .related-series-info {
           flex: 1;
@@ -3177,7 +3177,7 @@ export default function VenueDetailPage() {
         .related-series-tour {
           font-size: 10px;
           font-weight: 700;
-          color: #d4a853;
+          color: #00D4FF;
           text-transform: uppercase;
           letter-spacing: 0.5px;
         }
@@ -3207,7 +3207,7 @@ export default function VenueDetailPage() {
         }
         .related-series-buyin {
           font-size: 13px;
-          color: #d4a853;
+          color: #00D4FF;
           font-weight: 700;
         }
         .related-series-arrow {
@@ -3241,8 +3241,8 @@ export default function VenueDetailPage() {
           cursor: pointer;
         }
         .nearby-venue-card:hover {
-          border-color: rgba(212, 168, 83, 0.3);
-          background: rgba(212, 168, 83, 0.04);
+          border-color: rgba(0, 212, 255, 0.3);
+          background: rgba(0, 212, 255, 0.04);
         }
         .nearby-venue-info {
           flex: 1;
@@ -3270,7 +3270,7 @@ export default function VenueDetailPage() {
         .nearby-venue-distance {
           font-size: 14px;
           font-weight: 700;
-          color: #d4a853;
+          color: #00D4FF;
           flex-shrink: 0;
           white-space: nowrap;
         }
