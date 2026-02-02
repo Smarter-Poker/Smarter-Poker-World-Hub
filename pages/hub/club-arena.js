@@ -674,17 +674,20 @@ const S = {
     },
 
     // BOTTOM TILES - Horizontal scroll slider, fixed 108x162 (World Hub size)
+    // Full-width edge-to-edge for off-page sliding
     tilesGrid: {
         display: 'flex',
         gap: '12px',
-        padding: '0 16px',
-        marginTop: '0',
+        padding: '0 16px 100px', // Extra bottom padding for bottom nav
+        marginLeft: '-16px',     // Extend to left edge
+        marginRight: '-16px',    // Extend to right edge
+        paddingLeft: '16px',     // Keep first tile indented
         overflowX: 'auto',
         overflowY: 'visible',
         scrollSnapType: 'x mandatory',
         WebkitOverflowScrolling: 'touch',
-        scrollbarWidth: 'thin',
-        scrollbarColor: 'rgba(0,212,255,0.6) rgba(0,30,60,0.4)',
+        scrollbarWidth: 'none',  // Hide scrollbar for cleaner look
+        msOverflowStyle: 'none', // Hide scrollbar IE/Edge
     },
     tileWrapper: {
         flexShrink: 0,

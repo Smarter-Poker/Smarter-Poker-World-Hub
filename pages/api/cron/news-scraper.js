@@ -40,7 +40,7 @@ const SOURCE_FALLBACK_IMAGES = {
     'MSPT': 'https://images.pexels.com/photos/3279691/pexels-photo-3279691.jpeg?auto=compress&cs=tinysrgb&w=600',
     'CardPlayer': 'https://images.pexels.com/photos/279009/pexels-photo-279009.jpeg?auto=compress&cs=tinysrgb&w=600',
     'WSOP': 'https://images.pexels.com/photos/6664248/pexels-photo-6664248.jpeg?auto=compress&cs=tinysrgb&w=600',
-    'Poker.org': 'https://images.pexels.com/photos/4254890/pexels-photo-4254890.jpeg?auto=compress&cs=tinysrgb&w=600',
+    'Upswing Poker': 'https://images.pexels.com/photos/4254890/pexels-photo-4254890.jpeg?auto=compress&cs=tinysrgb&w=600',
     'Pokerfuse': 'https://images.pexels.com/photos/1871508/pexels-photo-1871508.jpeg?auto=compress&cs=tinysrgb&w=600'
 };
 
@@ -625,48 +625,70 @@ async function scrapePokerOrg(html, source) {
     const articles = [];
     const seen = new Set();
 
-    // Poker.org article links - various patterns
-    const patterns = [
-        /href=["']((?:https?:\/\/www\.poker\.org)?\/[^"']*(?:news|article|story)[^"']*)["'][^>]*>([^<]+)/gi,
-        /href=["'](https?:\/\/www\.poker\.org\/[^"']+)["'][^>]*>([^<]{20,})/gi
+    // Poker.org is a JS SPA - use their sitemap instead!
+    // Sitemap format: https://www.poker.org/sitemaps/article-YYYY-M.xml
+    const now = new Date();
+    const year = now.getUTCFullYear();
+    const month = now.getUTCMonth() + 1; // 1-indexed
+    
+    // Try current month first, then previous month as fallback
+    const sitemapUrls = [
+        `https://www.poker.org/sitemaps/article-${year}-${month}.xml`,
+        `https://www.poker.org/sitemaps/article-${year}-${month - 1 > 0 ? month - 1 : 12}.xml`
     ];
-
-    for (const pattern of patterns) {
-        const matches = html.matchAll(pattern);
-        for (const match of matches) {
+    
+    for (const sitemapUrl of sitemapUrls) {
+        if (articles.length >= CONFIG.MAX_ARTICLES_PER_SOURCE) break;
+        
+        console.log(`   Fetching Poker.org sitemap: ${sitemapUrl}`);
+        const sitemapXml = await fetchPage(sitemapUrl);
+        if (!sitemapXml) continue;
+        
+        // Parse sitemap XML - extract <loc> URLs for latest-news articles
+        const urlMatches = sitemapXml.matchAll(/<loc>([^<]+)<\/loc>/gi);
+        
+        for (const match of urlMatches) {
             if (articles.length >= CONFIG.MAX_ARTICLES_PER_SOURCE) break;
-
-            let url = match[1];
-            const title = cleanText(match[2]);
-
-            if (!title || title.length < 15 || seen.has(url)) continue;
-            if (url.includes('#') || url.includes('javascript:')) continue;
-            // Skip navigation/category links
-            if (url.match(/\/(category|tag|author|page)\//i)) continue;
-
-            if (!url.startsWith('http')) {
-                url = source.baseUrl + url;
-            }
-
+            
+            const url = match[1];
+            
+            // Only include news articles (skip videos, strategy pages, etc.)
+            if (!url.includes('/latest-news/')) continue;
+            if (seen.has(url)) continue;
             seen.add(url);
+            
+            // Extract title from URL slug (last segment before the ID)
+            const urlPath = url.replace('https://www.poker.org', '').replace(/\/$/, '');
+            const segments = urlPath.split('/');
+            const slugWithId = segments[segments.length - 1];
+            // Remove the random ID at the end (format: title-here-aXYZ123)
+            const slug = slugWithId.replace(/-[a-zA-Z0-9]{10,}$/, '');
+            const title = slug
+                .split('-')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ')
+                .slice(0, 100);
+            
+            if (!title || title.length < 15) continue;
+            
             console.log(`   Checking Poker.org: ${title.substring(0, 40)}...`);
-
+            
+            // Fetch article page for image
             const articleHtml = await fetchPage(url);
             let image = extractArticleImage(articleHtml, url);
-
+            
             // Use source fallback if no image found
             if (!image) {
                 image = SOURCE_FALLBACK_IMAGES[source.name];
                 console.log(`   Using fallback image for Poker.org: ${title.substring(0, 30)}...`);
             }
-
-            // Save articles with images (including fallbacks)
+            
             if (image) {
                 articles.push({ url, title, image, source });
             }
         }
     }
-
+    
     return articles;
 }
 
