@@ -10,6 +10,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { getPlayStatus, getRankFromMastery, PLAY_STATUS, USER_RANKS } from '../components/training/GameBadge';
+import supabase from '../lib/supabase';
 
 const STORAGE_KEY = 'pokeriq_training_progress';
 
@@ -32,13 +33,26 @@ export default function useTrainingProgress() {
     useEffect(() => {
         const loadProgress = async () => {
             try {
-                // Get user ID from auth
-                const { getAuthUser } = await import('../lib/authUtils');
-                const authUser = getAuthUser();
+                // Get user ID from Supabase session (primary method - works reliably)
+                let userId = null;
 
-                if (authUser?.id) {
+                try {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    userId = session?.user?.id;
+                } catch (sessionError) {
+                    console.warn('[useTrainingProgress] Session fetch failed, trying localStorage fallback:', sessionError.message);
+                }
+
+                // Fallback to localStorage if session not available
+                if (!userId) {
+                    const { getAuthUser } = await import('../lib/authUtils');
+                    const authUser = getAuthUser();
+                    userId = authUser?.id;
+                }
+
+                if (userId) {
                     // Fetch from API
-                    const response = await fetch(`/api/training/get-progress?userId=${authUser.id}`);
+                    const response = await fetch(`/api/training/get-progress?userId=${userId}`);
                     if (response.ok) {
                         const data = await response.json();
                         if (data.success && data.progress) {
