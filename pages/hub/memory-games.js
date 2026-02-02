@@ -2102,6 +2102,70 @@ export default function MemoryGamesPage() {
             }).catch(err => {
                 console.warn('[Memory] Achievement check failed:', err);
             });
+
+            // 7. Push to Jarvis Personal Assistant for leak detection
+            const answersData = [];
+            // Build answers array from gradeResult
+            if (result.wrongActionHands) {
+                result.wrongActionHands.forEach(hand => {
+                    answersData.push({
+                        hand,
+                        userAnswer: userGrid[hand] || 'fold',
+                        correctAnswer: currentScenario?.solution?.[hand] || 'raise',
+                        wasCorrect: false,
+                        position: currentScenario?.position,
+                        scenario: { title: currentScenario?.title, stackDepth: currentScenario?.stackDepth }
+                    });
+                });
+            }
+            if (result.missedHands) {
+                result.missedHands.forEach(hand => {
+                    answersData.push({
+                        hand,
+                        userAnswer: 'fold',
+                        correctAnswer: currentScenario?.solution?.[hand] || 'raise',
+                        wasCorrect: false,
+                        position: currentScenario?.position,
+                        scenario: { title: currentScenario?.title, stackDepth: currentScenario?.stackDepth }
+                    });
+                });
+            }
+            if (result.correctHands) {
+                result.correctHands.forEach(hand => {
+                    answersData.push({
+                        hand,
+                        userAnswer: userGrid[hand] || currentScenario?.solution?.[hand],
+                        correctAnswer: currentScenario?.solution?.[hand],
+                        wasCorrect: true,
+                        position: currentScenario?.position,
+                        scenario: { title: currentScenario?.title, stackDepth: currentScenario?.stackDepth }
+                    });
+                });
+            }
+
+            fetch('/api/jarvis/training-session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: user.id,
+                    sessionId: `memory_${Date.now()}`,
+                    gameId: 'memory-matrix',
+                    gameName: 'Memory Matrix',
+                    category: currentScenario?.position || 'PREFLOP',
+                    level: currentLevel,
+                    questionsAnswered: Object.keys(currentScenario?.solution || {}).length,
+                    questionsCorrect: result.correctHands?.length || 0,
+                    accuracy: result.score,
+                    streak: consecutivePasses,
+                    timeSpentSeconds: timeTaken,
+                    answers: answersData,
+                    leaksDetected: []
+                })
+            }).then(res => res.json()).then(jarvisResult => {
+                console.log('[Memory] Jarvis leak detection updated:', jarvisResult);
+            }).catch(err => {
+                console.warn('[Memory] Jarvis push failed:', err);
+            });
         }
 
         setMode('result');

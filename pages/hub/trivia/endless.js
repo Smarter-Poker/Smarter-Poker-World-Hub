@@ -42,14 +42,18 @@ export default function EndlessModePage() {
             const user = getAuthUser();
             if (user) {
                 setUserId(user.id);
-                // Load high score
-                const { data } = await supabase
-                    .from('endless_high_scores')
-                    .select('high_score')
-                    .eq('user_id', user.id)
-                    .eq('mode', 'random')
-                    .single();
-                if (data) setHighScore(data.high_score || 0);
+                // Load high score (ignore errors - table may not exist)
+                try {
+                    const { data } = await supabase
+                        .from('endless_high_scores')
+                        .select('high_score')
+                        .eq('user_id', user.id)
+                        .eq('mode', 'random')
+                        .single();
+                    if (data) setHighScore(data.high_score || 0);
+                } catch (e) {
+                    // High score table may not exist yet
+                }
             }
             await loadMoreQuestions();
             setIsLoading(false);
