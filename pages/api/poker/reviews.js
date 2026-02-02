@@ -28,6 +28,11 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, error: 'Missing required fields: venue_id, user_id, rating, review_text, reviewer_name' });
       }
 
+      const venueIdNum = parseInt(venue_id, 10);
+      if (isNaN(venueIdNum) || venueIdNum < 1) {
+        return res.status(400).json({ success: false, error: 'venue_id must be a valid positive integer' });
+      }
+
       const ratingNum = parseInt(rating, 10);
       if (isNaN(ratingNum) || ratingNum < 1 || ratingNum > 5) {
         return res.status(400).json({ success: false, error: 'Rating must be an integer between 1 and 5' });
@@ -36,7 +41,7 @@ export default async function handler(req, res) {
       const { data, error } = await supabase
         .from('venue_reviews')
         .insert({
-          venue_id,
+          venue_id: venueIdNum,
           user_id,
           rating: ratingNum,
           review_text,
@@ -62,14 +67,19 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, error: 'venue_id is required' });
       }
 
-      const limitNum = parseInt(limit, 10);
-      const offsetNum = parseInt(offset, 10);
+      const venueIdNum = parseInt(venue_id, 10);
+      if (isNaN(venueIdNum) || venueIdNum < 1) {
+        return res.status(400).json({ success: false, error: 'venue_id must be a valid positive integer' });
+      }
+
+      const limitNum = parseInt(limit, 10) || 20;
+      const offsetNum = parseInt(offset, 10) || 0;
 
       // Fetch reviews
       const { data: reviews, error: reviewError } = await supabase
         .from('venue_reviews')
         .select('*')
-        .eq('venue_id', venue_id)
+        .eq('venue_id', venueIdNum)
         .order('created_at', { ascending: false })
         .range(offsetNum, offsetNum + limitNum - 1);
 
@@ -82,7 +92,7 @@ export default async function handler(req, res) {
       const { data: allRatings, error: ratingsError } = await supabase
         .from('venue_reviews')
         .select('rating')
-        .eq('venue_id', venue_id);
+        .eq('venue_id', venueIdNum);
 
       if (ratingsError) {
         console.error('Error fetching ratings:', ratingsError);

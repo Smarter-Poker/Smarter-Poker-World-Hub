@@ -88,13 +88,14 @@ export default async function handler(req, res) {
 
         // Filter by buy-in range
         if (minBuyin) {
-            query = query.gte('buy_in', parseInt(minBuyin));
+            query = query.gte('buy_in', parseInt(minBuyin, 10) || 0);
         }
         if (maxBuyin) {
-            query = query.lte('buy_in', parseInt(maxBuyin));
+            query = query.lte('buy_in', parseInt(maxBuyin, 10) || 100000);
         }
 
-        query = query.limit(parseInt(limit));
+        const parsedLimit = parseInt(limit, 10) || 200;
+        query = query.limit(parsedLimit);
 
         const { data: dbTournaments, error } = await query;
 
@@ -137,8 +138,8 @@ export default async function handler(req, res) {
                 state,
                 venue,
                 type,
-                minBuyin: minBuyin ? parseInt(minBuyin) : null,
-                maxBuyin: maxBuyin ? parseInt(maxBuyin) : null
+                minBuyin: minBuyin ? parseInt(minBuyin, 10) || 0 : null,
+                maxBuyin: maxBuyin ? parseInt(maxBuyin, 10) || 100000 : null
             });
         }
 
@@ -153,7 +154,7 @@ export default async function handler(req, res) {
             day: targetDay,
             totalVenues: tournamentVenues.metadata.totalVenues,
             lastUpdated: tournamentVenues.metadata.lastUpdated,
-            tournaments: tournaments.slice(0, parseInt(limit)),
+            tournaments: tournaments.slice(0, parsedLimit),
             byTimeSlot,
             byState: groupByState(tournaments),
             stats: {

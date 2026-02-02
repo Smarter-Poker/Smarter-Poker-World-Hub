@@ -42,10 +42,15 @@ async function handleGet(req, res) {
 
     // --- Results for a specific series (+ leaderboard) ---------------------
     if (series_id) {
+        const seriesIdNum = parseInt(series_id, 10);
+        if (isNaN(seriesIdNum) || seriesIdNum < 1) {
+            return res.status(400).json({ success: false, error: 'series_id must be a valid positive integer' });
+        }
+
         const { data, error } = await supabase
             .from('tournament_results')
             .select('*')
-            .eq('series_id', series_id)
+            .eq('series_id', seriesIdNum)
             .order('event_date', { ascending: true });
 
         if (error) {
@@ -160,8 +165,13 @@ async function handlePost(req, res) {
         });
     }
 
+    const seriesIdNum = parseInt(series_id, 10);
+    if (isNaN(seriesIdNum) || seriesIdNum < 1) {
+        return res.status(400).json({ success: false, error: 'series_id must be a valid positive integer' });
+    }
+
     const row = {
-        series_id,
+        series_id: seriesIdNum,
         tour_code: tour_code || null,
         event_name,
         event_number: event_number != null ? parseInt(event_number, 10) : null,
