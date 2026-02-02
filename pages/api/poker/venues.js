@@ -157,57 +157,29 @@ export default async function handler(req, res) {
 
         const maxResults = parseInt(limit) || 500;
         let venues = [];
-        let usedFallback = false;
 
-        // --- Try Supabase first ---
-        try {
-            let query = supabase
-                .from('poker_venues')
-                .select('*');
+        if (id) {
+            // --- Single venue lookup: try Supabase first (has real-time data) ---
+            try {
+                const { data, error } = await supabase
+                    .from('poker_venues')
+                    .select('*')
+                    .eq('id', id)
+                    .single();
 
-            if (id) {
-                query = query.eq('id', id);
-            } else {
-                if (state) {
-                    query = query.eq('state', state.toUpperCase());
+                if (!error && data) {
+                    venues = [data];
+                } else {
+                    throw new Error(error?.message || 'Not found in Supabase');
                 }
-                if (city) {
-                    query = query.ilike('city', `%${city}%`);
-                }
-                if (type) {
-                    query = query.eq('venue_type', type);
-                }
-                if (tournaments === 'true') {
-                    query = query.eq('has_tournaments', true);
-                }
-                if (search) {
-                    query = query.or(`name.ilike.%${search}%,city.ilike.%${search}%`);
-                }
-                if (featured === 'true') {
-                    query = query.eq('is_featured', true);
-                }
-
-                query = query.order('trust_score', { ascending: false });
+            } catch (dbError) {
+                // Fall back to JSON for single venue
+                venues = applyFilters(getJsonVenues(), { id });
             }
-
-            const { data, error } = await query;
-
-            if (!error && data && data.length > 0) {
-                venues = data;
-            } else {
-                throw new Error(error?.message || 'No data from Supabase');
-            }
-        } catch (dbError) {
-            // --- Fall back to JSON data ---
-            console.warn('Supabase unavailable, using JSON fallback:', dbError.message);
-            usedFallback = true;
-            const jsonVenues = getJsonVenues();
-            venues = applyFilters(jsonVenues, { id, state, city, type, tournaments, search, featured });
-
-            // Sort by trust_score descending for JSON fallback
-            if (!id) {
-                venues.sort((a, b) => (b.trust_score || 0) - (a.trust_score || 0));
-            }
+        } else {
+            // --- Venue listing: use JSON (complete 483-venue dataset) ---
+            venues = applyFilters(getJsonVenues(), { state, city, type, tournaments, search, featured });
+            venues.sort((a, b) => (b.trust_score || 0) - (a.trust_score || 0));
         }
 
         // --- GPS-based distance calculation and filtering ---
