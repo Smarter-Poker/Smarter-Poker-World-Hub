@@ -13,25 +13,25 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 
 // Tour badge color mapping
 const TOUR_COLORS = {
-  'WSOP':    { bg: 'linear-gradient(135deg, #c9a227, #8b6914)', text: '#000', border: '#c9a227' },
-  'WPT':     { bg: 'linear-gradient(135deg, #dc2626, #991b1b)', text: '#fff', border: '#dc2626' },
-  'WSOPC':   { bg: 'linear-gradient(135deg, #c9a227, #8b6914)', text: '#000', border: '#c9a227' },
-  'MSPT':    { bg: 'linear-gradient(135deg, #1e40af, #1e3a8a)', text: '#fff', border: '#3b82f6' },
-  'RGPS':    { bg: 'linear-gradient(135deg, #059669, #047857)', text: '#fff', border: '#10b981' },
-  'PGT':     { bg: 'linear-gradient(135deg, #7c3aed, #5b21b6)', text: '#fff', border: '#8b5cf6' },
-  'EPT':     { bg: 'linear-gradient(135deg, #0ea5e9, #0369a1)', text: '#fff', border: '#38bdf8' },
-  'LAPC':    { bg: 'linear-gradient(135deg, #e11d48, #9f1239)', text: '#fff', border: '#fb7185' },
-  'SHRPO':   { bg: 'linear-gradient(135deg, #d97706, #92400e)', text: '#fff', border: '#f59e0b' },
+  'WSOP': { bg: 'linear-gradient(135deg, #c9a227, #8b6914)', text: '#000', border: '#c9a227' },
+  'WPT': { bg: 'linear-gradient(135deg, #dc2626, #991b1b)', text: '#fff', border: '#dc2626' },
+  'WSOPC': { bg: 'linear-gradient(135deg, #c9a227, #8b6914)', text: '#000', border: '#c9a227' },
+  'MSPT': { bg: 'linear-gradient(135deg, #1e40af, #1e3a8a)', text: '#fff', border: '#3b82f6' },
+  'RGPS': { bg: 'linear-gradient(135deg, #059669, #047857)', text: '#fff', border: '#10b981' },
+  'PGT': { bg: 'linear-gradient(135deg, #7c3aed, #5b21b6)', text: '#fff', border: '#8b5cf6' },
+  'EPT': { bg: 'linear-gradient(135deg, #0ea5e9, #0369a1)', text: '#fff', border: '#38bdf8' },
+  'LAPC': { bg: 'linear-gradient(135deg, #e11d48, #9f1239)', text: '#fff', border: '#fb7185' },
+  'SHRPO': { bg: 'linear-gradient(135deg, #d97706, #92400e)', text: '#fff', border: '#f59e0b' },
   'default': { bg: 'linear-gradient(135deg, #374151, #1f2937)', text: '#fff', border: '#4b5563' },
 };
 
 // Series type styling
 const SERIES_TYPE_COLORS = {
-  major:      { bg: '#00D4FF', text: '#000' },
-  circuit:    { bg: '#60a5fa', text: '#000' },
-  regional:   { bg: '#a78bfa', text: '#000' },
+  major: { bg: '#00D4FF', text: '#000' },
+  circuit: { bg: '#60a5fa', text: '#000' },
+  regional: { bg: '#a78bfa', text: '#000' },
   'mid-major': { bg: '#4ade80', text: '#000' },
-  weekly:     { bg: '#94a3b8', text: '#000' },
+  weekly: { bg: '#94a3b8', text: '#000' },
 };
 
 const ACTIVITY_TYPE_COLORS = {
@@ -158,7 +158,7 @@ export default function SeriesDetailPage() {
       .then(json => {
         if (json.success) setFollowerCount(json.follower_count || 0);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [id]);
 
   // Fetch series data
@@ -213,7 +213,7 @@ export default function SeriesDetailPage() {
           }
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [id]);
 
   // Fetch activity feed
@@ -227,7 +227,7 @@ export default function SeriesDetailPage() {
           if (Array.isArray(items)) setActivities(items);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [id]);
 
   const toggleFollow = () => {
@@ -260,7 +260,7 @@ export default function SeriesDetailPage() {
         action: newState ? 'follow' : 'unfollow',
         user_id: getAnonymousUserId(),
       }),
-    }).catch(() => {});
+    }).catch(() => { });
   };
 
   function getAnonymousUserId() {
@@ -351,6 +351,10 @@ export default function SeriesDetailPage() {
       <Head>
         <title>{series.name + ' | Smarter.Poker'}</title>
         <meta name="description" content={series.name + ' - ' + formatDateRange(series.start_date, series.end_date) + ' at ' + (venueName || location.city)} />
+        {/* Industrial Fonts */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </Head>
       <UniversalHeader />
 
@@ -421,7 +425,7 @@ export default function SeriesDetailPage() {
               {isFollowing ? (
                 <>
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
+                    <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z" />
                   </svg>
                   Following
                   {followerCount > 0 && <span className="follow-count">{followerCount}</span>}
@@ -429,7 +433,7 @@ export default function SeriesDetailPage() {
               ) : (
                 <>
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M8 3v10M3 8h10" strokeLinecap="round"/>
+                    <path d="M8 3v10M3 8h10" strokeLinecap="round" />
                   </svg>
                   Follow
                   {followerCount > 0 && <span className="follow-count">{followerCount}</span>}
@@ -438,7 +442,7 @@ export default function SeriesDetailPage() {
             </button>
             <button className="action-btn share-btn" onClick={handleShare}>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M4 8v5a1 1 0 001 1h6a1 1 0 001-1V8M11 4L8 1M8 1L5 4M8 1v9" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M4 8v5a1 1 0 001 1h6a1 1 0 001-1V8M11 4L8 1M8 1L5 4M8 1v9" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               {shareMessage || 'Share'}
             </button>
@@ -523,8 +527,8 @@ export default function SeriesDetailPage() {
                 >
                   <a className="venue-link">
                     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      <circle cx="7" cy="7" r="5"/>
-                      <path d="M14 14l-3.5-3.5" strokeLinecap="round"/>
+                      <circle cx="7" cy="7" r="5" />
+                      <path d="M14 14l-3.5-3.5" strokeLinecap="round" />
                     </svg>
                     Find on Poker Near Me
                   </a>
@@ -538,7 +542,7 @@ export default function SeriesDetailPage() {
                   className="venue-link external"
                 >
                   <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <path d="M12 9v4a1 1 0 01-1 1H3a1 1 0 01-1-1V5a1 1 0 011-1h4M9 2h5v5M6.5 9.5L14 2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M12 9v4a1 1 0 01-1 1H3a1 1 0 01-1-1V5a1 1 0 011-1h4M9 2h5v5M6.5 9.5L14 2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                   Official Website
                 </a>
@@ -575,7 +579,7 @@ export default function SeriesDetailPage() {
                       <Fragment key={'evt-' + evtKey}>
                         <tr
                           className={'event-row-clickable' + (isExpanded ? ' expanded' : '')}
-                          onClick={function() { setExpandedEvent(isExpanded ? null : evtKey); }}
+                          onClick={function () { setExpandedEvent(isExpanded ? null : evtKey); }}
                         >
                           <td className="event-num">{evtKey}</td>
                           <td className="event-name">
@@ -666,8 +670,8 @@ export default function SeriesDetailPage() {
           ) : (
             <div className="no-events">
               <svg width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="#64748b" strokeWidth="1.5">
-                <rect x="5" y="8" width="30" height="24" rx="3"/>
-                <path d="M5 16h30M13 5v6M27 5v6"/>
+                <rect x="5" y="8" width="30" height="24" rx="3" />
+                <path d="M5 16h30M13 5v6M27 5v6" />
               </svg>
               <p>Event schedule not yet available</p>
               <p className="no-events-sub">Check back closer to the series start date for the full schedule.</p>
@@ -817,13 +821,25 @@ export default function SeriesDetailPage() {
 }
 
 const styles = `
+  /* Metal UI Variables */
+  :root {
+    --metal-dark: #0a0a15;
+    --metal-base: #0d1117;
+    --metal-mid: #1a2332;
+    --metal-highlight: #3d4f5f;
+    --neon-cyan: #00D4FF;
+    --neon-cyan-glow: rgba(0, 212, 255, 0.6);
+    --metal-gradient: linear-gradient(180deg, #3d4f5f 0%, #1a2332 50%, #0d1117 100%);
+    --glow-cyan: 0 0 10px var(--neon-cyan), 0 0 20px var(--neon-cyan-glow);
+  }
+
   .series-page {
     min-height: 100vh;
     background: radial-gradient(ellipse at 20% 50%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
                 radial-gradient(ellipse at 80% 20%, rgba(0, 212, 255, 0.06) 0%, transparent 50%),
                 linear-gradient(180deg, #030712 0%, #0f172a 100%);
     padding: 80px 16px 60px;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Rajdhani', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     color: #e2e8f0;
   }
 

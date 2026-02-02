@@ -136,7 +136,7 @@ export default function TourDetailPage() {
       .then(json => {
         if (json.success) setFollowerCount(json.follower_count || 0);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [code]);
 
   // Fetch tour data
@@ -178,7 +178,7 @@ export default function TourDetailPage() {
           if (Array.isArray(items)) setActivities(items);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [code]);
 
   // Fetch tournament results
@@ -191,7 +191,7 @@ export default function TourDetailPage() {
           setResults(json.data);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [code]);
 
   function handleFollow() {
@@ -223,7 +223,7 @@ export default function TourDetailPage() {
         action: newState ? 'follow' : 'unfollow',
         user_id: getAnonymousUserId(),
       }),
-    }).catch(() => {});
+    }).catch(() => { });
   }
 
   function getAnonymousUserId() {
@@ -257,9 +257,9 @@ export default function TourDetailPage() {
 
   function handleEnableNotifications() {
     if (typeof window === 'undefined' || !('Notification' in window)) return;
-    Notification.requestPermission().then(function(permission) {
+    Notification.requestPermission().then(function (permission) {
       setNotifPermission(permission);
-    }).catch(() => {});
+    }).catch(() => { });
   }
 
   const tourColor = TOUR_COLORS[code] || TOUR_COLORS['default'];
@@ -271,7 +271,10 @@ export default function TourDetailPage() {
       <Head>
         <title>{pageTitle}</title>
         <meta name="description" content={tour ? (tour.tour_name + ' - poker tour details, upcoming series, and more') : 'Poker tour details'} />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+        {/* Industrial Fonts */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </Head>
 
       <UniversalHeader />
@@ -470,7 +473,7 @@ export default function TourDetailPage() {
                             )}
                           </div>
 
-                          <div className="series-venue" onClick={series.venue_id ? function(e) { e.preventDefault(); e.stopPropagation(); router.push('/hub/venues/' + series.venue_id); } : undefined}>
+                          <div className="series-venue" onClick={series.venue_id ? function (e) { e.preventDefault(); e.stopPropagation(); router.push('/hub/venues/' + series.venue_id); } : undefined}>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
                               <polyline points="9 22 9 12 15 12 15 22" />
@@ -534,10 +537,10 @@ export default function TourDetailPage() {
                   <span className="series-count">{tour.stops_2026.length}</span>
                 </h2>
                 <div className="stops-list">
-                  {tour.stops_2026.map(function(stop, si) {
+                  {tour.stops_2026.map(function (stop, si) {
                     var stopVenueId = null;
                     if (tour.upcoming_series) {
-                      var matchingSeries = tour.upcoming_series.find(function(s) {
+                      var matchingSeries = tour.upcoming_series.find(function (s) {
                         return s.venue && stop.name && (
                           s.venue.toLowerCase().indexOf(stop.name.toLowerCase()) !== -1 ||
                           stop.name.toLowerCase().indexOf(s.venue.toLowerCase()) !== -1
@@ -549,7 +552,7 @@ export default function TourDetailPage() {
                     }
                     return (
                       <div key={si} className={'stop-row' + (stopVenueId ? ' stop-clickable' : '')}
-                        onClick={stopVenueId ? function() { router.push('/hub/venues/' + stopVenueId); } : undefined}>
+                        onClick={stopVenueId ? function () { router.push('/hub/venues/' + stopVenueId); } : undefined}>
                         <div className="stop-index">{si + 1}</div>
                         <div className="stop-info">
                           <span className="stop-name">{stop.name}</span>
@@ -558,7 +561,7 @@ export default function TourDetailPage() {
                         <div className="stop-dates">{stop.dates || 'TBD'}</div>
                         {stopVenueId && (
                           <div className="stop-link-icon">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2"><polyline points="9 18 15 12 9 6" /></svg>
                           </div>
                         )}
                       </div>
@@ -696,8 +699,20 @@ export default function TourDetailPage() {
 }
 
 const styles = `
+  /* Metal UI Variables */
+  :root {
+    --metal-dark: #0a0a15;
+    --metal-base: #0d1117;
+    --metal-mid: #1a2332;
+    --metal-highlight: #3d4f5f;
+    --neon-cyan: #00D4FF;
+    --neon-cyan-glow: rgba(0, 212, 255, 0.6);
+    --metal-gradient: linear-gradient(180deg, #3d4f5f 0%, #1a2332 50%, #0d1117 100%);
+    --glow-cyan: 0 0 10px var(--neon-cyan), 0 0 20px var(--neon-cyan-glow);
+  }
+
   .tour-page {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Rajdhani', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     min-height: 100vh;
     background: radial-gradient(ellipse at top, #0f172a 0%, #030712 50%),
                 radial-gradient(ellipse at bottom right, #1e1b4b 0%, #030712 50%);

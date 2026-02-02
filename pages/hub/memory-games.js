@@ -1818,7 +1818,7 @@ export default function MemoryGamesPage() {
     const startGame = async (level) => {
         // Check diamond access
         if (!isVIP) {
-            const result = DiamondEngine.deduct(GAME_COST);
+            const result = await DiamondEngine.deduct(GAME_COST);
             if (!result.success) {
                 setShowOutOfDiamondsModal(true);
                 return;

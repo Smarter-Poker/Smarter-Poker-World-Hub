@@ -132,6 +132,10 @@ export default function DailyTournaments() {
             <Head>
                 <title>Daily Tournaments | Smarter.Poker</title>
                 <meta name="description" content="Find poker tournaments happening today at 163 verified venues across the US." />
+                {/* Industrial Fonts */}
+                <link rel="preconnect" href="https://fonts.googleapis.com" />
+                <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+                <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
             </Head>
 
             <div className="dt-page">
@@ -425,11 +429,23 @@ export default function DailyTournaments() {
                 </div>
 
                 <style jsx>{`
+                    /* Metal UI Variables */
+                    :root {
+                        --metal-dark: #0a0a15;
+                        --metal-base: #0d1117;
+                        --metal-mid: #1a2332;
+                        --metal-highlight: #3d4f5f;
+                        --neon-cyan: #00D4FF;
+                        --neon-cyan-glow: rgba(0, 212, 255, 0.6);
+                        --metal-gradient: linear-gradient(180deg, #3d4f5f 0%, #1a2332 50%, #0d1117 100%);
+                        --glow-cyan: 0 0 10px var(--neon-cyan), 0 0 20px var(--neon-cyan-glow);
+                    }
+
                     .dt-page {
                         min-height: 100vh;
                         position: relative;
                         color: #fff;
-                        font-family: 'Inter', -apple-system, sans-serif;
+                        font-family: 'Rajdhani', 'Inter', -apple-system, sans-serif;
                         overflow-x: hidden;
                     }
 

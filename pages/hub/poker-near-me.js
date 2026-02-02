@@ -1486,6 +1486,10 @@ export default function PokerNearMePage() {
             <Head>
                 <title>Poker Near Me | Smarter.Poker</title>
                 <meta name="description" content="Find poker rooms, tours, tournament series, and daily events near you." />
+                {/* Industrial Fonts */}
+                <link rel="preconnect" href="https://fonts.googleapis.com" />
+                <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+                <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
                 {/* Leaflet CSS */}
                 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
                 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
@@ -1771,13 +1775,68 @@ export default function PokerNearMePage() {
                 )}
 
                 <style jsx>{`
+                    /* Metal UI Variables */
+                    :root {
+                        --metal-dark: #0a0a15;
+                        --metal-base: #0d1117;
+                        --metal-mid: #1a2332;
+                        --metal-highlight: #3d4f5f;
+                        --neon-cyan: #00D4FF;
+                        --neon-cyan-glow: rgba(0, 212, 255, 0.6);
+                        --metal-gradient: linear-gradient(180deg, #3d4f5f 0%, #1a2332 50%, #0d1117 100%);
+                        --glow-cyan: 0 0 10px var(--neon-cyan), 0 0 20px var(--neon-cyan-glow);
+                    }
+
                     .pnm-page {
                         min-height: 100vh;
                         position: relative;
                         color: #fff;
-                        font-family: 'Inter', -apple-system, sans-serif;
+                        font-family: 'Rajdhani', 'Inter', -apple-system, sans-serif;
                         overflow-x: hidden;
                         padding-bottom: 40px;
+                    }
+
+                    /* Metal Frame Components */
+                    .metal-frame {
+                        position: relative;
+                        background: var(--metal-gradient);
+                        border: 2px solid var(--metal-highlight);
+                        border-radius: 12px;
+                        box-shadow: 
+                            inset 0 1px 0 rgba(255,255,255,0.1),
+                            inset 0 -1px 0 rgba(0,0,0,0.3),
+                            0 4px 20px rgba(0,0,0,0.5);
+                    }
+
+                    .frame-bolt {
+                        position: absolute;
+                        width: 10px;
+                        height: 10px;
+                        background: radial-gradient(circle, #5a6a7a 30%, #3a4a5a 70%);
+                        border-radius: 50%;
+                        border: 1px solid #2a3a4a;
+                        z-index: 10;
+                        box-shadow: inset 0 1px 2px rgba(255,255,255,0.2);
+                    }
+
+                    .frame-bolt::after {
+                        content: '+';
+                        position: absolute;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        font-size: 7px;
+                        color: #1a2a3a;
+                        font-weight: bold;
+                    }
+
+                    .neon-glow {
+                        box-shadow: var(--glow-cyan);
+                    }
+
+                    @keyframes neon-pulse {
+                        0%, 100% { opacity: 1; }
+                        50% { opacity: 0.7; }
                     }
 
                     /* Space Background */
@@ -1822,19 +1881,26 @@ export default function PokerNearMePage() {
                         text-align: center;
                     }
                     .pnm-header h1 {
+                        font-family: 'Orbitron', sans-serif;
                         font-size: 32px;
                         font-weight: 700;
                         margin: 0;
-                        letter-spacing: 2px;
+                        letter-spacing: 4px;
+                        text-transform: uppercase;
                     }
-                    .pnm-header .white { color: #fff; }
-                    .pnm-header .gold { color: #00D4FF; }
+                    .pnm-header .white { color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+                    .pnm-header .gold { 
+                        color: #00D4FF; 
+                        text-shadow: 0 0 10px var(--neon-cyan-glow), 0 0 20px var(--neon-cyan-glow);
+                    }
                     .pnm-header .subtitle {
                         display: block;
+                        font-family: 'Rajdhani', sans-serif;
                         font-size: 12px;
                         color: rgba(255,255,255,0.5);
                         margin-top: 8px;
-                        letter-spacing: 3px;
+                        letter-spacing: 4px;
+                        text-transform: uppercase;
                     }
 
                     /* Search Section */
@@ -2127,17 +2193,43 @@ export default function PokerNearMePage() {
                         }
                     }
 
-                    /* Entity Cards */
+                    /* Entity Cards - Metal Frame Style */
                     .entity-card {
-                        background: rgba(15, 23, 42, 0.5);
-                        border: 1px solid rgba(255,255,255,0.1);
+                        position: relative;
+                        background: linear-gradient(180deg, rgba(61, 79, 95, 0.3) 0%, rgba(26, 35, 50, 0.8) 50%, rgba(13, 17, 23, 0.9) 100%);
+                        border: 2px solid var(--metal-highlight);
                         border-radius: 12px;
-                        padding: 16px;
-                        transition: all 0.2s;
+                        padding: 20px;
+                        transition: all 0.3s ease;
+                        box-shadow: 
+                            inset 0 1px 0 rgba(255,255,255,0.08),
+                            inset 0 -1px 0 rgba(0,0,0,0.3),
+                            0 4px 15px rgba(0,0,0,0.4);
                     }
+                    .entity-card::before,
+                    .entity-card::after {
+                        content: '+';
+                        position: absolute;
+                        width: 10px;
+                        height: 10px;
+                        background: radial-gradient(circle, #5a6a7a 30%, #3a4a5a 70%);
+                        border-radius: 50%;
+                        border: 1px solid #2a3a4a;
+                        font-size: 7px;
+                        color: #1a2a3a;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-weight: bold;
+                    }
+                    .entity-card::before { top: 8px; left: 8px; }
+                    .entity-card::after { top: 8px; right: 8px; }
                     .entity-card:hover {
-                        border-color: rgba(255,255,255,0.2);
-                        background: rgba(15, 23, 42, 0.7);
+                        border-color: var(--neon-cyan);
+                        box-shadow: 
+                            inset 0 1px 0 rgba(255,255,255,0.08),
+                            0 0 15px var(--neon-cyan-glow),
+                            0 4px 20px rgba(0,0,0,0.5);
                     }
                     .card-header {
                         display: flex;

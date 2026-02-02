@@ -147,7 +147,7 @@ function StarRating({ rating, size, interactive, onRate }) {
   const stars = [1, 2, 3, 4, 5];
   return (
     <span style={{ display: 'inline-flex', gap: '2px', cursor: interactive ? 'pointer' : 'default' }}>
-      {stars.map(function(star) {
+      {stars.map(function (star) {
         return (
           <svg
             key={star}
@@ -159,7 +159,7 @@ function StarRating({ rating, size, interactive, onRate }) {
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
-            onClick={function() { if (interactive && onRate) onRate(star); }}
+            onClick={function () { if (interactive && onRate) onRate(star); }}
             style={{ transition: 'all 0.15s' }}
           >
             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
@@ -262,7 +262,7 @@ export default function VenueDetailPage() {
   }
 
   // Check follow status on mount
-  useEffect(function() {
+  useEffect(function () {
     if (!id) return;
     try {
       var stored = localStorage.getItem('followed-venues');
@@ -272,17 +272,17 @@ export default function VenueDetailPage() {
       // ignore parse errors
     }
     fetch('/api/poker/follow?page_type=venue&page_id=' + id)
-      .then(function(r) { return r.json(); })
-      .then(function(json) {
+      .then(function (r) { return r.json(); })
+      .then(function (json) {
         if (json.success) setFollowerCount(json.follower_count || 0);
       })
-      .catch(function() {});
+      .catch(function () { });
   }, [id]);
 
   // Fetch venue data
-  useEffect(function() {
+  useEffect(function () {
     if (!id) return;
-    var fetchVenue = async function() {
+    var fetchVenue = async function () {
       setLoading(true);
       setError(null);
       try {
@@ -290,7 +290,7 @@ export default function VenueDetailPage() {
         var json = await res.json();
         if (json.success && json.data) {
           var venueData = Array.isArray(json.data)
-            ? json.data.find(function(v) { return String(v.id) === String(id); }) || json.data[0]
+            ? json.data.find(function (v) { return String(v.id) === String(id); }) || json.data[0]
             : json.data;
           setVenue(venueData);
         } else {
@@ -307,7 +307,7 @@ export default function VenueDetailPage() {
   }, [id]);
 
   // Fetch live games
-  var fetchLiveGames = async function() {
+  var fetchLiveGames = async function () {
     try {
       var res = await fetch('/api/poker/live-games?venue_id=' + id);
       var json = await res.json();
@@ -318,13 +318,13 @@ export default function VenueDetailPage() {
     } catch (e) { /* silent */ }
   };
 
-  useEffect(function() {
+  useEffect(function () {
     if (!id) return;
     fetchLiveGames();
   }, [id]);
 
   // Fetch check-ins
-  var fetchCheckins = async function() {
+  var fetchCheckins = async function () {
     try {
       var res = await fetch('/api/poker/checkins?venue_id=' + id);
       var json = await res.json();
@@ -335,7 +335,7 @@ export default function VenueDetailPage() {
         setCheckinCount(json.count || data.length);
         var uid = getAnonymousUserId();
         var fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000);
-        var recent = data.find(function(c) {
+        var recent = data.find(function (c) {
           return c.user_id === uid && new Date(c.created_at) > fourHoursAgo;
         });
         if (recent) setHasCheckedIn(true);
@@ -343,13 +343,13 @@ export default function VenueDetailPage() {
     } catch (e) { /* silent */ }
   };
 
-  useEffect(function() {
+  useEffect(function () {
     if (!id) return;
     fetchCheckins();
   }, [id]);
 
   // Fetch reviews
-  var fetchReviews = async function() {
+  var fetchReviews = async function () {
     try {
       var res = await fetch('/api/poker/reviews?venue_id=' + id);
       var json = await res.json();
@@ -359,19 +359,19 @@ export default function VenueDetailPage() {
         setReviews(reviewData);
         setTotalReviews(json.total_reviews || json.total || reviewData.length);
         setAvgRating(json.avg_rating || (reviewData.length > 0
-          ? reviewData.reduce(function(sum, r) { return sum + (r.rating || 0); }, 0) / reviewData.length
+          ? reviewData.reduce(function (sum, r) { return sum + (r.rating || 0); }, 0) / reviewData.length
           : 0));
       }
     } catch (e) { /* silent */ }
   };
 
-  useEffect(function() {
+  useEffect(function () {
     if (!id) return;
     fetchReviews();
   }, [id]);
 
   // Fetch activity feed
-  var fetchActivities = async function() {
+  var fetchActivities = async function () {
     try {
       var res = await fetch('/api/poker/activity?page_type=venue&page_id=' + id + '&limit=10');
       var json = await res.json();
@@ -382,13 +382,13 @@ export default function VenueDetailPage() {
     } catch (e) { /* silent */ }
   };
 
-  useEffect(function() {
+  useEffect(function () {
     if (!id) return;
     fetchActivities();
   }, [id]);
 
   // Fetch claim status
-  var fetchClaimStatus = async function() {
+  var fetchClaimStatus = async function () {
     try {
       var res = await fetch('/api/poker/claim-page?page_type=venue&page_id=' + id);
       var json = await res.json();
@@ -402,50 +402,50 @@ export default function VenueDetailPage() {
     } catch (e) { /* silent */ }
   };
 
-  useEffect(function() {
+  useEffect(function () {
     if (!id) return;
     fetchClaimStatus();
   }, [id]);
 
   // Fetch venue promotions
-  useEffect(function() {
+  useEffect(function () {
     if (!id) return;
     fetch('/api/poker/promotions?page_type=venue&page_id=' + id + '&limit=5')
-      .then(function(r) { return r.json(); })
-      .then(function(json) {
+      .then(function (r) { return r.json(); })
+      .then(function (json) {
         if (json.success) {
           setPromotions(json.promotions || []);
         }
       })
-      .catch(function() {});
+      .catch(function () { });
   }, [id]);
 
   // Fetch nearby venues (once we have venue lat/lng)
-  useEffect(function() {
+  useEffect(function () {
     if (!venue || !venue.latitude || !venue.longitude) return;
     fetch('/api/poker/venues?lat=' + venue.latitude + '&lng=' + venue.longitude + '&radius=80&limit=6')
-      .then(function(r) { return r.json(); })
-      .then(function(json) {
+      .then(function (r) { return r.json(); })
+      .then(function (json) {
         if (json.success) {
           var all = json.data || [];
           // Exclude current venue and take top 5
-          var nearby = all.filter(function(v) { return String(v.id) !== String(id); }).slice(0, 5);
+          var nearby = all.filter(function (v) { return String(v.id) !== String(id); }).slice(0, 5);
           setNearbyVenues(nearby);
         }
       })
-      .catch(function() {});
+      .catch(function () { });
   }, [venue, id]);
 
   // Fetch related series (match by venue name)
-  useEffect(function() {
+  useEffect(function () {
     if (!venue || !venue.name) return;
     fetch('/api/poker/series')
-      .then(function(r) { return r.json(); })
-      .then(function(json) {
+      .then(function (r) { return r.json(); })
+      .then(function (json) {
         if (json.success) {
           var allSeries = json.series || json.data || [];
           var venueLower = venue.name.toLowerCase();
-          var matched = allSeries.filter(function(s) {
+          var matched = allSeries.filter(function (s) {
             var seriesVenue = (s.venue || s.venue_name || '').toLowerCase();
             // Match if venue name appears in series venue or vice versa
             return seriesVenue.indexOf(venueLower) !== -1 || venueLower.indexOf(seriesVenue) !== -1;
@@ -453,11 +453,11 @@ export default function VenueDetailPage() {
           setRelatedSeries(matched.slice(0, 5));
         }
       })
-      .catch(function() {});
+      .catch(function () { });
   }, [venue]);
 
   // Handle ?action= query parameter from geofence alerts
-  useEffect(function() {
+  useEffect(function () {
     if (!action || loading) return;
     var sectionId = null;
     if (action === 'checkin') {
@@ -468,7 +468,7 @@ export default function VenueDetailPage() {
       setShowReviewForm(true);
     }
     if (sectionId) {
-      setTimeout(function() {
+      setTimeout(function () {
         var el = document.getElementById(sectionId);
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 300);
@@ -476,9 +476,9 @@ export default function VenueDetailPage() {
   }, [action, loading]);
 
   // Wait for Leaflet scripts
-  useEffect(function() {
+  useEffect(function () {
     if (typeof window === 'undefined') return;
-    var check = function() {
+    var check = function () {
       if (window.L) {
         setMapReady(true);
       } else {
@@ -489,7 +489,7 @@ export default function VenueDetailPage() {
   }, []);
 
   // Initialize venue map once Leaflet is ready and venue loaded
-  useEffect(function() {
+  useEffect(function () {
     if (!mapReady || !venue || !venue.latitude || !venue.longitude) return;
     if (!mapContainerRef.current) return;
     if (mapInstanceRef.current) return;
@@ -519,7 +519,7 @@ export default function VenueDetailPage() {
     L.marker([venue.latitude, venue.longitude], { icon: goldIcon }).addTo(map);
     mapInstanceRef.current = map;
 
-    return function() {
+    return function () {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
@@ -528,18 +528,18 @@ export default function VenueDetailPage() {
   }, [mapReady, venue]);
 
   // Handlers
-  var handleFollow = function() {
+  var handleFollow = function () {
     var venueId = String(id);
     var newState = !isFollowed;
     setIsFollowed(newState);
-    setFollowerCount(function(prev) { return newState ? prev + 1 : Math.max(0, prev - 1); });
+    setFollowerCount(function (prev) { return newState ? prev + 1 : Math.max(0, prev - 1); });
     try {
       var stored = localStorage.getItem('followed-venues');
       var ids = stored ? JSON.parse(stored) : [];
       if (newState) {
         if (!ids.includes(venueId)) ids.push(venueId);
       } else {
-        ids = ids.filter(function(x) { return x !== venueId; });
+        ids = ids.filter(function (x) { return x !== venueId; });
       }
       localStorage.setItem('followed-venues', JSON.stringify(ids));
     } catch (e) { /* ignore */ }
@@ -552,14 +552,14 @@ export default function VenueDetailPage() {
         action: newState ? 'follow' : 'unfollow',
         user_id: getAnonymousUserId(),
       }),
-    }).catch(function() {});
+    }).catch(function () { });
   };
 
-  var handleShare = async function() {
+  var handleShare = async function () {
     try {
       await navigator.clipboard.writeText(window.location.href);
       setCopySuccess(true);
-      setTimeout(function() { setCopySuccess(false); }, 2000);
+      setTimeout(function () { setCopySuccess(false); }, 2000);
     } catch (e) {
       var textarea = document.createElement('textarea');
       textarea.value = window.location.href;
@@ -568,11 +568,11 @@ export default function VenueDetailPage() {
       document.execCommand('copy');
       document.body.removeChild(textarea);
       setCopySuccess(true);
-      setTimeout(function() { setCopySuccess(false); }, 2000);
+      setTimeout(function () { setCopySuccess(false); }, 2000);
     }
   };
 
-  var handleReportGame = async function(e) {
+  var handleReportGame = async function (e) {
     e.preventDefault();
     if (!reportForm.stakes.trim()) return;
     setReportSubmitting(true);
@@ -600,7 +600,7 @@ export default function VenueDetailPage() {
     finally { setReportSubmitting(false); }
   };
 
-  var handleCheckin = async function(e) {
+  var handleCheckin = async function (e) {
     e.preventDefault();
     setCheckinSubmitting(true);
     try {
@@ -622,13 +622,13 @@ export default function VenueDetailPage() {
         setCheckinMessage('');
         setCheckinName('');
         await fetchCheckins();
-        setTimeout(function() { setCheckinConfirm(false); }, 3000);
+        setTimeout(function () { setCheckinConfirm(false); }, 3000);
       }
     } catch (err) { /* silent */ }
     finally { setCheckinSubmitting(false); }
   };
 
-  var handleSubmitReview = async function(e) {
+  var handleSubmitReview = async function (e) {
     e.preventDefault();
     if (!reviewForm.rating || !reviewForm.review_text.trim()) return;
     setReviewSubmitting(true);
@@ -654,7 +654,7 @@ export default function VenueDetailPage() {
     finally { setReviewSubmitting(false); }
   };
 
-  var handlePostActivity = async function(e) {
+  var handlePostActivity = async function (e) {
     e.preventDefault();
     if (!postContent.trim()) return;
     setPostSubmitting(true);
@@ -680,7 +680,7 @@ export default function VenueDetailPage() {
     finally { setPostSubmitting(false); }
   };
 
-  var handleClaimSubmit = async function(e) {
+  var handleClaimSubmit = async function (e) {
     e.preventDefault();
     if (!claimForm.contact_name.trim() || !claimForm.contact_email.trim()) return;
     setClaimSubmitting(true);
@@ -711,33 +711,33 @@ export default function VenueDetailPage() {
 
   var googleMapsUrl = venue
     ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(
-        [venue.address, venue.city, venue.state].filter(Boolean).join(', ')
-      )
+      [venue.address, venue.city, venue.state].filter(Boolean).join(', ')
+    )
     : '#';
 
   // Group daily tournament schedules by day
-  var getGroupedSchedules = function() {
+  var getGroupedSchedules = function () {
     if (!venue || !venue.daily_tournaments || !venue.daily_tournaments.length) return null;
     var allSchedules = [];
-    venue.daily_tournaments.forEach(function(dt) {
+    venue.daily_tournaments.forEach(function (dt) {
       if (dt.schedules && dt.schedules.length) {
-        dt.schedules.forEach(function(s) {
+        dt.schedules.forEach(function (s) {
           allSchedules.push(Object.assign({}, s, { source_url: dt.source_url }));
         });
       }
     });
     if (!allSchedules.length) return null;
     var grouped = {};
-    allSchedules.forEach(function(s) {
+    allSchedules.forEach(function (s) {
       var day = s.day_of_week || 'Unknown';
       if (!grouped[day]) grouped[day] = [];
       grouped[day].push(s);
     });
     var sorted = {};
-    DAYS_ORDER.forEach(function(day) {
+    DAYS_ORDER.forEach(function (day) {
       if (grouped[day]) sorted[day] = grouped[day];
     });
-    Object.keys(grouped).forEach(function(day) {
+    Object.keys(grouped).forEach(function (day) {
       if (!sorted[day]) sorted[day] = grouped[day];
     });
     return sorted;
@@ -747,9 +747,9 @@ export default function VenueDetailPage() {
   var todayName = DAYS_ORDER[(new Date().getDay() + 6) % 7];
 
   // Compute rating distribution
-  var getRatingDistribution = function() {
+  var getRatingDistribution = function () {
     var dist = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
-    reviews.forEach(function(r) {
+    reviews.forEach(function (r) {
       var star = Math.round(r.rating || 0);
       if (star >= 1 && star <= 5) dist[star]++;
     });
@@ -757,14 +757,14 @@ export default function VenueDetailPage() {
   };
   var ratingDistribution = reviews.length > 0 ? getRatingDistribution() : null;
 
-  var getWaitTimeColor = function(waitTime) {
+  var getWaitTimeColor = function (waitTime) {
     if (waitTime === null || waitTime === undefined) return '#94a3b8';
     if (waitTime <= 10) return '#22c55e';
     if (waitTime <= 30) return '#00D4FF';
     return '#ef4444';
   };
 
-  var getActivityTypeStyle = function(type) {
+  var getActivityTypeStyle = function (type) {
     var styles = {
       update: { bg: 'rgba(59, 130, 246, 0.12)', border: 'rgba(59, 130, 246, 0.25)', color: '#60a5fa' },
       announcement: { bg: 'rgba(0, 212, 255, 0.12)', border: 'rgba(0, 212, 255, 0.25)', color: '#00D4FF' },
@@ -781,6 +781,10 @@ export default function VenueDetailPage() {
       <Head>
         <title>{pageTitle} | Smarter.Poker</title>
         <meta name="description" content={venue ? venue.name + ' poker room in ' + venue.city + ', ' + venue.state + '. Find tournaments, hours, and contact info.' : 'Poker venue details'} />
+        {/* Industrial Fonts */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
       </Head>
@@ -1050,7 +1054,7 @@ export default function VenueDetailPage() {
               <section className="tournaments-section">
                 <h2 className="section-title">Daily Tournament Schedule</h2>
                 <div className="schedule-container">
-                  {Object.entries(groupedSchedules).map(function([day, schedules]) {
+                  {Object.entries(groupedSchedules).map(function ([day, schedules]) {
                     var isToday = day === todayName;
                     return (
                       <div key={day} className={'day-group' + (isToday ? ' today' : '')}>
@@ -1059,7 +1063,7 @@ export default function VenueDetailPage() {
                           {isToday && <span className="today-badge">Today</span>}
                         </div>
                         <div className="schedule-cards">
-                          {schedules.map(function(s, idx) {
+                          {schedules.map(function (s, idx) {
                             return (
                               <div key={idx} className="schedule-card">
                                 <div className="schedule-row">
@@ -1135,7 +1139,7 @@ export default function VenueDetailPage() {
                 </h2>
                 <button
                   className="section-action-btn"
-                  onClick={function() { setShowReportGame(!showReportGame); }}
+                  onClick={function () { setShowReportGame(!showReportGame); }}
                 >
                   {showReportGame ? 'Cancel' : 'Report a Game'}
                 </button>
@@ -1150,7 +1154,7 @@ export default function VenueDetailPage() {
                       <select
                         className="form-select"
                         value={reportForm.game_type}
-                        onChange={function(e) { setReportForm(Object.assign({}, reportForm, { game_type: e.target.value })); }}
+                        onChange={function (e) { setReportForm(Object.assign({}, reportForm, { game_type: e.target.value })); }}
                       >
                         <option value="NL Holdem">NL Hold&apos;em</option>
                         <option value="PLO">PLO</option>
@@ -1167,7 +1171,7 @@ export default function VenueDetailPage() {
                         className="form-input"
                         placeholder="e.g. 1/2, 2/5"
                         value={reportForm.stakes}
-                        onChange={function(e) { setReportForm(Object.assign({}, reportForm, { stakes: e.target.value })); }}
+                        onChange={function (e) { setReportForm(Object.assign({}, reportForm, { stakes: e.target.value })); }}
                         required
                       />
                     </div>
@@ -1181,7 +1185,7 @@ export default function VenueDetailPage() {
                         min="1"
                         max="99"
                         value={reportForm.table_count}
-                        onChange={function(e) { setReportForm(Object.assign({}, reportForm, { table_count: e.target.value })); }}
+                        onChange={function (e) { setReportForm(Object.assign({}, reportForm, { table_count: e.target.value })); }}
                       />
                     </div>
                     <div className="form-group">
@@ -1192,7 +1196,7 @@ export default function VenueDetailPage() {
                         min="0"
                         placeholder="Optional"
                         value={reportForm.wait_time}
-                        onChange={function(e) { setReportForm(Object.assign({}, reportForm, { wait_time: e.target.value })); }}
+                        onChange={function (e) { setReportForm(Object.assign({}, reportForm, { wait_time: e.target.value })); }}
                       />
                     </div>
                   </div>
@@ -1203,7 +1207,7 @@ export default function VenueDetailPage() {
                       className="form-input"
                       placeholder="Optional notes..."
                       value={reportForm.notes}
-                      onChange={function(e) { setReportForm(Object.assign({}, reportForm, { notes: e.target.value })); }}
+                      onChange={function (e) { setReportForm(Object.assign({}, reportForm, { notes: e.target.value })); }}
                     />
                   </div>
                   <button type="submit" className="form-submit-btn" disabled={reportSubmitting || !reportForm.stakes.trim()}>
@@ -1215,7 +1219,7 @@ export default function VenueDetailPage() {
               {/* Live Games List */}
               {liveGames.length > 0 ? (
                 <div className="live-games-grid">
-                  {liveGames.map(function(game, idx) {
+                  {liveGames.map(function (game, idx) {
                     return (
                       <div key={game.id || idx} className="live-game-card">
                         <div className="live-game-header">
@@ -1280,7 +1284,7 @@ export default function VenueDetailPage() {
                 {!hasCheckedIn ? (
                   <button
                     className="section-action-btn checkin-btn"
-                    onClick={function() { setShowCheckinForm(!showCheckinForm); }}
+                    onClick={function () { setShowCheckinForm(!showCheckinForm); }}
                   >
                     {showCheckinForm ? 'Cancel' : 'Check In'}
                   </button>
@@ -1315,7 +1319,7 @@ export default function VenueDetailPage() {
                         className="form-input"
                         placeholder="Display name..."
                         value={checkinName}
-                        onChange={function(e) { setCheckinName(e.target.value); }}
+                        onChange={function (e) { setCheckinName(e.target.value); }}
                       />
                     </div>
                   </div>
@@ -1326,7 +1330,7 @@ export default function VenueDetailPage() {
                       className="form-input"
                       placeholder="What are you playing? Looking for a game?"
                       value={checkinMessage}
-                      onChange={function(e) { setCheckinMessage(e.target.value); }}
+                      onChange={function (e) { setCheckinMessage(e.target.value); }}
                     />
                   </div>
                   <button type="submit" className="form-submit-btn" disabled={checkinSubmitting}>
@@ -1338,7 +1342,7 @@ export default function VenueDetailPage() {
               {/* Check-in List */}
               {checkins.length > 0 ? (
                 <div className="checkins-list">
-                  {checkins.map(function(ci, idx) {
+                  {checkins.map(function (ci, idx) {
                     return (
                       <div key={ci.id || idx} className="checkin-item">
                         <div className="checkin-avatar">
@@ -1379,7 +1383,7 @@ export default function VenueDetailPage() {
                 </h2>
                 <button
                   className="section-action-btn"
-                  onClick={function() { setShowReviewForm(!showReviewForm); }}
+                  onClick={function () { setShowReviewForm(!showReviewForm); }}
                 >
                   {showReviewForm ? 'Cancel' : 'Write a Review'}
                 </button>
@@ -1395,7 +1399,7 @@ export default function VenueDetailPage() {
                   </div>
                   {ratingDistribution && (
                     <div className="rating-bars">
-                      {[5, 4, 3, 2, 1].map(function(star) {
+                      {[5, 4, 3, 2, 1].map(function (star) {
                         var count = ratingDistribution[star] || 0;
                         var pct = totalReviews > 0 ? (count / totalReviews) * 100 : 0;
                         return (
@@ -1429,7 +1433,7 @@ export default function VenueDetailPage() {
                         rating={reviewForm.rating}
                         size={28}
                         interactive={true}
-                        onRate={function(val) { setReviewForm(Object.assign({}, reviewForm, { rating: val })); }}
+                        onRate={function (val) { setReviewForm(Object.assign({}, reviewForm, { rating: val })); }}
                       />
                       {reviewForm.rating > 0 && (
                         <span className="star-selector-label">
@@ -1445,7 +1449,7 @@ export default function VenueDetailPage() {
                       className="form-input"
                       placeholder="Display name..."
                       value={reviewForm.reviewer_name}
-                      onChange={function(e) { setReviewForm(Object.assign({}, reviewForm, { reviewer_name: e.target.value })); }}
+                      onChange={function (e) { setReviewForm(Object.assign({}, reviewForm, { reviewer_name: e.target.value })); }}
                     />
                   </div>
                   <div className="form-group">
@@ -1455,7 +1459,7 @@ export default function VenueDetailPage() {
                       rows="4"
                       placeholder="Share your experience at this venue..."
                       value={reviewForm.review_text}
-                      onChange={function(e) { setReviewForm(Object.assign({}, reviewForm, { review_text: e.target.value })); }}
+                      onChange={function (e) { setReviewForm(Object.assign({}, reviewForm, { review_text: e.target.value })); }}
                       required
                     />
                   </div>
@@ -1472,7 +1476,7 @@ export default function VenueDetailPage() {
               {/* Reviews List */}
               {reviews.length > 0 ? (
                 <div className="reviews-list">
-                  {reviews.map(function(review, idx) {
+                  {reviews.map(function (review, idx) {
                     return (
                       <div key={review.id || idx} className="review-card">
                         <div className="review-header">
@@ -1524,7 +1528,7 @@ export default function VenueDetailPage() {
                 </h2>
                 <button
                   className="section-action-btn"
-                  onClick={function() { setShowPostForm(!showPostForm); }}
+                  onClick={function () { setShowPostForm(!showPostForm); }}
                 >
                   {showPostForm ? 'Cancel' : 'Post Update'}
                 </button>
@@ -1540,7 +1544,7 @@ export default function VenueDetailPage() {
                       rows="3"
                       placeholder="Share an update about this venue..."
                       value={postContent}
-                      onChange={function(e) { setPostContent(e.target.value); }}
+                      onChange={function (e) { setPostContent(e.target.value); }}
                       required
                     />
                   </div>
@@ -1557,7 +1561,7 @@ export default function VenueDetailPage() {
               {/* Activity List */}
               {activities.length > 0 ? (
                 <div className="activity-list">
-                  {activities.map(function(activity, idx) {
+                  {activities.map(function (activity, idx) {
                     var typeStyle = getActivityTypeStyle(activity.activity_type);
                     return (
                       <div key={activity.id || idx} className="activity-card">
@@ -1618,7 +1622,7 @@ export default function VenueDetailPage() {
                   </Link>
                 </div>
                 <div className="promotions-list">
-                  {promotions.map(function(promo) {
+                  {promotions.map(function (promo) {
                     return (
                       <div key={promo.id} className="promo-card">
                         <div className="promo-header">
@@ -1650,7 +1654,7 @@ export default function VenueDetailPage() {
                   Tournament Series at This Venue
                 </h2>
                 <div className="related-series-list">
-                  {relatedSeries.map(function(s) {
+                  {relatedSeries.map(function (s) {
                     return (
                       <Link key={s.id} href={'/hub/series/' + s.id} legacyBehavior>
                         <a className="related-series-card">
@@ -1688,7 +1692,7 @@ export default function VenueDetailPage() {
                   Nearby Poker Rooms
                 </h2>
                 <div className="nearby-venues-grid">
-                  {nearbyVenues.map(function(nv) {
+                  {nearbyVenues.map(function (nv) {
                     return (
                       <Link key={nv.id} href={'/hub/venues/' + nv.id} legacyBehavior>
                         <a className="nearby-venue-card">
@@ -1760,7 +1764,7 @@ export default function VenueDetailPage() {
                       {!showClaimForm && (
                         <button
                           className="claim-cta-btn"
-                          onClick={function() { setShowClaimForm(true); }}
+                          onClick={function () { setShowClaimForm(true); }}
                         >
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
@@ -1783,7 +1787,7 @@ export default function VenueDetailPage() {
                             className="form-input"
                             placeholder="Full name"
                             value={claimForm.contact_name}
-                            onChange={function(e) { setClaimForm(Object.assign({}, claimForm, { contact_name: e.target.value })); }}
+                            onChange={function (e) { setClaimForm(Object.assign({}, claimForm, { contact_name: e.target.value })); }}
                             required
                           />
                         </div>
@@ -1794,7 +1798,7 @@ export default function VenueDetailPage() {
                             className="form-input"
                             placeholder="your@email.com"
                             value={claimForm.contact_email}
-                            onChange={function(e) { setClaimForm(Object.assign({}, claimForm, { contact_email: e.target.value })); }}
+                            onChange={function (e) { setClaimForm(Object.assign({}, claimForm, { contact_email: e.target.value })); }}
                             required
                           />
                         </div>
@@ -1807,7 +1811,7 @@ export default function VenueDetailPage() {
                             className="form-input"
                             placeholder="Phone number"
                             value={claimForm.contact_phone}
-                            onChange={function(e) { setClaimForm(Object.assign({}, claimForm, { contact_phone: e.target.value })); }}
+                            onChange={function (e) { setClaimForm(Object.assign({}, claimForm, { contact_phone: e.target.value })); }}
                           />
                         </div>
                         <div className="form-group" style={{ flex: 1 }}>
@@ -1815,7 +1819,7 @@ export default function VenueDetailPage() {
                           <select
                             className="form-select"
                             value={claimForm.role}
-                            onChange={function(e) { setClaimForm(Object.assign({}, claimForm, { role: e.target.value })); }}
+                            onChange={function (e) { setClaimForm(Object.assign({}, claimForm, { role: e.target.value })); }}
                           >
                             <option value="Owner">Owner</option>
                             <option value="Manager">Manager</option>
@@ -1830,14 +1834,14 @@ export default function VenueDetailPage() {
                           rows="3"
                           placeholder="How can we verify your association with this venue?"
                           value={claimForm.verification_notes}
-                          onChange={function(e) { setClaimForm(Object.assign({}, claimForm, { verification_notes: e.target.value })); }}
+                          onChange={function (e) { setClaimForm(Object.assign({}, claimForm, { verification_notes: e.target.value })); }}
                         />
                       </div>
                       <div className="form-actions">
                         <button type="submit" className="form-submit-btn" disabled={claimSubmitting || !claimForm.contact_name.trim() || !claimForm.contact_email.trim()}>
                           {claimSubmitting ? 'Submitting...' : 'Submit Claim'}
                         </button>
-                        <button type="button" className="form-cancel-btn" onClick={function() { setShowClaimForm(false); }}>
+                        <button type="button" className="form-cancel-btn" onClick={function () { setShowClaimForm(false); }}>
                           Cancel
                         </button>
                       </div>
@@ -1851,10 +1855,22 @@ export default function VenueDetailPage() {
       </div>
 
       <style jsx>{`
+        /* Metal UI Variables */
+        :root {
+          --metal-dark: #0a0a15;
+          --metal-base: #0d1117;
+          --metal-mid: #1a2332;
+          --metal-highlight: #3d4f5f;
+          --neon-cyan: #00D4FF;
+          --neon-cyan-glow: rgba(0, 212, 255, 0.6);
+          --metal-gradient: linear-gradient(180deg, #3d4f5f 0%, #1a2332 50%, #0d1117 100%);
+          --glow-cyan: 0 0 10px var(--neon-cyan), 0 0 20px var(--neon-cyan-glow);
+        }
+
         .venue-page {
           min-height: 100vh;
           background: linear-gradient(180deg, #030712 0%, #0f172a 100%);
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+          font-family: 'Rajdhani', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
           color: #e2e8f0;
           padding-bottom: 60px;
         }
