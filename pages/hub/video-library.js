@@ -17,7 +17,7 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getVideoLibraryPreferences, updateVideoLibraryPreferences } from '../../src/services/videoLibraryPreferences';
 import { getVideoFavorites, addVideoFavorite, removeVideoFavorite } from '../../src/services/videoFavorites';
 import { getWatchLater, addToWatchLater, removeFromWatchLater } from '../../src/services/videoWatchLater';
-import { updateWatchDuration, getWatchedVideos } from '../../src/services/videoWatchHistory';
+import { updateWatchDuration, getWatchedVideos, getWatchProgress, getRecentlyWatched, getWatchStats } from '../../src/services/videoWatchHistory';
 
 // God-Mode Stack
 import { useVideoLibraryStore } from '../../src/stores/videoLibraryStore';
@@ -405,6 +405,10 @@ export default function VideoLibraryPage() {
     const [favorites, setFavorites] = useState(new Set());
     const [watchLater, setWatchLater] = useState(new Set());
     const [watchedVideos, setWatchedVideos] = useState(new Set()); // Videos watched 60+ seconds
+    const [watchProgress, setWatchProgress] = useState(new Map()); // video_id -> { watchedSeconds, watchedAt }
+    const [recentlyWatched, setRecentlyWatched] = useState([]); // Recently watched videos
+    const [watchStats, setWatchStats] = useState(null); // User's watch statistics
+    const [showStats, setShowStats] = useState(false); // Stats modal visibility
 
     // Watch time tracking
     const watchStartTimeRef = useRef(null);
@@ -458,6 +462,21 @@ export default function VideoLibraryPage() {
             getWatchedVideos(userId, 60).then(watchedSet => {
                 setWatchedVideos(watchedSet);
             }).catch(err => console.error('Error loading watched videos:', err));
+
+            // Load watch progress for progress bars
+            getWatchProgress(userId).then(progressMap => {
+                setWatchProgress(progressMap);
+            }).catch(err => console.error('Error loading watch progress:', err));
+
+            // Load recently watched for carousel
+            getRecentlyWatched(userId, 10).then(recent => {
+                setRecentlyWatched(recent);
+            }).catch(err => console.error('Error loading recently watched:', err));
+
+            // Load watch stats
+            getWatchStats(userId).then(stats => {
+                setWatchStats(stats);
+            }).catch(err => console.error('Error loading watch stats:', err));
         }
     }, [userId]);
 
@@ -545,8 +564,37 @@ export default function VideoLibraryPage() {
                         thumbnail: `https://img.youtube.com/vi/${video.videoId}/maxresdefault.jpg`
                     });
 
+                    // Update progress for immediate UI feedback
+                    setWatchProgress(prev => {
+                        const newMap = new Map(prev);
+                        const existing = newMap.get(video.id) || { watchedSeconds: 0 };
+                        newMap.set(video.id, {
+                            watchedSeconds: (existing.watchedSeconds || 0) + watchedSeconds,
+                            watchedAt: new Date().toISOString()
+                        });
+                        return newMap;
+                    });
+
+                    // Update recently watched
+                    setRecentlyWatched(prev => {
+                        const filtered = prev.filter(v => v.video_id !== video.id);
+                        return [{
+                            video_id: video.id,
+                            video_title: video.title,
+                            watch_duration_seconds: (watchProgress.get(video.id)?.watchedSeconds || 0) + watchedSeconds,
+                            watched_at: new Date().toISOString()
+                        }, ...filtered].slice(0, 10);
+                    });
+
+                    // Update stats
+                    setWatchStats(prev => prev ? {
+                        ...prev,
+                        totalWatchTimeSeconds: prev.totalWatchTimeSeconds + watchedSeconds
+                    } : prev);
+
                     // If user watched 60+ seconds, add to watched set for immediate UI update
-                    if (watchedSeconds >= 60) {
+                    const totalWatched = (watchProgress.get(video.id)?.watchedSeconds || 0) + watchedSeconds;
+                    if (totalWatched >= 60) {
                         setWatchedVideos(prev => new Set(prev).add(video.id));
                     }
                 } catch (err) {
@@ -559,7 +607,7 @@ export default function VideoLibraryPage() {
         watchStartTimeRef.current = null;
         currentWatchingVideoRef.current = null;
         setSelectedVideo(null);
-    }, [userId]);
+    }, [userId, watchProgress]);
 
     // Filter videos
     useEffect(() => {
@@ -601,6 +649,33 @@ export default function VideoLibraryPage() {
 
     // Get YouTube thumbnail
     const getThumbnail = (videoId) => `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+
+    // Parse duration string (e.g., "18:34" or "1:23:45") to seconds
+    const parseDuration = (durationStr) => {
+        if (!durationStr) return 0;
+        const parts = durationStr.split(':').map(Number);
+        if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+        if (parts.length === 2) return parts[0] * 60 + parts[1];
+        return parts[0] || 0;
+    };
+
+    // Format seconds to readable time
+    const formatTime = (seconds) => {
+        if (seconds < 60) return `${seconds}s`;
+        if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+        const hours = Math.floor(seconds / 3600);
+        const mins = Math.floor((seconds % 3600) / 60);
+        return `${hours}h ${mins}m`;
+    };
+
+    // Get progress percentage for a video
+    const getProgressPercent = (videoId, durationStr) => {
+        const progress = watchProgress.get(videoId);
+        if (!progress) return 0;
+        const totalSeconds = parseDuration(durationStr);
+        if (totalSeconds === 0) return 0;
+        return Math.min(100, (progress.watchedSeconds / totalSeconds) * 100);
+    };
 
     return (
         <PageTransition>
@@ -863,6 +938,156 @@ export default function VideoLibraryPage() {
                     </div>
                 </div>
 
+                {/* Watch Stats Bar */}
+                {userId && watchStats && (
+                    <div style={{
+                        maxWidth: 1400,
+                        margin: '0 auto 20px',
+                        padding: '16px 24px',
+                        background: C.card,
+                        borderRadius: 16,
+                        border: `1px solid ${C.border}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 24,
+                        flexWrap: 'wrap',
+                    }}>
+                        <div style={{ display: 'flex', gap: 32 }}>
+                            <div>
+                                <div style={{ color: C.textSec, fontSize: 12, marginBottom: 4 }}>Total Watch Time</div>
+                                <div style={{ color: C.text, fontSize: 20, fontWeight: 700 }}>
+                                    {formatTime(watchStats.totalWatchTimeSeconds)}
+                                </div>
+                            </div>
+                            <div>
+                                <div style={{ color: C.textSec, fontSize: 12, marginBottom: 4 }}>Videos Watched</div>
+                                <div style={{ color: C.text, fontSize: 20, fontWeight: 700 }}>
+                                    {watchStats.totalVideosCompleted}
+                                </div>
+                            </div>
+                            <div>
+                                <div style={{ color: C.textSec, fontSize: 12, marginBottom: 4 }}>Avg. Watch Time</div>
+                                <div style={{ color: C.text, fontSize: 20, fontWeight: 700 }}>
+                                    {formatTime(watchStats.averageWatchTimeSeconds)}
+                                </div>
+                            </div>
+                        </div>
+                        <div style={{ color: C.textSec, fontSize: 13 }}>
+                            📊 Your poker video journey
+                        </div>
+                    </div>
+                )}
+
+                {/* Continue Watching / Recently Watched Section */}
+                {recentlyWatched.length > 0 && (
+                    <div style={{
+                        maxWidth: 1400,
+                        margin: '0 auto 30px',
+                    }}>
+                        <h2 style={{
+                            color: C.text,
+                            fontSize: 18,
+                            fontWeight: 600,
+                            marginBottom: 16,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                        }}>
+                            <span style={{ color: '#FF4444' }}>▶</span> Continue Watching
+                        </h2>
+                        <div style={{
+                            display: 'flex',
+                            gap: 16,
+                            overflowX: 'auto',
+                            paddingBottom: 8,
+                            scrollbarWidth: 'thin',
+                        }}>
+                            {recentlyWatched.map(item => {
+                                const video = FULL_VIDEOS.find(v => v.id === item.video_id);
+                                if (!video) return null;
+                                const progress = getProgressPercent(video.id, video.duration);
+                                return (
+                                    <div
+                                        key={item.video_id}
+                                        onClick={() => handleOpenVideo(video)}
+                                        style={{
+                                            minWidth: 240,
+                                            background: C.card,
+                                            borderRadius: 12,
+                                            overflow: 'hidden',
+                                            cursor: 'pointer',
+                                            transition: 'transform 0.2s',
+                                            border: `1px solid ${C.border}`,
+                                            flexShrink: 0,
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                    >
+                                        <div style={{ position: 'relative', aspectRatio: '16/9' }}>
+                                            <img
+                                                src={getThumbnail(video.videoId)}
+                                                alt={video.title}
+                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                            />
+                                            {/* Resume play button */}
+                                            <div style={{
+                                                position: 'absolute',
+                                                top: '50%',
+                                                left: '50%',
+                                                transform: 'translate(-50%, -50%)',
+                                                width: 48,
+                                                height: 48,
+                                                background: 'rgba(255,68,68,0.95)',
+                                                borderRadius: '50%',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                            }}>
+                                                <span style={{ fontSize: 20, marginLeft: 2 }}>▶</span>
+                                            </div>
+                                            {/* Progress bar */}
+                                            <div style={{
+                                                position: 'absolute',
+                                                bottom: 0,
+                                                left: 0,
+                                                right: 0,
+                                                height: 4,
+                                                background: 'rgba(255,255,255,0.3)',
+                                            }}>
+                                                <div style={{
+                                                    width: `${progress}%`,
+                                                    height: '100%',
+                                                    background: '#FF4444',
+                                                }} />
+                                            </div>
+                                        </div>
+                                        <div style={{ padding: 12 }}>
+                                            <div style={{
+                                                color: C.text,
+                                                fontSize: 13,
+                                                fontWeight: 500,
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis',
+                                                whiteSpace: 'nowrap',
+                                            }}>
+                                                {video.title}
+                                            </div>
+                                            <div style={{
+                                                color: C.textSec,
+                                                fontSize: 11,
+                                                marginTop: 4,
+                                            }}>
+                                                {formatTime(item.watch_duration_seconds || 0)} watched
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
                 {/* Video Grid */}
                 <div style={{
                     maxWidth: 1400,
@@ -952,6 +1177,24 @@ export default function VideoLibraryPage() {
                                         gap: 4,
                                     }}>
                                         <span>✓</span> Watched
+                                    </div>
+                                )}
+                                {/* Progress bar */}
+                                {getProgressPercent(video.id, video.duration) > 0 && (
+                                    <div style={{
+                                        position: 'absolute',
+                                        bottom: 0,
+                                        left: 0,
+                                        right: 0,
+                                        height: 4,
+                                        background: 'rgba(255,255,255,0.3)',
+                                    }}>
+                                        <div style={{
+                                            width: `${getProgressPercent(video.id, video.duration)}%`,
+                                            height: '100%',
+                                            background: '#FF4444',
+                                            transition: 'width 0.3s ease',
+                                        }} />
                                     </div>
                                 )}
                                 {/* Play button overlay */}

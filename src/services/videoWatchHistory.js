@@ -165,3 +165,87 @@ export async function getWatchedVideos(userId, minDuration = 60) {
 
     return new Set((data || []).map(v => v.video_id));
 }
+
+/**
+ * Get watch progress for all videos (for progress bars and continue watching)
+ * Returns a Map of videoId -> { watchedSeconds, videoDuration }
+ */
+export async function getWatchProgress(userId) {
+    const { data, error } = await supabase
+        .from('video_watch_history')
+        .select('video_id, watch_duration_seconds, watched_at')
+        .eq('user_id', userId)
+        .order('watched_at', { ascending: false });
+
+    if (error) {
+        console.error('Error fetching watch progress:', error);
+        return new Map();
+    }
+
+    const progressMap = new Map();
+    (data || []).forEach(v => {
+        progressMap.set(v.video_id, {
+            watchedSeconds: v.watch_duration_seconds || 0,
+            watchedAt: v.watched_at
+        });
+    });
+    return progressMap;
+}
+
+/**
+ * Get recently watched videos (for Recently Watched carousel)
+ * Returns full watch history with video details
+ */
+export async function getRecentlyWatched(userId, limit = 10) {
+    const { data, error } = await supabase
+        .from('video_watch_history')
+        .select('video_id, video_title, watch_duration_seconds, watched_at')
+        .eq('user_id', userId)
+        .gt('watch_duration_seconds', 0)
+        .order('watched_at', { ascending: false })
+        .limit(limit);
+
+    if (error) {
+        console.error('Error fetching recently watched:', error);
+        return [];
+    }
+
+    return data || [];
+}
+
+/**
+ * Get watch statistics for stats dashboard
+ * Returns total watch time, videos watched, favorite sources, etc.
+ */
+export async function getWatchStats(userId) {
+    const { data, error } = await supabase
+        .from('video_watch_history')
+        .select('video_id, watch_duration_seconds, video_title')
+        .eq('user_id', userId);
+
+    if (error) {
+        console.error('Error fetching watch stats:', error);
+        return {
+            totalWatchTimeSeconds: 0,
+            totalVideosStarted: 0,
+            totalVideosCompleted: 0,
+            averageWatchTimeSeconds: 0
+        };
+    }
+
+    const records = data || [];
+    const totalWatchTimeSeconds = records.reduce((sum, r) => sum + (r.watch_duration_seconds || 0), 0);
+    const totalVideosStarted = records.length;
+    const totalVideosCompleted = records.filter(r => (r.watch_duration_seconds || 0) >= 60).length;
+    const averageWatchTimeSeconds = totalVideosStarted > 0
+        ? Math.round(totalWatchTimeSeconds / totalVideosStarted)
+        : 0;
+
+    return {
+        totalWatchTimeSeconds,
+        totalVideosStarted,
+        totalVideosCompleted,
+        averageWatchTimeSeconds
+    };
+}
+
