@@ -160,7 +160,7 @@ function CreateClubModal({ onClose, onCreated, user }) {
         setError('');
         try {
             const { data, error: dbError } = await supabase
-                .from('commander_home_groups')
+                .from('clubs')
                 .insert({
                     name: clubName.trim(),
                     description: description.trim() || null,
@@ -173,8 +173,8 @@ function CreateClubModal({ onClose, onCreated, user }) {
                 .single();
             if (dbError) throw dbError;
             // Auto-add owner as member
-            await supabase.from('commander_home_members').insert({
-                group_id: data.id,
+            await supabase.from('club_members').insert({
+                club_id: data.id,
                 user_id: user.id,
                 role: 'owner',
                 status: 'active',
@@ -241,7 +241,7 @@ function JoinClubModal({ onClose, onJoined, user }) {
         setError('');
         try {
             const { data: club, error: findErr } = await supabase
-                .from('commander_home_groups')
+                .from('clubs')
                 .select('*')
                 .eq('club_code', clubCode.trim().toUpperCase())
                 .eq('status', 'active')
@@ -249,15 +249,15 @@ function JoinClubModal({ onClose, onJoined, user }) {
             if (findErr || !club) { setError('Club not found. Check the code and try again.'); setJoining(false); return; }
             // Check if already a member
             const { data: existing } = await supabase
-                .from('commander_home_members')
+                .from('club_members')
                 .select('id')
-                .eq('group_id', club.id)
+                .eq('club_id', club.id)
                 .eq('user_id', user.id)
                 .single();
             if (existing) { setError('You are already a member of this club.'); setJoining(false); return; }
             const { error: joinErr } = await supabase
-                .from('commander_home_members')
-                .insert({ group_id: club.id, user_id: user.id, role: 'member', status: 'active' });
+                .from('club_members')
+                .insert({ club_id: club.id, user_id: user.id, role: 'member', status: 'active' });
             if (joinErr) throw joinErr;
             onJoined(club);
             onClose();
@@ -442,14 +442,14 @@ export default function ClubArena() {
     async function loadClubs(userId) {
         try {
             const { data: memberships } = await supabase
-                .from('commander_home_members')
-                .select('group_id, role, commander_home_groups(*)')
+                .from('club_members')
+                .select('club_id, role, clubs(*)')
                 .eq('user_id', userId)
                 .eq('status', 'active');
 
             if (memberships && memberships.length > 0) {
                 const userClubs = memberships.map(m => ({
-                    ...m.commander_home_groups,
+                    ...m.clubs,
                     userRole: m.role,
                 })).filter(c => c && c.status === 'active');
                 setClubs(userClubs);
