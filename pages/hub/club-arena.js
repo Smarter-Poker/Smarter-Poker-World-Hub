@@ -526,11 +526,11 @@ export default function ClubArena() {
 
                 <UniversalHeader pageDepth={1} />
 
-                {/* Disclaimer gate */}
-                {!disclaimerAccepted && <DisclaimerPopup onAccept={handleDisclaimerAccept} />}
+                {/* Disclaimer gate - DISABLED */}
+                {/* {!disclaimerAccepted && <DisclaimerPopup onAccept={handleDisclaimerAccept} />} */}
 
-                {/* Main content — only after disclaimer */}
-                {disclaimerAccepted && (
+                {/* Main content — disclaimer disabled, always show */}
+                {true && (
                     <div className="ca-container" style={S.mainContent}>
 
                         {/* ═══════════════════════════════════════════════════════
