@@ -5,14 +5,14 @@ import { config } from 'dotenv';
 config({ path: '.env.local' });
 
 import { createClient } from '@supabase/supabase-js';
-import OpenAI from 'openai';
+import { getGrokClient } from '../../lib/grokClient.js';
 import { getRandomClip, getRandomCaption, CLIP_CATEGORIES } from './ClipLibrary.js';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = getGrokClient();
 
 async function testVideoPost() {
     console.log('\n🎬 TESTING VIDEO CLIP POSTING');

@@ -1,18 +1,54 @@
 /**
- * SMARTER.POKER SOCIAL HUB - Full Sngine Reconstruction
- * Light Theme + Working Supabase Integration + Go Live Streaming
+ * ╔═══════════════════════════════════════════════════════════════════════════╗
+ * ║  🚨🚨🚨 PROTECTED FILE - READ BEFORE MODIFYING 🚨🚨🚨                      ║
+ * ╠═══════════════════════════════════════════════════════════════════════════╣
+ * ║                                                                           ║
+ * ║  THIS FILE CONTAINS MULTIPLE CRITICAL FEATURES THAT BREAK FREQUENTLY.    ║
+ * ║  BEFORE MAKING ANY CHANGES:                                              ║
+ * ║                                                                           ║
+ * ║  1. RUN: /social-feed-protection workflow                                ║
+ * ║  2. READ: .agent/PROTECTED_FILES.md                                      ║
+ * ║  3. TEST BEFORE: node scripts/test-article-reader.js                     ║
+ * ║  4. TEST AFTER: node scripts/test-article-reader.js                      ║
+ * ║                                                                           ║
+ * ╠═══════════════════════════════════════════════════════════════════════════╣
+ * ║  CRITICAL FEATURES IN THIS FILE - DO NOT BREAK:                          ║
+ * ║                                                                           ║
+ * ║  📰 Article Reader (Lines ~1186-1200, ~1417, ~2509)                       ║
+ * ║     - ArticleCard with onClick → opens ArticleReaderModal                 ║
+ * ║     - articleReader state {open, url, title}                             ║
+ * ║     - onOpenArticle prop passed to PostCard                              ║
+ * ║                                                                           ║
+ * ║  📖 Stories Bar (Line ~2330)                                              ║
+ * ║     - StoriesBar component with stories fetch                            ║
+ * ║                                                                           ║
+ * ║   Reels Carousel (Lines ~2510)                                          ║
+ * ║     - ReelsFeedCarousel inserted after every 3 posts                     ║
+ * ║                                                                           ║
+ * ║  🔴 Live Streaming (Lines ~2360-2400)                                     ║
+ * ║     - GoLiveModal, LiveStreamCard, LiveStreamViewer                      ║
+ * ║                                                                           ║
+ * ║  📋 PostCard Component (Lines ~1072-1300)                                 ║
+ * ║     - Renders all post types correctly                                   ║
+ * ║     - onOpenArticle prop for article clicks                              ║
+ * ║                                                                           ║
+ * ╠═══════════════════════════════════════════════════════════════════════════╣
+ * ║  SMARTER.POKER SOCIAL HUB                                                ║
+ * ║  Light Theme + Working Supabase Integration + Go Live Streaming          ║
+ * ╚═══════════════════════════════════════════════════════════════════════════╝
  */
 
 import Head from 'next/head';
 import Link from 'next/link';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { useRouter } from 'next/router';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import gsap from 'gsap';
 import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
 import { getAuthUser, querySocialPosts, queryProfiles, fetchWithAuth } from '../../src/lib/authUtils';
+import { useExternalLink } from '../../src/components/ui/ExternalLinkModal';
 import { useUnreadCount, UnreadBadge } from '../../src/hooks/useUnreadCount';
 import { StoriesBar, ShareToStoryPrompt } from '../../src/components/social/Stories';
 import { ReelsFeedCarousel } from '../../src/components/social/ReelsFeedCarousel';
@@ -20,11 +56,14 @@ import { GoLiveModal } from '../../src/components/social/GoLiveModal';
 import { LiveStreamCard } from '../../src/components/social/LiveStreamCard';
 import { LiveStreamViewer } from '../../src/components/social/LiveStreamViewer';
 import LiveStreamService from '../../src/services/LiveStreamService';
+import ArticleCard, { ArticleCardFromPost, getPostMediaType } from '../../src/components/social/ArticleCard';
+import ArticleReaderModal from '../../src/components/social/ArticleReaderModal';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 
 // God-Mode Stack
 import { useSocialStore } from '../../src/stores/socialStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
+import toast from '../../src/stores/toastStore';
 
 // Light Theme Colors (Facebook-style)
 const C = {
@@ -39,6 +78,17 @@ const timeAgo = (d) => {
     if (s < 3600) return `${Math.floor(s / 60)}m`;
     if (s < 86400) return `${Math.floor(s / 3600)}h`;
     return `${Math.floor(s / 86400)}d`;
+};
+
+// Decode HTML entities in text (for link preview titles/descriptions)
+const decodeHtmlEntities = (text) => {
+    if (!text) return text;
+    const entities = {
+        '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"',
+        '&#039;': "'", '&#39;': "'", '&apos;': "'", '&#x27;': "'",
+        '&nbsp;': ' ', '&#8217;': "'", '&#8216;': "'", '&#8220;': '"', '&#8221;': '"'
+    };
+    return text.replace(/&[#\w]+;/g, match => entities[match] || match);
 };
 
 function Avatar({ src, name, size = 40, online, onClick, linkTo }) {
@@ -61,7 +111,7 @@ function Avatar({ src, name, size = 40, online, onClick, linkTo }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 🎬 YOUTUBE URL HELPERS - Detect and convert YouTube URLs for embedding
+//  YOUTUBE URL HELPERS - Detect and convert YouTube URLs for embedding
 // ═══════════════════════════════════════════════════════════════════════════
 
 function isYouTubeUrl(url) {
@@ -79,6 +129,10 @@ function getYouTubeVideoId(url) {
     // Handle youtu.be/VIDEO_ID
     const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
     if (shortMatch) return shortMatch[1];
+
+    // Handle youtube.com/shorts/VIDEO_ID
+    const shortsMatch = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/);
+    if (shortsMatch) return shortsMatch[1];
 
     // Handle youtube.com/embed/VIDEO_ID
     const embedMatch = url.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]+)/);
@@ -109,7 +163,7 @@ function getYouTubeThumbnail(url) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 🔍 YOUTUBE VIDEO VALIDATOR - Check if video is available before posting
+//  YOUTUBE VIDEO VALIDATOR - Check if video is available before posting
 // YouTube returns a 120x90 placeholder for unavailable videos instead of 404
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -166,7 +220,7 @@ function VideoThumbnail({ url, style = {}, onValidated }) {
             color: 'white',
             ...style
         }}>
-            <span style={{ fontSize: 48, marginBottom: 8 }}>🎬</span>
+            <span style={{ fontSize: 48, marginBottom: 8 }}></span>
             <span style={{ fontSize: 14, opacity: 0.8 }}>
                 {showUnavailable ? 'Video Unavailable' : 'Video'}
             </span>
@@ -246,6 +300,7 @@ function VideoPostWrapper({ url, onValidVideoClick, children }) {
                 position: 'relative',
                 cursor: isVideoValid === false ? 'not-allowed' : 'pointer',
                 aspectRatio: '16/9',
+                maxHeight: 400, // Cap vertical videos
                 background: '#000',
                 overflow: 'hidden'
             }}
@@ -257,27 +312,30 @@ function VideoPostWrapper({ url, onValidVideoClick, children }) {
                 />
             ) : children}
 
-            {/* Play Button Overlay - dim for invalid videos */}
-            <div style={{
-                position: 'absolute', top: '50%', left: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: 64, height: 64, borderRadius: '50%',
-                background: isVideoValid === false ? 'rgba(100,100,100,0.6)' : 'rgba(0,0,0,0.6)',
-                backdropFilter: 'blur(4px)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: isVideoValid === false ? '#888' : 'white',
-                fontSize: 28, pointerEvents: 'none'
-            }}>{isVideoValid === false ? '⚠️' : '▶'}</div>
+            {/* Only show overlay for invalid videos */}
+            {isVideoValid === false && (
+                <>
+                    <div style={{
+                        position: 'absolute', top: '50%', left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        width: 64, height: 64, borderRadius: '50%',
+                        background: 'rgba(100,100,100,0.6)',
+                        backdropFilter: 'blur(4px)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: '#888',
+                        fontSize: 28, pointerEvents: 'none'
+                    }}></div>
 
-            {/* Status hint */}
-            <div style={{
-                position: 'absolute', bottom: 8, left: 8,
-                background: isVideoValid === false ? 'rgba(200,50,50,0.8)' : 'rgba(0,0,0,0.6)',
-                padding: '4px 10px',
-                borderRadius: 4, color: 'white', fontSize: 12, fontWeight: 500
-            }}>
-                {isVideoValid === false ? '⚠️ Video unavailable' : '🎬 Tap to view full screen'}
-            </div>
+                    <div style={{
+                        position: 'absolute', bottom: 8, left: 8,
+                        background: 'rgba(200,50,50,0.8)',
+                        padding: '4px 10px',
+                        borderRadius: 4, color: 'white', fontSize: 12, fontWeight: 500
+                    }}>
+                         Video unavailable
+                    </div>
+                </>
+            )}
         </div>
     );
 }
@@ -285,8 +343,15 @@ function VideoPostWrapper({ url, onValidVideoClick, children }) {
 // ═══════════════════════════════════════════════════════════════════════════
 // 🔗 LINK PREVIEW CARD - Fetches and displays rich link metadata for feed posts
 // ═══════════════════════════════════════════════════════════════════════════
+//  CRITICAL: DO NOT MODIFY without running /social-feed-protection workflow
+// This component has broken 4+ times. Key requirements:
+// - Uses useExternalLink for internal popups (NOT target="_blank")
+// - Image uses aspectRatio: '16/9' and objectFit: 'cover' (full width, no black bars)
+// - decodeHtmlEntities for title/description (fixes &#039; display)
+// ═══════════════════════════════════════════════════════════════════════════
 
 function LinkPreviewCard({ url }) {
+    const { openExternal } = useExternalLink();
     const [metadata, setMetadata] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -339,12 +404,17 @@ function LinkPreviewCard({ url }) {
         );
     }
 
+    const handleClick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        // Open article links directly in new tab - modal was showing "Content Unavailable"
+        window.open(url, '_blank', 'noopener,noreferrer');
+    };
+
     return (
-        <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ textDecoration: 'none', display: 'block' }}
+        <div
+            onClick={handleClick}
+            style={{ textDecoration: 'none', display: 'block', cursor: 'pointer' }}
         >
             <div style={{
                 border: `1px solid ${C.border}`,
@@ -353,16 +423,12 @@ function LinkPreviewCard({ url }) {
                 background: C.bg,
                 margin: '0 12px 12px'
             }}>
-                {/* Link Preview Image - real thumbnail or gradient fallback */}
+                {/* Link Preview Image - full width, proper aspect ratio */}
                 <div style={{
-                    height: 280,
+                    width: '100%',
+                    aspectRatio: '16/9',
                     position: 'relative',
                     background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white',
-                    fontSize: 48,
                     overflow: 'hidden'
                 }}>
                     {metadata?.image ? (
@@ -373,13 +439,12 @@ function LinkPreviewCard({ url }) {
                                 width: '100%',
                                 height: '100%',
                                 objectFit: 'cover',
-                                objectPosition: 'center top',
-                                position: 'absolute',
-                                top: 0,
-                                left: 0
+                                objectPosition: 'center center'
                             }}
                         />
-                    ) : '🔗'}
+                    ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'white', fontSize: 48 }}>🔗</div>
+                    )}
                 </div>
                 {/* Link Info */}
                 <div style={{ padding: '12px 16px', background: C.card }}>
@@ -387,7 +452,7 @@ function LinkPreviewCard({ url }) {
                         {metadata?.siteName || new URL(url).hostname.replace('www.', '')}
                     </div>
                     <div style={{ fontSize: 16, fontWeight: 600, color: C.text, lineHeight: 1.3 }}>
-                        {metadata?.title || 'View Article'}
+                        {decodeHtmlEntities(metadata?.title) || 'View Article'}
                     </div>
                     {metadata?.description && (
                         <div style={{
@@ -400,20 +465,18 @@ function LinkPreviewCard({ url }) {
                             WebkitLineClamp: 2,
                             WebkitBoxOrient: 'vertical'
                         }}>
-                            {metadata.description}
+                            {decodeHtmlEntities(metadata.description)}
                         </div>
                     )}
-                    <div style={{ fontSize: 12, color: C.textSec, marginTop: 6 }}>
-                        Click to read full article →
-                    </div>
+
                 </div>
             </div>
-        </a>
+        </div>
     );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 🎬 FULL SCREEN VIDEO VIEWER - TikTok/Reels style immersive viewer
+//  FULL SCREEN VIDEO VIEWER - TikTok/Reels style immersive viewer
 // ═══════════════════════════════════════════════════════════════════════════
 
 function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLike, onComment, onShare }) {
@@ -464,7 +527,7 @@ function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLike, onC
                     border: 'none', cursor: 'pointer', color: 'white', fontSize: 24,
                     display: 'flex', alignItems: 'center', justifyContent: 'center'
                 }}
-            >✕</button>
+            >×</button>
 
             {/* Video Container - Detect YouTube URLs vs direct video files */}
             {isYouTubeUrl(videoUrl) ? (
@@ -473,7 +536,7 @@ function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLike, onC
                     src={getYouTubeEmbedUrl(videoUrl)}
                     style={{
                         width: '100vw',
-                        height: '95vh',
+                        height: '100vh',
                         border: 'none'
                     }}
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
@@ -496,20 +559,8 @@ function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLike, onC
                 />
             )}
 
-            {/* Play/Pause Overlay */}
-            {!isPlaying && (
-                <div
-                    onClick={togglePlay}
-                    style={{
-                        position: 'absolute', top: '50%', left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        width: 80, height: 80, borderRadius: '50%',
-                        background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        cursor: 'pointer', fontSize: 36, color: 'white'
-                    }}
-                >▶</div>
-            )}
+
+
 
             {/* Author Info & Caption Overlay */}
             <div style={{
@@ -546,14 +597,14 @@ function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLike, onC
                     border: 'none', borderRadius: '50%', width: 48, height: 48,
                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                     color: 'white', cursor: 'pointer', fontSize: 22
-                }}>❤️</button>
+                }}></button>
 
                 <button onClick={onComment} style={{
                     background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)',
                     border: 'none', borderRadius: '50%', width: 48, height: 48,
                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                     color: 'white', cursor: 'pointer', fontSize: 22
-                }}>💬</button>
+                }}></button>
 
                 <button onClick={onShare} style={{
                     background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)',
@@ -764,6 +815,11 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
         inputRef.current?.focus();
     };
 
+    //  CRITICAL: handlePost - Core posting functionality
+    // This has broken multiple times. Requires:
+    // - RLS policy "Authenticated users can post" WITH CHECK (true)
+    // - author_id set from user.id
+    // - Run /social-feed-protection workflow after changes
     const handlePost = async () => {
         // Allow posting if there's content, media, OR a link preview
         if (!content.trim() && !media.length && !linkPreview) return;
@@ -808,8 +864,9 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
         while ((match = mentionPattern.exec(content)) !== null) {
             mentions.push(match[1]);
         }
-
-        const ok = await onPost(cleanContent, urls, type, mentions);
+        // DEBUG: log linkPreview before passing to parent
+        console.log('[PostCreator]  About to call onPost with linkPreview:', JSON.stringify(linkPreview, null, 2));
+        const ok = await onPost(cleanContent, urls, type, mentions, linkPreview);
         if (ok) { setContent(''); setMedia([]); setLinkPreview(null); }
         else setError('Unable to post at this time. Please try again later.');
     };
@@ -875,7 +932,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
                                         background: 'rgba(0,0,0,0.7)', border: 'none', color: 'white', cursor: 'pointer',
                                         fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center'
                                     }}
-                                >✕</button>
+                                >×</button>
                                 {m.type === 'video' && (
                                     <div style={{
                                         position: 'absolute', bottom: 4, left: 4, background: 'rgba(0,0,0,0.7)',
@@ -911,7 +968,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
                             <>
                                 {/* Preview Image/Thumbnail */}
                                 <div style={{
-                                    height: 240,
+                                    height: 400,
                                     position: 'relative',
                                     background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
                                     display: 'flex',
@@ -926,8 +983,8 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
                                             style={{
                                                 width: '100%',
                                                 height: '100%',
-                                                objectFit: 'cover',
-                                                objectPosition: 'center top',
+                                                objectFit: 'contain',
+                                                objectPosition: 'center center',
                                                 position: 'absolute',
                                                 top: 0,
                                                 left: 0
@@ -935,7 +992,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
                                         />
                                     ) : (
                                         <span style={{ fontSize: 48, opacity: 0.5 }}>
-                                            {linkPreview.type === 'video' ? '🎬' : '🔗'}
+                                            {linkPreview.type === 'video' ? '' : '🔗'}
                                         </span>
                                     )}
                                     {linkPreview.type === 'video' && linkPreview.image && (
@@ -981,52 +1038,101 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
                                         color: 'white', cursor: 'pointer', fontSize: 14,
                                         display: 'flex', alignItems: 'center', justifyContent: 'center'
                                     }}
-                                >✕</button>
+                                >×</button>
                             </>
                         )}
                     </div>
                 </div>
             )}
-            {error && <div style={{ padding: '0 12px 8px', color: C.red, fontSize: 13 }}>⚠️ {error}</div>}
-            <div style={{ borderTop: `1px solid ${C.border}`, padding: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', gap: 4 }}>
+            {error && <div style={{ padding: '0 12px 8px', color: C.red, fontSize: 13 }}> {error}</div>}
+            <div style={{ borderTop: `1px solid ${C.border}`, padding: 8, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
+                <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap', flex: '1 1 auto', minWidth: 0 }}>
                     <input ref={fileRef} type="file" accept="image/*,video/*" multiple hidden onChange={handleFiles} />
                     <button
                         onClick={() => fileRef.current?.click()}
                         disabled={media.length >= MAX_MEDIA}
                         style={{
-                            display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 6,
+                            padding: '6px 8px', borderRadius: 6,
                             border: 'none', background: 'transparent', cursor: media.length >= MAX_MEDIA ? 'not-allowed' : 'pointer',
-                            color: media.length >= MAX_MEDIA ? '#ccc' : C.textSec, fontSize: 13
+                            color: media.length >= MAX_MEDIA ? '#ccc' : '#65676B', fontSize: 14, fontWeight: 600,
+                            transition: 'background 0.2s'
                         }}
-                    >{uploading ? '⏳' : '🖼️'} Photo/Video</button>
-                    <button onClick={onGoLive} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontSize: 13 }}>📺 Live</button>
-                    <button style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontSize: 13 }}>🃏 Share Hand</button>
+                        onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    >{uploading ? 'Uploading...' : 'Photo/Video'}</button>
+                    <span style={{ color: '#BCC0C4' }}>·</span>
+                    <button
+                        onClick={onGoLive}
+                        style={{
+                            padding: '6px 8px', borderRadius: 6,
+                            border: 'none', background: 'transparent', cursor: 'pointer',
+                            color: '#65676B', fontSize: 14, fontWeight: 600,
+                            transition: 'background 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    >Go Live</button>
+                    <span style={{ color: '#BCC0C4' }}>·</span>
                     <Link
                         href="/hub/reels"
                         style={{
-                            display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 8,
-                            border: 'none', background: 'linear-gradient(135deg, #E91E63 0%, #9C27B0 100%)',
-                            cursor: 'pointer', color: 'white', fontSize: 13, fontWeight: 600, textDecoration: 'none',
-                            boxShadow: '0 2px 8px rgba(156, 39, 176, 0.3)'
+                            padding: '6px 8px', borderRadius: 6,
+                            background: 'transparent', textDecoration: 'none',
+                            color: '#65676B', fontSize: 14, fontWeight: 600,
+                            transition: 'background 0.2s'
                         }}
-                    >🎬 Reels</Link>
+                        onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    >Reels</Link>
+                    <span style={{ color: '#BCC0C4' }}>·</span>
+                    <Link
+                        href="/hub/friends"
+                        style={{
+                            padding: '6px 8px', borderRadius: 6,
+                            background: 'transparent', textDecoration: 'none',
+                            color: '#65676B', fontSize: 14, fontWeight: 600,
+                            transition: 'background 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    >Find Friends</Link>
                 </div>
-                <button onClick={handlePost} disabled={isPosting || (!content.trim() && !media.length && !linkPreview)} style={{ padding: '6px 16px', borderRadius: 6, border: 'none', background: C.blue, color: 'white', fontWeight: 600, cursor: 'pointer', opacity: isPosting || (!content.trim() && !media.length && !linkPreview) ? 0.5 : 1 }}>Post</button>
+                <button onClick={handlePost} disabled={isPosting || (!content.trim() && !media.length && !linkPreview)} style={{ padding: '8px 20px', borderRadius: 6, border: 'none', background: C.blue, color: 'white', fontWeight: 600, cursor: 'pointer', opacity: isPosting || (!content.trim() && !media.length && !linkPreview) ? 0.5 : 1, flexShrink: 0 }}>Post</button>
             </div>
         </div>
     );
 }
 
-function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onComment }) {
+function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onLike, onDelete, onComment, onOpenArticle }) {
+    const router = useRouter();
     const [liked, setLiked] = useState(post.isLiked);
     const [likeCount, setLikeCount] = useState(post.likeCount);
+    const [bookmarked, setBookmarked] = useState(post.isBookmarked || false);
     const [showComments, setShowComments] = useState(false);
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState('');
     const [loadingComments, setLoadingComments] = useState(false);
     const [commentCount, setCommentCount] = useState(post.commentCount || 0);
     const [fullScreenVideo, setFullScreenVideo] = useState(null);
+
+    const handleBookmark = async () => {
+        if (!currentUserId) return;
+        const newBookmarked = !bookmarked;
+        setBookmarked(newBookmarked);
+        try {
+            if (newBookmarked) {
+                await supabase.from('social_interactions').upsert(
+                    { post_id: post.id, user_id: currentUserId, interaction_type: 'bookmark' },
+                    { onConflict: 'user_id,post_id,interaction_type' }
+                );
+            } else {
+                await supabase.from('social_interactions').delete()
+                    .eq('post_id', post.id)
+                    .eq('user_id', currentUserId)
+                    .eq('interaction_type', 'bookmark');
+            }
+        } catch (e) { console.error('Bookmark error:', e); setBookmarked(!newBookmarked); }
+    };
 
     const handleLike = async () => {
         const newLiked = !liked;
@@ -1039,13 +1145,55 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
         if (comments.length > 0) return;
         setLoadingComments(true);
         try {
-            const { data } = await supabase.from('social_comments')
+            // Step 1: Fetch comments
+            const { data: commentsData, error: commentsError } = await supabase.from('social_comments')
                 .select('id, content, created_at, author_id')
                 .eq('post_id', post.id)
                 .order('created_at', { ascending: true })
-                .limit(20);
-            if (data) setComments(data.map(c => ({ id: c.id, text: c.content, authorName: 'Player', authorId: c.author_id, time: timeAgo(c.created_at) })));
-        } catch (e) { console.error(e); }
+                .limit(50);
+
+            if (commentsError) {
+                console.error('[Comments] Error fetching comments:', commentsError);
+                setLoadingComments(false);
+                return;
+            }
+
+            if (!commentsData || commentsData.length === 0) {
+                setComments([]);
+                setLoadingComments(false);
+                return;
+            }
+
+            // Step 2: Fetch author profiles for all comments
+            const authorIds = [...new Set(commentsData.map(c => c.author_id).filter(Boolean))];
+            let profilesMap = {};
+
+            if (authorIds.length > 0) {
+                const { data: profilesData } = await supabase.from('profiles')
+                    .select('id, username, full_name, avatar_url')
+                    .in('id', authorIds);
+
+                if (profilesData) {
+                    profilesData.forEach(p => { profilesMap[p.id] = p; });
+                }
+            }
+
+            // Step 3: Combine comments with author profiles
+            setComments(commentsData.map(c => {
+                const author = profilesMap[c.author_id] || {};
+                return {
+                    id: c.id,
+                    text: c.content,
+                    authorId: c.author_id,
+                    authorName: author.full_name || author.username || 'Player',
+                    authorAvatar: author.avatar_url || null,
+                    authorUsername: author.username || null,
+                    time: timeAgo(c.created_at)
+                };
+            }));
+        } catch (e) {
+            console.error('[Comments] Error loading comments:', e);
+        }
         setLoadingComments(false);
     };
 
@@ -1059,7 +1207,14 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
         try {
             const { data, error } = await supabase.from('social_comments').insert({ post_id: post.id, author_id: currentUserId, content: newComment }).select('id, content, created_at').single();
             if (!error && data) {
-                setComments(prev => [...prev, { id: data.id, text: data.content, authorName: 'You', authorId: currentUserId, time: 'Just now' }]);
+                setComments(prev => [...prev, {
+                    id: data.id,
+                    text: data.content,
+                    authorName: currentUserName || 'You',
+                    authorId: currentUserId,
+                    authorAvatar: currentUserAvatar,
+                    time: 'Just now'
+                }]);
                 setCommentCount(prev => prev + 1);
                 setNewComment('');
                 if (onComment) onComment(post.id);
@@ -1070,11 +1225,11 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
     return (
         <div style={{ background: C.card, boxShadow: '0 1px 2px rgba(0,0,0,0.1)', marginBottom: 2, overflow: 'hidden' }}>
             <div style={{ padding: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
-                <Link href={`/hub/user/${post.author?.name || 'player'}`} style={{ textDecoration: 'none' }}>
+                <Link href={`/hub/user/${post.author?.username || 'player'}`} style={{ textDecoration: 'none' }}>
                     <Avatar src={post.author?.avatar} name={post.author?.name} size={40} />
                 </Link>
                 <div style={{ flex: 1 }}>
-                    <Link href={`/hub/user/${post.author?.name || 'player'}`} style={{ fontWeight: 600, color: C.text, textDecoration: 'none' }}>
+                    <Link href={`/hub/user/${post.author?.username || 'player'}`} style={{ fontWeight: 600, color: C.text, textDecoration: 'none' }}>
                         {post.author?.name || 'Player'}
                     </Link>
                     <div style={{ fontSize: 12, color: C.textSec }}>{post.timeAgo}</div>
@@ -1082,19 +1237,35 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
                 {(post.authorId === currentUserId || post.isGodMode) && (
                     <div style={{ display: 'flex', gap: 8 }}>
                         {post.authorId !== currentUserId && post.isGodMode && (
-                            <span style={{ fontSize: 10, background: '#FFD700', color: '#000', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>👑 GOD</span>
+                            <span style={{ fontSize: 10, background: '#FFD700', color: '#000', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}> GOD</span>
                         )}
-                        <button onClick={() => onDelete(post.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec, fontSize: 16 }}>🗑️</button>
+                        <button onClick={() => onDelete(post.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec, fontSize: 16 }}></button>
                     </div>
                 )}
             </div>
             {post.content && (
                 <div style={{ padding: '0 12px 12px', color: C.text, fontSize: 15, lineHeight: 1.4 }}>
-                    {post.content.split(/(@\w+)/g).map((part, i) =>
-                        part.startsWith('@') ?
-                            <span key={i} style={{ color: C.blue, fontWeight: 500, cursor: 'pointer' }}>{part}</span> :
-                            part
-                    )}
+                    {(() => {
+                        // For link-type posts, strip URLs from displayed content (Facebook-style)
+                        let displayContent = post.content;
+                        if (post.contentType === 'link' || post.contentType === 'video') {
+                            // Remove URLs from content - they'll be shown as clickable preview cards
+                            displayContent = displayContent
+                                .replace(/https?:\/\/[^\s]+/gi, '')  // Remove http/https URLs
+                                .replace(/🔗\s*/g, '')                // Remove link emoji prefix
+                                .trim();
+                        }
+
+                        // If content is empty after stripping URL, don't render this block
+                        if (!displayContent) return null;
+
+                        // Render with @mention highlighting
+                        return displayContent.split(/(@\w+)/g).map((part, i) =>
+                            part.startsWith('@') ?
+                                <span key={i} style={{ color: C.blue, fontWeight: 500, cursor: 'pointer' }}>{part}</span> :
+                                part
+                        );
+                    })()}
                 </div>
             )}
             {/* Media Grid - supports up to 10 images/videos */}
@@ -1104,9 +1275,10 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
                         // Single media - full width
                         post.contentType === 'video' ? (
                             // VIDEO: Use VideoPostWrapper to handle broken video detection
+                            // Click opens inline viewer for immediate playback (no navigation)
                             <VideoPostWrapper
                                 url={post.mediaUrls[0]}
-                                onValidVideoClick={(url) => setFullScreenVideo(url)}
+                                onValidVideoClick={() => setFullScreenVideo(post.mediaUrls[0])}
                             >
                                 <video
                                     src={post.mediaUrls[0]}
@@ -1116,11 +1288,22 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
                                     preload="metadata"
                                 />
                             </VideoPostWrapper>
-                        ) : post.contentType === 'link' ? (
-                            // LINK: Rich preview card with dynamic metadata
-                            <LinkPreviewCard url={post.mediaUrls[0]} />
+                        ) : (post.contentType === 'link' || post.contentType === 'article') ? (
+                            // LINK/ARTICLE: Use centralized ArticleCard component
+                            <ArticleCard
+                                url={post.link_url || (() => {
+                                    const match = post.content?.match(/https?:\/\/[^\s"'<>]+/);
+                                    return match ? match[0] : null;
+                                })()}
+                                title={post.link_title}
+                                description={post.link_description}
+                                image={post.link_image || post.mediaUrls?.[0]}
+                                siteName={post.link_site_name}
+                                fallbackContent={post.content}
+                                onClick={onOpenArticle}
+                            />
                         ) : (
-                            <img src={post.mediaUrls[0]} alt="" style={{ width: '100%', height: 'auto', display: 'block' }} />
+                            <img src={post.mediaUrls[0]} alt="" style={{ width: '100%', height: 'auto', maxHeight: 500, objectFit: 'cover', display: 'block' }} />
                         )
                     ) : post.mediaUrls.length === 2 ? (
                         // 2 media - side by side
@@ -1186,13 +1369,25 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
                     )}
                 </div>
             )}
+            {/* 🔗 LINK PREVIEW for posts with link_url but NO media_urls (ghost fleet posts) */}
+            {(!post.mediaUrls || post.mediaUrls.length === 0) && post.link_url && (
+                <ArticleCard
+                    url={post.link_url}
+                    title={post.link_title}
+                    description={post.link_description}
+                    image={post.link_image}
+                    siteName={post.link_site_name}
+                    fallbackContent={post.content}
+                    onClick={onOpenArticle}
+                />
+            )}
             <div style={{ padding: '8px 12px', display: 'flex', justifyContent: 'space-between', color: C.textSec, fontSize: 13 }}>
                 <span>{likeCount > 0 && `👍 ${likeCount}`}</span>
                 <span style={{ cursor: 'pointer' }} onClick={handleToggleComments}>{commentCount > 0 && `${commentCount} ${commentCount === 1 ? 'comment' : 'comments'}`}</span>
             </div>
             <div style={{ borderTop: `1px solid ${C.border}`, display: 'flex' }}>
                 <button onClick={handleLike} style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: liked ? C.blue : C.textSec, fontWeight: 500, fontSize: 13 }}>👍 {liked ? 'Liked' : 'Like'}</button>
-                <button onClick={handleToggleComments} style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: showComments ? C.blue : C.textSec, fontWeight: 500, fontSize: 13 }}>💬 Comment</button>
+                <button onClick={handleToggleComments} style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: showComments ? C.blue : C.textSec, fontWeight: 500, fontSize: 13 }}> Comment</button>
                 <button
                     onClick={() => {
                         const shareUrl = `${window.location.origin}/hub/post/${post.id}`;
@@ -1209,21 +1404,25 @@ function PostCard({ post, currentUserId, currentUserName, onLike, onDelete, onCo
                     }}
                     style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontWeight: 500, fontSize: 13 }}
                 >↗️ Share</button>
+                <button
+                    onClick={handleBookmark}
+                    style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: bookmarked ? '#FFB800' : C.textSec, fontWeight: 500, fontSize: 13 }}
+                >{bookmarked ? '' : ''} Save</button>
             </div>
             {showComments && (
                 <div style={{ borderTop: `1px solid ${C.border}`, padding: 12 }}>
                     {loadingComments && <div style={{ color: C.textSec, fontSize: 13 }}>Loading comments...</div>}
                     {comments.map(c => (
                         <div key={c.id} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                            <Avatar name={c.authorName} size={28} />
+                            <Avatar src={c.authorAvatar} name={c.authorName} size={28} />
                             <div style={{ flex: 1, background: C.bg, borderRadius: 12, padding: '6px 10px' }}>
-                                <div style={{ fontWeight: 600, fontSize: 13 }}>{c.authorName}</div>
+                                <div style={{ fontWeight: 600, fontSize: 13, color: C.text }}>{c.authorName}</div>
                                 <div style={{ fontSize: 14, color: C.text }}>{c.text}</div>
                             </div>
                         </div>
                     ))}
                     <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                        <Avatar name={currentUserName} size={28} />
+                        <Avatar src={currentUserAvatar} name={currentUserName} size={28} />
                         <input value={newComment} onChange={e => setNewComment(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleSubmitComment()} placeholder="Write a comment..." style={{ flex: 1, padding: '8px 14px', borderRadius: 18, border: 'none', background: C.bg, fontSize: 14, outline: 'none' }} />
                         <button onClick={handleSubmitComment} disabled={!newComment.trim()} style={{ background: 'none', border: 'none', cursor: 'pointer', color: newComment.trim() ? C.blue : C.textSec, fontWeight: 600, fontSize: 13 }}>Post</button>
                     </div>
@@ -1269,7 +1468,7 @@ function ChatWindow({ chat, messages, currentUserId, onSend, onClose }) {
             <div style={{ padding: 8, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Avatar src={chat.avatar} name={chat.name} size={32} online={chat.online} />
                 <div style={{ flex: 1 }}><div style={{ fontWeight: 600, fontSize: 14 }}>{chat.name}</div></div>
-                <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14 }}>✕</button>
+                <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14 }}>×</button>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {messages.map((m, i) => (
@@ -1292,7 +1491,7 @@ function ContactsSidebar({ contacts, onOpenChat, onSearch, searchResults }) {
     return (
         <aside style={{ width: 200, position: 'sticky', top: 70, height: 'fit-content' }}>
             <h4 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 600, color: C.textSec }}>Contacts</h4>
-            <input value={q} onChange={e => { setQ(e.target.value); onSearch(e.target.value); }} placeholder="🔍 Search..." style={{ width: '100%', padding: '8px 10px', borderRadius: 20, border: 'none', background: C.bg, fontSize: 13, outline: 'none', marginBottom: 8, boxSizing: 'border-box' }} />
+            <input value={q} onChange={e => { setQ(e.target.value); onSearch(e.target.value); }} placeholder=" Search..." style={{ width: '100%', padding: '8px 10px', borderRadius: 20, border: 'none', background: C.bg, fontSize: 13, outline: 'none', marginBottom: 8, boxSizing: 'border-box' }} />
             {q.length >= 2 && searchResults.length > 0 && searchResults.map(u => (
                 <div key={u.id} onClick={() => onOpenChat(u)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 4px', cursor: 'pointer', borderRadius: 6 }}>
                     <Avatar name={u.username} size={32} /><span style={{ fontSize: 13 }}>{u.username}</span>
@@ -1304,6 +1503,291 @@ function ContactsSidebar({ contacts, onOpenChat, onSearch, searchResults }) {
                 </div>
             ))}
         </aside>
+    );
+}
+
+// ===== CLUB PAGES VIEW COMPONENT =====
+function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setCategory, search, setSearch, followingIds, setFollowingIds, onClose }) {
+    const router = useRouter();
+    const [searchInput, setSearchInput] = useState(search);
+    const [showFollowedOnly, setShowFollowedOnly] = useState(false);
+
+    function getAnonUserId() {
+        try {
+            let uid = localStorage.getItem('sp-anon-uid');
+            if (!uid) {
+                uid = 'anon-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+                localStorage.setItem('sp-anon-uid', uid);
+            }
+            return uid;
+        } catch { return 'anon-fallback'; }
+    }
+
+    // Fetch pages data
+    useEffect(() => {
+        const fetchClubPages = async () => {
+            setLoading(true);
+            try {
+                const params = new URLSearchParams({ category, sort: 'popular', limit: '80' });
+                if (search) params.set('search', search);
+                const uid = getAnonUserId();
+                if (uid) params.set('user_id', uid);
+                if (showFollowedOnly) params.set('followed_only', 'true');
+
+                const res = await fetch(`/api/poker/pages?${params}`);
+                const json = await res.json();
+                if (json.success) {
+                    setPages(json.data || []);
+                    const fSet = new Set();
+                    (json.data || []).forEach(p => { if (p.is_following) fSet.add(`${p.page_type}:${p.page_id}`); });
+                    setFollowingIds(fSet);
+                }
+            } catch (e) { console.error('Club pages fetch error:', e); }
+            setLoading(false);
+        };
+        fetchClubPages();
+    }, [category, search, showFollowedOnly]);
+
+    // Debounce search
+    useEffect(() => {
+        const t = setTimeout(() => setSearch(searchInput), 300);
+        return () => clearTimeout(t);
+    }, [searchInput]);
+
+    const handlePageFollow = async (pageType, pageId) => {
+        const key = `${pageType}:${pageId}`;
+        const isNowFollowing = !followingIds.has(key);
+        setFollowingIds(prev => {
+            const next = new Set(prev);
+            if (isNowFollowing) next.add(key); else next.delete(key);
+            return next;
+        });
+        setPages(prev => prev.map(p => {
+            if (p.page_type === pageType && p.page_id === pageId) {
+                return { ...p, is_following: isNowFollowing, follower_count: isNowFollowing ? (p.follower_count || 0) + 1 : Math.max(0, (p.follower_count || 0) - 1) };
+            }
+            return p;
+        }));
+        try {
+            const storageKey = `followed-${pageType === 'venue' ? 'venues' : pageType === 'tour' ? 'tours' : 'series'}`;
+            const stored = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            if (isNowFollowing) { if (!stored.includes(pageId)) stored.push(pageId); }
+            else { const idx = stored.indexOf(pageId); if (idx !== -1) stored.splice(idx, 1); }
+            localStorage.setItem(storageKey, JSON.stringify(stored));
+        } catch { }
+        try {
+            await fetch('/api/poker/follow', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ page_type: pageType, page_id: pageId, action: isNowFollowing ? 'follow' : 'unfollow', user_id: getAnonUserId() }),
+            });
+        } catch { }
+    };
+
+    const cats = [
+        { key: 'all', label: 'All' },
+        { key: 'venues', label: 'Venues' },
+        { key: 'tours', label: 'Tours' },
+        { key: 'series', label: 'Series' },
+    ];
+
+    const typeColors = {
+        venue: { bg: '#1877F2', light: '#E7F3FF' },
+        tour: { bg: '#E74C3C', light: '#FDEDEC' },
+        series: { bg: '#F39C12', light: '#FEF5E7' },
+    };
+
+    return (
+        <div style={{ paddingBottom: 8 }}>
+            {/* Header */}
+            <div style={{ background: C.card, borderRadius: 12, padding: '16px 16px 12px', marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <div>
+                        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: C.text }}>Club Pages</h2>
+                        <p style={{ margin: '2px 0 0', fontSize: 13, color: C.textSec }}>Follow venues, tours & series</p>
+                    </div>
+                    <button onClick={onClose} style={{
+                        background: '#E4E6EB', border: 'none', borderRadius: 20, padding: '8px 16px',
+                        fontSize: 13, fontWeight: 600, cursor: 'pointer', color: C.text, fontFamily: 'inherit'
+                    }}>Back to Feed</button>
+                </div>
+
+                {/* Search */}
+                <div style={{ position: 'relative', marginBottom: 10 }}>
+                    <input
+                        type="text"
+                        placeholder="Search pages..."
+                        value={searchInput}
+                        onChange={e => setSearchInput(e.target.value)}
+                        style={{
+                            width: '100%', padding: '10px 36px 10px 14px', border: '1px solid #CCD0D5',
+                            borderRadius: 20, fontSize: 14, background: '#F0F2F5', color: C.text,
+                            outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box'
+                        }}
+                    />
+                    {searchInput && (
+                        <button onClick={() => { setSearchInput(''); setSearch(''); }} style={{
+                            position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                            background: 'none', border: 'none', cursor: 'pointer', color: '#65676B', padding: 4
+                        }}>x</button>
+                    )}
+                </div>
+
+                {/* Category Tabs */}
+                <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+                    {cats.map(c => (
+                        <button key={c.key} onClick={() => setCategory(c.key)} style={{
+                            padding: '6px 14px', borderRadius: 20, border: 'none',
+                            background: category === c.key ? '#1877F2' : '#E4E6EB',
+                            color: category === c.key ? '#fff' : C.text,
+                            fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
+                        }}>{c.label}</button>
+                    ))}
+                </div>
+
+                {/* Following Filter */}
+                <button onClick={() => setShowFollowedOnly(!showFollowedOnly)} style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    padding: '6px 14px', borderRadius: 20,
+                    border: showFollowedOnly ? '1px solid #1877F2' : '1px solid #CCD0D5',
+                    background: showFollowedOnly ? '#E7F3FF' : 'transparent',
+                    color: showFollowedOnly ? '#1877F2' : C.textSec,
+                    fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
+                }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill={showFollowedOnly ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
+                    {showFollowedOnly ? 'Following Only' : 'Show Following'}
+                </button>
+            </div>
+
+            {/* Pages List */}
+            {loading ? (
+                <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
+                    <div style={{ width: 32, height: 32, border: '3px solid #E4E6EB', borderTopColor: '#1877F2', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+                    <p>Loading pages...</p>
+                </div>
+            ) : pages.length === 0 ? (
+                <div style={{ background: C.card, borderRadius: 12, padding: 40, textAlign: 'center' }}>
+                    <p style={{ fontSize: 16, fontWeight: 600, color: C.text, margin: '0 0 4px' }}>
+                        {showFollowedOnly ? 'No followed pages' : 'No pages found'}
+                    </p>
+                    <p style={{ fontSize: 13, color: C.textSec, margin: 0 }}>
+                        {showFollowedOnly ? 'Follow some venues, tours, or series to see them here.' : 'Try a different search or category.'}
+                    </p>
+                    {showFollowedOnly && (
+                        <button onClick={() => setShowFollowedOnly(false)} style={{
+                            marginTop: 12, padding: '8px 20px', background: '#1877F2', border: 'none',
+                            borderRadius: 8, color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
+                        }}>Browse All Pages</button>
+                    )}
+                </div>
+            ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {pages.map(page => {
+                        const tc = typeColors[page.page_type] || typeColors.venue;
+                        const isFollowing = followingIds.has(`${page.page_type}:${page.page_id}`);
+                        return (
+                            <div key={`${page.page_type}-${page.page_id}`} style={{
+                                background: C.card, borderRadius: 10, border: '1px solid #E4E6EB', overflow: 'hidden'
+                            }}>
+                                {/* Banner */}
+                                <div style={{
+                                    background: tc.bg, padding: '6px 12px',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+                                }}>
+                                    <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.9)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                        {page.page_type === 'venue' ? 'Venue' : page.page_type === 'tour' ? 'Tour' : 'Series'}
+                                    </span>
+                                    {page.follower_count > 0 && (
+                                        <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>
+                                            {page.follower_count} follower{page.follower_count !== 1 ? 's' : ''}
+                                        </span>
+                                    )}
+                                </div>
+
+                                {/* Body */}
+                                <div style={{ padding: '10px 12px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                                        <div style={{
+                                            width: 36, height: 36, borderRadius: 8,
+                                            background: tc.light, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            color: tc.bg, flexShrink: 0
+                                        }}>
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                {page.page_type === 'venue' && <><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></>}
+                                                {page.page_type === 'tour' && <><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></>}
+                                                {page.page_type === 'series' && <><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></>}
+                                            </svg>
+                                        </div>
+                                        <div style={{ minWidth: 0, flex: 1 }}>
+                                            <div onClick={() => router.push(page.detail_url)} style={{
+                                                fontSize: 14, fontWeight: 700, color: C.text, cursor: 'pointer',
+                                                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+                                            }}>{page.name}</div>
+                                            <div style={{ fontSize: 12, color: C.textSec }}>{page.category}</div>
+                                        </div>
+                                    </div>
+
+                                    {page.subtitle && (
+                                        <p style={{ fontSize: 12, color: C.textSec, margin: '0 0 8px' }}>{page.subtitle}</p>
+                                    )}
+
+                                    {/* Meta tags */}
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10 }}>
+                                        {page.page_type === 'venue' && page.has_tournaments && (
+                                            <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 600, background: '#E7F3FF', color: '#1877F2' }}>Tournaments</span>
+                                        )}
+                                        {page.page_type === 'series' && page.total_events && (
+                                            <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 600, background: '#FFF4E5', color: '#E67E22' }}>{page.total_events} Events</span>
+                                        )}
+                                        {page.page_type === 'series' && page.start_date && (
+                                            <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 600, background: '#E8EAF6', color: '#303F9F' }}>
+                                                {new Date(page.start_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                            </span>
+                                        )}
+                                        {page.page_type === 'tour' && page.established && (
+                                            <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 600, background: '#F3E5F5', color: '#7B1FA2' }}>Est. {page.established}</span>
+                                        )}
+                                    </div>
+
+                                    {/* Actions */}
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                        <button onClick={() => handlePageFollow(page.page_type, page.page_id)} style={{
+                                            flex: 1, padding: '8px 12px', borderRadius: 8, border: 'none',
+                                            background: isFollowing ? '#E4E6EB' : '#1877F2',
+                                            color: isFollowing ? C.text : '#fff',
+                                            fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+                                        }}>
+                                            {isFollowing ? 'Following' : 'Follow'}
+                                        </button>
+                                        <button onClick={() => router.push(page.detail_url)} style={{
+                                            flex: 1, padding: '8px 12px', borderRadius: 8, border: 'none',
+                                            background: '#E4E6EB', color: C.text,
+                                            fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
+                                        }}>View Page</button>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+
+                    {/* Link to full pages page */}
+                    <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                        <button onClick={() => router.push('/hub/pages')} style={{
+                            padding: '10px 24px', background: '#E4E6EB', border: 'none',
+                            borderRadius: 8, color: C.text, fontSize: 14, fontWeight: 600,
+                            cursor: 'pointer', fontFamily: 'inherit'
+                        }}>View All Pages</button>
+                    </div>
+                </div>
+            )}
+
+            <style jsx>{`
+                @keyframes spin {
+                    to { transform: rotate(360deg); }
+                }
+            `}</style>
+        </div>
     );
 }
 
@@ -1326,6 +1810,7 @@ export default function SocialMediaPage() {
     const [searchResults, setSearchResults] = useState([]);
     const [openChats, setOpenChats] = useState([]);
     const [chatMsgs, setChatMsgs] = useState({});
+    const [showMoreMenu, setShowMoreMenu] = useState(false);
     const [isPosting, setIsPosting] = useState(false);
     const [bottomNavVisible, setBottomNavVisible] = useState(true);
     const [notifications, setNotifications] = useState([]);
@@ -1337,14 +1822,27 @@ export default function SocialMediaPage() {
     const globalSearchTimeout = useRef(null);
     const lastScrollY = useRef(0);
 
+    // Article Reader Modal State
+    const [articleReader, setArticleReader] = useState({ open: false, url: null, title: null });
+
+    // Club Pages View State
+    const [showClubPages, setShowClubPages] = useState(false);
+    const [clubPages, setClubPages] = useState([]);
+    const [clubPagesLoading, setClubPagesLoading] = useState(false);
+    const [clubPagesCategory, setClubPagesCategory] = useState('all');
+    const [clubPagesSearch, setClubPagesSearch] = useState('');
+    const [clubPagesFollowing, setClubPagesFollowing] = useState(new Set());
+
     // ♾️ INFINITE SCROLL STATE
     const [feedOffset, setFeedOffset] = useState(0);
     const [hasMorePosts, setHasMorePosts] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
-    const loadMoreRef = useRef(null);
+    const [feedCycle, setFeedCycle] = useState(0); // Track how many times we've looped
+    const [seenPostIds, setSeenPostIds] = useState(new Set()); // Track seen posts for variety
     const POSTS_PER_PAGE = 20;
+    const MAX_FEED_CYCLES = 10; // Maximum loops before truly ending (shows tons of content)
 
-    // 👑 GOD MODE STATE
+    //  GOD MODE STATE
     const [isGodMode, setIsGodMode] = useState(false);
 
     // Global unread message count
@@ -1354,19 +1852,42 @@ export default function SocialMediaPage() {
     const [liveStreams, setLiveStreams] = useState([]);
     const [watchingStream, setWatchingStream] = useState(null);
 
-    // Hide bottom nav when scrolling up, show when scrolling down
+    //  INTRO VIDEO STATE - Video plays while page loads in background
+    // Only show once per session (not on every reload)
+    const [showIntro, setShowIntro] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return !sessionStorage.getItem('social-intro-seen');
+        }
+        return false;
+    });
+    const introVideoRef = useRef(null);
+
+    // Mark intro as seen when it ends
+    const handleIntroEnd = useCallback(() => {
+        sessionStorage.setItem('social-intro-seen', 'true');
+        setShowIntro(false);
+    }, []);
+
+    // Attempt to unmute video after it starts playing
+    const handleIntroPlay = useCallback(() => {
+        if (introVideoRef.current) {
+            introVideoRef.current.muted = false;
+        }
+    }, []);
+
+    // Bottom nav visibility - hide when scrolling down, show when scrolling up
     useEffect(() => {
         const handleScroll = () => {
             const currentScrollY = window.scrollY;
+            // Hide nav when scrolling down, show when scrolling up or at top
             if (currentScrollY > lastScrollY.current && currentScrollY > 100) {
-                // Scrolling down - hide nav
                 setBottomNavVisible(false);
             } else {
-                // Scrolling up - show nav
                 setBottomNavVisible(true);
             }
             lastScrollY.current = currentScrollY;
         };
+
         window.addEventListener('scroll', handleScroll, { passive: true });
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
@@ -1377,25 +1898,39 @@ export default function SocialMediaPage() {
                 // NEW APPROACH: Read session directly from localStorage to bypass AbortError
                 let authUser = null;
 
-                // Find the Supabase auth token in localStorage
-                const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-                console.log('[Social] Looking for auth token, found keys:', sbKeys);
-
-                if (sbKeys.length > 0) {
+                // PRIMARY: Check explicit smarter-poker-auth key (new auth system)
+                const explicitAuth = localStorage.getItem('smarter-poker-auth');
+                if (explicitAuth) {
                     try {
-                        const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+                        const tokenData = JSON.parse(explicitAuth);
                         if (tokenData?.user) {
                             authUser = tokenData.user;
-                            console.log('[Social] ✅ Got user from localStorage:', authUser.email);
-                            // Note: We don't call setSession here as it can cause AbortError
-                            // The user data from localStorage is sufficient for displaying the UI
+                            console.log('[Social] ✅ Got user from smarter-poker-auth:', authUser.email);
                         }
                     } catch (parseError) {
-                        console.error('[Social] Failed to parse token:', parseError);
+                        console.error('[Social] Failed to parse smarter-poker-auth:', parseError);
                     }
                 }
 
-                // Fallback: try getSession if localStorage approach failed
+                // FALLBACK: Legacy sb-*-auth-token keys (backwards compatibility)
+                if (!authUser) {
+                    const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+                    console.log('[Social] Looking for legacy auth token, found keys:', sbKeys);
+
+                    if (sbKeys.length > 0) {
+                        try {
+                            const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+                            if (tokenData?.user) {
+                                authUser = tokenData.user;
+                                console.log('[Social] ✅ Got user from legacy localStorage:', authUser.email);
+                            }
+                        } catch (parseError) {
+                            console.error('[Social] Failed to parse legacy token:', parseError);
+                        }
+                    }
+                }
+
+                // Final fallback: try getSession if localStorage approach failed
                 if (!authUser) {
                     console.log('[Social] No user from localStorage, trying getSession...');
                     try {
@@ -1410,8 +1945,32 @@ export default function SocialMediaPage() {
                 }
 
                 if (authUser) {
-                    const { data: p } = await supabase.from('profiles').select('username, full_name, display_name_preference, skill_tier, avatar_url, hendon_url, hendon_total_cashes, hendon_total_earnings, hendon_best_finish, role').eq('id', authUser.id).maybeSingle();
-                    // 👑 Check for God Mode
+                    // Use native fetch to avoid AbortError (same issue as stories/profiles)
+                    console.log('[Social] Fetching profile for user:', authUser.id);
+
+                    let profileRes = await fetch(`https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/profiles?id=eq.${authUser.id}&select=id,username,full_name,display_name_preference,skill_tier,avatar_url,hendon_url,hendon_total_cashes,hendon_total_earnings,hendon_best_finish,hendon_biggest_cash,role`, {
+                        headers: {
+                            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo',
+                            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo'
+                        }
+                    });
+
+                    let profiles = await profileRes.json();
+                    let p = profiles?.[0] || null;
+                    console.log('[Social] Profile loaded:', p ? `${p.username} (avatar: ${p.avatar_url ? 'YES' : 'NO'})` : 'NOT FOUND');
+
+                    // If no profile found by id, check if user owns another profile via owner_id
+                    if (!p) {
+                        const ownedProfileRes = await fetch(`https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/profiles?owner_id=eq.${authUser.id}&select=id,username,full_name,display_name_preference,skill_tier,avatar_url,hendon_url,hendon_total_cashes,hendon_total_earnings,hendon_best_finish,hendon_biggest_cash,role`, {
+                            headers: {
+                                'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo',
+                                'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo'
+                            }
+                        });
+                        const ownedProfiles = await ownedProfileRes.json();
+                        if (ownedProfiles?.[0]) p = ownedProfiles[0];
+                    }
+                    //  Check for God Mode
                     if (p?.role === 'god') {
                         setIsGodMode(true);
                     }
@@ -1421,8 +1980,9 @@ export default function SocialMediaPage() {
                         ? p.full_name
                         : (p?.username || authUser.email?.split('@')[0] || 'Player');
                     setUser({
-                        id: authUser.id,
+                        id: p?.id || authUser.id, // Use profile ID if owned, else auth ID
                         name: displayName,
+                        username: p?.username || null,
                         avatar: p?.avatar_url || null,
                         tier: p?.skill_tier,
                         role: p?.role || 'user',
@@ -1430,17 +1990,86 @@ export default function SocialMediaPage() {
                             url: p.hendon_url,
                             cashes: p.hendon_total_cashes,
                             earnings: p.hendon_total_earnings,
-                            bestFinish: p.hendon_best_finish
+                            bestFinish: p.hendon_best_finish,
+                            biggestCash: p.hendon_biggest_cash
                         } : null
                     });
                     await loadContacts(authUser.id);
-                    // Load notifications
+
+                    // 🕐 Update last_active timestamp (powers "last active" status on friends page)
+                    supabase.from('profiles')
+                        .update({ last_active: new Date().toISOString() })
+                        .eq('id', p?.id || authUser.id)
+                        .then(() => console.log('[Social] Updated last_active timestamp'));
+
+                    // Load notifications with actor profile data
                     const { data: notifs } = await supabase.from('notifications')
                         .select('*')
                         .eq('user_id', authUser.id)
                         .order('created_at', { ascending: false })
                         .limit(20);
-                    if (notifs) setNotifications(notifs);
+                    if (notifs && notifs.length > 0) {
+                        // Collect actor IDs from notifications
+                        // The data is stored in the 'data' JSONB column: data.actor_id (social) or data.sender_id (friend requests)
+                        const actorIds = [...new Set(notifs.map(n =>
+                            n.data?.actor_id || n.data?.sender_id || n.actor_id
+                        ).filter(Boolean))];
+
+                        // Also parse actor names from notification titles as fallback
+                        const actorNames = [...new Set(notifs.map(n => {
+                            const match = n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
+                            return match ? match[1] : null;
+                        }).filter(Boolean))];
+
+                        // Build profile lookup maps
+                        let profileById = {};
+                        let profileByName = {};
+
+                        // Lookup by actor_id if available
+                        if (actorIds.length > 0) {
+                            const { data: profilesById } = await supabase.from('profiles')
+                                .select('id, username, full_name, avatar_url')
+                                .in('id', actorIds);
+                            (profilesById || []).forEach(p => {
+                                profileById[p.id] = p;
+                            });
+                        }
+
+                        // Lookup by full_name as fallback
+                        if (actorNames.length > 0) {
+                            const { data: profilesByName } = await supabase.from('profiles')
+                                .select('id, username, full_name, avatar_url')
+                                .in('full_name', actorNames);
+                            (profilesByName || []).forEach(p => {
+                                if (p.full_name) profileByName[p.full_name.toLowerCase()] = p;
+                            });
+                        }
+
+                        // Merge actor profile data into notifications
+                        const enrichedNotifs = notifs.map(n => {
+                            // Get actor ID from the data JSONB column
+                            const actorId = n.data?.actor_id || n.data?.sender_id || n.actor_id;
+                            let profile = actorId ? profileById[actorId] : null;
+
+                            // Fallback to name matching
+                            if (!profile) {
+                                const match = n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
+                                const actorName = match ? match[1] : null;
+                                profile = actorName ? profileByName[actorName.toLowerCase()] : null;
+                            }
+
+                            // Get display name from data or parse from title
+                            const displayName = n.data?.actor_name || n.data?.sender_name || n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/)?.[1] || n.title;
+
+                            return {
+                                ...n,
+                                actor_avatar_url: profile?.avatar_url || n.metadata?.actor_avatar || null,
+                                actor_name: profile?.full_name || displayName,
+                                actor_username: profile?.username || null
+                            };
+                        });
+                        setNotifications(enrichedNotifs);
+                    }
                 } else {
                     console.log('[Social] No authenticated user found');
                 }
@@ -1455,6 +2084,20 @@ export default function SocialMediaPage() {
         })();
     }, []);
 
+    //  AUTO-MARK NOTIFICATIONS AS READ when dropdown opens
+    useEffect(() => {
+        if (showNotifications && notifications.length > 0 && user) {
+            const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
+            if (unreadIds.length > 0) {
+                // Mark all as read IMMEDIATELY
+                (async () => {
+                    await supabase.from('notifications').update({ read: true }).in('id', unreadIds);
+                    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+                })();
+            }
+        }
+    }, [showNotifications, notifications.length, user]);
+
     const loadFeed = async (offset = 0, append = false) => {
         try {
             if (append) setLoadingMore(true);
@@ -1462,10 +2105,19 @@ export default function SocialMediaPage() {
             // Read user from localStorage to avoid getSession AbortError
             let authUser = null;
             try {
-                const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-                if (sbKeys.length > 0) {
-                    const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+                // PRIMARY: Check smarter-poker-auth key first  
+                const explicitAuth = localStorage.getItem('smarter-poker-auth');
+                if (explicitAuth) {
+                    const tokenData = JSON.parse(explicitAuth);
                     authUser = tokenData?.user || null;
+                }
+                // FALLBACK: Legacy sb-* keys
+                if (!authUser) {
+                    const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+                    if (sbKeys.length > 0) {
+                        const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+                        authUser = tokenData?.user || null;
+                    }
                 }
             } catch (e) { /* ignore parse errors */ }
 
@@ -1499,13 +2151,15 @@ export default function SocialMediaPage() {
             let allPostsData = null;
             let error = null;
 
+
+            // Define Supabase credentials for native fetch (needed for both posts and profiles)
+            const supabaseUrl = 'https://kuklfnapbkmacvwxktbh.supabase.co';
+            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo';
+
             // Use native fetch directly to Supabase REST API
             try {
-                const supabaseUrl = 'https://kuklfnapbkmacvwxktbh.supabase.co';
-                const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo';
-
                 const queryParams = new URLSearchParams({
-                    select: 'id,content,content_type,media_urls,like_count,comment_count,share_count,created_at,author_id',
+                    select: 'id,content,content_type,media_urls,like_count,comment_count,share_count,created_at,author_id,link_url,link_title,link_description,link_image,link_site_name',
                     or: '(visibility.eq.public,visibility.is.null)',
                     order: 'created_at.desc',
                     offset: offset.toString(),
@@ -1534,26 +2188,103 @@ export default function SocialMediaPage() {
 
             if (error) throw error;
 
-            // Check if there are more posts
-            if (!allPostsData || allPostsData.length < POSTS_PER_PAGE) {
-                setHasMorePosts(false);
+            // ♾️ INFINITE SCROLL: Continue as long as we get ANY posts back
+            // Only stop when absolutely no more posts are returned
+            if (!allPostsData || allPostsData.length === 0) {
+                // No posts returned - truly at the end
+                if (feedCycle < MAX_FEED_CYCLES) {
+                    // Loop back from the beginning for endless scroll experience
+                    console.log('[Social] Looping feed - cycle', feedCycle + 1);
+                    setFeedCycle(prev => prev + 1);
+                    setFeedOffset(0);
+                    // Don't set hasMorePosts false - let next scroll trigger the loop
+                } else {
+                    console.log('[Social] Max cycles reached - ending feed');
+                    setHasMorePosts(false);
+                }
             } else {
+                // Got posts - continue infinite scroll
+                console.log(`[Social] Got ${allPostsData.length} posts - continuing scroll`);
                 setHasMorePosts(true);
             }
 
-            // Mark priority posts
+            //  FACEBOOK-STYLE RANKING: Score posts by relevance
+            const calculatePostScore = (post) => {
+                let score = 0;
+
+                // Friends get highest priority (+100)
+                if (friendIds.includes(post.author_id)) score += 100;
+
+                // Following gets medium priority (+50)
+                if (followingIds.includes(post.author_id)) score += 50;
+
+                // Engagement boost
+                score += Math.min((post.like_count || 0) * 2, 30); // Max 30 from likes
+                score += Math.min((post.comment_count || 0) * 3, 30); // Max 30 from comments
+                score += Math.min((post.share_count || 0) * 4, 20); // Max 20 from shares
+
+                // Recency boost - posts less than 24h old get +40
+                const ageHours = (Date.now() - new Date(post.created_at).getTime()) / 3600000;
+                if (ageHours < 6) score += 50; // Very fresh
+                else if (ageHours < 24) score += 40; // Last 24h
+                else if (ageHours < 72) score += 20; // Last 3 days
+
+                // Decay older posts
+                const ageDays = ageHours / 24;
+                score -= Math.min(ageDays * 2, 20); // Max -20 for old posts
+
+                // If we've seen this post before (on loop), reduce score
+                if (seenPostIds.has(post.id)) score -= 30;
+
+                // Add some randomization for variety (+/- 15)
+                score += (Math.random() * 30) - 15;
+
+                return score;
+            };
+
+            // Mark priority posts and calculate scores
             const mixedFeed = (allPostsData || []).map(p => ({
                 ...p,
-                isPriority: priorityUserIds.includes(p.author_id)
+                isPriority: priorityUserIds.includes(p.author_id),
+                score: calculatePostScore(p),
+                isSuggested: feedCycle > 0 // Mark as suggested on loop
             }));
 
-            // Fetch author profiles
+            // Sort by score (Facebook-style ranking)
+            mixedFeed.sort((a, b) => b.score - a.score);
+
+            // Fetch author profiles using native fetch to avoid AbortError
             if (mixedFeed.length > 0) {
                 const authorIds = [...new Set(mixedFeed.map(p => p.author_id).filter(Boolean))];
+                console.log('[Social]  Processing', mixedFeed.length, 'posts with', authorIds.length, 'unique authors');
                 let authorMap = {};
                 if (authorIds.length) {
-                    const { data: profiles } = await supabase.from('profiles').select('id, username, full_name, display_name_preference, avatar_url').in('id', authorIds);
-                    if (profiles) authorMap = Object.fromEntries(profiles.map(p => [p.id, p]));
+                    try {
+                        console.log('[Social] Fetching profiles for author IDs:', authorIds.slice(0, 3), '...');
+                        const profilesRes = await fetch(`${supabaseUrl}/rest/v1/profiles?id=in.(${authorIds.join(',')})&select=id,username,full_name,display_name_preference,avatar_url`, {
+                            headers: {
+                                'apikey': supabaseKey,
+                                'Authorization': `Bearer ${supabaseKey}`
+                            }
+                        });
+
+                        console.log('[Social] Profile fetch response status:', profilesRes.status);
+                        if (!profilesRes.ok) {
+                            const errorText = await profilesRes.text();
+                            console.error('[Social] ❌ Profile fetch failed:', profilesRes.status, errorText);
+                        } else {
+                            const profiles = await profilesRes.json();
+                            console.log('[Social] ✅ Loaded', profiles.length, 'profiles:', profiles.map(p => p.username || p.full_name));
+                            if (profiles && profiles.length > 0) {
+                                authorMap = Object.fromEntries(profiles.map(p => [p.id, p]));
+                                console.log('[Social] ✅ Author map created with', Object.keys(authorMap).length, 'entries');
+                            } else {
+                                console.warn('[Social]  No profiles returned from query');
+                            }
+                        }
+                    } catch (profileError) {
+                        console.error('[Social] Profile fetch error:', profileError);
+                    }
                 }
 
                 const formattedPosts = mixedFeed.map(p => ({
@@ -1565,9 +2296,16 @@ export default function SocialMediaPage() {
                     likeCount: p.like_count || 0,
                     commentCount: p.comment_count || 0,
                     shareCount: p.share_count || 0,
+                    // Link metadata for ArticleCard
+                    link_url: p.link_url || null,
+                    link_title: p.link_title || null,
+                    link_description: p.link_description || null,
+                    link_image: p.link_image || null,
+                    link_site_name: p.link_site_name || null,
                     timeAgo: timeAgo(p.created_at),
                     isLiked: false,
                     isPriority: p.isPriority,
+                    isSuggested: p.isSuggested || false, // Mark as suggested on feed loop
                     isFriend: friendIds.includes(p.author_id),
                     isFollowing: followingIds.includes(p.author_id),
                     author: {
@@ -1579,9 +2317,15 @@ export default function SocialMediaPage() {
                             if (pref === 'username') return a.username || a.full_name || 'Player';
                             return a.full_name || a.username || 'Player';
                         })(),
+                        username: authorMap[p.author_id]?.username || null,
                         avatar: authorMap[p.author_id]?.avatar_url || null
                     }
                 }));
+
+                // Track seen posts for variety on loop
+                const newSeenIds = new Set(seenPostIds);
+                formattedPosts.forEach(p => newSeenIds.add(p.id));
+                setSeenPostIds(newSeenIds);
 
                 if (append) {
                     setPosts(prev => [...prev, ...formattedPosts]);
@@ -1595,40 +2339,100 @@ export default function SocialMediaPage() {
         }
     };
 
+    // ♾️ INFINITE SCROLL: Refs to avoid stale closures in IntersectionObserver
+    const feedOffsetRef = useRef(feedOffset);
+    const hasMorePostsRef = useRef(hasMorePosts);
+    const loadingMoreRef = useRef(loadingMore);
+
+    // Keep refs in sync with state
+    useEffect(() => { feedOffsetRef.current = feedOffset; }, [feedOffset]);
+    useEffect(() => { hasMorePostsRef.current = hasMorePosts; }, [hasMorePosts]);
+    useEffect(() => { loadingMoreRef.current = loadingMore; }, [loadingMore]);
+
     // ♾️ INFINITE SCROLL: Load more posts when scrolling
     const loadMorePosts = async () => {
-        if (loadingMore || !hasMorePosts) return;
-        const newOffset = feedOffset + POSTS_PER_PAGE;
+        console.log('[Social] loadMorePosts called, loadingMore:', loadingMoreRef.current, 'hasMorePosts:', hasMorePostsRef.current);
+        if (loadingMoreRef.current || !hasMorePostsRef.current) return;
+        const newOffset = feedOffsetRef.current + POSTS_PER_PAGE;
+        console.log('[Social] Loading more from offset:', newOffset);
         setFeedOffset(newOffset);
         await loadFeed(newOffset, true);
     };
 
-    // ♾️ INFINITE SCROLL: IntersectionObserver for triggering load
-    useEffect(() => {
-        const observer = new IntersectionObserver(
+    // ♾️ INFINITE SCROLL: Store observer in ref to avoid recreating
+    const observerRef = useRef(null);
+
+    // ♾️ INFINITE SCROLL: Callback ref that attaches observer immediately when element mounts
+    const loadMoreCallbackRef = useCallback((node) => {
+        // Cleanup previous observer if any
+        if (observerRef.current) {
+            observerRef.current.disconnect();
+            observerRef.current = null;
+        }
+
+        // If node is null (unmounting), we're done
+        if (!node) {
+            console.log('[Social] Sentinel unmounted, observer disconnected');
+            return;
+        }
+
+        console.log('[Social] ✅ Sentinel mounted! Attaching IntersectionObserver...');
+
+        // Create and attach new observer
+        observerRef.current = new IntersectionObserver(
             (entries) => {
-                if (entries[0].isIntersecting && hasMorePosts && !loadingMore) {
+                if (entries[0].isIntersecting) {
+                    console.log('[Social] Sentinel visible! Calling loadMorePosts...');
                     loadMorePosts();
                 }
             },
             { threshold: 0.1, rootMargin: '200px' }
         );
 
-        if (loadMoreRef.current) {
-            observer.observe(loadMoreRef.current);
+        observerRef.current.observe(node);
+    }, []); // Empty deps - uses refs for current values
+
+    const handlePost = async (content, urls, type, mentions = [], linkPreview = null) => {
+        console.log('[Social]  handlePost called with:', { content: content?.substring(0, 50), urls, type, mentions, hasLinkPreview: !!linkPreview });
+        console.log('[Social]  linkPreview FULL OBJECT:', JSON.stringify(linkPreview, null, 2));
+        console.log('[Social]  User state:', { id: user?.id, name: user?.name, hasUser: !!user });
+
+        if (!user?.id) {
+            console.error('[Social] ❌ Cannot post: user.id is missing!', user);
+            return false;
         }
 
-        return () => observer.disconnect();
-    }, [hasMorePosts, loadingMore, feedOffset]);
-
-    const handlePost = async (content, urls, type, mentions = []) => {
-        if (!user?.id) return false;
         setIsPosting(true);
         try {
-            const { data, error } = await supabase.from('social_posts').insert({
-                author_id: user.id, content, content_type: type, media_urls: urls, visibility: 'public'
-            }).select().single();
-            if (error) throw error;
+            // Build base payload
+            const insertPayload = {
+                author_id: user.id,
+                content,
+                content_type: type,
+                media_urls: urls,
+                visibility: 'public',
+            };
+
+            // EXPLICIT: Add link metadata if available (from link preview)
+            if (linkPreview) {
+                console.log('[Social]  Adding link metadata from preview:', linkPreview);
+                insertPayload.link_url = linkPreview.url || urls[0];
+                insertPayload.link_title = linkPreview.title || null;
+                insertPayload.link_description = linkPreview.description || null;
+                insertPayload.link_image = linkPreview.image || null;
+                insertPayload.link_site_name = linkPreview.domain || null;
+            }
+
+            console.log('[Social]  FINAL insert payload:', JSON.stringify(insertPayload, null, 2));
+
+            const { data, error } = await supabase.from('social_posts').insert(insertPayload).select().single();
+
+            if (error) {
+                console.error('[Social] ❌ Supabase insert error:', error.message, error.details, error.hint, error.code);
+                throw error;
+            }
+
+            console.log('[Social] ✅ Post created successfully:', data?.id);
 
             // Insert mentions if any
             if (mentions.length > 0 && data?.id) {
@@ -1648,7 +2452,7 @@ export default function SocialMediaPage() {
                 }
             }
 
-            // AUTO-SAVE VIDEOS TO REELS 🎬
+            // AUTO-SAVE VIDEOS TO REELS 
             // When a video is posted, automatically create a Reel entry
             if (type === 'video' && urls.length > 0) {
                 const videoUrl = urls.find(url =>
@@ -1666,7 +2470,7 @@ export default function SocialMediaPage() {
                         view_count: 0,
                         like_count: 0
                     });
-                    console.log('🎬 Video auto-saved to Reels!');
+                    console.log(' Video auto-saved to Reels!');
                 } catch (reelError) {
                     console.error('Failed to auto-save to Reels:', reelError);
                     // Don't fail the post if Reel creation fails
@@ -1676,9 +2480,16 @@ export default function SocialMediaPage() {
             setPosts(prev => [{
                 id: data.id, authorId: user.id, content, contentType: type,
                 mediaUrls: urls, likeCount: 0, commentCount: 0, shareCount: 0,
-                timeAgo: 'Just now', isLiked: false,
-                author: { name: user.name, avatar: user.avatar }
+                timeAgo: 'Just now', isLiked: false, justPosted: true, // Mark as just posted for highlight
+                author: { name: user.name, username: user.username, avatar: user.avatar }
             }, ...prev]);
+
+            // Scroll to top of feed so user sees their new post immediately (Facebook behavior)
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            // Show success toast
+            toast.success('Posted Successfully!', 2000);
+
             return true;
         } catch (e) { console.error('Post error:', e); return false; }
         finally { setIsPosting(false); }
@@ -1699,8 +2510,43 @@ export default function SocialMediaPage() {
     };
 
     const handleDelete = async (id) => {
-        if (!user?.id || !confirm('Delete?')) return;
-        try { await supabase.from('social_posts').delete().eq('id', id); setPosts(prev => prev.filter(p => p.id !== id)); } catch (e) { console.error(e); }
+        if (!user?.id || !confirm('Delete this post?')) return;
+        try {
+            // Get auth token for server-side API
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+
+            if (!token) {
+                console.error('[Delete] No auth token available');
+                alert('Please log in again to delete posts');
+                return;
+            }
+
+            // Call server-side API (bypasses RLS for god mode)
+            const response = await fetch('/api/posts/delete', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ postId: id })
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                console.error('[Delete] Server error:', result);
+                alert(result.error || 'Failed to delete post');
+                return;
+            }
+
+            // Remove from local state
+            setPosts(prev => prev.filter(p => p.id !== id));
+            console.log(`[Delete] ✅ Post ${id} deleted successfully (${result.deletedBy})`);
+        } catch (e) {
+            console.error('[Delete] Error:', e);
+            alert('Error deleting post');
+        }
     };
 
     const loadContacts = async (userId) => {
@@ -1804,47 +2650,95 @@ export default function SocialMediaPage() {
         } catch (e) { console.error(e); }
     };
 
-    if (loading) return <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div>Loading...</div></div>;
+    // Only show loading spinner if intro is done and still loading
+    if (loading && !showIntro) return <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div>Loading...</div></div>;
 
     return (
         <PageTransition>
+            {/*  INTRO VIDEO OVERLAY - Plays while page loads behind it */}
+            {showIntro && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    zIndex: 99999,
+                    background: '#000',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                }}>
+                    <video
+                        ref={introVideoRef}
+                        src="/videos/social-media-intro.mp4"
+                        autoPlay
+                        muted
+                        playsInline
+                        onPlay={handleIntroPlay}
+                        onEnded={handleIntroEnd}
+                        onError={handleIntroEnd}
+                        style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover'
+                        }}
+                    />
+                    {/* Skip button */}
+                    <button
+                        onClick={handleIntroEnd}
+                        style={{
+                            position: 'absolute',
+                            top: 20,
+                            right: 20,
+                            padding: '8px 20px',
+                            background: 'rgba(255,255,255,0.2)',
+                            backdropFilter: 'blur(10px)',
+                            border: '1px solid rgba(255,255,255,0.3)',
+                            borderRadius: 20,
+                            color: 'white',
+                            fontSize: 14,
+                            fontWeight: 500,
+                            cursor: 'pointer',
+                            zIndex: 100000
+                        }}
+                    >
+                        Skip
+                    </button>
+                </div>
+            )}
             <Head>
                 <title>Social Hub | Smarter.Poker</title>
-                <meta name="viewport" content="width=800, user-scalable=no" />
+                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
                 <style>{`
-                    /* 800px Design Canvas - CSS Zoom Scaling (Training Page Template) */
-                    html, body { background: ${C.bg} !important; }
+                    /* Facebook-style Responsive Layout - NO ZOOM, proper mobile sizing */
+                    html, body { 
+                        background: ${C.bg} !important; 
+                        margin: 0;
+                        padding: 0;
+                    }
                     
                     .social-page-container {
-                        width: 800px;
-                        max-width: 800px;
+                        width: 100%;
+                        max-width: 680px;
                         margin: 0 auto;
+                        min-height: 100vh;
                         overflow-x: hidden;
                     }
                     
-                    /* Mobile phones (390-450px) - zoom to ~50% */
-                    @media (max-width: 500px) {
-                        .social-page-container { zoom: 0.5; }
+                    /* Mobile-first: Full width on phones, centered on larger screens */
+                    @media (max-width: 680px) {
+                        .social-page-container {
+                            max-width: 100%;
+                            padding: 0;
+                        }
                     }
                     
-                    /* Large phones / small tablets (501-700px) */
-                    @media (min-width: 501px) and (max-width: 700px) {
-                        .social-page-container { zoom: 0.75; }
-                    }
-                    
-                    /* Tablets (701-900px) */
-                    @media (min-width: 701px) and (max-width: 900px) {
-                        .social-page-container { zoom: 0.95; }
-                    }
-                    
-                    /* Desktop (901px+) - slight scale up */
-                    @media (min-width: 901px) {
-                        .social-page-container { zoom: 1.2; }
-                    }
-                    
-                    /* Large desktop (1400px+) - cap at 1.5x */
-                    @media (min-width: 1400px) {
-                        .social-page-container { zoom: 1.5; }
+                    /* Desktop: Centered column with max-width */
+                    @media (min-width: 681px) {
+                        .social-page-container {
+                            padding: 0 16px;
+                        }
                     }
                 `}</style>
             </Head>
@@ -1873,7 +2767,7 @@ export default function SocialMediaPage() {
                     <button onClick={() => setSidebarOpen(false)} style={{
                         background: '#f0f0f0', border: 'none', width: 32, height: 32,
                         borderRadius: '50%', cursor: 'pointer', fontSize: 16
-                    }}>✕</button>
+                    }}>×</button>
                 </div>
 
                 {/* User Profile Card */}
@@ -1898,33 +2792,50 @@ export default function SocialMediaPage() {
 
                 {/* Poker Resume - Show when HendonMob is linked */}
                 {user?.hendon && (
-                    <div style={{
-                        margin: '0 12px 16px', padding: 16, borderRadius: 12,
-                        background: 'linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 100%)',
-                        border: '1px solid rgba(255, 215, 0, 0.3)'
-                    }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                            <span style={{ fontSize: 24 }}>🏆</span>
-                            <div>
-                                <div style={{ color: '#FFD700', fontWeight: 700, fontSize: 14 }}>POKER RESUME</div>
-                                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10 }}>Tournament Stats</div>
+                    <Link
+                        href={user.username ? `/hub/user/${user.username}` : '/hub/profile'}
+                        onClick={() => setSidebarOpen(false)}
+                        style={{ textDecoration: 'none', display: 'block' }}
+                    >
+                        <div style={{
+                            margin: '0 12px 16px', padding: 16, borderRadius: 12,
+                            background: 'linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 100%)',
+                            border: '1px solid rgba(255, 215, 0, 0.3)',
+                            cursor: 'pointer',
+                            transition: 'transform 0.2s, box-shadow 0.2s'
+                        }}
+                            onMouseEnter={e => {
+                                e.currentTarget.style.transform = 'translateY(-2px)';
+                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(255, 215, 0, 0.3)';
+                            }}
+                            onMouseLeave={e => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = 'none';
+                            }}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                                <span style={{ fontSize: 24 }}>Trophy</span>
+                                <div>
+                                    <div style={{ color: '#FFD700', fontWeight: 700, fontSize: 14 }}>POKER RESUME</div>
+                                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10 }}>Tournament Stats</div>
+                                </div>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                                <div style={{ textAlign: 'center' }}>
+                                    <div style={{ color: '#FFD700', fontSize: 18, fontWeight: 700 }}>{user.hendon.cashes || '—'}</div>
+                                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 9 }}>CASHES</div>
+                                </div>
+                                <div style={{ textAlign: 'center' }}>
+                                    <div style={{ color: '#00ff88', fontSize: 18, fontWeight: 700 }}>${user.hendon.earnings?.toLocaleString() || '—'}</div>
+                                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 9 }}>EARNINGS</div>
+                                </div>
+                                <div style={{ textAlign: 'center' }}>
+                                    <div style={{ color: '#00d4ff', fontSize: 18, fontWeight: 700 }}>{user.hendon.biggestCash ? `$${user.hendon.biggestCash.toLocaleString()}` : '—'}</div>
+                                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 9 }}>BIGGEST CASH</div>
+                                </div>
                             </div>
                         </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-                            <div style={{ textAlign: 'center' }}>
-                                <div style={{ color: '#FFD700', fontSize: 18, fontWeight: 700 }}>{user.hendon.cashes || '—'}</div>
-                                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 9 }}>CASHES</div>
-                            </div>
-                            <div style={{ textAlign: 'center' }}>
-                                <div style={{ color: '#00ff88', fontSize: 18, fontWeight: 700 }}>${user.hendon.earnings?.toLocaleString() || '—'}</div>
-                                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 9 }}>EARNINGS</div>
-                            </div>
-                            <div style={{ textAlign: 'center' }}>
-                                <div style={{ color: '#00d4ff', fontSize: 18, fontWeight: 700 }}>${user.hendon.biggestCash?.toLocaleString() || user.hendon.bestFinish || '—'}</div>
-                                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 9 }}>BIG CASH</div>
-                            </div>
-                        </div>
-                    </div>
+                    </Link>
                 )}
 
                 {/* Your Shortcuts */}
@@ -1932,81 +2843,208 @@ export default function SocialMediaPage() {
                     <h4 style={{ fontSize: 14, fontWeight: 600, color: C.textSec, marginBottom: 12 }}>Your shortcuts</h4>
                     <div style={{ display: 'flex', gap: 12 }}>
                         <Link href="/hub/club-arena" onClick={() => setSidebarOpen(false)} style={{ textAlign: 'center', textDecoration: 'none', color: 'inherit' }}>
-                            <div style={{ width: 56, height: 56, borderRadius: 8, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>🏛</div>
+                            <div style={{ width: 56, height: 56, borderRadius: 8, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="white" stroke="none">
+                                    <path d="M4 4h4v16H4V4zm6 0h4v16h-4V4zm6 0h4v16h-4V4z" />
+                                </svg>
+                            </div>
                             <div style={{ fontSize: 11, marginTop: 4, color: C.textSec }}>Club Arena</div>
                         </Link>
                         <Link href="/hub" onClick={() => setSidebarOpen(false)} style={{ textAlign: 'center', textDecoration: 'none', color: 'inherit' }}>
-                            <div style={{ width: 56, height: 56, borderRadius: 8, background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>🎮</div>
+                            <div style={{ width: 56, height: 56, borderRadius: 8, background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="white" stroke="none">
+                                    <path d="M7 4h10a3 3 0 013 3v10a3 3 0 01-3 3H7a3 3 0 01-3-3V7a3 3 0 013-3zm0 5a2 2 0 100 4 2 2 0 000-4zm10 0a2 2 0 100 4 2 2 0 000-4zM9 15h6v2H9v-2z" />
+                                </svg>
+                            </div>
                             <div style={{ fontSize: 11, marginTop: 4, color: C.textSec }}>Games Hub</div>
                         </Link>
                     </div>
                 </div>
 
-                {/* Menu Grid */}
+                {/* Menu Grid - Custom AI-Generated Smarter.Poker Icons */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: '0 16px', marginBottom: 16 }}>
-                    {[
-                        { icon: '👤', label: 'Profile', href: '/hub/profile' },
-                        { icon: '👥', label: 'Friends', href: '/hub/friends' },
-                        { icon: '🏛️', label: 'Clubs', href: '/hub/club-arena' },
-                        { icon: '💎', label: 'Diamond Store', href: '/hub/diamond-store' },
-                        { icon: '🏆', label: 'Tournaments', href: '/hub/tournaments' },
-                        { icon: '🎯', label: 'GTO Training', href: '/hub/gto-trainer' },
-                        { icon: '🎬', label: 'Reels', href: '/hub/reels' },
-                        { icon: '⚙️', label: 'Settings', href: '/hub/settings' },
-                    ].map((item, i) => (
-                        <Link key={i} href={item.href} onClick={() => setSidebarOpen(false)} style={{
-                            display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
-                            padding: 12, background: '#f7f8fa', borderRadius: 8,
-                            textDecoration: 'none', color: C.text
-                        }}>
-                            <span style={{ fontSize: 24, marginBottom: 4 }}>{item.icon}</span>
-                            <span style={{ fontSize: 14, fontWeight: 500 }}>{item.label}</span>
-                        </Link>
-                    ))}
+                    {/* Friends - Custom AI icon */}
+                    <Link href="/hub/friends" onClick={() => setSidebarOpen(false)} style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
+                        background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
+                    }}>
+                        <img src="/icons/friends.png" alt="" style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
+                        <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Friends</span>
+                    </Link>
+                    {/* Club Arena - Purple columns SVG (fallback) */}
+                    <Link href="/hub/club-arena" onClick={() => setSidebarOpen(false)} style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
+                        background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
+                    }}>
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
+                            <rect x="2" y="6" width="6" height="14" rx="1" fill="#8b5cf6" />
+                            <rect x="9" y="3" width="6" height="17" rx="1" fill="#a78bfa" />
+                            <rect x="16" y="6" width="6" height="14" rx="1" fill="#c4b5fd" />
+                            <ellipse cx="12" cy="20" rx="10" ry="2" fill="#ddd6fe" opacity="0.5" />
+                        </svg>
+                        <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Club Arena</span>
+                    </Link>
+                    {/* Diamond Store - Custom AI icon */}
+                    <Link href="/hub/diamond-store" onClick={() => setSidebarOpen(false)} style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
+                        background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
+                    }}>
+                        <img src="/icons/diamond.png" alt="" style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
+                        <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Diamond Store</span>
+                    </Link>
+                    {/* Tournaments - Custom AI icon */}
+                    <Link href="/hub/tournaments" onClick={() => setSidebarOpen(false)} style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
+                        background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
+                    }}>
+                        <img src="/icons/tournaments.png" alt="" style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
+                        <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Tournaments</span>
+                    </Link>
+                    {/* Club Pages - Venue/Tour/Series Pages (inline view) */}
+                    <div onClick={() => { setShowClubPages(true); setSidebarOpen(false); }} style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
+                        background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1', cursor: 'pointer'
+                    }}>
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
+                            <rect x="2" y="3" width="20" height="18" rx="2" fill="#1877F2" opacity="0.15" />
+                            <rect x="2" y="3" width="20" height="7" rx="2" fill="#1877F2" opacity="0.3" />
+                            <circle cx="8" cy="14" r="2" fill="#1877F2" />
+                            <rect x="12" y="13" width="8" height="2" rx="1" fill="#1877F2" opacity="0.6" />
+                            <rect x="12" y="17" width="5" height="1.5" rx="0.75" fill="#1877F2" opacity="0.3" />
+                        </svg>
+                        <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Club Pages</span>
+                    </div>
+                    {/* GTO Training - Custom AI icon */}
+                    <Link href="/hub/gto-trainer" onClick={() => setSidebarOpen(false)} style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
+                        background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
+                    }}>
+                        <img src="/icons/gto.png" alt="" style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
+                        <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>GTO Training</span>
+                    </Link>
+                    {/* Reels - Custom AI icon */}
+                    <Link href="/hub/reels" onClick={() => setSidebarOpen(false)} style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
+                        background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
+                    }}>
+                        <img src="/icons/reels.png" alt="" style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
+                        <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Reels</span>
+                    </Link>
                 </div>
 
-                {/* See More */}
+                {/* See More - Expandable Section */}
                 <div style={{ padding: '0 16px', marginBottom: 16 }}>
-                    <button style={{
-                        width: '100%', padding: 12, background: '#e4e6eb', border: 'none',
-                        borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer'
-                    }}>See more</button>
+                    <button
+                        onClick={() => setShowMoreMenu && setShowMoreMenu(!showMoreMenu)}
+                        style={{
+                            width: '100%', padding: 12, background: '#e4e6eb', border: 'none',
+                            borderRadius: 8, fontSize: 15, fontWeight: 600, cursor: 'pointer', color: '#1c1e21',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+                        }}
+                    >
+                        {showMoreMenu ? 'See less' : 'See more'}
+                        <span style={{ transform: showMoreMenu ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▼</span>
+                    </button>
+
+                    {/* Expandable Items */}
+                    {showMoreMenu && (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 12 }}>
+                            <Link href="/hub/profile" onClick={() => setSidebarOpen(false)} style={{
+                                display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
+                                background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
+                            }}>
+                                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
+                                    <circle cx="12" cy="12" r="11" fill="#e3f2fd" />
+                                    <circle cx="12" cy="9" r="4" fill="#1877f2" />
+                                    <path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" fill="#1877f2" />
+                                </svg>
+                                <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Profile</span>
+                            </Link>
+                            <Link href="/hub/messenger" onClick={() => setSidebarOpen(false)} style={{
+                                display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
+                                background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
+                            }}>
+                                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
+                                    <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" fill="#0084ff" />
+                                </svg>
+                                <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Messenger</span>
+                            </Link>
+                            <Link href="/hub/lives" prefetch={false} onClick={() => setSidebarOpen(false)} style={{
+                                display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
+                                background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
+                            }}>
+                                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
+                                    <circle cx="12" cy="12" r="11" fill="#ff4444" />
+                                    <circle cx="12" cy="12" r="5" fill="white" />
+                                </svg>
+                                <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Lives</span>
+                            </Link>
+                            <Link href="/hub/news" onClick={() => setSidebarOpen(false)} style={{
+                                display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
+                                background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
+                            }}>
+                                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
+                                    <rect x="3" y="4" width="18" height="16" rx="2" fill="#4267B2" />
+                                    <rect x="6" y="8" width="6" height="4" fill="white" />
+                                    <rect x="6" y="14" width="12" height="2" fill="white" opacity="0.7" />
+                                    <rect x="14" y="8" width="4" height="2" fill="white" opacity="0.7" />
+                                </svg>
+                                <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>News</span>
+                            </Link>
+                            <Link href="/hub/poker-near-me" onClick={() => setSidebarOpen(false)} style={{
+                                display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
+                                background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
+                            }}>
+                                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
+                                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#ea4335" />
+                                    <circle cx="12" cy="9" r="3" fill="white" />
+                                </svg>
+                                <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Poker Near Me</span>
+                            </Link>
+                            <Link href="/hub/notifications" onClick={() => setSidebarOpen(false)} style={{
+                                display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
+                                background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
+                            }}>
+                                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
+                                    <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" fill="#f5a623" />
+                                    <path d="M13.73 21a2 2 0 01-3.46 0" stroke="#f5a623" strokeWidth="2" />
+                                </svg>
+                                <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Notifications</span>
+                            </Link>
+                        </div>
+                    )}
                 </div>
 
                 {/* Bottom Links */}
                 <div style={{ padding: '0 16px' }}>
-                    <div style={{ padding: '12px 0', borderTop: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-                        <span style={{ fontSize: 20, opacity: 0.6 }}>❓</span>
-                        <span style={{ flex: 1, fontSize: 15 }}>Help & support</span>
+                    <Link href="/hub/help" onClick={() => setSidebarOpen(false)} style={{
+                        padding: '12px 0', borderTop: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', textDecoration: 'none', color: 'inherit'
+                    }}>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#65676b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" /><path d="M12 17h.01" />
+                        </svg>
+                        <span style={{ flex: 1, fontSize: 15 }}>Help and support</span>
                         <span style={{ color: C.textSec }}>›</span>
-                    </div>
-                    <div style={{ padding: '12px 0', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-                        <span style={{ fontSize: 20, opacity: 0.6 }}>⚙️</span>
-                        <span style={{ flex: 1, fontSize: 15 }}>Settings & privacy</span>
+                    </Link>
+                    <Link href="/hub/settings" onClick={() => setSidebarOpen(false)} style={{
+                        padding: '12px 0', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', textDecoration: 'none', color: 'inherit'
+                    }}>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#65676b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
+                        </svg>
+                        <span style={{ flex: 1, fontSize: 15 }}>Settings</span>
                         <span style={{ color: C.textSec }}>›</span>
-                    </div>
+                    </Link>
                 </div>
             </div>
 
             <div style={{ minHeight: '100vh', background: '#0a0e1a', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif', paddingBottom: 70 }}>
-                {/* Hub-Style Header */}
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <button
-                        onClick={() => setSidebarOpen(true)}
-                        style={{
-                            background: 'none', border: 'none', fontSize: 24, cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            width: 50, height: 56, marginLeft: 4, color: 'white'
-                        }}
-                    >☰</button>
-                    <div style={{ flex: 1 }}>
-                        <UniversalHeader
-                            pageDepth={1}
-                            showSearch={true}
-                            onSearchClick={() => setShowGlobalSearch(!showGlobalSearch)}
-                        />
-                    </div>
-                </div>
+                {/* Standard Hub Header with Hamburger Menu */}
+                <UniversalHeader
+                    pageDepth={1}
+                    showSearch={false}
+                    onMenuClick={() => setSidebarOpen(true)}
+                />
 
                 {/* Global Search Overlay */}
                 {showGlobalSearch && (
@@ -2027,7 +3065,7 @@ export default function SocialMediaPage() {
                                 display: 'flex', alignItems: 'center', gap: 12,
                                 background: C.bg, borderRadius: 24, padding: '0 16px'
                             }}>
-                                <span style={{ fontSize: 18 }}>🔍</span>
+                                <span style={{ fontSize: 18 }}></span>
                                 <input
                                     type="text"
                                     value={globalSearchQuery}
@@ -2043,7 +3081,7 @@ export default function SocialMediaPage() {
                                     <button
                                         onClick={() => { setGlobalSearchQuery(''); setGlobalSearchResults({ users: [], posts: [] }); }}
                                         style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec }}
-                                    >✕</button>
+                                    >×</button>
                                 )}
                             </div>
                         </div>
@@ -2112,7 +3150,7 @@ export default function SocialMediaPage() {
                                 {/* No results */}
                                 {globalSearchResults.users.length === 0 && globalSearchResults.posts.length === 0 && (
                                     <div style={{ padding: '40px 20px', textAlign: 'center', color: C.textSec }}>
-                                        <div style={{ fontSize: 32, marginBottom: 8 }}>🔍</div>
+                                        <div style={{ fontSize: 32, marginBottom: 8 }}></div>
                                         No results found for "{globalSearchQuery}"
                                     </div>
                                 )}
@@ -2133,200 +3171,293 @@ export default function SocialMediaPage() {
                             <button
                                 onClick={() => setShowNotifications(false)}
                                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18 }}
-                            >✕</button>
+                            >×</button>
                         </div>
                         {notifications.length === 0 ? (
                             <div style={{ padding: 24, textAlign: 'center', color: C.textSec }}>
                                 No notifications yet
                             </div>
                         ) : (
-                            notifications.map(n => (
-                                <div
-                                    key={n.id}
-                                    onClick={async () => {
-                                        if (!n.read) {
-                                            await supabase.from('notifications').update({ read: true }).eq('id', n.id);
-                                            setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x));
-                                        }
-                                    }}
-                                    style={{
-                                        padding: 12, borderBottom: `1px solid ${C.border}`,
-                                        display: 'flex', gap: 12, alignItems: 'flex-start', cursor: 'pointer',
-                                        background: n.read ? 'transparent' : 'rgba(24, 119, 242, 0.05)'
-                                    }}
-                                >
-                                    <div style={{
-                                        width: 48, height: 48, borderRadius: '50%', background: C.blue,
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        fontSize: 24, flexShrink: 0
-                                    }}>
-                                        {n.type === 'like' ? '👍' : n.type === 'comment' ? '💬' : n.type === 'mention' ? '@' : n.type === 'friend_request' ? '👥' : '🔔'}
+                            notifications.map(n => {
+                                // Get action icon based on type
+                                const actionIcon = n.type === 'like' ? '👍' : n.type === 'comment' ? '' : n.type === 'mention' ? '@' : n.type === 'friend_request' ? '' : n.type === 'live' ? '🔴' : '';
+                                const iconBg = n.type === 'like' ? '#1877F2' : n.type === 'comment' ? '#44BD32' : n.type === 'live' ? '#FA383E' : n.type === 'friend_request' ? '#1877F2' : '#65676B';
+
+                                return (
+                                    <div
+                                        key={n.id}
+                                        onClick={() => {
+                                            setShowNotifications(false);
+                                            if (n.actor_username) {
+                                                router.push(`/hub/user/${n.actor_username}`);
+                                            }
+                                        }}
+                                        style={{
+                                            padding: 12, borderBottom: `1px solid ${C.border}`,
+                                            display: 'flex', gap: 12, alignItems: 'flex-start', cursor: 'pointer',
+                                            background: n.read ? 'transparent' : 'rgba(24, 119, 242, 0.08)'
+                                        }}
+                                    >
+                                        {/* Facebook-style avatar with action icon */}
+                                        <div style={{ position: 'relative', flexShrink: 0 }}>
+                                            <img
+                                                src={n.actor_avatar_url || n.metadata?.actor_avatar || '/default-avatar.png'}
+                                                style={{
+                                                    width: 56, height: 56, borderRadius: '50%',
+                                                    objectFit: 'cover', border: '2px solid #ddd'
+                                                }}
+                                            />
+                                            {/* Action type icon overlay */}
+                                            <div style={{
+                                                position: 'absolute', bottom: -2, right: -2,
+                                                width: 24, height: 24, borderRadius: '50%',
+                                                background: iconBg, border: '2px solid white',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                fontSize: 12
+                                            }}>{actionIcon}</div>
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ fontSize: 14, color: C.text, lineHeight: 1.4 }}>
+                                                <span style={{ fontWeight: 700 }}>{n.actor_name || n.metadata?.actor_name || n.title}</span>
+                                                {' '}{n.message}
+                                            </div>
+                                            <div style={{ fontSize: 12, color: n.read ? C.textSec : C.blue, marginTop: 4, fontWeight: n.read ? 400 : 600 }}>
+                                                {timeAgo(n.created_at)}
+                                            </div>
+                                        </div>
+                                        {!n.read && (
+                                            <div style={{ width: 12, height: 12, borderRadius: '50%', background: C.blue, flexShrink: 0, marginTop: 8 }} />
+                                        )}
                                     </div>
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{n.title}</div>
-                                        <div style={{ fontSize: 13, color: C.textSec, marginTop: 2 }}>{n.message}</div>
-                                        <div style={{ fontSize: 11, color: C.blue, marginTop: 4 }}>{timeAgo(n.created_at)}</div>
-                                    </div>
-                                    {!n.read && (
-                                        <div style={{ width: 10, height: 10, borderRadius: '50%', background: C.blue, flexShrink: 0, marginTop: 6 }} />
-                                    )}
-                                </div>
-                            ))
+                                );
+                            })
                         )}
                     </div>
                 )}
 
                 {/* Main Feed - 800px Design Canvas */}
                 <main className="social-page-container" style={{ padding: '8px' }}>
-                    {/* Stories Bar */}
-                    {user && <StoriesBar userId={user.id} />}
 
-                    {/* Post Creator */}
-                    {user && <PostCreator user={user} onPost={handlePost} isPosting={isPosting} onGoLive={() => setShowGoLiveModal(true)} />}
-
-                    {/* Login prompt */}
-                    {!user && (
-                        <div style={{ background: C.card, borderRadius: 8, padding: 24, textAlign: 'center', marginBottom: 8 }}>
-                            <p style={{ color: C.textSec, marginBottom: 12 }}>Log in to post and interact!</p>
-                            <Link href="/auth/login" style={{
-                                display: 'inline-block', padding: '10px 24px', background: C.blue,
-                                color: 'white', borderRadius: 6, fontWeight: 600, textDecoration: 'none'
-                            }}>Log In</Link>
-                        </div>
+                    {/* ===== CLUB PAGES VIEW ===== */}
+                    {showClubPages && (
+                        <ClubPagesView
+                            C={C}
+                            pages={clubPages}
+                            setPages={setClubPages}
+                            loading={clubPagesLoading}
+                            setLoading={setClubPagesLoading}
+                            category={clubPagesCategory}
+                            setCategory={setClubPagesCategory}
+                            search={clubPagesSearch}
+                            setSearch={setClubPagesSearch}
+                            followingIds={clubPagesFollowing}
+                            setFollowingIds={setClubPagesFollowing}
+                            onClose={() => setShowClubPages(false)}
+                        />
                     )}
 
-                    {/* 📺 LIVE STREAMS SECTION */}
-                    {liveStreams.length > 0 && (
-                        <div style={{ marginBottom: 12 }}>
-                            <h4 style={{ margin: '0 0 10px 4px', fontSize: 16, fontWeight: 700, color: C.text, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                🔴 Live Now
-                            </h4>
-                            <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8 }}>
-                                {liveStreams.map(stream => (
-                                    <div key={stream.id} style={{ flexShrink: 0, width: 280 }}>
-                                        <LiveStreamCard
-                                            stream={stream}
-                                            onClick={() => setWatchingStream(stream)}
+                    {/* ===== NORMAL FEED ===== */}
+                    {!showClubPages && <>
+                        {/* Stories Bar */}
+                        {user && <StoriesBar userId={user.id} userAvatar={user.avatar} />}
+
+                        {/* Post Creator */}
+                        {user && <PostCreator user={user} onPost={handlePost} isPosting={isPosting} onGoLive={() => setShowGoLiveModal(true)} />}
+
+                        {/* Login prompt */}
+                        {!user && (
+                            <div style={{ background: C.card, borderRadius: 8, padding: 24, textAlign: 'center', marginBottom: 8 }}>
+                                <p style={{ color: C.textSec, marginBottom: 12 }}>Log in to post and interact!</p>
+                                <Link href="/auth/login" style={{
+                                    display: 'inline-block', padding: '10px 24px', background: C.blue,
+                                    color: 'white', borderRadius: 6, fontWeight: 600, textDecoration: 'none'
+                                }}>Log In</Link>
+                            </div>
+                        )}
+
+                        {/* 📺 LIVE STREAMS SECTION */}
+                        {liveStreams.length > 0 && (
+                            <div style={{ marginBottom: 12 }}>
+                                <h4 style={{ margin: '0 0 10px 4px', fontSize: 16, fontWeight: 700, color: C.text, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    🔴 Live Now
+                                </h4>
+                                <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8 }}>
+                                    {liveStreams.map(stream => (
+                                        <div key={stream.id} style={{ flexShrink: 0, width: 280 }}>
+                                            <LiveStreamCard
+                                                stream={stream}
+                                                onClick={() => setWatchingStream(stream)}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Posts Feed */}
+                        {posts.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
+                                <div style={{ fontSize: 48 }}></div>
+                                <h3 style={{ color: C.text }}>No posts yet</h3>
+                                <p>Be the first to share something!</p>
+                            </div>
+                        ) : (
+                            <>
+                                {/* Render posts with Reels carousel inserted after every 3 posts */}
+                                {posts.map((p, index) => (
+                                    <>
+                                        <PostCard
+                                            key={p.id}
+                                            post={{ ...p, isGodMode }}
+                                            currentUserId={user?.id}
+                                            currentUserName={user?.name}
+                                            currentUserAvatar={user?.avatar}
+                                            onLike={handleLike}
+                                            onDelete={handleDelete}
+                                            onOpenArticle={(url) => setArticleReader({ open: true, url, title: p.link_title || null })}
                                         />
-                                    </div>
+                                        {/* Insert Reels carousel after 3rd post */}
+                                        {index === 2 && <ReelsFeedCarousel key="reels-carousel" />}
+                                    </>
                                 ))}
-                            </div>
-                        </div>
-                    )}
 
-                    {/* Posts Feed */}
-                    {posts.length === 0 ? (
-                        <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
-                            <div style={{ fontSize: 48 }}>🌟</div>
-                            <h3 style={{ color: C.text }}>No posts yet</h3>
-                            <p>Be the first to share something!</p>
-                        </div>
-                    ) : (
-                        <>
-                            {/* Render posts with Reels carousel inserted after every 3 posts */}
-                            {posts.map((p, index) => (
-                                <>
-                                    <PostCard key={p.id} post={{ ...p, isGodMode }} currentUserId={user?.id} currentUserName={user?.name} onLike={handleLike} onDelete={handleDelete} />
-                                    {/* Insert Reels carousel after 3rd post */}
-                                    {index === 2 && <ReelsFeedCarousel key="reels-carousel" />}
-                                </>
-                            ))}
+                                {/* ♾️ INFINITE SCROLL: Load more trigger */}
+                                <div ref={loadMoreCallbackRef} style={{
+                                    padding: '20px',
+                                    textAlign: 'center',
+                                    minHeight: 60
+                                }}>
+                                    {loadingMore && (
+                                        <>
+                                            {/* Skeleton Post Placeholders */}
+                                            {[1, 2].map(i => (
+                                                <div key={`skeleton-${i}`} style={{
+                                                    background: C.card,
+                                                    borderRadius: 8,
+                                                    padding: 16,
+                                                    marginBottom: 12,
+                                                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                                                }}>
+                                                    {/* Skeleton header */}
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                                                        <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#E4E6EB', animation: 'pulse 1.5s infinite' }} />
+                                                        <div style={{ flex: 1 }}>
+                                                            <div style={{ width: 120, height: 12, background: '#E4E6EB', borderRadius: 6, marginBottom: 6, animation: 'pulse 1.5s infinite' }} />
+                                                            <div style={{ width: 80, height: 10, background: '#E4E6EB', borderRadius: 5, animation: 'pulse 1.5s infinite' }} />
+                                                        </div>
+                                                    </div>
+                                                    {/* Skeleton content */}
+                                                    <div style={{ marginBottom: 12 }}>
+                                                        <div style={{ width: '100%', height: 10, background: '#E4E6EB', borderRadius: 5, marginBottom: 8, animation: 'pulse 1.5s infinite' }} />
+                                                        <div style={{ width: '80%', height: 10, background: '#E4E6EB', borderRadius: 5, animation: 'pulse 1.5s infinite' }} />
+                                                    </div>
+                                                    {/* Skeleton image placeholder */}
+                                                    <div style={{ width: '100%', height: 200, background: '#E4E6EB', borderRadius: 8, animation: 'pulse 1.5s infinite' }} />
+                                                </div>
+                                            ))}
+                                        </>
+                                    )}
+                                    {!hasMorePosts && posts.length > 0 && (
+                                        <p style={{ color: C.textSec, fontSize: 14, textAlign: 'center' }}>
+                                            You're all caught up! Check back later for new content.
+                                        </p>
+                                    )}
+                                </div>
 
-                            {/* ♾️ INFINITE SCROLL: Load more trigger */}
-                            <div ref={loadMoreRef} style={{
-                                padding: '20px',
-                                textAlign: 'center',
-                                minHeight: 60
-                            }}>
-                                {loadingMore && (
-                                    <div style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: 8,
-                                        color: C.textSec
-                                    }}>
-                                        <span style={{
-                                            width: 20,
-                                            height: 20,
-                                            border: `2px solid ${C.border}`,
-                                            borderTopColor: C.blue,
-                                            borderRadius: '50%',
-                                            animation: 'spin 1s linear infinite'
-                                        }} />
-                                        Loading more posts...
-                                    </div>
-                                )}
-                                {!hasMorePosts && posts.length > 0 && (
-                                    <p style={{ color: C.textSec, fontSize: 14 }}>
-                                        🎉 You've seen all the posts!
-                                    </p>
-                                )}
-                            </div>
-
-                            <style jsx>{`
+                                <style jsx>{`
                                 @keyframes spin {
                                     to { transform: rotate(360deg); }
                                 }
+                                @keyframes pulse {
+                                    0%, 100% { opacity: 1; }
+                                    50% { opacity: 0.5; }
+                                }
                             `}</style>
-                        </>
-                    )}
+                            </>
+                        )}
+                    </>}
                 </main>
 
-                {/* Bottom Navigation Bar - Enhanced with larger click targets */}
+                {/* Bottom Navigation Bar - Facebook Style with SVG Icons */}
                 <nav style={{
-                    position: 'fixed', bottom: 0, left: 0, right: 0, height: 60,
-                    background: C.card, borderTop: `1px solid ${C.border}`,
+                    position: 'fixed', bottom: 0, left: 0, right: 0, height: 56,
+                    background: '#ffffff', borderTop: '1px solid #dddfe2',
                     display: 'flex', justifyContent: 'space-around', alignItems: 'stretch',
                     zIndex: 100,
                     transform: bottomNavVisible ? 'translateY(0)' : 'translateY(100%)',
                     transition: 'transform 0.3s ease',
                     paddingBottom: 'env(safe-area-inset-bottom, 0px)'
                 }}>
+                    {/* Home - Outline house */}
                     <Link href="/hub/social-media" style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                        textDecoration: 'none', color: C.blue, flex: 1, padding: '8px 4px', minWidth: 50
+                        textDecoration: 'none', color: '#65676b', flex: 1, padding: '6px 4px', minWidth: 50
                     }}>
-                        <span style={{ fontSize: 22 }}>🏠</span>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1V9.5z" />
+                        </svg>
                         <span style={{ fontSize: 10, marginTop: 2, fontWeight: 500 }}>Home</span>
                     </Link>
+                    {/* Reels - Rounded rect with play triangle */}
                     <Link href="/hub/reels" style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                        textDecoration: 'none', color: C.textSec, flex: 1, padding: '8px 4px', minWidth: 50
+                        textDecoration: 'none', color: '#65676b', flex: 1, padding: '6px 4px', minWidth: 50
                     }}>
-                        <span style={{ fontSize: 22 }}>📺</span>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="3" />
+                            <polygon points="10,8 16,12 10,16" fill="currentColor" stroke="none" />
+                        </svg>
                         <span style={{ fontSize: 10, marginTop: 2, fontWeight: 500 }}>Reels</span>
                     </Link>
+                    {/* Friends - Connected people icon */}
                     <Link href="/hub/friends" style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                        textDecoration: 'none', color: C.textSec, flex: 1, padding: '8px 4px', minWidth: 50, position: 'relative'
+                        textDecoration: 'none', color: '#65676b', flex: 1, padding: '6px 4px', minWidth: 50, position: 'relative'
                     }}>
-                        <span style={{ fontSize: 22 }}>👥</span>
-                        <div style={{ position: 'absolute', top: 4, right: 'calc(50% - 20px)', background: C.red, color: 'white', borderRadius: '50%', width: 16, height: 16, fontSize: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, pointerEvents: 'none' }}>1</div>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="8" cy="8" r="3" />
+                            <circle cx="16" cy="8" r="3" />
+                            <path d="M8 11a4 4 0 00-4 4v2h8v-2a4 4 0 00-4-4z" />
+                            <path d="M16 11c1.5 0 2.8.8 3.5 2 .4.8.5 1.3.5 2v2h-6" />
+                        </svg>
                         <span style={{ fontSize: 10, marginTop: 2, fontWeight: 500 }}>Friends</span>
                     </Link>
+                    {/* Clubs - Star in rounded box (Events-style) */}
                     <Link href="/hub/club-arena" style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                        textDecoration: 'none', color: C.textSec, flex: 1, padding: '8px 4px', minWidth: 50
+                        textDecoration: 'none', color: '#65676b', flex: 1, padding: '6px 4px', minWidth: 50
                     }}>
-                        <span style={{ fontSize: 22 }}>🏛️</span>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="4" y="4" width="16" height="16" rx="2" />
+                            <path d="M12 8l1.5 3 3.5.5-2.5 2.5.5 3.5L12 16l-3 1.5.5-3.5-2.5-2.5 3.5-.5z" fill="currentColor" />
+                        </svg>
                         <span style={{ fontSize: 10, marginTop: 2, fontWeight: 500 }}>Clubs</span>
                     </Link>
+                    {/* Notifications - Filled bell (blue when active) */}
                     <Link href="/hub/notifications" style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                        textDecoration: 'none', color: C.textSec, flex: 1, padding: '8px 4px', minWidth: 50, position: 'relative'
+                        textDecoration: 'none', color: '#1877f2', flex: 1, padding: '6px 4px', minWidth: 50, position: 'relative'
                     }}>
-                        <span style={{ fontSize: 22 }}>🔔</span>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2a7 7 0 00-7 7c0 3.5-1.5 5.5-2.5 7-.3.4-.5.8-.5 1.2 0 .5.5.8 1 .8h18c.5 0 1-.3 1-.8 0-.4-.2-.8-.5-1.2-1-1.5-2.5-3.5-2.5-7a7 7 0 00-7-7z" />
+                            <path d="M10 20a2 2 0 004 0" />
+                        </svg>
                         {notifications.filter(n => !n.read).length > 0 && (
-                            <div style={{ position: 'absolute', top: 4, right: 'calc(50% - 20px)', background: C.red, color: 'white', borderRadius: '50%', width: 16, height: 16, fontSize: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, pointerEvents: 'none' }}>{notifications.filter(n => !n.read).length}</div>
+                            <div style={{ position: 'absolute', top: 2, right: 'calc(50% - 18px)', background: '#f02849', color: 'white', borderRadius: 10, minWidth: 18, height: 18, fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, padding: '0 5px' }}>{notifications.filter(n => !n.read).length}</div>
                         )}
-                        <span style={{ fontSize: 10, marginTop: 2, fontWeight: 500 }}>Alerts</span>
+                        <span style={{ fontSize: 10, marginTop: 2, fontWeight: 600, color: '#1877f2' }}>Notifications</span>
                     </Link>
+                    {/* Profile - Avatar or person icon */}
                     <Link href="/hub/profile" style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                        textDecoration: 'none', color: C.textSec, flex: 1, padding: '8px 4px', minWidth: 50
+                        textDecoration: 'none', color: '#65676b', flex: 1, padding: '6px 4px', minWidth: 50
                     }}>
-                        {user ? <Avatar src={user.avatar} name={user.name} size={26} /> : <span style={{ fontSize: 22 }}>👤</span>}
+                        {user ? <Avatar src={user.avatar} name={user.name} size={28} style={{ border: '2px solid #e4e6eb', borderRadius: '50%' }} /> : (
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="8" r="4" />
+                                <path d="M4 20v-1a6 6 0 016-6h4a6 6 0 016 6v1" />
+                            </svg>
+                        )}
                         <span style={{ fontSize: 10, marginTop: 2, fontWeight: 500 }}>Profile</span>
                     </Link>
                 </nav>
@@ -2360,6 +3491,15 @@ export default function SocialMediaPage() {
                     />
                 )}
             </div>
+
+            {/* In-App Article Reader Modal */}
+            {articleReader.open && (
+                <ArticleReaderModal
+                    url={articleReader.url}
+                    title={articleReader.title}
+                    onClose={() => setArticleReader({ open: false, url: null, title: null })}
+                />
+            )}
         </PageTransition>
     );
 }

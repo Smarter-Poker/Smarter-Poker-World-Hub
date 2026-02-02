@@ -1,10 +1,19 @@
 /**
- * STORIES COMPONENT - Facebook-style 24-hour Stories
- * Features: Story bar, full-screen viewer, create modal, share to story
+ * 🎬 STORIES COMPONENT v2 - TikTok/Facebook/Instagram-Style Stories
+ * 
+ * KEY UX PATTERNS FROM RESEARCH:
+ * 1. Full-screen camera-first interface
+ * 2. Easy camera roll upload with immediate preview
+ * 3. 24-hour ephemeral content with progress bars
+ * 4. Text overlays, stickers, filters
+ * 5. Gradient backgrounds for text-only stories
+ * 6. Interactive elements (polls, questions)
+ * 7. Clear visual feedback for all actions
  */
 
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
+import toast from '../../stores/toastStore';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -13,18 +22,30 @@ const C = {
 
 // Gradient backgrounds for text-only stories
 const STORY_GRADIENTS = [
-    'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-    'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-    'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-    'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-    'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
-    'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)',
-    'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+    'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+    'linear-gradient(135deg, #000000 0%, #1a1a1a 100%)',
+    'linear-gradient(135deg, #0f0f23 0%, #2d1b4e 100%)',
+    'linear-gradient(135deg, #1f1c2c 0%, #928DAB 100%)',
+    'linear-gradient(135deg, #1877F2 0%, #0a5dc2 100%)',
+    'linear-gradient(135deg, #0052D4 0%, #4364F7 50%, #6FB1FC 100%)',
+    'linear-gradient(135deg, #141E30 0%, #243B55 100%)',
+    'linear-gradient(135deg, #D4AF37 0%, #AA8C2C 50%, #6B5B1E 100%)',
+    'linear-gradient(135deg, #3E2723 0%, #8D6E63 100%)',
+    'linear-gradient(135deg, #134E5E 0%, #71B280 100%)',
+    'linear-gradient(135deg, #0F2027 0%, #203A43 50%, #2C5364 100%)',
+    'linear-gradient(135deg, #8B0000 0%, #DC143C 100%)',
+    'linear-gradient(135deg, #833AB4 0%, #FD1D1D 50%, #FCB045 100%)',
 ];
 
-// Story Ring - shows colored ring for unviewed stories
-function StoryRing({ hasUnviewed, children, size = 64, onClick }) {
+// Story Ring - shows colored ring for unviewed stories or LIVE status
+function StoryRing({ hasUnviewed, isLive, children, size = 64, onClick }) {
+    // Red glowing ring for live users
+    const liveGradient = 'linear-gradient(135deg, #FA383E, #FF6B6B, #FA383E)';
+    const unviewedGradient = 'linear-gradient(135deg, #833AB4, #FD1D1D, #FCB045)';
+    const defaultBorder = '#DADDE1';
+
+    const ringBackground = isLive ? liveGradient : hasUnviewed ? unviewedGradient : defaultBorder;
+
     return (
         <div
             onClick={onClick}
@@ -32,11 +53,12 @@ function StoryRing({ hasUnviewed, children, size = 64, onClick }) {
                 width: size + 8,
                 height: size + 8,
                 borderRadius: '50%',
-                background: hasUnviewed
-                    ? 'linear-gradient(135deg, #833AB4, #FD1D1D, #FCB045)'
-                    : '#DADDE1',
+                background: ringBackground,
                 padding: 3,
                 cursor: 'pointer',
+                // Pulsing animation for live users
+                animation: isLive ? 'liveGlow 1.5s ease-in-out infinite' : 'none',
+                boxShadow: isLive ? '0 0 15px rgba(250, 56, 62, 0.6)' : 'none',
             }}
         >
             <div style={{
@@ -55,9 +77,43 @@ function StoryRing({ hasUnviewed, children, size = 64, onClick }) {
     );
 }
 
+// Helper function to extract YouTube video ID and generate thumbnail URL
+function getYouTubeThumbnail(linkUrl) {
+    if (!linkUrl) return null;
+
+    // Extract video ID from various YouTube URL formats
+    const patterns = [
+        /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+        /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+        /youtube\.com\/v\/([a-zA-Z0-9_-]{11})/
+    ];
+
+    for (const pattern of patterns) {
+        const match = linkUrl.match(pattern);
+        if (match && match[1]) {
+            return `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg`;
+        }
+    }
+
+    return null;
+}
+
 // Story Avatar - individual story in the bar
-function StoryAvatar({ story, onClick, isOwn, hasStory, onCreateStory }) {
+function StoryAvatar({ story, onClick, isOwn, hasStory, onCreateStory, isLive }) {
+    const [thumbnailFailed, setThumbnailFailed] = useState(false);
+
+    // Show ring if: other user has unviewed story, OR this is user's own story and they have stories
     const hasUnviewed = !story?.is_viewed && !isOwn;
+    const showRing = hasUnviewed || (isOwn && hasStory);
+
+    // Get thumbnail from link_url if it's a YouTube video
+    const youtubeThumb = getYouTubeThumbnail(story?.link_url);
+    const thumbnailUrl = youtubeThumb || story?.media_url;
+
+    // If thumbnail failed, use profile avatar instead
+    const displayUrl = (thumbnailFailed || !thumbnailUrl)
+        ? (story?.author_avatar || '/default-avatar.png')
+        : thumbnailUrl;
 
     return (
         <div
@@ -72,93 +128,131 @@ function StoryAvatar({ story, onClick, isOwn, hasStory, onCreateStory }) {
                 position: 'relative',
             }}
         >
-            <StoryRing hasUnviewed={hasUnviewed} size={64}>
-                <div style={{ position: 'relative' }}>
+            <StoryRing hasUnviewed={showRing} isLive={isLive} size={64}>
+                <div style={{ position: 'relative', width: 64, height: 64, borderRadius: '50%', overflow: 'hidden', background: '#E4E6EB' }}>
+                    {/* Always show profile avatar in story ring - "Aa" only appears in full-screen viewer */}
                     <img
-                        src={story?.author_avatar || '/default-avatar.png'}
-                        style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover' }}
+                        src={displayUrl}
+                        onLoad={(e) => {
+                            // YouTube returns a 120x90 gray placeholder for invalid video IDs
+                            // Check if this is a placeholder and switch to profile avatar
+                            if (thumbnailUrl && e.target.naturalWidth <= 120) {
+                                setThumbnailFailed(true);
+                            }
+                        }}
+                        onError={(e) => {
+                            // Mark thumbnail as failed and switch to profile avatar
+                            if (!thumbnailFailed && thumbnailUrl) {
+                                setThumbnailFailed(true);
+                            }
+                            // Immediate fallback
+                            e.target.src = story?.author_avatar || '/default-avatar.png';
+                        }}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
-                    {/* Plus badge on avatar for "Your Story" */}
-                    {isOwn && (
-                        <div
-                            onClick={(e) => { e.stopPropagation(); onCreateStory?.(); }}
-                            style={{
-                                position: 'absolute', bottom: -2, right: -2,
-                                width: 24, height: 24, borderRadius: '50%',
-                                background: C.blue, border: '3px solid white',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: 16, color: 'white', fontWeight: 700,
-                                boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                            }}>+</div>
+                    {isLive && (
+                        <div style={{
+                            position: 'absolute', bottom: -4, left: '50%', transform: 'translateX(-50%)',
+                            background: '#FA383E', color: 'white',
+                            padding: '2px 6px', borderRadius: 4,
+                            fontSize: 10, fontWeight: 700,
+                            border: '2px solid white',
+                        }}>LIVE</div>
                     )}
                 </div>
             </StoryRing>
+
+            {/* + button moved outside the ring, positioned below the avatar */}
+            {isOwn && (
+                <div
+                    onClick={(e) => { e.stopPropagation(); onCreateStory?.(); }}
+                    style={{
+                        position: 'absolute', top: 52, right: 6,
+                        width: 24, height: 24, borderRadius: '50%',
+                        background: C.blue, border: '3px solid white',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 16, color: 'white', fontWeight: 700,
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                        cursor: 'pointer',
+                    }}>+</div>
+            )}
+
             <span style={{
                 fontSize: 12,
-                color: C.text,
+                color: isLive ? '#FA383E' : C.text,
+                fontWeight: isLive ? 700 : 400,
                 textAlign: 'center',
                 maxWidth: 70,
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
             }}>
-                {isOwn ? 'Your Story' : (story?.author_username || 'User')}
+                {isOwn ? 'Your Story' : (story?.author_fullname || story?.author_username || 'User')}
             </span>
-            {/* Plus button below "Your Story" */}
-            {isOwn && (
-                <div
-                    onClick={(e) => { e.stopPropagation(); onCreateStory?.(); }}
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 4,
-                        padding: '4px 12px',
-                        background: C.blue,
-                        borderRadius: 16,
-                        color: 'white',
-                        fontSize: 11,
-                        fontWeight: 600,
-                        marginTop: 2,
-                        boxShadow: '0 2px 6px rgba(24, 119, 242, 0.4)',
-                    }}>
-                    <span style={{ fontSize: 14, fontWeight: 700 }}>+</span>
-                    Add
-                </div>
-            )}
         </div>
     );
 }
 
 // Stories Bar - horizontal scroll of stories at top of feed
-export function StoriesBar({ userId, onCreateStory }) {
+export function StoriesBar({ userId, userAvatar, onCreateStory }) {
     const [stories, setStories] = useState([]);
+    const [liveUsers, setLiveUsers] = useState(new Set()); // Track who is live
     const [loading, setLoading] = useState(true);
     const [viewingStory, setViewingStory] = useState(null);
     const [showCreate, setShowCreate] = useState(false);
     const scrollRef = useRef(null);
 
     useEffect(() => {
-        if (userId) loadStories();
+        if (userId) {
+            loadStories();
+            loadLiveUsers();
+        }
     }, [userId]);
 
+    const loadLiveUsers = async () => {
+        const { data } = await supabase
+            .from('live_streams')
+            .select('broadcaster_id')
+            .eq('status', 'live');
+        if (data) {
+            setLiveUsers(new Set(data.map(s => s.broadcaster_id)));
+        }
+    };
+
     const loadStories = async () => {
+        console.log('[Stories] Loading stories for userId:', userId);
         setLoading(true);
         try {
-            const { data, error } = await supabase.rpc('fn_get_stories', { p_viewer_id: userId });
+            // Use native fetch to avoid AbortError
+            const response = await fetch('https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/rpc/fn_get_stories', {
+                method: 'POST',
+                headers: {
+                    'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo',
+                    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ p_viewer_id: userId })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('[Stories] RPC fetch failed:', response.status, errorText);
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+            }
+
+            const data = await response.json();
+            console.log('[Stories] RPC response:', { data: data?.length || 0 });
+
             if (data) {
-                // Group stories by author
                 const grouped = {};
                 data.forEach(story => {
                     if (!grouped[story.author_id]) {
-                        grouped[story.author_id] = {
-                            ...story,
-                            stories: [story],
-                        };
+                        grouped[story.author_id] = { ...story, stories: [story] };
                     } else {
                         grouped[story.author_id].stories.push(story);
                     }
                 });
+                console.log('[Stories] Grouped stories:', Object.keys(grouped).length);
                 setStories(Object.values(grouped));
             }
         } catch (e) {
@@ -169,7 +263,6 @@ export function StoriesBar({ userId, onCreateStory }) {
 
     const handleViewStory = async (storyGroup) => {
         setViewingStory(storyGroup);
-        // Record view
         if (!storyGroup.is_own) {
             await supabase.rpc('fn_view_story', {
                 p_story_id: storyGroup.id,
@@ -178,7 +271,6 @@ export function StoriesBar({ userId, onCreateStory }) {
         }
     };
 
-    // Check if user has their own story
     const ownStory = stories.find(s => s.is_own);
     const otherStories = stories.filter(s => !s.is_own);
 
@@ -199,24 +291,22 @@ export function StoriesBar({ userId, onCreateStory }) {
                         overflowX: 'auto',
                         paddingBottom: 8,
                         scrollbarWidth: 'none',
-                        msOverflowStyle: 'none',
                     }}
                 >
-                    {/* Your Story (always first) */}
                     <StoryAvatar
-                        story={ownStory || { author_avatar: null }}
+                        story={ownStory || { author_avatar: userAvatar || '/default-avatar.png' }}
                         isOwn={true}
                         hasStory={!!ownStory}
                         onClick={() => ownStory ? handleViewStory(ownStory) : setShowCreate(true)}
                         onCreateStory={() => setShowCreate(true)}
                     />
 
-                    {/* Other stories */}
                     {otherStories.map(storyGroup => (
                         <StoryAvatar
                             key={storyGroup.author_id}
                             story={storyGroup}
                             onClick={() => handleViewStory(storyGroup)}
+                            isLive={liveUsers.has(storyGroup.author_id)}
                         />
                     ))}
 
@@ -226,7 +316,6 @@ export function StoriesBar({ userId, onCreateStory }) {
                 </div>
             </div>
 
-            {/* Story Viewer Modal */}
             {viewingStory && (
                 <StoryViewer
                     storyGroup={viewingStory}
@@ -235,7 +324,6 @@ export function StoriesBar({ userId, onCreateStory }) {
                 />
             )}
 
-            {/* Create Story Modal */}
             {showCreate && (
                 <CreateStoryModal
                     userId={userId}
@@ -255,11 +343,10 @@ function StoryViewer({ storyGroup, onClose, userId }) {
     const currentStory = stories[currentIndex];
     const timerRef = useRef(null);
 
-    // Auto-advance timer (5 seconds per story)
     useEffect(() => {
         setProgress(0);
-        const duration = 5000; // 5 seconds
-        const interval = 50; // Update every 50ms
+        const duration = 5000;
+        const interval = 50;
         let elapsed = 0;
 
         timerRef.current = setInterval(() => {
@@ -267,7 +354,6 @@ function StoryViewer({ storyGroup, onClose, userId }) {
             setProgress((elapsed / duration) * 100);
 
             if (elapsed >= duration) {
-                // Move to next story or close
                 if (currentIndex < stories.length - 1) {
                     setCurrentIndex(prev => prev + 1);
                 } else {
@@ -303,26 +389,21 @@ function StoryViewer({ storyGroup, onClose, userId }) {
             alignItems: 'center',
             justifyContent: 'center',
         }}>
-            {/* Close button */}
             <button
                 onClick={onClose}
                 style={{
                     position: 'absolute', top: 20, right: 20,
-                    width: 40, height: 40, borderRadius: '50%',
-                    background: 'rgba(255,255,255,0.1)',
+                    width: 44, height: 44, borderRadius: '50%',
+                    background: 'rgba(255,255,255,0.2)',
                     border: 'none', color: 'white', fontSize: 24,
                     cursor: 'pointer', zIndex: 10,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}
             >✕</button>
 
-            {/* Story container */}
             <div style={{
-                width: '100%',
-                maxWidth: 420,
-                height: '90vh',
-                maxHeight: 800,
-                borderRadius: 12,
-                overflow: 'hidden',
+                width: '100vw',
+                height: '100vh',
                 position: 'relative',
                 background: currentStory.background_color || currentStory.media_url ? 'black' : STORY_GRADIENTS[0],
             }}>
@@ -341,7 +422,6 @@ function StoryViewer({ storyGroup, onClose, userId }) {
                                 height: '100%',
                                 background: 'white',
                                 width: i < currentIndex ? '100%' : i === currentIndex ? `${progress}%` : '0%',
-                                transition: i === currentIndex ? 'none' : 'width 0.3s',
                             }} />
                         </div>
                     ))}
@@ -368,18 +448,31 @@ function StoryViewer({ storyGroup, onClose, userId }) {
                 </div>
 
                 {/* Story content */}
-                {currentStory.media_url ? (
+                {currentStory.link_url && currentStory.link_url.includes('youtube') ? (
+                    // Embed YouTube video for video stories
+                    <iframe
+                        src={currentStory.link_url.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
+                        style={{
+                            width: '100%',
+                            height: '100%',
+                            border: 'none',
+                            objectFit: 'contain'
+                        }}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                    />
+                ) : currentStory.media_url ? (
                     currentStory.media_type === 'video' ? (
                         <video
                             src={currentStory.media_url}
                             autoPlay
                             muted
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                         />
                     ) : (
                         <img
                             src={currentStory.media_url}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                         />
                     )
                 ) : (
@@ -398,7 +491,7 @@ function StoryViewer({ storyGroup, onClose, userId }) {
                     </div>
                 )}
 
-                {/* Text overlay if both media and content */}
+                {/* Text overlay */}
                 {currentStory.media_url && currentStory.content && (
                     <div style={{
                         position: 'absolute', bottom: 80, left: 20, right: 20,
@@ -410,23 +503,17 @@ function StoryViewer({ storyGroup, onClose, userId }) {
                     </div>
                 )}
 
-                {/* Navigation touch areas */}
-                <div
-                    onClick={goPrev}
-                    style={{
-                        position: 'absolute', top: 0, left: 0, bottom: 0, width: '30%',
-                        cursor: 'pointer',
-                    }}
-                />
-                <div
-                    onClick={goNext}
-                    style={{
-                        position: 'absolute', top: 0, right: 0, bottom: 0, width: '70%',
-                        cursor: 'pointer',
-                    }}
-                />
+                {/* Navigation */}
+                <div onClick={goPrev} style={{
+                    position: 'absolute', top: 0, left: 0, bottom: 0, width: '30%',
+                    cursor: 'pointer',
+                }} />
+                <div onClick={goNext} style={{
+                    position: 'absolute', top: 0, right: 0, bottom: 0, width: '70%',
+                    cursor: 'pointer',
+                }} />
 
-                {/* View count for own stories */}
+                {/* View count */}
                 {storyGroup.is_own && (
                     <div style={{
                         position: 'absolute', bottom: 20, left: 20,
@@ -441,7 +528,6 @@ function StoryViewer({ storyGroup, onClose, userId }) {
     );
 }
 
-// Time ago helper
 function timeAgo(d) {
     if (!d) return '';
     const s = Math.floor((Date.now() - new Date(d).getTime()) / 1000);
@@ -451,358 +537,515 @@ function timeAgo(d) {
     return `${Math.floor(s / 86400)}d`;
 }
 
-// Create Story Modal
+// 🎬 CREATE STORY MODAL - Full-screen TikTok/Instagram style
 function CreateStoryModal({ userId, onClose, onCreated }) {
-    const [mode, setMode] = useState('text'); // 'text' or 'media' or 'link'
+    const [mode, setMode] = useState('select'); // 'select', 'text', 'media', 'preview'
     const [text, setText] = useState('');
     const [selectedGradient, setSelectedGradient] = useState(0);
     const [mediaUrl, setMediaUrl] = useState(null);
     const [mediaType, setMediaType] = useState('image');
+    const [mediaPreview, setMediaPreview] = useState(null); // Local preview URL
     const [uploading, setUploading] = useState(false);
     const [creating, setCreating] = useState(false);
+    const [error, setError] = useState(null);
+    const [showSuccess, setShowSuccess] = useState(false); // Success toast
     const fileInputRef = useRef(null);
 
-    // 🔗 LINK PREVIEW STATE
-    const [linkPreview, setLinkPreview] = useState(null);
-    const [fetchingPreview, setFetchingPreview] = useState(false);
-    const linkTimeoutRef = useRef(null);
-
-    // Detect URLs in text and fetch preview
-    const detectAndFetchLink = async (inputText) => {
-        const urlRegex = /(https?:\/\/[^\s]+)/gi;
-        const matches = inputText.match(urlRegex);
-
-        if (matches && matches.length > 0) {
-            const url = matches[0];
-
-            // Don't refetch same URL
-            if (linkPreview?.url === url) return;
-
-            setFetchingPreview(true);
-            try {
-                // Use a CORS proxy or API route to fetch OG data
-                // For now, use a simple approach with a free OG API
-                const response = await fetch(`https://api.microlink.io?url=${encodeURIComponent(url)}`);
-                const data = await response.json();
-
-                if (data.status === 'success' && data.data) {
-                    setLinkPreview({
-                        url: url,
-                        title: data.data.title || 'Link Preview',
-                        description: data.data.description || '',
-                        image: data.data.image?.url || data.data.logo?.url || null,
-                        siteName: data.data.publisher || new URL(url).hostname,
-                    });
-                    setMode('link');
-                }
-            } catch (e) {
-                console.log('Link preview failed:', e);
-                // Fallback: just show the URL as title
-                try {
-                    const hostname = new URL(url).hostname;
-                    setLinkPreview({
-                        url: url,
-                        title: url.slice(0, 50) + '...',
-                        description: '',
-                        image: null,
-                        siteName: hostname,
-                    });
-                    setMode('link');
-                } catch (urlError) {
-                    // Invalid URL, ignore
-                }
-            }
-            setFetchingPreview(false);
-        }
-    };
-
-    // Handle text change with debounced link detection
-    const handleTextChange = (e) => {
-        const newText = e.target.value;
-        setText(newText);
-
-        // Debounce link detection
-        if (linkTimeoutRef.current) clearTimeout(linkTimeoutRef.current);
-        linkTimeoutRef.current = setTimeout(() => {
-            detectAndFetchLink(newText);
-        }, 800);
-    };
-
-    // Remove URL from text for final story
-    const getCleanText = () => {
-        if (!linkPreview?.url) return text;
-        return text.replace(linkPreview.url, '').trim();
-    };
-
+    // Handle file selection with IMMEDIATE preview
     const handleFileSelect = async (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        setUploading(true);
-        const fileExt = file.name.split('.').pop();
+        setError(null);
+
+        // Create immediate local preview
+        const localPreviewUrl = URL.createObjectURL(file);
+        setMediaPreview(localPreviewUrl);
+        setMode('preview');
+
         const isVideo = file.type.startsWith('video/');
-        const filePath = `stories/${userId}/${Date.now()}.${fileExt}`;
-
-        const { error: uploadError } = await supabase.storage
-            .from('stories')
-            .upload(filePath, file);
-
-        if (uploadError) {
-            alert('Error uploading: ' + uploadError.message);
-            setUploading(false);
-            return;
-        }
-
-        const { data: { publicUrl } } = supabase.storage.from('stories').getPublicUrl(filePath);
-        setMediaUrl(publicUrl);
         setMediaType(isVideo ? 'video' : 'image');
-        setMode('media');
-        setLinkPreview(null); // Clear link preview when uploading media
+
+        // Upload in background
+        setUploading(true);
+        try {
+            const fileExt = file.name.split('.').pop();
+            const filePath = `stories/${userId}/${Date.now()}.${fileExt}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('stories')
+                .upload(filePath, file, {
+                    cacheControl: '3600',
+                    upsert: false
+                });
+
+            if (uploadError) {
+                console.error('Upload error:', uploadError);
+                setError(`Upload failed: ${uploadError.message}`);
+                setUploading(false);
+                return;
+            }
+
+            const { data: { publicUrl } } = supabase.storage.from('stories').getPublicUrl(filePath);
+            setMediaUrl(publicUrl);
+            console.log('✅ Uploaded to:', publicUrl);
+        } catch (err) {
+            console.error('Upload error:', err);
+            setError(`Upload failed: ${err.message}`);
+        }
         setUploading(false);
     };
 
     const handleCreate = async () => {
-        if (!text && !mediaUrl && !linkPreview) return;
+        console.log('[Stories] handleCreate called');
+        console.log('[Stories] userId:', userId);
+        console.log('[Stories] text:', text);
+        console.log('[Stories] mediaUrl:', mediaUrl);
+        console.log('[Stories] mode:', mode);
+
+        // Validate based on mode
+        if (mode === 'select') {
+            setError('Please choose Text or Photo/Video first');
+            return;
+        }
+
+        if (mode === 'preview' && !mediaUrl) {
+            if (uploading) {
+                setError('Still uploading... please wait');
+            } else {
+                setError('Please select a photo or video');
+            }
+            return;
+        }
+
+        // For text mode, we can post even without text (gradient-only story is valid)
+        // But we need SOMETHING for media mode
+        if (mode !== 'text' && !text && !mediaUrl) {
+            setError('Nothing to post');
+            console.log('[Stories] No content to post, returning');
+            return;
+        }
+
+        if (!userId) {
+            setError('You must be logged in to post a story');
+            console.log('[Stories] No userId!');
+            return;
+        }
+
         setCreating(true);
+        setError(null);
 
         try {
-            // Use link preview image as media if no other media
-            const finalMediaUrl = mediaUrl || linkPreview?.image;
-            const finalMediaType = mediaUrl ? mediaType : (linkPreview?.image ? 'image' : null);
-            const cleanText = getCleanText();
-
-            // Build story content - include link title if we have a link
-            let storyContent = cleanText;
-            if (linkPreview && !cleanText) {
-                storyContent = linkPreview.title;
-            }
-
-            const { data: storyId, error } = await supabase.rpc('fn_create_story', {
+            console.log('[Stories] Calling fn_create_story...');
+            const { data: storyId, error: createError } = await supabase.rpc('fn_create_story', {
                 p_user_id: userId,
-                p_content: storyContent || null,
-                p_media_url: finalMediaUrl || null,
-                p_media_type: finalMediaType,
+                p_content: text || null,
+                p_media_url: mediaUrl || null,
+                p_media_type: mediaUrl ? mediaType : null,
                 p_background_color: mode === 'text' ? STORY_GRADIENTS[selectedGradient] : null,
+                p_link_url: null,
             });
 
-            if (error) throw error;
+            if (createError) {
+                console.log('[Stories] Create error:', createError);
+                throw createError;
+            }
 
-            // Auto-save videos to Reels (permanent archive)
+            console.log('[Stories] ✅ Story created! ID:', storyId);
+
+            // Auto-save videos to Reels
             if (mediaType === 'video' && mediaUrl) {
                 await supabase.from('social_reels').insert({
                     author_id: userId,
                     video_url: mediaUrl,
-                    caption: cleanText || null,
+                    caption: text || null,
                     source_story_id: storyId,
                 });
             }
 
-            onCreated();
+            // Cleanup local preview
+            if (mediaPreview) URL.revokeObjectURL(mediaPreview);
+
+            // Show success toast, then close after 2 seconds
+            setShowSuccess(true);
+            toast.success('Posted Successfully!', 2000);
+            setTimeout(() => {
+                onCreated();
+            }, 2000);
         } catch (e) {
             console.error('Create story error:', e);
-            alert('Failed to create story');
+            setError(`Failed to create story: ${e.message}`);
         }
         setCreating(false);
     };
 
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            if (mediaPreview) URL.revokeObjectURL(mediaPreview);
+        };
+    }, []);
+
     return (
-        <div style={{
-            position: 'fixed',
-            top: 0, left: 0, right: 0, bottom: 0,
-            background: 'rgba(0,0,0,0.8)',
-            zIndex: 10000,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-        }}>
-            <div style={{
-                width: '100%',
-                maxWidth: 500,
-                background: C.card,
-                borderRadius: 12,
-                overflow: 'hidden',
-            }}>
+        <div
+            onClick={onClose}
+            style={{
+                position: 'fixed',
+                top: 0, left: 0, right: 0, bottom: 0,
+                background: '#000',
+                zIndex: 10000,
+                display: 'flex',
+                flexDirection: 'column',
+            }}
+        >
+            <div
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    maxWidth: 500,
+                    margin: '0 auto',
+                    width: '100%',
+                }}
+            >
                 {/* Header */}
                 <div style={{
-                    padding: 16, borderBottom: `1px solid ${C.border}`,
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '16px 20px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    background: 'rgba(0,0,0,0.5)',
                 }}>
-                    <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer' }}>✕</button>
-                    <h3 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>Create Story</h3>
+                    <button
+                        onClick={onClose}
+                        style={{
+                            background: 'rgba(255,255,255,0.2)',
+                            border: 'none',
+                            width: 40,
+                            height: 40,
+                            borderRadius: '50%',
+                            fontSize: 20,
+                            cursor: 'pointer',
+                            color: 'white',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                        }}
+                    >✕</button>
+                    <h3 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: 'white' }}>Create Story</h3>
                     <button
                         onClick={handleCreate}
-                        disabled={(!text && !mediaUrl && !linkPreview) || creating}
+                        disabled={mode === 'select' || creating || uploading}
                         style={{
-                            background: C.blue,
+                            background: mode !== 'select' && !creating && !uploading ? C.blue : 'rgba(255,255,255,0.2)',
                             color: 'white',
                             border: 'none',
-                            borderRadius: 6,
-                            padding: '8px 16px',
+                            borderRadius: 20,
+                            padding: '10px 20px',
                             fontWeight: 600,
-                            cursor: (!text && !mediaUrl && !linkPreview) || creating ? 'not-allowed' : 'pointer',
-                            opacity: (!text && !mediaUrl && !linkPreview) || creating ? 0.5 : 1,
+                            cursor: mode !== 'select' && !creating && !uploading ? 'pointer' : 'not-allowed',
+                            opacity: mode !== 'select' && !creating && !uploading ? 1 : 0.5,
                         }}
                     >
-                        {creating ? 'Sharing...' : 'Share'}
+                        {creating ? 'Posting...' : uploading ? 'Uploading...' : mode === 'select' ? 'Choose Content' : 'Share'}
                     </button>
                 </div>
 
-                {/* Preview */}
-                <div style={{
-                    height: 400,
-                    background: mode === 'link' && linkPreview?.image
-                        ? `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.7)), url(${linkPreview.image})`
-                        : mode === 'text' ? STORY_GRADIENTS[selectedGradient] : '#000',
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    position: 'relative',
-                    flexDirection: 'column',
-                }}>
-                    {mode === 'media' && mediaUrl ? (
-                        mediaType === 'video' ? (
-                            <video src={mediaUrl} style={{ maxWidth: '100%', maxHeight: '100%' }} controls />
-                        ) : (
-                            <img src={mediaUrl} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-                        )
-                    ) : mode === 'link' && linkPreview ? (
-                        /* 🔗 LINK PREVIEW CARD */
+                {/* Error message */}
+                {error && (
+                    <div style={{
+                        background: '#ff4444',
+                        color: 'white',
+                        padding: '10px 20px',
+                        textAlign: 'center',
+                        fontSize: 14,
+                    }}>
+                        {error}
+                    </div>
+                )}
+
+                {/* Success Toast Overlay */}
+                {showSuccess && (
+                    <div style={{
+                        position: 'absolute',
+                        top: 0, left: 0, right: 0, bottom: 0,
+                        background: 'rgba(0,0,0,0.85)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 100,
+                        animation: 'fadeIn 0.3s ease',
+                    }}>
                         <div style={{
-                            background: 'rgba(255,255,255,0.95)',
-                            borderRadius: 12,
-                            overflow: 'hidden',
-                            width: '85%',
-                            maxWidth: 350,
-                            boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+                            fontSize: 64,
+                            marginBottom: 16,
+                            animation: 'bounceIn 0.5s ease',
+                        }}>✅</div>
+                        <div style={{
+                            color: 'white',
+                            fontSize: 24,
+                            fontWeight: 700,
+                            textAlign: 'center',
+                        }}>Story Posted!</div>
+                        <div style={{
+                            color: 'rgba(255,255,255,0.7)',
+                            fontSize: 14,
+                            marginTop: 8,
+                        }}>Your story is now live for 24 hours</div>
+                    </div>
+                )}
+
+                {/* Content Area */}
+                <div style={{
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    position: 'relative',
+                }}>
+                    {/* Selection Mode */}
+                    {mode === 'select' && (
+                        <div style={{
+                            flex: 1,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 24,
+                            padding: 40,
                         }}>
-                            {linkPreview.image && (
-                                <img
-                                    src={linkPreview.image}
-                                    style={{ width: '100%', height: 180, objectFit: 'cover' }}
-                                    alt=""
+                            <h2 style={{ color: 'white', fontSize: 24, fontWeight: 700, margin: 0 }}>
+                                What do you want to share?
+                            </h2>
+
+                            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
+                                <button
+                                    onClick={() => fileInputRef.current?.click()}
+                                    style={{
+                                        width: 140,
+                                        height: 140,
+                                        borderRadius: 16,
+                                        background: 'linear-gradient(135deg, #833AB4, #FD1D1D)',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: 8,
+                                        boxShadow: '0 4px 20px rgba(131, 58, 180, 0.4)',
+                                    }}
+                                >
+                                    <span style={{ fontSize: 48 }}>📷</span>
+                                    <span style={{ color: 'white', fontSize: 14, fontWeight: 600 }}>Photo/Video</span>
+                                </button>
+
+                                <button
+                                    onClick={() => setMode('text')}
+                                    style={{
+                                        width: 140,
+                                        height: 140,
+                                        borderRadius: 16,
+                                        background: 'linear-gradient(135deg, #1877F2, #00D4FF)',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: 8,
+                                        boxShadow: '0 4px 20px rgba(24, 119, 242, 0.4)',
+                                    }}
+                                >
+                                    <span style={{ fontSize: 48 }}>Aa</span>
+                                    <span style={{ color: 'white', fontSize: 14, fontWeight: 600 }}>Text Story</span>
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Text Mode */}
+                    {mode === 'text' && (
+                        <div style={{
+                            flex: 1,
+                            background: STORY_GRADIENTS[selectedGradient],
+                            display: 'flex',
+                            flexDirection: 'column',
+                        }}>
+                            <div style={{
+                                flex: 1,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                padding: 40,
+                            }}>
+                                <textarea
+                                    value={text}
+                                    onChange={(e) => setText(e.target.value)}
+                                    placeholder="Start typing..."
+                                    autoFocus
+                                    style={{
+                                        background: 'transparent',
+                                        border: 'none',
+                                        color: 'white',
+                                        fontSize: 28,
+                                        fontWeight: 700,
+                                        textAlign: 'center',
+                                        width: '100%',
+                                        resize: 'none',
+                                        outline: 'none',
+                                        textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                                    }}
+                                    rows={5}
                                 />
-                            )}
-                            <div style={{ padding: 16 }}>
-                                <div style={{ fontSize: 11, color: C.textSec, textTransform: 'uppercase', marginBottom: 4 }}>
-                                    {linkPreview.siteName}
+                            </div>
+
+                            {/* Background selector */}
+                            <div style={{
+                                padding: 16,
+                                background: 'rgba(0,0,0,0.3)',
+                            }}>
+                                <p style={{ color: 'white', fontSize: 12, marginBottom: 8, opacity: 0.7 }}>Background</p>
+                                <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 8 }}>
+                                    {STORY_GRADIENTS.map((grad, i) => (
+                                        <div
+                                            key={i}
+                                            onClick={() => setSelectedGradient(i)}
+                                            style={{
+                                                width: 44,
+                                                height: 44,
+                                                borderRadius: 8,
+                                                background: grad,
+                                                cursor: 'pointer',
+                                                border: selectedGradient === i ? '3px solid white' : '2px solid rgba(255,255,255,0.3)',
+                                                flexShrink: 0,
+                                            }}
+                                        />
+                                    ))}
                                 </div>
-                                <div style={{ fontSize: 16, fontWeight: 600, color: C.text, marginBottom: 8, lineHeight: 1.3 }}>
-                                    {linkPreview.title}
-                                </div>
-                                {linkPreview.description && (
-                                    <div style={{ fontSize: 13, color: C.textSec, lineHeight: 1.4 }}>
-                                        {linkPreview.description.slice(0, 100)}{linkPreview.description.length > 100 ? '...' : ''}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Preview Mode (after selecting photo/video) */}
+                    {mode === 'preview' && (
+                        <div style={{
+                            flex: 1,
+                            background: '#000',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            position: 'relative',
+                        }}>
+                            {/* Media preview */}
+                            <div style={{
+                                flex: 1,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                overflow: 'hidden',
+                            }}>
+                                {mediaPreview && (
+                                    mediaType === 'video' ? (
+                                        <video
+                                            src={mediaPreview}
+                                            style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                                            controls
+                                            autoPlay
+                                            muted
+                                        />
+                                    ) : (
+                                        <img
+                                            src={mediaPreview}
+                                            style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                                            alt="Preview"
+                                        />
+                                    )
+                                )}
+
+                                {/* Upload indicator overlay */}
+                                {uploading && (
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: 0, left: 0, right: 0, bottom: 0,
+                                        background: 'rgba(0,0,0,0.5)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}>
+                                        <div style={{
+                                            background: 'rgba(0,0,0,0.8)',
+                                            padding: '20px 40px',
+                                            borderRadius: 12,
+                                            color: 'white',
+                                            fontSize: 16,
+                                            fontWeight: 600,
+                                        }}>
+                                            📤 Uploading...
+                                        </div>
                                     </div>
                                 )}
                             </div>
-                            <button
-                                onClick={() => { setLinkPreview(null); setMode('text'); }}
-                                style={{
-                                    position: 'absolute', top: 60, right: 30,
-                                    width: 28, height: 28, borderRadius: '50%',
-                                    background: 'rgba(0,0,0,0.6)', border: 'none',
-                                    color: 'white', fontSize: 14, cursor: 'pointer',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                }}
-                            >✕</button>
-                        </div>
-                    ) : (
-                        <>
-                            <textarea
-                                value={text}
-                                onChange={handleTextChange}
-                                placeholder="Start typing or paste a link..."
-                                style={{
-                                    background: 'transparent',
-                                    border: 'none',
-                                    color: 'white',
-                                    fontSize: 24,
-                                    fontWeight: 600,
-                                    textAlign: 'center',
-                                    width: '80%',
-                                    resize: 'none',
-                                    outline: 'none',
-                                }}
-                                rows={4}
-                            />
-                            {fetchingPreview && (
-                                <div style={{
-                                    marginTop: 16,
-                                    color: 'rgba(255,255,255,0.8)',
-                                    fontSize: 14,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 8
-                                }}>
-                                    🔗 Fetching link preview...
-                                </div>
-                            )}
-                        </>
-                    )}
-                </div>
 
-                {/* Options */}
-                <div style={{ padding: 16 }}>
-                    {mode === 'text' && (
-                        <>
-                            <p style={{ fontSize: 13, color: C.textSec, marginBottom: 8 }}>Background</p>
-                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                                {STORY_GRADIENTS.map((grad, i) => (
-                                    <div
-                                        key={i}
-                                        onClick={() => setSelectedGradient(i)}
-                                        style={{
-                                            width: 40, height: 40, borderRadius: 8,
-                                            background: grad, cursor: 'pointer',
-                                            border: selectedGradient === i ? '3px solid ' + C.blue : 'none',
-                                        }}
-                                    />
-                                ))}
+                            {/* Caption input */}
+                            <div style={{
+                                padding: 16,
+                                background: 'rgba(0,0,0,0.5)',
+                            }}>
+                                <input
+                                    type="text"
+                                    value={text}
+                                    onChange={(e) => setText(e.target.value)}
+                                    placeholder="Add a caption..."
+                                    style={{
+                                        width: '100%',
+                                        background: 'rgba(255,255,255,0.1)',
+                                        border: 'none',
+                                        padding: '12px 16px',
+                                        borderRadius: 24,
+                                        color: 'white',
+                                        fontSize: 16,
+                                        outline: 'none',
+                                    }}
+                                />
                             </div>
-                        </>
-                    )}
 
-                    <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
-                        <button
-                            onClick={() => setMode('text')}
-                            style={{
-                                flex: 1, padding: 12, borderRadius: 8,
-                                background: mode === 'text' ? C.blue : C.bg,
-                                color: mode === 'text' ? 'white' : C.text,
-                                border: 'none', fontWeight: 600, cursor: 'pointer',
-                            }}
-                        >
-                            Aa Text
-                        </button>
-                        <button
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={uploading}
-                            style={{
-                                flex: 1, padding: 12, borderRadius: 8,
-                                background: mode === 'media' ? C.blue : C.bg,
-                                color: mode === 'media' ? 'white' : C.text,
-                                border: 'none', fontWeight: 600, cursor: 'pointer',
-                            }}
-                        >
-                            {uploading ? '📤 Uploading...' : '📷 Photo/Video'}
-                        </button>
-                    </div>
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*,video/*"
-                        hidden
-                        onChange={handleFileSelect}
-                    />
+                            {/* Change photo button */}
+                            <button
+                                onClick={() => fileInputRef.current?.click()}
+                                style={{
+                                    position: 'absolute',
+                                    bottom: 80,
+                                    right: 16,
+                                    background: 'rgba(255,255,255,0.2)',
+                                    border: 'none',
+                                    padding: '8px 16px',
+                                    borderRadius: 20,
+                                    color: 'white',
+                                    fontSize: 14,
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                📷 Change
+                            </button>
+                        </div>
+                    )}
                 </div>
+
+                {/* Hidden file input */}
+                <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*,video/*"
+                    hidden
+                    onChange={handleFileSelect}
+                />
             </div>
         </div>
     );
 }
 
-// Share to Story prompt (shown after posting media)
+// Share to Story prompt
 export function ShareToStoryPrompt({ mediaUrl, mediaType, userId, onClose, onShared }) {
     const [sharing, setSharing] = useState(false);
 
@@ -821,53 +1064,35 @@ export function ShareToStoryPrompt({ mediaUrl, mediaType, userId, onClose, onSha
             console.error('Share to story error:', e);
         }
         setSharing(false);
-        onClose();
     };
 
     return (
         <div style={{
-            position: 'fixed',
-            bottom: 100, left: '50%', transform: 'translateX(-50%)',
-            background: C.card,
-            borderRadius: 12,
             padding: 16,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
-            zIndex: 1000,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
+            background: 'linear-gradient(135deg, #833AB4, #FD1D1D, #FCB045)',
+            borderRadius: 12,
+            marginBottom: 16,
         }}>
-            <span style={{ fontSize: 14, color: C.text }}>
-                Also share to your Story?
-            </span>
-            <button
-                onClick={handleShare}
-                disabled={sharing}
-                style={{
-                    background: 'linear-gradient(135deg, #833AB4, #FD1D1D, #FCB045)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: 8,
-                    padding: '8px 16px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                }}
-            >
-                {sharing ? '...' : '📖 Share'}
-            </button>
-            <button
-                onClick={onClose}
-                style={{
-                    background: C.bg,
-                    color: C.textSec,
-                    border: 'none',
-                    borderRadius: 8,
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                }}
-            >
-                Not now
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                    <div style={{ color: 'white', fontWeight: 600, fontSize: 15 }}>Add to your Story?</div>
+                    <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13 }}>Share this with your followers</div>
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={onClose} style={{
+                        background: 'rgba(255,255,255,0.2)',
+                        border: 'none', borderRadius: 20, padding: '8px 16px',
+                        color: 'white', fontWeight: 500, cursor: 'pointer',
+                    }}>Not now</button>
+                    <button onClick={handleShare} disabled={sharing} style={{
+                        background: 'white',
+                        border: 'none', borderRadius: 20, padding: '8px 20px',
+                        color: '#833AB4', fontWeight: 600, cursor: 'pointer',
+                    }}>{sharing ? '...' : 'Share'}</button>
+                </div>
+            </div>
         </div>
     );
 }
+
+export default StoriesBar;

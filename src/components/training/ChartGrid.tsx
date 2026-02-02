@@ -23,24 +23,19 @@ import { motion, AnimatePresence } from 'framer-motion';
 // ============================================================================
 
 interface ChartGridProps {
-    chartType: string;           // 'push_fold', 'open_raise', 'call_shove', etc.
-    heroPosition: string;        // 'BTN', 'CO', 'SB', 'BB', etc.
-    stackBB: number;             // Stack size in big blinds
-    villainPosition?: string;    // For vs-specific charts
-    correctRange?: string[];     // Array of hands that should be pushed/called
-    onAction: (action: string, hand: string) => void;
+    chartType: string;           // 'push_fold' | '3bet_defend' | 'bb_defense'
+    heroPosition: string;        // 'BTN' | 'CO' | 'SB' | 'BB' etc.
+    stackBB: number;             // Stack in big blinds
+    villainPosition?: string;    // Villain position for 3bet scenarios
+    highlightHand?: string;      // Hand to highlight (e.g., 'AKs')
+    correctRange?: string[];     // Correct hands for current action
+    phase: 'SELECT_HAND' | 'SELECT_ACTION' | 'SHOWING_RESULT';
     resultFeedback?: {
         hand: string;
         isCorrect: boolean;
         correctAction: string;
     } | null;
-    phase: 'SELECT_HAND' | 'SELECT_ACTION' | 'SHOWING_RESULT';
-    highlightHand?: string;      // Hand to highlight (the "question")
-}
-
-interface CellState {
-    hand: string;
-    status: 'neutral' | 'correct' | 'wrong' | 'highlight' | 'selected';
+    onAction: (action: string, hand: string) => void;
 }
 
 // ============================================================================
@@ -50,31 +45,26 @@ interface CellState {
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 
 // Position colors
-const POSITION_COLORS: { [key: string]: string } = {
-    'BTN': '#00D4FF',
-    'CO': '#4CAF50',
-    'HJ': '#8BC34A',
-    'LJ': '#CDDC39',
-    'SB': '#FF9800',
-    'BB': '#FF5722',
-    'UTG': '#9C27B0',
-    'UTG+1': '#673AB7',
-    'UTG+2': '#3F51B5',
+const POSITION_COLORS: Record<string, string> = {
+    BTN: '#00d4ff',
+    CO: '#00ff88',
+    HJ: '#ffaa00',
+    MP: '#ff6600',
+    UTG: '#ff4444',
+    SB: '#aa66ff',
+    BB: '#ff66aa',
 };
 
 // ============================================================================
-// UTILITY FUNCTIONS
+// HELPER FUNCTIONS
 // ============================================================================
 
-/**
- * Generate the hand notation for a cell
- */
-function getHandNotation(row: number, col: number): string {
+const getHandNotation = (row: number, col: number): string => {
     const rank1 = RANKS[row];
     const rank2 = RANKS[col];
 
     if (row === col) {
-        // Pocket pair (diagonal)
+        // Pocket pair
         return `${rank1}${rank2}`;
     } else if (row < col) {
         // Suited (above diagonal)
@@ -83,247 +73,69 @@ function getHandNotation(row: number, col: number): string {
         // Offsuit (below diagonal)
         return `${rank2}${rank1}o`;
     }
-}
-
-/**
- * Get cell background color based on state and hand strength
- */
-function getCellBackground(hand: string, status: CellState['status']): string {
-    // Result states override everything
-    if (status === 'correct') {
-        return 'linear-gradient(135deg, rgba(76, 175, 80, 0.9), rgba(56, 142, 60, 0.9))';
-    }
-    if (status === 'wrong') {
-        return 'linear-gradient(135deg, rgba(244, 67, 54, 0.9), rgba(211, 47, 47, 0.9))';
-    }
-    if (status === 'highlight') {
-        return 'linear-gradient(135deg, rgba(255, 215, 0, 0.9), rgba(255, 165, 0, 0.9))';
-    }
-    if (status === 'selected') {
-        return 'linear-gradient(135deg, rgba(0, 212, 255, 0.8), rgba(0, 153, 204, 0.8))';
-    }
-
-    // Default: gradient based on hand type
-    const isPair = hand.length === 2;
-    const isSuited = hand.endsWith('s');
-
-    if (isPair) {
-        // Pocket pairs - purple gradient
-        return 'linear-gradient(135deg, rgba(156, 39, 176, 0.4), rgba(123, 31, 162, 0.4))';
-    } else if (isSuited) {
-        // Suited - blue gradient
-        return 'linear-gradient(135deg, rgba(33, 150, 243, 0.3), rgba(25, 118, 210, 0.3))';
-    } else {
-        // Offsuit - darker
-        return 'linear-gradient(135deg, rgba(50, 50, 70, 0.4), rgba(40, 40, 60, 0.4))';
-    }
-}
-
-// ============================================================================
-// GRID CELL COMPONENT
-// ============================================================================
-
-const GridCell: React.FC<{
-    hand: string;
-    row: number;
-    col: number;
-    status: CellState['status'];
-    onClick: (hand: string) => void;
-    disabled: boolean;
-}> = ({ hand, row, col, status, onClick, disabled }) => {
-    const isPair = hand.length === 2;
-    const isSuited = hand.endsWith('s');
-
-    return (
-        <motion.div
-            onClick={() => !disabled && onClick(hand)}
-            whileHover={!disabled ? { scale: 1.1, zIndex: 10 } : {}}
-            whileTap={!disabled ? { scale: 0.95 } : {}}
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{
-                opacity: 1,
-                scale: status === 'highlight' ? 1.15 : 1,
-                zIndex: status === 'highlight' ? 20 : 1,
-            }}
-            transition={{ delay: (row * 13 + col) * 0.003 }}
-            style={{
-                width: '100%',
-                aspectRatio: '1',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: getCellBackground(hand, status),
-                borderRadius: 4,
-                cursor: disabled ? 'default' : 'pointer',
-                border: status === 'highlight'
-                    ? '3px solid #FFD700'
-                    : status === 'selected'
-                        ? '2px solid #00D4FF'
-                        : '1px solid rgba(255, 255, 255, 0.1)',
-                boxShadow: status === 'highlight'
-                    ? '0 0 20px rgba(255, 215, 0, 0.6), 0 0 40px rgba(255, 215, 0, 0.3)'
-                    : status === 'correct'
-                        ? '0 0 15px rgba(76, 175, 80, 0.5)'
-                        : status === 'wrong'
-                            ? '0 0 15px rgba(244, 67, 54, 0.5)'
-                            : 'none',
-                position: 'relative',
-                overflow: 'hidden',
-            }}
-        >
-            <span style={{
-                fontSize: 'clamp(8px, 1.8vw, 12px)',
-                fontWeight: 700,
-                color: status === 'highlight' ? '#000' : '#fff',
-                textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-                letterSpacing: -0.5,
-            }}>
-                {hand}
-            </span>
-
-            {/* Suit indicator dot */}
-            {isSuited && (
-                <div style={{
-                    position: 'absolute',
-                    top: 2,
-                    right: 2,
-                    width: 4,
-                    height: 4,
-                    borderRadius: '50%',
-                    background: '#00D4FF',
-                }} />
-            )}
-            {isPair && (
-                <div style={{
-                    position: 'absolute',
-                    top: 2,
-                    right: 2,
-                    width: 4,
-                    height: 4,
-                    borderRadius: '50%',
-                    background: '#9C27B0',
-                }} />
-            )}
-
-            {/* Result icon overlay */}
-            {status === 'correct' && (
-                <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    style={{
-                        position: 'absolute',
-                        inset: 0,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: 'clamp(12px, 3vw, 20px)',
-                    }}
-                >
-                    ✓
-                </motion.div>
-            )}
-            {status === 'wrong' && (
-                <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    style={{
-                        position: 'absolute',
-                        inset: 0,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: 'clamp(12px, 3vw, 20px)',
-                    }}
-                >
-                    ✗
-                </motion.div>
-            )}
-        </motion.div>
-    );
 };
 
-// ============================================================================
-// ACTION POPUP COMPONENT
-// ============================================================================
+const getCellStyle = (row: number, col: number, isSelected: boolean, isHighlighted: boolean, result: 'correct' | 'wrong' | null): React.CSSProperties => {
+    let background = 'rgba(255, 255, 255, 0.05)';
+    let borderColor = 'rgba(255, 255, 255, 0.1)';
 
-const ActionPopup: React.FC<{
-    hand: string;
-    chartType: string;
-    onAction: (action: string) => void;
-    onCancel: () => void;
-}> = ({ hand, chartType, onAction, onCancel }) => {
-    // Determine actions based on chart type
-    const getActions = () => {
-        switch (chartType) {
-            case 'push_fold':
-            case 'shove_fold':
-                return [
-                    { id: 'PUSH', label: 'PUSH', icon: '🚀', color: '#4CAF50' },
-                    { id: 'FOLD', label: 'FOLD', icon: '🃏', color: '#FF5722' },
-                ];
-            case 'call_shove':
-                return [
-                    { id: 'CALL', label: 'CALL', icon: '✓', color: '#4CAF50' },
-                    { id: 'FOLD', label: 'FOLD', icon: '✗', color: '#FF5722' },
-                ];
-            case 'open_raise':
-                return [
-                    { id: 'RAISE', label: 'RAISE', icon: '📈', color: '#4CAF50' },
-                    { id: 'FOLD', label: 'FOLD', icon: '🃏', color: '#FF5722' },
-                ];
-            case '3bet_or_fold':
-                return [
-                    { id: '3BET', label: '3-BET', icon: '🔥', color: '#FF9800' },
-                    { id: 'CALL', label: 'CALL', icon: '✓', color: '#4CAF50' },
-                    { id: 'FOLD', label: 'FOLD', icon: '✗', color: '#FF5722' },
-                ];
-            default:
-                return [
-                    { id: 'PUSH', label: 'PUSH', icon: '🚀', color: '#4CAF50' },
-                    { id: 'FOLD', label: 'FOLD', icon: '🃏', color: '#FF5722' },
-                ];
-        }
+    // Pocket pairs - diagonal
+    if (row === col) {
+        background = 'rgba(138, 43, 226, 0.3)';
+        borderColor = 'rgba(138, 43, 226, 0.5)';
+    }
+    // Suited - above diagonal
+    else if (row < col) {
+        background = 'rgba(0, 150, 255, 0.2)';
+        borderColor = 'rgba(0, 150, 255, 0.4)';
+    }
+    // Offsuit - below diagonal
+    else {
+        background = 'rgba(100, 100, 100, 0.2)';
+        borderColor = 'rgba(100, 100, 100, 0.4)';
+    }
+
+    // Selection state
+    if (isSelected) {
+        background = 'rgba(0, 212, 255, 0.5)';
+        borderColor = '#00d4ff';
+    }
+
+    // Highlight state (question hand)
+    if (isHighlighted) {
+        background = 'rgba(255, 215, 0, 0.4)';
+        borderColor = '#ffd700';
+    }
+
+    // Result states
+    if (result === 'correct') {
+        background = 'rgba(0, 255, 136, 0.5)';
+        borderColor = '#00ff88';
+    } else if (result === 'wrong') {
+        background = 'rgba(255, 68, 68, 0.5)';
+        borderColor = '#ff4444';
+    }
+
+    return {
+        width: 48,
+        height: 48,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background,
+        border: `1px solid ${borderColor}`,
+        borderRadius: 4,
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        fontSize: 11,
+        fontWeight: 600,
+        color: '#fff',
+        textShadow: '0 1px 2px rgba(0,0,0,0.5)',
     };
-
-    const actions = getActions();
-
-    return (
-        <motion.div
-            initial={{ opacity: 0, scale: 0.8, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.8, y: 20 }}
-            style={styles.actionPopup}
-        >
-            {/* Header */}
-            <div style={styles.popupHeader}>
-                <span style={styles.popupHand}>{hand}</span>
-                <button onClick={onCancel} style={styles.cancelBtn}>✕</button>
-            </div>
-
-            {/* Action Buttons */}
-            <div style={styles.actionButtons}>
-                {actions.map((action) => (
-                    <motion.button
-                        key={action.id}
-                        onClick={() => onAction(action.id)}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        style={{
-                            ...styles.actionBtn,
-                            background: `linear-gradient(135deg, ${action.color}, ${action.color}CC)`,
-                        }}
-                    >
-                        <span style={styles.actionIcon}>{action.icon}</span>
-                        <span style={styles.actionLabel}>{action.label}</span>
-                    </motion.button>
-                ))}
-            </div>
-        </motion.div>
-    );
 };
 
 // ============================================================================
-// MAIN COMPONENT
+// COMPONENT
 // ============================================================================
 
 const ChartGrid: React.FC<ChartGridProps> = ({
@@ -331,220 +143,243 @@ const ChartGrid: React.FC<ChartGridProps> = ({
     heroPosition,
     stackBB,
     villainPosition,
-    correctRange = [],
-    onAction,
-    resultFeedback,
-    phase,
     highlightHand,
+    correctRange,
+    phase,
+    resultFeedback,
+    onAction,
 }) => {
     const [selectedHand, setSelectedHand] = useState<string | null>(null);
-    const [cellStates, setCellStates] = useState<Map<string, CellState['status']>>(new Map());
+    const [showActionMenu, setShowActionMenu] = useState(false);
 
-    // Update cell states when feedback comes in
-    useEffect(() => {
-        if (resultFeedback) {
-            setCellStates(prev => {
-                const newStates = new Map(prev);
-                newStates.set(
-                    resultFeedback.hand,
-                    resultFeedback.isCorrect ? 'correct' : 'wrong'
-                );
-                return newStates;
-            });
-            setSelectedHand(null);
+    // Get action options based on chart type
+    const getActionOptions = (): { action: string; label: string; color: string }[] => {
+        switch (chartType) {
+            case 'push_fold':
+                return [
+                    { action: 'PUSH', label: 'PUSH', color: '#ff4444' },
+                    { action: 'FOLD', label: 'FOLD', color: '#666666' },
+                ];
+            case '3bet_defend':
+                return [
+                    { action: '3BET', label: '3-BET', color: '#ff4444' },
+                    { action: 'CALL', label: 'CALL', color: '#00ff88' },
+                    { action: 'FOLD', label: 'FOLD', color: '#666666' },
+                ];
+            case 'bb_defense':
+                return [
+                    { action: 'CALL', label: 'CALL', color: '#00ff88' },
+                    { action: 'FOLD', label: 'FOLD', color: '#666666' },
+                ];
+            default:
+                return [
+                    { action: 'PUSH', label: 'PUSH', color: '#ff4444' },
+                    { action: 'FOLD', label: 'FOLD', color: '#666666' },
+                ];
         }
-    }, [resultFeedback]);
-
-    // Highlight the question hand
-    useEffect(() => {
-        if (highlightHand) {
-            setCellStates(prev => {
-                const newStates = new Map(prev);
-                // Clear previous highlights
-                newStates.forEach((value, key) => {
-                    if (value === 'highlight') {
-                        newStates.set(key, 'neutral');
-                    }
-                });
-                newStates.set(highlightHand, 'highlight');
-                return newStates;
-            });
-        }
-    }, [highlightHand]);
+    };
 
     const handleCellClick = useCallback((hand: string) => {
-        if (phase === 'SELECT_HAND' || phase === 'SELECT_ACTION') {
-            setSelectedHand(hand);
-            setCellStates(prev => {
-                const newStates = new Map(prev);
-                // Clear previous selection
-                newStates.forEach((value, key) => {
-                    if (value === 'selected') {
-                        newStates.set(key, 'neutral');
-                    }
-                });
-                newStates.set(hand, 'selected');
-                return newStates;
-            });
-        }
+        if (phase !== 'SELECT_HAND') return;
+        setSelectedHand(hand);
+        setShowActionMenu(true);
     }, [phase]);
 
-    const handleAction = useCallback((action: string) => {
+    const handleActionSelect = useCallback((action: string) => {
         if (selectedHand) {
             onAction(action, selectedHand);
+            setShowActionMenu(false);
+            setSelectedHand(null);
         }
     }, [selectedHand, onAction]);
 
-    const handleCancel = useCallback(() => {
-        if (selectedHand) {
-            setCellStates(prev => {
-                const newStates = new Map(prev);
-                newStates.set(selectedHand, highlightHand === selectedHand ? 'highlight' : 'neutral');
-                return newStates;
-            });
+    // Reset state when phase changes
+    useEffect(() => {
+        if (phase === 'SELECT_HAND') {
             setSelectedHand(null);
+            setShowActionMenu(false);
         }
-    }, [selectedHand, highlightHand]);
+    }, [phase]);
 
-    const getCellStatus = (hand: string): CellState['status'] => {
-        return cellStates.get(hand) || 'neutral';
-    };
-
-    // Get chart title
-    const getChartTitle = () => {
-        switch (chartType) {
-            case 'push_fold': return 'Push or Fold?';
-            case 'call_shove': return 'Call the Shove?';
-            case 'open_raise': return 'Open Raise?';
-            case '3bet_or_fold': return '3-Bet, Call, or Fold?';
-            default: return 'Make Your Decision';
-        }
-    };
+    const positionColor = POSITION_COLORS[heroPosition] || '#00d4ff';
 
     return (
         <div style={styles.container}>
-            {/* Header Info */}
+            {/* Header */}
             <div style={styles.header}>
-                <div style={styles.chartTitle}>{getChartTitle()}</div>
-                <div style={styles.situationInfo}>
-                    <span style={{
-                        ...styles.positionBadge,
-                        background: POSITION_COLORS[heroPosition] || '#666',
-                    }}>
-                        {heroPosition}
-                    </span>
-                    <span style={styles.stackInfo}>{stackBB} BB</span>
-                    {villainPosition && (
-                        <>
-                            <span style={styles.vsText}>vs</span>
-                            <span style={{
-                                ...styles.positionBadge,
-                                background: POSITION_COLORS[villainPosition] || '#666',
-                            }}>
-                                {villainPosition}
-                            </span>
-                        </>
-                    )}
+                <div style={styles.positionBadge}>
+                    <span style={{ ...styles.positionDot, background: positionColor }} />
+                    <span style={styles.positionText}>{heroPosition}</span>
                 </div>
+                <div style={styles.stackBadge}>
+                    <span style={styles.stackText}>{stackBB} BB</span>
+                </div>
+                {villainPosition && (
+                    <div style={styles.villainBadge}>
+                        vs {villainPosition}
+                    </div>
+                )}
             </div>
 
-            {/* The 13x13 Grid */}
+            {/* Chart Type Label */}
+            <div style={styles.chartLabel}>
+                {chartType === 'push_fold' && '📊 Push/Fold Chart'}
+                {chartType === '3bet_defend' && '🎯 3-Bet Defense'}
+                {chartType === 'bb_defense' && '🛡️ BB Defense'}
+            </div>
+
+            {/* Grid */}
             <div style={styles.gridContainer}>
-                <div style={styles.grid}>
-                    {RANKS.map((_, row) => (
-                        RANKS.map((_, col) => {
-                            const hand = getHandNotation(row, col);
-                            return (
-                                <GridCell
-                                    key={`${row}-${col}`}
-                                    hand={hand}
-                                    row={row}
-                                    col={col}
-                                    status={getCellStatus(hand)}
-                                    onClick={handleCellClick}
-                                    disabled={phase === 'SHOWING_RESULT'}
-                                />
-                            );
-                        })
+                {/* Column headers */}
+                <div style={styles.headerRow}>
+                    <div style={styles.cornerCell} />
+                    {RANKS.map((rank) => (
+                        <div key={rank} style={styles.headerCell}>
+                            {rank}
+                        </div>
                     ))}
                 </div>
 
-                {/* Legend */}
-                <div style={styles.legend}>
-                    <div style={styles.legendItem}>
-                        <div style={{ ...styles.legendDot, background: '#9C27B0' }} />
-                        <span>Pairs</span>
+                {/* Grid rows */}
+                {RANKS.map((rowRank, rowIdx) => (
+                    <div key={rowRank} style={styles.gridRow}>
+                        {/* Row header */}
+                        <div style={styles.rowHeaderCell}>
+                            {rowRank}
+                        </div>
+
+                        {/* Cells */}
+                        {RANKS.map((colRank, colIdx) => {
+                            const hand = getHandNotation(rowIdx, colIdx);
+                            const isSelected = selectedHand === hand;
+                            const isHighlighted = highlightHand === hand;
+
+                            let result: 'correct' | 'wrong' | null = null;
+                            if (resultFeedback && resultFeedback.hand === hand) {
+                                result = resultFeedback.isCorrect ? 'correct' : 'wrong';
+                            }
+
+                            return (
+                                <motion.div
+                                    key={hand}
+                                    style={getCellStyle(rowIdx, colIdx, isSelected, isHighlighted, result)}
+                                    whileHover={{ scale: phase === 'SELECT_HAND' ? 1.1 : 1 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => handleCellClick(hand)}
+                                    animate={isHighlighted ? {
+                                        boxShadow: ['0 0 10px #ffd700', '0 0 20px #ffd700', '0 0 10px #ffd700'],
+                                    } : {}}
+                                    transition={{ duration: 0.5, repeat: isHighlighted ? Infinity : 0 }}
+                                >
+                                    {hand}
+                                    {result === 'correct' && <span style={styles.checkMark}>✓</span>}
+                                    {result === 'wrong' && <span style={styles.xMark}>✗</span>}
+                                </motion.div>
+                            );
+                        })}
                     </div>
-                    <div style={styles.legendItem}>
-                        <div style={{ ...styles.legendDot, background: '#00D4FF' }} />
-                        <span>Suited</span>
-                    </div>
-                    <div style={styles.legendItem}>
-                        <div style={{ ...styles.legendDot, background: '#666' }} />
-                        <span>Offsuit</span>
-                    </div>
-                </div>
+                ))}
             </div>
 
-            {/* Instruction */}
-            {phase === 'SELECT_HAND' && !highlightHand && (
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    style={styles.instruction}
-                >
-                    Click a hand to make your decision
-                </motion.div>
-            )}
-
-            {highlightHand && phase !== 'SHOWING_RESULT' && (
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    style={styles.questionPrompt}
-                >
-                    You hold <strong style={{ color: '#FFD700' }}>{highlightHand}</strong> - What's your play?
-                </motion.div>
-            )}
-
-            {/* Action Popup */}
+            {/* Action Menu Overlay */}
             <AnimatePresence>
-                {selectedHand && phase !== 'SHOWING_RESULT' && (
-                    <ActionPopup
-                        hand={selectedHand}
-                        chartType={chartType}
-                        onAction={handleAction}
-                        onCancel={handleCancel}
-                    />
-                )}
-            </AnimatePresence>
-
-            {/* Result Feedback */}
-            <AnimatePresence>
-                {resultFeedback && phase === 'SHOWING_RESULT' && (
+                {showActionMenu && selectedHand && (
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.8 }}
-                        style={{
-                            ...styles.resultOverlay,
-                            background: resultFeedback.isCorrect
-                                ? 'rgba(76, 175, 80, 0.95)'
-                                : 'rgba(244, 67, 54, 0.95)',
-                        }}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        style={styles.actionOverlay}
                     >
-                        <div style={styles.resultIcon}>
-                            {resultFeedback.isCorrect ? '✓' : '✗'}
-                        </div>
-                        <div style={styles.resultText}>
-                            {resultFeedback.isCorrect ? 'Correct!' : 'Incorrect'}
-                        </div>
-                        <div style={styles.resultDetail}>
-                            {resultFeedback.hand}: {resultFeedback.correctAction}
-                        </div>
+                        <motion.div
+                            initial={{ scale: 0.8, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.8, y: 20 }}
+                            style={styles.actionMenu}
+                        >
+                            <div style={styles.selectedHandLabel}>
+                                {selectedHand}
+                            </div>
+                            <div style={styles.actionButtons}>
+                                {getActionOptions().map((opt) => (
+                                    <motion.button
+                                        key={opt.action}
+                                        style={{ ...styles.actionButton, background: opt.color }}
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={() => handleActionSelect(opt.action)}
+                                    >
+                                        {opt.label}
+                                    </motion.button>
+                                ))}
+                            </div>
+                            <button
+                                style={styles.cancelButton}
+                                onClick={() => setShowActionMenu(false)}
+                            >
+                                Cancel
+                            </button>
+                        </motion.div>
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* Result Overlay */}
+            <AnimatePresence>
+                {phase === 'SHOWING_RESULT' && resultFeedback && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        style={styles.resultOverlay}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.8 }}
+                            animate={{ scale: 1 }}
+                            style={{
+                                ...styles.resultCard,
+                                borderColor: resultFeedback.isCorrect ? '#00ff88' : '#ff4444',
+                            }}
+                        >
+                            <div style={{
+                                fontSize: 48,
+                                marginBottom: 16,
+                            }}>
+                                {resultFeedback.isCorrect ? '✅' : '❌'}
+                            </div>
+                            <div style={{
+                                fontSize: 24,
+                                fontWeight: 700,
+                                color: resultFeedback.isCorrect ? '#00ff88' : '#ff4444',
+                                marginBottom: 8,
+                            }}>
+                                {resultFeedback.isCorrect ? 'CORRECT!' : 'WRONG!'}
+                            </div>
+                            <div style={styles.resultHand}>
+                                {resultFeedback.hand}
+                            </div>
+                            <div style={styles.correctAnswer}>
+                                Correct: {resultFeedback.correctAction}
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Legend */}
+            <div style={styles.legend}>
+                <div style={styles.legendItem}>
+                    <span style={{ ...styles.legendDot, background: 'rgba(138, 43, 226, 0.5)' }} />
+                    <span>Pairs</span>
+                </div>
+                <div style={styles.legendItem}>
+                    <span style={{ ...styles.legendDot, background: 'rgba(0, 150, 255, 0.4)' }} />
+                    <span>Suited</span>
+                </div>
+                <div style={styles.legendItem}>
+                    <span style={{ ...styles.legendDot, background: 'rgba(100, 100, 100, 0.4)' }} />
+                    <span>Offsuit</span>
+                </div>
+            </div>
         </div>
     );
 };
@@ -553,203 +388,215 @@ const ChartGrid: React.FC<ChartGridProps> = ({
 // STYLES
 // ============================================================================
 
-const styles: { [key: string]: React.CSSProperties } = {
+const styles: Record<string, React.CSSProperties> = {
     container: {
-        width: '100%',
-        maxWidth: 500,
-        margin: '0 auto',
-        padding: 16,
-        position: 'relative',
-    },
-
-    header: {
-        textAlign: 'center',
-        marginBottom: 16,
-    },
-
-    chartTitle: {
-        fontSize: 24,
-        fontWeight: 800,
-        color: '#fff',
-        marginBottom: 8,
-        textShadow: '0 2px 4px rgba(0,0,0,0.3)',
-    },
-
-    situationInfo: {
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
+        padding: 16,
+        background: 'linear-gradient(180deg, #0a0a15 0%, #0d1628 100%)',
+        borderRadius: 16,
+        minHeight: '100%',
     },
-
-    positionBadge: {
-        padding: '4px 12px',
-        borderRadius: 12,
-        fontSize: 12,
-        fontWeight: 700,
-        color: '#fff',
-        textShadow: '0 1px 2px rgba(0,0,0,0.3)',
-    },
-
-    stackInfo: {
-        fontSize: 14,
-        fontWeight: 600,
-        color: 'rgba(255, 255, 255, 0.8)',
-    },
-
-    vsText: {
-        fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.5)',
-    },
-
-    gridContainer: {
-        background: 'rgba(0, 0, 0, 0.3)',
-        borderRadius: 12,
-        padding: 12,
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-    },
-
-    grid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(13, 1fr)',
-        gap: 2,
-    },
-
-    legend: {
+    header: {
         display: 'flex',
-        justifyContent: 'center',
-        gap: 16,
-        marginTop: 12,
-        paddingTop: 12,
-        borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+        gap: 12,
+        marginBottom: 16,
+        alignItems: 'center',
     },
-
-    legendItem: {
+    positionBadge: {
         display: 'flex',
         alignItems: 'center',
         gap: 6,
-        fontSize: 11,
-        color: 'rgba(255, 255, 255, 0.6)',
+        padding: '6px 12px',
+        background: 'rgba(0, 0, 0, 0.4)',
+        borderRadius: 8,
+        border: '1px solid rgba(255, 255, 255, 0.1)',
     },
-
-    legendDot: {
+    positionDot: {
         width: 8,
         height: 8,
         borderRadius: '50%',
     },
-
-    instruction: {
-        textAlign: 'center',
-        marginTop: 16,
+    positionText: {
         fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.6)',
-    },
-
-    questionPrompt: {
-        textAlign: 'center',
-        marginTop: 16,
-        fontSize: 18,
-        fontWeight: 600,
-        color: '#fff',
-        padding: '12px 20px',
-        background: 'rgba(0, 0, 0, 0.4)',
-        borderRadius: 12,
-        border: '2px solid rgba(255, 215, 0, 0.3)',
-    },
-
-    actionPopup: {
-        position: 'absolute',
-        bottom: '100%',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        marginBottom: 16,
-        background: 'linear-gradient(135deg, #1a2744, #0d1628)',
-        borderRadius: 16,
-        padding: 16,
-        border: '2px solid rgba(0, 212, 255, 0.3)',
-        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.5)',
-        zIndex: 100,
-        minWidth: 200,
-    },
-
-    popupHeader: {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 12,
-    },
-
-    popupHand: {
-        fontSize: 24,
-        fontWeight: 800,
-        color: '#FFD700',
-    },
-
-    cancelBtn: {
-        width: 28,
-        height: 28,
-        borderRadius: '50%',
-        border: 'none',
-        background: 'rgba(255, 255, 255, 0.1)',
-        color: '#fff',
-        fontSize: 14,
-        cursor: 'pointer',
-    },
-
-    actionButtons: {
-        display: 'flex',
-        gap: 8,
-    },
-
-    actionBtn: {
-        flex: 1,
-        padding: '12px 16px',
-        border: 'none',
-        borderRadius: 12,
-        cursor: 'pointer',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 4,
-    },
-
-    actionIcon: {
-        fontSize: 24,
-    },
-
-    actionLabel: {
-        fontSize: 12,
         fontWeight: 700,
         color: '#fff',
     },
-
-    resultOverlay: {
+    stackBadge: {
+        padding: '6px 12px',
+        background: 'rgba(255, 215, 0, 0.2)',
+        borderRadius: 8,
+        border: '1px solid rgba(255, 215, 0, 0.4)',
+    },
+    stackText: {
+        fontSize: 14,
+        fontWeight: 700,
+        color: '#ffd700',
+    },
+    villainBadge: {
+        padding: '6px 12px',
+        background: 'rgba(255, 68, 68, 0.2)',
+        borderRadius: 8,
+        border: '1px solid rgba(255, 68, 68, 0.4)',
+        fontSize: 14,
+        fontWeight: 600,
+        color: '#ff4444',
+    },
+    chartLabel: {
+        fontSize: 18,
+        fontWeight: 700,
+        color: '#fff',
+        marginBottom: 16,
+    },
+    gridContainer: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2,
+        padding: 8,
+        background: 'rgba(0, 0, 0, 0.3)',
+        borderRadius: 8,
+    },
+    headerRow: {
+        display: 'flex',
+        gap: 2,
+    },
+    cornerCell: {
+        width: 24,
+        height: 24,
+    },
+    headerCell: {
+        width: 48,
+        height: 24,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: 12,
+        fontWeight: 700,
+        color: 'rgba(255, 255, 255, 0.6)',
+    },
+    gridRow: {
+        display: 'flex',
+        gap: 2,
+    },
+    rowHeaderCell: {
+        width: 24,
+        height: 48,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: 12,
+        fontWeight: 700,
+        color: 'rgba(255, 255, 255, 0.6)',
+    },
+    checkMark: {
         position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        padding: '24px 48px',
-        borderRadius: 16,
-        textAlign: 'center',
-        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.5)',
+        top: 2,
+        right: 2,
+        fontSize: 10,
+        color: '#00ff88',
+    },
+    xMark: {
+        position: 'absolute',
+        top: 2,
+        right: 2,
+        fontSize: 10,
+        color: '#ff4444',
+    },
+    actionOverlay: {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.8)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
         zIndex: 100,
     },
-
-    resultIcon: {
-        fontSize: 48,
+    actionMenu: {
+        background: 'linear-gradient(135deg, #1a1a2e, #0d0d1a)',
+        borderRadius: 16,
+        padding: 24,
+        border: '2px solid rgba(0, 212, 255, 0.4)',
+        textAlign: 'center',
+    },
+    selectedHandLabel: {
+        fontSize: 32,
+        fontWeight: 800,
+        color: '#00d4ff',
+        marginBottom: 20,
+    },
+    actionButtons: {
+        display: 'flex',
+        gap: 12,
+        marginBottom: 16,
+    },
+    actionButton: {
+        padding: '14px 28px',
+        fontSize: 16,
+        fontWeight: 700,
+        color: '#fff',
+        border: 'none',
+        borderRadius: 8,
+        cursor: 'pointer',
+        minWidth: 100,
+    },
+    cancelButton: {
+        background: 'transparent',
+        border: '1px solid rgba(255, 255, 255, 0.3)',
+        padding: '8px 16px',
+        fontSize: 14,
+        color: 'rgba(255, 255, 255, 0.6)',
+        borderRadius: 8,
+        cursor: 'pointer',
+    },
+    resultOverlay: {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.8)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 100,
+    },
+    resultCard: {
+        background: 'linear-gradient(135deg, #1a1a2e, #0d0d1a)',
+        borderRadius: 16,
+        padding: 32,
+        border: '2px solid',
+        textAlign: 'center',
+    },
+    resultHand: {
+        fontSize: 28,
+        fontWeight: 700,
+        color: '#fff',
         marginBottom: 8,
     },
-
-    resultText: {
-        fontSize: 24,
-        fontWeight: 800,
-        color: '#fff',
+    correctAnswer: {
+        fontSize: 16,
+        color: 'rgba(255, 255, 255, 0.7)',
     },
-
-    resultDetail: {
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.8)',
-        marginTop: 8,
+    legend: {
+        display: 'flex',
+        gap: 16,
+        marginTop: 16,
+    },
+    legendItem: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+        fontSize: 12,
+        color: 'rgba(255, 255, 255, 0.6)',
+    },
+    legendDot: {
+        width: 12,
+        height: 12,
+        borderRadius: 2,
     },
 };
 

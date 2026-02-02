@@ -3,7 +3,7 @@
  * Test the PS5-style page transition
  */
 import { useState } from 'react';
-import { PageOutro } from '../../src/components/transitions/PageOutro';
+import { PageOutro } from '../../src/components/transitions/PageOutro.jsx';
 import { useRouter } from 'next/router';
 
 export default function OutroDemo() {

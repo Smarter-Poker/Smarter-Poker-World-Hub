@@ -1,0 +1,592 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   CLUB COMMANDER — INDUSTRIAL SCI-FI GAMING UI
+   Dark navy panels, thick metallic chrome frames, rivets, glowing accents
+   Inspired by mech cockpit / spaceship control panel aesthetic
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COLOR VARIABLES
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root {
+  /* Dark Navy Backgrounds */
+  --cmd-bg-deep: #0B1426;
+  --cmd-bg-dark: #0F1C32;
+  --cmd-bg-panel: #132240;
+  --cmd-bg-inset: #0D192E;
+  --cmd-bg-input: #0A1525;
+
+  /* Metallic Chrome */
+  --cmd-chrome-light: #C0CDE0;
+  --cmd-chrome-mid: #7A8EA8;
+  --cmd-chrome-dark: #4A5E78;
+  --cmd-chrome-shadow: #2A3A50;
+
+  /* Accent Glow */
+  --cmd-glow-cyan: #22D3EE;
+  --cmd-glow-blue: #3B82F6;
+  --cmd-accent-blue: #1877F2;
+
+  /* Text */
+  --cmd-text-white: #FFFFFF;
+  --cmd-text-light: #CBD5E1;
+  --cmd-text-muted: #64748B;
+
+  /* Status */
+  --cmd-success: #10B981;
+  --cmd-warning: #F59E0B;
+  --cmd-error: #EF4444;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ANIMATIONS
+   ═══════════════════════════════════════════════════════════════════════════ */
+@keyframes cmd-glow-pulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+@keyframes cmd-light-flicker {
+  0%, 100% { box-shadow: 0 0 8px var(--cmd-glow-cyan), 0 0 20px rgba(34, 211, 238, 0.4); }
+  50% { box-shadow: 0 0 12px var(--cmd-glow-cyan), 0 0 30px rgba(34, 211, 238, 0.6); }
+}
+
+@keyframes cmd-scan {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PAGE BACKGROUND
+   ═══════════════════════════════════════════════════════════════════════════ */
+.cmd-page {
+  min-height: 100vh;
+  background: var(--cmd-bg-deep);
+  background-image:
+    radial-gradient(ellipse at 50% 0%, rgba(24, 119, 242, 0.08) 0%, transparent 60%),
+    linear-gradient(180deg, var(--cmd-bg-deep) 0%, #0A1220 100%);
+  font-family: 'Inter', sans-serif;
+  color: var(--cmd-text-white);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   METALLIC FRAME PANEL — The core card element
+   Thick chrome border with rivets, dark navy interior
+   ═══════════════════════════════════════════════════════════════════════════ */
+.cmd-panel {
+  position: relative;
+  background: linear-gradient(180deg, var(--cmd-bg-panel) 0%, var(--cmd-bg-dark) 100%);
+  border: 4px solid var(--cmd-chrome-mid);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow:
+    /* Outer glow */
+    0 0 20px rgba(34, 211, 238, 0.1),
+    /* Depth shadow */
+    0 8px 32px rgba(0, 0, 0, 0.5),
+    /* Inner top highlight */
+    inset 0 1px 0 rgba(192, 205, 224, 0.15),
+    /* Inner bottom shadow */
+    inset 0 -2px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* Metallic border gradient overlay */
+.cmd-panel::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 18px;
+  background: linear-gradient(
+    180deg,
+    var(--cmd-chrome-light) 0%,
+    var(--cmd-chrome-mid) 20%,
+    var(--cmd-chrome-dark) 50%,
+    var(--cmd-chrome-mid) 80%,
+    var(--cmd-chrome-light) 100%
+  );
+  z-index: -1;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  padding: 4px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RIVETS — Decorative metallic bolts
+   ═══════════════════════════════════════════════════════════════════════════ */
+.cmd-rivet {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%,
+    var(--cmd-chrome-light) 0%,
+    var(--cmd-chrome-mid) 40%,
+    var(--cmd-chrome-dark) 70%,
+    var(--cmd-chrome-shadow) 100%
+  );
+  box-shadow:
+    inset 0 1px 2px rgba(255, 255, 255, 0.4),
+    0 1px 3px rgba(0, 0, 0, 0.5);
+  flex-shrink: 0;
+}
+
+.cmd-rivet-sm {
+  width: 7px;
+  height: 7px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CORNER GLOW LIGHTS — Cyan accent lights at corners
+   ═══════════════════════════════════════════════════════════════════════════ */
+.cmd-corner-lights {
+  position: relative;
+}
+
+.cmd-corner-lights .cmd-light {
+  position: absolute;
+  width: 6px;
+  height: 24px;
+  background: var(--cmd-glow-cyan);
+  border-radius: 3px;
+  animation: cmd-light-flicker 2s ease-in-out infinite;
+}
+
+.cmd-corner-lights .cmd-light-tl {
+  top: 16px;
+  left: -3px;
+}
+
+.cmd-corner-lights .cmd-light-tr {
+  top: 16px;
+  right: -3px;
+}
+
+.cmd-corner-lights .cmd-light-bl {
+  bottom: 16px;
+  left: -3px;
+}
+
+.cmd-corner-lights .cmd-light-br {
+  bottom: 16px;
+  right: -3px;
+}
+
+/* Horizontal glow strips */
+.cmd-glow-strip {
+  height: 3px;
+  background: linear-gradient(90deg, transparent 0%, var(--cmd-glow-cyan) 30%, var(--cmd-glow-cyan) 70%, transparent 100%);
+  box-shadow: 0 0 10px var(--cmd-glow-cyan), 0 0 20px rgba(34, 211, 238, 0.3);
+  border-radius: 2px;
+  animation: cmd-glow-pulse 2s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BEVELED HEADER BAR — Hexagonal title plate
+   ═══════════════════════════════════════════════════════════════════════════ */
+.cmd-header-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 28px;
+  background: linear-gradient(180deg, var(--cmd-chrome-dark) 0%, var(--cmd-bg-panel) 50%, var(--cmd-chrome-shadow) 100%);
+  border: 3px solid var(--cmd-chrome-mid);
+  clip-path: polygon(
+    20px 0, calc(100% - 20px) 0,
+    100% 50%,
+    calc(100% - 20px) 100%, 20px 100%,
+    0 50%
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(192, 205, 224, 0.2),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+}
+
+.cmd-header-bar-text {
+  font-size: 16px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--cmd-text-white);
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+/* Full-width header */
+.cmd-header-full {
+  background: linear-gradient(180deg, #1A2E4A 0%, var(--cmd-bg-panel) 40%, var(--cmd-bg-dark) 100%);
+  border-bottom: 4px solid var(--cmd-chrome-mid);
+  position: relative;
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(192, 205, 224, 0.1);
+}
+
+/* Top chrome rail on header */
+.cmd-header-full::before {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(
+    180deg,
+    var(--cmd-chrome-light) 0%,
+    var(--cmd-chrome-mid) 50%,
+    var(--cmd-chrome-dark) 100%
+  );
+}
+
+/* Glow strip under header */
+.cmd-header-full::after {
+  content: '';
+  position: absolute;
+  bottom: -7px;
+  left: 15%;
+  right: 15%;
+  height: 3px;
+  background: var(--cmd-glow-cyan);
+  box-shadow: 0 0 15px var(--cmd-glow-cyan), 0 0 30px rgba(34, 211, 238, 0.3);
+  border-radius: 2px;
+  animation: cmd-glow-pulse 2s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   INSET PANELS — Recessed dark input areas
+   ═══════════════════════════════════════════════════════════════════════════ */
+.cmd-inset {
+  background: var(--cmd-bg-input);
+  border: 2px solid var(--cmd-chrome-dark);
+  border-radius: 10px;
+  box-shadow:
+    inset 0 4px 12px rgba(0, 0, 0, 0.5),
+    inset 0 1px 3px rgba(0, 0, 0, 0.3),
+    0 1px 0 rgba(192, 205, 224, 0.1);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   INPUTS — Dark recessed with chrome border
+   ═══════════════════════════════════════════════════════════════════════════ */
+.cmd-input {
+  width: 100%;
+  padding: 16px 20px;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--cmd-text-white);
+  background: var(--cmd-bg-input);
+  border: 2px solid var(--cmd-chrome-dark);
+  border-radius: 10px;
+  outline: none;
+  transition: all 0.3s ease;
+  box-shadow:
+    inset 0 4px 12px rgba(0, 0, 0, 0.4),
+    inset 0 1px 2px rgba(0, 0, 0, 0.3),
+    0 1px 0 rgba(192, 205, 224, 0.08);
+}
+
+.cmd-input:focus {
+  border-color: var(--cmd-glow-cyan);
+  box-shadow:
+    0 0 15px rgba(34, 211, 238, 0.3),
+    0 0 30px rgba(34, 211, 238, 0.1),
+    inset 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.cmd-input::placeholder {
+  color: var(--cmd-text-muted);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BUTTONS — Beveled metallic with glow
+   ═══════════════════════════════════════════════════════════════════════════ */
+.cmd-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 32px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 800;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  border: 3px solid var(--cmd-chrome-mid);
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+  clip-path: polygon(
+    14px 0, calc(100% - 14px) 0,
+    100% 14px, 100% calc(100% - 14px),
+    calc(100% - 14px) 100%, 14px 100%,
+    0 calc(100% - 14px), 0 14px
+  );
+}
+
+.cmd-btn-primary {
+  background: linear-gradient(180deg, #1E3A5F 0%, var(--cmd-bg-panel) 40%, #0D192E 100%);
+  color: var(--cmd-text-white);
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+  box-shadow:
+    0 0 15px rgba(34, 211, 238, 0.2),
+    inset 0 1px 0 rgba(192, 205, 224, 0.15),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.3);
+}
+
+.cmd-btn-primary:hover {
+  border-color: var(--cmd-glow-cyan);
+  box-shadow:
+    0 0 25px rgba(34, 211, 238, 0.4),
+    0 0 50px rgba(34, 211, 238, 0.15),
+    inset 0 1px 0 rgba(192, 205, 224, 0.2);
+  transform: translateY(-2px);
+}
+
+.cmd-btn-primary:active {
+  transform: translateY(0);
+  box-shadow:
+    inset 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+.cmd-btn-secondary {
+  background: linear-gradient(180deg, var(--cmd-chrome-mid) 0%, var(--cmd-chrome-dark) 50%, var(--cmd-chrome-shadow) 100%);
+  color: var(--cmd-text-white);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+    0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.cmd-btn-secondary:hover {
+  background: linear-gradient(180deg, var(--cmd-chrome-light) 0%, var(--cmd-chrome-mid) 50%, var(--cmd-chrome-dark) 100%);
+  transform: translateY(-2px);
+}
+
+.cmd-btn-danger {
+  background: linear-gradient(180deg, #7F1D1D 0%, #991B1B 50%, #7F1D1D 100%);
+  color: var(--cmd-text-white);
+  border-color: #B91C1C;
+  box-shadow:
+    0 0 15px rgba(239, 68, 68, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.cmd-btn-success {
+  background: linear-gradient(180deg, #064E3B 0%, #065F46 50%, #064E3B 100%);
+  color: var(--cmd-text-white);
+  border-color: #10B981;
+  box-shadow:
+    0 0 15px rgba(16, 185, 129, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ICON BOX — Circular metallic porthole
+   ═══════════════════════════════════════════════════════════════════════════ */
+.cmd-icon-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  background: radial-gradient(circle at center, var(--cmd-bg-panel) 0%, var(--cmd-bg-inset) 100%);
+  border: 4px solid var(--cmd-chrome-mid);
+  border-radius: 50%;
+  color: var(--cmd-glow-cyan);
+  box-shadow:
+    0 0 15px rgba(34, 211, 238, 0.15),
+    inset 0 2px 6px rgba(0, 0, 0, 0.4),
+    inset 0 -1px 0 rgba(192, 205, 224, 0.1);
+  position: relative;
+}
+
+/* Outer ring */
+.cmd-icon-box::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border: 3px solid var(--cmd-chrome-dark);
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--cmd-chrome-light) 0%, var(--cmd-chrome-dark) 100%);
+  z-index: -1;
+  mask: radial-gradient(transparent 60%, #000 61%);
+  -webkit-mask: radial-gradient(transparent 60%, #000 61%);
+}
+
+.cmd-icon-box-glow {
+  box-shadow:
+    0 0 20px rgba(34, 211, 238, 0.4),
+    0 0 40px rgba(34, 211, 238, 0.15),
+    inset 0 0 15px rgba(34, 211, 238, 0.1),
+    inset 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* Square version */
+.cmd-icon-box-square {
+  border-radius: 12px;
+}
+
+.cmd-icon-box-square::before {
+  border-radius: 16px;
+  mask: none;
+  -webkit-mask: none;
+  background: transparent;
+  border: 3px solid var(--cmd-chrome-dark);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BADGES — Status indicators
+   ═══════════════════════════════════════════════════════════════════════════ */
+.cmd-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  border-radius: 6px;
+  border: 2px solid;
+}
+
+.cmd-badge-live {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--cmd-success);
+  border-color: var(--cmd-success);
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+  animation: cmd-glow-pulse 2s ease-in-out infinite;
+}
+
+.cmd-badge-primary {
+  background: rgba(24, 119, 242, 0.15);
+  color: var(--cmd-glow-blue);
+  border-color: rgba(59, 130, 246, 0.5);
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
+}
+
+.cmd-badge-warning {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--cmd-warning);
+  border-color: rgba(245, 158, 11, 0.5);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
+}
+
+.cmd-badge-error {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--cmd-error);
+  border-color: rgba(239, 68, 68, 0.5);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.2);
+}
+
+.cmd-badge-chrome {
+  background: linear-gradient(180deg, var(--cmd-chrome-dark) 0%, var(--cmd-chrome-shadow) 100%);
+  color: var(--cmd-text-light);
+  border-color: var(--cmd-chrome-mid);
+  box-shadow:
+    inset 0 1px 0 rgba(192, 205, 224, 0.15),
+    0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   METALLIC PIPE RAIL — Side decorations
+   ═══════════════════════════════════════════════════════════════════════════ */
+.cmd-pipe {
+  width: 12px;
+  background: linear-gradient(
+    90deg,
+    var(--cmd-chrome-shadow) 0%,
+    var(--cmd-chrome-mid) 30%,
+    var(--cmd-chrome-light) 50%,
+    var(--cmd-chrome-mid) 70%,
+    var(--cmd-chrome-shadow) 100%
+  );
+  border-radius: 6px;
+  box-shadow:
+    inset 0 0 4px rgba(0, 0, 0, 0.3),
+    0 0 6px rgba(0, 0, 0, 0.2);
+}
+
+.cmd-pipe-h {
+  height: 12px;
+  width: 100%;
+  background: linear-gradient(
+    180deg,
+    var(--cmd-chrome-shadow) 0%,
+    var(--cmd-chrome-mid) 30%,
+    var(--cmd-chrome-light) 50%,
+    var(--cmd-chrome-mid) 70%,
+    var(--cmd-chrome-shadow) 100%
+  );
+  border-radius: 6px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DIVIDER — Metallic separator with glow
+   ═══════════════════════════════════════════════════════════════════════════ */
+.cmd-divider {
+  height: 4px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--cmd-chrome-dark) 10%,
+    var(--cmd-chrome-mid) 30%,
+    var(--cmd-glow-cyan) 50%,
+    var(--cmd-chrome-mid) 70%,
+    var(--cmd-chrome-dark) 90%,
+    transparent 100%
+  );
+  margin: 24px 0;
+  border-radius: 2px;
+  box-shadow: 0 0 15px rgba(34, 211, 238, 0.3);
+  position: relative;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   STAT DISPLAY — Large numbers
+   ═══════════════════════════════════════════════════════════════════════════ */
+.cmd-stat-value {
+  font-family: 'Inter', sans-serif;
+  font-size: 44px;
+  font-weight: 800;
+  color: var(--cmd-glow-cyan);
+  text-shadow:
+    0 0 20px rgba(34, 211, 238, 0.5),
+    0 0 40px rgba(34, 211, 238, 0.2);
+  line-height: 1;
+}
+
+.cmd-stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--cmd-text-muted);
+  margin-top: 8px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LIVE PULSE DOT
+   ═══════════════════════════════════════════════════════════════════════════ */
+.cmd-live-dot {
+  width: 12px;
+  height: 12px;
+  background: var(--cmd-success);
+  border-radius: 50%;
+  box-shadow: 0 0 10px var(--cmd-success), 0 0 20px var(--cmd-success);
+  animation: cmd-light-flicker 1.5s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   UTILITY
+   ═══════════════════════════════════════════════════════════════════════════ */
+.cmd-text-glow {
+  text-shadow: 0 0 15px rgba(34, 211, 238, 0.5), 0 0 30px rgba(34, 211, 238, 0.2);
+}
+
+.cmd-text-chrome {
+  background: linear-gradient(180deg, var(--cmd-chrome-light) 0%, var(--cmd-chrome-mid) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}

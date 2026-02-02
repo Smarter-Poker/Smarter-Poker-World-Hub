@@ -21,26 +21,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 // TYPES
 // ============================================================================
 
-interface MentalGymProps {
-    scenarioId: string;
-    scriptName: string;
-    scenarioText: string;
-    situationContext?: string;
-    choices: Choice[];
-    correctChoice: string;
-    timeLimit?: number;          // Seconds for decision (0 = no limit)
-    riggedOutcome?: string;      // For rigged scenarios (bad beat incoming, etc.)
-    emotionalTrigger?: string;   // 'tilt', 'fear', 'greed', 'impatience'
-    onChoice: (choiceId: string, timeRemaining: number) => void;
-    resultFeedback?: {
-        choiceId: string;
-        isCorrect: boolean;
-        explanation: string;
-        emotionalLesson?: string;
-    } | null;
-    phase: 'READING' | 'DECIDING' | 'SHOWING_RESULT';
-}
-
 interface Choice {
     id: string;
     label: string;
@@ -49,291 +29,93 @@ interface Choice {
     emotionalType?: 'impulsive' | 'rational' | 'passive' | 'aggressive';
 }
 
-// ============================================================================
-// CONSTANTS
-// ============================================================================
-
-const EMOTIONAL_COLORS: { [key: string]: string } = {
-    tilt: '#FF5722',
-    fear: '#9C27B0',
-    greed: '#FFD700',
-    impatience: '#FF9800',
-    confidence: '#4CAF50',
-    focus: '#2196F3',
-};
-
-const CHOICE_TYPE_COLORS: { [key: string]: string } = {
-    impulsive: '#FF5722',
-    rational: '#4CAF50',
-    passive: '#9E9E9E',
-    aggressive: '#FF9800',
-};
+interface MentalGymProps {
+    scenarioId: string;
+    scriptName: string;
+    scenarioText?: string;
+    situationContext?: string;
+    choices?: Choice[];
+    correctChoiceId?: string;
+    timeLimit?: number;        // seconds, default 15
+    phase: 'READING' | 'DECIDING' | 'SHOWING_RESULT';
+    resultFeedback?: {
+        choiceId: string;
+        isCorrect: boolean;
+        explanation: string;
+        emotionalLesson?: string;
+    } | null;
+    onChoice: (choiceId: string) => void;
+}
 
 // ============================================================================
-// TIMER COMPONENT
+// DEFAULT SCENARIOS (used if not provided)
 // ============================================================================
 
-const CountdownTimer: React.FC<{
-    seconds: number;
-    onExpire: () => void;
-    isPaused: boolean;
-}> = ({ seconds, onExpire, isPaused }) => {
-    const [timeLeft, setTimeLeft] = useState(seconds);
-    const intervalRef = useRef<NodeJS.Timeout | null>(null);
-
-    useEffect(() => {
-        setTimeLeft(seconds);
-    }, [seconds]);
-
-    useEffect(() => {
-        if (isPaused || timeLeft <= 0) {
-            if (intervalRef.current) {
-                clearInterval(intervalRef.current);
-            }
-            if (timeLeft <= 0) {
-                onExpire();
-            }
-            return;
-        }
-
-        intervalRef.current = setInterval(() => {
-            setTimeLeft(prev => {
-                if (prev <= 1) {
-                    return 0;
-                }
-                return prev - 1;
-            });
-        }, 1000);
-
-        return () => {
-            if (intervalRef.current) {
-                clearInterval(intervalRef.current);
-            }
-        };
-    }, [isPaused, timeLeft, onExpire]);
-
-    const percentage = (timeLeft / seconds) * 100;
-    const isUrgent = timeLeft <= 5;
-    const isCritical = timeLeft <= 3;
-
-    return (
-        <motion.div
-            animate={isCritical ? { scale: [1, 1.05, 1] } : {}}
-            transition={isCritical ? { duration: 0.5, repeat: Infinity } : {}}
-            style={styles.timerContainer}
-        >
-            <div style={styles.timerTrack}>
-                <motion.div
-                    initial={{ width: '100%' }}
-                    animate={{ width: `${percentage}%` }}
-                    transition={{ duration: 0.3 }}
-                    style={{
-                        ...styles.timerFill,
-                        background: isCritical
-                            ? '#FF5722'
-                            : isUrgent
-                                ? '#FF9800'
-                                : 'linear-gradient(90deg, #00D4FF, #4CAF50)',
-                    }}
-                />
-            </div>
-            <div style={{
-                ...styles.timerText,
-                color: isCritical ? '#FF5722' : isUrgent ? '#FF9800' : '#fff',
-            }}>
-                {timeLeft}s
-            </div>
-        </motion.div>
-    );
-};
-
-// ============================================================================
-// SCENARIO DISPLAY
-// ============================================================================
-
-const ScenarioDisplay: React.FC<{
+const DEFAULT_SCENARIOS: Record<string, {
     text: string;
-    context?: string;
-    emotionalTrigger?: string;
-}> = ({ text, context, emotionalTrigger }) => {
-    return (
-        <div style={styles.scenarioContainer}>
-            {/* Emotional Trigger Badge */}
-            {emotionalTrigger && (
-                <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    style={{
-                        ...styles.triggerBadge,
-                        background: EMOTIONAL_COLORS[emotionalTrigger] || '#666',
-                    }}
-                >
-                    {emotionalTrigger === 'tilt' && '🔥 TILT ALERT'}
-                    {emotionalTrigger === 'fear' && '😰 FEAR TEST'}
-                    {emotionalTrigger === 'greed' && '💰 GREED CHECK'}
-                    {emotionalTrigger === 'impatience' && '⏰ PATIENCE TEST'}
-                </motion.div>
-            )}
-
-            {/* Context */}
-            {context && (
-                <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.2 }}
-                    style={styles.contextText}
-                >
-                    {context}
-                </motion.p>
-            )}
-
-            {/* Main Scenario Text */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                style={styles.scenarioText}
-            >
-                "{text}"
-            </motion.div>
-        </div>
-    );
+    context: string;
+    choices: Choice[];
+    correctId: string;
+}> = {
+    'tilt-control': {
+        text: "You just lost 3 buy-ins to coolers. Your opponent shows you 72o after rivering a boat. Your blood is boiling.",
+        context: "Session: -5 buy-ins | Time at table: 4 hours",
+        choices: [
+            { id: 'TILT', label: 'Express Frustration', icon: '😤', description: 'Let villain know how you feel', emotionalType: 'impulsive' },
+            { id: 'BREATHE', label: 'Take a Deep Breath', icon: '🧘', description: 'Center yourself, stay calm', emotionalType: 'rational' },
+            { id: 'RELOAD', label: 'Immediately Reload', icon: '💰', description: 'Get back in action fast', emotionalType: 'aggressive' },
+            { id: 'LEAVE', label: 'Leave the Table', icon: '🚪', description: 'Walk away for now', emotionalType: 'passive' },
+        ],
+        correctId: 'BREATHE',
+    },
+    'fear-test': {
+        text: "You're on the bubble of a $500 tournament. You have 12BB with AKo UTG. The money starts at 15th place - you're 16th.",
+        context: "Bubble | 12BB | UTG | AKo",
+        choices: [
+            { id: 'SHOVE', label: 'Shove All-In', icon: '🚀', description: 'Maximum pressure', emotionalType: 'aggressive' },
+            { id: 'MINRAISE', label: 'Min-Raise', icon: '📈', description: 'Control the pot', emotionalType: 'rational' },
+            { id: 'LIMP', label: 'Limp In', icon: '🐌', description: 'See a cheap flop', emotionalType: 'passive' },
+            { id: 'FOLD', label: 'Fold to Ladder', icon: '📉', description: 'Wait for a better spot', emotionalType: 'passive' },
+        ],
+        correctId: 'SHOVE',
+    },
+    'greed-check': {
+        text: "You've turned a $200 session into $1,500. You're playing your A-game but it's 3 AM and you need to work tomorrow.",
+        context: "Session: +$1,300 | Time: 3:00 AM | Work at 8 AM",
+        choices: [
+            { id: 'GRIND', label: 'Keep Grinding', icon: '💎', description: 'Run it up while hot', emotionalType: 'aggressive' },
+            { id: 'ONEHOUR', label: 'One More Hour', icon: '⏰', description: 'Set a hard stop', emotionalType: 'impulsive' },
+            { id: 'QUIT', label: 'Book the Win', icon: '✅', description: 'Lock in profits', emotionalType: 'rational' },
+            { id: 'MOVING', label: 'Move Up Stakes', icon: '🎰', description: 'Shot at higher limits', emotionalType: 'impulsive' },
+        ],
+        correctId: 'QUIT',
+    },
 };
 
 // ============================================================================
-// CHOICE BUTTON
+// TRIGGER BADGES
 // ============================================================================
 
-const ChoiceButton: React.FC<{
-    choice: Choice;
-    index: number;
-    onClick: () => void;
-    disabled: boolean;
-    isSelected?: boolean;
-    isCorrect?: boolean;
-    showResult?: boolean;
-}> = ({ choice, index, onClick, disabled, isSelected, isCorrect, showResult }) => {
-    const typeColor = CHOICE_TYPE_COLORS[choice.emotionalType || 'rational'] || '#666';
-
-    const getButtonStyle = () => {
-        if (showResult && isSelected) {
-            return {
-                background: isCorrect
-                    ? 'linear-gradient(135deg, #4CAF50, #388E3C)'
-                    : 'linear-gradient(135deg, #FF5722, #D84315)',
-                border: `3px solid ${isCorrect ? '#4CAF50' : '#FF5722'}`,
-                transform: 'scale(1.05)',
-            };
-        }
-        if (isSelected) {
-            return {
-                background: 'linear-gradient(135deg, #00D4FF, #0099CC)',
-                border: '3px solid #00D4FF',
-            };
-        }
-        return {
-            background: 'linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05))',
-            border: '2px solid rgba(255,255,255,0.2)',
-        };
-    };
-
-    return (
-        <motion.button
-            onClick={onClick}
-            disabled={disabled}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.6 + index * 0.1 }}
-            whileHover={!disabled ? { scale: 1.02, x: 5 } : {}}
-            whileTap={!disabled ? { scale: 0.98 } : {}}
-            style={{
-                ...styles.choiceButton,
-                ...getButtonStyle(),
-                opacity: disabled && !isSelected ? 0.5 : 1,
-                cursor: disabled ? 'default' : 'pointer',
-            }}
-        >
-            {/* Icon */}
-            <div style={styles.choiceIcon}>{choice.icon}</div>
-
-            {/* Content */}
-            <div style={styles.choiceContent}>
-                <div style={styles.choiceLabel}>{choice.label}</div>
-                {choice.description && (
-                    <div style={styles.choiceDescription}>{choice.description}</div>
-                )}
-            </div>
-
-            {/* Type Indicator */}
-            {choice.emotionalType && (
-                <div style={{
-                    ...styles.choiceType,
-                    background: typeColor,
-                }}>
-                    {choice.emotionalType}
-                </div>
-            )}
-
-            {/* Result Indicator */}
-            {showResult && isSelected && (
-                <div style={styles.resultIndicator}>
-                    {isCorrect ? '✓' : '✗'}
-                </div>
-            )}
-        </motion.button>
-    );
+const getTriggerBadge = (scriptName: string): { label: string; color: string; icon: string } => {
+    switch (scriptName) {
+        case 'bad_beats':
+        case 'tilt_test':
+            return { label: 'TILT ALERT', color: '#ff4444', icon: '🔥' };
+        case 'bubble_pressure':
+        case 'fear_test':
+            return { label: 'FEAR TEST', color: '#ffaa00', icon: '😰' };
+        case 'winning_streaks':
+        case 'greed_test':
+            return { label: 'GREED CHECK', color: '#00ff88', icon: '💰' };
+        case 'patience':
+            return { label: 'PATIENCE TEST', color: '#00d4ff', icon: '⏳' };
+        default:
+            return { label: 'MENTAL GAME', color: '#aa66ff', icon: '🧠' };
+    }
 };
 
 // ============================================================================
-// RESULT FEEDBACK
-// ============================================================================
-
-const ResultFeedback: React.FC<{
-    feedback: MentalGymProps['resultFeedback'];
-}> = ({ feedback }) => {
-    if (!feedback) return null;
-
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            style={{
-                ...styles.feedbackContainer,
-                borderColor: feedback.isCorrect ? '#4CAF50' : '#FF5722',
-            }}
-        >
-            {/* Header */}
-            <div style={{
-                ...styles.feedbackHeader,
-                background: feedback.isCorrect
-                    ? 'linear-gradient(135deg, #4CAF50, #388E3C)'
-                    : 'linear-gradient(135deg, #FF5722, #D84315)',
-            }}>
-                <span style={styles.feedbackIcon}>
-                    {feedback.isCorrect ? '✓' : '✗'}
-                </span>
-                <span style={styles.feedbackTitle}>
-                    {feedback.isCorrect ? 'Excellent Decision!' : 'Room for Growth'}
-                </span>
-            </div>
-
-            {/* Explanation */}
-            <div style={styles.feedbackBody}>
-                <p style={styles.explanation}>{feedback.explanation}</p>
-
-                {feedback.emotionalLesson && (
-                    <div style={styles.emotionalLesson}>
-                        <span style={styles.lessonIcon}>🧠</span>
-                        <span>{feedback.emotionalLesson}</span>
-                    </div>
-                )}
-            </div>
-        </motion.div>
-    );
-};
-
-// ============================================================================
-// MAIN COMPONENT
+// COMPONENT
 // ============================================================================
 
 const MentalGym: React.FC<MentalGymProps> = ({
@@ -342,113 +124,210 @@ const MentalGym: React.FC<MentalGymProps> = ({
     scenarioText,
     situationContext,
     choices,
-    correctChoice,
+    correctChoiceId,
     timeLimit = 15,
-    riggedOutcome,
-    emotionalTrigger,
-    onChoice,
-    resultFeedback,
     phase,
+    resultFeedback,
+    onChoice,
 }) => {
+    const [timeLeft, setTimeLeft] = useState(timeLimit);
     const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
-    const [timeRemaining, setTimeRemaining] = useState(timeLimit);
+    const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Handle choice selection
+    // Get scenario data (use defaults if not provided)
+    const defaultScenario = DEFAULT_SCENARIOS[scenarioId] || DEFAULT_SCENARIOS['tilt-control'];
+    const displayText = scenarioText || defaultScenario.text;
+    const displayContext = situationContext || defaultScenario.context;
+    const displayChoices = choices || defaultScenario.choices;
+
+    // Timer countdown
+    useEffect(() => {
+        if (phase !== 'DECIDING') {
+            if (timerRef.current) clearInterval(timerRef.current);
+            return;
+        }
+
+        setTimeLeft(timeLimit);
+        timerRef.current = setInterval(() => {
+            setTimeLeft(prev => {
+                if (prev <= 1) {
+                    // Time's up - auto-select worst option (impulsive)
+                    const impulsiveChoice = displayChoices.find(c => c.emotionalType === 'impulsive');
+                    if (impulsiveChoice) {
+                        onChoice(impulsiveChoice.id);
+                    }
+                    if (timerRef.current) clearInterval(timerRef.current);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => {
+            if (timerRef.current) clearInterval(timerRef.current);
+        };
+    }, [phase, timeLimit, displayChoices, onChoice]);
+
     const handleChoiceClick = useCallback((choiceId: string) => {
         if (phase !== 'DECIDING') return;
-
         setSelectedChoice(choiceId);
-        onChoice(choiceId, timeRemaining);
-    }, [phase, timeRemaining, onChoice]);
+        if (timerRef.current) clearInterval(timerRef.current);
+        onChoice(choiceId);
+    }, [phase, onChoice]);
 
-    // Handle timer expiry - auto-select worst option
-    const handleTimerExpiry = useCallback(() => {
-        if (phase !== 'DECIDING' || selectedChoice) return;
-
-        // Find the most impulsive/worst choice when time runs out
-        const worstChoice = choices.find(c => c.emotionalType === 'impulsive') || choices[0];
-        setSelectedChoice(worstChoice.id);
-        onChoice(worstChoice.id, 0);
-    }, [phase, selectedChoice, choices, onChoice]);
-
-    // Reset on new scenario
-    useEffect(() => {
-        setSelectedChoice(null);
-        setTimeRemaining(timeLimit);
-    }, [scenarioId, timeLimit]);
+    const trigger = getTriggerBadge(scriptName);
+    const timerPercent = (timeLeft / timeLimit) * 100;
+    const timerColor = timeLeft > 5 ? '#00d4ff' : '#ff4444';
 
     return (
         <div style={styles.container}>
-            {/* Header */}
-            <div style={styles.header}>
-                <div style={styles.scriptBadge}>
-                    🧠 {scriptName.replace(/_/g, ' ').toUpperCase()}
-                </div>
-            </div>
+            {/* Trigger Badge */}
+            <motion.div
+                initial={{ y: -20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                style={{ ...styles.triggerBadge, background: trigger.color }}
+            >
+                <span>{trigger.icon}</span>
+                <span>{trigger.label}</span>
+            </motion.div>
 
-            {/* Timer */}
-            {timeLimit > 0 && phase === 'DECIDING' && !selectedChoice && (
-                <CountdownTimer
-                    seconds={timeLimit}
-                    onExpire={handleTimerExpiry}
-                    isPaused={phase !== 'DECIDING'}
-                />
+            {/* Scenario Card */}
+            <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                style={styles.scenarioCard}
+            >
+                {/* Context badge */}
+                <div style={styles.contextBadge}>
+                    {displayContext}
+                </div>
+
+                {/* Main scenario text */}
+                <p style={styles.scenarioText}>
+                    "{displayText}"
+                </p>
+            </motion.div>
+
+            {/* Timer (only in DECIDING phase) */}
+            {phase === 'DECIDING' && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    style={styles.timerContainer}
+                >
+                    <div style={styles.timerLabel}>
+                        <span style={{ color: timerColor }}>{timeLeft}</span>s
+                    </div>
+                    <div style={styles.timerBar}>
+                        <motion.div
+                            style={{
+                                ...styles.timerFill,
+                                background: timerColor,
+                            }}
+                            animate={{ width: `${timerPercent}%` }}
+                            transition={{ duration: 0.3 }}
+                        />
+                    </div>
+                </motion.div>
             )}
 
-            {/* Rigged Outcome Warning */}
+            {/* Choices */}
+            <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.4 }}
+                style={styles.choicesContainer}
+            >
+                <div style={styles.choicePrompt}>What do you do?</div>
+                <div style={styles.choicesGrid}>
+                    {displayChoices.map((choice, idx) => (
+                        <motion.button
+                            key={choice.id}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.5 + idx * 0.1 }}
+                            whileHover={{ scale: phase === 'DECIDING' ? 1.03 : 1 }}
+                            whileTap={{ scale: 0.97 }}
+                            onClick={() => handleChoiceClick(choice.id)}
+                            disabled={phase !== 'DECIDING'}
+                            style={{
+                                ...styles.choiceButton,
+                                opacity: phase !== 'DECIDING' ? 0.6 : 1,
+                                cursor: phase === 'DECIDING' ? 'pointer' : 'default',
+                            }}
+                        >
+                            <span style={styles.choiceIcon}>{choice.icon}</span>
+                            <div style={styles.choiceContent}>
+                                <div style={styles.choiceLabel}>{choice.label}</div>
+                                {choice.description && (
+                                    <div style={styles.choiceDescription}>{choice.description}</div>
+                                )}
+                            </div>
+                            {choice.emotionalType && (
+                                <span style={{
+                                    ...styles.emotionalTag,
+                                    background: choice.emotionalType === 'rational' ? 'rgba(0, 255, 136, 0.2)' :
+                                               choice.emotionalType === 'impulsive' ? 'rgba(255, 68, 68, 0.2)' :
+                                               choice.emotionalType === 'aggressive' ? 'rgba(255, 170, 0, 0.2)' :
+                                               'rgba(100, 100, 100, 0.2)',
+                                    color: choice.emotionalType === 'rational' ? '#00ff88' :
+                                           choice.emotionalType === 'impulsive' ? '#ff4444' :
+                                           choice.emotionalType === 'aggressive' ? '#ffaa00' :
+                                           '#888',
+                                }}>
+                                    {choice.emotionalType}
+                                </span>
+                            )}
+                        </motion.button>
+                    ))}
+                </div>
+            </motion.div>
+
+            {/* Result Feedback Overlay */}
             <AnimatePresence>
-                {riggedOutcome && phase === 'READING' && (
+                {phase === 'SHOWING_RESULT' && resultFeedback && (
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        style={styles.riggedWarning}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        style={styles.resultOverlay}
                     >
-                        ⚠️ {riggedOutcome}
+                        <motion.div
+                            initial={{ scale: 0.8, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            style={{
+                                ...styles.resultCard,
+                                borderColor: resultFeedback.isCorrect ? '#00ff88' : '#ff4444',
+                            }}
+                        >
+                            <div style={{
+                                fontSize: 56,
+                                marginBottom: 16,
+                            }}>
+                                {resultFeedback.isCorrect ? '✅' : '❌'}
+                            </div>
+                            <div style={{
+                                fontSize: 28,
+                                fontWeight: 800,
+                                color: resultFeedback.isCorrect ? '#00ff88' : '#ff4444',
+                                marginBottom: 16,
+                            }}>
+                                {resultFeedback.isCorrect ? 'GOOD DECISION!' : 'WRONG CHOICE'}
+                            </div>
+                            <p style={styles.explanationText}>
+                                {resultFeedback.explanation}
+                            </p>
+                            {resultFeedback.emotionalLesson && (
+                                <div style={styles.lessonBox}>
+                                    <span style={{ marginRight: 8 }}>💡</span>
+                                    {resultFeedback.emotionalLesson}
+                                </div>
+                            )}
+                        </motion.div>
                     </motion.div>
                 )}
             </AnimatePresence>
-
-            {/* Scenario Display */}
-            <ScenarioDisplay
-                text={scenarioText}
-                context={situationContext}
-                emotionalTrigger={emotionalTrigger}
-            />
-
-            {/* Choice Buttons */}
-            <div style={styles.choicesContainer}>
-                {choices.map((choice, index) => (
-                    <ChoiceButton
-                        key={choice.id}
-                        choice={choice}
-                        index={index}
-                        onClick={() => handleChoiceClick(choice.id)}
-                        disabled={phase !== 'DECIDING' || !!selectedChoice}
-                        isSelected={selectedChoice === choice.id}
-                        isCorrect={correctChoice === choice.id}
-                        showResult={phase === 'SHOWING_RESULT'}
-                    />
-                ))}
-            </div>
-
-            {/* Result Feedback */}
-            <AnimatePresence>
-                {phase === 'SHOWING_RESULT' && resultFeedback && (
-                    <ResultFeedback feedback={resultFeedback} />
-                )}
-            </AnimatePresence>
-
-            {/* Instruction */}
-            {phase === 'DECIDING' && !selectedChoice && (
-                <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    style={styles.instruction}
-                >
-                    Choose wisely. Your mental game is being tested.
-                </motion.p>
-            )}
         </div>
     );
 };
@@ -457,225 +336,162 @@ const MentalGym: React.FC<MentalGymProps> = ({
 // STYLES
 // ============================================================================
 
-const styles: { [key: string]: React.CSSProperties } = {
+const styles: Record<string, React.CSSProperties> = {
     container: {
-        width: '100%',
-        maxWidth: 600,
-        margin: '0 auto',
-        padding: 20,
-        minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        fontFamily: 'Inter, -apple-system, sans-serif',
+        alignItems: 'center',
+        padding: 24,
+        minHeight: '100vh',
+        background: 'linear-gradient(180deg, #0a0a15 0%, #0d1628 100%)',
     },
-
-    header: {
-        display: 'flex',
-        justifyContent: 'center',
-        marginBottom: 16,
-    },
-
-    scriptBadge: {
-        padding: '8px 16px',
-        background: 'linear-gradient(135deg, #9C27B0, #673AB7)',
-        borderRadius: 20,
-        fontSize: 12,
-        fontWeight: 700,
-        color: '#fff',
-        letterSpacing: 1,
-    },
-
-    timerContainer: {
+    triggerBadge: {
         display: 'flex',
         alignItems: 'center',
-        gap: 12,
-        marginBottom: 20,
-        padding: '12px 16px',
-        background: 'rgba(0, 0, 0, 0.3)',
-        borderRadius: 12,
+        gap: 8,
+        padding: '10px 20px',
+        borderRadius: 24,
+        fontSize: 14,
+        fontWeight: 700,
+        color: '#fff',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        marginBottom: 24,
     },
-
-    timerTrack: {
-        flex: 1,
+    scenarioCard: {
+        maxWidth: 600,
+        padding: 32,
+        background: 'rgba(255, 255, 255, 0.05)',
+        borderRadius: 16,
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        marginBottom: 24,
+    },
+    contextBadge: {
+        display: 'inline-block',
+        padding: '6px 12px',
+        background: 'rgba(0, 212, 255, 0.2)',
+        borderRadius: 8,
+        fontSize: 12,
+        fontWeight: 600,
+        color: '#00d4ff',
+        marginBottom: 16,
+    },
+    scenarioText: {
+        fontSize: 22,
+        fontStyle: 'italic',
+        color: '#fff',
+        lineHeight: 1.6,
+        margin: 0,
+        textAlign: 'center',
+    },
+    timerContainer: {
+        width: '100%',
+        maxWidth: 400,
+        marginBottom: 24,
+    },
+    timerLabel: {
+        textAlign: 'center',
+        fontSize: 24,
+        fontWeight: 700,
+        color: '#fff',
+        marginBottom: 8,
+    },
+    timerBar: {
         height: 8,
         background: 'rgba(255, 255, 255, 0.1)',
         borderRadius: 4,
         overflow: 'hidden',
     },
-
     timerFill: {
         height: '100%',
         borderRadius: 4,
         transition: 'background 0.3s ease',
     },
-
-    timerText: {
-        fontSize: 18,
-        fontWeight: 800,
-        minWidth: 40,
-        textAlign: 'right',
-    },
-
-    riggedWarning: {
-        padding: '12px 16px',
-        background: 'rgba(255, 152, 0, 0.2)',
-        border: '2px solid #FF9800',
-        borderRadius: 12,
-        fontSize: 14,
-        fontWeight: 600,
-        color: '#FF9800',
-        textAlign: 'center',
-        marginBottom: 16,
-    },
-
-    scenarioContainer: {
-        marginBottom: 24,
-    },
-
-    triggerBadge: {
-        display: 'inline-block',
-        padding: '6px 12px',
-        borderRadius: 8,
-        fontSize: 11,
-        fontWeight: 800,
-        color: '#fff',
-        letterSpacing: 1,
-        marginBottom: 12,
-    },
-
-    contextText: {
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.6)',
-        marginBottom: 12,
-        lineHeight: 1.5,
-    },
-
-    scenarioText: {
-        fontSize: 22,
-        fontWeight: 600,
-        color: '#fff',
-        lineHeight: 1.6,
-        fontStyle: 'italic',
-        padding: '20px 24px',
-        background: 'linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))',
-        borderRadius: 16,
-        borderLeft: '4px solid rgba(0, 212, 255, 0.5)',
-    },
-
     choicesContainer: {
+        width: '100%',
+        maxWidth: 600,
+    },
+    choicePrompt: {
+        textAlign: 'center',
+        fontSize: 18,
+        fontWeight: 600,
+        color: 'rgba(255, 255, 255, 0.7)',
+        marginBottom: 20,
+    },
+    choicesGrid: {
         display: 'flex',
         flexDirection: 'column',
         gap: 12,
-        marginBottom: 24,
     },
-
     choiceButton: {
         display: 'flex',
         alignItems: 'center',
         gap: 16,
-        padding: '16px 20px',
-        borderRadius: 16,
+        padding: 16,
+        background: 'rgba(255, 255, 255, 0.08)',
+        border: '1px solid rgba(255, 255, 255, 0.15)',
+        borderRadius: 12,
         textAlign: 'left',
         transition: 'all 0.2s ease',
-        position: 'relative',
     },
-
     choiceIcon: {
         fontSize: 32,
         flexShrink: 0,
     },
-
     choiceContent: {
         flex: 1,
     },
-
     choiceLabel: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: 700,
         color: '#fff',
-        marginBottom: 4,
+        marginBottom: 2,
     },
-
     choiceDescription: {
         fontSize: 13,
         color: 'rgba(255, 255, 255, 0.6)',
     },
-
-    choiceType: {
+    emotionalTag: {
         padding: '4px 8px',
         borderRadius: 6,
-        fontSize: 9,
-        fontWeight: 700,
-        color: '#fff',
+        fontSize: 10,
+        fontWeight: 600,
         textTransform: 'uppercase',
-        letterSpacing: 0.5,
     },
-
-    resultIndicator: {
-        position: 'absolute',
-        right: 16,
-        fontSize: 28,
-        fontWeight: 800,
-    },
-
-    feedbackContainer: {
-        marginTop: 'auto',
-        borderRadius: 16,
-        overflow: 'hidden',
-        border: '2px solid',
-    },
-
-    feedbackHeader: {
+    resultOverlay: {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.85)',
         display: 'flex',
         alignItems: 'center',
-        gap: 12,
-        padding: '16px 20px',
+        justifyContent: 'center',
+        zIndex: 100,
     },
-
-    feedbackIcon: {
-        fontSize: 28,
-    },
-
-    feedbackTitle: {
-        fontSize: 20,
-        fontWeight: 800,
-        color: '#fff',
-    },
-
-    feedbackBody: {
-        padding: '16px 20px',
-        background: 'rgba(0, 0, 0, 0.3)',
-    },
-
-    explanation: {
-        fontSize: 15,
-        color: '#fff',
-        lineHeight: 1.6,
-        margin: 0,
-    },
-
-    emotionalLesson: {
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: 8,
-        marginTop: 16,
-        padding: '12px 16px',
-        background: 'rgba(156, 39, 176, 0.2)',
-        borderRadius: 12,
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.9)',
-    },
-
-    lessonIcon: {
-        fontSize: 18,
-        flexShrink: 0,
-    },
-
-    instruction: {
+    resultCard: {
+        maxWidth: 500,
+        padding: 40,
+        background: 'linear-gradient(135deg, #1a1a2e, #0d0d1a)',
+        borderRadius: 20,
+        border: '2px solid',
         textAlign: 'center',
+    },
+    explanationText: {
+        fontSize: 16,
+        color: 'rgba(255, 255, 255, 0.8)',
+        lineHeight: 1.6,
+        marginBottom: 20,
+    },
+    lessonBox: {
+        padding: 16,
+        background: 'rgba(255, 215, 0, 0.1)',
+        borderRadius: 12,
+        border: '1px solid rgba(255, 215, 0, 0.3)',
         fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.5)',
-        marginTop: 'auto',
+        color: '#ffd700',
+        fontStyle: 'italic',
     },
 };
 

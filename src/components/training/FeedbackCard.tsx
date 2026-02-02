@@ -502,7 +502,7 @@ function getActionIcon(action: string): string {
         case 'Check': return '✓';
         case 'Call': return '📞';
         case 'Raise': return '📈';
-        case 'All-In': return '💎';
+        case 'All-In': return '<img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/>';
         default: return '?';
     }
 }

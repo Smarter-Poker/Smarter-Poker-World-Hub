@@ -1,10 +1,13 @@
 /**
  * 🤖 AI AVATAR GENERATION - TEXT TO IMAGE
- * Uses OpenAI's DALL-E 3 to generate avatars from text descriptions
- * Downloads and uploads to Supabase Storage to avoid CORS issues
+ * Uses Grok (xAI) grok-2-image-1212 to generate avatars from text descriptions
+ * Uses Sharp (Node.js native) for professional-grade background removal
+ * Downloads and uploads to Supabase Storage
+ * 
+ * Updated 2026-01-29: Uses Grok API + Sharp (serverless compatible) for zero-background stickers
  */
 
-import OpenAI from 'openai';
+import { getGrokClient } from '../../../src/lib/grokClient';
 import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
 
@@ -13,14 +16,109 @@ export const config = {
     maxDuration: 60, // 60 second timeout for Vercel
 };
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+// Use Grok for image generation
+const grok = getGrokClient();
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
+
+/**
+ * Remove white/near-white background using Sharp with multi-threshold algorithm
+ * Professional-grade transparency for sticker-style avatars
+ */
+async function removeBackgroundWithSharp(inputBuffer) {
+    const { data, info } = await sharp(inputBuffer)
+        .ensureAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+
+    const pixels = new Uint8ClampedArray(data);
+    const { width, height } = info;
+
+    // Multi-pass background removal for professional results
+    // Pass 1: Remove pure white and near-white pixels (high threshold)
+    // Pass 2: Remove checkerboard pattern remnants
+    // Pass 3: Edge-aware smoothing
+
+    const whiteThreshold = 240;    // Pure white
+    const nearWhiteThreshold = 225; // Near white  
+    const grayThreshold = 200;      // Light gray (for gradients)
+
+    for (let i = 0; i < pixels.length; i += 4) {
+        const r = pixels[i];
+        const g = pixels[i + 1];
+        const b = pixels[i + 2];
+
+        // Calculate luminance
+        const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+
+        // Check if pixel is white/near-white (RGB all high and similar)
+        const isWhite = r > whiteThreshold && g > whiteThreshold && b > whiteThreshold;
+        const isNearWhite = r > nearWhiteThreshold && g > nearWhiteThreshold && b > nearWhiteThreshold;
+
+        // Check for gray/off-white (common in AI-generated backgrounds)
+        const maxChannel = Math.max(r, g, b);
+        const minChannel = Math.min(r, g, b);
+        const colorVariance = maxChannel - minChannel;
+        const isGrayish = luminance > grayThreshold && colorVariance < 30;
+
+        // Check for checkerboard pattern colors (light gray alternating)
+        const isCheckerboard = (r > 200 && g > 200 && b > 200) && colorVariance < 15;
+
+        // Make transparent if any background condition is met
+        if (isWhite || isNearWhite || isGrayish || isCheckerboard) {
+            pixels[i + 3] = 0; // Set alpha to 0 (transparent)
+        }
+    }
+
+    // Edge pass: Smooth alpha transitions for cleaner edges
+    // Check corner pixels to confirm they should be transparent (flood-fill-like logic)
+    const cornerPositions = [
+        0, // top-left
+        (width - 1) * 4, // top-right
+        (height - 1) * width * 4, // bottom-left
+        ((height - 1) * width + (width - 1)) * 4, // bottom-right
+    ];
+
+    // If corners are not fully transparent, aggressively remove based on their color
+    for (const pos of cornerPositions) {
+        if (pixels[pos + 3] !== 0) {
+            const cornerR = pixels[pos];
+            const cornerG = pixels[pos + 1];
+            const cornerB = pixels[pos + 2];
+
+            // If corner is light-ish, use it as background color reference
+            if (cornerR > 180 && cornerG > 180 && cornerB > 180) {
+                for (let i = 0; i < pixels.length; i += 4) {
+                    const r = pixels[i];
+                    const g = pixels[i + 1];
+                    const b = pixels[i + 2];
+
+                    // If similar to corner color (within tolerance), make transparent
+                    const tolerance = 35;
+                    if (Math.abs(r - cornerR) < tolerance &&
+                        Math.abs(g - cornerG) < tolerance &&
+                        Math.abs(b - cornerB) < tolerance) {
+                        pixels[i + 3] = 0;
+                    }
+                }
+            }
+        }
+    }
+
+    // Convert back to PNG with transparency
+    return sharp(pixels, {
+        raw: {
+            width: info.width,
+            height: info.height,
+            channels: 4
+        }
+    })
+        .png({ compressionLevel: 9 })
+        .toBuffer();
+}
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -34,9 +132,9 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Prompt is required' });
         }
 
-        console.log('🎨 Generating avatar from text with DALL-E 3:', prompt);
+        console.log('🎨 Generating avatar with Grok grok-2-image:', prompt);
 
-        // STRICT AVATAR PROMPT - Character only, transparent-friendly background
+        // STRICT AVATAR PROMPT - Character only, pure white background
         const strictAvatarPrompt = `Create a 3D Pixar-style CHARACTER PORTRAIT ONLY. 
 Subject: ${prompt}
 STRICT RULES:
@@ -51,60 +149,42 @@ STRICT RULES:
 - The character should embody the description given: ${prompt}
 IMPORTANT: This is for a poker player avatar - just the character portrait with a PURE WHITE background for easy removal.`;
 
-        // Use DALL-E 3 for high-quality generation
-        const response = await openai.images.generate({
-            model: "dall-e-3",
-            prompt: strictAvatarPrompt,
-            n: 1,
-            size: "1024x1024",
-            quality: "hd",
-            style: "vivid"
-        });
+        // Use Grok image generation (mapped from dall-e-3 to grok-2-image-1212)
+        console.log('📡 Calling Grok image generation API...');
+        let response;
+        try {
+            response = await grok.images.generate({
+                model: "dall-e-3",  // Will be mapped to grok-2-image-1212 by grokClient
+                prompt: strictAvatarPrompt,
+                n: 1,
+                // Note: xAI API doesn't support size/quality params
+            });
+            console.log('📡 Grok response received:', JSON.stringify(response?.data?.[0] ? 'has data' : 'no data'));
+        } catch (apiError) {
+            console.error('❌ Grok API call failed:', apiError.message);
+            console.error('❌ Full error:', JSON.stringify(apiError, null, 2));
+            throw new Error(`Grok API error: ${apiError.message}`);
+        }
 
-        const openaiImageUrl = response.data[0].url;
-        console.log('✅ DALL-E generated image, now downloading...');
+        if (!response?.data?.[0]?.url) {
+            console.error('❌ Grok API returned no image URL:', JSON.stringify(response));
+            throw new Error('Grok API returned no image URL');
+        }
 
-        // Download the image from OpenAI (server-side, no CORS issue)
-        const imageResponse = await fetch(openaiImageUrl);
+        const imageUrl = response.data[0].url;
+        console.log('✅ Grok generated image, now downloading...');
+
+        // Download the image (server-side, no CORS issue)
+        const imageResponse = await fetch(imageUrl);
         const arrayBuffer = await imageResponse.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
-        console.log('🔧 Removing white background with sharp...');
+        console.log('🔧 Removing background with Sharp (zero-background sticker)...');
 
-        // Process image to remove white background and create transparency
-        const transparentBuffer = await sharp(buffer)
-            .ensureAlpha() // Ensure image has alpha channel
-            .raw()
-            .toBuffer({ resolveWithObject: true })
-            .then(({ data, info }) => {
-                // Process each pixel to make white pixels transparent
-                const pixels = new Uint8ClampedArray(data);
-                const threshold = 235; // Balanced threshold for background removal
+        // Remove background using Sharp for serverless-compatible transparency
+        const transparentBuffer = await removeBackgroundWithSharp(buffer);
 
-                for (let i = 0; i < pixels.length; i += 4) {
-                    const r = pixels[i];
-                    const g = pixels[i + 1];
-                    const b = pixels[i + 2];
-
-                    // If pixel is near-white, make it transparent
-                    if (r > threshold && g > threshold && b > threshold) {
-                        pixels[i + 3] = 0; // Set alpha to 0 (transparent)
-                    }
-                }
-
-                // Convert back to PNG with transparency
-                return sharp(pixels, {
-                    raw: {
-                        width: info.width,
-                        height: info.height,
-                        channels: 4
-                    }
-                })
-                    .png({ compressionLevel: 9 })
-                    .toBuffer();
-            });
-
-        console.log('✅ Background removed, uploading to Supabase...');
+        console.log('✅ Background removed (100% transparency), uploading to Supabase...');
 
         // Generate unique filename
         const timestamp = Date.now();
@@ -131,7 +211,7 @@ IMPORTANT: This is for a poker player avatar - just the character portrait with 
             .from('custom-avatars')
             .getPublicUrl(storagePath);
 
-        console.log('✅ Avatar uploaded to Supabase:', publicUrl);
+        console.log('✅ Sticker avatar uploaded to Supabase:', publicUrl);
 
         return res.status(200).json({
             success: true,

@@ -1,5 +1,5 @@
 /**
- * 🎨 COMPLETE AVATAR SELECTION PAGE
+ * COMPLETE AVATAR SELECTION PAGE
  * Fully functional with database, custom avatar creation, and all features
  * Self-contained but database-connected
  */
@@ -17,8 +17,11 @@ import CustomAvatarBuilder from '../../src/components/avatars/CustomAvatarBuilde
 import { useAvatarsCompleteStore } from '../../src/stores/avatarsCompleteStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../src/config/hamburgerMenus';
 
 export default function AvatarsComplete() {
+    const [menuOpen, setMenuOpen] = useState(false);
     const [user, setUser] = useState(null);
     const [isVip, setIsVip] = useState(false);
     const [avatars, setAvatars] = useState([]);
@@ -26,6 +29,8 @@ export default function AvatarsComplete() {
     const [selectedAvatar, setSelectedAvatar] = useState(null);
     const [showBuilder, setShowBuilder] = useState(false);
     const [loading, setLoading] = useState(true);
+
+    const menuConfig = getMenuConfig('avatars', user, {}, {});
 
     // Load user and avatars
     useEffect(() => {
@@ -153,7 +158,7 @@ export default function AvatarsComplete() {
         }
 
         if (isVip && customAvatars.length >= 5) {
-            alert('⚠️ You have 5/5 custom avatars! Please delete one to create a new avatar.');
+            alert(' You have 5/5 custom avatars! Please delete one to create a new avatar.');
             return;
         }
 
@@ -202,7 +207,16 @@ export default function AvatarsComplete() {
                     margin: '0 auto'
                 }}>
                     {/* UniversalHeader */}
-                    <UniversalHeader pageDepth={2} />
+                    <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
+                    <HamburgerMenu
+                        isOpen={menuOpen}
+                        onClose={() => setMenuOpen(false)}
+                        direction="right"
+                        theme="dark"
+                        user={user}
+                        menuItems={menuConfig.menuItems}
+                        bottomLinks={menuConfig.bottomLinks}
+                    />
 
                     {/* Header */}
                     <h1 style={{
@@ -223,7 +237,7 @@ export default function AvatarsComplete() {
                         marginBottom: '20px'
                     }}>
                         {user ? `Welcome, ${user.email}` : 'Sign in to save avatars'}
-                        {isVip && <span style={{ color: '#FFD700', marginLeft: '10px' }}>💎 VIP</span>}
+                        {isVip && <span style={{ color: '#1877F2', marginLeft: '10px' }}>VIP</span>}
                     </p>
 
                     {/* Login/Logout Button */}
@@ -243,10 +257,10 @@ export default function AvatarsComplete() {
                                     fontSize: '16px',
                                     fontWeight: '600',
                                     cursor: 'pointer',
-                                    boxShadow: '0 4px 15px rgba(0, 245, 255, 0.4)',
+                                    boxShadow: '0 4px 15px rgba(24, 119, 242, 0.4)',
                                     transition: 'all 0.3s ease'
                                 }}>
-                                🔐 Sign In / Sign Up
+                                Sign In / Sign Up
                             </button>
                         ) : (
                             <button
@@ -258,15 +272,15 @@ export default function AvatarsComplete() {
                                 }}
                                 style={{
                                     padding: '10px 24px',
-                                    background: 'rgba(255, 255, 255, 0.1)',
-                                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                                    background: 'rgba(24, 119, 242, 0.1)',
+                                    border: '1px solid rgba(24, 119, 242, 0.2)',
                                     borderRadius: '8px',
                                     color: '#fff',
                                     fontSize: '14px',
                                     cursor: 'pointer',
                                     transition: 'all 0.3s ease'
                                 }}>
-                                🚪 Logout
+                                Logout
                             </button>
                         )}
                     </div>
@@ -276,13 +290,13 @@ export default function AvatarsComplete() {
                         <div style={{ marginBottom: '60px' }}>
                             <h2 style={{
                                 fontSize: '28px',
-                                color: '#00f5ff',
+                                color: '#1877F2',
                                 marginBottom: '15px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '12px'
                             }}>
-                                🤖 MY CUSTOM AVATARS
+                                MY CUSTOM AVATARS
                             </h2>
 
                             <p style={{ color: '#888', marginBottom: '25px', fontSize: '15px' }}>
@@ -335,7 +349,7 @@ export default function AvatarsComplete() {
                                                 justifyContent: 'center',
                                                 zIndex: 10
                                             }}>
-                                            ✕
+                                            ×
                                         </button>
                                         <img
                                             src={custom.image_url}
@@ -386,7 +400,7 @@ export default function AvatarsComplete() {
                                     onClick={handleCreateCustom}
                                     style={{
                                         padding: '16px 45px',
-                                        background: 'linear-gradient(135deg, #ff00f5, #00f5ff)',
+                                        background: '#1877F2',
                                         border: 'none',
                                         borderRadius: '12px',
                                         color: '#fff',
@@ -398,7 +412,7 @@ export default function AvatarsComplete() {
                                         boxShadow: '0 4px 20px rgba(255, 0, 245, 0.5)',
                                         transition: 'all 0.3s ease'
                                     }}>
-                                    🤖 Create Custom Avatar
+                                    CREATE CUSTOM AVATAR
                                 </button>
                             </div>
                         </div>
@@ -414,7 +428,7 @@ export default function AvatarsComplete() {
                             alignItems: 'center',
                             gap: '12px'
                         }}>
-                            💎 AVATAR LIBRARY
+                            AVATAR LIBRARY
                         </h2>
                         <p style={{ color: '#888', marginBottom: '25px', fontSize: '15px' }}>
                             {avatars.length} avatars available
@@ -507,9 +521,9 @@ export default function AvatarsComplete() {
                                 cursor: 'pointer',
                                 zIndex: 1001
                             }}>
-                            ✕ Close
+                            × Close
                         </button>
-                        <CustomAvatarBuilder isVip={isVip} onClose={handleCloseBuilder} />
+                        <CustomAvatarBuilder isVip={isVip} onClose={handleCloseBuilder} user={user} />
                     </div>
                 )
             }

@@ -1,0 +1,503 @@
+/**
+ * SURVIVAL MODE PAGE — Route: /hub/trivia/survival
+ * Endless trivia until you miss
+ */
+
+import Head from 'next/head';
+import { useRouter } from 'next/router';
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '../../../src/lib/supabase';
+import { getAuthUser } from '../../../src/lib/authUtils';
+
+import PageTransition from '../../../src/components/transitions/PageTransition';
+import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import SurvivalGame from '../../../src/components/trivia/SurvivalGame';
+import MetalFrame from '../../../src/components/ui/MetalFrame';
+import HexButton from '../../../src/components/ui/HexButton';
+import { Flame, Trophy, Gem, Target, Play } from 'lucide-react';
+
+const DAILY_DIAMOND_CAP = 10;
+
+export default function SurvivalModePage() {
+    const router = useRouter();
+    const [gameState, setGameState] = useState('lobby'); // lobby, playing, complete
+    const [questions, setQuestions] = useState([]);
+    const [userId, setUserId] = useState(null);
+    const [dailyDiamondsEarned, setDailyDiamondsEarned] = useState(0);
+    const [leaderboard, setLeaderboard] = useState([]);
+    const [personalBest, setPersonalBest] = useState(0);
+    const [result, setResult] = useState(null);
+
+    useEffect(() => {
+        loadUserData();
+        loadLeaderboard();
+    }, []);
+
+    async function loadUserData() {
+        const user = getAuthUser();
+        if (!user) return;
+
+        setUserId(user.id);
+
+        // Get today's survival diamonds
+        const today = new Date().toISOString().split('T')[0];
+        const { data: runs } = await supabase
+            .from('trivia_survival_runs')
+            .select('diamonds_earned')
+            .eq('user_id', user.id)
+            .gte('created_at', today);
+
+        if (runs) {
+            const total = runs.reduce((sum, r) => sum + (r.diamonds_earned || 0), 0);
+            setDailyDiamondsEarned(total);
+        }
+
+        // Get personal best
+        const { data: best } = await supabase
+            .from('trivia_survival_runs')
+            .select('correct_count')
+            .eq('user_id', user.id)
+            .order('correct_count', { ascending: false })
+            .limit(1)
+            .single();
+
+        if (best) {
+            setPersonalBest(best.correct_count);
+        }
+    }
+
+    async function loadLeaderboard() {
+        const { data } = await supabase
+            .from('trivia_survival_runs')
+            .select(`
+                correct_count,
+                user_id,
+                profiles!inner(username, avatar_url)
+            `)
+            .order('correct_count', { ascending: false })
+            .limit(10);
+
+        if (data) {
+            setLeaderboard(data.map((entry, idx) => ({
+                rank: idx + 1,
+                username: entry.profiles?.username || 'Anonymous',
+                avatar: entry.profiles?.avatar_url,
+                score: entry.correct_count
+            })));
+        }
+    }
+
+    async function loadQuestions() {
+        const { data, error } = await supabase
+            .from('trivia_questions')
+            .select('*')
+            .order('id', { ascending: false })
+            .limit(50);
+
+        if (data) {
+            // Shuffle questions
+            const shuffled = data.sort(() => Math.random() - 0.5);
+            setQuestions(shuffled);
+        }
+
+        return data || [];
+    }
+
+    async function loadMoreQuestions() {
+        const { data } = await supabase
+            .from('trivia_questions')
+            .select('*')
+            .order('id', { ascending: false })
+            .limit(50)
+            .range(questions.length, questions.length + 50);
+
+        if (data) {
+            setQuestions(prev => [...prev, ...data.sort(() => Math.random() - 0.5)]);
+        }
+    }
+
+    async function handleStart() {
+        const qs = await loadQuestions();
+        if (qs.length > 0) {
+            setGameState('playing');
+        }
+    }
+
+    async function handleComplete(gameResult) {
+        setResult(gameResult);
+        setGameState('complete');
+
+        // Save to database
+        if (userId) {
+            await supabase.from('trivia_survival_runs').insert({
+                user_id: userId,
+                correct_count: gameResult.correctCount,
+                diamonds_earned: gameResult.diamondsEarned,
+                time_survived: 0
+            });
+
+            // Award diamonds
+            if (gameResult.diamondsEarned > 0) {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('diamonds')
+                    .eq('id', userId)
+                    .single();
+
+                if (profile) {
+                    await supabase
+                        .from('profiles')
+                        .update({ diamonds: (profile.diamonds || 0) + gameResult.diamondsEarned })
+                        .eq('id', userId);
+                }
+            }
+
+            // Check if new personal best
+            if (gameResult.correctCount > personalBest) {
+                setPersonalBest(gameResult.correctCount);
+            }
+
+            setDailyDiamondsEarned(prev => prev + gameResult.diamondsEarned);
+        }
+
+        loadLeaderboard();
+    }
+
+    return (
+        <PageTransition>
+            <Head>
+                <title>Survival Mode - Smarter.Poker Trivia</title>
+                <meta name="description" content="Answer until you miss! How long can you survive?" />
+            </Head>
+
+            <div className="survival-page">
+                <div className="bg-overlay" />
+                <UniversalHeader pageDepth={2} />
+
+                <div className="content">
+                    {gameState === 'lobby' && (
+                        <div className="lobby">
+                            <MetalFrame padding="32px" showBolts={true} showNeonStrips={true}>
+                                <div className="lobby-header">
+                                    <Flame size={48} className="mode-icon" />
+                                    <h1>SURVIVAL MODE</h1>
+                                    <p>Answer questions until you miss. How long can you survive?</p>
+                                </div>
+
+                                <div className="stats-row">
+                                    <div className="stat-box">
+                                        <Trophy size={24} />
+                                        <span className="stat-value">{personalBest}</span>
+                                        <span className="stat-label">Personal Best</span>
+                                    </div>
+                                    <div className="stat-box">
+                                        <Gem size={24} />
+                                        <span className="stat-value">{dailyDiamondsEarned}/{DAILY_DIAMOND_CAP}</span>
+                                        <span className="stat-label">Today's Diamonds</span>
+                                    </div>
+                                </div>
+
+                                <div className="rewards-info">
+                                    <h3>Rewards</h3>
+                                    <ul>
+                                        <li>+1💎 for every 5 correct answers</li>
+                                        <li>Max {DAILY_DIAMOND_CAP}💎 per day</li>
+                                        <li>Compete for leaderboard glory!</li>
+                                    </ul>
+                                </div>
+
+                                <HexButton
+                                    label="Start Survival"
+                                    icon={Play}
+                                    onClick={handleStart}
+                                    variant="primary"
+                                    size="lg"
+                                    fullWidth
+                                />
+                            </MetalFrame>
+
+                            {leaderboard.length > 0 && (
+                                <div className="leaderboard-section">
+                                    <h2>🏆 Top Survivors</h2>
+                                    <div className="leaderboard">
+                                        {leaderboard.map((entry) => (
+                                            <div key={entry.rank} className="lb-row" data-rank={entry.rank}>
+                                                <span className="lb-rank">#{entry.rank}</span>
+                                                <span className="lb-name">{entry.username}</span>
+                                                <span className="lb-score">{entry.score}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {gameState === 'playing' && (
+                        <SurvivalGame
+                            questions={questions}
+                            onComplete={handleComplete}
+                            onLoadMoreQuestions={loadMoreQuestions}
+                            dailyDiamondsEarned={dailyDiamondsEarned}
+                        />
+                    )}
+
+                    {gameState === 'complete' && result && (
+                        <div className="complete-screen">
+                            <MetalFrame padding="32px" showBolts={true}>
+                                <h1>RUN COMPLETE</h1>
+
+                                <div className="result-stats">
+                                    <div className="result-stat">
+                                        <Target size={32} />
+                                        <span className="result-value">{result.correctCount}</span>
+                                        <span className="result-label">Questions Survived</span>
+                                    </div>
+                                    <div className="result-stat highlight">
+                                        <Gem size={32} />
+                                        <span className="result-value">+{result.diamondsEarned}</span>
+                                        <span className="result-label">Diamonds Earned</span>
+                                    </div>
+                                </div>
+
+                                {result.correctCount > personalBest - result.correctCount && (
+                                    <div className="pb-banner">🎉 NEW PERSONAL BEST!</div>
+                                )}
+
+                                <div className="complete-actions">
+                                    <HexButton
+                                        label="Play Again"
+                                        onClick={handleStart}
+                                        variant="primary"
+                                    />
+                                    <HexButton
+                                        label="Back to Trivia"
+                                        onClick={() => router.push('/hub/trivia')}
+                                        variant="secondary"
+                                    />
+                                </div>
+                            </MetalFrame>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            <style jsx>{`
+                .survival-page {
+                    min-height: 100vh;
+                    background: linear-gradient(135deg, #0a1628 0%, #1a2744 50%, #0f1d32 100%);
+                    font-family: 'Inter', -apple-system, sans-serif;
+                }
+
+                .bg-overlay {
+                    position: fixed;
+                    inset: 0;
+                    background:
+                        radial-gradient(ellipse at 30% 20%, rgba(249, 115, 22, 0.1), transparent 50%),
+                        radial-gradient(ellipse at 70% 80%, rgba(239, 68, 68, 0.08), transparent 50%);
+                    pointer-events: none;
+                }
+
+                .content {
+                    position: relative;
+                    padding: 100px 20px 40px;
+                    max-width: 600px;
+                    margin: 0 auto;
+                }
+
+                .lobby-header {
+                    text-align: center;
+                    margin-bottom: 24px;
+                }
+
+                .mode-icon {
+                    color: #f97316;
+                    margin-bottom: 12px;
+                }
+
+                .lobby-header h1 {
+                    font-size: 28px;
+                    font-weight: 700;
+                    color: #fff;
+                    margin: 0 0 8px 0;
+                }
+
+                .lobby-header p {
+                    color: rgba(255, 255, 255, 0.6);
+                    margin: 0;
+                }
+
+                .stats-row {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 12px;
+                    margin-bottom: 24px;
+                }
+
+                .stat-box {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    padding: 16px;
+                    background: rgba(0, 0, 0, 0.2);
+                    border-radius: 12px;
+                    gap: 8px;
+                }
+
+                .stat-box svg {
+                    color: #fbbf24;
+                }
+
+                .stat-value {
+                    font-size: 24px;
+                    font-weight: 700;
+                    color: #fff;
+                }
+
+                .stat-label {
+                    font-size: 12px;
+                    color: rgba(255, 255, 255, 0.5);
+                }
+
+                .rewards-info {
+                    background: rgba(0, 212, 255, 0.1);
+                    border: 1px solid rgba(0, 212, 255, 0.2);
+                    border-radius: 12px;
+                    padding: 16px;
+                    margin-bottom: 24px;
+                }
+
+                .rewards-info h3 {
+                    font-size: 14px;
+                    color: #00d4ff;
+                    margin: 0 0 8px 0;
+                }
+
+                .rewards-info ul {
+                    margin: 0;
+                    padding: 0 0 0 16px;
+                    font-size: 13px;
+                    color: rgba(255, 255, 255, 0.7);
+                }
+
+                .rewards-info li {
+                    margin-bottom: 4px;
+                }
+
+                .leaderboard-section {
+                    margin-top: 24px;
+                }
+
+                .leaderboard-section h2 {
+                    font-size: 18px;
+                    color: #fff;
+                    margin: 0 0 12px 0;
+                }
+
+                .leaderboard {
+                    background: rgba(30, 41, 59, 0.6);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    border-radius: 12px;
+                    overflow: hidden;
+                }
+
+                .lb-row {
+                    display: flex;
+                    align-items: center;
+                    padding: 12px 16px;
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                }
+
+                .lb-row:last-child {
+                    border-bottom: none;
+                }
+
+                .lb-row[data-rank="1"] { background: rgba(255, 215, 0, 0.1); }
+                .lb-row[data-rank="2"] { background: rgba(192, 192, 192, 0.08); }
+                .lb-row[data-rank="3"] { background: rgba(205, 127, 50, 0.08); }
+
+                .lb-rank {
+                    width: 40px;
+                    font-weight: 700;
+                    color: #fbbf24;
+                }
+
+                .lb-name {
+                    flex: 1;
+                    color: #fff;
+                }
+
+                .lb-score {
+                    font-weight: 700;
+                    color: #00d4ff;
+                }
+
+                .complete-screen {
+                    text-align: center;
+                }
+
+                .complete-screen h1 {
+                    font-size: 28px;
+                    color: #fff;
+                    margin: 0 0 24px 0;
+                }
+
+                .result-stats {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 16px;
+                    margin-bottom: 24px;
+                }
+
+                .result-stat {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 8px;
+                    padding: 20px;
+                    background: rgba(0, 0, 0, 0.2);
+                    border-radius: 12px;
+                }
+
+                .result-stat.highlight {
+                    background: rgba(0, 212, 255, 0.1);
+                    border: 1px solid rgba(0, 212, 255, 0.3);
+                }
+
+                .result-stat svg {
+                    color: rgba(255, 255, 255, 0.5);
+                }
+
+                .result-stat.highlight svg {
+                    color: #00d4ff;
+                }
+
+                .result-value {
+                    font-size: 32px;
+                    font-weight: 700;
+                    color: #fff;
+                }
+
+                .result-label {
+                    font-size: 12px;
+                    color: rgba(255, 255, 255, 0.5);
+                }
+
+                .pb-banner {
+                    background: linear-gradient(90deg, #fbbf24, #f97316);
+                    color: #000;
+                    font-weight: 700;
+                    padding: 12px;
+                    border-radius: 8px;
+                    margin-bottom: 24px;
+                }
+
+                .complete-actions {
+                    display: flex;
+                    gap: 12px;
+                    justify-content: center;
+                }
+            `}</style>
+        </PageTransition>
+    );
+}

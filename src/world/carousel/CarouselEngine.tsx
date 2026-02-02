@@ -271,11 +271,13 @@ export function CarouselEngine({ onOrbSelect, initialIndex = 0, onIndexChange, i
                         }}
                     >
                         <OrbCore
+                            id={config.id}
                             color={config.color}
                             label={config.label}
                             gradient={config.gradient}
                             active={isActive}
                             imageUrl={config.imageUrl}
+                            description={config.description}
                         />
                     </group>
                 );

@@ -36,12 +36,12 @@ interface SessionStats {
     handsPlayed: number;
     correctAnswers: number;
     accuracy: number;
+    passed: boolean;
     finalHealth: number;
     xpEarned: number;
-    xpBonus?: number;
     timeElapsed: number;
-    blunders: BlunderData[];
-    streakBest?: number;
+    blunders?: BlunderData[];
+    bestStreak?: number;
     perfectHands?: number;
 }
 
@@ -59,258 +59,75 @@ interface RoundSummaryProps {
 }
 
 // ============================================================================
-// CONSTANTS
+// CONFETTI COMPONENT
 // ============================================================================
 
-const CONFETTI_COLORS = ['#FFD700', '#FF6B35', '#00D4FF', '#4CAF50', '#9C27B0'];
-
-// ============================================================================
-// ANIMATED COUNTER COMPONENT
-// ============================================================================
-
-const AnimatedCounter: React.FC<{
-    value: number;
-    suffix?: string;
-    duration?: number;
-    size?: 'small' | 'medium' | 'large';
-    color?: string;
-}> = ({ value, suffix = '', duration = 1.5, size = 'large', color }) => {
-    const [displayValue, setDisplayValue] = useState(0);
-
-    useEffect(() => {
-        let startTime: number;
-        let animationFrame: number;
-
-        const animate = (timestamp: number) => {
-            if (!startTime) startTime = timestamp;
-            const progress = Math.min((timestamp - startTime) / (duration * 1000), 1);
-
-            // Ease out cubic
-            const eased = 1 - Math.pow(1 - progress, 3);
-            setDisplayValue(Math.round(eased * value));
-
-            if (progress < 1) {
-                animationFrame = requestAnimationFrame(animate);
-            }
-        };
-
-        animationFrame = requestAnimationFrame(animate);
-        return () => cancelAnimationFrame(animationFrame);
-    }, [value, duration]);
-
-    const fontSize = size === 'large' ? 72 : size === 'medium' ? 48 : 24;
+const Confetti: React.FC<{ count: number }> = ({ count }) => {
+    const colors = ['#ffd700', '#ff6b35', '#00d4ff', '#00ff88', '#aa66ff'];
+    const pieces = Array.from({ length: count }, (_, i) => ({
+        id: i,
+        x: Math.random() * 100,
+        delay: Math.random() * 0.5,
+        color: colors[i % colors.length],
+        rotation: Math.random() * 360,
+    }));
 
     return (
-        <span style={{
-            fontSize,
-            fontWeight: 900,
-            color: color || '#fff',
-            fontFamily: 'Inter, sans-serif',
-        }}>
-            {displayValue}{suffix}
-        </span>
-    );
-};
-
-// ============================================================================
-// XP BAR COMPONENT
-// ============================================================================
-
-const XPGainBar: React.FC<{
-    earned: number;
-    bonus?: number;
-    onComplete?: () => void;
-}> = ({ earned, bonus = 0, onComplete }) => {
-    const [showBonus, setShowBonus] = useState(false);
-    const total = earned + bonus;
-
-    useEffect(() => {
-        if (bonus > 0) {
-            const timer = setTimeout(() => setShowBonus(true), 1500);
-            return () => clearTimeout(timer);
-        }
-    }, [bonus]);
-
-    useEffect(() => {
-        if (onComplete) {
-            const timer = setTimeout(onComplete, 2500);
-            return () => clearTimeout(timer);
-        }
-    }, [onComplete]);
-
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            style={styles.xpContainer}
-        >
-            <div style={styles.xpHeader}>
-                <span style={styles.xpIcon}>⭐</span>
-                <span style={styles.xpTitle}>XP EARNED</span>
-            </div>
-
-            <div style={styles.xpBreakdown}>
+        <div style={styles.confettiContainer}>
+            {pieces.map((piece) => (
                 <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.8, type: 'spring' }}
-                    style={styles.xpMain}
-                >
-                    +<AnimatedCounter value={earned} size="medium" color="#FFD700" />
-                </motion.div>
-
-                <AnimatePresence>
-                    {showBonus && bonus > 0 && (
-                        <motion.div
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            style={styles.xpBonus}
-                        >
-                            <span style={styles.bonusLabel}>PERFECT BONUS</span>
-                            <span style={styles.bonusValue}>+{bonus}</span>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
-
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1.5 }}
-                style={styles.xpTotal}
-            >
-                Total: <span style={{ color: '#FFD700', fontWeight: 800 }}>{total} XP</span>
-            </motion.div>
-        </motion.div>
-    );
-};
-
-// ============================================================================
-// BLUNDER CARD COMPONENT
-// ============================================================================
-
-const BlunderCard: React.FC<{
-    blunder: BlunderData;
-    rank: number;
-    onReview?: () => void;
-}> = ({ blunder, rank, onReview }) => {
-    const getRankStyle = () => {
-        if (rank === 1) return { bg: '#F44336', label: 'WORST' };
-        if (rank === 2) return { bg: '#FF9800', label: '2ND' };
-        return { bg: '#FFC107', label: '3RD' };
-    };
-
-    const rankStyle = getRankStyle();
-
-    return (
-        <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 + rank * 0.1 }}
-            style={styles.blunderCard}
-            onClick={onReview}
-        >
-            {/* Rank Badge */}
-            <div style={{
-                ...styles.blunderRank,
-                background: rankStyle.bg,
-            }}>
-                {rankStyle.label}
-            </div>
-
-            {/* Hand Info */}
-            <div style={styles.blunderInfo}>
-                <div style={styles.blunderHand}>
-                    <span style={styles.handLabel}>Hand #{blunder.handNumber}</span>
-                    <span style={styles.handCards}>{blunder.heroHand}</span>
-                    {blunder.board && (
-                        <span style={styles.boardCards}>{blunder.board}</span>
-                    )}
-                </div>
-
-                <div style={styles.blunderActions}>
-                    <div style={styles.actionRow}>
-                        <span style={styles.actionLabel}>You:</span>
-                        <span style={styles.userAction}>{blunder.userAction}</span>
-                    </div>
-                    <div style={styles.actionRow}>
-                        <span style={styles.actionLabel}>Correct:</span>
-                        <span style={styles.correctAction}>{blunder.correctAction}</span>
-                    </div>
-                </div>
-            </div>
-
-            {/* Damage */}
-            <div style={styles.blunderDamage}>
-                <span style={styles.damageValue}>-{blunder.damage}</span>
-                <span style={styles.damageLabel}>HP</span>
-            </div>
-
-            {/* Review Arrow */}
-            {onReview && (
-                <div style={styles.reviewArrow}>▶</div>
-            )}
-        </motion.div>
-    );
-};
-
-// ============================================================================
-// CONFETTI EFFECT
-// ============================================================================
-
-const ConfettiPiece: React.FC<{
-    color: string;
-    index: number;
-}> = ({ color, index }) => {
-    const randomX = Math.random() * 100;
-    const randomDelay = Math.random() * 0.5;
-    const randomDuration = 2 + Math.random() * 2;
-    const randomRotation = Math.random() * 720 - 360;
-
-    return (
-        <motion.div
-            initial={{
-                x: `${randomX}vw`,
-                y: -20,
-                rotate: 0,
-                opacity: 1,
-            }}
-            animate={{
-                y: '100vh',
-                rotate: randomRotation,
-                opacity: 0,
-            }}
-            transition={{
-                duration: randomDuration,
-                delay: randomDelay,
-                ease: 'easeIn',
-            }}
-            style={{
-                position: 'fixed',
-                width: 10,
-                height: 10,
-                background: color,
-                borderRadius: index % 2 === 0 ? '50%' : 2,
-                zIndex: 1001,
-                pointerEvents: 'none',
-            }}
-        />
-    );
-};
-
-const Confetti: React.FC<{ count?: number }> = ({ count = 50 }) => {
-    return (
-        <>
-            {[...Array(count)].map((_, i) => (
-                <ConfettiPiece
-                    key={i}
-                    color={CONFETTI_COLORS[i % CONFETTI_COLORS.length]}
-                    index={i}
+                    key={piece.id}
+                    initial={{ y: -20, x: `${piece.x}vw`, opacity: 1, rotate: 0 }}
+                    animate={{
+                        y: '100vh',
+                        rotate: piece.rotation + 720,
+                        opacity: [1, 1, 0],
+                    }}
+                    transition={{
+                        duration: 3 + Math.random() * 2,
+                        delay: piece.delay,
+                        ease: 'linear',
+                    }}
+                    style={{
+                        position: 'absolute',
+                        width: 10,
+                        height: 10,
+                        background: piece.color,
+                        borderRadius: Math.random() > 0.5 ? '50%' : 0,
+                    }}
                 />
             ))}
-        </>
+        </div>
     );
+};
+
+// ============================================================================
+// ANIMATED COUNTER
+// ============================================================================
+
+const AnimatedCounter: React.FC<{ target: number; duration?: number; suffix?: string }> = ({
+    target,
+    duration = 1500,
+    suffix = '',
+}) => {
+    const [count, setCount] = useState(0);
+
+    useEffect(() => {
+        let start = 0;
+        const increment = target / (duration / 16);
+        const timer = setInterval(() => {
+            start += increment;
+            if (start >= target) {
+                setCount(target);
+                clearInterval(timer);
+            } else {
+                setCount(Math.floor(start));
+            }
+        }, 16);
+        return () => clearInterval(timer);
+    }, [target, duration]);
+
+    return <span>{count}{suffix}</span>;
 };
 
 // ============================================================================
@@ -329,43 +146,43 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
     onExit,
     onReviewHand,
 }) => {
+    const [phase, setPhase] = useState<'SCORE' | 'XP' | 'BLUNDERS' | 'ACTIONS'>('SCORE');
     const [showConfetti, setShowConfetti] = useState(false);
-    const [animationPhase, setAnimationPhase] = useState(0);
 
-    // Trigger confetti on pass
-    useEffect(() => {
-        if (isOpen && passed) {
-            const timer = setTimeout(() => setShowConfetti(true), 500);
-            return () => clearTimeout(timer);
-        }
-    }, [isOpen, passed]);
-
-    // Animation phases
+    // Animate through phases
     useEffect(() => {
         if (!isOpen) {
-            setAnimationPhase(0);
+            setPhase('SCORE');
             return;
         }
 
-        const timers = [
-            setTimeout(() => setAnimationPhase(1), 300),  // Score
-            setTimeout(() => setAnimationPhase(2), 1500), // Stats
-            setTimeout(() => setAnimationPhase(3), 2500), // Blunders
-            setTimeout(() => setAnimationPhase(4), 3500), // Buttons
-        ];
+        const timers: NodeJS.Timeout[] = [];
+
+        // Phase 1: Show score (immediate)
+        setPhase('SCORE');
+
+        // Phase 2: Show XP after 1.5s
+        timers.push(setTimeout(() => setPhase('XP'), 1500));
+
+        // Phase 3: Show blunders after 3s
+        timers.push(setTimeout(() => setPhase('BLUNDERS'), 3000));
+
+        // Phase 4: Show actions after 4s
+        timers.push(setTimeout(() => setPhase('ACTIONS'), 4000));
+
+        // Show confetti if passed
+        if (passed) {
+            timers.push(setTimeout(() => setShowConfetti(true), 500));
+        }
 
         return () => timers.forEach(clearTimeout);
-    }, [isOpen]);
-
-    // Get top 3 blunders sorted by damage
-    const topBlunders = [...(stats.blunders || [])]
-        .sort((a, b) => b.damage - a.damage)
-        .slice(0, 3);
-
-    // Calculate bonus XP
-    const bonusXP = stats.perfectHands ? stats.perfectHands * 5 : 0;
+    }, [isOpen, passed]);
 
     if (!isOpen) return null;
+
+    const topBlunders = (stats.blunders || [])
+        .sort((a, b) => b.damage - a.damage)
+        .slice(0, 3);
 
     return (
         <AnimatePresence>
@@ -375,217 +192,172 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
                 exit={{ opacity: 0 }}
                 style={styles.overlay}
             >
-                {/* Confetti on pass */}
+                {/* Confetti */}
                 {showConfetti && passed && <Confetti count={80} />}
 
                 <motion.div
-                    initial={{ scale: 0.8, y: 50 }}
+                    initial={{ scale: 0.8, y: 30 }}
                     animate={{ scale: 1, y: 0 }}
-                    exit={{ scale: 0.8, y: 50 }}
+                    transition={{ type: 'spring', stiffness: 200 }}
                     style={{
-                        ...styles.modal,
-                        borderColor: passed ? '#FFD700' : '#F44336',
+                        ...styles.card,
+                        borderColor: passed ? '#ffd700' : '#ff4444',
                     }}
                 >
                     {/* Header */}
-                    <div style={{
-                        ...styles.header,
-                        background: passed
-                            ? 'linear-gradient(135deg, #FFD700, #FFA500)'
-                            : 'linear-gradient(135deg, #F44336, #D32F2F)',
-                    }}>
-                        <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-                            style={styles.headerIcon}
-                        >
+                    <motion.div
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        style={styles.header}
+                    >
+                        <div style={{
+                            fontSize: 72,
+                            marginBottom: 12,
+                        }}>
                             {passed ? '🏆' : '💪'}
-                        </motion.div>
-                        <h1 style={styles.headerTitle}>
-                            {passed ? 'LEVEL CLEARED!' : 'KEEP TRAINING'}
-                        </h1>
-                        <p style={styles.headerSubtitle}>
-                            {gameName} - Level {level}
-                        </p>
-                    </div>
-
-                    {/* Score Section */}
-                    <div style={styles.scoreSection}>
-                        <motion.div
-                            initial={{ scale: 0 }}
-                            animate={animationPhase >= 1 ? { scale: 1 } : {}}
-                            transition={{ type: 'spring', stiffness: 150 }}
-                            style={styles.scoreCircle}
-                        >
-                            <div style={styles.scoreInner}>
-                                <AnimatedCounter
-                                    value={Math.round(stats.accuracy)}
-                                    suffix="%"
-                                    color={passed ? '#4CAF50' : '#F44336'}
-                                />
-                                <span style={styles.scoreLabel}>ACCURACY</span>
-                            </div>
-                            <svg style={styles.scoreRing} viewBox="0 0 100 100">
-                                <circle
-                                    cx="50"
-                                    cy="50"
-                                    r="45"
-                                    fill="none"
-                                    stroke="rgba(255,255,255,0.1)"
-                                    strokeWidth="8"
-                                />
-                                <motion.circle
-                                    cx="50"
-                                    cy="50"
-                                    r="45"
-                                    fill="none"
-                                    stroke={passed ? '#4CAF50' : '#F44336'}
-                                    strokeWidth="8"
-                                    strokeLinecap="round"
-                                    strokeDasharray={`${2 * Math.PI * 45}`}
-                                    initial={{ strokeDashoffset: 2 * Math.PI * 45 }}
-                                    animate={{
-                                        strokeDashoffset: 2 * Math.PI * 45 * (1 - stats.accuracy / 100),
-                                    }}
-                                    transition={{ duration: 1.5, delay: 0.5 }}
-                                    style={{ transform: 'rotate(-90deg)', transformOrigin: '50% 50%' }}
-                                />
-                            </svg>
-                        </motion.div>
-
-                        <div style={styles.passingInfo}>
-                            <span style={{
-                                color: passed ? '#4CAF50' : '#F44336',
-                                fontWeight: 700,
-                            }}>
-                                {passed ? '✓' : '✗'} {passingGrade}% required to pass
-                            </span>
                         </div>
-                    </div>
+                        <h1 style={{
+                            ...styles.title,
+                            color: passed ? '#ffd700' : '#ff6666',
+                        }}>
+                            {passed ? 'LEVEL CLEARED!' : 'KEEP PRACTICING'}
+                        </h1>
+                        <p style={styles.subtitle}>
+                            {gameName} — Level {level}
+                        </p>
+                    </motion.div>
 
-                    {/* Stats Grid */}
-                    <AnimatePresence>
-                        {animationPhase >= 2 && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                style={styles.statsGrid}
-                            >
-                                <div style={styles.statBox}>
-                                    <span style={styles.statValue}>{stats.correctAnswers}</span>
-                                    <span style={styles.statLabel}>Correct</span>
-                                </div>
-                                <div style={styles.statBox}>
-                                    <span style={styles.statValue}>{stats.handsPlayed - stats.correctAnswers}</span>
-                                    <span style={styles.statLabel}>Mistakes</span>
-                                </div>
-                                <div style={styles.statBox}>
-                                    <span style={styles.statValue}>{stats.finalHealth}</span>
-                                    <span style={styles.statLabel}>HP Left</span>
-                                </div>
-                                <div style={styles.statBox}>
-                                    <span style={styles.statValue}>{Math.floor(stats.timeElapsed / 60)}:{(stats.timeElapsed % 60).toString().padStart(2, '0')}</span>
-                                    <span style={styles.statLabel}>Time</span>
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+                    {/* Score Ring */}
+                    <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: 0.4, type: 'spring' }}
+                        style={styles.scoreContainer}
+                    >
+                        <div style={{
+                            ...styles.scoreRing,
+                            borderColor: passed ? '#ffd700' : '#ff4444',
+                        }}>
+                            <div style={styles.scoreValue}>
+                                <AnimatedCounter target={Math.round(stats.accuracy)} suffix="%" />
+                            </div>
+                            <div style={styles.scoreLabel}>ACCURACY</div>
+                        </div>
+                        <div style={styles.passingInfo}>
+                            Passing: {passingGrade}%
+                        </div>
+                    </motion.div>
 
-                    {/* XP Section */}
-                    <AnimatePresence>
-                        {animationPhase >= 2 && (
-                            <XPGainBar earned={stats.xpEarned} bonus={bonusXP} />
-                        )}
-                    </AnimatePresence>
+                    {/* Stats Row */}
+                    {(phase === 'XP' || phase === 'BLUNDERS' || phase === 'ACTIONS') && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            style={styles.statsRow}
+                        >
+                            <div style={styles.statBox}>
+                                <span style={styles.statIcon}>✓</span>
+                                <span style={styles.statValue}>{stats.correctAnswers}/{stats.handsPlayed}</span>
+                                <span style={styles.statLabel}>Correct</span>
+                            </div>
+                            <div style={styles.statBox}>
+                                <span style={styles.statIcon}>❤️</span>
+                                <span style={styles.statValue}>{stats.finalHealth}</span>
+                                <span style={styles.statLabel}>HP Left</span>
+                            </div>
+                            <div style={styles.statBox}>
+                                <span style={styles.statIcon}>⭐</span>
+                                <motion.span
+                                    style={styles.statValue}
+                                    animate={{ scale: [1, 1.2, 1] }}
+                                    transition={{ duration: 0.5, delay: 0.5 }}
+                                >
+                                    +{stats.xpEarned}
+                                </motion.span>
+                                <span style={styles.statLabel}>XP Earned</span>
+                            </div>
+                            {stats.bestStreak && stats.bestStreak > 3 && (
+                                <div style={styles.statBox}>
+                                    <span style={styles.statIcon}>🔥</span>
+                                    <span style={styles.statValue}>{stats.bestStreak}</span>
+                                    <span style={styles.statLabel}>Best Streak</span>
+                                </div>
+                            )}
+                        </motion.div>
+                    )}
 
                     {/* Blunders Review */}
-                    <AnimatePresence>
-                        {animationPhase >= 3 && topBlunders.length > 0 && (
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                style={styles.blundersSection}
-                            >
-                                <h3 style={styles.blundersTitle}>
-                                    📋 Top Blunders to Review
-                                </h3>
-                                <div style={styles.blundersList}>
-                                    {topBlunders.map((blunder, index) => (
-                                        <BlunderCard
-                                            key={index}
-                                            blunder={blunder}
-                                            rank={index + 1}
-                                            onReview={onReviewHand ? () => onReviewHand(blunder) : undefined}
-                                        />
-                                    ))}
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+                    {(phase === 'BLUNDERS' || phase === 'ACTIONS') && topBlunders.length > 0 && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            style={styles.blundersSection}
+                        >
+                            <h3 style={styles.blundersTitle}>📝 Review Your Mistakes</h3>
+                            <div style={styles.blundersList}>
+                                {topBlunders.map((blunder, idx) => (
+                                    <motion.div
+                                        key={idx}
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: idx * 0.1 }}
+                                        style={styles.blunderCard}
+                                        onClick={() => onReviewHand?.(blunder)}
+                                    >
+                                        <div style={styles.blunderHand}>
+                                            {blunder.heroHand}
+                                        </div>
+                                        <div style={styles.blunderInfo}>
+                                            <div style={styles.blunderAction}>
+                                                You: <span style={{ color: '#ff4444' }}>{blunder.userAction}</span>
+                                                {' → '}
+                                                Correct: <span style={{ color: '#00ff88' }}>{blunder.correctAction}</span>
+                                            </div>
+                                            <div style={styles.blunderDamage}>
+                                                -{blunder.damage} HP
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        </motion.div>
+                    )}
 
                     {/* Action Buttons */}
-                    <AnimatePresence>
-                        {animationPhase >= 4 && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                style={styles.buttonSection}
-                            >
-                                {passed ? (
-                                    <>
-                                        <motion.button
-                                            whileHover={{ scale: 1.05 }}
-                                            whileTap={{ scale: 0.95 }}
-                                            onClick={onNextLevel}
-                                            style={styles.nextButton}
-                                        >
-                                            <span>Next Level</span>
-                                            <span style={styles.nextArrow}>▶</span>
-                                        </motion.button>
-                                        <motion.button
-                                            whileHover={{ scale: 1.05 }}
-                                            whileTap={{ scale: 0.95 }}
-                                            onClick={onRetry}
-                                            style={styles.retryButtonSecondary}
-                                        >
-                                            Practice Again
-                                        </motion.button>
-                                    </>
-                                ) : (
-                                    <>
-                                        <motion.button
-                                            whileHover={{ scale: 1.05 }}
-                                            whileTap={{ scale: 0.95 }}
-                                            onClick={onRetry}
-                                            style={styles.retryButton}
-                                        >
-                                            <span>🔄</span>
-                                            <span>Try Again</span>
-                                        </motion.button>
-                                    </>
-                                )}
+                    {phase === 'ACTIONS' && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            style={styles.actionsRow}
+                        >
+                            {passed ? (
                                 <motion.button
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
-                                    onClick={onExit}
-                                    style={styles.exitButton}
+                                    onClick={onNextLevel}
+                                    style={styles.nextLevelBtn}
                                 >
-                                    Exit to Menu
+                                    Next Level →
                                 </motion.button>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-
-                    {/* Streak Badge */}
-                    {stats.streakBest && stats.streakBest > 3 && (
-                        <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            transition={{ delay: 2 }}
-                            style={styles.streakBadge}
-                        >
-                            🔥 {stats.streakBest} Hand Streak!
+                            ) : (
+                                <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={onRetry}
+                                    style={styles.retryBtn}
+                                >
+                                    🔄 Try Again
+                                </motion.button>
+                            )}
+                            <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={onExit}
+                                style={styles.exitBtn}
+                            >
+                                Exit
+                            </motion.button>
                         </motion.div>
                     )}
                 </motion.div>
@@ -598,382 +370,196 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
 // STYLES
 // ============================================================================
 
-const styles: { [key: string]: React.CSSProperties } = {
+const styles: Record<string, React.CSSProperties> = {
     overlay: {
         position: 'fixed',
-        inset: 0,
-        background: 'rgba(0, 0, 0, 0.95)',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.9)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 1000,
-        padding: 20,
-        overflow: 'auto',
+        zIndex: 200,
     },
-
-    modal: {
-        background: 'linear-gradient(180deg, #1a1a2e 0%, #0d0d1a 100%)',
+    confettiContainer: {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        pointerEvents: 'none',
+        overflow: 'hidden',
+        zIndex: 201,
+    },
+    card: {
+        background: 'linear-gradient(135deg, #1a1a2e 0%, #0d0d1a 100%)',
         borderRadius: 24,
-        width: '100%',
+        padding: 40,
         maxWidth: 500,
-        maxHeight: '90vh',
-        overflow: 'auto',
+        width: '90%',
         border: '3px solid',
         boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
+        position: 'relative',
+        zIndex: 202,
     },
-
     header: {
-        padding: '24px 20px',
         textAlign: 'center',
-        borderRadius: '21px 21px 0 0',
+        marginBottom: 24,
     },
-
-    headerIcon: {
-        fontSize: 56,
-        marginBottom: 8,
-    },
-
-    headerTitle: {
-        margin: 0,
+    title: {
         fontSize: 28,
-        fontWeight: 900,
-        color: '#fff',
-        textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+        fontWeight: 800,
+        margin: 0,
+        textTransform: 'uppercase',
         letterSpacing: 2,
     },
-
-    headerSubtitle: {
-        margin: '8px 0 0',
+    subtitle: {
         fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.8)',
+        color: 'rgba(255, 255, 255, 0.6)',
+        marginTop: 8,
     },
-
-    scoreSection: {
-        padding: '32px 20px',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
+    scoreContainer: {
+        textAlign: 'center',
+        marginBottom: 24,
     },
-
-    scoreCircle: {
-        position: 'relative',
-        width: 180,
-        height: 180,
-    },
-
-    scoreInner: {
-        position: 'absolute',
-        inset: 0,
+    scoreRing: {
+        width: 140,
+        height: 140,
+        borderRadius: '50%',
+        border: '6px solid',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
+        margin: '0 auto 12px',
+        background: 'rgba(0, 0, 0, 0.4)',
     },
-
-    scoreLabel: {
-        fontSize: 12,
-        fontWeight: 600,
-        color: 'rgba(255, 255, 255, 0.5)',
-        marginTop: 4,
-        letterSpacing: 2,
-    },
-
-    scoreRing: {
-        position: 'absolute',
-        inset: 0,
-        width: '100%',
-        height: '100%',
-    },
-
-    passingInfo: {
-        marginTop: 16,
-        fontSize: 14,
-    },
-
-    statsGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: 12,
-        padding: '0 20px 24px',
-    },
-
-    statBox: {
-        background: 'rgba(255, 255, 255, 0.05)',
-        borderRadius: 12,
-        padding: '12px 8px',
-        textAlign: 'center',
-    },
-
-    statValue: {
-        display: 'block',
-        fontSize: 20,
+    scoreValue: {
+        fontSize: 42,
         fontWeight: 800,
-        color: '#00D4FF',
+        color: '#fff',
     },
-
-    statLabel: {
-        display: 'block',
-        fontSize: 10,
-        color: 'rgba(255, 255, 255, 0.5)',
-        marginTop: 4,
+    scoreLabel: {
+        fontSize: 11,
+        color: 'rgba(255, 255, 255, 0.6)',
         textTransform: 'uppercase',
-    },
-
-    xpContainer: {
-        padding: '20px',
-        margin: '0 20px 20px',
-        background: 'rgba(255, 215, 0, 0.1)',
-        borderRadius: 16,
-        border: '1px solid rgba(255, 215, 0, 0.3)',
-    },
-
-    xpHeader: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        marginBottom: 12,
-    },
-
-    xpIcon: {
-        fontSize: 20,
-    },
-
-    xpTitle: {
-        fontSize: 12,
-        fontWeight: 700,
-        color: '#FFD700',
-        letterSpacing: 2,
-    },
-
-    xpBreakdown: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 16,
-    },
-
-    xpMain: {
-        fontSize: 36,
-        fontWeight: 900,
-        color: '#FFD700',
-    },
-
-    xpBonus: {
-        display: 'flex',
-        flexDirection: 'column',
-        padding: '8px 12px',
-        background: 'rgba(76, 175, 80, 0.2)',
-        borderRadius: 8,
-    },
-
-    bonusLabel: {
-        fontSize: 9,
-        color: '#4CAF50',
         letterSpacing: 1,
     },
-
-    bonusValue: {
-        fontSize: 18,
-        fontWeight: 800,
-        color: '#4CAF50',
+    passingInfo: {
+        fontSize: 13,
+        color: 'rgba(255, 255, 255, 0.5)',
     },
-
-    xpTotal: {
-        marginTop: 12,
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.7)',
+    statsRow: {
+        display: 'flex',
+        justifyContent: 'center',
+        gap: 20,
+        marginBottom: 24,
+        flexWrap: 'wrap',
     },
-
-    blundersSection: {
-        padding: '0 20px 20px',
+    statBox: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        padding: '12px 16px',
+        background: 'rgba(255, 255, 255, 0.05)',
+        borderRadius: 12,
+        minWidth: 70,
     },
-
-    blundersTitle: {
-        margin: '0 0 12px',
-        fontSize: 14,
+    statIcon: {
+        fontSize: 20,
+        marginBottom: 4,
+    },
+    statValue: {
+        fontSize: 20,
         fontWeight: 700,
-        color: 'rgba(255, 255, 255, 0.8)',
+        color: '#00d4ff',
     },
-
+    statLabel: {
+        fontSize: 10,
+        color: 'rgba(255, 255, 255, 0.5)',
+        textTransform: 'uppercase',
+    },
+    blundersSection: {
+        marginBottom: 24,
+    },
+    blundersTitle: {
+        fontSize: 14,
+        fontWeight: 600,
+        color: 'rgba(255, 255, 255, 0.7)',
+        marginBottom: 12,
+        textAlign: 'center',
+    },
     blundersList: {
         display: 'flex',
         flexDirection: 'column',
         gap: 8,
     },
-
     blunderCard: {
         display: 'flex',
         alignItems: 'center',
         gap: 12,
-        padding: '12px',
-        background: 'rgba(255, 255, 255, 0.05)',
-        borderRadius: 12,
+        padding: 12,
+        background: 'rgba(255, 68, 68, 0.1)',
+        borderRadius: 8,
+        border: '1px solid rgba(255, 68, 68, 0.2)',
         cursor: 'pointer',
-        transition: 'background 0.2s ease',
     },
-
-    blunderRank: {
-        padding: '4px 8px',
-        borderRadius: 6,
-        fontSize: 10,
-        fontWeight: 800,
+    blunderHand: {
+        fontSize: 16,
+        fontWeight: 700,
         color: '#fff',
-        textAlign: 'center',
+        padding: '4px 10px',
+        background: 'rgba(0, 0, 0, 0.4)',
+        borderRadius: 6,
     },
-
     blunderInfo: {
         flex: 1,
     },
-
-    blunderHand: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        marginBottom: 4,
-    },
-
-    handLabel: {
-        fontSize: 10,
-        color: 'rgba(255, 255, 255, 0.5)',
-    },
-
-    handCards: {
-        fontSize: 14,
-        fontWeight: 700,
-        color: '#fff',
-    },
-
-    boardCards: {
+    blunderAction: {
         fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.6)',
+        color: 'rgba(255, 255, 255, 0.8)',
     },
-
-    blunderActions: {
-        display: 'flex',
-        gap: 16,
-    },
-
-    actionRow: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 4,
-    },
-
-    actionLabel: {
-        fontSize: 10,
-        color: 'rgba(255, 255, 255, 0.4)',
-    },
-
-    userAction: {
-        fontSize: 12,
-        fontWeight: 600,
-        color: '#F44336',
-    },
-
-    correctAction: {
-        fontSize: 12,
-        fontWeight: 600,
-        color: '#4CAF50',
-    },
-
     blunderDamage: {
+        fontSize: 11,
+        color: '#ff4444',
+        marginTop: 2,
+    },
+    actionsRow: {
         display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-    },
-
-    damageValue: {
-        fontSize: 18,
-        fontWeight: 800,
-        color: '#F44336',
-    },
-
-    damageLabel: {
-        fontSize: 9,
-        color: 'rgba(255, 255, 255, 0.4)',
-    },
-
-    reviewArrow: {
-        fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.3)',
-    },
-
-    buttonSection: {
-        display: 'flex',
-        flexDirection: 'column',
         gap: 12,
-        padding: '20px',
-        borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-    },
-
-    nextButton: {
-        display: 'flex',
-        alignItems: 'center',
         justifyContent: 'center',
-        gap: 12,
-        padding: '16px 32px',
-        background: 'linear-gradient(135deg, #4CAF50, #388E3C)',
+    },
+    nextLevelBtn: {
+        padding: '14px 32px',
+        background: 'linear-gradient(135deg, #ffd700, #ffaa00)',
         border: 'none',
-        borderRadius: 16,
-        fontSize: 18,
-        fontWeight: 800,
-        color: '#fff',
+        borderRadius: 12,
+        color: '#000',
+        fontSize: 16,
+        fontWeight: 700,
         cursor: 'pointer',
-        boxShadow: '0 4px 15px rgba(76, 175, 80, 0.4)',
     },
-
-    nextArrow: {
-        fontSize: 14,
-    },
-
-    retryButton: {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        padding: '16px 32px',
-        background: 'linear-gradient(135deg, #00D4FF, #0099CC)',
+    retryBtn: {
+        padding: '14px 32px',
+        background: 'linear-gradient(135deg, #00d4ff, #0088cc)',
         border: 'none',
-        borderRadius: 16,
-        fontSize: 18,
-        fontWeight: 800,
+        borderRadius: 12,
         color: '#fff',
+        fontSize: 16,
+        fontWeight: 600,
         cursor: 'pointer',
-        boxShadow: '0 4px 15px rgba(0, 212, 255, 0.4)',
     },
-
-    retryButtonSecondary: {
-        padding: '12px 24px',
+    exitBtn: {
+        padding: '14px 32px',
         background: 'rgba(255, 255, 255, 0.1)',
         border: '1px solid rgba(255, 255, 255, 0.2)',
         borderRadius: 12,
-        fontSize: 14,
-        fontWeight: 600,
         color: '#fff',
-        cursor: 'pointer',
-    },
-
-    exitButton: {
-        padding: '12px 24px',
-        background: 'transparent',
-        border: '1px solid rgba(255, 255, 255, 0.2)',
-        borderRadius: 12,
-        fontSize: 14,
+        fontSize: 16,
         fontWeight: 600,
-        color: 'rgba(255, 255, 255, 0.6)',
         cursor: 'pointer',
-    },
-
-    streakBadge: {
-        position: 'absolute',
-        top: -15,
-        right: 20,
-        padding: '8px 16px',
-        background: 'linear-gradient(135deg, #FF6B35, #FF4500)',
-        borderRadius: 20,
-        fontSize: 14,
-        fontWeight: 700,
-        color: '#fff',
-        boxShadow: '0 4px 15px rgba(255, 107, 53, 0.5)',
     },
 };
 

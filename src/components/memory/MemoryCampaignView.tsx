@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
+import { getAuthUser } from '../../lib/authUtils';
 import MemoryGameClient from './MemoryGameClient';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -54,7 +55,8 @@ export default function MemoryCampaignView() {
     }, []);
 
     const initializeUser = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
+        // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
+        const user = getAuthUser();
         if (user) {
             setUserId(user.id);
             loadCampaignData(user.id);

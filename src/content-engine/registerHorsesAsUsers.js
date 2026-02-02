@@ -61,7 +61,6 @@ async function registerHorsesAsUsers() {
             stakes: p.stakes,
             is_bot: true, // Mark as AI user
             is_active: true,
-            xp: Math.floor(Math.random() * 5000) + 1000, // Random XP 1000-6000
             total_hands: Math.floor(Math.random() * 50000) + 5000, // Random hands
             created_at: new Date().toISOString()
         };

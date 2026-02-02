@@ -562,7 +562,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                         fontWeight: 700,
                         fontSize: '14px'
                     }}>
-                        💎 {progression.state.totalDiamonds.toLocaleString()}
+                        <img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/> {progression.state.totalDiamonds.toLocaleString()}
                     </div>
 
                     {/* Score */}

@@ -1,0 +1,27 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   DIAMOND ARENA THEME — Luxury, Competitive, Gold
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+body.world-diamond-arena {
+    /* Primary: Gold - luxury, prestige */
+    --world-primary: #ffd700;
+    --world-primary-rgb: 255, 215, 0;
+    --world-primary-glow: rgba(255, 215, 0, 0.4);
+
+    /* Secondary: Amber */
+    --world-secondary: #ff9500;
+    --world-secondary-rgb: 255, 149, 0;
+
+    /* Background: Rich dark with gold tints */
+    --world-bg-start: #0a0806;
+    --world-bg-mid: #1a1408;
+    --world-bg-end: #050402;
+    --world-bg-gradient: radial-gradient(ellipse at center, var(--world-bg-mid) 0%, var(--world-bg-start) 70%, var(--world-bg-end) 100%);
+
+    /* Surface: Warm dark glass */
+    --world-surface: rgba(40, 30, 10, 0.6);
+    --world-surface-elevated: rgba(60, 45, 15, 0.8);
+
+    /* Border: Gold accent */
+    --world-border: rgba(255, 215, 0, 0.3);
+}

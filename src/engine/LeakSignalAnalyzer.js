@@ -8,10 +8,12 @@
  * 2. Classifies the error type (e.g. "Calling when should Raise" = Passive)
  * 3. Tracks frequency in a rolling window
  * 4. Emits LEAK_DETECTED if threshold is breeched
+ * 5. Persists to Supabase and pushes to Jarvis PA
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
 import { eventBus, EventType } from './EventBus';
+import { leakService } from '../services/LeakService';
 
 export const LEAK_TYPES = {
     PASSIVE_PLAY: {
@@ -47,6 +49,14 @@ class LeakSignalAnalyzer {
         this.THRESHOLD = 3; // 3 of same type triggers leak
 
         this.activeLeaks = new Set(); // IDs of currently active leaks
+        this.userId = null; // Set by the game component
+    }
+
+    /**
+     * Set the current user ID for Supabase persistence
+     */
+    setUserId(userId) {
+        this.userId = userId;
     }
 
     start() {
@@ -66,7 +76,7 @@ class LeakSignalAnalyzer {
 
         if (leakType) {
             this.recordMistake(leakType);
-            this.checkForLeaks(leakType);
+            this.checkForLeaks(leakType, scenario);
         }
     }
 
@@ -99,7 +109,7 @@ class LeakSignalAnalyzer {
         }
     }
 
-    checkForLeaks(lastLeakType) {
+    checkForLeaks(lastLeakType, scenario = null) {
         const typeId = lastLeakType.id;
 
         // Count occurrences in window
@@ -108,7 +118,7 @@ class LeakSignalAnalyzer {
         if (count >= this.THRESHOLD) {
             // Leak Detected!
             if (!this.activeLeaks.has(typeId)) {
-                this.triggerLeakSignal(lastLeakType, count);
+                this.triggerLeakSignal(lastLeakType, count, scenario);
                 this.activeLeaks.add(typeId);
 
                 // Reset this leak type in history to avoid spamming
@@ -117,7 +127,7 @@ class LeakSignalAnalyzer {
         }
     }
 
-    triggerLeakSignal(leakType, count) {
+    async triggerLeakSignal(leakType, count, scenario = null) {
         console.log(`🚨 LEAK DETECTED: ${leakType.name} (${count} times)`);
 
         // Emit event for UI to show modal/toast
@@ -126,6 +136,27 @@ class LeakSignalAnalyzer {
             count: count,
             timestamp: Date.now()
         }, 'LeakSignalAnalyzer');
+
+        // Persist to Supabase and push to Jarvis if user is authenticated
+        if (this.userId) {
+            try {
+                const context = {
+                    count,
+                    scenario: scenario?.title || null,
+                    timestamp: Date.now()
+                };
+
+                // Record the leak to Supabase
+                const leak = await leakService.recordLeak(this.userId, leakType, context);
+
+                // Push notification to Jarvis PA
+                if (leak) {
+                    await leakService.pushToJarvis(this.userId, leakType, leak.id);
+                }
+            } catch (err) {
+                console.error('[LeakSignalAnalyzer] Failed to persist leak:', err);
+            }
+        }
     }
 
     reset() {

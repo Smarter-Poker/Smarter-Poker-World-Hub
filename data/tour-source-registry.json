@@ -1,0 +1,809 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "created": "2026-01-26",
+    "description": "Authoritative registry of all traveling poker tour sources with refresh scheduling",
+    "refresh_interval_days": 3,
+    "total_tours": 26,
+    "active_tours": 25
+  },
+  "tours": {
+    "WSOP": {
+      "tour_code": "WSOP",
+      "tour_name": "World Series of Poker",
+      "tour_type": "major",
+      "priority": 1,
+      "official_website": "https://www.wsop.com",
+      "source_urls": {
+        "primary": "https://www.wsop.com/tournaments/",
+        "schedule_2026": "https://www.wsop.com/2026/",
+        "circuit": "https://www.wsop.com/circuit/",
+        "europe": "https://www.wsop.com/wsope/",
+        "paradise": "https://www.wsop.com/paradise/",
+        "pokeratlas": "https://www.pokeratlas.com/poker-tournaments/wsop",
+        "hendonmob": "https://www.thehendonmob.com/festivals/world-series-of-poker"
+      },
+      "scrape_config": {
+        "method": "puppeteer",
+        "selectors": {
+          "event_list": "table tbody tr, .event-row, .schedule-item",
+          "event_number": ".event-number, td:first-child",
+          "event_name": ".event-name, td:nth-child(2), .title",
+          "buy_in": ".buy-in, td:nth-child(3), .buyin",
+          "start_date": ".start-date, td:nth-child(4), .date",
+          "guaranteed": ".guarantee, .gtd"
+        },
+        "requires_auth": false,
+        "rate_limit_ms": 3000
+      },
+      "refresh_interval_days": 3,
+      "typical_schedule": {
+        "main_series": "Late May - Mid July",
+        "circuit": "Year-round (24 domestic stops)",
+        "europe": "Late September - October",
+        "paradise": "December"
+      },
+      "typical_buyins": {
+        "min": 400,
+        "max": 250000,
+        "main_event": 10000
+      },
+      "regions": ["US", "Europe", "Bahamas"],
+      "headquarters": "Las Vegas, NV",
+      "established": 1970,
+      "notes": "Premier poker event. Check schedule page for complete event list including satellites and flights."
+    },
+    "WPT": {
+      "tour_code": "WPT",
+      "tour_name": "World Poker Tour",
+      "tour_type": "major",
+      "priority": 1,
+      "official_website": "https://www.worldpokertour.com",
+      "source_urls": {
+        "primary": "https://www.worldpokertour.com/schedule/",
+        "wpt_prime": "https://www.worldpokertour.com/wpt-prime/",
+        "pokeratlas": "https://www.pokeratlas.com/poker-tournaments/wpt",
+        "hendonmob": "https://www.thehendonmob.com/festivals/world-poker-tour"
+      },
+      "scrape_config": {
+        "method": "puppeteer",
+        "selectors": {
+          "event_list": ".event-card, .schedule-event, table tr",
+          "event_name": ".event-title, .name, h3",
+          "buy_in": ".buy-in, .buyin",
+          "venue": ".venue, .location",
+          "dates": ".dates, .event-dates"
+        }
+      },
+      "refresh_interval_days": 3,
+      "typical_schedule": {
+        "season": "Year-round",
+        "championship": "December at Wynn Las Vegas"
+      },
+      "typical_buyins": {
+        "min": 3500,
+        "max": 25000,
+        "main_event": 10400
+      },
+      "regions": ["US", "Europe", "Asia"],
+      "headquarters": "Los Angeles, CA",
+      "established": 2002,
+      "notes": "Televised tour. WPT Prime is lower buy-in series."
+    },
+    "WSOPC": {
+      "tour_code": "WSOPC",
+      "tour_name": "WSOP Circuit",
+      "tour_type": "circuit",
+      "priority": 2,
+      "official_website": "https://www.wsop.com",
+      "source_urls": {
+        "primary": "https://www.wsop.com/circuit/",
+        "schedule": "https://www.wsop.com/circuit/schedule/",
+        "pokeratlas": "https://www.pokeratlas.com/poker-tournaments/wsop-circuit"
+      },
+      "scrape_config": {
+        "method": "puppeteer",
+        "selectors": {
+          "stop_list": ".circuit-stop, .location-card",
+          "event_list": "table tbody tr, .event-row",
+          "event_name": ".event-name, td:nth-child(2)",
+          "buy_in": ".buy-in, td:nth-child(3)",
+          "start_date": ".date, td:nth-child(4)"
+        }
+      },
+      "refresh_interval_days": 3,
+      "typical_schedule": {
+        "season": "Year-round",
+        "stops_per_year": 24
+      },
+      "typical_buyins": {
+        "min": 400,
+        "max": 1700,
+        "main_event": 1700
+      },
+      "regions": ["US"],
+      "headquarters": "Las Vegas, NV",
+      "established": 2005,
+      "stops_2026": [
+        {"name": "Planet Hollywood", "city": "Las Vegas", "state": "NV", "dates": "Jan 1-12"},
+        {"name": "Choctaw", "city": "Durant", "state": "OK", "dates": "Jan 7-19"},
+        {"name": "Thunder Valley", "city": "Lincoln", "state": "CA", "dates": "Jan 15-26"},
+        {"name": "Tunica (Winter)", "city": "Robinsonville", "state": "MS", "dates": "Jan 22 - Feb 2"},
+        {"name": "Pompano", "city": "Pompano Beach", "state": "FL", "dates": "Jan 29 - Feb 9"},
+        {"name": "Cherokee (Winter)", "city": "Cherokee", "state": "NC", "dates": "Feb 12-23"},
+        {"name": "Baltimore", "city": "Baltimore", "state": "MD", "dates": "Feb 19 - Mar 2"},
+        {"name": "Chicagoland (Winter)", "city": "Hammond", "state": "IN", "dates": "Feb 26 - Mar 9"},
+        {"name": "Tulsa", "city": "Catoosa", "state": "OK", "dates": "Mar 5-16"},
+        {"name": "Central New York", "city": "Verona", "state": "NY", "dates": "Mar 12-23"},
+        {"name": "Las Vegas (Spring)", "city": "Las Vegas", "state": "NV", "dates": "Mar 19-30"},
+        {"name": "Chicago (Spring)", "city": "Elgin", "state": "IL", "dates": "Apr 2-13"},
+        {"name": "Lake Tahoe", "city": "Stateline", "state": "NV", "dates": "Apr 16-27"},
+        {"name": "Tunica (Spring)", "city": "Robinsonville", "state": "MS", "dates": "Apr 16-27"},
+        {"name": "Texas", "city": "Austin/Houston", "state": "TX", "dates": "Apr 23 - May 4"},
+        {"name": "Commerce", "city": "Commerce", "state": "CA", "dates": "May 7-18"},
+        {"name": "Cherokee (Spring)", "city": "Cherokee", "state": "NC", "dates": "May 7-18"},
+        {"name": "New Orleans", "city": "New Orleans", "state": "LA", "dates": "May 14-25"}
+      ],
+      "notes": "Ring events at each stop. First-ever Texas stop in 2026!"
+    },
+    "MSPT": {
+      "tour_code": "MSPT",
+      "tour_name": "Mid-States Poker Tour",
+      "tour_type": "circuit",
+      "priority": 2,
+      "official_website": "https://msptpoker.com",
+      "source_urls": {
+        "primary": "https://msptpoker.com/schedule/",
+        "stops": "https://msptpoker.com/stops/",
+        "pokeratlas": "https://www.pokeratlas.com/poker-tournaments/mspt"
+      },
+      "scrape_config": {
+        "method": "puppeteer",
+        "selectors": {
+          "stop_list": ".tour-stop, .event-card",
+          "event_name": ".stop-name, h3",
+          "venue": ".venue, .location",
+          "dates": ".dates"
+        }
+      },
+      "refresh_interval_days": 3,
+      "typical_schedule": {
+        "season": "Year-round",
+        "stops_per_year": 23,
+        "championship": "Rock N Roll Poker Open (November)"
+      },
+      "typical_buyins": {
+        "min": 360,
+        "max": 3500,
+        "main_event": 1100
+      },
+      "regions": ["US"],
+      "headquarters": "Minneapolis, MN",
+      "established": 2009,
+      "stops_2026": [
+        {"name": "Golden State", "venue": "Sycuan Casino", "city": "El Cajon", "state": "CA"},
+        {"name": "Colorado", "venue": "Monarch Casino", "city": "Black Hawk", "state": "CO"},
+        {"name": "Diamond", "venue": "Talking Stick", "city": "Scottsdale", "state": "AZ"},
+        {"name": "Poker Bowl X", "venue": "Venetian", "city": "Las Vegas", "state": "NV"},
+        {"name": "Ohio", "venue": "Jack Cleveland", "city": "Cleveland", "state": "OH"},
+        {"name": "Club", "venue": "Potawatomi", "city": "Milwaukee", "state": "WI"},
+        {"name": "Grand Falls Spring", "venue": "Grand Falls", "city": "Larchwood", "state": "IA"},
+        {"name": "Riverside Spring", "venue": "Riverside Casino", "city": "Riverside", "state": "IA"},
+        {"name": "Potawatomi Spring", "venue": "Potawatomi", "city": "Milwaukee", "state": "WI"},
+        {"name": "Michigan", "venue": "FireKeepers", "city": "Battle Creek", "state": "MI"},
+        {"name": "Iowa State", "venue": "Riverside Casino", "city": "Riverside", "state": "IA"},
+        {"name": "Colorado Summer", "venue": "Monarch Casino", "city": "Black Hawk", "state": "CO"},
+        {"name": "Wisconsin State", "venue": "Potawatomi", "city": "Milwaukee", "state": "WI"},
+        {"name": "Spade", "venue": "FireKeepers", "city": "Battle Creek", "state": "MI"},
+        {"name": "Fall Festival", "venue": "Riverside Casino", "city": "Riverside", "state": "IA"},
+        {"name": "Rock N Roll Poker Open", "venue": "Seminole Hard Rock", "city": "Hollywood", "state": "FL"}
+      ],
+      "notes": "$1,100 main events. Good value tour with consistent structures."
+    },
+    "RGPS": {
+      "tour_code": "RGPS",
+      "tour_name": "RunGood Poker Series",
+      "tour_type": "circuit",
+      "priority": 2,
+      "official_website": "https://rungoodgear.com",
+      "source_urls": {
+        "primary": "https://rungoodgear.com/poker-series/",
+        "schedule": "https://rungoodgear.com/schedule/",
+        "pokeratlas": "https://www.pokeratlas.com/poker-tournaments/rungood"
+      },
+      "scrape_config": {
+        "method": "puppeteer",
+        "selectors": {
+          "stop_list": ".rgps-stop, .event-card",
+          "event_name": ".event-name, h3",
+          "venue": ".venue",
+          "dates": ".dates"
+        }
+      },
+      "refresh_interval_days": 3,
+      "typical_schedule": {
+        "season": "Year-round",
+        "stops_per_year": 17,
+        "finale": "Thunder Valley (July/August)"
+      },
+      "typical_buyins": {
+        "min": 135,
+        "max": 2700,
+        "main_event": 600
+      },
+      "regions": ["US"],
+      "headquarters": "Oklahoma City, OK",
+      "established": 2014,
+      "stops_2026": [
+        {"name": "Lodge", "venue": "Lodge Card Club", "city": "Round Rock", "state": "TX"},
+        {"name": "Tulsa Passport", "venue": "Hard Rock Tulsa", "city": "Catoosa", "state": "OK"},
+        {"name": "Jamul", "venue": "Jamul Casino", "city": "San Diego", "state": "CA"},
+        {"name": "Borgata", "venue": "Borgata", "city": "Atlantic City", "state": "NJ"},
+        {"name": "Palace", "venue": "Palace Poker", "city": "Grand Prairie", "state": "TX"},
+        {"name": "MGM National Harbor", "venue": "MGM National Harbor", "city": "Oxon Hill", "state": "MD"},
+        {"name": "Thunder Valley Finale", "venue": "Thunder Valley", "city": "Lincoln", "state": "CA"}
+      ],
+      "notes": "Grassroots tour with apparel/gear partnership. Very affordable buy-ins."
+    },
+    "PGT": {
+      "tour_code": "PGT",
+      "tour_name": "PokerGO Tour",
+      "tour_type": "high_roller",
+      "priority": 1,
+      "official_website": "https://www.pokergo.com",
+      "source_urls": {
+        "primary": "https://www.pokergo.com/pgt/",
+        "schedule": "https://www.pokergo.com/schedule/",
+        "pokeratlas": "https://www.pokeratlas.com/poker-tournaments/pokergo"
+      },
+      "scrape_config": {
+        "method": "puppeteer",
+        "selectors": {
+          "event_list": ".tournament-card, .event-item",
+          "event_name": ".name, h3",
+          "buy_in": ".buy-in",
+          "dates": ".dates"
+        }
+      },
+      "refresh_interval_days": 3,
+      "typical_schedule": {
+        "season": "Year-round",
+        "major_events": ["SHRB", "US Poker Open", "Poker Masters", "PokerGO Cup"]
+      },
+      "typical_buyins": {
+        "min": 10000,
+        "max": 300000,
+        "main_event": 25000
+      },
+      "regions": ["US"],
+      "headquarters": "Las Vegas, NV",
+      "established": 2021,
+      "series_2026": [
+        {"name": "PGT Kickoff", "dates": "Jan 26-31"},
+        {"name": "PGT Mixed Games", "dates": "Feb 3-10"},
+        {"name": "SHRB Mixed", "dates": "Feb 12-14"},
+        {"name": "PokerGO Cup", "dates": "Mar 1-14"},
+        {"name": "PGT PLO Series", "dates": "Mar 20-29"}
+      ],
+      "notes": "High roller tour streamed on PokerGO. Points-based leaderboard."
+    },
+    "TRITON": {
+      "tour_code": "TRITON",
+      "tour_name": "Triton Poker",
+      "tour_type": "high_roller",
+      "priority": 1,
+      "official_website": "https://www.triton-series.com",
+      "source_urls": {
+        "primary": "https://www.triton-series.com/schedule/",
+        "hendonmob": "https://www.thehendonmob.com/festivals/triton-poker"
+      },
+      "scrape_config": {
+        "method": "manual",
+        "requires_auth": false
+      },
+      "refresh_interval_days": 7,
+      "typical_buyins": {
+        "min": 50000,
+        "max": 1000000,
+        "main_event": 100000
+      },
+      "regions": ["Europe", "Asia"],
+      "headquarters": "London, UK",
+      "established": 2015,
+      "notes": "Ultra high stakes. Usually 2-3 stops per year in exotic locations."
+    },
+    "VENETIAN": {
+      "tour_code": "VENETIAN",
+      "tour_name": "Venetian DeepStack Series",
+      "tour_type": "regional",
+      "priority": 2,
+      "official_website": "https://www.venetianlasvegas.com",
+      "source_urls": {
+        "primary": "https://www.venetianlasvegas.com/casino/poker/tournaments.html",
+        "pokeratlas": "https://www.pokeratlas.com/poker-room/venetian-poker-room/tournaments"
+      },
+      "scrape_config": {
+        "method": "puppeteer",
+        "selectors": {
+          "event_list": "table tbody tr, .tournament-row",
+          "event_name": ".event-name, td:nth-child(1)",
+          "buy_in": ".buy-in, td:nth-child(2)",
+          "start_date": ".date, td:nth-child(3)"
+        }
+      },
+      "refresh_interval_days": 3,
+      "typical_schedule": {
+        "nye": "December - January",
+        "spring": "February - March",
+        "summer": "June - July (during WSOP)",
+        "fall": "October - November"
+      },
+      "typical_buyins": {
+        "min": 200,
+        "max": 5000,
+        "main_event": 2500
+      },
+      "regions": ["US"],
+      "headquarters": "Las Vegas, NV",
+      "established": 2007,
+      "series_2026": [
+        {"name": "DeepStack NYE", "dates": "Dec 24, 2025 - Jan 19, 2026"},
+        {"name": "DeepStack Showdown (w/ Poker Bowl)", "dates": "Jan 19 - Feb 8"},
+        {"name": "WPT Venetian Spring", "dates": "Feb 9-24"}
+      ],
+      "notes": "Year-round series. Partners with MSPT for Poker Bowl."
+    },
+    "WYNN": {
+      "tour_code": "WYNN",
+      "tour_name": "Wynn Poker Series",
+      "tour_type": "regional",
+      "priority": 2,
+      "official_website": "https://www.wynnlasvegas.com",
+      "source_urls": {
+        "primary": "https://www.wynnlasvegas.com/casino/poker",
+        "tournaments": "https://www.wynnlasvegas.com/casino/poker/tournaments",
+        "pokeratlas": "https://www.pokeratlas.com/poker-room/wynn-las-vegas/tournaments"
+      },
+      "scrape_config": {
+        "method": "aggregator"
+      },
+      "refresh_interval_days": 3,
+      "typical_buyins": {
+        "min": 400,
+        "max": 10400,
+        "main_event": 3500
+      },
+      "regions": ["US"],
+      "headquarters": "Las Vegas, NV",
+      "established": 2005,
+      "series_2026": [
+        {"name": "Wynn Millions", "dates": "Feb 16 - Mar 22"}
+      ],
+      "notes": "Premium venue. Hosts WPT Championship in December."
+    },
+    "BORGATA": {
+      "tour_code": "BORGATA",
+      "tour_name": "Borgata Poker Series",
+      "tour_type": "regional",
+      "priority": 2,
+      "official_website": "https://www.theborgata.com",
+      "source_urls": {
+        "primary": "https://www.theborgata.com/casino/poker/tournaments",
+        "pokeratlas": "https://www.pokeratlas.com/poker-room/borgata-poker-room/tournaments"
+      },
+      "scrape_config": {
+        "method": "aggregator"
+      },
+      "refresh_interval_days": 3,
+      "typical_schedule": {
+        "winter_open": "January",
+        "spring_open": "April",
+        "summer_open": "July",
+        "fall_open": "October"
+      },
+      "typical_buyins": {
+        "min": 400,
+        "max": 5300,
+        "main_event": 2700
+      },
+      "regions": ["US"],
+      "headquarters": "Atlantic City, NJ",
+      "established": 2003,
+      "series_2026": [
+        {"name": "Winter Poker Open", "dates": "Jan 2-18"}
+      ],
+      "notes": "East coast premier destination. Multiple opens per year."
+    },
+    "SEMINOLE": {
+      "tour_code": "SEMINOLE",
+      "tour_name": "Seminole Hard Rock Poker",
+      "tour_type": "regional",
+      "priority": 2,
+      "official_website": "https://www.seminolehardrockpokeropen.com",
+      "source_urls": {
+        "primary": "https://www.seminolehardrockpokeropen.com/schedule/",
+        "hollywood": "https://www.seminolehardrockhollywood.com/poker",
+        "tampa": "https://www.seminolehardrocktampa.com/poker/",
+        "pokeratlas_hollywood": "https://www.pokeratlas.com/poker-room/seminole-hard-rock-hollywood/tournaments",
+        "pokeratlas_tampa": "https://www.pokeratlas.com/poker-room/seminole-hard-rock-tampa/tournaments"
+      },
+      "scrape_config": {
+        "method": "puppeteer"
+      },
+      "refresh_interval_days": 3,
+      "typical_schedule": {
+        "lucky_hearts": "January (WPT)",
+        "shrpo": "July-August",
+        "rock_n_roll": "November (MSPT)"
+      },
+      "typical_buyins": {
+        "min": 400,
+        "max": 25000,
+        "main_event": 5250
+      },
+      "regions": ["US"],
+      "headquarters": "Hollywood, FL",
+      "established": 2010,
+      "series_2026": [
+        {"name": "WPT Lucky Hearts Poker Open", "venue": "Hollywood", "dates": "Jan 6-20"},
+        {"name": "Tampa Winter Poker Open", "venue": "Tampa", "dates": "Jan 21 - Feb 2"},
+        {"name": "Tampa Poker Classic", "venue": "Tampa", "dates": "Mar 4-16"},
+        {"name": "WPT Seminole Showdown", "venue": "Hollywood", "dates": "Apr 8-28"},
+        {"name": "Tampa Signature Series", "venue": "Tampa", "dates": "Jul 15-28"},
+        {"name": "SHRPO", "venue": "Hollywood", "dates": "Jul 29 - Aug 11"},
+        {"name": "MSPT Rock N Roll Poker Open", "venue": "Hollywood", "dates": "Nov 18 - Dec 2"}
+      ],
+      "notes": "Florida powerhouse. Hollywood and Tampa locations."
+    },
+    "LODGE": {
+      "tour_code": "LODGE",
+      "tour_name": "Lodge Championship Series",
+      "tour_type": "regional",
+      "priority": 2,
+      "official_website": "https://thelodgepokerclub.com",
+      "source_urls": {
+        "primary": "https://thelodgepokerclub.com/austin/lcs/",
+        "austin": "https://thelodgepokerclub.com/austin/",
+        "pokeratlas": "https://www.pokeratlas.com/poker-room/the-lodge-card-club/tournaments"
+      },
+      "scrape_config": {
+        "method": "puppeteer"
+      },
+      "refresh_interval_days": 3,
+      "typical_buyins": {
+        "min": 400,
+        "max": 5000,
+        "main_event": 1700
+      },
+      "regions": ["US"],
+      "headquarters": "Round Rock, TX",
+      "established": 2020,
+      "series_2026": [
+        {"name": "Lodge Championship Series", "dates": "Feb 22 - Mar 9"}
+      ],
+      "notes": "Doug Polk owned. Growing Texas poker hub."
+    },
+    "COMMERCE": {
+      "tour_code": "COMMERCE",
+      "tour_name": "Commerce Casino Series",
+      "tour_type": "regional",
+      "priority": 2,
+      "official_website": "https://www.commercecasino.com",
+      "source_urls": {
+        "primary": "https://www.commercecasino.com/poker/tournaments",
+        "lapc": "https://www.commercecasino.com/lapc/",
+        "pokeratlas": "https://www.pokeratlas.com/poker-room/commerce-casino/tournaments"
+      },
+      "scrape_config": {
+        "method": "puppeteer"
+      },
+      "refresh_interval_days": 3,
+      "typical_buyins": {
+        "min": 100,
+        "max": 10400,
+        "main_event": 10400
+      },
+      "regions": ["US"],
+      "headquarters": "Commerce, CA",
+      "established": 1983,
+      "series_2026": [
+        {"name": "L.A. Poker Classic", "dates": "Jan 7 - Mar 1"}
+      ],
+      "notes": "Largest card room in US. LAPC is premiere west coast event."
+    },
+    "BESTBET": {
+      "tour_code": "BESTBET",
+      "tour_name": "bestbet Jacksonville Series",
+      "tour_type": "regional",
+      "priority": 3,
+      "official_website": "https://www.bestbetjax.com",
+      "source_urls": {
+        "primary": "https://www.bestbetjax.com/poker/tournaments/",
+        "pokeratlas": "https://www.pokeratlas.com/poker-room/bestbet-jacksonville/tournaments"
+      },
+      "scrape_config": {
+        "method": "aggregator"
+      },
+      "refresh_interval_days": 3,
+      "typical_buyins": {
+        "min": 150,
+        "max": 3500,
+        "main_event": 1100
+      },
+      "regions": ["US"],
+      "headquarters": "Jacksonville, FL",
+      "established": 2010,
+      "series_2026": [
+        {"name": "Blizzard on the Beach", "dates": "Feb 5-16"}
+      ],
+      "notes": "Florida regional. Annual Blizzard series."
+    },
+    "BAY_101": {
+      "tour_code": "BAY_101",
+      "tour_name": "Bay 101 Shooting Star",
+      "tour_type": "regional",
+      "priority": 3,
+      "official_website": "https://www.bay101.com",
+      "source_urls": {
+        "primary": "https://www.bay101.com/poker/",
+        "pokeratlas": "https://www.pokeratlas.com/poker-room/bay-101-casino/tournaments"
+      },
+      "scrape_config": {
+        "method": "aggregator"
+      },
+      "refresh_interval_days": 3,
+      "typical_buyins": {
+        "min": 1100,
+        "max": 5300,
+        "main_event": 1650
+      },
+      "regions": ["US"],
+      "headquarters": "San Jose, CA",
+      "established": 1994,
+      "series_2026": [
+        {"name": "Rising Star", "dates": "Feb 20 - Mar 2"}
+      ],
+      "notes": "Bay Area premier room. Former WPT Shooting Star host."
+    },
+    "ROUGHRIDER": {
+      "tour_code": "ROUGHRIDER",
+      "tour_name": "Roughrider Poker Tour",
+      "tour_type": "circuit",
+      "priority": 3,
+      "official_website": "https://roughriderpokertour.com",
+      "source_urls": {
+        "primary": "https://roughriderpokertour.com/schedule/"
+      },
+      "scrape_config": {
+        "method": "puppeteer"
+      },
+      "refresh_interval_days": 7,
+      "typical_buyins": {
+        "min": 100,
+        "max": 500,
+        "main_event": 300
+      },
+      "regions": ["US"],
+      "headquarters": "North Dakota",
+      "established": 2018,
+      "notes": "Northern plains regional tour. Very affordable."
+    },
+    "BPO": {
+      "tour_code": "BPO",
+      "tour_name": "Bar Poker Open",
+      "tour_type": "grassroots",
+      "priority": 3,
+      "official_website": "https://barpokeropen.com",
+      "source_urls": {
+        "primary": "https://barpokeropen.com/events/",
+        "championship": "https://barpokeropen.com/championship/"
+      },
+      "scrape_config": {
+        "method": "puppeteer"
+      },
+      "refresh_interval_days": 7,
+      "typical_buyins": {
+        "min": 0,
+        "max": 500,
+        "main_event": 0
+      },
+      "regions": ["US"],
+      "headquarters": "Las Vegas, NV",
+      "established": 2006,
+      "notes": "Free bar poker leagues feed into Vegas championship."
+    },
+    "FPN": {
+      "tour_code": "FPN",
+      "tour_name": "Free Poker Network",
+      "tour_type": "grassroots",
+      "priority": 3,
+      "official_website": "https://freepokernetwork.com",
+      "source_urls": {
+        "primary": "https://freepokernetwork.com/events/"
+      },
+      "scrape_config": {
+        "method": "puppeteer"
+      },
+      "refresh_interval_days": 7,
+      "typical_buyins": {
+        "min": 0,
+        "max": 200,
+        "main_event": 0
+      },
+      "regions": ["US"],
+      "headquarters": "Various",
+      "established": 2005,
+      "notes": "National pub poker network."
+    },
+    "LIPS": {
+      "tour_code": "LIPS",
+      "tour_name": "Ladies International Poker Series",
+      "tour_type": "charity",
+      "priority": 3,
+      "official_website": "https://www.lipspoker.org",
+      "source_urls": {
+        "primary": "https://www.lipspoker.org/schedule/"
+      },
+      "scrape_config": {
+        "method": "manual"
+      },
+      "refresh_interval_days": 7,
+      "typical_buyins": {
+        "min": 250,
+        "max": 1100,
+        "main_event": 400
+      },
+      "regions": ["US"],
+      "headquarters": "Las Vegas, NV",
+      "established": 2004,
+      "series_2026": [
+        {"name": "LIPS Spring Festival", "dates": "Apr 20-26", "city": "Las Vegas"}
+      ],
+      "notes": "Womens poker organization. Events during WSOP season."
+    },
+    "CARD_PLAYER_CRUISES": {
+      "tour_code": "CARD_PLAYER_CRUISES",
+      "tour_name": "Card Player Cruises",
+      "tour_type": "cruise",
+      "priority": 3,
+      "official_website": "https://www.cardplayercruises.com",
+      "source_urls": {
+        "primary": "https://www.cardplayercruises.com/cruises/"
+      },
+      "scrape_config": {
+        "method": "manual"
+      },
+      "refresh_interval_days": 14,
+      "typical_buyins": {
+        "min": 100,
+        "max": 500,
+        "main_event": 300
+      },
+      "regions": ["Caribbean", "Alaska", "Mediterranean"],
+      "headquarters": "Miami, FL",
+      "established": 1990,
+      "notes": "Poker cruises. 4-5 per year. Buy-ins separate from cruise fare."
+    },
+    "EPT": {
+      "tour_code": "EPT",
+      "tour_name": "European Poker Tour",
+      "tour_type": "major",
+      "priority": 2,
+      "official_website": "https://www.pokerstarslive.com/ept/",
+      "source_urls": {
+        "primary": "https://www.pokerstarslive.com/ept/",
+        "hendonmob": "https://www.thehendonmob.com/festivals/european-poker-tour"
+      },
+      "scrape_config": {
+        "method": "manual"
+      },
+      "refresh_interval_days": 7,
+      "typical_buyins": {
+        "min": 1100,
+        "max": 100000,
+        "main_event": 5300
+      },
+      "regions": ["Europe"],
+      "headquarters": "Isle of Man",
+      "established": 2004,
+      "notes": "PokerStars owned. Premier European tour. Monte Carlo, Barcelona, Prague."
+    },
+    "APT": {
+      "tour_code": "APT",
+      "tour_name": "Asian Poker Tour",
+      "tour_type": "major",
+      "priority": 3,
+      "official_website": "https://www.theasianpokertour.com",
+      "source_urls": {
+        "primary": "https://www.theasianpokertour.com/schedule/",
+        "hendonmob": "https://www.thehendonmob.com/festivals/asian-poker-tour"
+      },
+      "scrape_config": {
+        "method": "manual"
+      },
+      "refresh_interval_days": 7,
+      "typical_buyins": {
+        "min": 500,
+        "max": 10000,
+        "main_event": 2500
+      },
+      "regions": ["Asia"],
+      "headquarters": "Manila, Philippines",
+      "established": 2008,
+      "notes": "Asian circuit. Manila, Macau, Korea, Vietnam stops."
+    },
+    "HPT": {
+      "tour_code": "HPT",
+      "tour_name": "Heartland Poker Tour",
+      "tour_type": "circuit",
+      "priority": 99,
+      "official_website": "https://www.hptpoker.com",
+      "source_urls": {
+        "primary": "https://www.hptpoker.com"
+      },
+      "scrape_config": {
+        "method": "manual"
+      },
+      "refresh_interval_days": 30,
+      "is_active": false,
+      "defunct_year": 2019,
+      "typical_buyins": {
+        "min": 200,
+        "max": 1650,
+        "main_event": 1650
+      },
+      "regions": ["US"],
+      "headquarters": "Minneapolis, MN",
+      "established": 2005,
+      "notes": "DEFUNCT 2019. Was a Midwest televised circuit tour."
+    }
+  },
+  "aggregator_sources": {
+    "pokeratlas": {
+      "name": "PokerAtlas",
+      "url": "https://www.pokeratlas.com/poker-tournaments",
+      "type": "aggregator",
+      "coverage": ["US", "Canada"],
+      "refresh_interval_days": 1,
+      "notes": "Best source for US tournament schedules. Use for daily tournaments."
+    },
+    "hendonmob": {
+      "name": "The Hendon Mob",
+      "url": "https://www.thehendonmob.com/poker-tournaments",
+      "type": "aggregator",
+      "coverage": ["Worldwide"],
+      "refresh_interval_days": 3,
+      "notes": "Best source for international events and results tracking."
+    },
+    "pokernews": {
+      "name": "PokerNews",
+      "url": "https://www.pokernews.com/tours/",
+      "type": "news",
+      "coverage": ["Worldwide"],
+      "refresh_interval_days": 1,
+      "notes": "News and live reporting. Good for schedule announcements."
+    }
+  },
+  "refresh_schedule": {
+    "priority_1_tours": {
+      "interval_days": 3,
+      "tours": ["WSOP", "WPT", "PGT", "TRITON"],
+      "notes": "Major tours - check every 3 days"
+    },
+    "priority_2_tours": {
+      "interval_days": 3,
+      "tours": ["WSOPC", "MSPT", "RGPS", "VENETIAN", "WYNN", "BORGATA", "SEMINOLE", "LODGE", "COMMERCE"],
+      "notes": "Circuit and regional - check every 3 days"
+    },
+    "priority_3_tours": {
+      "interval_days": 7,
+      "tours": ["ROUGHRIDER", "BPO", "FPN", "LIPS", "BESTBET", "BAY_101", "EPT", "APT"],
+      "notes": "Lower priority - check weekly"
+    },
+    "manual_only": {
+      "interval_days": 14,
+      "tours": ["CARD_PLAYER_CRUISES", "HPT"],
+      "notes": "Manual updates or defunct"
+    }
+  }
+}

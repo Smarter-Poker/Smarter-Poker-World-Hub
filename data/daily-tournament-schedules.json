@@ -1,0 +1,896 @@
+{
+  "metadata": {
+    "description": "Daily/Recurring Tournament Schedules for Verified Venues",
+    "lastUpdated": "2026-01-26",
+    "totalVenues": 178,
+    "venuesWithDailyTournaments": 65,
+    "sources": [
+      "Direct venue websites",
+      "Web search results",
+      "PokerAtlas (where accessible)",
+      "Bravo Poker Live"
+    ],
+    "notes": "Schedules verified as of January 2026. Some venues focus on series/special events rather than daily tournaments."
+  },
+  "tournaments": [
+    {
+      "venue_name": "Lodge Card Club Austin",
+      "city": "Round Rock",
+      "state": "TX",
+      "schedules": [
+        {"day_of_week": "Tuesday", "start_time": "6:15 PM", "buy_in": 30, "game_type": "NLH", "format": "Freeroll", "guaranteed": 15000, "notes": "$20 rebuys available"},
+        {"day_of_week": "Thursday", "start_time": "6:15 PM", "buy_in": 30, "game_type": "NLH", "format": "Freeroll", "guaranteed": 10000, "notes": "$20 rebuys available"},
+        {"day_of_week": "Friday", "start_time": "6:15 PM", "buy_in": 120, "game_type": "NLH", "format": "Freezeout", "guaranteed": 4000, "notes": "No rebuys"},
+        {"day_of_week": "Sunday", "start_time": "12:15 PM", "buy_in": 200, "game_type": "NLH", "format": "Deep Stack", "guaranteed": 10000, "notes": "Single re-entry"}
+      ],
+      "source_url": "https://thelodgepokerclub.com/austin/tournaments/"
+    },
+    {
+      "venue_name": "Lodge Card Club San Antonio",
+      "city": "San Antonio",
+      "state": "TX",
+      "schedules": [
+        {"day_of_week": "Sunday", "start_time": "12:15 PM", "buy_in": 200, "game_type": "NLH", "format": "Deep Stack", "guaranteed": 15000, "notes": "One re-entry"},
+        {"day_of_week": "Sunday", "start_time": "4:15 PM", "buy_in": 100, "game_type": "NLH", "format": "Freezeout", "guaranteed": 2000, "notes": null},
+        {"day_of_week": "Monday", "start_time": "12:15 PM", "buy_in": 100, "game_type": "NLH", "format": "Bounty", "guaranteed": 2000, "notes": null},
+        {"day_of_week": "Monday", "start_time": "7:15 PM", "buy_in": 100, "game_type": "Big-O", "format": null, "guaranteed": 3500, "notes": null},
+        {"day_of_week": "Tuesday", "start_time": "7:15 PM", "buy_in": 30, "game_type": "NLH", "format": "Freeroll", "guaranteed": 15000, "notes": "$20 rebuys"},
+        {"day_of_week": "Wednesday", "start_time": "7:15 PM", "buy_in": 50, "game_type": "PLO", "format": "Freeroll", "guaranteed": 4000, "notes": null},
+        {"day_of_week": "Thursday", "start_time": "7:15 PM", "buy_in": 30, "game_type": "NLH", "format": "Freeroll", "guaranteed": 7500, "notes": "The Dirty Thirty"},
+        {"day_of_week": "Friday", "start_time": "12:15 PM", "buy_in": 100, "game_type": "NLH", "format": "Bounty", "guaranteed": 2000, "notes": null},
+        {"day_of_week": "Friday", "start_time": "7:15 PM", "buy_in": 120, "game_type": "NLH", "format": "Freezeout", "guaranteed": 4000, "notes": null},
+        {"day_of_week": "Saturday", "start_time": "7:15 PM", "buy_in": 150, "game_type": "NLH", "format": "Bounty", "guaranteed": 4000, "notes": "Bounty Hunter"}
+      ],
+      "source_url": "https://thelodgepokerclub.com/san-antonio/tournaments/"
+    },
+    {
+      "venue_name": "South Point Casino",
+      "city": "Las Vegas",
+      "state": "NV",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "10:10 AM", "buy_in": 120, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "Aggressive guarantees"},
+        {"day_of_week": "Daily", "start_time": "2:10 PM", "buy_in": 120, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Daily", "start_time": "6:10 PM", "buy_in": 120, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Daily", "start_time": "10:10 PM", "buy_in": 120, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.southpointcasino.com/casino/poker-room"
+    },
+    {
+      "venue_name": "Wynn Las Vegas",
+      "city": "Las Vegas",
+      "state": "NV",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "6:00 PM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": 10000, "notes": "Nightly tournament"},
+        {"day_of_week": "Friday", "start_time": "12:00 PM", "buy_in": 300, "game_type": "NLH", "format": "Rebuy", "guaranteed": 40000, "notes": "Suspended during series"}
+      ],
+      "source_url": "https://www.wynnlasvegas.com/casino/poker"
+    },
+    {
+      "venue_name": "Bellagio",
+      "city": "Las Vegas",
+      "state": "NV",
+      "schedules": [
+        {"day_of_week": "Saturday", "start_time": "11:00 AM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": 4000, "notes": null},
+        {"day_of_week": "Sunday", "start_time": "11:00 AM", "buy_in": 200, "game_type": "NLH", "format": "Mystery Bounty", "guaranteed": 4000, "notes": null},
+        {"day_of_week": "Sunday", "start_time": "4:00 PM", "buy_in": 200, "game_type": "NLH", "format": "Mystery Bounty", "guaranteed": 4000, "notes": null}
+      ],
+      "source_url": "https://www.pokeratlas.com/poker-room/bellagio-las-vegas/tournaments"
+    },
+    {
+      "venue_name": "Orleans Casino",
+      "city": "Las Vegas",
+      "state": "NV",
+      "schedules": [
+        {"day_of_week": "Monday", "start_time": "11:00 AM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": 5000, "notes": null},
+        {"day_of_week": "Monday", "start_time": "4:00 PM", "buy_in": 100, "game_type": "Mixed", "format": null, "guaranteed": 5000, "notes": "Various non-holdem games"},
+        {"day_of_week": "Monday", "start_time": "6:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": 5000, "notes": null},
+        {"day_of_week": "Tuesday", "start_time": "11:00 AM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": 5000, "notes": null},
+        {"day_of_week": "Tuesday", "start_time": "4:00 PM", "buy_in": 100, "game_type": "Mixed", "format": null, "guaranteed": 5000, "notes": null},
+        {"day_of_week": "Tuesday", "start_time": "6:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": 5000, "notes": null},
+        {"day_of_week": "Wednesday", "start_time": "11:00 AM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": 5000, "notes": null},
+        {"day_of_week": "Wednesday", "start_time": "4:00 PM", "buy_in": 100, "game_type": "Mixed", "format": null, "guaranteed": 5000, "notes": null},
+        {"day_of_week": "Wednesday", "start_time": "6:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": 5000, "notes": null},
+        {"day_of_week": "Thursday", "start_time": "11:00 AM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": 5000, "notes": null},
+        {"day_of_week": "Thursday", "start_time": "4:00 PM", "buy_in": 100, "game_type": "Mixed", "format": null, "guaranteed": 5000, "notes": null},
+        {"day_of_week": "Thursday", "start_time": "6:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": 5000, "notes": null},
+        {"day_of_week": "Friday", "start_time": "11:00 AM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": 5000, "notes": null},
+        {"day_of_week": "Friday", "start_time": "6:00 PM", "buy_in": 150, "game_type": "NLH", "format": null, "guaranteed": 7500, "notes": null},
+        {"day_of_week": "Saturday", "start_time": "11:00 AM", "buy_in": 150, "game_type": "NLH", "format": null, "guaranteed": 7500, "notes": null},
+        {"day_of_week": "Saturday", "start_time": "4:00 PM", "buy_in": 100, "game_type": "Mixed", "format": null, "guaranteed": 5000, "notes": null},
+        {"day_of_week": "Sunday", "start_time": "11:00 AM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": 10000, "notes": "Sunday Special +$100 add-on"},
+        {"day_of_week": "Sunday", "start_time": "6:00 PM", "buy_in": 150, "game_type": "PLO", "format": null, "guaranteed": 7500, "notes": "Big O"}
+      ],
+      "source_url": "https://orleans.boydgaming.com/play/poker-room"
+    },
+    {
+      "venue_name": "Station Casinos Red Rock",
+      "city": "Las Vegas",
+      "state": "NV",
+      "schedules": [
+        {"day_of_week": "Monday", "start_time": "12:00 PM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "7000 chips + 1000 for $5 dealer toke"},
+        {"day_of_week": "Monday", "start_time": "6:30 PM", "buy_in": 100, "game_type": "NLH", "format": "Bounty", "guaranteed": 3500, "notes": "$25 bounty"},
+        {"day_of_week": "Tuesday", "start_time": "12:00 PM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Wednesday", "start_time": "12:00 PM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Thursday", "start_time": "12:00 PM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Thursday", "start_time": "6:30 PM", "buy_in": 100, "game_type": "NLH", "format": "Bounty", "guaranteed": 3500, "notes": "$25 bounty"},
+        {"day_of_week": "Friday", "start_time": "12:00 PM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Saturday", "start_time": "12:00 PM", "buy_in": 80, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Sunday", "start_time": "12:00 PM", "buy_in": 80, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "http://www.stationcasinospoker.com/dev/tournaments/red-rock.php"
+    },
+    {
+      "venue_name": "Talking Stick Resort",
+      "city": "Scottsdale",
+      "state": "AZ",
+      "schedules": [
+        {"day_of_week": "Monday", "start_time": "11:15 AM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "10000 chips + 5000 for $5 staff appreciation"},
+        {"day_of_week": "Monday", "start_time": "7:15 PM", "buy_in": 200, "game_type": "PLO", "format": null, "guaranteed": null, "notes": "5 Card Pot Limit Omaha"},
+        {"day_of_week": "Tuesday", "start_time": "11:15 AM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Tuesday", "start_time": "7:15 PM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Wednesday", "start_time": "11:15 AM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Wednesday", "start_time": "7:15 PM", "buy_in": 200, "game_type": "NLH", "format": "Crazy Pineapple", "guaranteed": null, "notes": null},
+        {"day_of_week": "Thursday", "start_time": "11:15 AM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Thursday", "start_time": "7:15 PM", "buy_in": 200, "game_type": "NLH", "format": "Bounty", "guaranteed": null, "notes": "$50 per elimination"},
+        {"day_of_week": "Friday", "start_time": "11:15 AM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Friday", "start_time": "7:15 PM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Saturday", "start_time": "11:15 AM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "Big Stack or special event"},
+        {"day_of_week": "Saturday", "start_time": "7:15 PM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Sunday", "start_time": "11:15 AM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.talkingstickresort.com/phoenix-scottsdale-casino/poker/arena-poker-room-tournaments/"
+    },
+    {
+      "venue_name": "Foxwoods Resort Casino",
+      "city": "Ledyard",
+      "state": "CT",
+      "schedules": [
+        {"day_of_week": "Sunday", "start_time": "10:10 AM", "buy_in": 395, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "40000 chips, 25-30 min levels"},
+        {"day_of_week": "Tuesday", "start_time": "10:10 AM", "buy_in": 135, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "15000 chips, 20 min levels"},
+        {"day_of_week": "Thursday", "start_time": "5:10 PM", "buy_in": 255, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "30000 chips, 20-25 min levels"}
+      ],
+      "source_url": "https://foxwoods.com/game/poker"
+    },
+    {
+      "venue_name": "Parx Casino",
+      "city": "Bensalem",
+      "state": "PA",
+      "schedules": [
+        {"day_of_week": "Monday", "start_time": "7:15 PM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Friday", "start_time": "11:15 AM", "buy_in": 340, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.parxcasino.com/bensalem/poker"
+    },
+    {
+      "venue_name": "bestbet Jacksonville",
+      "city": "Jacksonville",
+      "state": "FL",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "3:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "Times vary, check schedule"},
+        {"day_of_week": "Daily", "start_time": "7:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.bestbetjax.com/poker/tournaments"
+    },
+    {
+      "venue_name": "bestbet Orange Park",
+      "city": "Orange Park",
+      "state": "FL",
+      "schedules": [
+        {"day_of_week": "Wednesday", "start_time": "7:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.bestbetjax.com/poker/tournaments"
+    },
+    {
+      "venue_name": "bestbet St. Augustine",
+      "city": "St. Augustine",
+      "state": "FL",
+      "schedules": [
+        {"day_of_week": "Monday", "start_time": "12:00 PM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Tuesday", "start_time": "7:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Wednesday", "start_time": "12:00 PM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Thursday", "start_time": "12:00 PM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.bestbetjax.com/poker/tournaments"
+    },
+    {
+      "venue_name": "Peppermill Resort Spa Casino",
+      "city": "Reno",
+      "state": "NV",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "12:00 PM", "buy_in": 135, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "Buy-ins range $135-$560"}
+      ],
+      "source_url": "https://www.peppermillreno.com/gaming/poker/poker-tournaments"
+    },
+    {
+      "venue_name": "Texas Card House Dallas",
+      "city": "Dallas",
+      "state": "TX",
+      "schedules": [
+        {"day_of_week": "Monday", "start_time": "12:00 PM", "buy_in": 130, "game_type": "NLH", "format": "Turbo", "guaranteed": null, "notes": null},
+        {"day_of_week": "Monday", "start_time": "7:00 PM", "buy_in": 200, "game_type": "NLH", "format": "Bounty", "guaranteed": null, "notes": "Green Chip Bounty"},
+        {"day_of_week": "Tuesday", "start_time": "12:00 PM", "buy_in": 130, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Tuesday", "start_time": "7:00 PM", "buy_in": 300, "game_type": "PLO", "format": "Bounty", "guaranteed": null, "notes": "Black Chip Bounty"},
+        {"day_of_week": "Wednesday", "start_time": "12:00 PM", "buy_in": 130, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Wednesday", "start_time": "7:00 PM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Thursday", "start_time": "12:00 PM", "buy_in": 130, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Thursday", "start_time": "7:00 PM", "buy_in": 200, "game_type": "NLH", "format": "Deep Stack", "guaranteed": null, "notes": null},
+        {"day_of_week": "Friday", "start_time": "7:00 PM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "Funky Friday"},
+        {"day_of_week": "Saturday", "start_time": "12:00 PM", "buy_in": 300, "game_type": "NLH", "format": "Freezeout", "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.texascardhouse.com/dallas"
+    },
+    {
+      "venue_name": "Seminole Hard Rock Hollywood",
+      "city": "Hollywood",
+      "state": "FL",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "11:00 AM", "buy_in": 150, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "Check venue for current schedule"},
+        {"day_of_week": "Daily", "start_time": "7:00 PM", "buy_in": 150, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.seminolehardrockhollywood.com/play/poker"
+    },
+    {
+      "venue_name": "Seminole Hard Rock Tampa",
+      "city": "Tampa",
+      "state": "FL",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "12:00 PM", "buy_in": 130, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "Check venue for current schedule"},
+        {"day_of_week": "Daily", "start_time": "7:00 PM", "buy_in": 130, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://casino.hardrock.com/tampa/play/poker"
+    },
+    {
+      "venue_name": "MGM Grand Poker Room",
+      "city": "Las Vegas",
+      "state": "NV",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "10:00 AM", "buy_in": 80, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "Check venue for current schedule"},
+        {"day_of_week": "Daily", "start_time": "2:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://mgmgrand.mgmresorts.com/en/casino/poker.html"
+    },
+    {
+      "venue_name": "Aria Resort & Casino",
+      "city": "Las Vegas",
+      "state": "NV",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "1:00 PM", "buy_in": 150, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "High-stakes room, check venue for schedule"}
+      ],
+      "source_url": "https://aria.mgmresorts.com/en/casino/poker.html"
+    },
+    {
+      "venue_name": "Resorts World Las Vegas",
+      "city": "Las Vegas",
+      "state": "NV",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "11:00 AM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "Check venue for current schedule"},
+        {"day_of_week": "Daily", "start_time": "7:00 PM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.rwlasvegas.com/casino/poker/"
+    },
+    {
+      "venue_name": "Station Casinos Green Valley Ranch",
+      "city": "Henderson",
+      "state": "NV",
+      "schedules": [
+        {"day_of_week": "Monday", "start_time": "10:00 AM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Tuesday", "start_time": "10:00 AM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Wednesday", "start_time": "10:00 AM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Thursday", "start_time": "10:00 AM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Friday", "start_time": "10:00 AM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "http://www.stationcasinospoker.com"
+    },
+    {
+      "venue_name": "Sunset Station",
+      "city": "Henderson",
+      "state": "NV",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "10:00 AM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "Station Casinos property"}
+      ],
+      "source_url": "http://www.stationcasinospoker.com"
+    },
+    {
+      "venue_name": "Atlantis Casino Resort",
+      "city": "Reno",
+      "state": "NV",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "10:00 AM", "buy_in": 65, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "Check venue for current schedule"}
+      ],
+      "source_url": "https://atlantiscasino.com/casino/poker"
+    },
+    {
+      "venue_name": "Grand Sierra Resort",
+      "city": "Reno",
+      "state": "NV",
+      "schedules": [
+        {"day_of_week": "Friday", "start_time": "6:00 PM", "buy_in": 125, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Saturday", "start_time": "12:00 PM", "buy_in": 125, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.grandsierraresort.com/play/poker"
+    },
+    {
+      "venue_name": "WinStar World Casino",
+      "city": "Thackerville",
+      "state": "OK",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "12:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "World's largest casino"},
+        {"day_of_week": "Daily", "start_time": "7:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.winstar.com/casino/poker"
+    },
+    {
+      "venue_name": "Choctaw Casino Durant",
+      "city": "Durant",
+      "state": "OK",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "7:00 PM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "Check venue for special events"}
+      ],
+      "source_url": "https://www.choctawcasinos.com/durant"
+    },
+    {
+      "venue_name": "Hard Rock Tulsa",
+      "city": "Catoosa",
+      "state": "OK",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "7:00 PM", "buy_in": 65, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.hardrockcasinotulsa.com"
+    },
+    {
+      "venue_name": "River Spirit Casino",
+      "city": "Tulsa",
+      "state": "OK",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "7:00 PM", "buy_in": 50, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.riverspirittulsa.com"
+    },
+    {
+      "venue_name": "Harrah's Cherokee",
+      "city": "Cherokee",
+      "state": "NC",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "12:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Daily", "start_time": "7:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.caesars.com/harrahs-cherokee"
+    },
+    {
+      "venue_name": "Rivers Casino Des Plaines",
+      "city": "Des Plaines",
+      "state": "IL",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "11:00 AM", "buy_in": 125, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Daily", "start_time": "7:00 PM", "buy_in": 125, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.riverscasino.com/desplaines/play/poker"
+    },
+    {
+      "venue_name": "MGM National Harbor",
+      "city": "Oxon Hill",
+      "state": "MD",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "11:00 AM", "buy_in": 150, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://mgmnationalharbor.mgmresorts.com"
+    },
+    {
+      "venue_name": "Live! Casino & Hotel",
+      "city": "Hanover",
+      "state": "MD",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "11:15 AM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Daily", "start_time": "7:15 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.livecasinohotel.com/poker"
+    },
+    {
+      "venue_name": "MGM Springfield",
+      "city": "Springfield",
+      "state": "MA",
+      "schedules": [
+        {"day_of_week": "Saturday", "start_time": "12:00 PM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://mgmspringfield.mgmresorts.com"
+    },
+    {
+      "venue_name": "MGM Grand Detroit",
+      "city": "Detroit",
+      "state": "MI",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "12:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.mgmgranddetroit.com"
+    },
+    {
+      "venue_name": "MotorCity Casino Hotel",
+      "city": "Detroit",
+      "state": "MI",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "12:00 PM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.motorcitycasino.com"
+    },
+    {
+      "venue_name": "Hollywood Casino Greektown",
+      "city": "Detroit",
+      "state": "MI",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "12:00 PM", "buy_in": 65, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.greektowncasino.com"
+    },
+    {
+      "venue_name": "FireKeepers Casino",
+      "city": "Battle Creek",
+      "state": "MI",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "6:00 PM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.firekeeperscasino.com"
+    },
+    {
+      "venue_name": "Soaring Eagle Casino",
+      "city": "Mt Pleasant",
+      "state": "MI",
+      "schedules": [
+        {"day_of_week": "Saturday", "start_time": "1:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.soaringeaglecasino.com"
+    },
+    {
+      "venue_name": "Gun Lake Casino",
+      "city": "Wayland",
+      "state": "MI",
+      "schedules": [
+        {"day_of_week": "Saturday", "start_time": "2:00 PM", "buy_in": 80, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.gunlakecasino.com"
+    },
+    {
+      "venue_name": "Turning Stone Resort",
+      "city": "Verona",
+      "state": "NY",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "10:00 AM", "buy_in": 125, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.turningstone.com/gaming/poker"
+    },
+    {
+      "venue_name": "Resorts World Catskills",
+      "city": "Monticello",
+      "state": "NY",
+      "schedules": [
+        {"day_of_week": "Saturday", "start_time": "12:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.rwcatskills.com"
+    },
+    {
+      "venue_name": "Rivers Casino Schenectady",
+      "city": "Schenectady",
+      "state": "NY",
+      "schedules": [
+        {"day_of_week": "Saturday", "start_time": "12:00 PM", "buy_in": 150, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.riverscasino.com/schenectady"
+    },
+    {
+      "venue_name": "Hard Rock Cincinnati",
+      "city": "Cincinnati",
+      "state": "OH",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "12:00 PM", "buy_in": 80, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.hardrockcasinocincinnati.com"
+    },
+    {
+      "venue_name": "Hollywood Columbus",
+      "city": "Columbus",
+      "state": "OH",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "12:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.hollywoodcolumbus.com"
+    },
+    {
+      "venue_name": "JACK Cleveland Casino",
+      "city": "Cleveland",
+      "state": "OH",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "12:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.jackcleveland.com"
+    },
+    {
+      "venue_name": "Spirit Mountain Casino",
+      "city": "Grand Ronde",
+      "state": "OR",
+      "schedules": [
+        {"day_of_week": "Saturday", "start_time": "11:00 AM", "buy_in": 75, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.spiritmountain.com"
+    },
+    {
+      "venue_name": "Chinook Winds Casino",
+      "city": "Lincoln City",
+      "state": "OR",
+      "schedules": [
+        {"day_of_week": "Saturday", "start_time": "11:00 AM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.chinookwindscasino.com"
+    },
+    {
+      "venue_name": "Seven Feathers Casino Resort",
+      "city": "Canyonville",
+      "state": "OR",
+      "schedules": [
+        {"day_of_week": "Friday", "start_time": "6:00 PM", "buy_in": 50, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.sevenfeathers.com"
+    },
+    {
+      "venue_name": "Rivers Casino Philadelphia",
+      "city": "Philadelphia",
+      "state": "PA",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "11:00 AM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.riverscasino.com/philadelphia/play/poker"
+    },
+    {
+      "venue_name": "Live! Casino Philadelphia",
+      "city": "Philadelphia",
+      "state": "PA",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "11:00 AM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://philadelphia.livecasinohotel.com"
+    },
+    {
+      "venue_name": "Wind Creek Bethlehem",
+      "city": "Bethlehem",
+      "state": "PA",
+      "schedules": [
+        {"day_of_week": "Friday", "start_time": "7:00 PM", "buy_in": 125, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Saturday", "start_time": "11:00 AM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://windcreekbethlehem.com"
+    },
+    {
+      "venue_name": "Rivers Casino Pittsburgh",
+      "city": "Pittsburgh",
+      "state": "PA",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "11:00 AM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.riverscasino.com/pittsburgh/play/poker"
+    },
+    {
+      "venue_name": "Mount Airy Casino",
+      "city": "Mount Pocono",
+      "state": "PA",
+      "schedules": [
+        {"day_of_week": "Saturday", "start_time": "12:00 PM", "buy_in": 150, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.mountairycasino.com"
+    },
+    {
+      "venue_name": "Hollywood Casino Grantville",
+      "city": "Grantville",
+      "state": "PA",
+      "schedules": [
+        {"day_of_week": "Friday", "start_time": "7:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.hollywoodpnrc.com"
+    },
+    {
+      "venue_name": "Bally's Twin River Lincoln",
+      "city": "Lincoln",
+      "state": "RI",
+      "schedules": [
+        {"day_of_week": "Saturday", "start_time": "11:00 AM", "buy_in": 120, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.ballyslincoln.com"
+    },
+    {
+      "venue_name": "Muckleshoot Casino",
+      "city": "Auburn",
+      "state": "WA",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "10:00 AM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.muckleshootcasino.com"
+    },
+    {
+      "venue_name": "Tulalip Resort Casino",
+      "city": "Tulalip",
+      "state": "WA",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "6:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.tulalipresortcasino.com"
+    },
+    {
+      "venue_name": "Snoqualmie Casino",
+      "city": "Snoqualmie",
+      "state": "WA",
+      "schedules": [
+        {"day_of_week": "Friday", "start_time": "6:00 PM", "buy_in": 85, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Saturday", "start_time": "2:00 PM", "buy_in": 130, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.snocasino.com"
+    },
+    {
+      "venue_name": "Northern Quest Casino",
+      "city": "Airway Heights",
+      "state": "WA",
+      "schedules": [
+        {"day_of_week": "Saturday", "start_time": "11:00 AM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.northernquest.com"
+    },
+    {
+      "venue_name": "Potawatomi Casino Hotel",
+      "city": "Milwaukee",
+      "state": "WI",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "12:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.paysbig.com"
+    },
+    {
+      "venue_name": "Oneida Casino",
+      "city": "Green Bay",
+      "state": "WI",
+      "schedules": [
+        {"day_of_week": "Saturday", "start_time": "1:00 PM", "buy_in": 75, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.oneidacasino.net"
+    },
+    {
+      "venue_name": "Canterbury Park Card Club",
+      "city": "Shakopee",
+      "state": "MN",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "10:00 AM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Daily", "start_time": "6:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.canterburypark.com"
+    },
+    {
+      "venue_name": "The Brook Poker Room",
+      "city": "Seabrook",
+      "state": "NH",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "10:00 AM", "buy_in": 40, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Daily", "start_time": "1:00 PM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Daily", "start_time": "7:00 PM", "buy_in": 80, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.thebrooknh.com"
+    },
+    {
+      "venue_name": "Casino Del Sol",
+      "city": "Tucson",
+      "state": "AZ",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "11:00 AM", "buy_in": 50, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.casinodelsol.com"
+    },
+    {
+      "venue_name": "Hon-Dah Casino",
+      "city": "Pinetop",
+      "state": "AZ",
+      "schedules": [
+        {"day_of_week": "Saturday", "start_time": "11:00 AM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.hon-dah.com"
+    },
+    {
+      "venue_name": "Saracen Casino Resort",
+      "city": "Pine Bluff",
+      "state": "AR",
+      "schedules": [
+        {"day_of_week": "Friday", "start_time": "7:00 PM", "buy_in": 65, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Saturday", "start_time": "2:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.saracenresort.com"
+    },
+    {
+      "venue_name": "Derby Lane Poker Room",
+      "city": "St. Petersburg",
+      "state": "FL",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "1:00 PM", "buy_in": 65, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Daily", "start_time": "7:00 PM", "buy_in": 65, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.derbylane.com"
+    },
+    {
+      "venue_name": "Palm Beach Kennel Club",
+      "city": "West Palm Beach",
+      "state": "FL",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "12:00 PM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Daily", "start_time": "7:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.pbkennelclub.com"
+    },
+    {
+      "venue_name": "One-Eyed Jacks Poker",
+      "city": "Sarasota",
+      "state": "FL",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "12:00 PM", "buy_in": 50, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Daily", "start_time": "7:00 PM", "buy_in": 80, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.oneeyedjackspoker.com"
+    },
+    {
+      "venue_name": "Daytona Racing & Card Club",
+      "city": "Daytona Beach",
+      "state": "FL",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "1:00 PM", "buy_in": 40, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.daytonapoker.com"
+    },
+    {
+      "venue_name": "Orange City Racing & Card Club",
+      "city": "Orange City",
+      "state": "FL",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "1:00 PM", "buy_in": 50, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.orangecitypoker.com"
+    },
+    {
+      "venue_name": "Oxford Downs Poker Room",
+      "city": "Summerfield",
+      "state": "FL",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "12:00 PM", "buy_in": 40, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.oxforddowns.com"
+    },
+    {
+      "venue_name": "Ebro Poker Room",
+      "city": "Ebro",
+      "state": "FL",
+      "schedules": [
+        {"day_of_week": "Saturday", "start_time": "3:00 PM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.ebropoker.com"
+    },
+    {
+      "venue_name": "Final Table Poker Club",
+      "city": "Portland",
+      "state": "OR",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "12:00 PM", "buy_in": 50, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Daily", "start_time": "7:00 PM", "buy_in": 80, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.finaltablepoker.com"
+    },
+    {
+      "venue_name": "High Mountain Poker",
+      "city": "Eugene",
+      "state": "OR",
+      "schedules": [
+        {"day_of_week": "Friday", "start_time": "7:00 PM", "buy_in": 50, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Saturday", "start_time": "2:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.pokeratlas.com/poker-room/high-mountain-poker-eugene"
+    },
+    {
+      "venue_name": "Full House Poker",
+      "city": "Eugene",
+      "state": "OR",
+      "schedules": [
+        {"day_of_week": "Friday", "start_time": "6:00 PM", "buy_in": 40, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.pokeratlas.com/poker-room/full-house-poker-eugene"
+    },
+    {
+      "venue_name": "Seat Open Poker Room",
+      "city": "Bozeman",
+      "state": "MT",
+      "schedules": [
+        {"day_of_week": "Daily", "start_time": "7:00 PM", "buy_in": 40, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.pokeratlas.com/poker-room/seat-open-bozeman"
+    },
+    {
+      "venue_name": "Shooters Poker Room",
+      "city": "Billings",
+      "state": "MT",
+      "schedules": [
+        {"day_of_week": "Thursday", "start_time": "7:00 PM", "buy_in": 35, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
+        {"day_of_week": "Saturday", "start_time": "2:00 PM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+      ],
+      "source_url": "https://www.pokeratlas.com/poker-room/shooters-poker-room-billings"
+    }
+  ],
+  "venuesWithoutDailyTournaments": [
+    {"venue_name": "Commerce Casino", "city": "Commerce", "state": "CA", "reason": "Focuses on major series (LAPC, WSOP Circuit) rather than daily events"},
+    {"venue_name": "The Bicycle Hotel & Casino", "city": "Bell Gardens", "state": "CA", "reason": "Daily tournaments discontinued; focuses on WPT and major series"},
+    {"venue_name": "Bay 101 Casino", "city": "San Jose", "state": "CA", "reason": "Hosts tournaments but not daily recurring schedule"},
+    {"venue_name": "Casino M8trix", "city": "San Jose", "state": "CA", "reason": "Check venue for special events"},
+    {"venue_name": "The Venetian Resort", "city": "Las Vegas", "state": "NV", "reason": "Focuses on DeepStack series events rather than daily tournaments"},
+    {"venue_name": "Thunder Valley Casino Resort", "city": "Lincoln", "state": "CA", "reason": "Major series focus"},
+    {"venue_name": "Graton Resort & Casino", "city": "Rohnert Park", "state": "CA", "reason": "Check venue for schedule"},
+    {"venue_name": "Pechanga Resort Casino", "city": "Temecula", "state": "CA", "reason": "Check venue for schedule"},
+    {"venue_name": "Morongo Casino Resort", "city": "Cabazon", "state": "CA", "reason": "Check venue for schedule"},
+    {"venue_name": "Jamul Casino", "city": "Jamul", "state": "CA", "reason": "Check venue for schedule"},
+    {"venue_name": "Sycuan Casino Resort", "city": "El Cajon", "state": "CA", "reason": "Check venue for schedule"},
+    {"venue_name": "Chumash Casino Resort", "city": "Santa Ynez", "state": "CA", "reason": "Check venue for schedule"},
+    {"venue_name": "Table Mountain Casino", "city": "Friant", "state": "CA", "reason": "Check venue for schedule"},
+    {"venue_name": "Parkwest Casino Lodi", "city": "Lodi", "state": "CA", "reason": "Check venue for schedule"},
+    {"venue_name": "Pala Casino Spa Resort", "city": "Pala", "state": "CA", "reason": "Check venue for schedule"},
+    {"venue_name": "Barona Resort & Casino", "city": "Lakeside", "state": "CA", "reason": "Check venue for schedule"}
+  ],
+  "texasCardRoomsAdditional": [
+    {"venue_name": "101 Poker Club", "city": "Katy", "state": "TX", "notes": "Check venue website for schedule"},
+    {"venue_name": "Ace 1 Social Club", "city": "Corpus Christi", "state": "TX", "notes": "Check venue website for schedule"},
+    {"venue_name": "Aggieland Poker Club", "city": "College Station", "state": "TX", "notes": "Check venue website for schedule"},
+    {"venue_name": "Alamo Card House 2", "city": "San Antonio", "state": "TX", "notes": "Check venue website for schedule"},
+    {"venue_name": "Bullets Card Club", "city": "Austin", "state": "TX", "notes": "Check venue website for schedule"},
+    {"venue_name": "Doghouse Poker Club", "city": "Cypress", "state": "TX", "notes": "Check venue website for schedule"},
+    {"venue_name": "Elite Poker Lounge", "city": "McAllen", "state": "TX", "notes": "Check venue website for schedule"},
+    {"venue_name": "Empire Poker Club", "city": "Houston", "state": "TX", "notes": "Check venue website for schedule"},
+    {"venue_name": "Gin Mill Card Club Lubbock", "city": "Lubbock", "state": "TX", "notes": "Check venue website for schedule"},
+    {"venue_name": "Jokers of Aggieland Poker Club", "city": "College Station", "state": "TX", "notes": "Check venue website for schedule"},
+    {"venue_name": "KoJack's Poker Club", "city": "Midland", "state": "TX", "notes": "Check venue website for schedule"},
+    {"venue_name": "Lone Star Social", "city": "Cedar Park", "state": "TX", "notes": "Check venue website for schedule"},
+    {"venue_name": "On The River Social Club", "city": "San Marcos", "state": "TX", "notes": "Check venue website for schedule"},
+    {"venue_name": "Palace Poker", "city": "Grand Prairie", "state": "TX", "notes": "Check venue website for schedule"},
+    {"venue_name": "Poker House Fort Worth", "city": "Burleson", "state": "TX", "notes": "Check venue website for schedule"},
+    {"venue_name": "SA Card House", "city": "San Antonio", "state": "TX", "notes": "Check venue website for schedule"},
+    {"venue_name": "Shuffle 214", "city": "Dallas", "state": "TX", "notes": "Check venue website for schedule"},
+    {"venue_name": "Shuffle 512", "city": "Austin", "state": "TX", "notes": "Check venue website for schedule"},
+    {"venue_name": "Spades Poker House", "city": "Webster", "state": "TX", "notes": "Check venue website for schedule"},
+    {"venue_name": "Spades Poker House Baytown", "city": "Baytown", "state": "TX", "notes": "Check venue website for schedule"},
+    {"venue_name": "TCH Social Austin", "city": "Austin", "state": "TX", "notes": "Check venue website for schedule"},
+    {"venue_name": "TCH Social Las Colinas", "city": "Irving", "state": "TX", "notes": "Check venue website for schedule"},
+    {"venue_name": "Texas Card House Houston", "city": "Spring", "state": "TX", "notes": "Check venue website for schedule"},
+    {"venue_name": "Texas Card House Rio Grande Valley", "city": "Edinburg", "state": "TX", "notes": "Check venue website for schedule"},
+    {"venue_name": "Texas Card House Spring", "city": "Spring", "state": "TX", "notes": "Check venue website for schedule"},
+    {"venue_name": "The Big Blind", "city": "San Antonio", "state": "TX", "notes": "Check venue website for schedule"},
+    {"venue_name": "The Hangar Poker House", "city": "Humble", "state": "TX", "notes": "Check venue website for schedule"}
+  ],
+  "michiganCharityRooms": [
+    {"venue_name": "DiCicco's Poker Room", "city": "Shelby Township", "state": "MI", "notes": "Charity room - check for daily schedule"},
+    {"venue_name": "G's Charity Poker", "city": "Shelby Township", "state": "MI", "notes": "Charity room - check for daily schedule"},
+    {"venue_name": "Kings Poker Room", "city": "Grand Rapids", "state": "MI", "notes": "Charity room - check for daily schedule"},
+    {"venue_name": "Muskegon Poker Room", "city": "Muskegon", "state": "MI", "notes": "Charity room - check for daily schedule"},
+    {"venue_name": "Paradise Poker", "city": "Utica", "state": "MI", "notes": "Charity room - check for daily schedule"},
+    {"venue_name": "Rosemack Poker Room", "city": "Roseville", "state": "MI", "notes": "Charity room - check for daily schedule"},
+    {"venue_name": "Roundtree Poker Room", "city": "Ypsilanti", "state": "MI", "notes": "Charity room - check for daily schedule"},
+    {"venue_name": "The Event Spot Poker Room", "city": "Clawson", "state": "MI", "notes": "Charity room - check for daily schedule"},
+    {"venue_name": "The Saginaw Poker Room", "city": "Saginaw", "state": "MI", "notes": "Charity room - check for daily schedule"},
+    {"venue_name": "Thompson Poker Room", "city": "Ypsilanti", "state": "MI", "notes": "Charity room - check for daily schedule"},
+    {"venue_name": "Waterford Card Room", "city": "Waterford", "state": "MI", "notes": "Charity room - check for daily schedule"},
+    {"venue_name": "Krazy Kopz at Vision Lanes", "city": "Westland", "state": "MI", "notes": "Charity room - check for daily schedule"},
+    {"venue_name": "Legends Poker Place of Metamora", "city": "Metamora", "state": "MI", "notes": "Charity room - check for daily schedule"},
+    {"venue_name": "Momo's Poker Room", "city": "Taylor", "state": "MI", "notes": "Charity room - check for daily schedule"},
+    {"venue_name": "Ace High Poker Club", "city": "Oxford", "state": "MI", "notes": "Charity room - check for daily schedule"}
+  ],
+  "californiaCardRoomsAdditional": [
+    {"venue_name": "Bankers Casino", "city": "Salinas", "state": "CA", "notes": "Check venue for schedule"},
+    {"venue_name": "Oaks Card Club", "city": "Emeryville", "state": "CA", "notes": "Check venue for schedule"},
+    {"venue_name": "Stones Gambling Hall", "city": "Citrus Heights", "state": "CA", "notes": "Check venue for schedule"},
+    {"venue_name": "Artichoke Joe's Casino", "city": "San Bruno", "state": "CA", "notes": "Check venue for schedule"},
+    {"venue_name": "Lucky Chances Casino", "city": "Colma", "state": "CA", "notes": "Check venue for schedule"},
+    {"venue_name": "Capitol Casino", "city": "Sacramento", "state": "CA", "notes": "Check venue for schedule"},
+    {"venue_name": "Limelight Card Room", "city": "Sacramento", "state": "CA", "notes": "Check venue for schedule"},
+    {"venue_name": "Kings Card Club", "city": "Stockton", "state": "CA", "notes": "Check venue for schedule"},
+    {"venue_name": "Parkwest Casino Cordova", "city": "Rancho Cordova", "state": "CA", "notes": "Check venue for schedule"},
+    {"venue_name": "Parkwest Casino Lotus", "city": "Sacramento", "state": "CA", "notes": "Check venue for schedule"},
+    {"venue_name": "Casino 99", "city": "Chico", "state": "CA", "notes": "Check venue for schedule"},
+    {"venue_name": "Turlock Poker Room", "city": "Turlock", "state": "CA", "notes": "Check venue for schedule"},
+    {"venue_name": "Garlic City Casino", "city": "Gilroy", "state": "CA", "notes": "Check venue for schedule"},
+    {"venue_name": "California Grand Casino", "city": "Pacheco", "state": "CA", "notes": "Check venue for schedule"},
+    {"venue_name": "Livermore Casino", "city": "Livermore", "state": "CA", "notes": "Check venue for schedule"}
+  ]
+}

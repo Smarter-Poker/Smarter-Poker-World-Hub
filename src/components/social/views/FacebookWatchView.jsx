@@ -199,7 +199,6 @@ const WatchVideoCard = ({ video }) => (
 
         {/* Video Player (Placeholder) */}
         <div className="video-player">
-            <div className="player-overlay">▶</div>
             <span className="duration-badge">{video.duration || 'LIVE'}</span>
         </div>
 

@@ -146,8 +146,10 @@ export async function generateCustomAvatar(userId, prompt, isVip = false, photoF
         }
 
         // The API already uploaded to Supabase and returned the public URL
-        // Now just save to gallery and set as active
+        // DON'T auto-save to gallery - only save when user clicks "Accept Avatar"
 
+        // REMOVED AUTO-SAVE: User must click "Accept Avatar" to save to gallery
+        /*
         // Save to custom gallery
         const { data: galleryData, error: galleryError } = await supabase
             .from('custom_avatar_gallery')
@@ -176,6 +178,7 @@ export async function generateCustomAvatar(userId, prompt, isVip = false, photoF
             console.error('Set active avatar error:', setError);
             // Don't throw - avatar was still generated successfully
         }
+        */
 
         return {
             success: true,

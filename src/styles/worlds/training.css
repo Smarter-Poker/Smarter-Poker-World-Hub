@@ -1,0 +1,27 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   TRAINING THEME — Growth, Learning, Green
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+body.world-training {
+    /* Primary: Vibrant Green - growth, success */
+    --world-primary: #00ff88;
+    --world-primary-rgb: 0, 255, 136;
+    --world-primary-glow: rgba(0, 255, 136, 0.4);
+
+    /* Secondary: Emerald */
+    --world-secondary: #22c55e;
+    --world-secondary-rgb: 34, 197, 94;
+
+    /* Background: Dark with green undertones */
+    --world-bg-start: #050a08;
+    --world-bg-mid: #0a1a14;
+    --world-bg-end: #030504;
+    --world-bg-gradient: radial-gradient(ellipse at center, var(--world-bg-mid) 0%, var(--world-bg-start) 70%, var(--world-bg-end) 100%);
+
+    /* Surface: Green-tinted glass */
+    --world-surface: rgba(10, 50, 35, 0.6);
+    --world-surface-elevated: rgba(15, 70, 50, 0.8);
+
+    /* Border: Green accent */
+    --world-border: rgba(0, 255, 136, 0.3);
+}

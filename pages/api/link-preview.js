@@ -16,6 +16,45 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'URL parameter is required' });
     }
 
+    // Check if this is a social platform that needs Microlink for preview
+    const isSocialPlatform = checkSocialPlatform(url);
+
+    // For social platforms (Facebook, Instagram), skip direct fetch and use Microlink
+    // because these platforms block server-side scraping but Microlink can access them
+    if (isSocialPlatform) {
+        try {
+            const microlinkUrl = `https://api.microlink.io?url=${encodeURIComponent(url)}`;
+            const microlinkRes = await fetch(microlinkUrl);
+            const microlinkData = await microlinkRes.json();
+
+            if (microlinkData.status === 'success' && microlinkData.data) {
+                const data = microlinkData.data;
+                return res.status(200).json({
+                    url,
+                    title: data.title || `${isSocialPlatform.platform} Content`,
+                    description: data.description || `Click to view on ${isSocialPlatform.platform}`,
+                    image: data.image?.url || isSocialPlatform.fallbackImage,
+                    siteName: data.publisher || isSocialPlatform.platform,
+                    platform: isSocialPlatform.platformId,
+                    contentType: isSocialPlatform.contentType,
+                });
+            }
+        } catch (e) {
+            console.log('[link-preview] Microlink failed for social URL, using fallback:', e.message);
+        }
+
+        // Fallback to generic preview if Microlink fails
+        return res.status(200).json({
+            url,
+            title: `${isSocialPlatform.platform} ${isSocialPlatform.contentType}`,
+            description: `Click to view on ${isSocialPlatform.platform}`,
+            image: isSocialPlatform.fallbackImage,
+            siteName: isSocialPlatform.platform,
+            platform: isSocialPlatform.platformId,
+            contentType: isSocialPlatform.contentType.toLowerCase(),
+        });
+    }
+
     try {
         // Use realistic browser headers to bypass Cloudflare and similar protections
         const response = await fetch(url, {
@@ -222,3 +261,151 @@ function decodeHTMLEntities(text) {
         .replace(/&#x2F;/g, '/')
         .replace(/&nbsp;/g, ' ');
 }
+
+// Check if URL is a social platform that needs Microlink for preview
+// Returns platform info object or null if not a social platform
+function checkSocialPlatform(url) {
+    try {
+        const urlObj = new URL(url);
+        const hostname = urlObj.hostname.toLowerCase();
+
+        // Facebook (including fb.watch, fb.gg, etc.)
+        if (hostname.includes('facebook.com') || hostname.includes('fb.watch') || hostname.includes('fb.com') || hostname.includes('fb.gg')) {
+            let contentType = 'Post';
+            if (url.includes('/videos/') || url.includes('/watch') || url.includes('fb.watch') || url.includes('/share/v/')) {
+                contentType = 'Video';
+            } else if (url.includes('/reel/') || url.includes('/reels/') || url.includes('/share/r/')) {
+                contentType = 'Reel';
+            } else if (url.includes('/photo') || url.includes('/photos/') || url.includes('/share/p/')) {
+                contentType = 'Photo';
+            }
+
+            return {
+                platform: 'Facebook',
+                platformId: 'facebook',
+                contentType,
+                fallbackImage: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Facebook_Logo_%282019%29.png/1024px-Facebook_Logo_%282019%29.png',
+            };
+        }
+
+        // Instagram
+        if (hostname.includes('instagram.com')) {
+            let contentType = 'Post';
+            if (url.includes('/reel/') || url.includes('/reels/')) {
+                contentType = 'Reel';
+            } else if (url.includes('/stories/')) {
+                contentType = 'Story';
+            }
+
+            return {
+                platform: 'Instagram',
+                platformId: 'instagram',
+                contentType,
+                fallbackImage: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Instagram_logo_2016.svg/1024px-Instagram_logo_2016.svg.png',
+            };
+        }
+
+        return null;
+    } catch {
+        return null;
+    }
+}
+
+// Special handling for platforms that block server-side scraping
+// Returns a branded preview card instead of trying to fetch (which fails or returns wrong content)
+function getSpecialPlatformPreview(url) {
+    try {
+        const urlObj = new URL(url);
+        const hostname = urlObj.hostname.toLowerCase();
+
+        // Facebook (including fb.watch, fb.gg, etc.)
+        if (hostname.includes('facebook.com') || hostname.includes('fb.watch') || hostname.includes('fb.com') || hostname.includes('fb.gg')) {
+            // Try to extract content type from URL
+            let contentType = 'Post';
+            if (url.includes('/videos/') || url.includes('/watch') || url.includes('fb.watch') || url.includes('/share/v/')) {
+                contentType = 'Video';
+            } else if (url.includes('/reel/') || url.includes('/reels/') || url.includes('/share/r/')) {
+                contentType = 'Reel';
+            } else if (url.includes('/photo') || url.includes('/photos/') || url.includes('/share/p/')) {
+                contentType = 'Photo';
+            } else if (url.includes('/groups/')) {
+                contentType = 'Group Post';
+            } else if (url.includes('/events/')) {
+                contentType = 'Event';
+            } else if (url.includes('/share/')) {
+                contentType = 'Post'; // Generic share link
+            }
+
+            return {
+                url,
+                title: `Facebook ${contentType}`,
+                description: 'Click to view on Facebook',
+                image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Facebook_Logo_%282019%29.png/1024px-Facebook_Logo_%282019%29.png',
+                siteName: 'Facebook',
+                platform: 'facebook',
+                contentType: contentType.toLowerCase(),
+            };
+        }
+
+        // Instagram
+        if (hostname.includes('instagram.com')) {
+            let contentType = 'Post';
+            if (url.includes('/reel/') || url.includes('/reels/')) {
+                contentType = 'Reel';
+            } else if (url.includes('/stories/')) {
+                contentType = 'Story';
+            } else if (url.includes('/p/')) {
+                contentType = 'Post';
+            }
+
+            return {
+                url,
+                title: `Instagram ${contentType}`,
+                description: 'Click to view on Instagram',
+                image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Instagram_logo_2016.svg/1024px-Instagram_logo_2016.svg.png',
+                siteName: 'Instagram',
+                platform: 'instagram',
+                contentType: contentType.toLowerCase(),
+            };
+        }
+
+        // TikTok
+        if (hostname.includes('tiktok.com') || hostname.includes('vm.tiktok.com')) {
+            return {
+                url,
+                title: 'TikTok Video',
+                description: 'Click to view on TikTok',
+                image: 'https://sf-tb-sg.ibytedtos.com/obj/eden-sg/uhtyvueh7nulogpoguhm/tiktok-icon2.png',
+                siteName: 'TikTok',
+                platform: 'tiktok',
+                contentType: 'video',
+            };
+        }
+
+        // X (Twitter)
+        if (hostname.includes('twitter.com') || hostname.includes('x.com')) {
+            let contentType = 'Post';
+            if (url.includes('/status/')) {
+                contentType = 'Tweet';
+            }
+
+            return {
+                url,
+                title: `X ${contentType}`,
+                description: 'Click to view on X',
+                image: 'https://abs.twimg.com/responsive-web/client-web/icon-ios.77d25eba.png',
+                siteName: 'X',
+                platform: 'x',
+                contentType: contentType.toLowerCase(),
+            };
+        }
+
+        // YouTube (usually works but adding for consistency)
+        // Not blocking - YouTube provides good OG tags
+
+        return null; // Not a special platform, proceed with normal fetch
+    } catch (e) {
+        return null;
+    }
+}
+

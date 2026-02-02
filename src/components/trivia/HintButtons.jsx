@@ -1,0 +1,206 @@
+/**
+ * HINTS SYSTEM — Diamond sink for trivia
+ * 50/50: 5💎, Skip: 10💎, Extra Time: 15💎
+ */
+
+import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Gem, Percent, SkipForward, Clock } from 'lucide-react';
+
+const HINTS = [
+    {
+        id: 'fifty_fifty',
+        name: '50/50',
+        description: 'Remove 2 wrong answers',
+        icon: Percent,
+        cost: 5,
+        color: '#f97316'
+    },
+    {
+        id: 'skip',
+        name: 'Skip',
+        description: 'Skip this question',
+        icon: SkipForward,
+        cost: 10,
+        color: '#8b5cf6'
+    },
+    {
+        id: 'extra_time',
+        name: '+30s',
+        description: 'Add 30 seconds',
+        icon: Clock,
+        cost: 15,
+        color: '#22c55e'
+    }
+];
+
+export default function HintButtons({
+    userDiamonds = 0,
+    onUseHint,
+    disabledHints = [], // Array of hint IDs that can't be used
+    compact = false
+}) {
+    const handleUseHint = (hint) => {
+        if (userDiamonds < hint.cost) return;
+        if (disabledHints.includes(hint.id)) return;
+        onUseHint?.(hint);
+    };
+
+    return (
+        <div className={`hint-buttons ${compact ? 'compact' : ''}`}>
+            {HINTS.map((hint) => {
+                const Icon = hint.icon;
+                const canAfford = userDiamonds >= hint.cost;
+                const isDisabled = disabledHints.includes(hint.id) || !canAfford;
+
+                return (
+                    <motion.button
+                        key={hint.id}
+                        className={`hint-btn ${isDisabled ? 'disabled' : ''}`}
+                        onClick={() => handleUseHint(hint)}
+                        disabled={isDisabled}
+                        whileHover={!isDisabled ? { scale: 1.05 } : {}}
+                        whileTap={!isDisabled ? { scale: 0.95 } : {}}
+                        style={{
+                            '--hint-color': hint.color
+                        }}
+                    >
+                        <div className="hint-icon">
+                            <Icon size={compact ? 16 : 20} />
+                        </div>
+                        {!compact && (
+                            <div className="hint-info">
+                                <span className="hint-name">{hint.name}</span>
+                            </div>
+                        )}
+                        <div className="hint-cost">
+                            <Gem size={compact ? 10 : 12} />
+                            <span>{hint.cost}</span>
+                        </div>
+                    </motion.button>
+                );
+            })}
+
+            <style jsx>{`
+                .hint-buttons {
+                    display: flex;
+                    gap: 8px;
+                    justify-content: center;
+                }
+
+                .hint-buttons.compact {
+                    gap: 6px;
+                }
+
+                .hint-btn {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    padding: 10px 14px;
+                    background: rgba(30, 41, 59, 0.8);
+                    border: 2px solid rgba(255, 255, 255, 0.1);
+                    border-radius: 10px;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                }
+
+                .hint-buttons.compact .hint-btn {
+                    padding: 8px 10px;
+                    gap: 6px;
+                }
+
+                .hint-btn:hover:not(.disabled) {
+                    border-color: var(--hint-color);
+                    background: rgba(var(--hint-color), 0.1);
+                }
+
+                .hint-btn.disabled {
+                    opacity: 0.4;
+                    cursor: not-allowed;
+                }
+
+                .hint-icon {
+                    width: 28px;
+                    height: 28px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: rgba(255, 255, 255, 0.1);
+                    border-radius: 6px;
+                    color: var(--hint-color);
+                }
+
+                .hint-buttons.compact .hint-icon {
+                    width: 24px;
+                    height: 24px;
+                }
+
+                .hint-name {
+                    font-size: 13px;
+                    font-weight: 600;
+                    color: #fff;
+                }
+
+                .hint-cost {
+                    display: flex;
+                    align-items: center;
+                    gap: 3px;
+                    padding: 4px 8px;
+                    background: rgba(0, 212, 255, 0.15);
+                    border-radius: 6px;
+                    font-size: 12px;
+                    font-weight: 700;
+                    color: #00d4ff;
+                }
+
+                .hint-buttons.compact .hint-cost {
+                    padding: 3px 6px;
+                    font-size: 11px;
+                }
+            `}</style>
+        </div>
+    );
+}
+
+/**
+ * Apply a hint to the current question
+ */
+export function applyHint(hintId, question, currentState) {
+    switch (hintId) {
+        case 'fifty_fifty': {
+            // Remove 2 wrong answers, keep correct and 1 wrong
+            const correctIndex = question.correct_index;
+            const wrongIndices = question.options
+                .map((_, idx) => idx)
+                .filter(idx => idx !== correctIndex);
+
+            // Randomly remove 2 wrong answers
+            const shuffled = wrongIndices.sort(() => Math.random() - 0.5);
+            const toRemove = shuffled.slice(0, 2);
+
+            return {
+                ...currentState,
+                hiddenOptions: [...(currentState.hiddenOptions || []), ...toRemove]
+            };
+        }
+
+        case 'skip': {
+            return {
+                ...currentState,
+                skipQuestion: true
+            };
+        }
+
+        case 'extra_time': {
+            return {
+                ...currentState,
+                addTime: 30
+            };
+        }
+
+        default:
+            return currentState;
+    }
+}
+
+export { HINTS };

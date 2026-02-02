@@ -1,0 +1,117 @@
+{
+  "meta": {
+    "version": "1.0.0",
+    "engine": "CHART",
+    "description": "Push/Fold ranges for various stack depths and positions"
+  },
+  "charts": {
+    "BTN_vs_blinds_10bb": {
+      "position": "BTN",
+      "action": "PUSH",
+      "stackBB": 10,
+      "opponents": ["SB", "BB"],
+      "grid": {
+        "AA": "PUSH", "AKs": "PUSH", "AQs": "PUSH", "AJs": "PUSH", "ATs": "PUSH", "A9s": "PUSH", "A8s": "PUSH", "A7s": "PUSH", "A6s": "PUSH", "A5s": "PUSH", "A4s": "PUSH", "A3s": "PUSH", "A2s": "PUSH",
+        "AKo": "PUSH", "KK": "PUSH", "KQs": "PUSH", "KJs": "PUSH", "KTs": "PUSH", "K9s": "PUSH", "K8s": "PUSH", "K7s": "PUSH", "K6s": "PUSH", "K5s": "PUSH", "K4s": "PUSH", "K3s": "PUSH", "K2s": "PUSH",
+        "AQo": "PUSH", "KQo": "PUSH", "QQ": "PUSH", "QJs": "PUSH", "QTs": "PUSH", "Q9s": "PUSH", "Q8s": "PUSH", "Q7s": "PUSH", "Q6s": "PUSH", "Q5s": "FOLD", "Q4s": "FOLD", "Q3s": "FOLD", "Q2s": "FOLD",
+        "AJo": "PUSH", "KJo": "PUSH", "QJo": "PUSH", "JJ": "PUSH", "JTs": "PUSH", "J9s": "PUSH", "J8s": "PUSH", "J7s": "PUSH", "J6s": "FOLD", "J5s": "FOLD", "J4s": "FOLD", "J3s": "FOLD", "J2s": "FOLD",
+        "ATo": "PUSH", "KTo": "PUSH", "QTo": "PUSH", "JTo": "PUSH", "TT": "PUSH", "T9s": "PUSH", "T8s": "PUSH", "T7s": "PUSH", "T6s": "FOLD", "T5s": "FOLD", "T4s": "FOLD", "T3s": "FOLD", "T2s": "FOLD",
+        "A9o": "PUSH", "K9o": "PUSH", "Q9o": "FOLD", "J9o": "FOLD", "T9o": "PUSH", "99": "PUSH", "98s": "PUSH", "97s": "PUSH", "96s": "FOLD", "95s": "FOLD", "94s": "FOLD", "93s": "FOLD", "92s": "FOLD",
+        "A8o": "PUSH", "K8o": "FOLD", "Q8o": "FOLD", "J8o": "FOLD", "T8o": "FOLD", "98o": "PUSH", "88": "PUSH", "87s": "PUSH", "86s": "PUSH", "85s": "FOLD", "84s": "FOLD", "83s": "FOLD", "82s": "FOLD",
+        "A7o": "PUSH", "K7o": "FOLD", "Q7o": "FOLD", "J7o": "FOLD", "T7o": "FOLD", "97o": "FOLD", "87o": "PUSH", "77": "PUSH", "76s": "PUSH", "75s": "PUSH", "74s": "FOLD", "73s": "FOLD", "72s": "FOLD",
+        "A6o": "PUSH", "K6o": "FOLD", "Q6o": "FOLD", "J6o": "FOLD", "T6o": "FOLD", "96o": "FOLD", "86o": "FOLD", "76o": "FOLD", "66": "PUSH", "65s": "PUSH", "64s": "PUSH", "63s": "FOLD", "62s": "FOLD",
+        "A5o": "PUSH", "K5o": "FOLD", "Q5o": "FOLD", "J5o": "FOLD", "T5o": "FOLD", "95o": "FOLD", "85o": "FOLD", "75o": "FOLD", "65o": "FOLD", "55": "PUSH", "54s": "PUSH", "53s": "PUSH", "52s": "FOLD",
+        "A4o": "PUSH", "K4o": "FOLD", "Q4o": "FOLD", "J4o": "FOLD", "T4o": "FOLD", "94o": "FOLD", "84o": "FOLD", "74o": "FOLD", "64o": "FOLD", "54o": "FOLD", "44": "PUSH", "43s": "PUSH", "42s": "FOLD",
+        "A3o": "PUSH", "K3o": "FOLD", "Q3o": "FOLD", "J3o": "FOLD", "T3o": "FOLD", "93o": "FOLD", "83o": "FOLD", "73o": "FOLD", "63o": "FOLD", "53o": "FOLD", "43o": "FOLD", "33": "PUSH", "32s": "FOLD",
+        "A2o": "PUSH", "K2o": "FOLD", "Q2o": "FOLD", "J2o": "FOLD", "T2o": "FOLD", "92o": "FOLD", "82o": "FOLD", "72o": "FOLD", "62o": "FOLD", "52o": "FOLD", "42o": "FOLD", "32o": "FOLD", "22": "PUSH"
+      }
+    },
+    "BTN_vs_blinds_15bb": {
+      "position": "BTN",
+      "action": "PUSH",
+      "stackBB": 15,
+      "opponents": ["SB", "BB"],
+      "grid": {
+        "AA": "PUSH", "AKs": "PUSH", "AQs": "PUSH", "AJs": "PUSH", "ATs": "PUSH", "A9s": "PUSH", "A8s": "PUSH", "A7s": "PUSH", "A6s": "PUSH", "A5s": "PUSH", "A4s": "PUSH", "A3s": "PUSH", "A2s": "PUSH",
+        "AKo": "PUSH", "KK": "PUSH", "KQs": "PUSH", "KJs": "PUSH", "KTs": "PUSH", "K9s": "PUSH", "K8s": "FOLD", "K7s": "FOLD", "K6s": "FOLD", "K5s": "FOLD", "K4s": "FOLD", "K3s": "FOLD", "K2s": "FOLD",
+        "AQo": "PUSH", "KQo": "PUSH", "QQ": "PUSH", "QJs": "PUSH", "QTs": "PUSH", "Q9s": "PUSH", "Q8s": "FOLD", "Q7s": "FOLD", "Q6s": "FOLD", "Q5s": "FOLD", "Q4s": "FOLD", "Q3s": "FOLD", "Q2s": "FOLD",
+        "AJo": "PUSH", "KJo": "PUSH", "QJo": "PUSH", "JJ": "PUSH", "JTs": "PUSH", "J9s": "PUSH", "J8s": "FOLD", "J7s": "FOLD", "J6s": "FOLD", "J5s": "FOLD", "J4s": "FOLD", "J3s": "FOLD", "J2s": "FOLD",
+        "ATo": "PUSH", "KTo": "PUSH", "QTo": "FOLD", "JTo": "FOLD", "TT": "PUSH", "T9s": "PUSH", "T8s": "FOLD", "T7s": "FOLD", "T6s": "FOLD", "T5s": "FOLD", "T4s": "FOLD", "T3s": "FOLD", "T2s": "FOLD",
+        "A9o": "PUSH", "K9o": "FOLD", "Q9o": "FOLD", "J9o": "FOLD", "T9o": "FOLD", "99": "PUSH", "98s": "PUSH", "97s": "FOLD", "96s": "FOLD", "95s": "FOLD", "94s": "FOLD", "93s": "FOLD", "92s": "FOLD",
+        "A8o": "PUSH", "K8o": "FOLD", "Q8o": "FOLD", "J8o": "FOLD", "T8o": "FOLD", "98o": "FOLD", "88": "PUSH", "87s": "PUSH", "86s": "FOLD", "85s": "FOLD", "84s": "FOLD", "83s": "FOLD", "82s": "FOLD",
+        "A7o": "PUSH", "K7o": "FOLD", "Q7o": "FOLD", "J7o": "FOLD", "T7o": "FOLD", "97o": "FOLD", "87o": "FOLD", "77": "PUSH", "76s": "PUSH", "75s": "FOLD", "74s": "FOLD", "73s": "FOLD", "72s": "FOLD",
+        "A6o": "FOLD", "K6o": "FOLD", "Q6o": "FOLD", "J6o": "FOLD", "T6o": "FOLD", "96o": "FOLD", "86o": "FOLD", "76o": "FOLD", "66": "PUSH", "65s": "PUSH", "64s": "FOLD", "63s": "FOLD", "62s": "FOLD",
+        "A5o": "PUSH", "K5o": "FOLD", "Q5o": "FOLD", "J5o": "FOLD", "T5o": "FOLD", "95o": "FOLD", "85o": "FOLD", "75o": "FOLD", "65o": "FOLD", "55": "PUSH", "54s": "PUSH", "53s": "FOLD", "52s": "FOLD",
+        "A4o": "FOLD", "K4o": "FOLD", "Q4o": "FOLD", "J4o": "FOLD", "T4o": "FOLD", "94o": "FOLD", "84o": "FOLD", "74o": "FOLD", "64o": "FOLD", "54o": "FOLD", "44": "PUSH", "43s": "FOLD", "42s": "FOLD",
+        "A3o": "FOLD", "K3o": "FOLD", "Q3o": "FOLD", "J3o": "FOLD", "T3o": "FOLD", "93o": "FOLD", "83o": "FOLD", "73o": "FOLD", "63o": "FOLD", "53o": "FOLD", "43o": "FOLD", "33": "PUSH", "32s": "FOLD",
+        "A2o": "FOLD", "K2o": "FOLD", "Q2o": "FOLD", "J2o": "FOLD", "T2o": "FOLD", "92o": "FOLD", "82o": "FOLD", "72o": "FOLD", "62o": "FOLD", "52o": "FOLD", "42o": "FOLD", "32o": "FOLD", "22": "PUSH"
+      }
+    },
+    "BB_call_vs_SB_10bb": {
+      "position": "BB",
+      "action": "CALL",
+      "stackBB": 10,
+      "opponents": ["SB"],
+      "description": "BB call range vs SB shove with 10bb",
+      "grid": {
+        "AA": "CALL", "AKs": "CALL", "AQs": "CALL", "AJs": "CALL", "ATs": "CALL", "A9s": "CALL", "A8s": "CALL", "A7s": "CALL", "A6s": "FOLD", "A5s": "CALL", "A4s": "FOLD", "A3s": "FOLD", "A2s": "FOLD",
+        "AKo": "CALL", "KK": "CALL", "KQs": "CALL", "KJs": "CALL", "KTs": "CALL", "K9s": "CALL", "K8s": "FOLD", "K7s": "FOLD", "K6s": "FOLD", "K5s": "FOLD", "K4s": "FOLD", "K3s": "FOLD", "K2s": "FOLD",
+        "AQo": "CALL", "KQo": "CALL", "QQ": "CALL", "QJs": "CALL", "QTs": "CALL", "Q9s": "FOLD", "Q8s": "FOLD", "Q7s": "FOLD", "Q6s": "FOLD", "Q5s": "FOLD", "Q4s": "FOLD", "Q3s": "FOLD", "Q2s": "FOLD",
+        "AJo": "CALL", "KJo": "CALL", "QJo": "CALL", "JJ": "CALL", "JTs": "CALL", "J9s": "FOLD", "J8s": "FOLD", "J7s": "FOLD", "J6s": "FOLD", "J5s": "FOLD", "J4s": "FOLD", "J3s": "FOLD", "J2s": "FOLD",
+        "ATo": "CALL", "KTo": "CALL", "QTo": "FOLD", "JTo": "FOLD", "TT": "CALL", "T9s": "FOLD", "T8s": "FOLD", "T7s": "FOLD", "T6s": "FOLD", "T5s": "FOLD", "T4s": "FOLD", "T3s": "FOLD", "T2s": "FOLD",
+        "A9o": "CALL", "K9o": "FOLD", "Q9o": "FOLD", "J9o": "FOLD", "T9o": "FOLD", "99": "CALL", "98s": "FOLD", "97s": "FOLD", "96s": "FOLD", "95s": "FOLD", "94s": "FOLD", "93s": "FOLD", "92s": "FOLD",
+        "A8o": "CALL", "K8o": "FOLD", "Q8o": "FOLD", "J8o": "FOLD", "T8o": "FOLD", "98o": "FOLD", "88": "CALL", "87s": "FOLD", "86s": "FOLD", "85s": "FOLD", "84s": "FOLD", "83s": "FOLD", "82s": "FOLD",
+        "A7o": "FOLD", "K7o": "FOLD", "Q7o": "FOLD", "J7o": "FOLD", "T7o": "FOLD", "97o": "FOLD", "87o": "FOLD", "77": "CALL", "76s": "FOLD", "75s": "FOLD", "74s": "FOLD", "73s": "FOLD", "72s": "FOLD",
+        "A6o": "FOLD", "K6o": "FOLD", "Q6o": "FOLD", "J6o": "FOLD", "T6o": "FOLD", "96o": "FOLD", "86o": "FOLD", "76o": "FOLD", "66": "CALL", "65s": "FOLD", "64s": "FOLD", "63s": "FOLD", "62s": "FOLD",
+        "A5o": "FOLD", "K5o": "FOLD", "Q5o": "FOLD", "J5o": "FOLD", "T5o": "FOLD", "95o": "FOLD", "85o": "FOLD", "75o": "FOLD", "65o": "FOLD", "55": "CALL", "54s": "FOLD", "53s": "FOLD", "52s": "FOLD",
+        "A4o": "FOLD", "K4o": "FOLD", "Q4o": "FOLD", "J4o": "FOLD", "T4o": "FOLD", "94o": "FOLD", "84o": "FOLD", "74o": "FOLD", "64o": "FOLD", "54o": "FOLD", "44": "CALL", "43s": "FOLD", "42s": "FOLD",
+        "A3o": "FOLD", "K3o": "FOLD", "Q3o": "FOLD", "J3o": "FOLD", "T3o": "FOLD", "93o": "FOLD", "83o": "FOLD", "73o": "FOLD", "63o": "FOLD", "53o": "FOLD", "43o": "FOLD", "33": "CALL", "32s": "FOLD",
+        "A2o": "FOLD", "K2o": "FOLD", "Q2o": "FOLD", "J2o": "FOLD", "T2o": "FOLD", "92o": "FOLD", "82o": "FOLD", "72o": "FOLD", "62o": "FOLD", "52o": "FOLD", "42o": "FOLD", "32o": "FOLD", "22": "CALL"
+      }
+    },
+    "SB_vs_BB_8bb": {
+      "position": "SB",
+      "action": "PUSH",
+      "stackBB": 8,
+      "opponents": ["BB"],
+      "description": "SB push range vs BB with 8bb effective",
+      "grid": {
+        "AA": "PUSH", "AKs": "PUSH", "AQs": "PUSH", "AJs": "PUSH", "ATs": "PUSH", "A9s": "PUSH", "A8s": "PUSH", "A7s": "PUSH", "A6s": "PUSH", "A5s": "PUSH", "A4s": "PUSH", "A3s": "PUSH", "A2s": "PUSH",
+        "AKo": "PUSH", "KK": "PUSH", "KQs": "PUSH", "KJs": "PUSH", "KTs": "PUSH", "K9s": "PUSH", "K8s": "PUSH", "K7s": "PUSH", "K6s": "PUSH", "K5s": "PUSH", "K4s": "PUSH", "K3s": "PUSH", "K2s": "PUSH",
+        "AQo": "PUSH", "KQo": "PUSH", "QQ": "PUSH", "QJs": "PUSH", "QTs": "PUSH", "Q9s": "PUSH", "Q8s": "PUSH", "Q7s": "PUSH", "Q6s": "PUSH", "Q5s": "PUSH", "Q4s": "PUSH", "Q3s": "PUSH", "Q2s": "PUSH",
+        "AJo": "PUSH", "KJo": "PUSH", "QJo": "PUSH", "JJ": "PUSH", "JTs": "PUSH", "J9s": "PUSH", "J8s": "PUSH", "J7s": "PUSH", "J6s": "PUSH", "J5s": "PUSH", "J4s": "PUSH", "J3s": "FOLD", "J2s": "FOLD",
+        "ATo": "PUSH", "KTo": "PUSH", "QTo": "PUSH", "JTo": "PUSH", "TT": "PUSH", "T9s": "PUSH", "T8s": "PUSH", "T7s": "PUSH", "T6s": "PUSH", "T5s": "PUSH", "T4s": "FOLD", "T3s": "FOLD", "T2s": "FOLD",
+        "A9o": "PUSH", "K9o": "PUSH", "Q9o": "PUSH", "J9o": "PUSH", "T9o": "PUSH", "99": "PUSH", "98s": "PUSH", "97s": "PUSH", "96s": "PUSH", "95s": "PUSH", "94s": "FOLD", "93s": "FOLD", "92s": "FOLD",
+        "A8o": "PUSH", "K8o": "PUSH", "Q8o": "PUSH", "J8o": "PUSH", "T8o": "PUSH", "98o": "PUSH", "88": "PUSH", "87s": "PUSH", "86s": "PUSH", "85s": "PUSH", "84s": "FOLD", "83s": "FOLD", "82s": "FOLD",
+        "A7o": "PUSH", "K7o": "PUSH", "Q7o": "PUSH", "J7o": "FOLD", "T7o": "FOLD", "97o": "PUSH", "87o": "PUSH", "77": "PUSH", "76s": "PUSH", "75s": "PUSH", "74s": "PUSH", "73s": "FOLD", "72s": "FOLD",
+        "A6o": "PUSH", "K6o": "PUSH", "Q6o": "FOLD", "J6o": "FOLD", "T6o": "FOLD", "96o": "FOLD", "86o": "PUSH", "76o": "PUSH", "66": "PUSH", "65s": "PUSH", "64s": "PUSH", "63s": "PUSH", "62s": "FOLD",
+        "A5o": "PUSH", "K5o": "PUSH", "Q5o": "FOLD", "J5o": "FOLD", "T5o": "FOLD", "95o": "FOLD", "85o": "FOLD", "75o": "PUSH", "65o": "PUSH", "55": "PUSH", "54s": "PUSH", "53s": "PUSH", "52s": "PUSH",
+        "A4o": "PUSH", "K4o": "PUSH", "Q4o": "FOLD", "J4o": "FOLD", "T4o": "FOLD", "94o": "FOLD", "84o": "FOLD", "74o": "FOLD", "64o": "PUSH", "54o": "PUSH", "44": "PUSH", "43s": "PUSH", "42s": "PUSH",
+        "A3o": "PUSH", "K3o": "PUSH", "Q3o": "FOLD", "J3o": "FOLD", "T3o": "FOLD", "93o": "FOLD", "83o": "FOLD", "73o": "FOLD", "63o": "FOLD", "53o": "PUSH", "43o": "PUSH", "33": "PUSH", "32s": "PUSH",
+        "A2o": "PUSH", "K2o": "PUSH", "Q2o": "FOLD", "J2o": "FOLD", "T2o": "FOLD", "92o": "FOLD", "82o": "FOLD", "72o": "FOLD", "62o": "FOLD", "52o": "FOLD", "42o": "FOLD", "32o": "FOLD", "22": "PUSH"
+      }
+    },
+    "CO_vs_BTN_SB_BB_20bb": {
+      "position": "CO",
+      "action": "PUSH",
+      "stackBB": 20,
+      "opponents": ["BTN", "SB", "BB"],
+      "description": "CO push range vs 3 opponents with 20bb",
+      "grid": {
+        "AA": "PUSH", "AKs": "PUSH", "AQs": "PUSH", "AJs": "PUSH", "ATs": "PUSH", "A9s": "FOLD", "A8s": "FOLD", "A7s": "FOLD", "A6s": "FOLD", "A5s": "FOLD", "A4s": "FOLD", "A3s": "FOLD", "A2s": "FOLD",
+        "AKo": "PUSH", "KK": "PUSH", "KQs": "PUSH", "KJs": "PUSH", "KTs": "FOLD", "K9s": "FOLD", "K8s": "FOLD", "K7s": "FOLD", "K6s": "FOLD", "K5s": "FOLD", "K4s": "FOLD", "K3s": "FOLD", "K2s": "FOLD",
+        "AQo": "PUSH", "KQo": "PUSH", "QQ": "PUSH", "QJs": "PUSH", "QTs": "FOLD", "Q9s": "FOLD", "Q8s": "FOLD", "Q7s": "FOLD", "Q6s": "FOLD", "Q5s": "FOLD", "Q4s": "FOLD", "Q3s": "FOLD", "Q2s": "FOLD",
+        "AJo": "PUSH", "KJo": "FOLD", "QJo": "FOLD", "JJ": "PUSH", "JTs": "FOLD", "J9s": "FOLD", "J8s": "FOLD", "J7s": "FOLD", "J6s": "FOLD", "J5s": "FOLD", "J4s": "FOLD", "J3s": "FOLD", "J2s": "FOLD",
+        "ATo": "PUSH", "KTo": "FOLD", "QTo": "FOLD", "JTo": "FOLD", "TT": "PUSH", "T9s": "FOLD", "T8s": "FOLD", "T7s": "FOLD", "T6s": "FOLD", "T5s": "FOLD", "T4s": "FOLD", "T3s": "FOLD", "T2s": "FOLD",
+        "A9o": "FOLD", "K9o": "FOLD", "Q9o": "FOLD", "J9o": "FOLD", "T9o": "FOLD", "99": "PUSH", "98s": "FOLD", "97s": "FOLD", "96s": "FOLD", "95s": "FOLD", "94s": "FOLD", "93s": "FOLD", "92s": "FOLD",
+        "A8o": "FOLD", "K8o": "FOLD", "Q8o": "FOLD", "J8o": "FOLD", "T8o": "FOLD", "98o": "FOLD", "88": "PUSH", "87s": "FOLD", "86s": "FOLD", "85s": "FOLD", "84s": "FOLD", "83s": "FOLD", "82s": "FOLD",
+        "A7o": "FOLD", "K7o": "FOLD", "Q7o": "FOLD", "J7o": "FOLD", "T7o": "FOLD", "97o": "FOLD", "87o": "FOLD", "77": "PUSH", "76s": "FOLD", "75s": "FOLD", "74s": "FOLD", "73s": "FOLD", "72s": "FOLD",
+        "A6o": "FOLD", "K6o": "FOLD", "Q6o": "FOLD", "J6o": "FOLD", "T6o": "FOLD", "96o": "FOLD", "86o": "FOLD", "76o": "FOLD", "66": "PUSH", "65s": "FOLD", "64s": "FOLD", "63s": "FOLD", "62s": "FOLD",
+        "A5o": "FOLD", "K5o": "FOLD", "Q5o": "FOLD", "J5o": "FOLD", "T5o": "FOLD", "95o": "FOLD", "85o": "FOLD", "75o": "FOLD", "65o": "FOLD", "55": "PUSH", "54s": "FOLD", "53s": "FOLD", "52s": "FOLD",
+        "A4o": "FOLD", "K4o": "FOLD", "Q4o": "FOLD", "J4o": "FOLD", "T4o": "FOLD", "94o": "FOLD", "84o": "FOLD", "74o": "FOLD", "64o": "FOLD", "54o": "FOLD", "44": "PUSH", "43s": "FOLD", "42s": "FOLD",
+        "A3o": "FOLD", "K3o": "FOLD", "Q3o": "FOLD", "J3o": "FOLD", "T3o": "FOLD", "93o": "FOLD", "83o": "FOLD", "73o": "FOLD", "63o": "FOLD", "53o": "FOLD", "43o": "FOLD", "33": "FOLD", "32s": "FOLD",
+        "A2o": "FOLD", "K2o": "FOLD", "Q2o": "FOLD", "J2o": "FOLD", "T2o": "FOLD", "92o": "FOLD", "82o": "FOLD", "72o": "FOLD", "62o": "FOLD", "52o": "FOLD", "42o": "FOLD", "32o": "FOLD", "22": "FOLD"
+      }
+    }
+  }
+}

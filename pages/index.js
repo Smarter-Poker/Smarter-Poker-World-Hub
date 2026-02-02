@@ -397,7 +397,7 @@ export default function LandingPage() {
                         <TestimonialCard
                             quote="Training with my club on Smarter.Poker has made us all better. The competition drives real growth."
                             author="James K."
-                            role="Club Captain"
+                            role="Club Commander"
                         />
                     </div>
                 </section>

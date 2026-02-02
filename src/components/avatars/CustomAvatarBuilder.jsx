@@ -8,15 +8,24 @@
 import React, { useState, useEffect } from 'react';
 import { useAvatar } from '../../contexts/AvatarContext';
 import { getCustomAvatarGallery, deleteCustomAvatar } from '../../services/avatar-service';
+import supabase from '../../lib/supabase.ts';
+import toast from '../../stores/toastStore';
 
-export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
-  const { user, createCustomAvatar, isVip: contextIsVip } = useAvatar();
+export default function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = null }) {
+  const { user: contextUser, createCustomAvatar, isVip: contextIsVip, initializing } = useAvatar();
+  // Use prop user as fallback when context is still initializing
+  const user = contextUser || propUser;
   const effectiveVip = isVip || contextIsVip;
 
   const [prompt, setPrompt] = useState('');
   const [generating, setGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState(null);
   const [showResult, setShowResult] = useState(false);
+
+  // Edit mode
+  const [showEditMode, setShowEditMode] = useState(false);
+  const [editPrompt, setEditPrompt] = useState('');
+  const [editing, setEditing] = useState(false);
 
   // Gallery management
   const [customAvatars, setCustomAvatars] = useState([]);
@@ -56,7 +65,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
     "Cyberpunk hacker with neon visor",
     "Ancient samurai with katana",
     "Space explorer in futuristic suit",
-    "Pirate captain with treasure map"
+    "Pirate commander with treasure map"
   ];
 
   // Matrix rain effect - vertical falling columns like the movie
@@ -102,7 +111,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
 
   async function handleGenerate() {
     if (!prompt.trim()) {
-      alert('Please enter a description for your avatar');
+      toast.warning('Please enter a description for your avatar');
       return;
     }
 
@@ -117,23 +126,59 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
         setGeneratedImage(result.imageUrl);
         setShowResult(true);
       } else {
-        alert(`❌ ${result.error}`);
+        toast.error(result.error);
       }
     } catch (error) {
       console.error('Avatar generation error:', error);
-      alert('Error generating avatar. Please try again.');
+      toast.error('Error generating avatar. Please try again.');
     } finally {
       setGenerating(false);
     }
   }
 
-  function handleAccept() {
-    // Reset state
+  async function handleAccept() {
+    // Save to database before closing
+    if (user && generatedImage && prompt) {
+      try {
+        const { data, error } = await supabase
+          .from('custom_avatar_gallery')
+          .insert({
+            user_id: user.id,
+            image_url: generatedImage,
+            prompt: prompt
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Error saving avatar:', error);
+          toast.error('Failed to save avatar. Please try again.');
+          return;
+        }
+
+        // Set as active avatar
+        const { error: setError } = await supabase.rpc('set_active_avatar', {
+          p_user_id: user.id,
+          p_avatar_type: 'custom',
+          p_custom_image_url: generatedImage,
+          p_custom_prompt: prompt
+        });
+
+        if (setError) {
+          console.error('Error setting active avatar:', setError);
+        }
+      } catch (err) {
+        console.error('Error in handleAccept:', err);
+        toast.error('Failed to save avatar. Please try again.');
+        return;
+      }
+    }
+
+    // Reset state and close modal
     setShowResult(false);
     setGeneratedImage(null);
     setPrompt('');
 
-    // Close the modal immediately - no popup needed
     if (onClose) {
       onClose();
     }
@@ -147,17 +192,90 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
   function handleStartOver() {
     setShowResult(false);
     setGeneratedImage(null);
+    setShowEditMode(false);
+    setEditPrompt('');
   }
 
-  // Show login prompt if not authenticated
-  if (!user) {
+  // Edit avatar using Grok image editing
+  async function handleEditAvatar() {
+    if (!editPrompt.trim()) {
+      toast.warning('Please describe what you want to change');
+      return;
+    }
+
+    setEditing(true);
+
+    try {
+      const response = await fetch('/api/avatar/edit-avatar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageUrl: generatedImage,
+          originalPrompt: prompt, // Include original prompt to preserve character
+          editPrompt: editPrompt,
+          userId: user?.id
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setGeneratedImage(result.imageUrl);
+        setShowEditMode(false);
+        setEditPrompt('');
+      } else {
+        toast.error(result.error);
+      }
+    } catch (error) {
+      console.error('Avatar edit error:', error);
+      toast.error('Error editing avatar. Please try again.');
+    } finally {
+      setEditing(false);
+    }
+  }
+
+  // Show loading while auth is initializing (prevents premature "Sign In Required")
+  if (initializing) {
     return (
       <div style={{
         width: '100%',
         maxWidth: '600px',
         margin: '40px auto',
         padding: '40px',
-        background: 'rgba(10, 14, 39, 0.9)',
+        background: '#FFFFFF',
+        border: '2px solid rgba(0, 245, 255, 0.3)',
+        borderRadius: '20px',
+        textAlign: 'center'
+      }}>
+        <div style={{
+          fontSize: '48px',
+          marginBottom: '20px'
+        }}>♦️</div>
+        <h2 style={{
+          fontFamily: 'Orbitron, sans-serif',
+          fontSize: '24px',
+          color: '#1877F2',
+          marginBottom: '15px'
+        }}>Loading...</h2>
+        <p style={{
+          color: 'rgba(255,255,255,0.7)',
+          fontSize: '16px'
+        }}>
+          Checking authentication...
+        </p>
+      </div>
+    );
+  }
+
+  // Show login prompt ONLY after confirming no session exists (and no prop user)
+  if (!user && !propUser) {
+    return (
+      <div style={{
+        width: '100%',
+        maxWidth: '600px',
+        margin: '40px auto',
+        padding: '40px',
+        background: '#FFFFFF',
         border: '2px solid rgba(0, 245, 255, 0.3)',
         borderRadius: '20px',
         textAlign: 'center'
@@ -169,7 +287,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
         <h2 style={{
           fontFamily: 'Orbitron, sans-serif',
           fontSize: '24px',
-          color: '#00f5ff',
+          color: '#1877F2',
           marginBottom: '15px'
         }}>Sign In Required</h2>
         <p style={{
@@ -183,7 +301,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
           onClick={() => window.location.href = '/auth/login'}
           style={{
             padding: '14px 32px',
-            background: 'linear-gradient(135deg, #00f5ff, #0080ff)',
+            background: 'linear-gradient(135deg, #1877F2, #166FE5)',
             border: 'none',
             borderRadius: '12px',
             color: '#fff',
@@ -207,7 +325,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
           max-width: 800px;
           margin: 0 auto;
           padding: 30px;
-          background: rgba(10, 14, 39, 0.8);
+          background: #FFFFFF;
           border: 2px solid rgba(0, 245, 255, 0.3);
           border-radius: 20px;
           backdrop-filter: blur(10px);
@@ -219,7 +337,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
           font-family: 'Orbitron', sans-serif;
           font-size: 28px;
           font-weight: 700;
-          background: linear-gradient(135deg, #00f5ff, #ff00f5);
+          background: linear-gradient(135deg, #1877F2, #1877F2);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           text-align: center;
@@ -237,8 +355,8 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
         .vip-badge {
           display: inline-block;
           padding: 4px 12px;
-          background: linear-gradient(135deg, #ffd700, #ff8c00);
-          color: #000;
+          background: #1877F2;
+          color: #fff;
           font-family: 'Rajdhani', sans-serif;
           font-size: 12px;
           font-weight: 700;
@@ -248,14 +366,14 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
         }
 
         .vip-slots {
-          background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 140, 0, 0.1));
-          border: 1px solid rgba(255, 215, 0, 0.3);
+          background: rgba(24, 119, 242, 0.1);
+          border: 1px solid rgba(24, 119, 242, 0.3);
           border-radius: 8px;
           padding: 12px 20px;
           margin-bottom: 20px;
           text-align: center;
           font-family: 'Rajdhani', sans-serif;
-          color: #ffd700;
+          color: #1877F2;
           font-size: 16px;
           font-weight: 600;
           display: flex;
@@ -321,7 +439,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
 
         .delete-modal h3 {
           font-family: 'Orbitron', sans-serif;
-          color: #00f5ff;
+          color: #1877F2;
           margin-bottom: 10px;
         }
 
@@ -369,7 +487,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
           background: rgba(0, 245, 255, 0.2);
           border: 1px solid rgba(0, 245, 255, 0.5);
           border-radius: 8px;
-          color: #00f5ff;
+          color: #1877F2;
           font-family: 'Rajdhani', sans-serif;
           font-size: 14px;
           cursor: pointer;
@@ -466,7 +584,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
           left: 0;
           right: 0;
           bottom: 0;
-          background: rgba(10, 14, 39, 0.98);
+          background: #FFFFFF;
           z-index: 100;
           display: flex;
           flex-direction: column;
@@ -478,7 +596,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
         .result-title {
           font-family: 'Orbitron', sans-serif;
           font-size: 24px;
-          color: #00f5ff;
+          color: #1877F2;
           margin-bottom: 20px;
           text-align: center;
         }
@@ -487,7 +605,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
           max-width: 280px;
           max-height: 280px;
           border-radius: 16px;
-          border: 3px solid #00f5ff;
+          border: 3px solid #1877F2;
           box-shadow: 0 20px 60px rgba(0, 245, 255, 0.5);
           animation: popIn 0.5s ease-out;
         }
@@ -518,9 +636,9 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
         }
 
         .accept-btn {
-          background: linear-gradient(135deg, #00ff00, #00cc00);
+          background: #1877F2;
           border: none;
-          color: #000;
+          color: #fff;
         }
 
         .accept-btn:hover {
@@ -530,12 +648,12 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
 
         .regenerate-btn {
           background: transparent;
-          border: 2px solid #ff8c00;
-          color: #ff8c00;
+          border: 2px solid #1877F2;
+          color: #1877F2;
         }
 
         .regenerate-btn:hover {
-          background: rgba(255, 140, 0, 0.2);
+          background: rgba(24, 119, 242, 0.1);
         }
 
         .back-btn {
@@ -552,7 +670,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
         .vip-note {
           font-family: 'Rajdhani', sans-serif;
           font-size: 12px;
-          color: #ffd700;
+          color: #1877F2;
           margin-top: 15px;
           text-align: center;
         }
@@ -590,7 +708,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
         }
 
         .upload-zone:hover {
-          border-color: #00f5ff;
+          border-color: #1877F2;
           background: rgba(0, 245, 255, 0.05);
           transform: translateY(-2px);
         }
@@ -599,7 +717,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
         .upload-text {
           font-family: 'Rajdhani', sans-serif;
           font-size: 16px;
-          color: #00f5ff;
+          color: #1877F2;
           font-weight: 600;
           margin-bottom: 8px;
         }
@@ -618,7 +736,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
         .photo-preview {
           width: 100%;
           border-radius: 12px;
-          border: 2px solid #00f5ff;
+          border: 2px solid #1877F2;
           box-shadow: 0 5px 20px rgba(0, 245, 255, 0.3);
         }
 
@@ -642,7 +760,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
         .prompt-label {
           font-family: 'Rajdhani', sans-serif;
           font-size: 16px;
-          color: #00f5ff;
+          color: #1877F2;
           font-weight: 600;
           margin-bottom: 10px;
           text-transform: uppercase;
@@ -664,7 +782,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
 
         .prompt-input:focus {
           outline: none;
-          border-color: #00f5ff;
+          border-color: #1877F2;
           box-shadow: 0 0 20px rgba(0, 245, 255, 0.3);
         }
 
@@ -689,7 +807,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
           background: rgba(0, 245, 255, 0.1);
           border: 1px solid rgba(0, 245, 255, 0.3);
           border-radius: 8px;
-          color: #00f5ff;
+          color: #1877F2;
           font-family: 'Rajdhani', sans-serif;
           font-size: 13px;
           cursor: pointer;
@@ -699,14 +817,14 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
 
         .example-chip:hover {
           background: rgba(0, 245, 255, 0.2);
-          border-color: #00f5ff;
+          border-color: #1877F2;
           transform: translateY(-2px);
         }
 
         .generate-btn {
           width: 100%;
           padding: 18px;
-          background: linear-gradient(135deg, #00f5ff, #0099ff);
+          background: linear-gradient(135deg, #1877F2, #166FE5);
           border: none;
           border-radius: 12px;
           color: #0a0e27;
@@ -772,6 +890,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
             alt="Generated Avatar"
             className="result-image"
           />
+
           <div className="result-buttons">
             <button className="result-btn accept-btn" onClick={handleAccept}>
               ✓ Accept Avatar
@@ -781,19 +900,17 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
                 🔄 Regenerate
               </button>
             )}
-            <button className="result-btn back-btn" onClick={handleStartOver}>
-              ← Try Different Style
-            </button>
+
           </div>
           {effectiveVip && (
-            <div className="vip-note">💎 VIP: Unlimited regenerations</div>
+            <div className="vip-note">VIP: Unlimited regenerations</div>
           )}
         </div>
       )}
 
       {/* Main Form */}
       <h2 className="builder-title">
-        🤖 AI Avatar Generator
+        AI Avatar Generator
         {effectiveVip && <span className="vip-badge">VIP</span>}
       </h2>
       <p className="builder-subtitle">
@@ -803,7 +920,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
       {/* VIP Slot Counter */}
       {effectiveVip && (
         <div className="vip-slots">
-          💎 Custom Avatars: {currentCount}/5 slots used
+          Custom Avatars: {currentCount}/5 slots used
           {!canCreate && (
             <button
               className="manage-gallery-btn"
@@ -818,24 +935,24 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
       {/* Limit Warnings */}
       {!effectiveVip && currentCount >= 1 && (
         <div className="limit-warning limit-reached">
-          🔒 You've used your 1 free custom avatar. Upgrade to VIP for up to 5 avatars!
+          You've used your 1 free custom avatar. Upgrade to VIP for up to 5 avatars!
         </div>
       )}
       {!effectiveVip && currentCount === 0 && (
         <div className="limit-warning">
-          ⚠️ FREE users get 1 custom avatar (one time only). Upgrade to VIP for up to 5!
+          FREE users get 1 custom avatar (one time only). Upgrade to VIP for up to 5!
         </div>
       )}
       {effectiveVip && !canCreate && (
         <div className="limit-warning limit-reached">
-          ⚠️ VIP limit reached! Delete an avatar below to create a new one.
+          VIP limit reached! Delete an avatar below to create a new one.
         </div>
       )}
 
 
 
       <div className="prompt-section">
-        <div className="prompt-label">✨ Describe Your Avatar</div>
+        <div className="prompt-label">Describe Your Avatar</div>
         <textarea
           className="prompt-input"
           placeholder="Describe your avatar in detail... (e.g., 'A fierce dragon warrior with glowing red eyes and golden armor')"
@@ -846,7 +963,7 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null }) {
       </div>
 
       <div className="examples-section">
-        <div className="examples-label">💡 Example Prompts</div>
+        <div className="examples-label">Example Prompts</div>
         <div className="examples-grid">
           {examplePrompts.map((ex, idx) => (
             <div

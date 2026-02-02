@@ -1,0 +1,887 @@
+/**
+ * TRIVIA GAME PAGE - Individual mode gameplay
+ * Route: /hub/trivia/[mode]
+ */
+
+import Head from 'next/head';
+import { useRouter } from 'next/router';
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '../../../src/lib/supabase';
+import { getAuthUser } from '../../../src/lib/authUtils';
+
+import PageTransition from '../../../src/components/transitions/PageTransition';
+import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import TriviaGame from '../../../src/components/trivia/TriviaGame';
+import TriviaResult from '../../../src/components/trivia/TriviaResult';
+import LeaderboardDisplay from '../../../src/components/trivia/LeaderboardDisplay';
+import { TRIVIA_MODES, calculateDiamonds } from '../../../src/lib/trivia/triviaEngine';
+
+// Phase 1 Enhancement Imports
+import PrizeWheel from '../../../src/components/trivia/PrizeWheel';
+import StreakBadge from '../../../src/components/trivia/StreakBadge';
+import { useCelebrations } from '../../../src/components/trivia/CelebrationEffects';
+import { getStreakTier, calculateRewardWithMultiplier, isStreakMilestone } from '../../../src/config/triviaStreakSystem';
+import { TRIVIA_ACHIEVEMENTS, checkNewUnlocks } from '../../../src/config/triviaAchievements';
+
+// Phase 2 Enhancement Imports
+import DoubleOrNothing from '../../../src/components/trivia/DoubleOrNothing';
+import SurvivalModeGame from '../../../src/components/trivia/SurvivalModeGame';
+
+const CATEGORY_MAP = {
+    daily: null,
+    history: ['poker_history', 'famous_hands', 'player_profiles'],
+    rules: ['rule_knowledge'],
+    pro: ['gto_theory', 'tournament_facts'],
+    arcade: null,
+    survival: null // Uses all categories
+};
+
+export default function TriviaModePage() {
+    const router = useRouter();
+    const { mode } = router.query;
+
+    const [gameState, setGameState] = useState('loading'); // loading, ready, playing, results
+    const [questions, setQuestions] = useState([]);
+    const [result, setResult] = useState(null);
+    const [leaderboard, setLeaderboard] = useState([]);
+    const [userStreak, setUserStreak] = useState(0);
+    const [userId, setUserId] = useState(null);
+    const [userDiamonds, setUserDiamonds] = useState(0);
+    const [error, setError] = useState(null);
+
+    // Phase 1: Prize wheel and celebration states
+    const [showPrizeWheel, setShowPrizeWheel] = useState(false);
+    const [isPerfectScore, setIsPerfectScore] = useState(false);
+    const celebrations = useCelebrations();
+
+    // Phase 2: Double or Nothing state
+    const [showDoubleOrNothing, setShowDoubleOrNothing] = useState(false);
+    const [doubleQuestion, setDoubleQuestion] = useState(null);
+
+    // Using existing supabase instance from lib
+    const modeConfig = mode ? TRIVIA_MODES[mode] : null;
+
+    // Load questions and user data
+    useEffect(() => {
+        if (!mode || !modeConfig) return;
+
+        async function initialize() {
+            setGameState('loading');
+            setError(null);
+
+            try {
+                //  BULLETPROOF: Use authUtils to avoid AbortError
+                const user = getAuthUser();
+                if (user) {
+                    setUserId(user.id);
+
+                    // Get diamonds
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('diamonds')
+                        .eq('id', user.id)
+                        .single();
+
+                    if (profile) {
+                        setUserDiamonds(profile.diamonds || 0);
+                    }
+
+                    // Get streak
+                    const { data: streakData } = await supabase
+                        .from('trivia_streaks')
+                        .select('current_streak')
+                        .eq('user_id', user.id)
+                        .single();
+
+                    if (streakData) {
+                        setUserStreak(streakData.current_streak || 0);
+                    }
+                }
+
+                // Check arcade diamonds
+                if (mode === 'arcade') {
+                    const diamonds = userDiamonds || (await getUserDiamonds(user?.id));
+                    if (diamonds < 10) {
+                        setError('Not enough diamonds. You need 10 diamonds to play Diamond Arcade.');
+                        setGameState('error');
+                        return;
+                    }
+                }
+
+                // Load questions
+                const loadedQuestions = await loadQuestions(mode, modeConfig.questionsCount);
+                if (loadedQuestions.length === 0) {
+                    setError('No questions available. Please try again later.');
+                    setGameState('error');
+                    return;
+                }
+
+                setQuestions(loadedQuestions);
+
+                // Load leaderboard for arcade
+                if (mode === 'arcade') {
+                    await loadLeaderboard();
+                }
+
+                setGameState('ready');
+            } catch (err) {
+                console.error('Error initializing trivia:', err);
+                setError('Failed to load trivia. Please try again.');
+                setGameState('error');
+            }
+        }
+
+        initialize();
+    }, [mode, modeConfig]);
+
+    async function getUserDiamonds(userId) {
+        if (!userId) return 0;
+        const { data } = await supabase
+            .from('profiles')
+            .select('diamonds')
+            .eq('id', userId)
+            .single();
+        return data?.diamonds || 0;
+    }
+
+    async function loadQuestions(mode, count) {
+        const today = getTodayCST();
+        const sixtyDaysAgo = new Date();
+        sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+        const sixtyDaysAgoStr = sixtyDaysAgo.toISOString();
+
+        // Get user's recently seen question IDs (60-day exclusion)
+        let excludeIds = [];
+        if (userId) {
+            const { data: recentHistory } = await supabase
+                .from('trivia_user_question_history')
+                .select('question_id')
+                .eq('user_id', userId)
+                .gte('seen_at', sixtyDaysAgoStr);
+
+            if (recentHistory) {
+                excludeIds = recentHistory.map(h => h.question_id);
+            }
+        }
+
+        // For daily mode, get today's 10 questions (deterministic by date)
+        if (mode === 'daily') {
+            // First try to get pre-assigned daily questions
+            let query = supabase
+                .from('trivia_questions')
+                .select('*')
+                .eq('daily_date', today)
+                .order('order_index')
+                .limit(10);
+
+            const { data } = await query;
+
+            if (data && data.length >= 10) {
+                return data;
+            }
+
+            // Fallback: get all questions, exclude recently seen, use date-seeded shuffle
+            let allQuery = supabase.from('trivia_questions').select('*');
+            const { data: allQuestions } = await allQuery;
+
+            if (allQuestions && allQuestions.length > 0) {
+                // Filter out recently seen questions
+                let available = allQuestions.filter(q => !excludeIds.includes(q.id));
+
+                // If not enough unseen, include some older ones
+                if (available.length < count) {
+                    available = allQuestions;
+                }
+
+                return seededShuffle(available, today).slice(0, count);
+            }
+
+            return getFallbackQuestions(count);
+        }
+
+        // For category modes - use date-seeded shuffle for daily consistency
+        const categories = CATEGORY_MAP[mode];
+        let query = supabase.from('trivia_questions').select('*');
+
+        if (categories && categories.length > 0) {
+            query = query.in('category', categories);
+        }
+
+        const { data } = await query;
+
+        if (!data || data.length === 0) {
+            return getFallbackQuestions(count);
+        }
+
+        // Filter out recently seen questions (60-day exclusion)
+        let available = data.filter(q => !excludeIds.includes(q.id));
+
+        // If not enough unseen questions, use all questions
+        if (available.length < count) {
+            console.log(`Not enough unseen questions (${available.length}/${count}), using all available`);
+            available = data;
+        }
+
+        // Use date-seeded shuffle for daily-consistent question selection
+        return seededShuffle(available, today).slice(0, count);
+    }
+
+    // Date-seeded shuffle for consistent daily questions
+    function seededShuffle(array, dateString) {
+        const arr = [...array];
+        // Create a simple hash from the date string
+        let seed = 0;
+        for (let i = 0; i < dateString.length; i++) {
+            seed = ((seed << 5) - seed) + dateString.charCodeAt(i);
+            seed = seed & seed; // Convert to 32-bit integer
+        }
+
+        // Seeded random function
+        const seededRandom = () => {
+            seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+            return seed / 0x7fffffff;
+        };
+
+        // Fisher-Yates shuffle with seeded random
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(seededRandom() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }
+
+    async function loadLeaderboard() {
+        const today = getTodayCST();
+        const { data } = await supabase
+            .from('trivia_scores')
+            .select('*')
+            .eq('play_date', today)
+            .eq('mode', 'arcade')
+            .order('score', { ascending: false })
+            .limit(10);
+
+        setLeaderboard(data || []);
+    }
+
+    function getFallbackQuestions(count) {
+        const fallbacks = [
+            {
+                id: 'fb1',
+                category: 'poker_history',
+                difficulty: 'medium',
+                question: 'In what year was the first World Series of Poker Main Event held?',
+                options: ['1968', '1970', '1972', '1975'],
+                correct_index: 1,
+                explanation: 'The first WSOP was held in 1970 at Binion\'s Horseshoe Casino in Las Vegas.'
+            },
+            {
+                id: 'fb2',
+                category: 'player_profiles',
+                difficulty: 'easy',
+                question: 'Which player holds the record for most WSOP bracelets?',
+                options: ['Phil Ivey', 'Doyle Brunson', 'Phil Hellmuth', 'Johnny Chan'],
+                correct_index: 2,
+                explanation: 'Phil Hellmuth holds the record with 17 WSOP bracelets.'
+            },
+            {
+                id: 'fb3',
+                category: 'rule_knowledge',
+                difficulty: 'easy',
+                question: 'In Texas Hold\'em, how many community cards are dealt in total?',
+                options: ['3', '4', '5', '7'],
+                correct_index: 2,
+                explanation: 'Five community cards are dealt: 3 on the flop, 1 on the turn, and 1 on the river.'
+            },
+            {
+                id: 'fb4',
+                category: 'gto_theory',
+                difficulty: 'hard',
+                question: 'What does MDF stand for in GTO poker strategy?',
+                options: ['Maximum Defense Frequency', 'Minimum Defense Frequency', 'Mean Defensive Fold', 'Marginal Defense Factor'],
+                correct_index: 1,
+                explanation: 'MDF (Minimum Defense Frequency) tells you how often to call to prevent opponent from profitably bluffing.'
+            },
+            {
+                id: 'fb5',
+                category: 'famous_hands',
+                difficulty: 'medium',
+                question: 'What is the "Dead Man\'s Hand" in poker?',
+                options: ['Pocket Kings', 'Aces and Eights (black)', 'Queen-Seven offsuit', 'Two-Seven offsuit'],
+                correct_index: 1,
+                explanation: 'The Dead Man\'s Hand is two pair of black aces and black eights.'
+            }
+        ];
+
+        return shuffleArray(fallbacks).slice(0, count);
+    }
+
+    function shuffleArray(array) {
+        const arr = [...array];
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }
+
+    function getTodayCST() {
+        const now = new Date();
+        const cstDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+        return `${cstDate.getFullYear()}-${String(cstDate.getMonth() + 1).padStart(2, '0')}-${String(cstDate.getDate()).padStart(2, '0')}`;
+    }
+
+    const startGame = async () => {
+        // Deduct diamonds for arcade mode
+        if (mode === 'arcade' && userId) {
+            const { error } = await supabase
+                .from('profiles')
+                .update({ diamonds: userDiamonds - 10 })
+                .eq('id', userId);
+
+            if (error) {
+                console.error('Error deducting diamonds:', error);
+                return;
+            }
+            setUserDiamonds(prev => prev - 10);
+        }
+
+        setGameState('playing');
+    };
+
+    const handleComplete = async (gameResult) => {
+        const { correctCount, totalQuestions, timeSpent, timeRemaining, answers } = gameResult;
+
+        // Calculate rewards with streak multiplier
+        const baseDiamonds = calculateDiamonds(mode, correctCount, totalQuestions, timeRemaining);
+        const streakTier = getStreakTier(userStreak);
+        const diamondsEarned = calculateRewardWithMultiplier(baseDiamonds, userStreak);
+
+        // Check for perfect score (100% correct)
+        const isPerfect = correctCount === totalQuestions && totalQuestions > 0;
+        setIsPerfectScore(isPerfect);
+
+        // Trigger celebration effects
+        if (isPerfect) {
+            celebrations.triggerPerfect();
+        } else if (correctCount > 0) {
+            celebrations.triggerConfetti();
+        }
+
+        // Update streak for daily mode
+        let newStreak = userStreak;
+        if (mode === 'daily' && correctCount > 0) {
+            newStreak = userStreak + 1;
+        } else if (mode === 'daily' && correctCount === 0) {
+            newStreak = 0;
+        }
+
+        // Save results to database
+        if (userId) {
+            try {
+                const today = getTodayCST();
+
+                // Save score
+                await supabase.from('trivia_scores').insert({
+                    user_id: userId,
+                    mode,
+                    score: correctCount * 100 + (timeRemaining || 0) * 2,
+                    correct_count: correctCount,
+                    total_questions: totalQuestions,
+                    time_spent: timeSpent,
+                    diamonds_earned: diamondsEarned,
+                    play_date: today
+                });
+
+                // Update profile with diamonds
+                if (diamondsEarned > 0) {
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('diamonds')
+                        .eq('id', userId)
+                        .single();
+
+                    if (profile) {
+                        await supabase
+                            .from('profiles')
+                            .update({
+                                diamonds: (profile.diamonds || 0) + diamondsEarned
+                            })
+                            .eq('id', userId);
+                    }
+                }
+
+                // Record question history (60-day non-repeat tracking)
+                if (questions && questions.length > 0) {
+                    const historyRecords = questions.map((q, idx) => ({
+                        user_id: userId,
+                        question_id: q.id,
+                        was_correct: answers ? answers[idx] === q.correct_index : null,
+                        mode
+                    }));
+
+                    // Use upsert to handle potential duplicates
+                    await supabase.from('trivia_user_question_history')
+                        .upsert(historyRecords, {
+                            onConflict: 'user_id,question_id',
+                            ignoreDuplicates: false
+                        });
+                }
+
+                // Update category mastery
+                const categoryStats = {};
+                questions.forEach((q, idx) => {
+                    const cat = q.category || 'general';
+                    if (!categoryStats[cat]) {
+                        categoryStats[cat] = { answered: 0, correct: 0 };
+                    }
+                    categoryStats[cat].answered++;
+                    if (answers && answers[idx] === q.correct_index) {
+                        categoryStats[cat].correct++;
+                    }
+                });
+
+                for (const [category, stats] of Object.entries(categoryStats)) {
+                    // Get current mastery or create new
+                    const { data: existing } = await supabase
+                        .from('trivia_category_mastery')
+                        .select('*')
+                        .eq('user_id', userId)
+                        .eq('category', category)
+                        .single();
+
+                    if (existing) {
+                        const newTotal = existing.total_answered + stats.answered;
+                        const newCorrect = existing.correct_count + stats.correct;
+                        const accuracy = newTotal > 0 ? newCorrect / newTotal : 0;
+                        // Level up every 20% accuracy milestone (20=L2, 40=L3, etc.)
+                        const newLevel = Math.min(10, Math.max(1, Math.floor(accuracy * 10) + 1));
+
+                        await supabase.from('trivia_category_mastery')
+                            .update({
+                                total_answered: newTotal,
+                                correct_count: newCorrect,
+                                mastery_level: newLevel,
+                                updated_at: new Date().toISOString()
+                            })
+                            .eq('user_id', userId)
+                            .eq('category', category);
+                    } else {
+                        await supabase.from('trivia_category_mastery').insert({
+                            user_id: userId,
+                            category,
+                            total_answered: stats.answered,
+                            correct_count: stats.correct,
+                            mastery_level: 1
+                        });
+                    }
+                }
+
+                // Record daily play
+                if (mode === 'daily') {
+                    await supabase.from('daily_trivia_plays').insert({
+                        user_id: userId,
+                        played_date: today,
+                        was_correct: correctCount > 0,
+                        streak_at_time: newStreak
+                    });
+
+                    // Update streak
+                    await supabase.from('trivia_streaks').upsert({
+                        user_id: userId,
+                        current_streak: newStreak,
+                        best_streak: Math.max(newStreak, userStreak),
+                        last_play_date: today
+                    });
+                }
+            } catch (err) {
+                console.error('Error saving results:', err);
+            }
+        }
+
+        setResult({
+            mode,
+            correctCount,
+            isPerfect,
+            streakMultiplier: streakTier.multiplier,
+            totalQuestions,
+            timeSpent,
+            timeRemaining: timeRemaining || 0,
+            diamondsEarned,
+            streak: newStreak
+        });
+
+        setGameState('results');
+
+        // Reload leaderboard for arcade
+        if (mode === 'arcade') {
+            await loadLeaderboard();
+        }
+    };
+
+    const handlePlayAgain = () => {
+        if (mode === 'arcade' && userDiamonds < 10) {
+            router.push('/hub/trivia');
+            return;
+        }
+        setResult(null);
+        setGameState('ready');
+    };
+
+    if (!mode || !modeConfig) {
+        return null;
+    }
+
+    return (
+        <PageTransition>
+            <Head>
+                <title>{modeConfig.name} - Smarter.Poker Trivia</title>
+                <meta name="description" content={modeConfig.description} />
+                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+            </Head>
+
+            <div className="trivia-mode-page">
+                <div className="bg-overlay" />
+
+                <UniversalHeader pageDepth={2} />
+
+                <div className="content">
+                    {gameState === 'loading' && (
+                        <div className="loading">
+                            <div className="spinner" />
+                            <p>Loading trivia...</p>
+                        </div>
+                    )}
+
+                    {gameState === 'error' && (
+                        <div className="error-state">
+                            <p>{error}</p>
+                            <button onClick={() => router.push('/hub/trivia')}>
+                                Back to Trivia
+                            </button>
+                        </div>
+                    )}
+
+                    {gameState === 'ready' && (
+                        <div className="ready-screen">
+                            <div className="mode-info">
+                                <h1>{modeConfig.name}</h1>
+                                <p>{modeConfig.description}</p>
+
+                                <div className="mode-details">
+                                    <div className="detail">
+                                        <span className="label">Questions</span>
+                                        <span className="value">{modeConfig.questionsCount}</span>
+                                    </div>
+                                    {modeConfig.timeLimit && (
+                                        <div className="detail">
+                                            <span className="label">Time Limit</span>
+                                            <span className="value">{modeConfig.timeLimit}s</span>
+                                        </div>
+                                    )}
+                                    {modeConfig.diamondCost > 0 && (
+                                        <div className="detail">
+                                            <span className="label">Entry Cost</span>
+                                            <span className="value">{modeConfig.diamondCost} Diamonds</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <button className="start-btn" onClick={startGame}>
+                                    {mode === 'arcade' ? `Play (${modeConfig.diamondCost} Diamonds)` : 'Start Quiz'}
+                                </button>
+                            </div>
+
+                            {mode === 'arcade' && leaderboard.length > 0 && (
+                                <div className="leaderboard-section">
+                                    <LeaderboardDisplay entries={leaderboard} currentUserId={userId} />
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {gameState === 'playing' && mode !== 'survival' && (
+                        <TriviaGame
+                            questions={questions}
+                            mode={mode}
+                            timeLimit={modeConfig.timeLimit}
+                            onComplete={handleComplete}
+                            userDiamonds={userDiamonds}
+                            enableHints={mode !== 'arcade'}
+                            onDiamondsChange={async (delta) => {
+                                if (!userId) return;
+                                const { data: profile } = await supabase
+                                    .from('profiles')
+                                    .select('diamonds')
+                                    .eq('id', userId)
+                                    .single();
+                                if (profile) {
+                                    await supabase
+                                        .from('profiles')
+                                        .update({ diamonds: Math.max(0, (profile.diamonds || 0) + delta) })
+                                        .eq('id', userId);
+                                    setUserDiamonds(Math.max(0, (profile.diamonds || 0) + delta));
+                                }
+                            }}
+                        />
+                    )}
+
+                    {gameState === 'playing' && mode === 'survival' && (
+                        <SurvivalModeGame
+                            questions={questions}
+                            onComplete={handleComplete}
+                            userId={userId}
+                            onLoadMoreQuestions={async () => {
+                                // Load more questions when running low
+                                const moreQuestions = await loadQuestions('survival', 20);
+                                setQuestions(prev => [...prev, ...moreQuestions]);
+                            }}
+                        />
+                    )}
+
+                    {gameState === 'results' && result && (
+                        <div className="results-section">
+                            <TriviaResult
+                                {...result}
+                                onPlayAgain={handlePlayAgain}
+                                onSpinWheel={() => setShowPrizeWheel(true)}
+                                showSpinButton={isPerfectScore && !showPrizeWheel}
+                                onDoubleOrNothing={result.diamondsEarned > 0 ? () => {
+                                    // Prepare a random question for Double or Nothing
+                                    const randomQ = questions[Math.floor(Math.random() * questions.length)];
+                                    setDoubleQuestion(randomQ);
+                                    setShowDoubleOrNothing(true);
+                                } : null}
+                                showDoubleButton={result.diamondsEarned > 0 && !showDoubleOrNothing}
+                            />
+
+                            {mode === 'arcade' && leaderboard.length > 0 && (
+                                <div className="leaderboard-section">
+                                    <LeaderboardDisplay entries={leaderboard} currentUserId={userId} />
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Double or Nothing Modal */}
+                    {showDoubleOrNothing && doubleQuestion && (
+                        <DoubleOrNothing
+                            question={doubleQuestion}
+                            currentWinnings={result?.diamondsEarned || 0}
+                            onComplete={async (won, finalAmount) => {
+                                if (userId && won) {
+                                    // Award the extra diamonds
+                                    const bonus = finalAmount - (result?.diamondsEarned || 0);
+                                    if (bonus > 0) {
+                                        const { data: profile } = await supabase
+                                            .from('profiles')
+                                            .select('diamonds')
+                                            .eq('id', userId)
+                                            .single();
+                                        if (profile) {
+                                            await supabase
+                                                .from('profiles')
+                                                .update({ diamonds: (profile.diamonds || 0) + bonus })
+                                                .eq('id', userId);
+                                            setUserDiamonds(prev => prev + bonus);
+                                        }
+                                    }
+                                } else if (userId && !won) {
+                                    // Deduct the original winnings (they lost)
+                                    const loss = result?.diamondsEarned || 0;
+                                    if (loss > 0) {
+                                        const { data: profile } = await supabase
+                                            .from('profiles')
+                                            .select('diamonds')
+                                            .eq('id', userId)
+                                            .single();
+                                        if (profile) {
+                                            await supabase
+                                                .from('profiles')
+                                                .update({ diamonds: Math.max(0, (profile.diamonds || 0) - loss) })
+                                                .eq('id', userId);
+                                            setUserDiamonds(prev => Math.max(0, prev - loss));
+                                        }
+                                    }
+                                }
+                                setShowDoubleOrNothing(false);
+                            }}
+                            onDecline={() => setShowDoubleOrNothing(false)}
+                        />
+                    )}
+
+                    {/* Prize Wheel - only shows on 100% perfect score */}
+                    {showPrizeWheel && (
+                        <PrizeWheel
+                            streakMultiplier={getStreakTier(userStreak).multiplier}
+                            onComplete={async (reward) => {
+                                // Award the prize
+                                if (reward.type === 'diamonds' && userId) {
+                                    await supabase
+                                        .from('profiles')
+                                        .update({ diamonds: userDiamonds + reward.amount })
+                                        .eq('id', userId);
+                                    setUserDiamonds(prev => prev + reward.amount);
+                                }
+                                setShowPrizeWheel(false);
+                            }}
+                            onClose={() => setShowPrizeWheel(false)}
+                        />
+                    )}
+
+                    {/* Celebration Effects */}
+                    <celebrations.CelebrationComponents />
+                </div>
+            </div>
+
+            <style jsx>{`
+                .trivia-mode-page {
+                    min-height: 100vh;
+                    background: linear-gradient(135deg, #0a1628 0%, #1a2744 50%, #0f1d32 100%);
+                    font-family: 'Inter', -apple-system, sans-serif;
+                    position: relative;
+                    width: 100%;
+                    max-width: 100%;
+                    margin: 0 auto;
+                }
+
+                
+                
+                
+                
+                
+
+                .bg-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background:
+                        radial-gradient(ellipse at 30% 20%, rgba(14, 165, 233, 0.08), transparent 50%),
+                        radial-gradient(ellipse at 70% 80%, rgba(139, 92, 246, 0.06), transparent 50%);
+                    pointer-events: none;
+                }
+
+                .content {
+                    position: relative;
+                    padding: 100px 20px 40px;
+                }
+
+                .loading,
+                .error-state {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    min-height: 60vh;
+                    color: rgba(255, 255, 255, 0.6);
+                    text-align: center;
+                }
+
+                .spinner {
+                    width: 40px;
+                    height: 40px;
+                    border: 3px solid rgba(255, 255, 255, 0.1);
+                    border-top-color: #0ea5e9;
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                    margin-bottom: 16px;
+                }
+
+                @keyframes spin {
+                    to { transform: rotate(360deg); }
+                }
+
+                .error-state button {
+                    margin-top: 20px;
+                    padding: 12px 24px;
+                    background: rgba(255, 255, 255, 0.1);
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                    border-radius: 8px;
+                    color: #ffffff;
+                    cursor: pointer;
+                }
+
+                .ready-screen {
+                    max-width: 600px;
+                    margin: 0 auto;
+                }
+
+                .mode-info {
+                    background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    border-radius: 16px;
+                    padding: 40px;
+                    text-align: center;
+                    margin-bottom: 24px;
+                }
+
+                .mode-info h1 {
+                    font-size: 32px;
+                    font-weight: 700;
+                    color: #ffffff;
+                    margin: 0 0 12px 0;
+                }
+
+                .mode-info p {
+                    font-size: 16px;
+                    color: rgba(255, 255, 255, 0.6);
+                    margin: 0 0 32px 0;
+                }
+
+                .mode-details {
+                    display: flex;
+                    justify-content: center;
+                    gap: 32px;
+                    margin-bottom: 32px;
+                }
+
+                .detail {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                }
+
+                .detail .label {
+                    font-size: 12px;
+                    color: rgba(255, 255, 255, 0.5);
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
+                    margin-bottom: 4px;
+                }
+
+                .detail .value {
+                    font-size: 24px;
+                    font-weight: 700;
+                    color: #ffffff;
+                }
+
+                .start-btn {
+                    padding: 16px 48px;
+                    background: linear-gradient(135deg, #0ea5e9, #0284c7);
+                    border: none;
+                    border-radius: 10px;
+                    color: #ffffff;
+                    font-size: 18px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                }
+
+                .start-btn:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 20px rgba(14, 165, 233, 0.4);
+                }
+
+                .leaderboard-section {
+                    margin-top: 24px;
+                }
+
+                .results-section {
+                    max-width: 600px;
+                    margin: 0 auto;
+                }
+            `}</style>
+        </PageTransition>
+    );
+}

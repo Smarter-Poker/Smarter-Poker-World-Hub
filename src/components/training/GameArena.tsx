@@ -22,33 +22,29 @@ import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 // Engine Components
 import ChartGrid from './ChartGrid';
 import MentalGym from './MentalGym';
-import RoundSummary from './RoundSummary';
+
+// ============================================================================
+// CONSTANTS
+// ============================================================================
+
+const MAX_HEALTH = 100;
+const HANDS_PER_SESSION = 20;
+const PASSING_GRADES = [85, 87, 89, 91, 93, 95, 97, 98, 99, 100]; // Per level
 
 // ============================================================================
 // TYPES
 // ============================================================================
-
-type EngineType = 'PIO' | 'CHART' | 'SCENARIO';
 
 interface GameArenaProps {
     userId: string;
     gameId: string;
     gameName: string;
     level: number;
-    sessionId?: string;
+    sessionId: string;
+    engineType?: 'PIO' | 'CHART' | 'SCENARIO';
     onExit: () => void;
-    onLevelComplete: (stats: SessionStats) => void;
-    onLevelFailed: () => void;
-}
-
-interface BlunderData {
-    handNumber: number;
-    heroHand: string;
-    board?: string;
-    userAction: string;
-    correctAction: string;
-    evLoss: number;
-    damage: number;
+    onLevelComplete?: (stats: SessionStats) => void;
+    onLevelFailed?: () => void;
 }
 
 interface SessionStats {
@@ -59,358 +55,31 @@ interface SessionStats {
     finalHealth: number;
     xpEarned: number;
     timeElapsed: number;
-    blunders: BlunderData[];
-    streakBest?: number;
-    perfectHands?: number;
 }
 
 interface HandData {
     handId: string;
-    engineType: EngineType;
-    // PIO Engine
-    heroCards?: string;
-    villainCards?: string;
+    engineType: 'PIO' | 'CHART' | 'SCENARIO';
+    // PIO fields
+    heroHand?: string;
     board?: string;
-    potSize?: number;
-    heroStack?: number;
-    villainStack?: number;
-    heroPosition?: string;
-    villainPosition?: string;
-    actionHistory?: any[];
-    solverNode?: any;
-    // CHART Engine
+    pot?: number;
+    stackToCommit?: number;
+    availableActions?: string[];
+    // CHART fields
     chartType?: string;
+    heroPosition?: string;
     stackBB?: number;
     highlightHand?: string;
-    correctRange?: string[];
-    // SCENARIO Engine
+    // SCENARIO fields
     scenarioId?: string;
     scriptName?: string;
     scenarioText?: string;
-    situationContext?: string;
     choices?: any[];
-    correctChoice?: string;
-    timeLimit?: number;
-    riggedOutcome?: string;
-    emotionalTrigger?: string;
-}
-
-interface ActionResult {
-    isCorrect: boolean;
-    damage: number;
-    feedback: string;
-    evLoss?: number;
-    correctAction?: string;
-    explanation?: string;
-    emotionalLesson?: string;
-    xpEarned: number;
 }
 
 // ============================================================================
-// CONSTANTS
-// ============================================================================
-
-const TOTAL_HANDS = 20;
-const STARTING_HEALTH = 100;
-const PASSING_GRADES = [85, 87, 89, 91, 93, 95, 97, 98, 99, 100];
-
-// ============================================================================
-// HEALTH BAR COMPONENT
-// ============================================================================
-
-const HealthBar: React.FC<{
-    current: number;
-    max: number;
-    showDamage: number;
-    onDamageComplete: () => void;
-}> = ({ current, max, showDamage, onDamageComplete }) => {
-    const percentage = Math.max(0, (current / max) * 100);
-    const controls = useAnimation();
-
-    // Determine color based on health
-    const getHealthColor = () => {
-        if (percentage > 60) return { primary: '#4CAF50', secondary: '#8BC34A' };
-        if (percentage > 30) return { primary: '#FF9800', secondary: '#FFC107' };
-        return { primary: '#F44336', secondary: '#FF5722' };
-    };
-
-    const colors = getHealthColor();
-
-    // Shake animation on damage
-    useEffect(() => {
-        if (showDamage > 0) {
-            controls.start({
-                x: [0, -10, 10, -10, 10, 0],
-                transition: { duration: 0.4 },
-            }).then(onDamageComplete);
-        }
-    }, [showDamage, controls, onDamageComplete]);
-
-    return (
-        <motion.div animate={controls} style={styles.healthContainer}>
-            <div style={styles.healthLabel}>
-                <span style={styles.healthIcon}>❤️</span>
-                <span style={styles.healthText}>HP</span>
-            </div>
-
-            <div style={styles.healthTrack}>
-                <motion.div
-                    initial={{ width: '100%' }}
-                    animate={{ width: `${percentage}%` }}
-                    transition={{ duration: 0.5, ease: 'easeOut' }}
-                    style={{
-                        ...styles.healthFill,
-                        background: `linear-gradient(90deg, ${colors.primary}, ${colors.secondary})`,
-                    }}
-                />
-
-                {/* Health segments */}
-                <div style={styles.healthSegments}>
-                    {[...Array(10)].map((_, i) => (
-                        <div key={i} style={styles.healthSegment} />
-                    ))}
-                </div>
-            </div>
-
-            <div style={styles.healthValue}>
-                <span style={{ color: colors.primary, fontWeight: 800 }}>{current}</span>
-                <span style={{ color: 'rgba(255,255,255,0.5)' }}>/{max}</span>
-            </div>
-
-            {/* Floating damage indicator */}
-            <AnimatePresence>
-                {showDamage > 0 && (
-                    <motion.div
-                        initial={{ opacity: 1, y: 0, scale: 1 }}
-                        animate={{ opacity: 0, y: -30, scale: 1.5 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.8 }}
-                        style={styles.damageIndicator}
-                    >
-                        -{showDamage}
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </motion.div>
-    );
-};
-
-// ============================================================================
-// HAND COUNTER COMPONENT
-// ============================================================================
-
-const HandCounter: React.FC<{
-    current: number;
-    total: number;
-    correctCount: number;
-}> = ({ current, total, correctCount }) => {
-    const accuracy = current > 0 ? Math.round((correctCount / current) * 100) : 0;
-
-    return (
-        <div style={styles.handCounter}>
-            <div style={styles.handCounterMain}>
-                <span style={styles.handLabel}>HAND</span>
-                <span style={styles.handValue}>{current}</span>
-                <span style={styles.handDivider}>/</span>
-                <span style={styles.handTotal}>{total}</span>
-            </div>
-            {current > 0 && (
-                <div style={styles.accuracyBadge}>
-                    <span style={{
-                        color: accuracy >= 85 ? '#4CAF50' : accuracy >= 70 ? '#FF9800' : '#F44336',
-                    }}>
-                        {accuracy}%
-                    </span>
-                </div>
-            )}
-        </div>
-    );
-};
-
-// ============================================================================
-// XP DISPLAY COMPONENT
-// ============================================================================
-
-const XPDisplay: React.FC<{
-    totalXP: number;
-    recentXP: number;
-}> = ({ totalXP, recentXP }) => {
-    return (
-        <div style={styles.xpDisplay}>
-            <span style={styles.xpIcon}>⭐</span>
-            <span style={styles.xpValue}>{totalXP}</span>
-            <span style={styles.xpLabel}>XP</span>
-
-            <AnimatePresence>
-                {recentXP > 0 && (
-                    <motion.span
-                        initial={{ opacity: 1, x: 0 }}
-                        animate={{ opacity: 0, x: 20 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 1 }}
-                        style={styles.xpGain}
-                    >
-                        +{recentXP}
-                    </motion.span>
-                )}
-            </AnimatePresence>
-        </div>
-    );
-};
-
-// ============================================================================
-// LEVEL FAILED MODAL
-// ============================================================================
-
-const LevelFailedModal: React.FC<{
-    onRetry: () => void;
-    onExit: () => void;
-    stats: SessionStats;
-}> = ({ onRetry, onExit, stats }) => {
-    return (
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            style={styles.modalOverlay}
-        >
-            <motion.div
-                initial={{ scale: 0.8, y: 50 }}
-                animate={{ scale: 1, y: 0 }}
-                style={styles.failedModal}
-            >
-                <div style={styles.failedIcon}>💀</div>
-                <h2 style={styles.failedTitle}>Level Failed</h2>
-                <p style={styles.failedSubtitle}>Your health reached zero!</p>
-
-                <div style={styles.failedStats}>
-                    <div style={styles.statRow}>
-                        <span>Hands Played</span>
-                        <span>{stats.handsPlayed} / {TOTAL_HANDS}</span>
-                    </div>
-                    <div style={styles.statRow}>
-                        <span>Accuracy</span>
-                        <span>{stats.accuracy.toFixed(1)}%</span>
-                    </div>
-                    <div style={styles.statRow}>
-                        <span>XP Earned</span>
-                        <span>{stats.xpEarned}</span>
-                    </div>
-                </div>
-
-                <div style={styles.modalButtons}>
-                    <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={onRetry}
-                        style={styles.retryButton}
-                    >
-                        🔄 Try Again
-                    </motion.button>
-                    <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={onExit}
-                        style={styles.exitButton}
-                    >
-                        Exit
-                    </motion.button>
-                </div>
-            </motion.div>
-        </motion.div>
-    );
-};
-
-// ============================================================================
-// PIO ENGINE PLACEHOLDER (Full implementation in GameSession.tsx)
-// ============================================================================
-
-const PIOEngine: React.FC<{
-    handData: HandData;
-    onAction: (action: string, sizing?: number) => void;
-    isLocked: boolean;
-}> = ({ handData, onAction, isLocked }) => {
-    // This is a simplified version - the full PIO engine is in GameSession.tsx
-    // For production, you'd import the poker table components here
-
-    return (
-        <div style={styles.pioContainer}>
-            <div style={styles.tableArea}>
-                {/* Board Cards */}
-                <div style={styles.boardSection}>
-                    <div style={styles.boardLabel}>BOARD</div>
-                    <div style={styles.boardCards}>
-                        {handData.board ? (
-                            handData.board.split(' ').map((card, i) => (
-                                <div key={i} style={styles.card}>{card}</div>
-                            ))
-                        ) : (
-                            <div style={styles.preflop}>Preflop</div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Hero Hand */}
-                <div style={styles.heroSection}>
-                    <div style={styles.positionBadge}>{handData.heroPosition}</div>
-                    <div style={styles.heroCards}>
-                        {handData.heroCards?.split('').reduce((acc: string[], char, i, arr) => {
-                            if (i % 2 === 0) acc.push(arr.slice(i, i + 2).join(''));
-                            return acc;
-                        }, []).map((card, i) => (
-                            <div key={i} style={styles.heroCard}>{card}</div>
-                        ))}
-                    </div>
-                    <div style={styles.stackInfo}>
-                        Stack: {handData.heroStack} BB | Pot: {handData.potSize} BB
-                    </div>
-                </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div style={styles.actionBar}>
-                <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => onAction('FOLD')}
-                    disabled={isLocked}
-                    style={{ ...styles.actionButton, ...styles.foldButton }}
-                >
-                    FOLD
-                </motion.button>
-                <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => onAction('CHECK')}
-                    disabled={isLocked}
-                    style={{ ...styles.actionButton, ...styles.checkButton }}
-                >
-                    CHECK
-                </motion.button>
-                <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => onAction('CALL')}
-                    disabled={isLocked}
-                    style={{ ...styles.actionButton, ...styles.callButton }}
-                >
-                    CALL
-                </motion.button>
-                <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => onAction('BET', 50)}
-                    disabled={isLocked}
-                    style={{ ...styles.actionButton, ...styles.betButton }}
-                >
-                    BET 50%
-                </motion.button>
-            </div>
-        </div>
-    );
-};
-
-// ============================================================================
-// MAIN COMPONENT
+// COMPONENT
 // ============================================================================
 
 const GameArena: React.FC<GameArenaProps> = ({
@@ -419,54 +88,42 @@ const GameArena: React.FC<GameArenaProps> = ({
     gameName,
     level,
     sessionId,
+    engineType = 'PIO',
     onExit,
     onLevelComplete,
     onLevelFailed,
 }) => {
-    // Session State
-    const [health, setHealth] = useState(STARTING_HEALTH);
+    // Game state
+    const [health, setHealth] = useState(MAX_HEALTH);
     const [handNumber, setHandNumber] = useState(0);
     const [correctCount, setCorrectCount] = useState(0);
+    const [currentHand, setCurrentHand] = useState<HandData | null>(null);
+    const [phase, setPhase] = useState<'LOADING' | 'USER_TURN' | 'FEEDBACK' | 'COMPLETE'>('LOADING');
+
+    // HUD state
     const [totalXP, setTotalXP] = useState(0);
     const [recentXP, setRecentXP] = useState(0);
     const [showDamage, setShowDamage] = useState(0);
-
-    // Blunder & Streak Tracking
-    const [blunders, setBlunders] = useState<BlunderData[]>([]);
-    const [currentStreak, setCurrentStreak] = useState(0);
-    const [bestStreak, setBestStreak] = useState(0);
-    const [perfectHands, setPerfectHands] = useState(0);
-
-    // Game State
-    const [engineType, setEngineType] = useState<EngineType>('PIO');
-    const [currentHand, setCurrentHand] = useState<HandData | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isLocked, setIsLocked] = useState(false);
-
-    // CHART Engine State
-    const [chartPhase, setChartPhase] = useState<'SELECT_HAND' | 'SELECT_ACTION' | 'SHOWING_RESULT'>('SELECT_HAND');
-    const [chartFeedback, setChartFeedback] = useState<any>(null);
-
-    // SCENARIO Engine State
-    const [scenarioPhase, setScenarioPhase] = useState<'READING' | 'DECIDING' | 'SHOWING_RESULT'>('DECIDING');
-    const [scenarioFeedback, setScenarioFeedback] = useState<any>(null);
-
-    // Modal State
+    const [showQuitConfirm, setShowQuitConfirm] = useState(false);
     const [showFailed, setShowFailed] = useState(false);
     const [showComplete, setShowComplete] = useState(false);
     const [sessionStats, setSessionStats] = useState<SessionStats | null>(null);
 
-    // Timer
+    // Engine-specific state
+    const [chartPhase, setChartPhase] = useState<'SELECT_HAND' | 'SELECT_ACTION' | 'SHOWING_RESULT'>('SELECT_HAND');
+    const [chartFeedback, setChartFeedback] = useState<any>(null);
+    const [scenarioPhase, setScenarioPhase] = useState<'READING' | 'DECIDING' | 'SHOWING_RESULT'>('DECIDING');
+    const [scenarioFeedback, setScenarioFeedback] = useState<any>(null);
+
+    // Refs
     const startTimeRef = useRef(Date.now());
+    const healthBarControls = useAnimation();
 
     // ========================================================================
     // FETCH NEXT HAND
     // ========================================================================
 
     const fetchNextHand = useCallback(async () => {
-        setIsLoading(true);
-        setIsLocked(true);
-
         try {
             const response = await fetch('/api/god-mode/fetch-hand', {
                 method: 'POST',
@@ -476,20 +133,23 @@ const GameArena: React.FC<GameArenaProps> = ({
                     gameId,
                     level,
                     sessionId,
+                    handNumber: handNumber + 1,
                 }),
             });
 
-            const data = await response.json();
-
-            if (data.error) {
-                console.error('Error fetching hand:', data.error);
+            if (!response.ok) {
+                // Generate a dummy hand for demo
+                const demoHand = generateDemoHand(engineType, handNumber + 1);
+                setCurrentHand(demoHand);
+                setHandNumber(prev => prev + 1);
+                setPhase('USER_TURN');
                 return;
             }
 
-            // Set engine type and hand data
-            setEngineType(data.engineType || 'PIO');
+            const data = await response.json();
             setCurrentHand(data);
             setHandNumber(prev => prev + 1);
+            setPhase('USER_TURN');
 
             // Reset engine-specific states
             if (data.engineType === 'CHART') {
@@ -500,23 +160,22 @@ const GameArena: React.FC<GameArenaProps> = ({
                 setScenarioPhase('DECIDING');
                 setScenarioFeedback(null);
             }
-
         } catch (error) {
-            console.error('Failed to fetch hand:', error);
-        } finally {
-            setIsLoading(false);
-            setIsLocked(false);
+            console.error('Error fetching hand:', error);
+            // Generate demo hand on error
+            const demoHand = generateDemoHand(engineType, handNumber + 1);
+            setCurrentHand(demoHand);
+            setHandNumber(prev => prev + 1);
+            setPhase('USER_TURN');
         }
-    }, [userId, gameId, level, sessionId]);
+    }, [userId, gameId, level, sessionId, handNumber, engineType]);
 
     // ========================================================================
     // SUBMIT ACTION
     // ========================================================================
 
-    const submitAction = useCallback(async (action: string, extra?: string | number) => {
-        if (!currentHand || isLocked) return;
-
-        setIsLocked(true);
+    const submitAction = useCallback(async (action: string, extra?: any) => {
+        if (!currentHand) return;
 
         try {
             const response = await fetch('/api/god-mode/submit-action', {
@@ -525,184 +184,118 @@ const GameArena: React.FC<GameArenaProps> = ({
                 body: JSON.stringify({
                     userId,
                     gameId,
+                    sessionId,
+                    handId: currentHand.handId,
                     action,
-                    sizing: typeof extra === 'number' ? extra : undefined,
-                    selectedHand: typeof extra === 'string' ? extra : undefined,
-                    handData: currentHand,
-                    engineType,
-                    level,
+                    extra,
                 }),
             });
 
-            const result: ActionResult = await response.json();
+            let result;
+            if (!response.ok) {
+                // Demo mode - random result
+                result = generateDemoResult(action);
+            } else {
+                result = await response.json();
+            }
 
-            // Update correct count and streak tracking
+            // Update health
+            if (result.damage > 0) {
+                setHealth(prev => Math.max(0, prev - result.damage));
+                setShowDamage(result.damage);
+                healthBarControls.start({
+                    x: [0, -5, 5, -5, 5, 0],
+                    transition: { duration: 0.3 },
+                });
+                setTimeout(() => setShowDamage(0), 1000);
+            }
+
+            // Update correct count and XP
             if (result.isCorrect) {
                 setCorrectCount(prev => prev + 1);
-                setCurrentStreak(prev => {
-                    const newStreak = prev + 1;
-                    setBestStreak(best => Math.max(best, newStreak));
-                    return newStreak;
-                });
-                // Track perfect hands (no damage taken)
-                if (result.damage === 0) {
-                    setPerfectHands(prev => prev + 1);
-                }
-            } else {
-                // Reset streak on wrong answer
-                setCurrentStreak(0);
-
-                // Collect blunder data
-                const blunderData: BlunderData = {
-                    handNumber: handNumber + 1,
-                    heroHand: currentHand?.heroCards || currentHand?.highlightHand || 'Unknown',
-                    board: currentHand?.board,
-                    userAction: action,
-                    correctAction: result.correctAction || 'Unknown',
-                    evLoss: result.evLoss || 0,
-                    damage: result.damage || 0,
-                };
-                setBlunders(prev => [...prev, blunderData]);
-            }
-
-            // Apply damage
-            if (result.damage > 0) {
-                setHealth(prev => {
-                    const newHealth = Math.max(0, prev - result.damage);
-                    if (newHealth <= 0) {
-                        // Trigger failed modal after animation
-                        setTimeout(() => {
-                            const stats = calculateStats();
-                            setSessionStats(stats);
-                            setShowFailed(true);
-                            onLevelFailed();
-                        }, 500);
-                    }
-                    return newHealth;
-                });
-                setShowDamage(result.damage);
-            }
-
-            // Award XP
-            if (result.xpEarned > 0) {
-                setTotalXP(prev => prev + result.xpEarned);
-                setRecentXP(result.xpEarned);
+                const xp = 10 + Math.floor(level * 2);
+                setTotalXP(prev => prev + xp);
+                setRecentXP(xp);
                 setTimeout(() => setRecentXP(0), 1000);
             }
 
-            // Engine-specific feedback
-            if (engineType === 'CHART') {
+            // Update engine-specific feedback
+            if (currentHand.engineType === 'CHART') {
                 setChartFeedback({
-                    hand: extra as string,
+                    hand: extra?.hand || 'AKs',
                     isCorrect: result.isCorrect,
-                    correctAction: result.correctAction || action,
+                    correctAction: result.correctAction || 'PUSH',
                 });
                 setChartPhase('SHOWING_RESULT');
             }
 
-            if (engineType === 'SCENARIO') {
+            if (currentHand.engineType === 'SCENARIO') {
                 setScenarioFeedback({
                     choiceId: action,
                     isCorrect: result.isCorrect,
-                    explanation: result.explanation || result.feedback,
+                    explanation: result.explanation || 'Consider your emotional state before making decisions.',
                     emotionalLesson: result.emotionalLesson,
                 });
                 setScenarioPhase('SHOWING_RESULT');
             }
 
-            // Check if session complete
-            if (handNumber >= TOTAL_HANDS) {
-                const stats = calculateStats();
-                const passingGrade = PASSING_GRADES[level - 1] || 85;
-                stats.passed = stats.accuracy >= passingGrade;
-                setSessionStats(stats);
-                setShowComplete(true);
-
-                if (stats.passed) {
-                    onLevelComplete(stats);
-                }
-            } else {
-                // Fetch next hand after delay
-                setTimeout(() => {
-                    fetchNextHand();
-                }, 2000);
+            // Check if level failed
+            if (health - (result.damage || 0) <= 0) {
+                setShowFailed(true);
+                return;
             }
 
+            // Check if session complete
+            if (handNumber >= HANDS_PER_SESSION) {
+                const stats = calculateStats();
+                stats.passed = stats.accuracy >= PASSING_GRADES[level - 1];
+                setSessionStats(stats);
+                setShowComplete(true);
+                return;
+            }
+
+            // Small delay then next hand
+            setPhase('FEEDBACK');
+            setTimeout(() => {
+                fetchNextHand();
+            }, currentHand.engineType === 'CHART' || currentHand.engineType === 'SCENARIO' ? 1500 : 500);
+
         } catch (error) {
-            console.error('Failed to submit action:', error);
-        } finally {
-            setIsLocked(false);
+            console.error('Error submitting action:', error);
         }
-    }, [currentHand, isLocked, userId, gameId, engineType, level, handNumber, fetchNextHand, onLevelComplete, onLevelFailed]);
+    }, [currentHand, userId, gameId, sessionId, health, handNumber, level, fetchNextHand, healthBarControls]);
 
     // ========================================================================
-    // CALCULATE STATS
+    // HELPERS
     // ========================================================================
 
     const calculateStats = useCallback((): SessionStats => {
         const accuracy = handNumber > 0 ? (correctCount / handNumber) * 100 : 0;
         const timeElapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
 
-        // Sort blunders by damage (worst first) for review
-        const sortedBlunders = [...blunders].sort((a, b) => b.damage - a.damage);
-
         return {
             handsPlayed: handNumber,
             correctAnswers: correctCount,
             accuracy,
-            passed: false, // Calculated separately
+            passed: false,
             finalHealth: health,
             xpEarned: totalXP,
             timeElapsed,
-            blunders: sortedBlunders,
-            streakBest: bestStreak,
-            perfectHands,
         };
-    }, [handNumber, correctCount, health, totalXP, blunders, bestStreak, perfectHands]);
-
-    // ========================================================================
-    // HANDLERS
-    // ========================================================================
+    }, [handNumber, correctCount, health, totalXP]);
 
     const handleRetry = useCallback(() => {
-        setHealth(STARTING_HEALTH);
+        setHealth(MAX_HEALTH);
         setHandNumber(0);
         setCorrectCount(0);
         setTotalXP(0);
-        setBlunders([]);
-        setCurrentStreak(0);
-        setBestStreak(0);
-        setPerfectHands(0);
         setShowFailed(false);
         setShowComplete(false);
         startTimeRef.current = Date.now();
         fetchNextHand();
     }, [fetchNextHand]);
 
-    const handleNextLevel = useCallback(() => {
-        // Pass stats to parent and let it handle navigation to next level
-        if (sessionStats) {
-            onLevelComplete(sessionStats);
-        }
-    }, [sessionStats, onLevelComplete]);
-
-    const handleReviewHand = useCallback((blunder: BlunderData) => {
-        // For now, log the blunder - could open a detailed review modal
-        console.log('Review blunder:', blunder);
-        // Future: Open hand replay modal
-    }, []);
-
-    const handleQuit = useCallback(() => {
-        if (window.confirm('Are you sure you want to quit? Progress will be lost.')) {
-            onExit();
-        }
-    }, [onExit]);
-
-    // ========================================================================
-    // EFFECTS
-    // ========================================================================
-
-    // Initial fetch
+    // Initialize
     useEffect(() => {
         fetchNextHand();
     }, []);
@@ -711,131 +304,275 @@ const GameArena: React.FC<GameArenaProps> = ({
     // RENDER
     // ========================================================================
 
+    const healthPercent = (health / MAX_HEALTH) * 100;
+    const healthColor = healthPercent > 60 ? '#00ff88' : healthPercent > 30 ? '#ffaa00' : '#ff4444';
+
     return (
-        <div style={styles.arena}>
-            {/* TOP HUD BAR */}
-            <header style={styles.hudBar}>
-                {/* Left: Game Info */}
-                <div style={styles.hudLeft}>
-                    <h1 style={styles.gameTitle}>{gameName}</h1>
-                    <span style={styles.levelBadge}>Level {level}</span>
+        <div style={styles.container}>
+            {/* HUD Top Bar */}
+            <div style={styles.hudBar}>
+                {/* Health Bar */}
+                <motion.div style={styles.healthContainer} animate={healthBarControls}>
+                    <div style={styles.healthLabel}>HP</div>
+                    <div style={styles.healthBarBg}>
+                        <motion.div
+                            style={{
+                                ...styles.healthBarFill,
+                                background: healthColor,
+                            }}
+                            animate={{ width: `${healthPercent}%` }}
+                            transition={{ type: 'spring', stiffness: 200 }}
+                        />
+                    </div>
+                    <div style={styles.healthValue}>{health}</div>
+                    <AnimatePresence>
+                        {showDamage > 0 && (
+                            <motion.div
+                                initial={{ y: 0, opacity: 1 }}
+                                animate={{ y: -20, opacity: 0 }}
+                                exit={{ opacity: 0 }}
+                                style={styles.damageFloat}
+                            >
+                                -{showDamage}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </motion.div>
+
+                {/* Hand Counter */}
+                <div style={styles.handCounter}>
+                    HAND <span style={styles.handNum}>{handNumber}</span>/{HANDS_PER_SESSION}
                 </div>
 
-                {/* Center: Health Bar */}
-                <div style={styles.hudCenter}>
-                    <HealthBar
-                        current={health}
-                        max={STARTING_HEALTH}
-                        showDamage={showDamage}
-                        onDamageComplete={() => setShowDamage(0)}
+                {/* Accuracy */}
+                <div style={styles.accuracyBadge}>
+                    {handNumber > 0 ? Math.round((correctCount / handNumber) * 100) : 0}%
+                </div>
+
+                {/* XP Display */}
+                <div style={styles.xpContainer}>
+                    <span style={styles.xpIcon}>⭐</span>
+                    <span style={styles.xpValue}>{totalXP}</span>
+                    <AnimatePresence>
+                        {recentXP > 0 && (
+                            <motion.span
+                                initial={{ y: 0, opacity: 1 }}
+                                animate={{ y: -20, opacity: 0 }}
+                                exit={{ opacity: 0 }}
+                                style={styles.xpFloat}
+                            >
+                                +{recentXP}
+                            </motion.span>
+                        )}
+                    </AnimatePresence>
+                </div>
+
+                {/* Quit Button */}
+                <button
+                    onClick={() => setShowQuitConfirm(true)}
+                    style={styles.quitButton}
+                >
+                    ✕
+                </button>
+            </div>
+
+            {/* Game Name Header */}
+            <div style={styles.gameHeader}>
+                <span style={styles.gameName}>{gameName}</span>
+                <span style={styles.levelBadge}>Level {level}</span>
+            </div>
+
+            {/* Engine Content */}
+            <div style={styles.engineContainer}>
+                {/* PIO Engine - Use GameSession */}
+                {engineType === 'PIO' && currentHand && (
+                    <div style={styles.pioPlaceholder}>
+                        <div style={{ fontSize: 48, marginBottom: 16 }}>🎯</div>
+                        <h2>PIO Engine</h2>
+                        <p>Hand: {currentHand.heroHand || 'AhKs'}</p>
+                        <p>Board: {currentHand.board || 'Qh Jd 7c'}</p>
+                        <div style={styles.actionButtonsRow}>
+                            {(currentHand.availableActions || ['FOLD', 'CALL', 'RAISE']).map(action => (
+                                <button
+                                    key={action}
+                                    style={styles.actionBtn}
+                                    onClick={() => submitAction(action)}
+                                >
+                                    {action}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* CHART Engine */}
+                {engineType === 'CHART' && currentHand && (
+                    <ChartGrid
+                        chartType={currentHand.chartType || 'push_fold'}
+                        heroPosition={currentHand.heroPosition || 'BTN'}
+                        stackBB={currentHand.stackBB || 15}
+                        highlightHand={currentHand.highlightHand}
+                        phase={chartPhase}
+                        resultFeedback={chartFeedback}
+                        onAction={(action, hand) => submitAction(action, { hand })}
                     />
-                </div>
+                )}
 
-                {/* Right: Counters & Quit */}
-                <div style={styles.hudRight}>
-                    <HandCounter
-                        current={handNumber}
-                        total={TOTAL_HANDS}
-                        correctCount={correctCount}
+                {/* SCENARIO Engine */}
+                {engineType === 'SCENARIO' && currentHand && (
+                    <MentalGym
+                        scenarioId={currentHand.scenarioId || 'tilt-control'}
+                        scriptName={currentHand.scriptName || 'tilt_test'}
+                        scenarioText={currentHand.scenarioText}
+                        choices={currentHand.choices}
+                        phase={scenarioPhase}
+                        resultFeedback={scenarioFeedback}
+                        onChoice={(choice) => submitAction(choice)}
                     />
-                    <XPDisplay totalXP={totalXP} recentXP={recentXP} />
-                    <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={handleQuit}
-                        style={styles.quitButton}
-                    >
-                        ✕ Quit
-                    </motion.button>
-                </div>
-            </header>
+                )}
 
-            {/* MAIN STAGE */}
-            <main style={styles.stage}>
-                {isLoading ? (
-                    <div style={styles.loadingContainer}>
+                {/* Loading State */}
+                {phase === 'LOADING' && (
+                    <div style={styles.loadingState}>
                         <motion.div
                             animate={{ rotate: 360 }}
                             transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                             style={styles.spinner}
                         >
-                            🎰
+                            ⟳
                         </motion.div>
-                        <p>Loading hand {handNumber + 1}...</p>
+                        <p>Loading hand...</p>
                     </div>
-                ) : currentHand && (
-                    <>
-                        {/* PIO Engine: Poker Table */}
-                        {engineType === 'PIO' && (
-                            <PIOEngine
-                                handData={currentHand}
-                                onAction={submitAction}
-                                isLocked={isLocked}
-                            />
-                        )}
-
-                        {/* CHART Engine: 13x13 Grid */}
-                        {engineType === 'CHART' && (
-                            <ChartGrid
-                                chartType={currentHand.chartType || 'push_fold'}
-                                heroPosition={currentHand.heroPosition || 'BTN'}
-                                stackBB={currentHand.stackBB || 15}
-                                villainPosition={currentHand.villainPosition}
-                                correctRange={currentHand.correctRange}
-                                highlightHand={currentHand.highlightHand}
-                                phase={chartPhase}
-                                resultFeedback={chartFeedback}
-                                onAction={(action, hand) => submitAction(action, hand)}
-                            />
-                        )}
-
-                        {/* SCENARIO Engine: Mental Gym */}
-                        {engineType === 'SCENARIO' && (
-                            <MentalGym
-                                scenarioId={currentHand.scenarioId || 'scenario-001'}
-                                scriptName={currentHand.scriptName || 'tilt_control'}
-                                scenarioText={currentHand.scenarioText || 'What would you do in this situation?'}
-                                situationContext={currentHand.situationContext}
-                                choices={currentHand.choices || [
-                                    { id: 'A', label: 'Option A', icon: '🅰️', emotionalType: 'rational' },
-                                    { id: 'B', label: 'Option B', icon: '🅱️', emotionalType: 'impulsive' },
-                                ]}
-                                correctChoice={currentHand.correctChoice || 'A'}
-                                timeLimit={currentHand.timeLimit || 15}
-                                riggedOutcome={currentHand.riggedOutcome}
-                                emotionalTrigger={currentHand.emotionalTrigger}
-                                phase={scenarioPhase}
-                                resultFeedback={scenarioFeedback}
-                                onChoice={(choiceId) => submitAction(choiceId)}
-                            />
-                        )}
-                    </>
                 )}
-            </main>
+            </div>
 
-            {/* MODALS */}
+            {/* Quit Confirmation Modal */}
             <AnimatePresence>
-                {showFailed && sessionStats && (
-                    <LevelFailedModal
-                        stats={sessionStats}
-                        onRetry={handleRetry}
-                        onExit={onExit}
-                    />
+                {showQuitConfirm && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        style={styles.modalOverlay}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9 }}
+                            animate={{ scale: 1 }}
+                            style={styles.quitModal}
+                        >
+                            <h3 style={styles.modalTitle}>Quit Session?</h3>
+                            <p style={styles.modalText}>Your progress will not be saved.</p>
+                            <div style={styles.modalButtons}>
+                                <button
+                                    onClick={() => setShowQuitConfirm(false)}
+                                    style={styles.cancelBtn}
+                                >
+                                    Continue Playing
+                                </button>
+                                <button
+                                    onClick={onExit}
+                                    style={styles.confirmQuitBtn}
+                                >
+                                    Quit
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
                 )}
+            </AnimatePresence>
 
+            {/* Level Failed Modal */}
+            <AnimatePresence>
+                {showFailed && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        style={styles.modalOverlay}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9 }}
+                            animate={{ scale: 1 }}
+                            style={{ ...styles.failedModal }}
+                        >
+                            <div style={{ fontSize: 64, marginBottom: 16 }}>💔</div>
+                            <h2 style={{ color: '#ff4444', margin: 0 }}>LEVEL FAILED</h2>
+                            <p style={styles.modalText}>You ran out of HP!</p>
+                            <p>Accuracy: {handNumber > 0 ? Math.round((correctCount / handNumber) * 100) : 0}%</p>
+                            <div style={styles.modalButtons}>
+                                <button onClick={handleRetry} style={styles.retryBtn}>
+                                    🔄 Try Again
+                                </button>
+                                <button onClick={onExit} style={styles.exitBtn}>
+                                    Exit
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Session Complete Modal */}
+            <AnimatePresence>
                 {showComplete && sessionStats && (
-                    <RoundSummary
-                        isOpen={true}
-                        passed={sessionStats.passed}
-                        level={level}
-                        passingGrade={PASSING_GRADES[level - 1] || 85}
-                        stats={sessionStats}
-                        gameName={gameName}
-                        onNextLevel={handleNextLevel}
-                        onRetry={handleRetry}
-                        onExit={onExit}
-                        onReviewHand={handleReviewHand}
-                    />
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        style={styles.modalOverlay}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9 }}
+                            animate={{ scale: 1 }}
+                            style={{
+                                ...styles.completeModal,
+                                borderColor: sessionStats.passed ? '#00ff88' : '#ff4444',
+                            }}
+                        >
+                            <div style={{ fontSize: 64, marginBottom: 16 }}>
+                                {sessionStats.passed ? '🏆' : '📊'}
+                            </div>
+                            <h2 style={{
+                                color: sessionStats.passed ? '#00ff88' : '#ffaa00',
+                                margin: 0,
+                            }}>
+                                {sessionStats.passed ? 'LEVEL CLEARED!' : 'KEEP PRACTICING'}
+                            </h2>
+                            <div style={styles.statsGrid}>
+                                <div style={styles.statItem}>
+                                    <span style={styles.statValue}>{Math.round(sessionStats.accuracy)}%</span>
+                                    <span style={styles.statLabel}>Accuracy</span>
+                                </div>
+                                <div style={styles.statItem}>
+                                    <span style={styles.statValue}>{sessionStats.correctAnswers}/{sessionStats.handsPlayed}</span>
+                                    <span style={styles.statLabel}>Correct</span>
+                                </div>
+                                <div style={styles.statItem}>
+                                    <span style={styles.statValue}>+{sessionStats.xpEarned}</span>
+                                    <span style={styles.statLabel}>XP Earned</span>
+                                </div>
+                            </div>
+                            <p style={styles.passingNote}>
+                                Passing Grade: {PASSING_GRADES[level - 1]}%
+                            </p>
+                            <div style={styles.modalButtons}>
+                                {sessionStats.passed ? (
+                                    <button onClick={onExit} style={styles.nextLevelBtn}>
+                                        Next Level →
+                                    </button>
+                                ) : (
+                                    <>
+                                        <button onClick={handleRetry} style={styles.retryBtn}>
+                                            🔄 Try Again
+                                        </button>
+                                        <button onClick={onExit} style={styles.exitBtn}>
+                                            Exit
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                        </motion.div>
+                    </motion.div>
                 )}
             </AnimatePresence>
         </div>
@@ -843,470 +580,349 @@ const GameArena: React.FC<GameArenaProps> = ({
 };
 
 // ============================================================================
+// DEMO HAND GENERATORS
+// ============================================================================
+
+function generateDemoHand(engineType: string, handNum: number): HandData {
+    const hands = ['AhKs', 'QdJd', '9c8c', 'TsTs', 'AcQh', '7h6h', 'KdQs', '5s5c'];
+    const boards = ['Qs Jh 7c', 'Ac Kd 3h 2s', 'Td 9d 4c', 'As Ks Ts', '8h 7h 6h'];
+
+    if (engineType === 'CHART') {
+        const positions = ['BTN', 'CO', 'SB', 'BB'];
+        const highlightHands = ['AKs', 'QJs', 'TT', '98s', 'A5s', 'KJo'];
+        return {
+            handId: `demo-chart-${handNum}`,
+            engineType: 'CHART',
+            chartType: 'push_fold',
+            heroPosition: positions[handNum % positions.length],
+            stackBB: 10 + (handNum % 20),
+            highlightHand: highlightHands[handNum % highlightHands.length],
+        };
+    }
+
+    if (engineType === 'SCENARIO') {
+        const scenarios = ['tilt-control', 'fear-test', 'greed-check'];
+        return {
+            handId: `demo-scenario-${handNum}`,
+            engineType: 'SCENARIO',
+            scenarioId: scenarios[handNum % scenarios.length],
+            scriptName: 'tilt_test',
+        };
+    }
+
+    // PIO
+    return {
+        handId: `demo-pio-${handNum}`,
+        engineType: 'PIO',
+        heroHand: hands[handNum % hands.length],
+        board: boards[handNum % boards.length],
+        pot: 100 + handNum * 20,
+        stackToCommit: 50 + handNum * 10,
+        availableActions: ['FOLD', 'CALL', 'RAISE'],
+    };
+}
+
+function generateDemoResult(action: string): any {
+    const isCorrect = Math.random() > 0.4; // 60% correct rate for demo
+    return {
+        isCorrect,
+        damage: isCorrect ? 0 : Math.floor(Math.random() * 15) + 5,
+        correctAction: isCorrect ? action : (action === 'FOLD' ? 'CALL' : 'FOLD'),
+        explanation: isCorrect
+            ? 'Well played! Your decision was optimal.'
+            : 'Consider the pot odds and implied odds more carefully.',
+    };
+}
+
+// ============================================================================
 // STYLES
 // ============================================================================
 
-const styles: { [key: string]: React.CSSProperties } = {
-    arena: {
+const styles: Record<string, React.CSSProperties> = {
+    container: {
         minHeight: '100vh',
+        background: 'linear-gradient(180deg, #0a0a15 0%, #0d1628 100%)',
         display: 'flex',
         flexDirection: 'column',
-        background: 'linear-gradient(135deg, #0a0a15 0%, #0d1628 100%)',
-        color: '#fff',
-        fontFamily: 'Inter, -apple-system, sans-serif',
     },
-
-    // HUD BAR
     hudBar: {
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '12px 24px',
-        background: 'rgba(0, 0, 0, 0.4)',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-        backdropFilter: 'blur(10px)',
-        zIndex: 100,
-    },
-
-    hudLeft: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-    },
-
-    gameTitle: {
-        margin: 0,
-        fontSize: 18,
-        fontWeight: 700,
-        color: '#fff',
-    },
-
-    levelBadge: {
-        padding: '4px 12px',
-        background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-        borderRadius: 12,
-        fontSize: 12,
-        fontWeight: 700,
-        color: '#000',
-    },
-
-    hudCenter: {
-        flex: 1,
-        display: 'flex',
-        justifyContent: 'center',
-        maxWidth: 400,
-    },
-
-    hudRight: {
-        display: 'flex',
-        alignItems: 'center',
         gap: 16,
+        padding: '12px 20px',
+        background: 'rgba(0, 0, 0, 0.6)',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
     },
-
-    quitButton: {
-        padding: '8px 16px',
-        background: 'rgba(255, 255, 255, 0.1)',
-        border: '1px solid rgba(255, 255, 255, 0.2)',
-        borderRadius: 8,
-        color: '#fff',
-        fontSize: 12,
-        fontWeight: 600,
-        cursor: 'pointer',
-    },
-
-    // HEALTH BAR
     healthContainer: {
         display: 'flex',
         alignItems: 'center',
-        gap: 12,
-        width: '100%',
+        gap: 8,
         position: 'relative',
     },
-
     healthLabel: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 4,
-    },
-
-    healthIcon: {
-        fontSize: 16,
-    },
-
-    healthText: {
         fontSize: 12,
         fontWeight: 700,
-        color: 'rgba(255, 255, 255, 0.7)',
+        color: '#ff4444',
     },
-
-    healthTrack: {
-        flex: 1,
-        height: 20,
+    healthBarBg: {
+        width: 120,
+        height: 16,
         background: 'rgba(255, 255, 255, 0.1)',
-        borderRadius: 10,
+        borderRadius: 8,
         overflow: 'hidden',
-        position: 'relative',
     },
-
-    healthFill: {
+    healthBarFill: {
         height: '100%',
-        borderRadius: 10,
-        transition: 'background 0.3s ease',
+        borderRadius: 8,
     },
-
-    healthSegments: {
-        position: 'absolute',
-        inset: 0,
-        display: 'flex',
-    },
-
-    healthSegment: {
-        flex: 1,
-        borderRight: '1px solid rgba(0, 0, 0, 0.2)',
-    },
-
     healthValue: {
         fontSize: 14,
-        fontWeight: 600,
-        minWidth: 60,
-        textAlign: 'right',
+        fontWeight: 700,
+        color: '#fff',
+        minWidth: 30,
     },
-
-    damageIndicator: {
+    damageFloat: {
         position: 'absolute',
         right: -20,
-        top: -10,
+        top: -5,
+        color: '#ff4444',
+        fontWeight: 700,
+        fontSize: 14,
+    },
+    handCounter: {
+        fontSize: 14,
+        color: 'rgba(255, 255, 255, 0.7)',
+        fontWeight: 600,
+    },
+    handNum: {
+        color: '#00d4ff',
         fontSize: 18,
         fontWeight: 800,
-        color: '#F44336',
-        textShadow: '0 2px 4px rgba(0,0,0,0.5)',
     },
-
-    // HAND COUNTER
-    handCounter: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-    },
-
-    handCounterMain: {
-        display: 'flex',
-        alignItems: 'baseline',
-        gap: 4,
-    },
-
-    handLabel: {
-        fontSize: 10,
-        fontWeight: 600,
-        color: 'rgba(255, 255, 255, 0.5)',
-        marginRight: 4,
-    },
-
-    handValue: {
-        fontSize: 20,
-        fontWeight: 800,
-        color: '#00D4FF',
-    },
-
-    handDivider: {
-        fontSize: 16,
-        color: 'rgba(255, 255, 255, 0.3)',
-    },
-
-    handTotal: {
-        fontSize: 16,
-        fontWeight: 600,
-        color: 'rgba(255, 255, 255, 0.5)',
-    },
-
     accuracyBadge: {
-        fontSize: 11,
+        padding: '4px 12px',
+        background: 'rgba(0, 212, 255, 0.2)',
+        borderRadius: 12,
+        fontSize: 14,
         fontWeight: 700,
+        color: '#00d4ff',
     },
-
-    // XP DISPLAY
-    xpDisplay: {
+    xpContainer: {
         display: 'flex',
         alignItems: 'center',
         gap: 4,
-        padding: '6px 12px',
-        background: 'rgba(255, 215, 0, 0.1)',
-        borderRadius: 8,
+        marginLeft: 'auto',
         position: 'relative',
     },
-
     xpIcon: {
-        fontSize: 14,
+        fontSize: 16,
     },
-
     xpValue: {
-        fontSize: 14,
+        fontSize: 16,
         fontWeight: 700,
-        color: '#FFD700',
+        color: '#ffd700',
     },
-
-    xpLabel: {
-        fontSize: 10,
-        color: 'rgba(255, 255, 255, 0.5)',
-    },
-
-    xpGain: {
+    xpFloat: {
         position: 'absolute',
         right: -30,
-        fontSize: 14,
+        top: -5,
+        color: '#ffd700',
         fontWeight: 700,
-        color: '#4CAF50',
+        fontSize: 14,
     },
-
-    // STAGE
-    stage: {
+    quitButton: {
+        width: 32,
+        height: 32,
+        borderRadius: '50%',
+        background: 'rgba(255, 68, 68, 0.2)',
+        border: '1px solid rgba(255, 68, 68, 0.4)',
+        color: '#ff4444',
+        fontSize: 16,
+        cursor: 'pointer',
+    },
+    gameHeader: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 12,
+        padding: '12px 20px',
+    },
+    gameName: {
+        fontSize: 20,
+        fontWeight: 700,
+        color: '#fff',
+    },
+    levelBadge: {
+        padding: '4px 12px',
+        background: 'rgba(138, 43, 226, 0.3)',
+        borderRadius: 12,
+        fontSize: 12,
+        fontWeight: 600,
+        color: '#aa66ff',
+    },
+    engineContainer: {
         flex: 1,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         padding: 20,
-        overflow: 'auto',
     },
-
-    loadingContainer: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 16,
-    },
-
-    spinner: {
-        fontSize: 48,
-    },
-
-    // PIO ENGINE
-    pioContainer: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 24,
-        width: '100%',
-        maxWidth: 600,
-    },
-
-    tableArea: {
-        width: '100%',
-        padding: 24,
-        background: 'radial-gradient(ellipse at center, #1a3a2a 0%, #0d1f18 100%)',
-        borderRadius: 200,
-        border: '8px solid #8B4513',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 20,
-    },
-
-    boardSection: {
+    pioPlaceholder: {
         textAlign: 'center',
+        padding: 40,
+        background: 'rgba(255, 255, 255, 0.05)',
+        borderRadius: 16,
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        color: '#fff',
     },
-
-    boardLabel: {
-        fontSize: 12,
-        fontWeight: 600,
-        color: 'rgba(255, 255, 255, 0.5)',
-        marginBottom: 8,
-    },
-
-    boardCards: {
-        display: 'flex',
-        gap: 8,
-        justifyContent: 'center',
-    },
-
-    card: {
-        width: 50,
-        height: 70,
-        background: '#fff',
-        borderRadius: 6,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: 18,
-        fontWeight: 700,
-        color: '#000',
-        boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
-    },
-
-    preflop: {
-        padding: '16px 32px',
-        background: 'rgba(255, 255, 255, 0.1)',
-        borderRadius: 8,
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.6)',
-    },
-
-    heroSection: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 8,
-    },
-
-    positionBadge: {
-        padding: '4px 12px',
-        background: '#00D4FF',
-        borderRadius: 12,
-        fontSize: 11,
-        fontWeight: 700,
-        color: '#000',
-    },
-
-    heroCards: {
-        display: 'flex',
-        gap: 8,
-    },
-
-    heroCard: {
-        width: 60,
-        height: 84,
-        background: '#fff',
-        borderRadius: 8,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: 22,
-        fontWeight: 700,
-        color: '#000',
-        boxShadow: '0 6px 12px rgba(0,0,0,0.4)',
-    },
-
-    stackInfo: {
-        fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.6)',
-    },
-
-    actionBar: {
+    actionButtonsRow: {
         display: 'flex',
         gap: 12,
-        flexWrap: 'wrap',
+        marginTop: 20,
         justifyContent: 'center',
     },
-
-    actionButton: {
+    actionBtn: {
         padding: '12px 24px',
+        background: 'linear-gradient(135deg, #00d4ff, #0088cc)',
         border: 'none',
-        borderRadius: 12,
+        borderRadius: 8,
+        color: '#fff',
         fontSize: 14,
-        fontWeight: 700,
+        fontWeight: 600,
         cursor: 'pointer',
-        transition: 'all 0.2s ease',
     },
-
-    foldButton: {
-        background: 'linear-gradient(135deg, #9E9E9E, #757575)',
-        color: '#fff',
+    loadingState: {
+        textAlign: 'center',
+        color: 'rgba(255, 255, 255, 0.6)',
     },
-
-    checkButton: {
-        background: 'linear-gradient(135deg, #2196F3, #1976D2)',
-        color: '#fff',
+    spinner: {
+        fontSize: 40,
+        color: '#00d4ff',
     },
-
-    callButton: {
-        background: 'linear-gradient(135deg, #4CAF50, #388E3C)',
-        color: '#fff',
-    },
-
-    betButton: {
-        background: 'linear-gradient(135deg, #FF9800, #F57C00)',
-        color: '#fff',
-    },
-
-    // MODALS
     modalOverlay: {
         position: 'fixed',
-        inset: 0,
-        background: 'rgba(0, 0, 0, 0.9)',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.85)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 1000,
+        zIndex: 100,
     },
-
-    failedModal: {
+    quitModal: {
         background: 'linear-gradient(135deg, #1a1a2e, #0d0d1a)',
-        borderRadius: 24,
+        borderRadius: 16,
         padding: 32,
         textAlign: 'center',
-        border: '2px solid #F44336',
+        border: '2px solid rgba(255, 68, 68, 0.4)',
         maxWidth: 400,
-        width: '90%',
     },
-
-    failedIcon: {
-        fontSize: 64,
-        marginBottom: 16,
+    modalTitle: {
+        color: '#fff',
+        margin: '0 0 12px',
     },
-
-    failedTitle: {
-        margin: 0,
-        fontSize: 28,
-        fontWeight: 800,
-        color: '#F44336',
+    modalText: {
+        color: 'rgba(255, 255, 255, 0.7)',
+        margin: '0 0 20px',
     },
-
-    failedSubtitle: {
-        margin: '8px 0 24px',
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.6)',
-    },
-
-    failedStats: {
-        background: 'rgba(0, 0, 0, 0.3)',
-        borderRadius: 12,
-        padding: 16,
-        marginBottom: 24,
-    },
-
-    statRow: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        padding: '8px 0',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-        fontSize: 14,
-    },
-
     modalButtons: {
         display: 'flex',
         gap: 12,
         justifyContent: 'center',
     },
-
-    retryButton: {
-        padding: '12px 24px',
-        background: 'linear-gradient(135deg, #00D4FF, #0099CC)',
-        border: 'none',
-        borderRadius: 12,
-        fontSize: 14,
-        fontWeight: 700,
-        color: '#fff',
-        cursor: 'pointer',
-    },
-
-    exitButton: {
+    cancelBtn: {
         padding: '12px 24px',
         background: 'rgba(255, 255, 255, 0.1)',
         border: '1px solid rgba(255, 255, 255, 0.2)',
-        borderRadius: 12,
+        borderRadius: 8,
+        color: '#fff',
         fontSize: 14,
         fontWeight: 600,
-        color: '#fff',
         cursor: 'pointer',
     },
-
-    continueButton: {
-        padding: '12px 32px',
-        background: 'linear-gradient(135deg, #4CAF50, #388E3C)',
+    confirmQuitBtn: {
+        padding: '12px 24px',
+        background: '#ff4444',
         border: 'none',
-        borderRadius: 12,
-        fontSize: 14,
-        fontWeight: 700,
+        borderRadius: 8,
         color: '#fff',
+        fontSize: 14,
+        fontWeight: 600,
+        cursor: 'pointer',
+    },
+    failedModal: {
+        background: 'linear-gradient(135deg, #1a1a2e, #0d0d1a)',
+        borderRadius: 20,
+        padding: 40,
+        textAlign: 'center',
+        border: '2px solid #ff4444',
+        maxWidth: 400,
+        color: '#fff',
+    },
+    completeModal: {
+        background: 'linear-gradient(135deg, #1a1a2e, #0d0d1a)',
+        borderRadius: 20,
+        padding: 40,
+        textAlign: 'center',
+        border: '2px solid',
+        maxWidth: 400,
+        color: '#fff',
+    },
+    statsGrid: {
+        display: 'flex',
+        gap: 24,
+        justifyContent: 'center',
+        margin: '24px 0',
+    },
+    statItem: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+    },
+    statValue: {
+        fontSize: 24,
+        fontWeight: 800,
+        color: '#00d4ff',
+    },
+    statLabel: {
+        fontSize: 12,
+        color: 'rgba(255, 255, 255, 0.6)',
+    },
+    passingNote: {
+        fontSize: 14,
+        color: 'rgba(255, 255, 255, 0.5)',
+        marginBottom: 20,
+    },
+    retryBtn: {
+        padding: '14px 28px',
+        background: 'linear-gradient(135deg, #00d4ff, #0088cc)',
+        border: 'none',
+        borderRadius: 8,
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 600,
+        cursor: 'pointer',
+    },
+    exitBtn: {
+        padding: '14px 28px',
+        background: 'rgba(255, 255, 255, 0.1)',
+        border: '1px solid rgba(255, 255, 255, 0.2)',
+        borderRadius: 8,
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 600,
+        cursor: 'pointer',
+    },
+    nextLevelBtn: {
+        padding: '14px 28px',
+        background: 'linear-gradient(135deg, #00ff88, #00cc6a)',
+        border: 'none',
+        borderRadius: 8,
+        color: '#000',
+        fontSize: 16,
+        fontWeight: 700,
         cursor: 'pointer',
     },
 };

@@ -10,6 +10,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { getPlayStatus, getRankFromMastery, PLAY_STATUS, USER_RANKS } from '../components/training/GameBadge';
+import supabase from '../lib/supabase';
 
 const STORAGE_KEY = 'pokeriq_training_progress';
 
@@ -28,17 +29,90 @@ export default function useTrainingProgress() {
     const [progress, setProgress] = useState({});
     const [isLoaded, setIsLoaded] = useState(false);
 
-    // Load from localStorage on mount
+    // Load from API on mount
     useEffect(() => {
-        try {
-            const stored = localStorage.getItem(STORAGE_KEY);
-            if (stored) {
-                setProgress(JSON.parse(stored));
+        const loadProgress = async () => {
+            try {
+                // Get user ID from Supabase session (primary method - works reliably)
+                let userId = null;
+
+                try {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    userId = session?.user?.id;
+                    console.log('[useTrainingProgress] Session check:', {
+                        hasSession: !!session,
+                        userId,
+                        userEmail: session?.user?.email
+                    });
+                } catch (sessionError) {
+                    console.warn('[useTrainingProgress] Session fetch failed, trying localStorage fallback:', sessionError.message);
+                }
+
+                // Fallback to localStorage if session not available
+                if (!userId) {
+                    try {
+                        const { getAuthUser } = await import('../lib/authUtils');
+                        const authUser = getAuthUser();
+                        userId = authUser?.id;
+                        console.log('[useTrainingProgress] localStorage fallback:', {
+                            hasUser: !!authUser,
+                            userId
+                        });
+                    } catch (e) {
+                        console.warn('[useTrainingProgress] localStorage fallback failed:', e.message);
+                    }
+                }
+
+                if (userId) {
+                    // Fetch from API
+                    console.log('[useTrainingProgress] Fetching progress for userId:', userId);
+                    const response = await fetch(`/api/training/get-progress?userId=${userId}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.success && data.progress) {
+                            // Convert array to object keyed by game_id
+                            const progressObj = {};
+                            data.progress.forEach(p => {
+                                // Calculate mastery percentage from correct/total answers
+                                const mastery = p.total_answers > 0
+                                    ? Math.round((p.correct_answers / p.total_answers) * 100)
+                                    : 0;
+                                progressObj[p.game_id] = {
+                                    attempts: p.hands_played || p.total_answers || 0,
+                                    levelsCompleted: Math.max(0, (p.level || 1) - 1), // level 2 means 1 level completed
+                                    mastery: mastery,
+                                    bestScore: 0, // Not tracked yet
+                                    totalXP: p.xp || 0,
+                                    lastPlayed: p.last_played_at,
+                                    streakBest: p.best_streak || 0,
+                                    currentLevel: p.level || 1,
+                                };
+                            });
+                            setProgress(progressObj);
+                        }
+                    }
+                } else {
+                    // Fallback to localStorage for anonymous users
+                    const stored = localStorage.getItem(STORAGE_KEY);
+                    if (stored) {
+                        setProgress(JSON.parse(stored));
+                    }
+                }
+            } catch (e) {
+                console.warn('Failed to load training progress:', e);
+                // Fallback to localStorage
+                try {
+                    const stored = localStorage.getItem(STORAGE_KEY);
+                    if (stored) {
+                        setProgress(JSON.parse(stored));
+                    }
+                } catch (e2) {
+                    console.warn('Failed to load from localStorage:', e2);
+                }
             }
-        } catch (e) {
-            console.warn('Failed to load training progress:', e);
-        }
-        setIsLoaded(true);
+            setIsLoaded(true);
+        };
+        loadProgress();
     }, []);
 
     // Save to localStorage on change

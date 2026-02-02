@@ -1,0 +1,19 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   MEMORY GAMES THEME — Brain Training, Focus, Neon Blue
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+body.world-memory-games {
+    /* Primary: Neon Blue - brain, focus, intelligence */
+    --world-primary: #00bfff;
+    --world-primary-rgb: 0, 191, 255;
+    --world-primary-glow: rgba(0, 191, 255, 0.4);
+    --world-secondary: #00d4ff;
+    --world-secondary-rgb: 0, 212, 255;
+    --world-bg-start: #020810;
+    --world-bg-mid: #081828;
+    --world-bg-end: #010408;
+    --world-bg-gradient: radial-gradient(ellipse at center, var(--world-bg-mid) 0%, var(--world-bg-start) 70%, var(--world-bg-end) 100%);
+    --world-surface: rgba(10, 35, 60, 0.6);
+    --world-surface-elevated: rgba(15, 50, 85, 0.8);
+    --world-border: rgba(0, 191, 255, 0.3);
+}

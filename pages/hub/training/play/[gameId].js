@@ -9,6 +9,7 @@ import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import LevelSelector from '../../../../src/components/training/LevelSelector';
+import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 
 export default function TrainingPlayPage() {
     const router = useRouter();
@@ -21,34 +22,25 @@ export default function TrainingPlayPage() {
     useEffect(() => {
         const fetchUser = async () => {
             try {
-                const { supabase } = await import('../../../../src/lib/supabase');
-                const { data: { user } } = await supabase.auth.getUser();
-
-                if (user) {
-                    setUserId(user.id);
+                // Get user from Supabase session or local storage
+                const storedUser = localStorage.getItem('sb-user-id');
+                if (storedUser) {
+                    setUserId(storedUser);
                 } else {
-                    // Redirect to login if not authenticated
-                    router.push('/login?redirect=/hub/training');
-                    return;
+                    // Generate anonymous user ID for demo
+                    const anonId = `anon-${Date.now()}`;
+                    localStorage.setItem('sb-user-id', anonId);
+                    setUserId(anonId);
                 }
-            } catch (error) {
-                console.error('Auth error:', error);
-            } finally {
-                setLoading(false);
+            } catch (e) {
+                console.error('Error fetching user:', e);
             }
+            setLoading(false);
         };
+        fetchUser();
+    }, []);
 
-        if (gameId) {
-            fetchUser();
-        }
-    }, [gameId, router]);
-
-    const handleBack = () => {
-        router.push('/hub/training');
-    };
-
-    // Show loading state
-    if (loading || !gameId || !userId) {
+    if (loading || !gameId) {
         return (
             <div style={{
                 minHeight: '100vh',
@@ -57,11 +49,10 @@ export default function TrainingPlayPage() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: '#fff',
-                fontFamily: 'Inter, -apple-system, sans-serif',
             }}>
                 <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 48, marginBottom: 16 }}>🎰</div>
-                    <p>Loading levels...</p>
+                    <div style={{ fontSize: 48, marginBottom: 16 }}></div>
+                    <p>Loading Level Selector...</p>
                 </div>
             </div>
         );
@@ -70,15 +61,24 @@ export default function TrainingPlayPage() {
     return (
         <>
             <Head>
-                <title>Select Level | Smarter Poker Training</title>
-                <meta name="description" content="Choose your training level" />
+                <title>Select Level | Smarter.Poker Training</title>
+                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+                <style>{`
+                    .training-play-page { width: 100%; max-width: 100%; margin: 0 auto; overflow-x: hidden; }
+                    
+                    
+                    
+                    
+                    
+                `}</style>
             </Head>
-
-            <LevelSelector
-                gameId={gameId}
-                userId={userId}
-                onBack={handleBack}
-            />
+            <div className="training-play-page">
+                <UniversalHeader pageDepth={2} />
+                <LevelSelector
+                    userId={userId}
+                    gameId={gameId}
+                />
+            </div>
         </>
     );
 }

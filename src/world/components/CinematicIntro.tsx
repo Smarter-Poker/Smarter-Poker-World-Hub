@@ -549,17 +549,18 @@ function EnergyRing({ progress, delay = 0 }: { progress: number; delay?: number 
             position: 'absolute',
             top: '50%',
             left: '50%',
-            width: '200px',
-            height: '200px',
-            marginTop: '-100px',
-            marginLeft: '-100px',
+            // Use vmin for mobile-friendly sizing (smaller of width/height)
+            width: 'min(200px, 40vmin)',
+            height: 'min(200px, 40vmin)',
+            marginTop: 'min(-100px, -20vmin)',
+            marginLeft: 'min(-100px, -20vmin)',
             borderRadius: '50%',
-            border: '3px solid rgba(0, 200, 255, 0.9)',
+            border: '2px solid rgba(0, 200, 255, 0.9)',
             boxShadow: `
-                0 0 30px rgba(0, 200, 255, 0.8),
-                0 0 60px rgba(0, 200, 255, 0.5),
-                0 0 90px rgba(0, 200, 255, 0.3),
-                inset 0 0 30px rgba(0, 200, 255, 0.3)
+                0 0 clamp(15px, 4vmin, 30px) rgba(0, 200, 255, 0.8),
+                0 0 clamp(30px, 8vmin, 60px) rgba(0, 200, 255, 0.5),
+                0 0 clamp(45px, 12vmin, 90px) rgba(0, 200, 255, 0.3),
+                inset 0 0 clamp(15px, 4vmin, 30px) rgba(0, 200, 255, 0.3)
             `,
             transform: `scale(${scale})`,
             opacity,
@@ -732,6 +733,7 @@ export function CinematicIntro({ onComplete, duration = 4000 }: CinematicIntroPr
                 transition: 'opacity 0.5s ease-out',
             }} />
 
+            {/* LOGO CONTAINER - Mobile-optimized with full-width centering */}
             <div style={{
                 position: 'absolute',
                 top: '50%',
@@ -740,42 +742,51 @@ export function CinematicIntro({ onComplete, duration = 4000 }: CinematicIntroPr
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: '24px',
+                justifyContent: 'center',
+                gap: 'clamp(12px, 3vh, 24px)',
                 opacity: logoOpacity,
                 pointerEvents: 'none',
+                width: '90vw',
+                maxWidth: '600px',
+                textAlign: 'center',
             }}>
+                {/* Spade Icon - scales for mobile */}
                 <div style={{
-                    fontSize: `clamp(80px, 13vh, 140px)`, // 140px ideal, scales down to 80px min
+                    fontSize: `clamp(60px, 15vw, 140px)`,
                     color: '#fff',
                     textShadow: `
-                        0 0 clamp(20px, 3.7vh, 40px) rgba(0,200,255,1),
-                        0 0 clamp(40px, 7.4vh, 80px) rgba(0,200,255,0.8),
-                        0 0 clamp(60px, 11vh, 120px) rgba(0,200,255,0.5)
+                        0 0 clamp(15px, 4vw, 40px) rgba(0,200,255,1),
+                        0 0 clamp(30px, 8vw, 80px) rgba(0,200,255,0.8),
+                        0 0 clamp(45px, 12vw, 120px) rgba(0,200,255,0.5)
                     `,
-                    filter: `drop-shadow(0 0 clamp(10px, 1.8vh, 20px) rgba(0,200,255,0.8))`,
+                    filter: `drop-shadow(0 0 clamp(8px, 2vw, 20px) rgba(0,200,255,0.8))`,
+                    lineHeight: 1,
                 }}>
                     ♠
                 </div>
 
+                {/* Main Title - fits on mobile screens */}
                 <div style={{
-                    fontSize: `clamp(32px, 5.9vh, 64px)`, // 64px ideal, scales down to 32px min
+                    fontSize: `clamp(24px, 8vw, 64px)`,
                     fontWeight: 800,
-                    letterSpacing: `clamp(8px, 1.5vh, 16px)`,
+                    letterSpacing: `clamp(4px, 1.5vw, 16px)`,
                     color: '#fff',
                     textTransform: 'uppercase' as const,
-                    textShadow: `0 0 clamp(20px, 3.7vh, 40px) rgba(0,200,255,0.8)`,
+                    textShadow: `0 0 clamp(15px, 4vw, 40px) rgba(0,200,255,0.8)`,
                     fontFamily: 'system-ui, -apple-system, sans-serif',
+                    whiteSpace: 'nowrap',
                 }}>
                     SMARTER.POKER
                 </div>
 
+                {/* Tagline - mobile optimized */}
                 <div style={{
-                    fontSize: `clamp(12px, 1.7vh, 18px)`, // 18px ideal, scales down to 12px min
-                    letterSpacing: `clamp(5px, 0.9vh, 10px)`,
+                    fontSize: `clamp(10px, 3vw, 18px)`,
+                    letterSpacing: `clamp(3px, 1vw, 10px)`,
                     color: 'rgba(0,200,255,1)',
                     textTransform: 'uppercase' as const,
                     fontWeight: 500,
-                    marginTop: `clamp(-6px, -0.7vh, -8px)`,
+                    marginTop: `clamp(-4px, -1vw, -8px)`,
                 }}>
                     MASTER YOUR GAME
                 </div>

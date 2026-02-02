@@ -6,11 +6,13 @@
 
 import Head from 'next/head';
 import Link from 'next/link';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import AvatarGallery from '../../src/components/avatars/AvatarGallery';
 
@@ -20,6 +22,9 @@ import PageTransition from '../../src/components/transitions/PageTransition';
 
 export default function AvatarsPage() {
     const { avatar, user, refreshUser } = useAvatar();
+    const [menuOpen, setMenuOpen] = useState(false);
+
+    const menuConfig = getMenuConfig('avatars', user, {}, {});
 
     // Refresh user session on page load to get latest VIP status
     useEffect(() => {
@@ -33,14 +38,14 @@ export default function AvatarsPage() {
             <Head>
                 <title>Avatar Selection | Smarter Poker</title>
                 <meta name="description" content="Choose your poker avatar from preset options or create a custom AI-generated avatar" />
-                <meta name="viewport" content="width=800, user-scalable=no" />
+                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
                 <style>{`
-                    .avatars-page-wrapper { width: 800px; max-width: 800px; margin: 0 auto; overflow-x: hidden; }
-                    @media (max-width: 500px) { .avatars-page-wrapper { zoom: 0.5; } }
-                    @media (min-width: 501px) and (max-width: 700px) { .avatars-page-wrapper { zoom: 0.75; } }
-                    @media (min-width: 701px) and (max-width: 900px) { .avatars-page-wrapper { zoom: 0.95; } }
-                    @media (min-width: 901px) { .avatars-page-wrapper { zoom: 1.2; } }
-                    @media (min-width: 1400px) { .avatars-page-wrapper { zoom: 1.5; } }
+                    .avatars-page-wrapper { width: 100%; max-width: 100%; margin: 0 auto; overflow-x: hidden; }
+                    
+                    
+                    
+                    
+                    
                 `}</style>
             </Head>
 
@@ -123,7 +128,16 @@ export default function AvatarsPage() {
                 `}</style>
 
                     {/* Header */}
-                    <UniversalHeader pageDepth={2} />
+                    <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
+                    <HamburgerMenu
+                        isOpen={menuOpen}
+                        onClose={() => setMenuOpen(false)}
+                        direction="right"
+                        theme="dark"
+                        user={user}
+                        menuItems={menuConfig.menuItems}
+                        bottomLinks={menuConfig.bottomLinks}
+                    />
                     <div className="header">
 
                         {avatar && (

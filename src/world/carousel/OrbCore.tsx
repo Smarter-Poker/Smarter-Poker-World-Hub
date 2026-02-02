@@ -12,11 +12,13 @@ import * as THREE from 'three';
 import { TextureLoader } from 'three';
 
 interface OrbCoreProps {
+    id?: string;
     color: string;
     label: string;
     gradient?: [string, string];
     active: boolean;
     imageUrl?: string;
+    description?: string;
 }
 
 // Holographic color palette (cyan/blue/green/white only)
@@ -29,8 +31,9 @@ const HOLO_COLORS = [
     '#ffffff', // Pure White
 ];
 
-export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCoreProps) {
+export function OrbCore({ id, color, label, gradient, active, imageUrl, description }: OrbCoreProps) {
     const groupRef = useRef<THREE.Group>(null);
+    const isMarketplace = id === 'marketplace';
 
     // Random holographic parameters for each card - truly independent floating
     const holoParams = useMemo(() => ({
@@ -41,10 +44,18 @@ export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCorePro
     }), []);
 
     // Load texture if imageUrl is provided
+    // Show FULL image without any cropping or scaling adjustments
     const texture = useMemo(() => {
         if (imageUrl) {
             const loader = new TextureLoader();
-            const tex = loader.load(imageUrl);
+            const tex = loader.load(imageUrl, (loadedTex) => {
+                loadedTex.wrapS = THREE.ClampToEdgeWrapping;
+                loadedTex.wrapT = THREE.ClampToEdgeWrapping;
+                // Show full image - no repeat/offset adjustments
+                loadedTex.repeat.set(1, 1);
+                loadedTex.offset.set(0, 0);
+                loadedTex.needsUpdate = true;
+            });
             tex.colorSpace = THREE.SRGBColorSpace;
             return tex;
         }
@@ -71,10 +82,10 @@ export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCorePro
     return (
         <group ref={groupRef}>
             {/* ═══════════════════════════════════════════════════════════════
-                CARD CONTENT AREA - Custom image with holographic overlay
+                CARD CONTENT AREA - Marketplace fills full frame, others have inset
                 ═══════════════════════════════════════════════════════════════ */}
             <mesh position={[0, 0, 0.03]}>
-                <planeGeometry args={[cardWidth - 0.02, cardHeight - 0.02]} />
+                <planeGeometry args={isMarketplace ? [cardWidth, cardHeight] : [cardWidth - 0.10, cardHeight - 0.10]} />
                 {texture ? (
                     <meshBasicMaterial map={texture} />
                 ) : (
@@ -86,60 +97,13 @@ export function OrbCore({ color, label, gradient, active, imageUrl }: OrbCorePro
                 )}
             </mesh>
 
-            {/* ═══════════════════════════════════════════════════════════════
-                THIN BRIGHT BORDER - All 4 edges
-                ═══════════════════════════════════════════════════════════════ */}
-            {/* Top border */}
-            <mesh position={[0, cardHeight / 2 - 0.005, 0.035]}>
-                <planeGeometry args={[cardWidth - 0.02, 0.006]} />
-                <meshBasicMaterial color="#00d4ff" transparent opacity={0.85} />
-            </mesh>
-            {/* Bottom border */}
-            <mesh position={[0, -(cardHeight / 2 - 0.005), 0.035]}>
-                <planeGeometry args={[cardWidth - 0.02, 0.006]} />
-                <meshBasicMaterial color="#00d4ff" transparent opacity={0.85} />
-            </mesh>
-            {/* Left border */}
-            <mesh position={[-(cardWidth / 2 - 0.005), 0, 0.035]}>
-                <planeGeometry args={[0.006, cardHeight - 0.02]} />
-                <meshBasicMaterial color="#00d4ff" transparent opacity={0.85} />
-            </mesh>
-            {/* Right border */}
-            <mesh position={[(cardWidth / 2 - 0.005), 0, 0.035]}>
-                <planeGeometry args={[0.006, cardHeight - 0.02]} />
-                <meshBasicMaterial color="#00d4ff" transparent opacity={0.85} />
-            </mesh>
+            {/* BORDERS REMOVED — Clean card edges per user request */}
+
+            {/* WHITE BORDERS REMOVED — Clean card look per user request */}
 
             {/* ═══════════════════════════════════════════════════════════════
-                INNER WHITE BORDER FRAME - Continuous line rectangle
-                Using drei's Line for a proper connected rectangle with no gaps
+                TITLES AND DESCRIPTIONS REMOVED — Cards now show only the image
                 ═══════════════════════════════════════════════════════════════ */}
-            {(() => {
-                const inset = 0.05;
-                const left = -(cardWidth / 2) + inset;
-                const right = (cardWidth / 2) - inset;
-                const top = (cardHeight / 2) - inset;
-                const bottom = -(cardHeight / 2) + inset;
-
-                // Points forming a closed rectangle
-                const points: [number, number, number][] = [
-                    [left, top, 0.04],      // Top-left
-                    [right, top, 0.04],     // Top-right
-                    [right, bottom, 0.04],  // Bottom-right
-                    [left, bottom, 0.04],   // Bottom-left
-                    [left, top, 0.04],      // Back to top-left (close the loop)
-                ];
-
-                return (
-                    <Line
-                        points={points}
-                        color="#ffffff"
-                        lineWidth={2}
-                        transparent
-                        opacity={0.95}
-                    />
-                );
-            })()}
         </group>
     );
 }

@@ -9,6 +9,7 @@ import React, { useState, useEffect } from 'react';
 import { useAvatar } from '../../contexts/AvatarContext';
 import { getAvailableAvatars, getCustomAvatarGallery } from '../../services/avatar-service';
 import CustomAvatarBuilder from './CustomAvatarBuilder';
+import toast from '../../stores/toastStore';
 
 export default function AvatarGallery({ onSelect }) {
   const { user, avatar: currentAvatar, selectPresetAvatar, setActiveAvatar, isVip, createCustomAvatar } = useAvatar();
@@ -74,7 +75,7 @@ export default function AvatarGallery({ onSelect }) {
       if (onSelect) onSelect(avatarId);
       await loadAvatars(); // Refresh to show selection
     } else {
-      alert(result.error);
+      toast.error(result.error);
     }
   }
 
@@ -89,14 +90,14 @@ export default function AvatarGallery({ onSelect }) {
         setCustomAvatars(customs || []);
       }
     } else {
-      alert(result.error || 'Failed to set custom avatar');
+      toast.error(result.error || 'Failed to set custom avatar');
     }
   }
 
   function handleCreateNewCustom() {
     // Check if at limit
     if (customAvatars.length >= 5) {
-      alert('⚠️ You have 5/5 custom avatars! Please delete one to create a new avatar.');
+      toast.warning('You have 5/5 custom avatars! Please delete one to create a new avatar.');
       return;
     }
     setShowCustomBuilder(true);
@@ -116,11 +117,11 @@ export default function AvatarGallery({ onSelect }) {
         const customs = await getCustomAvatarGallery(user.id);
         setCustomAvatars(customs || []);
       } else {
-        alert(result.error || 'Failed to delete avatar');
+        toast.error(result.error || 'Failed to delete avatar');
       }
     } catch (err) {
       console.error('Delete error:', err);
-      alert('Failed to delete avatar');
+      toast.error('Failed to delete avatar');
     }
   }
 

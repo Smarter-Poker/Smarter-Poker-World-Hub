@@ -1,0 +1,51 @@
+{
+  "meta": {
+    "version": "1.0.0",
+    "engine": "CHART",
+    "description": "3-bet and call ranges for various positions"
+  },
+  "charts": {
+    "BTN_vs_CO_open_100bb": {
+      "position": "BTN",
+      "facing": "CO 2.5x open",
+      "stackBB": 100,
+      "actionOptions": ["3BET", "CALL", "FOLD"],
+      "grid": {
+        "AA": "3BET", "AKs": "3BET", "AQs": "3BET", "AJs": "3BET", "ATs": "3BET", "A9s": "CALL", "A8s": "CALL", "A7s": "CALL", "A6s": "3BET", "A5s": "3BET", "A4s": "3BET", "A3s": "CALL", "A2s": "CALL",
+        "AKo": "3BET", "KK": "3BET", "KQs": "3BET", "KJs": "3BET", "KTs": "CALL", "K9s": "CALL", "K8s": "FOLD", "K7s": "FOLD", "K6s": "FOLD", "K5s": "FOLD", "K4s": "FOLD", "K3s": "FOLD", "K2s": "FOLD",
+        "AQo": "3BET", "KQo": "CALL", "QQ": "3BET", "QJs": "3BET", "QTs": "CALL", "Q9s": "CALL", "Q8s": "FOLD", "Q7s": "FOLD", "Q6s": "FOLD", "Q5s": "FOLD", "Q4s": "FOLD", "Q3s": "FOLD", "Q2s": "FOLD",
+        "AJo": "3BET", "KJo": "CALL", "QJo": "CALL", "JJ": "3BET", "JTs": "CALL", "J9s": "CALL", "J8s": "FOLD", "J7s": "FOLD", "J6s": "FOLD", "J5s": "FOLD", "J4s": "FOLD", "J3s": "FOLD", "J2s": "FOLD",
+        "ATo": "CALL", "KTo": "CALL", "QTo": "CALL", "JTo": "CALL", "TT": "3BET", "T9s": "CALL", "T8s": "CALL", "T7s": "FOLD", "T6s": "FOLD", "T5s": "FOLD", "T4s": "FOLD", "T3s": "FOLD", "T2s": "FOLD",
+        "A9o": "FOLD", "K9o": "FOLD", "Q9o": "FOLD", "J9o": "FOLD", "T9o": "CALL", "99": "3BET", "98s": "CALL", "97s": "CALL", "96s": "FOLD", "95s": "FOLD", "94s": "FOLD", "93s": "FOLD", "92s": "FOLD",
+        "A8o": "FOLD", "K8o": "FOLD", "Q8o": "FOLD", "J8o": "FOLD", "T8o": "FOLD", "98o": "FOLD", "88": "3BET", "87s": "CALL", "86s": "CALL", "85s": "FOLD", "84s": "FOLD", "83s": "FOLD", "82s": "FOLD",
+        "A7o": "FOLD", "K7o": "FOLD", "Q7o": "FOLD", "J7o": "FOLD", "T7o": "FOLD", "97o": "FOLD", "87o": "FOLD", "77": "CALL", "76s": "CALL", "75s": "CALL", "74s": "FOLD", "73s": "FOLD", "72s": "FOLD",
+        "A6o": "FOLD", "K6o": "FOLD", "Q6o": "FOLD", "J6o": "FOLD", "T6o": "FOLD", "96o": "FOLD", "86o": "FOLD", "76o": "FOLD", "66": "CALL", "65s": "CALL", "64s": "CALL", "63s": "FOLD", "62s": "FOLD",
+        "A5o": "FOLD", "K5o": "FOLD", "Q5o": "FOLD", "J5o": "FOLD", "T5o": "FOLD", "95o": "FOLD", "85o": "FOLD", "75o": "FOLD", "65o": "FOLD", "55": "CALL", "54s": "CALL", "53s": "FOLD", "52s": "FOLD",
+        "A4o": "FOLD", "K4o": "FOLD", "Q4o": "FOLD", "J4o": "FOLD", "T4o": "FOLD", "94o": "FOLD", "84o": "FOLD", "74o": "FOLD", "64o": "FOLD", "54o": "FOLD", "44": "CALL", "43s": "FOLD", "42s": "FOLD",
+        "A3o": "FOLD", "K3o": "FOLD", "Q3o": "FOLD", "J3o": "FOLD", "T3o": "FOLD", "93o": "FOLD", "83o": "FOLD", "73o": "FOLD", "63o": "FOLD", "53o": "FOLD", "43o": "FOLD", "33": "CALL", "32s": "FOLD",
+        "A2o": "FOLD", "K2o": "FOLD", "Q2o": "FOLD", "J2o": "FOLD", "T2o": "FOLD", "92o": "FOLD", "82o": "FOLD", "72o": "FOLD", "62o": "FOLD", "52o": "FOLD", "42o": "FOLD", "32o": "FOLD", "22": "CALL"
+      }
+    },
+    "SB_vs_BTN_open_100bb": {
+      "position": "SB",
+      "facing": "BTN 2.5x open",
+      "stackBB": 100,
+      "actionOptions": ["3BET", "CALL", "FOLD"],
+      "grid": {
+        "AA": "3BET", "AKs": "3BET", "AQs": "3BET", "AJs": "3BET", "ATs": "3BET", "A9s": "3BET", "A8s": "FOLD", "A7s": "FOLD", "A6s": "3BET", "A5s": "3BET", "A4s": "3BET", "A3s": "FOLD", "A2s": "FOLD",
+        "AKo": "3BET", "KK": "3BET", "KQs": "3BET", "KJs": "3BET", "KTs": "3BET", "K9s": "FOLD", "K8s": "FOLD", "K7s": "FOLD", "K6s": "FOLD", "K5s": "FOLD", "K4s": "FOLD", "K3s": "FOLD", "K2s": "FOLD",
+        "AQo": "3BET", "KQo": "3BET", "QQ": "3BET", "QJs": "3BET", "QTs": "3BET", "Q9s": "FOLD", "Q8s": "FOLD", "Q7s": "FOLD", "Q6s": "FOLD", "Q5s": "FOLD", "Q4s": "FOLD", "Q3s": "FOLD", "Q2s": "FOLD",
+        "AJo": "3BET", "KJo": "3BET", "QJo": "3BET", "JJ": "3BET", "JTs": "3BET", "J9s": "FOLD", "J8s": "FOLD", "J7s": "FOLD", "J6s": "FOLD", "J5s": "FOLD", "J4s": "FOLD", "J3s": "FOLD", "J2s": "FOLD",
+        "ATo": "3BET", "KTo": "3BET", "QTo": "FOLD", "JTo": "FOLD", "TT": "3BET", "T9s": "FOLD", "T8s": "FOLD", "T7s": "FOLD", "T6s": "FOLD", "T5s": "FOLD", "T4s": "FOLD", "T3s": "FOLD", "T2s": "FOLD",
+        "A9o": "FOLD", "K9o": "FOLD", "Q9o": "FOLD", "J9o": "FOLD", "T9o": "FOLD", "99": "3BET", "98s": "FOLD", "97s": "FOLD", "96s": "FOLD", "95s": "FOLD", "94s": "FOLD", "93s": "FOLD", "92s": "FOLD",
+        "A8o": "FOLD", "K8o": "FOLD", "Q8o": "FOLD", "J8o": "FOLD", "T8o": "FOLD", "98o": "FOLD", "88": "3BET", "87s": "FOLD", "86s": "FOLD", "85s": "FOLD", "84s": "FOLD", "83s": "FOLD", "82s": "FOLD",
+        "A7o": "FOLD", "K7o": "FOLD", "Q7o": "FOLD", "J7o": "FOLD", "T7o": "FOLD", "97o": "FOLD", "87o": "FOLD", "77": "3BET", "76s": "FOLD", "75s": "FOLD", "74s": "FOLD", "73s": "FOLD", "72s": "FOLD",
+        "A6o": "FOLD", "K6o": "FOLD", "Q6o": "FOLD", "J6o": "FOLD", "T6o": "FOLD", "96o": "FOLD", "86o": "FOLD", "76o": "FOLD", "66": "3BET", "65s": "FOLD", "64s": "FOLD", "63s": "FOLD", "62s": "FOLD",
+        "A5o": "FOLD", "K5o": "FOLD", "Q5o": "FOLD", "J5o": "FOLD", "T5o": "FOLD", "95o": "FOLD", "85o": "FOLD", "75o": "FOLD", "65o": "FOLD", "55": "3BET", "54s": "FOLD", "53s": "FOLD", "52s": "FOLD",
+        "A4o": "FOLD", "K4o": "FOLD", "Q4o": "FOLD", "J4o": "FOLD", "T4o": "FOLD", "94o": "FOLD", "84o": "FOLD", "74o": "FOLD", "64o": "FOLD", "54o": "FOLD", "44": "3BET", "43s": "FOLD", "42s": "FOLD",
+        "A3o": "FOLD", "K3o": "FOLD", "Q3o": "FOLD", "J3o": "FOLD", "T3o": "FOLD", "93o": "FOLD", "83o": "FOLD", "73o": "FOLD", "63o": "FOLD", "53o": "FOLD", "43o": "FOLD", "33": "FOLD", "32s": "FOLD",
+        "A2o": "FOLD", "K2o": "FOLD", "Q2o": "FOLD", "J2o": "FOLD", "T2o": "FOLD", "92o": "FOLD", "82o": "FOLD", "72o": "FOLD", "62o": "FOLD", "52o": "FOLD", "42o": "FOLD", "32o": "FOLD", "22": "FOLD"
+      }
+    }
+  }
+}

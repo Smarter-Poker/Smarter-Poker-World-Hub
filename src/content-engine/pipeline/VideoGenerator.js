@@ -11,14 +11,14 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import OpenAI from 'openai';
+import { getGrokClient } from '../../lib/grokClient.js';
 import fs from 'fs';
 import path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
 const execAsync = promisify(exec);
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = getGrokClient();
 
 // Configuration
 const CONFIG = {

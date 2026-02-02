@@ -134,11 +134,15 @@ export class SocialService {
     /**
      * Create new post
      * @param {Object} postData - Post data
+     * @param {boolean} postData.autoStory - If true, also create a story (default: true)
      * @returns {Promise<SocialPost>}
      */
-    async createPost({ authorId, content, contentType = 'text', mediaUrls = [], visibility = 'public', achievementData = null }) {
+    async createPost({ authorId, content, contentType = 'text', mediaUrls = [], visibility = 'public', achievementData = null, autoStory = true }) {
         try {
-            console.log('📝 Creating post:', { authorId, content: content?.substring(0, 50), contentType });
+            console.log('📝 Creating post:', { authorId, content: content?.substring(0, 50), contentType, autoStory });
+
+            let postId = null;
+            let postResult = null;
 
             // 1. Try V2 RPC first (Bypasses "ambiguous column" triggers)
             const { data: rpcData, error: rpcError } = await this.supabase.rpc('fn_create_social_post', {
@@ -152,7 +156,8 @@ export class SocialService {
 
             if (!rpcError && rpcData) {
                 console.log('✅ Post created via RPC:', rpcData.id);
-                return createPost({
+                postId = rpcData.id;
+                postResult = createPost({
                     ...rpcData,
                     post_id: rpcData.id,
                     author_username: 'You',
@@ -164,35 +169,68 @@ export class SocialService {
                 console.warn('RPC create failed, falling back to direct insert', rpcError);
             }
 
-            // Fallback (Legacy)
-            const { data, error } = await this.supabase
-                .from('social_posts')
-                .insert({
-                    author_id: authorId,
-                    content,
-                    content_type: contentType,
-                    media_urls: mediaUrls,
-                    visibility,
-                    achievement_data: achievementData
-                })
-                .select('*')
-                .single();
+            // Fallback (Legacy) - only if RPC failed
+            if (!postResult) {
+                const { data, error } = await this.supabase
+                    .from('social_posts')
+                    .insert({
+                        author_id: authorId,
+                        content,
+                        content_type: contentType,
+                        media_urls: mediaUrls,
+                        visibility,
+                        achievement_data: achievementData
+                    })
+                    .select('*')
+                    .single();
 
-            if (error) {
-                console.error('❌ Post insert error:', error);
-                throw error;
+                if (error) {
+                    console.error('❌ Post insert error:', error);
+                    throw error;
+                }
+
+                console.log('✅ Post created (Direct):', data.id);
+                postId = data.id;
+
+                // Return simplified post object
+                postResult = createPost({
+                    ...data,
+                    author_id: authorId,
+                    author_username: 'You',
+                    author_avatar: null,
+                    author_level: 1
+                });
             }
 
-            console.log('✅ Post created (Direct):', data.id);
+            // 2. AUTO-STORY: Also add to user's story feed (if enabled)
+            if (autoStory && visibility === 'public') {
+                try {
+                    // Get first media URL if available
+                    const mediaUrl = mediaUrls?.[0] || null;
+                    const mediaType = mediaUrl?.includes('.mp4') || mediaUrl?.includes('.webm') ? 'video' : 'image';
 
-            // Return simplified post object
-            return createPost({
-                ...data,
-                author_id: authorId,
-                author_username: 'You',
-                author_avatar: null,
-                author_level: 1
-            });
+                    // Create story using RPC function
+                    const { error: storyError } = await this.supabase.rpc('fn_create_story', {
+                        p_user_id: authorId,
+                        p_content: content?.substring(0, 200) || '', // Story content limit
+                        p_media_url: mediaUrl,
+                        p_media_type: mediaUrl ? mediaType : null,
+                        p_background_color: null,
+                        p_link_url: null
+                    });
+
+                    if (storyError) {
+                        console.warn('⚠️ Auto-story creation failed:', storyError.message);
+                    } else {
+                        console.log('✅ Auto-story created for post');
+                    }
+                } catch (storyErr) {
+                    console.warn('⚠️ Auto-story error:', storyErr.message);
+                    // Don't fail the post creation if story fails
+                }
+            }
+
+            return postResult;
         } catch (error) {
             console.error('Post creation error:', error);
             throw error;

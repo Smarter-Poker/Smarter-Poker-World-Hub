@@ -1,0 +1,128 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   GLOBAL TOKENS — SHARED FOUNDATION
+   Shared design tokens for all worlds. Each world can override these.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ═══════════════════════════════════════════════════════════════════════════
+     DEFAULT WORLD THEME
+     These are the fallback values. Each world CSS overrides these.
+     ═══════════════════════════════════════════════════════════════════════════ */
+  
+  /* Primary accent - used for buttons, highlights, active states */
+  --world-primary: #00d4ff;
+  --world-primary-rgb: 0, 212, 255;
+  --world-primary-glow: rgba(0, 212, 255, 0.4);
+  
+  /* Secondary accent - used for secondary elements */
+  --world-secondary: #0096ff;
+  --world-secondary-rgb: 0, 150, 255;
+  
+  /* Background gradient - page background */
+  --world-bg-start: #050510;
+  --world-bg-mid: #0a1628;
+  --world-bg-end: #030508;
+  --world-bg-gradient: radial-gradient(ellipse at center, var(--world-bg-mid) 0%, var(--world-bg-start) 70%, var(--world-bg-end) 100%);
+  
+  /* Surface colors - cards, panels */
+  --world-surface: rgba(20, 40, 80, 0.6);
+  --world-surface-elevated: rgba(30, 50, 90, 0.8);
+  
+  /* Border colors */
+  --world-border: rgba(0, 212, 255, 0.3);
+  --world-border-subtle: rgba(255, 255, 255, 0.1);
+  
+  /* Text colors */
+  --world-text-primary: #ffffff;
+  --world-text-secondary: rgba(255, 255, 255, 0.7);
+  --world-text-muted: rgba(255, 255, 255, 0.5);
+  
+  /* Glow effects */
+  --world-glow-sm: 0 0 10px rgba(var(--world-primary-rgb), 0.4);
+  --world-glow-md: 0 0 20px rgba(var(--world-primary-rgb), 0.4), 0 0 40px rgba(var(--world-primary-rgb), 0.2);
+  --world-glow-lg: 0 0 30px rgba(var(--world-primary-rgb), 0.5), 0 0 60px rgba(var(--world-primary-rgb), 0.3);
+  
+  /* Theme transition */
+  --world-transition: 0.3s ease;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   THEMED UTILITY CLASSES
+   Use these classes for elements that should adapt to the current world theme
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Primary accent text */
+.world-text-accent {
+  color: var(--world-primary);
+}
+
+/* Primary accent background */
+.world-bg-accent {
+  background: var(--world-primary);
+}
+
+/* Primary gradient background */
+.world-bg-gradient {
+  background: linear-gradient(135deg, var(--world-primary) 0%, var(--world-secondary) 100%);
+}
+
+/* Primary glow effect */
+.world-glow {
+  box-shadow: var(--world-glow-md);
+}
+
+/* Primary border */
+.world-border {
+  border-color: var(--world-border);
+}
+
+/* Glass panel with world theming */
+.world-glass-panel {
+  background: var(--world-surface);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--world-border);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* World-themed button */
+.world-button {
+  background: linear-gradient(135deg, var(--world-primary) 0%, var(--world-secondary) 100%);
+  color: #000;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform var(--world-transition), box-shadow var(--world-transition);
+  box-shadow: 0 4px 15px var(--world-primary-glow);
+}
+
+.world-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px var(--world-primary-glow);
+}
+
+/* World-themed text glow */
+.world-text-glow {
+  text-shadow: 0 0 10px var(--world-primary-glow), 0 0 20px var(--world-primary-glow);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   THEME TRANSITIONS
+   Smooth transitions when switching between worlds
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+body,
+.world-glass-panel,
+.world-button,
+.world-text-accent,
+.world-bg-accent,
+.world-glow {
+  transition: 
+    color var(--world-transition),
+    background var(--world-transition),
+    background-color var(--world-transition),
+    border-color var(--world-transition),
+    box-shadow var(--world-transition);
+}

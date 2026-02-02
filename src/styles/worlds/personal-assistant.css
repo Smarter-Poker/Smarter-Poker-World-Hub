@@ -1,0 +1,18 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   PERSONAL ASSISTANT THEME — AI, Intelligence, Teal
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+body.world-personal-assistant {
+    --world-primary: #14b8a6;
+    --world-primary-rgb: 20, 184, 166;
+    --world-primary-glow: rgba(20, 184, 166, 0.4);
+    --world-secondary: #2dd4bf;
+    --world-secondary-rgb: 45, 212, 191;
+    --world-bg-start: #050a0a;
+    --world-bg-mid: #0a1a18;
+    --world-bg-end: #030505;
+    --world-bg-gradient: radial-gradient(ellipse at center, var(--world-bg-mid) 0%, var(--world-bg-start) 70%, var(--world-bg-end) 100%);
+    --world-surface: rgba(15, 50, 45, 0.6);
+    --world-surface-elevated: rgba(20, 70, 65, 0.8);
+    --world-border: rgba(20, 184, 166, 0.3);
+}

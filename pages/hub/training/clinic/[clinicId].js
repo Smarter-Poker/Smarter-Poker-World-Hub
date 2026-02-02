@@ -15,6 +15,7 @@ import { getClinicById, getRemediationXPMultiplier } from '../../../../src/data/
 import useTrainingProgress from '../../../../src/hooks/useTrainingProgress';
 import feedback, { EFFECT_STYLES, screenEffects } from '../../../../src/engine/HapticsFeedback';
 import { WorldNavHeader } from '../../../../src/components/navigation/WorldNavHeader';
+import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 
 // Constants
 const TIME_PER_QUESTION = 21;
@@ -244,7 +245,7 @@ export default function ClinicPlayPage() {
                 <style>{EFFECT_STYLES}</style>
                 <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a1628', color: '#fff' }}>
                     <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 80, marginBottom: 16 }}>{passed ? '🏆' : '🔄'}</div>
+                        <div style={{ fontSize: 80, marginBottom: 16 }}>{passed ? 'Trophy' : '🔄'}</div>
                         <h1 style={{ fontSize: 32, color: passed ? '#4CAF50' : '#fff' }}>
                             {passed ? 'LEAK FIXED!' : 'KEEP TRYING'}
                         </h1>
@@ -256,7 +257,7 @@ export default function ClinicPlayPage() {
                                 borderRadius: 20,
                                 marginBottom: 16
                             }}>
-                                🏅 {clinic.badge}
+                                 {clinic.badge}
                             </div>
                         )}
                         <div style={{ fontSize: 56, fontWeight: 800, color: passed ? '#4CAF50' : '#FF6B35' }}>{accuracy}%</div>
@@ -300,12 +301,14 @@ export default function ClinicPlayPage() {
             </Head>
             <style>{`
                 html, body { margin: 0; padding: 0; width: 100%; height: 100vh; overflow: hidden; }
-                iframe { border: none; width: 100%; height: 100vh; display: block; }
             `}</style>
+            {/* Standard Hub Header - DO NOT MODIFY */}
+            <UniversalHeader pageDepth={2} />
             <iframe
                 ref={iframeRef}
                 src={`/templates/training_game_template.html?clinicId=${clinicId}&clinicName=${encodeURIComponent(clinic.name)}&v=clinic`}
                 title={clinic.name}
+                style={{ border: 'none', width: '100%', height: 'calc(100vh - 60px)', display: 'block' }}
                 onLoad={() => {
                     console.log('[CLINIC] Template loaded');
                     setTimeout(sendClinicDataToIframe, 100);

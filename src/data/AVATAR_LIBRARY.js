@@ -86,7 +86,7 @@ export const AVATAR_LIBRARY = [
         category: 'people',
         tier: 'FREE',
         personality: 'shark',
-        image: '/avatars/free/space_captain.png',
+        image: '/avatars/free/space_commander.png',
         tags: ['space', 'adventurous', 'brave']
     },
 
@@ -217,7 +217,7 @@ export const AVATAR_LIBRARY = [
     // FREE - Fantasy & Culture Mix (5)
     {
         id: 'free-mix-001',
-        name: 'Pirate Captain',
+        name: 'Pirate Commander',
         description: 'Plundering pots',
         category: 'fantasy',
         tier: 'FREE',

@@ -1,32 +1,26 @@
 /**
- * REELS PAGE - Facebook-style permanent video archive
- * Videos from Stories are saved here permanently
+ * REELS PAGE - TikTok-style Full-Screen Vertical Video Experience
+ * Swipe up/down to navigate, tap to mute/unmute
  */
 
 import { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { motion } from 'framer-motion';
-import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
 import Link from 'next/link';
-
-// God-Mode Stack
-import { useReelsStore } from '../../src/stores/reelsStore';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../src/config/hamburgerMenus';
+import { reelsPreferences, savedReelsService } from '../../src/services/preferences-service';
+import { getAuthUser } from '../../src/lib/authUtils';
+import UploadReelModal from '../../src/components/reels/UploadReelModal';
 
 const C = {
     bg: '#000000',
-    card: '#1C1C1E',
     text: '#FFFFFF',
     textSec: 'rgba(255,255,255,0.7)',
-    border: '#2C2C2E',
-    blue: '#0A84FF',
-    red: '#FF453A',
-    pink: '#FF2D55',
 };
 
-// Time ago helper
 function timeAgo(d) {
     if (!d) return '';
     const s = Math.floor((Date.now() - new Date(d).getTime()) / 1000);
@@ -36,62 +30,352 @@ function timeAgo(d) {
     return `${Math.floor(s / 86400)}d ago`;
 }
 
+function getYouTubeVideoId(url) {
+    if (!url) return null;
+    const shortsMatch = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/);
+    if (shortsMatch) return shortsMatch[1];
+    const watchMatch = url.match(/youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/);
+    if (watchMatch) return watchMatch[1];
+    const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
+    if (shortMatch) return shortMatch[1];
+    const embedMatch = url.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]+)/);
+    if (embedMatch) return embedMatch[1];
+    return null;
+}
+
 export default function ReelsPage() {
     const [reels, setReels] = useState([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [loading, setLoading] = useState(true);
-    const [muted, setMuted] = useState(true);
+    const [muted, setMuted] = useState(true); // MUST be true for autoplay to work
+    const [userWantsSound, setUserWantsSound] = useState(false); // localStorage preference
+    // Auto-play immediately - no tap required since videos are muted (browser policy compliant)
     const [liked, setLiked] = useState({});
-    const [user, setUser] = useState(null);
-    const videoRef = useRef(null);
+    const [shareMsg, setShareMsg] = useState('');
+    const [showCommentPanel, setShowCommentPanel] = useState(false);
+    const [comments, setComments] = useState([]);
+    const [commentText, setCommentText] = useState('');
+    const [submittingComment, setSubmittingComment] = useState(false);
     const containerRef = useRef(null);
+    const iframeRef = useRef(null);
+    const touchStartY = useRef(0);
     const router = useRouter();
+    const [user, setUser] = useState(null);
+    const [menuOpen, setMenuOpen] = useState(false);
+    const [showUploadModal, setShowUploadModal] = useState(false);
+    const [savedReels, setSavedReels] = useState(new Set());
+
+    // Reels preferences state
+    const [preferences, setPreferences] = useState({
+        autoplay: true,
+        soundOnScroll: true,
+        dataSaver: false,
+        showCaptions: true
+    });
+
+    // Load sound preference from localStorage on mount
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const savedPref = localStorage.getItem('reels-sound-enabled');
+            if (savedPref === 'true') {
+                setUserWantsSound(true);
+            }
+        }
+    }, []);
+
+    // Load user and preferences
+    useEffect(() => {
+        const loadUserData = async () => {
+            const authUser = await getAuthUser();
+            setUser(authUser);
+
+            if (authUser) {
+                // Load preferences
+                const prefs = await reelsPreferences.get(authUser.id);
+                setPreferences(prefs);
+
+                // Load saved reels
+                const saved = await savedReelsService.getSavedReels(authUser.id);
+                const savedIds = new Set(saved.map(item => item.reel_id));
+                setSavedReels(savedIds);
+            }
+        };
+        loadUserData();
+    }, []);
+
+    // YouTube API: Send command to iframe via postMessage
+    const sendYouTubeCommand = (command, args = []) => {
+        if (iframeRef.current?.contentWindow) {
+            iframeRef.current.contentWindow.postMessage(JSON.stringify({
+                event: 'command',
+                func: command,
+                args: args
+            }), '*');
+        }
+    };
+
+    // Auto-play immediately on load (muted videos comply with browser autoplay policy)
+    // Then auto-unmute since user explicitly came here to watch videos with sound
+    useEffect(() => {
+        if (!loading && reels.length > 0) {
+            // Wait for iframe to load, then force play + unmute
+            const timer = setTimeout(() => {
+                // FORCE PLAY via YouTube API
+                sendYouTubeCommand('playVideo');
+
+                // AUTO-UNMUTE: User came here to watch videos, they want sound!
+                sendYouTubeCommand('unMute');
+                sendYouTubeCommand('setVolume', [100]);
+                setMuted(false);
+            }, 500); // Give iframe time to initialize YouTube API
+            return () => clearTimeout(timer);
+        }
+    }, [currentIndex, loading, reels.length]);
+
+    const handleUnmute = () => {
+        sendYouTubeCommand('unMute');
+        sendYouTubeCommand('setVolume', [100]);
+        setMuted(false);
+        setUserWantsSound(true);
+        // Save preference to localStorage
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('reels-sound-enabled', 'true');
+        }
+    };
+
+    const handleMute = () => {
+        sendYouTubeCommand('mute');
+        setMuted(true);
+        setUserWantsSound(false);
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('reels-sound-enabled', 'false');
+        }
+    };
 
     useEffect(() => {
-        supabase.auth.getUser().then(({ data }) => {
-            if (data?.user) setUser(data.user);
-        });
         loadReels();
     }, []);
 
     const loadReels = async () => {
         setLoading(true);
         try {
-            const { data } = await supabase
+            // Load from social_reels (YouTube shorts posted by SmarterPokerOfficial)
+            const { data: reelsData } = await supabase
                 .from('social_reels')
-                .select(`
-                    *,
-                    profiles:author_id (id, username, avatar_url, full_name)
-                `)
+                .select('id, author_id, caption, video_url, view_count, created_at, is_public')
                 .eq('is_public', true)
                 .order('created_at', { ascending: false })
                 .limit(50);
 
-            if (data) setReels(data);
+            // Load from social_posts (posts with YouTube videos in media_urls)
+            const { data: postsData } = await supabase
+                .from('social_posts')
+                .select('id, author_id, content, media_urls, like_count, created_at, visibility')
+                .eq('visibility', 'public')
+                .not('media_urls', 'is', null)
+                .order('created_at', { ascending: false })
+                .limit(100); // Get more to filter for YouTube links
+
+            // Combine both sources
+            const allVideos = [];
+
+            // Add reels from social_reels
+            if (reelsData && reelsData.length > 0) {
+                allVideos.push(...reelsData.map(reel => ({
+                    id: reel.id,
+                    author_id: reel.author_id,
+                    video_url: reel.video_url,
+                    caption: reel.caption,
+                    like_count: reel.view_count || 0,
+                    created_at: reel.created_at,
+                    source: 'reels'
+                })));
+            }
+
+            // Add videos from social_posts (only YouTube links)
+            if (postsData && postsData.length > 0) {
+                allVideos.push(...postsData
+                    .filter(post => {
+                        if (!post.media_urls || post.media_urls.length === 0) return false;
+                        // Only include posts with YouTube URLs
+                        const url = post.media_urls[0];
+                        return url && (url.includes('youtube.com') || url.includes('youtu.be'));
+                    })
+                    .map(post => ({
+                        id: post.id,
+                        author_id: post.author_id,
+                        video_url: post.media_urls[0],
+                        caption: post.content,
+                        like_count: post.like_count || 0,
+                        created_at: post.created_at,
+                        source: 'posts'
+                    })));
+            }
+
+            if (allVideos.length > 0) {
+                // Get all unique author IDs
+                const authorIds = [...new Set(allVideos.map(v => v.author_id))];
+                const { data: profiles } = await supabase
+                    .from('profiles')
+                    .select('id, username, avatar_url, full_name')
+                    .in('id', authorIds);
+
+                const profileMap = {};
+                (profiles || []).forEach(p => { profileMap[p.id] = p; });
+
+                // Map videos with profile data
+                const mappedReels = allVideos.map(video => ({
+                    id: video.id,
+                    video_url: video.video_url,
+                    caption: video.caption,
+                    like_count: video.like_count,
+                    created_at: video.created_at,
+                    profiles: profileMap[video.author_id] || { username: 'Anonymous' },
+                }));
+
+                // Shuffle for variety
+                const shuffled = mappedReels.sort(() => Math.random() - 0.5);
+                setReels(shuffled);
+            }
         } catch (e) {
             console.error('Load reels error:', e);
         }
         setLoading(false);
     };
 
+
     const currentReel = reels[currentIndex];
 
     const goNext = () => {
-        if (currentIndex < reels.length - 1) {
-            setCurrentIndex(prev => prev + 1);
-        }
+        if (currentIndex < reels.length - 1) setCurrentIndex(prev => prev + 1);
     };
 
     const goPrev = () => {
-        if (currentIndex > 0) {
-            setCurrentIndex(prev => prev - 1);
-        }
+        if (currentIndex > 0) setCurrentIndex(prev => prev - 1);
     };
 
     const handleLike = async () => {
         if (!currentReel) return;
-        setLiked(prev => ({ ...prev, [currentReel.id]: !prev[currentReel.id] }));
+        const wasLiked = liked[currentReel.id];
+        setLiked(prev => ({ ...prev, [currentReel.id]: !wasLiked }));
+        const userId = typeof window !== 'undefined' ? localStorage.getItem('sp-anon-uid') : null;
+        if (userId) {
+            try {
+                await fetch('/api/social/interactions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ post_id: currentReel.id, user_id: userId, interaction_type: 'like' })
+                });
+            } catch (e) {
+                setLiked(prev => ({ ...prev, [currentReel.id]: wasLiked }));
+            }
+        }
     };
+
+    const handleComment = async () => {
+        if (!currentReel) return;
+        setShowCommentPanel(prev => !prev);
+        if (!showCommentPanel && comments.length === 0) {
+            try {
+                const res = await fetch('/api/social/interactions?post_id=' + currentReel.id + '&type=comment');
+                const json = await res.json();
+                setComments(json.comments || []);
+            } catch (e) { console.error('Load comments:', e); }
+        }
+    };
+
+    const submitComment = async () => {
+        if (!commentText.trim()) return;
+        const userId = typeof window !== 'undefined' ? localStorage.getItem('sp-anon-uid') : null;
+        if (!userId) return;
+        setSubmittingComment(true);
+        try {
+            const res = await fetch('/api/social/interactions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ post_id: currentReel.id, user_id: userId, interaction_type: 'comment', content: commentText.trim() })
+            });
+            const json = await res.json();
+            if (json.comment) {
+                setComments(prev => [...prev, { ...json.comment, author: { username: 'You' } }]);
+            }
+            setCommentText('');
+        } catch (e) { console.error('Submit comment:', e); }
+        setSubmittingComment(false);
+    };
+
+    const handleShare = async () => {
+        if (!currentReel) return;
+        const url = window.location.origin + '/hub/reels?id=' + currentReel.id;
+        try {
+            await navigator.clipboard.writeText(url);
+            setShareMsg('Copied!');
+            setTimeout(() => setShareMsg(''), 2000);
+            const userId = typeof window !== 'undefined' ? localStorage.getItem('sp-anon-uid') : null;
+            if (userId) {
+                fetch('/api/social/interactions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ post_id: currentReel.id, user_id: userId, interaction_type: 'share' })
+                }).catch(() => { });
+            }
+        } catch {
+            setShareMsg('Failed');
+            setTimeout(() => setShareMsg(''), 2000);
+        }
+    };
+
+    // Reset comment panel when switching reels
+    useEffect(() => {
+        setShowCommentPanel(false);
+        setComments([]);
+        setCommentText('');
+    }, [currentIndex]);
+
+    const handleSave = async () => {
+        if (!currentReel || !user) return;
+
+        const isSaved = savedReels.has(currentReel.id);
+
+        if (isSaved) {
+            await savedReelsService.unsaveReel(user.id, currentReel.id);
+            setSavedReels(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(currentReel.id);
+                return newSet;
+            });
+        } else {
+            await savedReelsService.saveReel(user.id, {
+                id: currentReel.id,
+                video_url: currentReel.video_url,
+                caption: currentReel.caption
+            });
+            setSavedReels(prev => new Set([...prev, currentReel.id]));
+        }
+    };
+
+    // Hamburger menu handlers
+    const handleUploadReel = () => {
+        setShowUploadModal(true);
+        setMenuOpen(false);
+    };
+
+    const updatePreference = async (key, value) => {
+        const newPrefs = { ...preferences, [key]: value };
+        setPreferences(newPrefs);
+        if (user) {
+            await reelsPreferences.update(user.id, newPrefs);
+        }
+    };
+
+    // Menu config
+    const menuConfig = getMenuConfig('reels', user, preferences, {
+        onUploadReel: handleUploadReel,
+        setAutoplay: (val) => updatePreference('autoplay', val),
+        setSoundOnScroll: (val) => updatePreference('soundOnScroll', val),
+        setDataSaver: (val) => updatePreference('dataSaver', val),
+        setShowCaptions: (val) => updatePreference('showCaptions', val)
+    });
 
     // Keyboard navigation
     useEffect(() => {
@@ -103,36 +387,84 @@ export default function ReelsPage() {
         };
         window.addEventListener('keydown', handleKey);
         return () => window.removeEventListener('keydown', handleKey);
+    }, [currentIndex, router]);
+
+    // Use refs to avoid stale closures in event handlers
+    const currentIndexRef = useRef(currentIndex);
+    const reelsLengthRef = useRef(reels.length);
+
+    useEffect(() => {
+        currentIndexRef.current = currentIndex;
     }, [currentIndex]);
 
-    // Touch/scroll navigation
     useEffect(() => {
-        const container = containerRef.current;
-        if (!container) return;
+        reelsLengthRef.current = reels.length;
+    }, [reels.length]);
 
-        let startY = 0;
-        const handleTouchStart = (e) => { startY = e.touches[0].clientY; };
+    // DOCUMENT-LEVEL touch capture to intercept BEFORE YouTube iframe gets them
+    useEffect(() => {
+        const handleTouchStart = (e) => {
+            touchStartY.current = e.touches[0].clientY;
+        };
+
         const handleTouchEnd = (e) => {
             const endY = e.changedTouches[0].clientY;
-            const diff = startY - endY;
-            if (diff > 50) goNext();
-            if (diff < -50) goPrev();
+            const diff = touchStartY.current - endY;
+            const threshold = 50; // Lower threshold for more responsive swipes
+
+            if (Math.abs(diff) > threshold) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (diff > 0) {
+                    // Swipe up = next
+                    if (currentIndexRef.current < reelsLengthRef.current - 1) {
+                        setCurrentIndex(prev => prev + 1);
+                    }
+                } else {
+                    // Swipe down = previous
+                    if (currentIndexRef.current > 0) {
+                        setCurrentIndex(prev => prev - 1);
+                    }
+                }
+            }
         };
 
-        container.addEventListener('touchstart', handleTouchStart);
-        container.addEventListener('touchend', handleTouchEnd);
-        return () => {
-            container.removeEventListener('touchstart', handleTouchStart);
-            container.removeEventListener('touchend', handleTouchEnd);
+        // Mouse wheel with debounce
+        let wheelTimeout = null;
+        const handleWheel = (e) => {
+            if (wheelTimeout) return;
+            wheelTimeout = setTimeout(() => { wheelTimeout = null; }, 400);
+            if (e.deltaY > 30) {
+                if (currentIndexRef.current < reelsLengthRef.current - 1) {
+                    setCurrentIndex(prev => prev + 1);
+                }
+            }
+            if (e.deltaY < -30) {
+                if (currentIndexRef.current > 0) {
+                    setCurrentIndex(prev => prev - 1);
+                }
+            }
         };
-    }, [currentIndex]);
+
+        // CAPTURE phase - intercepts before iframe
+        document.addEventListener('touchstart', handleTouchStart, { passive: true, capture: true });
+        document.addEventListener('touchend', handleTouchEnd, { passive: false, capture: true });
+        window.addEventListener('wheel', handleWheel, { passive: true });
+        return () => {
+            document.removeEventListener('touchstart', handleTouchStart, { capture: true });
+            document.removeEventListener('touchend', handleTouchEnd, { capture: true });
+            window.removeEventListener('wheel', handleWheel);
+        };
+    }, []); // Empty deps - uses refs for current values
+
 
     if (loading) {
         return (
             <>
                 <Head><title>Reels | Smarter Poker</title></Head>
                 <div style={{
-                    minHeight: '100vh', background: C.bg,
+                    position: 'fixed', inset: 0, background: C.bg,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
                     <div style={{ color: C.text, fontSize: 18 }}>Loading Reels...</div>
@@ -146,23 +478,20 @@ export default function ReelsPage() {
             <>
                 <Head><title>Reels | Smarter Poker</title></Head>
                 <div style={{
-                    minHeight: '100vh', background: C.bg,
+                    position: 'fixed', inset: 0, background: C.bg,
                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                 }}>
-                    <div style={{ fontSize: 64, marginBottom: 16 }}>🎬</div>
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="1.5"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="M10 9l5 3-5 3V9z" fill="#888" /></svg>
                     <h1 style={{ color: C.text, fontSize: 28, fontWeight: 700, marginBottom: 8 }}>
                         No Reels Yet
                     </h1>
                     <p style={{ color: C.textSec, fontSize: 16, marginBottom: 32, textAlign: 'center', maxWidth: 300 }}>
-                        When you post videos to your Stories, they'll be saved here permanently as Reels.
+                        Fresh poker clips are posted hourly!
                     </p>
                     <Link href="/hub/social-media" style={{
                         padding: '12px 32px',
                         background: 'linear-gradient(135deg, #833AB4, #FD1D1D, #FCB045)',
-                        color: 'white',
-                        borderRadius: 8,
-                        fontWeight: 600,
-                        textDecoration: 'none',
+                        color: 'white', borderRadius: 8, fontWeight: 600, textDecoration: 'none',
                     }}>
                         Back to Feed
                     </Link>
@@ -171,208 +500,329 @@ export default function ReelsPage() {
         );
     }
 
+    const videoId = getYouTubeVideoId(currentReel?.video_url);
+
     return (
         <>
-            <UniversalHeader pageDepth={2} />
             <Head>
                 <title>Reels | Smarter Poker</title>
-                <meta name="viewport" content="width=800, user-scalable=no" />
-                <style>{`
-                    .reels-page { width: 800px; max-width: 800px; margin: 0 auto; overflow-x: hidden; }
-                    @media (max-width: 500px) { .reels-page { zoom: 0.5; } }
-                    @media (min-width: 501px) and (max-width: 700px) { .reels-page { zoom: 0.75; } }
-                    @media (min-width: 701px) and (max-width: 900px) { .reels-page { zoom: 0.95; } }
-                    @media (min-width: 901px) { .reels-page { zoom: 1.2; } }
-                    @media (min-width: 1400px) { .reels-page { zoom: 1.5; } }
-                `}</style>
+                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
             </Head>
-            <div className="reels-page"
+
+            {/* Universal Header */}
+            <UniversalHeader
+                pageDepth={1}
+                onMenuClick={() => setMenuOpen(true)}
+            />
+
+            {/* Hamburger Menu */}
+            <HamburgerMenu
+                isOpen={menuOpen}
+                onClose={() => setMenuOpen(false)}
+                direction="left"
+                theme="dark"
+                user={user}
+                showProfile={false}
+                menuItems={menuConfig.menuItems}
+                bottomLinks={menuConfig.bottomLinks}
+            />
+
+            {/* Upload Modal */}
+            {showUploadModal && (
+                <UploadReelModal
+                    user={user}
+                    onClose={() => setShowUploadModal(false)}
+                    onSuccess={() => {
+                        setShowUploadModal(false);
+                        loadReels();
+                    }}
+                />
+            )}
+
+            {/* Full-screen container */}
+            <div
                 ref={containerRef}
                 style={{
-                    minHeight: '100vh',
+                    position: 'fixed',
+                    inset: 0,
                     background: C.bg,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    overflow: 'hidden',
                 }}
             >
                 {/* Back button */}
                 <Link
                     href="/hub/social-media"
                     style={{
-                        position: 'fixed', top: 20, left: 20,
+                        position: 'absolute', top: 16, left: 16, zIndex: 100,
                         width: 44, height: 44, borderRadius: '50%',
-                        background: 'rgba(255,255,255,0.1)',
-                        border: 'none', color: 'white', fontSize: 20,
-                        cursor: 'pointer', zIndex: 10,
+                        background: 'rgba(0,0,0,0.5)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        textDecoration: 'none',
+                        color: 'white', fontSize: 20, textDecoration: 'none',
                     }}
                 >←</Link>
 
                 {/* Title */}
                 <div style={{
-                    position: 'fixed', top: 24, left: '50%', transform: 'translateX(-50%)',
-                    color: 'white', fontWeight: 700, fontSize: 18, zIndex: 10,
+                    position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)',
+                    color: 'white', fontWeight: 700, fontSize: 18, zIndex: 100,
                 }}>
                     Reels
                 </div>
 
-                {/* Reel container */}
+                {/* VIDEO WRAPPER with clip-path to hide edge artifacts */}
                 <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
                     width: '100%',
-                    maxWidth: 420,
-                    height: '100vh',
-                    position: 'relative',
+                    height: '100%',
+                    overflow: 'hidden',
+                    clipPath: 'inset(0)',
                     background: '#000',
                 }}>
-                    {/* Video */}
-                    <video
-                        ref={videoRef}
-                        key={currentReel?.id}
-                        src={currentReel?.video_url}
-                        autoPlay
-                        loop
-                        muted={muted}
-                        playsInline
-                        style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
-                        }}
-                        onClick={() => setMuted(prev => !prev)}
-                    />
+                    {/* Videos auto-play immediately (muted per browser policy) */}
 
-                    {/* Author info overlay */}
+                    {/* Auto-play immediately - muted for browser compliance */}
+                    {videoId ? (
+                        <iframe
+                            ref={iframeRef}
+                            key={currentReel?.id}
+                            src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&iv_load_policy=3&disablekb=1&fs=0&cc_load_policy=0`}
+                            title="Poker Reel"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                            allowFullScreen
+                            onLoad={() => {
+                                // Send playVideo immediately on load for all browsers
+                                sendYouTubeCommand('playVideo');
+                                // Also try again after a short delay for Safari
+                                setTimeout(() => {
+                                    sendYouTubeCommand('playVideo');
+                                    if (userWantsSound) {
+                                        sendYouTubeCommand('unMute');
+                                        sendYouTubeCommand('setVolume', [100]);
+                                    }
+                                }, 300);
+                            }}
+                            style={{
+                                position: 'absolute',
+                                top: -40,
+                                left: -40,
+                                width: 'calc(100% + 80px)',
+                                height: 'calc(100% + 80px)',
+                                border: 'none',
+                            }}
+                        />
+                    ) : null}
+                </div>
+
+                {/* INVISIBLE TAP ZONES - for navigation */}
+                {/* LEFT ZONE - tap for previous */}
+                <div
+                    onClick={goPrev}
+                    style={{
+                        position: 'absolute',
+                        top: 80,
+                        left: 0,
+                        width: '35%',
+                        height: 'calc(100% - 200px)',
+                        zIndex: 50,
+                        cursor: 'pointer',
+                    }}
+                />
+                {/* RIGHT ZONE - tap for next */}
+                <div
+                    onClick={goNext}
+                    style={{
+                        position: 'absolute',
+                        top: 80,
+                        right: 0,
+                        width: '35%',
+                        height: 'calc(100% - 200px)',
+                        zIndex: 50,
+                        cursor: 'pointer',
+                    }}
+                />
+
+                {!videoId && (
                     <div style={{
-                        position: 'absolute', bottom: 80, left: 16, right: 80,
-                        zIndex: 10,
+                        width: '100%', height: '100%',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666',
                     }}>
-                        <Link href={`/hub/user/${currentReel?.profiles?.username}`} style={{
-                            display: 'flex', alignItems: 'center', gap: 12,
-                            textDecoration: 'none', marginBottom: 12,
-                        }}>
-                            <img
-                                src={currentReel?.profiles?.avatar_url || '/default-avatar.png'}
-                                style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', border: '2px solid white' }}
-                            />
-                            <div>
-                                <div style={{ color: 'white', fontWeight: 600, fontSize: 15 }}>
-                                    {currentReel?.profiles?.full_name || currentReel?.profiles?.username}
-                                </div>
-                                <div style={{ color: C.textSec, fontSize: 12 }}>
-                                    {timeAgo(currentReel?.created_at)}
-                                </div>
+                        <div style={{ textAlign: 'center' }}>
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="1.5"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="M10 9l5 3-5 3V9z" fill="#666" /></svg>
+                            <div>Video loading...</div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Author info overlay */}
+                <div style={{
+                    position: 'absolute', bottom: 120, left: 16, right: 80, zIndex: 100,
+                }}>
+                    <Link href={`/hub/user/${currentReel?.profiles?.username}`} style={{
+                        display: 'flex', alignItems: 'center', gap: 12,
+                        textDecoration: 'none', marginBottom: 12,
+                    }}>
+                        <img
+                            src={currentReel?.profiles?.avatar_url || '/default-avatar.png'}
+                            style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', border: '2px solid white' }}
+                        />
+                        <div>
+                            <div style={{ color: 'white', fontWeight: 600, fontSize: 15, textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
+                                {currentReel?.profiles?.full_name || currentReel?.profiles?.username}
                             </div>
-                        </Link>
+                            <div style={{ color: C.textSec, fontSize: 12 }}>
+                                {timeAgo(currentReel?.created_at)}
+                            </div>
+                        </div>
+                    </Link>
 
-                        {currentReel?.caption && (
-                            <p style={{
-                                color: 'white', fontSize: 14, margin: 0,
-                                textShadow: '0 1px 3px rgba(0,0,0,0.5)',
-                            }}>
-                                {currentReel.caption}
-                            </p>
-                        )}
-                    </div>
+                    {currentReel?.caption && (
+                        <p style={{
+                            color: 'white', fontSize: 14, margin: 0,
+                            textShadow: '0 1px 4px rgba(0,0,0,0.8)',
+                            maxWidth: '80%',
+                        }}>
+                            {currentReel.caption.length > 100 ? currentReel.caption.slice(0, 100) + '...' : currentReel.caption}
+                        </p>
+                    )}
+                </div>
 
-                    {/* Action buttons (right side) */}
-                    <div style={{
-                        position: 'absolute', bottom: 100, right: 16,
-                        display: 'flex', flexDirection: 'column', gap: 20,
-                        zIndex: 10,
+                {/* Action buttons (right side) */}
+                <div style={{
+                    position: 'absolute', bottom: 140, right: 16,
+                    display: 'flex', flexDirection: 'column', gap: 20, zIndex: 100,
+                }}>
+                    {/* Like */}
+                    <button onClick={handleLike} style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center',
                     }}>
-                        {/* Like */}
-                        <button
-                            onClick={handleLike}
-                            style={{
-                                background: 'none', border: 'none',
-                                display: 'flex', flexDirection: 'column', alignItems: 'center',
-                                cursor: 'pointer',
-                            }}
-                        >
-                            <span style={{ fontSize: 28 }}>
-                                {liked[currentReel?.id] ? '❤️' : '🤍'}
-                            </span>
-                            <span style={{ color: 'white', fontSize: 12 }}>
-                                {(currentReel?.like_count || 0) + (liked[currentReel?.id] ? 1 : 0)}
-                            </span>
-                        </button>
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill={liked[currentReel?.id] ? '#ef4444' : 'none'} stroke={liked[currentReel?.id] ? '#ef4444' : 'white'} strokeWidth="2" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
+                        <span style={{ color: 'white', fontSize: 12, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+                            {(currentReel?.like_count || 0) + (liked[currentReel?.id] ? 1 : 0)}
+                        </span>
+                    </button>
 
-                        {/* Comment */}
-                        <button style={{
-                            background: 'none', border: 'none',
-                            display: 'flex', flexDirection: 'column', alignItems: 'center',
-                            cursor: 'pointer',
-                        }}>
-                            <span style={{ fontSize: 28 }}>💬</span>
-                            <span style={{ color: 'white', fontSize: 12 }}>Comment</span>
-                        </button>
+                    {/* Comment */}
+                    <button onClick={handleComment} style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center',
+                    }}>
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" /></svg>
+                        <span style={{ color: showCommentPanel ? '#1877F2' : 'white', fontSize: 12, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>Comment</span>
+                    </button>
 
-                        {/* Share */}
-                        <button style={{
-                            background: 'none', border: 'none',
-                            display: 'flex', flexDirection: 'column', alignItems: 'center',
-                            cursor: 'pointer',
-                        }}>
-                            <span style={{ fontSize: 28 }}>📤</span>
-                            <span style={{ color: 'white', fontSize: 12 }}>Share</span>
-                        </button>
+                    {/* Share */}
+                    <button onClick={handleShare} style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center',
+                    }}>
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" /></svg>
+                        <span style={{ color: 'white', fontSize: 12, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>{shareMsg || 'Share'}</span>
+                    </button>
 
-                        {/* Sound toggle */}
-                        <button
-                            onClick={() => setMuted(prev => !prev)}
-                            style={{
-                                background: 'none', border: 'none',
-                                display: 'flex', flexDirection: 'column', alignItems: 'center',
-                                cursor: 'pointer',
-                            }}
-                        >
-                            <span style={{ fontSize: 24 }}>{muted ? '🔇' : '🔊'}</span>
-                        </button>
-                    </div>
+                    {/* Save */}
+                    <button onClick={handleSave} style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center',
+                    }}>
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill={savedReels.has(currentReel?.id) ? 'white' : 'none'} stroke="white" strokeWidth="2" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
+                        <span style={{ color: 'white', fontSize: 12, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+                            {savedReels.has(currentReel?.id) ? 'Saved' : 'Save'}
+                        </span>
+                    </button>
 
-                    {/* Navigation indicators */}
-                    {reels.length > 1 && (
+                    {/* Sound */}
+                    <button onClick={muted ? handleUnmute : handleMute} style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center',
+                    }}>
+                        {muted ? (
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><line x1="23" y1="9" x2="17" y2="15" /><line x1="17" y1="9" x2="23" y2="15" /></svg>
+                        ) : (
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" /></svg>
+                        )}
+                    </button>
+                </div>
+
+                {/* Comment Panel */}
+                {showCommentPanel && (
+                    <div style={{
+                        position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 200,
+                        background: 'rgba(0,0,0,0.95)', borderRadius: '16px 16px 0 0',
+                        maxHeight: '50vh', display: 'flex', flexDirection: 'column',
+                    }}>
                         <div style={{
-                            position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
-                            display: 'flex', flexDirection: 'column', gap: 4,
+                            padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)',
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center'
                         }}>
-                            {reels.slice(0, 10).map((_, i) => (
-                                <div
-                                    key={i}
-                                    onClick={() => setCurrentIndex(i)}
-                                    style={{
-                                        width: 4,
-                                        height: i === currentIndex ? 24 : 16,
-                                        borderRadius: 2,
-                                        background: i === currentIndex ? 'white' : 'rgba(255,255,255,0.3)',
-                                        transition: 'all 0.2s',
-                                        cursor: 'pointer',
-                                    }}
-                                />
+                            <span style={{ color: 'white', fontWeight: 700, fontSize: 16 }}>Comments</span>
+                            <button onClick={() => setShowCommentPanel(false)} style={{
+                                background: 'none', border: 'none', color: 'white', fontSize: 20, cursor: 'pointer'
+                            }}>x</button>
+                        </div>
+                        <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', maxHeight: 250 }}>
+                            {comments.length === 0 && (
+                                <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.5)', padding: 20, fontSize: 14 }}>
+                                    No comments yet. Be the first!
+                                </div>
+                            )}
+                            {comments.map((c, i) => (
+                                <div key={c.id || i} style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+                                    <div style={{
+                                        width: 32, height: 32, borderRadius: '50%', background: '#333',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        fontSize: 14, color: 'white', flexShrink: 0
+                                    }}>{(c.author?.username || 'U').charAt(0).toUpperCase()}</div>
+                                    <div>
+                                        <span style={{ color: 'white', fontWeight: 600, fontSize: 13 }}>{c.author?.username || 'User'}</span>
+                                        <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, marginTop: 2 }}>{c.content}</div>
+                                    </div>
+                                </div>
                             ))}
                         </div>
-                    )}
-
-                    {/* View count */}
-                    <div style={{
-                        position: 'absolute', bottom: 20, left: 16,
-                        color: C.textSec, fontSize: 12,
-                        display: 'flex', alignItems: 'center', gap: 4,
-                    }}>
-                        👁 {currentReel?.view_count || 0} views
+                        <div style={{
+                            padding: '10px 16px', borderTop: '1px solid rgba(255,255,255,0.1)',
+                            display: 'flex', gap: 8
+                        }}>
+                            <input
+                                value={commentText}
+                                onChange={e => setCommentText(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitComment(); } }}
+                                placeholder="Add a comment..."
+                                style={{
+                                    flex: 1, padding: '10px 14px', background: 'rgba(255,255,255,0.1)',
+                                    border: 'none', borderRadius: 20, fontSize: 14, color: 'white', outline: 'none'
+                                }}
+                            />
+                            <button
+                                onClick={submitComment}
+                                disabled={!commentText.trim() || submittingComment}
+                                style={{
+                                    padding: '8px 16px', background: '#1877F2', color: 'white',
+                                    border: 'none', borderRadius: 20, fontWeight: 600, fontSize: 13,
+                                    cursor: commentText.trim() ? 'pointer' : 'not-allowed',
+                                    opacity: commentText.trim() ? 1 : 0.5
+                                }}
+                            >{submittingComment ? '...' : 'Post'}</button>
+                        </div>
                     </div>
+                )}
 
-                    {/* Reel counter */}
+                {/* Swipe instruction */}
+                {!showCommentPanel && (
                     <div style={{
-                        position: 'absolute', bottom: 20, right: 16,
-                        color: C.textSec, fontSize: 12,
+                        position: 'absolute', bottom: 60, left: '50%', transform: 'translateX(-50%)',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 100,
                     }}>
-                        {currentIndex + 1} / {reels.length}
+                        <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Swipe up for next</span>
+                        <span style={{ fontSize: 20, marginTop: 4, color: 'rgba(255,255,255,0.6)' }}>↑</span>
                     </div>
-                </div>
-            </div>
+                )}
+
+
+            </div >
         </>
     );
 }

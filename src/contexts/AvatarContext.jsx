@@ -7,6 +7,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import supabase from '../lib/supabase.ts';
 import { getUserAvatar, setPresetAvatar, generateCustomAvatar } from '../services/avatar-service';
+import { getAuthUser } from '../lib/authUtils';
 
 const AvatarContext = createContext();
 
@@ -23,6 +24,9 @@ export function AvatarProvider({ children }) {
     const [avatar, setAvatar] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isVip, setIsVip] = useState(false);
+    // CRITICAL: Track auth initialization to prevent race condition
+    // This stays true until INITIAL_SESSION event fires from Supabase
+    const [initializing, setInitializing] = useState(true);
 
     // Fetch VIP status directly from database (not cached session)
     async function fetchVipStatus(userId) {
@@ -43,16 +47,16 @@ export function AvatarProvider({ children }) {
             if (!error && data !== null) {
                 setIsVip(data === true);
             } else {
-                // Fallback: check session metadata
-                const { data: { user: freshUser } } = await supabase.auth.getUser();
-                setIsVip(freshUser?.user_metadata?.is_vip || false);
+                // 🛡️ BULLETPROOF: Fallback to localStorage instead of getUser()
+                const localUser = getAuthUser();
+                setIsVip(localUser?.user_metadata?.is_vip || false);
             }
         } catch (err) {
             console.error('Error fetching VIP status:', err);
-            // Fallback to metadata on any error
+            // 🛡️ BULLETPROOF: Fallback to localStorage on any error
             try {
-                const { data: { user: freshUser } } = await supabase.auth.getUser();
-                setIsVip(freshUser?.user_metadata?.is_vip || false);
+                const localUser = getAuthUser();
+                setIsVip(localUser?.user_metadata?.is_vip || false);
             } catch {
                 setIsVip(false);
             }
@@ -68,26 +72,115 @@ export function AvatarProvider({ children }) {
         }
     }
 
-    // Load user on mount
+    // Load user on mount - WAIT for INITIAL_SESSION before concluding user is null
     useEffect(() => {
-        const fetchUser = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            setUser(user);
-            if (user) {
-                await fetchVipStatus(user.id);
+        // 🛡️ ANTIGRAVITY: Ensure user has profile (catches orphaned users)
+        async function ensureUserProfile(user) {
+            if (!user) return;
+            try {
+                const res = await fetch('/api/auth/ensure-profile', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: user.id,
+                        email: user.email,
+                        full_name: user.user_metadata?.full_name || user.user_metadata?.poker_alias,
+                        username: user.user_metadata?.poker_alias,
+                        avatar_url: user.user_metadata?.avatar_url,
+                        metadata: user.user_metadata
+                    })
+                });
+                const data = await res.json();
+                if (data.created) {
+                    console.log('[ANTIGRAVITY] Profile was missing - created:', data.profile?.username);
+                }
+            } catch (err) {
+                console.error('[ANTIGRAVITY] ensure-profile failed:', err);
             }
-        };
-        fetchUser();
+        }
 
-        // Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+        // Listen for auth changes - this includes INITIAL_SESSION event
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log('[AvatarContext] Auth event:', event, session?.user?.email || 'no session');
+
+            // INITIAL_SESSION fires when Supabase restores session from localStorage
+            if (event === 'INITIAL_SESSION') {
+                // If we have a session, FORCE REFRESH to renew potentially expired tokens
+                if (session?.user) {
+                    console.log('[AvatarContext] Session found, forcing refresh to renew tokens...');
+                    try {
+                        // 🛡️ CRITICAL: Use timeout to prevent infinite hang on corrupted tokens
+                        const refreshPromise = supabase.auth.refreshSession();
+                        const timeoutPromise = new Promise((_, reject) =>
+                            setTimeout(() => reject(new Error('Session refresh timeout - clearing corrupted auth')), 3000)
+                        );
+                        const { data: refreshData, error: refreshError } = await Promise.race([refreshPromise, timeoutPromise]);
+
+                        if (refreshError) {
+                            console.error('[AvatarContext] Session refresh failed:', refreshError.message);
+                            // Session is invalid, clear it AND remove corrupted localStorage key
+                            // This breaks the infinite SIGNED_OUT loop that causes 0/0/LV1 bug
+                            setUser(null);
+                            try {
+                                localStorage.removeItem('smarter-poker-auth');
+                                console.log('[AvatarContext] Cleared corrupted auth key to break loop');
+                            } catch (e) {
+                                console.warn('[AvatarContext] Failed to clear auth key:', e);
+                            }
+                        } else if (refreshData?.session?.user) {
+                            console.log('[AvatarContext] Session refreshed successfully');
+                            setUser(refreshData.session.user);
+                            // 🛡️ ANTIGRAVITY: Ensure profile exists
+                            await ensureUserProfile(refreshData.session.user);
+                            await fetchVipStatus(refreshData.session.user.id);
+                        } else {
+                            setUser(null);
+                        }
+                    } catch (err) {
+                        console.error('[AvatarContext] Refresh exception (likely timeout):', err.message);
+                        setUser(null);
+                        // Clear corrupted auth key on exception/timeout
+                        try {
+                            localStorage.removeItem('smarter-poker-auth');
+                            // Also clear any sb-* legacy keys
+                            Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.includes('auth')).forEach(k => localStorage.removeItem(k));
+                            console.log('[AvatarContext] Cleared corrupted auth keys after timeout');
+                        } catch (e) { /* ignore */ }
+                    }
+                } else {
+                    // No session at all
+                    setUser(null);
+                }
+                setInitializing(false);
+                return; // Don't process further for INITIAL_SESSION
+            }
+
+            // For other events (SIGNED_IN, SIGNED_OUT, TOKEN_REFRESHED, etc.)
             setUser(session?.user ?? null);
             if (session?.user) {
+                // 🛡️ ANTIGRAVITY: Ensure profile exists on EVERY sign-in event
+                if (event === 'SIGNED_IN') {
+                    await ensureUserProfile(session.user);
+                }
                 await fetchVipStatus(session.user.id);
             }
         });
 
-        return () => subscription.unsubscribe();
+        // Fallback timeout: if INITIAL_SESSION never fires (edge case), mark as initialized after 3s
+        const fallbackTimeout = setTimeout(() => {
+            setInitializing(prev => {
+                if (prev) {
+                    console.warn('[AvatarContext] Fallback: marking initialized after timeout');
+                    return false;
+                }
+                return prev;
+            });
+        }, 3000);
+
+        return () => {
+            subscription.unsubscribe();
+            clearTimeout(fallbackTimeout);
+        };
     }, []);
 
     // Load user's avatar when user changes
@@ -172,6 +265,7 @@ export function AvatarProvider({ children }) {
         loading,
         user,
         isVip,
+        initializing, // CRITICAL: Consumers must check this before showing "not logged in" UI
         selectPresetAvatar,
         createCustomAvatar,
         setActiveAvatar,

@@ -1,0 +1,27 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   CLUB ARENA THEME — Sci-fi, Neon, Sharks
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+body.world-club-arena {
+    /* Primary: Cyan - high-tech, neon feel */
+    --world-primary: #00d4ff;
+    --world-primary-rgb: 0, 212, 255;
+    --world-primary-glow: rgba(0, 212, 255, 0.4);
+
+    /* Secondary: Deep Blue */
+    --world-secondary: #0096ff;
+    --world-secondary-rgb: 0, 150, 255;
+
+    /* Background: Deep ocean tech */
+    --world-bg-start: #020812;
+    --world-bg-mid: #0a1a2e;
+    --world-bg-end: #010408;
+    --world-bg-gradient: radial-gradient(ellipse at center, var(--world-bg-mid) 0%, var(--world-bg-start) 70%, var(--world-bg-end) 100%);
+
+    /* Surface: Blue-tinted glass */
+    --world-surface: rgba(10, 40, 80, 0.6);
+    --world-surface-elevated: rgba(20, 50, 100, 0.8);
+
+    /* Border: Cyan accent */
+    --world-border: rgba(0, 212, 255, 0.3);
+}

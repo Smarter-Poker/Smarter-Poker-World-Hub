@@ -1,5 +1,5 @@
 /**
- * 🎮 TRAINING PAGE — 100-Game Library with Video Game Feel
+ *  TRAINING PAGE — 100-Game Library with Video Game Feel
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * Features:
@@ -15,7 +15,7 @@
 
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/dist/ScrollTrigger';
@@ -23,17 +23,27 @@ import confetti from 'canvas-confetti';
 import GameCard from '../../src/components/training/GameCard';
 import { TRAINING_LIBRARY, TRAINING_LANES, getGamesByCategory, getGamesByTag } from '../../src/data/TRAINING_LIBRARY';
 import useTrainingProgress from '../../src/hooks/useTrainingProgress';
+import { getAuthUser } from '../../src/lib/authUtils';
 import { getGameImage } from '../../src/data/GAME_IMAGES';
+import DiamondEngine from '../../src/services/DiamondEngine';
 import GameIntroSplash from '../../src/components/training/GameIntroSplash';
 import LeakFixerIntercept from '../../src/components/training/LeakFixerIntercept';
+import dynamic from 'next/dynamic';
+
+// Dynamic import for GodModeArena to avoid SSR issues
+const GodModeArena = dynamic(
+    () => import('../../src/components/training/GodModeArena'),
+    { ssr: false }
+);
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import TrainingSettingsMenu from '../../src/components/training/TrainingSettingsMenu';
 
 // God-Mode Stack
 import { useTrainingStore } from '../../src/stores/trainingStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import { masteryCelebration, achievementCelebration } from '../../src/utils/confetti';
 import toast from '../../src/stores/toastStore';
-// import { trainingSounds } from '../../src/utils/trainingSounds'; // TODO: Add sounds when files are ready
+import { trainingSounds } from '../../src/utils/trainingSounds';
 
 // Register GSAP plugins
 if (typeof window !== 'undefined') {
@@ -66,28 +76,25 @@ const CATEGORIES = [
 
 function TrainingHeader({ gamesPlayed = 0 }) {
     const router = useRouter();
-    const [diamonds, setDiamonds] = useState(300);
-    const [xp, setXp] = useState(50);
+    const [diamonds, setDiamonds] = useState(0);
     const [avatarUrl, setAvatarUrl] = useState(null);
 
-    // Fetch user profile data
+    // Fetch user profile data using authUtils
     useEffect(() => {
         const fetchProfile = async () => {
             try {
-                // Use the shared singleton for global auth
-                const { supabase } = await import('../../src/lib/supabase');
-                const { data: { user } } = await supabase.auth.getUser();
-                if (user) {
-                    const { data: profile } = await supabase
-                        .from('profiles')
-                        .select('avatar_url, diamonds, xp')
-                        .eq('id', user.id)
-                        .maybeSingle();
+                const { getAuthUser, queryProfiles, queryDiamondBalance } = await import('../../src/lib/authUtils');
+                const authUser = getAuthUser();
+                if (authUser) {
+                    // Fetch profile for avatar only
+                    const profile = await queryProfiles(authUser.id, 'avatar_url');
+                    // Fetch diamond balance from user_diamond_balance table
+                    const diamondBalance = await queryDiamondBalance(authUser.id);
+
                     if (profile) {
                         setAvatarUrl(profile.avatar_url);
-                        if (profile.diamonds) setDiamonds(profile.diamonds);
-                        if (profile.xp) setXp(profile.xp);
                     }
+                    setDiamonds(diamondBalance);
                 }
             } catch (e) {
                 console.error('Failed to fetch profile:', e);
@@ -123,16 +130,15 @@ function TrainingHeader({ gamesPlayed = 0 }) {
                     onClick={() => router.push('/hub/diamond-store')}
                     style={{ ...headerStyles.statChip, cursor: 'pointer' }}
                 >
-                    <span style={{ fontSize: 14 }}>💎</span>
+                    <span style={{ fontSize: 14 }}>Diamonds</span>
                     <span style={headerStyles.statValue}>{diamonds.toLocaleString()}</span>
                     <span style={headerStyles.plusIcon}>+</span>
                 </div>
 
-                {/* XP */}
-                <div style={headerStyles.statChip}>
-                    <span style={{ fontSize: 12, color: '#FFD700' }}>XP</span>
-                    <span style={headerStyles.statValue}>{xp.toLocaleString()}</span>
-                </div>
+
+
+                {/* Settings Menu Button */}
+                <TrainingSettingsMenu />
 
                 {/* Profile Orb → Profile Page */}
                 <div
@@ -332,7 +338,7 @@ function StreaksBadge({ bestStreak }) {
             transition={{ duration: 0.4 }}
         >
             <div style={streakStyles.content}>
-                <span style={streakStyles.icon}>🔥</span>
+                <span style={streakStyles.icon}></span>
                 <div style={streakStyles.textContainer}>
                     <span style={streakStyles.label}>BEST STREAK</span>
                     <span style={streakStyles.value}>{bestStreak} in a row</span>
@@ -413,6 +419,116 @@ function FilterBar({ active, onFilter, gameCount }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// 💎 OUT OF DIAMONDS MODAL
+// ═══════════════════════════════════════════════════════════════════════════
+function OutOfDiamondsModal({ isOpen, onClose, gameCost = 10 }) {
+    const router = useRouter();
+    if (!isOpen) return null;
+
+    return (
+        <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.85)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000,
+        }}>
+            <div style={{
+                background: 'linear-gradient(135deg, #1a0a2a, #0a0a12)',
+                borderRadius: 24,
+                padding: 32,
+                maxWidth: 420,
+                width: '90%',
+                textAlign: 'center',
+                border: '2px solid rgba(255, 107, 0, 0.5)',
+                boxShadow: '0 0 60px rgba(255, 107, 0, 0.3)',
+            }}>
+                <div style={{ fontSize: 64, marginBottom: 16 }}>💎</div>
+                <h2 style={{
+                    fontFamily: 'Orbitron, sans-serif',
+                    fontSize: 28,
+                    fontWeight: 900,
+                    color: '#ff6b00',
+                    marginBottom: 8,
+                }}>OUT OF DIAMONDS</h2>
+                <p style={{
+                    color: 'rgba(255,255,255,0.7)',
+                    fontSize: 16,
+                    marginBottom: 24,
+                    lineHeight: 1.6,
+                }}>
+                    You need <strong style={{ color: '#FFD700' }}>{gameCost} diamonds</strong> to play this training game.
+                </p>
+
+                <div style={{
+                    background: 'linear-gradient(135deg, rgba(138, 43, 226, 0.2), rgba(0, 212, 255, 0.2))',
+                    borderRadius: 16,
+                    padding: 20,
+                    marginBottom: 24,
+                    border: '1px solid rgba(138, 43, 226, 0.3)',
+                }}>
+                    <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>
+                        🎁 GET VIP FOR
+                    </div>
+                    <div style={{
+                        fontFamily: 'Orbitron, sans-serif',
+                        fontSize: 32,
+                        fontWeight: 900,
+                        color: '#fff',
+                        marginBottom: 4,
+                    }}>
+                        $19.99<span style={{ fontSize: 16, opacity: 0.7 }}>/month</span>
+                    </div>
+                    <div style={{ color: '#00ff88', fontSize: 14, fontWeight: 600 }}>
+                        UNLIMITED ACCESS • No diamonds needed
+                    </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: 12 }}>
+                    <button
+                        onClick={onClose}
+                        style={{
+                            flex: 1,
+                            padding: '14px 24px',
+                            background: 'rgba(255,255,255,0.1)',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            borderRadius: 12,
+                            color: '#fff',
+                            fontSize: 14,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                        }}
+                    >
+                        Maybe Later
+                    </button>
+                    <button
+                        onClick={() => router.push('/hub/store?tab=vip')}
+                        style={{
+                            flex: 1,
+                            padding: '14px 24px',
+                            background: 'linear-gradient(135deg, #ff6b00, #ff0066)',
+                            border: 'none',
+                            borderRadius: 12,
+                            color: '#fff',
+                            fontSize: 14,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                        }}
+                    >
+                        Get Diamonds
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // GAME LANE (Horizontal scroll) - Mobile Optimized
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -486,6 +602,66 @@ export default function TrainingPage() {
     const markGameCelebrated = useTrainingStore((s) => s.markGameCelebrated);
     const celebratedGames = useTrainingStore((s) => s.celebratedGames);
 
+    //  ARENA STATE - Show arena inline after intro video
+    const [showArena, setShowArena] = useState(false);
+    const [activeGame, setActiveGame] = useState(null);
+
+    //  INTRO VIDEO STATE - Video plays while page loads in background
+    // Only show once per session (not on every reload)
+    const [showPageIntro, setShowPageIntro] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return !sessionStorage.getItem('training-intro-seen');
+        }
+        return false;
+    });
+    const introVideoRef = useRef(null);
+
+    // 🎛️ SETTINGS MENU STATE
+    const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+
+    // 💎 DIAMOND ENTRY FEE STATE
+    const [isVIP, setIsVIP] = useState(false);
+    const [diamondBalance, setDiamondBalance] = useState(0);
+    const [showOutOfDiamondsModal, setShowOutOfDiamondsModal] = useState(false);
+    const GAME_COST = 10; // 10 diamonds per training game
+
+    // Mark intro as seen when it ends
+    const handleIntroEnd = useCallback(() => {
+        sessionStorage.setItem('training-intro-seen', 'true');
+        setShowPageIntro(false);
+    }, []);
+
+    // Attempt to unmute video after it starts playing
+    const handleIntroPlay = useCallback(() => {
+        if (introVideoRef.current) {
+            introVideoRef.current.muted = false;
+        }
+    }, []);
+
+    // 💎 Initialize DiamondEngine and check VIP status
+    useEffect(() => {
+        const initializeDiamondEngine = async () => {
+            try {
+                const authUser = getAuthUser();
+                if (authUser) {
+                    await DiamondEngine.init(authUser.id);
+                    const balance = await DiamondEngine.getBalance();
+                    const vipStatus = await DiamondEngine.isVIP();
+                    setDiamondBalance(balance);
+                    setIsVIP(vipStatus);
+                } else {
+                    // Guest user - use localStorage fallback
+                    await DiamondEngine.init(null);
+                    const balance = await DiamondEngine.getBalance();
+                    setDiamondBalance(balance);
+                }
+            } catch (e) {
+                console.error('[Training] Failed to initialize DiamondEngine:', e);
+            }
+        };
+        initializeDiamondEngine();
+    }, []);
+
     const {
         isLoaded,
         progress,
@@ -543,8 +719,18 @@ export default function TrainingPage() {
     const leakGames = getLeakGames(TRAINING_LIBRARY);
 
     // Handle game click - Show intro video first, then navigate
-    const handleGameClick = (game) => {
+    const handleGameClick = async (game) => {
         console.log('🎮 Launching game:', game.name);
+
+        // 💎 Check diamond access - VIP plays free, others pay 10 diamonds
+        if (!isVIP) {
+            const result = await DiamondEngine.deduct(GAME_COST);
+            if (!result.success) {
+                setShowOutOfDiamondsModal(true);
+                return;
+            }
+            setDiamondBalance(result.balance);
+        }
 
         // Check if game was just mastered (trigger celebration)
         const gameProgress = getGameProgress(game.id);
@@ -559,7 +745,7 @@ export default function TrainingPage() {
                 origin: { y: 0.6 },
                 colors: ['#FFD700', '#FF6B35', '#00D4FF'],
             });
-            // trainingSounds.play('mastery'); // TODO: Uncomment when sounds ready
+            trainingSounds.play('mastery');
             markGameCelebrated(game.id);
         }
 
@@ -572,13 +758,28 @@ export default function TrainingPage() {
         router.push(`/hub/training/category/${categoryId}`);
     };
 
-    // After intro video completes, navigate to the game
+    // After intro video completes, show arena inline (don't navigate away)
     const handleIntroComplete = () => {
         setShowIntro(false);
         if (pendingGame) {
-            router.push(`/hub/training/play/${pendingGame.id}`);
+            setActiveGame(pendingGame);
+            setShowArena(true);
             setPendingGame(null);
         }
+    };
+
+    // Handle exiting the arena - return to training page
+    const handleArenaExit = () => {
+        setShowArena(false);
+        setActiveGame(null);
+    };
+
+    // Handle arena completion
+    const handleArenaComplete = (results) => {
+        console.log('Trophy Arena complete:', results);
+        // Could show results modal or update progress here
+        setShowArena(false);
+        setActiveGame(null);
     };
 
     // Handle featured play
@@ -611,6 +812,58 @@ export default function TrainingPage() {
 
     return (
         <PageTransition>
+            {/*  INTRO VIDEO OVERLAY - Plays while page loads behind it */}
+            {showPageIntro && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    zIndex: 99999,
+                    background: '#000',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                }}>
+                    <video
+                        ref={introVideoRef}
+                        src="/videos/training-intro.mp4"
+                        autoPlay
+                        muted
+                        playsInline
+                        onPlay={handleIntroPlay}
+                        onEnded={handleIntroEnd}
+                        onError={handleIntroEnd}
+                        style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover'
+                        }}
+                    />
+                    {/* Skip button */}
+                    <button
+                        onClick={handleIntroEnd}
+                        style={{
+                            position: 'absolute',
+                            top: 20,
+                            right: 20,
+                            padding: '8px 20px',
+                            background: 'rgba(255,255,255,0.2)',
+                            backdropFilter: 'blur(10px)',
+                            border: '1px solid rgba(255,255,255,0.3)',
+                            borderRadius: 20,
+                            color: 'white',
+                            fontSize: 14,
+                            fontWeight: 500,
+                            cursor: 'pointer',
+                            zIndex: 100000
+                        }}
+                    >
+                        Skip
+                    </button>
+                </div>
+            )}
             <Head>
                 <title>Training — PokerIQ | 100 Games to Master</title>
                 {/* 
@@ -626,147 +879,154 @@ export default function TrainingPage() {
                     - iPad (768px): zoom = 768/800 = 0.96x (96% of desktop size)
                     - Desktop (1440px): zoom = 1440/800 = 1.8x (180% of desktop size - capped)
                 */}
-                <meta name="viewport" content="width=800, user-scalable=no" />
+                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
                 <style>{`
                     /* Scrollbar styling */
                     ::-webkit-scrollbar { height: 6px; }
                     ::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
                     ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
                     
-                    /* ═══════════════════════════════════════════════════════════════════
-                       SMARTER.POKER 800px DESIGN - Fixed breakpoints for stability
-                       ═══════════════════════════════════════════════════════════════════ */
+                    /* MOBILE RESPONSIVE - No zoom scaling */
                     .training-page {
-                        width: 800px;
-                        max-width: 800px;
+                        width: 100%;
+                        max-width: 100%;
                         margin: 0 auto;
                         overflow-x: hidden;
-                    }
-                    
-                    /* Mobile phones (390-450px) - zoom to ~50% */
-                    @media (max-width: 500px) {
-                        .training-page { zoom: 0.5; }
-                    }
-                    
-                    /* Large phones / small tablets (501-700px) */
-                    @media (min-width: 501px) and (max-width: 700px) {
-                        .training-page { zoom: 0.75; }
-                    }
-                    
-                    /* Tablets (701-900px) */
-                    @media (min-width: 701px) and (max-width: 900px) {
-                        .training-page { zoom: 0.95; }
-                    }
-                    
-                    /* Desktop (901px+) - native size or slight scale up */
-                    @media (min-width: 901px) {
-                        .training-page { zoom: 1.2; }
-                    }
-                    
-                    /* Large desktop (1400px+) - cap at 1.5x */
-                    @media (min-width: 1400px) {
-                        .training-page { zoom: 1.5; }
+                        box-sizing: border-box;
                     }
                 `}</style>
             </Head>
 
-            {/* Video Intro Splash - Shows before loading any game */}
-            <GameIntroSplash
-                isVisible={showIntro}
-                game={pendingGame ? { ...pendingGame, image: getGameImage(pendingGame.id) } : null}
-                onComplete={handleIntroComplete}
-            />
-
-            {/* LAW 1: Leak Fixer Intercept - Shows when leaks are detected */}
-            <LeakFixerIntercept
-                onDismiss={() => console.log('[LAW 1] Intercept dismissed')}
-                onAccept={(clinic) => console.log('[LAW 1] Starting clinic:', clinic.name)}
-            />
-
-            <div className="training-page" style={styles.page}>
-                {/* Fixed Header - Universal Header with Hub navigation */}
-                <UniversalHeader pageDepth={1} />
-
-                {/* Promo/Ad Section */}
-                <PromoSection onPlayFeatured={handlePlayFeatured} />
-
-                {/* Streaks Badge */}
-                <StreaksBadge bestStreak={bestStreak} />
-
-                {/* Filters */}
-                <FilterBar
-                    active={activeFilter}
-                    onFilter={setActiveFilter}
-                    gameCount={filteredGames.length}
+            {/*  INLINE ARENA - Takes over entire page when active */}
+            {showArena && activeGame && (
+                <GodModeArena
+                    userId={getAuthUser()?.id || `anon-${Date.now()}`}
+                    gameId={activeGame.id}
+                    gameName={activeGame.name}
+                    level={1}
+                    sessionId={`session-${Date.now()}`}
+                    onComplete={handleArenaComplete}
+                    onExit={handleArenaExit}
                 />
+            )}
 
-                {/* Game Lanes */}
-                <div className="lanes-container-responsive" style={styles.lanesContainer}>
-                    {/* TODAY'S DAILY CHALLENGE lane */}
-                    {dailyChallenges.length > 0 && activeFilter === 'ALL' && (
-                        <GameLane
-                            title="TODAY'S DAILY CHALLENGE"
-                            color="#FFD700"
-                            games={dailyChallenges}
-                            onGameClick={handleGameClick}
-                            getProgress={getGameProgress}
+            {/* Normal training page content - hidden when arena is active */}
+            {!showArena && (
+                <>
+                    {/* Video Intro Splash - Shows before loading any game */}
+                    <GameIntroSplash
+                        isVisible={showIntro}
+                        game={pendingGame ? { ...pendingGame, image: getGameImage(pendingGame.id) } : null}
+                        onComplete={handleIntroComplete}
+                    />
+
+                    {/* LAW 1: Leak Fixer Intercept - Shows when leaks are detected */}
+                    <LeakFixerIntercept
+                        onDismiss={() => console.log('[LAW 1] Intercept dismissed')}
+                        onAccept={(clinic) => console.log('[LAW 1] Starting clinic:', clinic.name)}
+                    />
+
+                    {/* 💎 Out of Diamonds Modal */}
+                    <OutOfDiamondsModal
+                        isOpen={showOutOfDiamondsModal}
+                        onClose={() => setShowOutOfDiamondsModal(false)}
+                        gameCost={GAME_COST}
+                    />
+
+                    <div className="training-page" style={styles.page}>
+                        {/* Fixed Header - Universal Header with Hub navigation + Settings Menu */}
+                        <UniversalHeader
+                            pageDepth={1}
+                            onMenuClick={() => setShowSettingsMenu(true)}
                         />
-                    )}
 
-                    {/* FIX YOUR LEAKS lane */}
-                    {leakGames.length > 0 && activeFilter === 'ALL' && (
-                        <GameLane
-                            title="FIX YOUR LEAKS"
-                            color="#FF4444"
-                            games={leakGames}
-                            onGameClick={handleGameClick}
-                            getProgress={getGameProgress}
-                            badge="BELOW 70%!"
+                        {/* Training Settings Drawer */}
+                        {showSettingsMenu && (
+                            <TrainingSettingsMenu onClose={() => setShowSettingsMenu(false)} />
+                        )}
+
+                        {/* Promo/Ad Section */}
+                        <PromoSection onPlayFeatured={handlePlayFeatured} />
+
+                        {/* Streaks Badge */}
+                        <StreaksBadge bestStreak={bestStreak} />
+
+                        {/* Filters */}
+                        <FilterBar
+                            active={activeFilter}
+                            onFilter={setActiveFilter}
+                            gameCount={filteredGames.length}
                         />
-                    )}
 
-                    {/* Category lanes */}
-                    {activeFilter === 'ALL' ? (
-                        // Show all category lanes (4 games each, clickable headers)
-                        CATEGORIES.map(cat => (
-                            <GameLane
-                                key={cat.id}
-                                title={cat.title}
-                                color={cat.color}
-                                games={getGamesByCategory(cat.id)}
-                                onGameClick={handleGameClick}
-                                getProgress={getGameProgress}
-                                categoryId={cat.id}
-                                onCategoryClick={handleCategoryClick}
-                            />
-                        ))
-                    ) : (
-                        // Show filtered games in a single lane for the selected category
-                        (() => {
-                            const activeCategory = CATEGORIES.find(c => c.id === activeFilter);
-                            const activeFilterConfig = FILTERS.find(f => f.id === activeFilter);
-                            return (
+                        {/* Game Lanes */}
+                        <div className="lanes-container-responsive" style={styles.lanesContainer}>
+                            {/* TODAY'S DAILY CHALLENGE lane */}
+                            {dailyChallenges.length > 0 && activeFilter === 'ALL' && (
                                 <GameLane
-                                    title={activeCategory?.title || activeFilterConfig?.laneTitle || `${activeFilter} TRAINING`}
-                                    color={activeCategory?.color || activeFilterConfig?.color || '#fff'}
-                                    games={filteredGames}
+                                    title="TODAY'S DAILY CHALLENGE"
+                                    color="#FFD700"
+                                    games={dailyChallenges}
                                     onGameClick={handleGameClick}
                                     getProgress={getGameProgress}
                                 />
-                            );
-                        })()
-                    )}
-                </div>
+                            )}
 
-                {/* Footer stats */}
-                <div style={styles.footer}>
-                    <span>100 Training Games</span>
-                    <span>•</span>
-                    <span>2,000 Levels</span>
-                    <span>•</span>
-                    <span>85% to Master</span>
-                </div>
-            </div>
+                            {/* FIX YOUR LEAKS lane */}
+                            {leakGames.length > 0 && activeFilter === 'ALL' && (
+                                <GameLane
+                                    title="FIX YOUR LEAKS"
+                                    color="#FF4444"
+                                    games={leakGames}
+                                    onGameClick={handleGameClick}
+                                    getProgress={getGameProgress}
+                                    badge="BELOW 70%!"
+                                />
+                            )}
+
+                            {/* Category lanes */}
+                            {activeFilter === 'ALL' ? (
+                                // Show all category lanes (4 games each, clickable headers)
+                                CATEGORIES.map(cat => (
+                                    <GameLane
+                                        key={cat.id}
+                                        title={cat.title}
+                                        color={cat.color}
+                                        games={getGamesByCategory(cat.id)}
+                                        onGameClick={handleGameClick}
+                                        getProgress={getGameProgress}
+                                        categoryId={cat.id}
+                                        onCategoryClick={handleCategoryClick}
+                                    />
+                                ))
+                            ) : (
+                                // Show filtered games in a single lane for the selected category
+                                (() => {
+                                    const activeCategory = CATEGORIES.find(c => c.id === activeFilter);
+                                    const activeFilterConfig = FILTERS.find(f => f.id === activeFilter);
+                                    return (
+                                        <GameLane
+                                            title={activeCategory?.title || activeFilterConfig?.laneTitle || `${activeFilter} TRAINING`}
+                                            color={activeCategory?.color || activeFilterConfig?.color || '#fff'}
+                                            games={filteredGames}
+                                            onGameClick={handleGameClick}
+                                            getProgress={getGameProgress}
+                                        />
+                                    );
+                                })()
+                            )}
+                        </div>
+
+                        {/* Footer stats */}
+                        <div style={styles.footer}>
+                            <span>100 Training Games</span>
+                            <span>•</span>
+                            <span>2,000 Levels</span>
+                            <span>•</span>
+                            <span>85% to Master</span>
+                        </div>
+                    </div>
+                </>
+            )}
         </PageTransition>
     );
 }
@@ -838,7 +1098,7 @@ const styles = {
             radial-gradient(circle at 20% 50%, rgba(255,107,53,0.3) 0%, transparent 50%),
             radial-gradient(circle at 80% 50%, rgba(0,212,255,0.2) 0%, transparent 50%),
             linear-gradient(180deg, #0a0a15 0%, #1a2744 100%)
-        `,
+            `,
     },
 
     particleOverlay: {
@@ -1105,3 +1365,4 @@ const styles = {
         marginTop: 'var(--vp-space-xl, 4vw)',
     },
 };
+// Deploy trigger Thu Jan 29 00:08:41 CST 2026

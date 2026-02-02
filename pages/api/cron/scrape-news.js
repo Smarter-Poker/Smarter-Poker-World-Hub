@@ -10,18 +10,21 @@ const supabase = createClient(
 );
 
 // RSS feed sources for poker news
+// NOTE: Only sources with WORKING RSS feeds are included here.
+// MSPT, WSOP, Pokerfuse, and Poker.org do NOT have working RSS feeds
+// and are scraped directly via /api/cron/news-scraper
 const NEWS_SOURCES = [
     {
         name: 'PokerNews',
         source_name: 'PokerNews',
-        url: 'https://www.pokernews.com/rss.xml',
+        url: 'https://www.pokernews.com/rss.php',  // Fixed URL - was /rss.xml (404)
         category: 'tournament'
     },
     {
-        name: 'PokerOrg',
-        source_name: 'Poker.org',
-        url: 'https://www.poker.org/feed/',
-        category: 'industry'
+        name: 'CardPlayer',
+        source_name: 'CardPlayer',
+        url: 'https://www.cardplayer.com/poker-news.rss',  // Fixed URL - was /poker-news/rss (403)
+        category: 'news'
     }
 ];
 
@@ -41,14 +44,118 @@ function estimateReadTime(content) {
     return Math.max(1, Math.ceil(words / wordsPerMinute));
 }
 
+// Extract image URL from RSS item using multiple methods
+function extractImageFromRSS(item, description) {
+    // Method 1: media:content or media:thumbnail
+    const mediaMatch = item.match(/<media:(?:content|thumbnail)[^>]*url="([^"]+)"/);
+    if (mediaMatch) return mediaMatch[1];
+
+    // Method 2: enclosure tag
+    const enclosureMatch = item.match(/<enclosure[^>]*url="([^"]+)"[^>]*type="image/);
+    if (enclosureMatch) return enclosureMatch[1];
+
+    // Method 3: image tag inside item
+    const imageTagMatch = item.match(/<image>[\s\S]*?<url>([^<]+)<\/url>/);
+    if (imageTagMatch) return imageTagMatch[1];
+
+    // Method 4: img src in description/content
+    const imgMatch = description?.match(/<img[^>]+src=["']([^"']+)["']/);
+    if (imgMatch) return imgMatch[1];
+
+    // Method 5: content:encoded with image
+    const contentEncoded = item.match(/<content:encoded>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/content:encoded>/);
+    if (contentEncoded) {
+        const imgInContent = contentEncoded[1].match(/<img[^>]+src=["']([^"']+)["']/);
+        if (imgInContent) return imgInContent[1];
+    }
+
+    return null;
+}
+
+// Contextual fallback images based on article keywords (using reliable Pexels poker images)
+// This prevents all articles from showing the same generic fallback
+const KEYWORD_IMAGES = {
+    // Tournament & competition keywords
+    tournament: 'https://images.pexels.com/photos/6664248/pexels-photo-6664248.jpeg?auto=compress&cs=tinysrgb&w=800',
+    wsop: 'https://images.pexels.com/photos/3279691/pexels-photo-3279691.jpeg?auto=compress&cs=tinysrgb&w=800',
+    wpt: 'https://images.pexels.com/photos/6664248/pexels-photo-6664248.jpeg?auto=compress&cs=tinysrgb&w=800',
+    series: 'https://images.pexels.com/photos/3279691/pexels-photo-3279691.jpeg?auto=compress&cs=tinysrgb&w=800',
+    main: 'https://images.pexels.com/photos/6664248/pexels-photo-6664248.jpeg?auto=compress&cs=tinysrgb&w=800',
+    event: 'https://images.pexels.com/photos/3279691/pexels-photo-3279691.jpeg?auto=compress&cs=tinysrgb&w=800',
+    bracelet: 'https://images.pexels.com/photos/6664248/pexels-photo-6664248.jpeg?auto=compress&cs=tinysrgb&w=800',
+    champion: 'https://images.pexels.com/photos/3279691/pexels-photo-3279691.jpeg?auto=compress&cs=tinysrgb&w=800',
+    winner: 'https://images.pexels.com/photos/6664248/pexels-photo-6664248.jpeg?auto=compress&cs=tinysrgb&w=800',
+    wins: 'https://images.pexels.com/photos/6664248/pexels-photo-6664248.jpeg?auto=compress&cs=tinysrgb&w=800',
+    // Money keywords
+    million: 'https://images.pexels.com/photos/4386366/pexels-photo-4386366.jpeg?auto=compress&cs=tinysrgb&w=800',
+    pot: 'https://images.pexels.com/photos/4386366/pexels-photo-4386366.jpeg?auto=compress&cs=tinysrgb&w=800',
+    cash: 'https://images.pexels.com/photos/4386366/pexels-photo-4386366.jpeg?auto=compress&cs=tinysrgb&w=800',
+    // Online poker keywords
+    online: 'https://images.pexels.com/photos/4254890/pexels-photo-4254890.jpeg?auto=compress&cs=tinysrgb&w=800',
+    ggpoker: 'https://images.pexels.com/photos/4254890/pexels-photo-4254890.jpeg?auto=compress&cs=tinysrgb&w=800',
+    pokerstars: 'https://images.pexels.com/photos/4254890/pexels-photo-4254890.jpeg?auto=compress&cs=tinysrgb&w=800',
+    partypoker: 'https://images.pexels.com/photos/4254890/pexels-photo-4254890.jpeg?auto=compress&cs=tinysrgb&w=800',
+    '888poker': 'https://images.pexels.com/photos/4254890/pexels-photo-4254890.jpeg?auto=compress&cs=tinysrgb&w=800',
+    // Strategy keywords
+    strategy: 'https://images.pexels.com/photos/279009/pexels-photo-279009.jpeg?auto=compress&cs=tinysrgb&w=800',
+    tip: 'https://images.pexels.com/photos/279009/pexels-photo-279009.jpeg?auto=compress&cs=tinysrgb&w=800',
+    defend: 'https://images.pexels.com/photos/279009/pexels-photo-279009.jpeg?auto=compress&cs=tinysrgb&w=800',
+    bluff: 'https://images.pexels.com/photos/279009/pexels-photo-279009.jpeg?auto=compress&cs=tinysrgb&w=800',
+    fold: 'https://images.pexels.com/photos/279009/pexels-photo-279009.jpeg?auto=compress&cs=tinysrgb&w=800',
+    // Player-focused keywords
+    player: 'https://images.pexels.com/photos/1871508/pexels-photo-1871508.jpeg?auto=compress&cs=tinysrgb&w=800',
+    pro: 'https://images.pexels.com/photos/1871508/pexels-photo-1871508.jpeg?auto=compress&cs=tinysrgb&w=800'
+};
+
+// Rotate through these for variety when no keyword matches
+const POKER_IMAGE_ROTATION = [
+    'https://images.pexels.com/photos/1871508/pexels-photo-1871508.jpeg?auto=compress&cs=tinysrgb&w=800',
+    'https://images.pexels.com/photos/279009/pexels-photo-279009.jpeg?auto=compress&cs=tinysrgb&w=800',
+    'https://images.pexels.com/photos/6664248/pexels-photo-6664248.jpeg?auto=compress&cs=tinysrgb&w=800',
+    'https://images.pexels.com/photos/4254890/pexels-photo-4254890.jpeg?auto=compress&cs=tinysrgb&w=800',
+    'https://images.pexels.com/photos/4386366/pexels-photo-4386366.jpeg?auto=compress&cs=tinysrgb&w=800',
+    'https://images.pexels.com/photos/4386331/pexels-photo-4386331.jpeg?auto=compress&cs=tinysrgb&w=800'
+];
+let rotationIndex = 0;
+
+// Get contextual image based on article title
+function getContextualFallbackImage(title) {
+    const lowerTitle = title.toLowerCase();
+
+    // Check for keyword matches
+    for (const [keyword, imageUrl] of Object.entries(KEYWORD_IMAGES)) {
+        if (lowerTitle.includes(keyword)) {
+            return imageUrl;
+        }
+    }
+
+    // Rotate through poker images for variety
+    const image = POKER_IMAGE_ROTATION[rotationIndex % POKER_IMAGE_ROTATION.length];
+    rotationIndex++;
+    return image;
+}
+
+// Category-specific fallback images (used as last resort)
+const CATEGORY_IMAGES = {
+    tournament: 'https://images.pexels.com/photos/1871508/pexels-photo-1871508.jpeg?auto=compress&cs=tinysrgb&w=800',
+    strategy: 'https://images.pexels.com/photos/279009/pexels-photo-279009.jpeg?auto=compress&cs=tinysrgb&w=800',
+    industry: 'https://images.pexels.com/photos/3279691/pexels-photo-3279691.jpeg?auto=compress&cs=tinysrgb&w=800',
+    news: 'https://images.pexels.com/photos/6664248/pexels-photo-6664248.jpeg?auto=compress&cs=tinysrgb&w=800',
+    online: 'https://images.pexels.com/photos/4254890/pexels-photo-4254890.jpeg?auto=compress&cs=tinysrgb&w=800'
+};
+
 // Parse RSS XML to articles
 async function parseRSS(url, category, sourceName) {
     try {
         const response = await fetch(url, {
-            headers: { 'User-Agent': 'Smarter.Poker News Bot/1.0' }
+            headers: { 'User-Agent': 'Smarter.Poker News Bot/1.0' },
+            timeout: 10000
         });
 
-        if (!response.ok) return [];
+        if (!response.ok) {
+            console.log(`[RSS] ${sourceName} returned ${response.status}`);
+            return [];
+        }
 
         const xml = await response.text();
         const articles = [];
@@ -59,7 +166,6 @@ async function parseRSS(url, category, sourceName) {
         const linkRegex = /<link>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/link>/;
         const descRegex = /<description>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/description>/;
         const pubDateRegex = /<pubDate>(.*?)<\/pubDate>/;
-        const imageRegex = /<media:content[^>]*url="([^"]+)"|<enclosure[^>]*url="([^"]+)"/;
 
         let match;
         while ((match = itemRegex.exec(xml)) !== null) {
@@ -69,11 +175,14 @@ async function parseRSS(url, category, sourceName) {
             const linkMatch = item.match(linkRegex);
             const descMatch = item.match(descRegex);
             const dateMatch = item.match(pubDateRegex);
-            const imageMatch = item.match(imageRegex);
 
             if (titleMatch && titleMatch[1]) {
                 const title = titleMatch[1].trim();
-                const content = descMatch ? descMatch[1].replace(/<[^>]+>/g, '').trim() : '';
+                const rawDesc = descMatch ? descMatch[1] : '';
+                const content = rawDesc.replace(/<[^>]+>/g, '').trim();
+
+                // Get image using multiple extraction methods
+                const extractedImage = extractImageFromRSS(item, rawDesc);
 
                 articles.push({
                     title,
@@ -81,8 +190,7 @@ async function parseRSS(url, category, sourceName) {
                     content: content.substring(0, 2000),
                     excerpt: content.substring(0, 200),
                     source_url: linkMatch ? linkMatch[1].trim() : null,
-                    image_url: imageMatch ? (imageMatch[1] || imageMatch[2]) :
-                        `https://images.unsplash.com/photo-1511193311914-0346f16efe90?w=800&q=80`,
+                    image_url: extractedImage || getContextualFallbackImage(title),
                     category,
                     source_name: sourceName || 'Smarter.Poker',
                     read_time: estimateReadTime(content),
@@ -94,85 +202,15 @@ async function parseRSS(url, category, sourceName) {
             }
         }
 
+        console.log(`[RSS] ${sourceName}: found ${articles.length} articles`);
         return articles.slice(0, 5); // Limit per source
     } catch (error) {
-        console.error(`Failed to parse RSS from ${url}:`, error);
+        console.error(`Failed to parse RSS from ${url}:`, error.message);
         return [];
     }
 }
 
-// Generate synthetic news when RSS fails
-function generateSyntheticNews() {
-    const templates = [
-        {
-            title: `Major Tournament Series Kicks Off This Weekend`,
-            content: `Poker enthusiasts are gearing up for one of the biggest tournament series of the year. The event is expected to draw thousands of players from around the world.`,
-            category: 'tournament'
-        },
-        {
-            title: `New Strategy Guide: Mastering Position Play`,
-            content: `Understanding position is crucial for winning poker. This comprehensive guide breaks down how to leverage your seat at the table for maximum profit.`,
-            category: 'strategy'
-        },
-        {
-            title: `Industry Update: Online Poker Continues Growth`,
-            content: `The online poker industry sees continued expansion as more players join the virtual felts. New platforms and features are driving engagement.`,
-            category: 'industry'
-        },
-        {
-            title: `Pro Player Shares Insights on Bankroll Management`,
-            content: `Successful poker players know that bankroll management is key to longevity. Learn the strategies the pros use to protect their stacks.`,
-            category: 'strategy'
-        },
-        {
-            title: `Weekend Poker Roundup: Key Highlights`,
-            content: `This weekend saw exciting action across multiple poker formats. From high-stakes cash games to tournament finals, the action never stopped.`,
-            category: 'news'
-        }
-    ];
 
-    const now = new Date();
-    return templates.map((t, i) => ({
-        ...t,
-        slug: generateSlug(t.title + '-' + now.getTime()),
-        excerpt: t.content.substring(0, 150),
-        image_url: `https://images.unsplash.com/photo-${1511193311914 + i}-0346f16efe90?w=800&q=80`,
-        source_url: `https://smarter.poker/hub/news/${now.getTime()}-${i}`,
-        source_name: 'Smarter.Poker',
-        read_time: 3,
-        views: Math.floor(Math.random() * 1000) + 100,
-        author_name: 'Smarter.Poker',
-        is_featured: i === 0,
-        is_published: true,
-        published_at: new Date(now.getTime() - i * 3600000).toISOString()
-    }));
-}
-
-// Create social post from news article
-async function createSocialPost(article) {
-    try {
-        // Get system account ID
-        const { data: systemUser } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('username', 'smarter_poker')
-            .single();
-
-        if (!systemUser) return;
-
-        const postContent = `📰 ${article.title}\n\n${article.excerpt}\n\n#PokerNews #SmarterPoker`;
-
-        await supabase.from('social_posts').insert({
-            author_id: systemUser.id,
-            content: postContent,
-            content_type: 'article',
-            media_urls: article.image_url ? [article.image_url] : [],
-            visibility: 'public'
-        });
-    } catch (error) {
-        console.error('Failed to create social post:', error);
-    }
-}
 
 export default async function handler(req, res) {
     // Verify cron secret for Vercel Cron jobs
@@ -195,10 +233,16 @@ export default async function handler(req, res) {
             allArticles = [...allArticles, ...articles];
         }
 
-        // Fall back to synthetic news if RSS fails
+        // If no articles found from RSS, just log and return - no fake data
         if (allArticles.length === 0) {
-            console.log('[News Scraper] RSS failed, generating synthetic news...');
-            allArticles = generateSyntheticNews();
+            console.log('[News Scraper] No articles found from RSS feeds');
+            return res.status(200).json({
+                success: true,
+                message: 'No new articles found',
+                scraped: 0,
+                inserted: 0,
+                timestamp: new Date().toISOString()
+            });
         }
 
         // Filter out duplicates by checking existing slugs
@@ -222,11 +266,6 @@ export default async function handler(req, res) {
                 console.error('[News Scraper] Insert error:', error);
             } else {
                 insertedCount = data?.length || 0;
-
-                // Create social posts for new articles
-                for (const article of (data || []).slice(0, 3)) {
-                    await createSocialPost(article);
-                }
             }
         }
 

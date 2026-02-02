@@ -491,7 +491,7 @@ export default function PremiumHub() {
                     }}
                     onClick={() => router.push('/hub/diamond-store')}
                 >
-                    <span style={{ fontSize: 20 }}>💎</span>
+                    <span style={{ fontSize: 20 }}><img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/></span>
                     <span
                         style={{
                             fontFamily: 'Orbitron, sans-serif',
@@ -608,7 +608,7 @@ export default function PremiumHub() {
                     zIndex: 50,
                 }}
             >
-                <BottomCard label="NEWS" onClick={() => router.push('/hub/news')} />
+                <BottomCard imageUrl="/images/news_card_art.png" label="NEWS" onClick={() => router.push('/hub/news')} />
                 <BottomCard label="LEADERBOARD" onClick={() => router.push('/hub/leaderboard')} />
                 <BottomCard label="SETTINGS" onClick={() => router.push('/hub/settings')} />
             </div>

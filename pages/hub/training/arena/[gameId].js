@@ -1,149 +1,163 @@
 /**
- * Training Arena Page — Game HUD Container
- * =========================================
- * The main gameplay screen with HUD wrapper.
- * Contains health bar, hand counter, engine rendering, and modals.
- * Receives gameId, level, and session from URL params.
+ * Training Arena Page — God Mode Integration
+ * ===========================================
+ * Route: /hub/training/arena/[gameId]?level=X
+ * 
+ * This page wraps the GodModeArena component which provides:
+ * - Poker table with cards, avatars, and timer
+ * - Questions fetched from /api/god-mode/fetch-hand
+ * - Action buttons from solver data
+ * - Score tracking and session completion
  */
 
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
-import { getGameById } from '../../../../src/data/TRAINING_LIBRARY';
+import { getAuthUser } from '../../../../src/lib/authUtils';
 
-// Dynamic import GameArena to avoid SSR issues with framer-motion
-const GameArena = dynamic(
-    () => import('../../../../src/components/training/GameArena'),
-    { ssr: false }
+//  GOLDEN LOCK STANDARD - Fixed Canvas: 862x1024px
+const CANVAS_WIDTH = 862;
+const CANVAS_HEIGHT = 1024;
+
+// Dynamic import for GodModeArena to avoid SSR issues
+const GodModeArena = dynamic(
+    () => import('../../../../src/components/training/GodModeArena'),
+    { ssr: false, loading: () => <LoadingScreen /> }
 );
+
+// Loading screen component
+function LoadingScreen() {
+    return (
+        <div style={{
+            width: '100%',
+            height: '100vh',
+            background: 'linear-gradient(180deg, #080810 0%, #0d1628 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexDirection: 'column',
+            fontFamily: "'Inter', sans-serif",
+        }}>
+            <div style={{
+                fontSize: 64,
+                marginBottom: 24,
+                animation: 'pulse 1.5s infinite',
+            }}></div>
+            <p style={{ color: '#94a3b8', fontSize: 16 }}>Loading Training Arena...</p>
+            <style jsx>{`
+                @keyframes pulse {
+                    0%, 100% { transform: scale(1); opacity: 1; }
+                    50% { transform: scale(1.1); opacity: 0.8; }
+                }
+            `}</style>
+        </div>
+    );
+}
+
+// Game names mapping (fallback)
+const GAME_NAMES = {
+    'mtt-001': 'MTT Final Table Training',
+    'mtt-002': 'MTT Push/Fold',
+    'mtt-003': 'MTT ICM Spots',
+    'cash-001': 'Cash Game Fundamentals',
+    'cash-002': 'Cash 3-Bet Pots',
+    'spins-001': 'Spin & Go 3-Max',
+    'mental-001': 'Tilt Control',
+    'mental-002': 'Session Management',
+};
 
 export default function TrainingArenaPage() {
     const router = useRouter();
-    const { gameId, level, session: sessionId } = router.query;
+    const { gameId, level = 1 } = router.query;
 
     const [userId, setUserId] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [gameName, setGameName] = useState('Training Session');
+    const [scale, setScale] = useState(1);
 
-    // Parse level as number (default to 1)
-    const currentLevel = parseInt(level as string, 10) || 1;
-
-    // Fetch current user and game data
+    //  GOLDEN LOCK: Calculate viewport scale factor
     useEffect(() => {
-        const init = async () => {
-            try {
-                // Get user
-                const { supabase } = await import('../../../../src/lib/supabase');
-                const { data: { user } } = await supabase.auth.getUser();
-
-                if (!user) {
-                    router.push('/login?redirect=/hub/training');
-                    return;
-                }
-                setUserId(user.id);
-
-                // Get game name from library
-                if (gameId) {
-                    const game = getGameById(gameId);
-                    if (game) {
-                        setGameName(game.name);
-                    }
-                }
-            } catch (error) {
-                console.error('Init error:', error);
-            } finally {
-                setLoading(false);
-            }
+        const calculateScale = () => {
+            const scaleX = window.innerWidth / CANVAS_WIDTH;
+            const scaleY = window.innerHeight / CANVAS_HEIGHT;
+            const newScale = Math.min(scaleX, scaleY, 1); // Never scale UP, only down
+            setScale(newScale);
         };
 
-        if (gameId) {
-            init();
+        calculateScale();
+        window.addEventListener('resize', calculateScale);
+        return () => window.removeEventListener('resize', calculateScale);
+    }, []);
+
+    // Get user on mount
+    useEffect(() => {
+        const authUser = getAuthUser();
+        if (authUser?.id) {
+            setUserId(authUser.id);
+        } else {
+            // Generate anonymous user for demo
+            const anonId = `anon-${Date.now()}`;
+            setUserId(anonId);
         }
-    }, [gameId, router]);
+        setLoading(false);
+    }, []);
 
-    // Handle level complete (passed)
-    const handleLevelComplete = (stats) => {
-        console.log('Level complete:', stats);
-
-        // Navigate back to level selector with success
-        router.push({
-            pathname: `/hub/training/play/${gameId}`,
-            query: {
-                completed: 'true',
-                level: currentLevel,
-                score: Math.round(stats.accuracy),
-                passed: '1',
-                xp: stats.xpEarned,
-            },
-        });
+    const handleComplete = (results) => {
+        console.log('Session complete:', results);
+        // Could save results to database here
     };
 
-    // Handle level failed (HP reached 0)
-    const handleLevelFailed = () => {
-        console.log('Level failed');
-        // Stats will be shown in the modal, user chooses retry or exit
-    };
-
-    // Handle exit (back to level selector)
     const handleExit = () => {
-        router.push(`/hub/training/play/${gameId}`);
+        router.push('/hub/training');
     };
 
-    // Show loading state
-    if (loading || !gameId || !userId) {
-        return (
-            <div style={{
-                minHeight: '100vh',
-                background: 'linear-gradient(180deg, #0a0a15 0%, #0d1628 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#fff',
-                fontFamily: 'Inter, -apple-system, sans-serif',
-            }}>
-                <div style={{ textAlign: 'center' }}>
-                    <div style={{
-                        fontSize: 64,
-                        marginBottom: 16,
-                        animation: 'pulse 1.5s infinite',
-                    }}>
-                        🎮
-                    </div>
-                    <p style={{ fontSize: 18, fontWeight: 600 }}>
-                        Loading {gameName}...
-                    </p>
-                    <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', marginTop: 8 }}>
-                        Level {currentLevel}
-                    </p>
-                </div>
-                <style jsx>{`
-                    @keyframes pulse {
-                        0%, 100% { transform: scale(1); }
-                        50% { transform: scale(1.1); }
-                    }
-                `}</style>
-            </div>
-        );
+    if (loading || !gameId) {
+        return <LoadingScreen />;
     }
+
+    const gameName = GAME_NAMES[gameId] || gameId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
     return (
         <>
             <Head>
-                <title>{gameName} - Level {currentLevel} | Smarter Poker</title>
-                <meta name="description" content={`Playing ${gameName} Level ${currentLevel}`} />
+                <title>{gameName} | Training Arena</title>
+                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+                <style>{`
+                    html, body {
+                        margin: 0;
+                        padding: 0;
+                        background: #080810;
+                        overflow: hidden;
+                    }
+                `}</style>
             </Head>
 
-            <GameArena
-                userId={userId}
-                gameId={gameId}
-                gameName={gameName}
-                level={currentLevel}
-                sessionId={sessionId}
-                onExit={handleExit}
-                onLevelComplete={handleLevelComplete}
-                onLevelFailed={handleLevelFailed}
-            />
+            {/*  GOLDEN LOCK: Scaled container wrapper */}
+            <div style={{
+                width: '100%',
+                height: '100vh',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden',
+            }}>
+                <div style={{
+                    width: `${CANVAS_WIDTH}px`,
+                    height: `${CANVAS_HEIGHT}px`,
+                    transform: `scale(${scale})`,
+                    transformOrigin: 'center center',
+                }}>
+                    <GodModeArena
+                        userId={userId}
+                        gameId={gameId}
+                        gameName={gameName}
+                        level={parseInt(level) || 1}
+                        sessionId={`session-${Date.now()}`}
+                        onComplete={handleComplete}
+                        onExit={handleExit}
+                    />
+                </div>
+            </div>
         </>
     );
 }

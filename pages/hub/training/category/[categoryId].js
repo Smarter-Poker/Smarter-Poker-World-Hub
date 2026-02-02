@@ -1,5 +1,5 @@
 /**
- * 🎮 TRAINING CATEGORY PAGE — Mobile Optimized
+ *  TRAINING CATEGORY PAGE — Mobile Optimized
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * Shows all games in a specific category when user clicks category header.
@@ -28,25 +28,25 @@ import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 const CATEGORY_META = {
     MTT: {
         title: 'MTT MASTERY',
-        icon: '🏆',
+        icon: 'Trophy',
         color: '#FF6B35',
         description: 'Master tournament poker strategy from early stages to final tables'
     },
     CASH: {
         title: 'CASH GAME GRIND',
-        icon: '💵',
+        icon: '',
         color: '#4CAF50',
         description: 'Dominate cash games with optimal strategy for every street'
     },
     SPINS: {
         title: 'SPINS & SNGS',
-        icon: '⚡',
+        icon: '++',
         color: '#FFD700',
         description: 'Fast-paced sit & go strategy for maximum ROI'
     },
     PSYCHOLOGY: {
         title: 'MENTAL GAME',
-        icon: '🧠',
+        icon: '',
         color: '#9C27B0',
         description: 'Master the psychological aspects of poker excellence'
     },
@@ -100,12 +100,19 @@ export default function CategoryPage() {
         <PageTransition>
             <Head>
                 <title>{categoryMeta.title} — PokerIQ Training</title>
+                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
                 <style>{`
                     * { box-sizing: border-box; margin: 0; padding: 0; }
-                    body { 
-                        background: #0a0a15; 
+                    body {
+                        background: #0a0a15;
                         overflow-x: hidden;
                     }
+                    .training-category-page { width: 100%; max-width: 100%; margin: 0 auto; overflow-x: hidden; }
+                    
+                    
+                    
+                    
+                    
                 `}</style>
             </Head>
 
@@ -116,7 +123,7 @@ export default function CategoryPage() {
                 onComplete={handleIntroComplete}
             />
 
-            <div style={styles.page}>
+            <div className="training-category-page" style={styles.page}>
                 {/* UniversalHeader */}
                 <UniversalHeader pageDepth={2} />
 

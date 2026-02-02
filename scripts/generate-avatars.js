@@ -54,7 +54,7 @@ const AVATAR_PROMPTS = {
     'free-arch-006': 'High-quality 3D rendered circular avatar of school teacher character, glasses, professional attire, warm smile, holding book or apple, patient expression, Pixar/Disney style, studio lighting, dark navy background, headshot',
 
     // FREE MIX
-    'free-mix-001': 'High-quality 3D rendered circular avatar of pirate captain character, tricorn hat, eye patch, beard, earring, sword, adventurous grin, Pixar/Disney style, studio lighting, dark navy background, headshot, exaggerated features',
+    'free-mix-001': 'High-quality 3D rendered circular avatar of pirate commander character, tricorn hat, eye patch, beard, earring, sword, adventurous grin, Pixar/Disney style, studio lighting, dark navy background, headshot, exaggerated features',
 
     'free-mix-002': 'High-quality 3D rendered circular avatar of medieval knight character, silver armor, helmet with visor up, honorable expression, shield, Pixar/Disney style, studio lighting, dark navy background, headshot',
 

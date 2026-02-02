@@ -1,11 +1,12 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   🧠 MEMORY MATRIX 2.0 — THE GTO WIZARD KILLER
+    MEMORY MATRIX 2.0 — THE GTO WIZARD KILLER
    Full Video Game Experience with Pressure, Combos, and Diamond Economy
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createClient } from '@supabase/supabase-js';
 import gsap from 'gsap';
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
@@ -27,54 +28,46 @@ import {
     RANKS,
     getHandName,
     MIXED_SCENARIOS,
+    LEVEL_1_SCENARIOS,
+    LEVEL_2_SCENARIOS,
+    LEVEL_3_SCENARIOS,
+    LEVEL_4_SCENARIOS,
+    LEVEL_5_SCENARIOS,
+    LEVEL_6_SCENARIOS,
+    LEVEL_7_SCENARIOS,
+    LEVEL_8_SCENARIOS,
+    LEVEL_9_SCENARIOS,
+    LEVEL_10_SCENARIOS,
 } from '../../src/games/ScenarioDatabase';
 import { supabase } from '../../src/lib/supabase';
 
 // God-Mode Stack
 import { useMemoryStore } from '../../src/stores/memoryStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
+import { useAvatar } from '../../src/contexts/AvatarContext';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../src/config/hamburgerMenus';
+import { getMemoryGamesPreferences, updateMemoryGamesPreferences } from '../../src/services/memoryGamesPreferences';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 💎 DIAMOND ENGINE — Local storage with VIP check
+// Diamonds DIAMOND ENGINE — Local storage with VIP check
 // ═══════════════════════════════════════════════════════════════════════════
-const DiamondEngine = {
-    _balance: null,
-    _isVIP: false,
+// ═══════════════════════════════════════════════════════════════════════════
+// Diamonds DIAMOND ENGINE - Import Supabase-powered version
+// ═══════════════════════════════════════════════════════════════════════════
+import DiamondEngine from '../../src/services/DiamondEngine';
+import leaderboardService from '../../src/services/LeaderboardService';
+import dailyChallengeService from '../../src/services/DailyChallengeService';
+import { processGameResult, getRankTitle } from '../../src/games/ELOService';
+import gameSessionService from '../../src/services/GameSessionService';
+import achievementService from '../../src/services/AchievementService';
 
-    init() {
-        if (typeof window === 'undefined') return;
-        this._balance = parseInt(localStorage.getItem('diamond_balance') || '100', 10);
-        this._isVIP = localStorage.getItem('vip_status') === 'true';
-    },
-
-    getBalance() {
-        this.init();
-        return this._balance;
-    },
-
-    isVIP() {
-        this.init();
-        return this._isVIP;
-    },
-
-    deduct(amount) {
-        this.init();
-        if (this._isVIP) return { success: true, charged: 0 };
-        if (this._balance < amount) return { success: false, balance: this._balance };
-        this._balance -= amount;
-        localStorage.setItem('diamond_balance', String(this._balance));
-        return { success: true, charged: amount, balance: this._balance };
-    },
-
-    award(amount) {
-        this.init();
-        this._balance += amount;
-        localStorage.setItem('diamond_balance', String(this._balance));
-        SoundEngine.play('diamond');
-        return this._balance;
-    }
-};
+// New Game Mode Components (dynamic imports for code splitting)
+import dynamic from 'next/dynamic';
+const SpotTrainerGame = dynamic(() => import('../../src/games/SpotTrainerGame'), { ssr: false });
+const TournamentModeGame = dynamic(() => import('../../src/games/TournamentModeGame'), { ssr: false });
+import ScenarioFilterPanel, { filterScenarios } from '../../src/games/ScenarioFilterPanel';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🎨 ACTION COLORS
@@ -124,9 +117,9 @@ function gradeUserGrid(userGrid, solution) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ⚡ SPEED DRILL GAME COMPONENT
+// ++ SPEED DRILL GAME COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
-function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) {
+function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, DiamondEngine, userId }) {
     const [gameState, setGameState] = useState('ready'); // ready | playing | revealed | gameover
     const [currentHand, setCurrentHand] = useState(null);
     const [score, setScore] = useState(0);
@@ -215,11 +208,43 @@ function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) {
                     const newBalance = DiamondEngine.award(diamondReward);
                     onScoreUpdate?.(newBalance);
                 }
+
+                // ═══════════════════════════════════════════════════════════════════════════
+                // 📊 PERSIST TO SUPABASE — Session, Achievements
+                // ═══════════════════════════════════════════════════════════════════════════
+                if (userId) {
+                    const accuracy = handsPlayed > 0 ? Math.round((score / (handsPlayed * 100)) * 100) : 0;
+
+                    // Record game session
+                    gameSessionService.recordSession(userId, {
+                        gameMode: 'speed_drill',
+                        level,
+                        scenarioId: currentHand?.scenario?.title,
+                        score,
+                        accuracy,
+                        timeTaken: 0,
+                        diamondsSpent: 0,
+                        diamondsEarned: diamondReward,
+                        completed: true
+                    }).then(r => console.log('[SpeedDrill] Session recorded:', r))
+                        .catch(e => console.warn('[SpeedDrill] Session failed:', e));
+
+                    // Check achievements
+                    achievementService.checkAndUnlock(userId, {
+                        gamesPlayed: 1,
+                        accuracy,
+                        level,
+                        gameMode: 'speed_drill',
+                        currentStreak: maxStreak,
+                        modesPlayed: ['speed_drill']
+                    }).then(u => u.length > 0 && console.log('[SpeedDrill] Achievements:', u))
+                        .catch(e => console.warn('[SpeedDrill] Achievement check failed:', e));
+                }
             } else {
                 nextHand();
             }
         }, 800);
-    }, [gameState, currentHand, streak, lives, score, nextHand, DiamondEngine, onScoreUpdate]);
+    }, [gameState, currentHand, streak, lives, score, nextHand, DiamondEngine, onScoreUpdate, userId, handsPlayed, level, maxStreak]);
 
     // Timer
     useEffect(() => {
@@ -270,14 +295,14 @@ function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) {
                 </div>
                 {streak > 0 && (
                     <div style={{ padding: '6px 12px', background: 'linear-gradient(135deg, #ff6b00, #ff0066)', borderRadius: 20, fontWeight: 700, color: '#fff' }}>
-                        🔥 {streak}x
+                        {streak}x
                     </div>
                 )}
             </div>
 
             {gameState === 'ready' && (
                 <div style={{ marginTop: 60 }}>
-                    <div style={{ fontSize: 80, marginBottom: 20 }}>⚡</div>
+                    <div style={{ fontSize: 80, marginBottom: 20 }}>++</div>
                     <h1 style={{ fontFamily: 'Orbitron', fontSize: 36, color: '#FFD700', marginBottom: 16 }}>SPEED DRILL</h1>
                     <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 30, lineHeight: 1.6 }}>
                         Flash a hand → Pick the action → Build streaks!<br />
@@ -295,7 +320,7 @@ function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) {
                     {/* Lives */}
                     <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 16 }}>
                         {[0, 1, 2].map(i => (
-                            <span key={i} style={{ fontSize: 24, opacity: i < lives ? 1 : 0.3 }}>❤️</span>
+                            <span key={i} style={{ fontSize: 24, opacity: i < lives ? 1 : 0.3 }}></span>
                         ))}
                     </div>
 
@@ -333,7 +358,7 @@ function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) {
                     {gameState === 'revealed' && (
                         <div style={{ fontSize: 18, fontWeight: 700, color: userAnswer === currentHand.correctAction ? '#00ff88' : '#ff4444', marginBottom: 16 }}>
                             {userAnswer === currentHand.correctAction
-                                ? `✓ Correct! +${100 + (streak - 1) * 10}`
+                                ? ` Correct! +${100 + (streak - 1) * 10}`
                                 : `✗ Wrong! Should ${currentHand.correctAction.toUpperCase()}`}
                         </div>
                     )}
@@ -367,7 +392,7 @@ function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) {
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.1)', fontSize: 18, color: '#fff' }}>
                             <span>Best Streak</span>
-                            <span>🔥 {maxStreak}</span>
+                            <span> {maxStreak}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', fontSize: 18, color: '#fff' }}>
                             <span>Hands Played</span>
@@ -375,7 +400,7 @@ function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) {
                         </div>
                         {score >= 100 && (
                             <div style={{ marginTop: 16, padding: 12, background: 'linear-gradient(135deg, rgba(0,255,136,0.15), rgba(0,212,255,0.15))', borderRadius: 12, color: '#00ff88', fontWeight: 700 }}>
-                                💎 +{Math.floor(score / 100)} Diamonds earned!
+                                Diamonds +{Math.floor(score / 100)} Diamonds earned!
                             </div>
                         )}
                     </div>
@@ -389,10 +414,10 @@ function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 🔥 PRESSURE COOKER GAME COMPONENT
+//  PRESSURE COOKER GAME COMPONENT
 // Bomb defusal style - answer 10 spots before time runs out!
 // ═══════════════════════════════════════════════════════════════════════════
-function PressureCookerGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) {
+function PressureCookerGame({ level = 1, onExit, onScoreUpdate, DiamondEngine, userId }) {
     const [gameState, setGameState] = useState('ready'); // ready | playing | revealed | success | failed
     const [currentHand, setCurrentHand] = useState(null);
     const [score, setScore] = useState(0);
@@ -468,13 +493,43 @@ function PressureCookerGame({ level = 1, onExit, onScoreUpdate, DiamondEngine })
                     const newBalance = DiamondEngine.award(diamondReward);
                     onScoreUpdate?.(newBalance);
                 }
+
+                // ═══════════════════════════════════════════════════════════════════════════
+                // 📊 PERSIST TO SUPABASE — Session, Achievements
+                // ═══════════════════════════════════════════════════════════════════════════
+                if (userId) {
+                    const accuracy = Math.round((score / (newHandsCompleted * 100)) * 100);
+
+                    gameSessionService.recordSession(userId, {
+                        gameMode: 'pressure_cooker',
+                        level,
+                        scenarioId: currentHand?.scenario?.title,
+                        score,
+                        accuracy,
+                        timeTaken: Math.round((INITIAL_TIME - timeRemaining) / 1000),
+                        diamondsSpent: 0,
+                        diamondsEarned: diamondReward,
+                        completed: true
+                    }).then(r => console.log('[PressureCooker] Session recorded:', r))
+                        .catch(e => console.warn('[PressureCooker] Session failed:', e));
+
+                    achievementService.checkAndUnlock(userId, {
+                        gamesPlayed: 1,
+                        accuracy,
+                        level,
+                        gameMode: 'pressure_cooker',
+                        currentStreak: streak,
+                        modesPlayed: ['pressure_cooker']
+                    }).then(u => u.length > 0 && console.log('[PressureCooker] Achievements:', u))
+                        .catch(e => console.warn('[PressureCooker] Achievement check failed:', e));
+                }
             } else if (timeRemaining <= 0) {
                 // Already failed (handled by timer)
             } else {
                 nextHand();
             }
         }, 600);
-    }, [gameState, currentHand, streak, handsCompleted, handsRequired, timeRemaining, score, nextHand, DiamondEngine, onScoreUpdate]);
+    }, [gameState, currentHand, streak, handsCompleted, handsRequired, timeRemaining, score, nextHand, DiamondEngine, onScoreUpdate, userId, level]);
 
     // Timer countdown
     useEffect(() => {
@@ -532,11 +587,11 @@ function PressureCookerGame({ level = 1, onExit, onScoreUpdate, DiamondEngine })
 
             {gameState === 'ready' && (
                 <div style={{ marginTop: 60 }}>
-                    <div style={{ fontSize: 80, marginBottom: 20 }}>🔥</div>
+                    <div style={{ fontSize: 80, marginBottom: 20 }}></div>
                     <h1 style={{ fontFamily: 'Orbitron', fontSize: 36, color: '#ff4444', marginBottom: 16 }}>PRESSURE COOKER</h1>
                     <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 30, lineHeight: 1.6 }}>
                         Answer 10 hands before time runs out!<br />
-                        ✓ Correct = +3 seconds<br />
+                        Correct = +3 seconds<br />
                         ✗ Wrong = -5 seconds<br />
                         <span style={{ color: '#ff4444' }}>Clock is ticking... 💣</span>
                     </p>
@@ -595,7 +650,7 @@ function PressureCookerGame({ level = 1, onExit, onScoreUpdate, DiamondEngine })
                     {gameState === 'revealed' && (
                         <div style={{ fontSize: 18, fontWeight: 700, color: userAnswer === currentHand.correctAction ? '#00ff88' : '#ff4444', marginBottom: 16 }}>
                             {userAnswer === currentHand.correctAction
-                                ? `✓ +${100 + (streak - 1) * 20} (+3s)`
+                                ? ` +${100 + (streak - 1) * 20} (+3s)`
                                 : `✗ ${currentHand.correctAction.toUpperCase()} (-5s)`}
                         </div>
                     )}
@@ -620,7 +675,7 @@ function PressureCookerGame({ level = 1, onExit, onScoreUpdate, DiamondEngine })
 
             {gameState === 'success' && (
                 <div style={{ marginTop: 40 }}>
-                    <div style={{ fontSize: 80, marginBottom: 20 }}>🏆</div>
+                    <div style={{ fontSize: 80, marginBottom: 20 }}>Trophy</div>
                     <h1 style={{ fontFamily: 'Orbitron', fontSize: 36, color: '#00ff88', marginBottom: 30 }}>DEFUSED!</h1>
                     <div style={{ background: 'rgba(0,0,0,0.4)', borderRadius: 16, padding: 24, marginBottom: 30 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.1)', fontSize: 18, color: '#fff' }}>
@@ -632,7 +687,7 @@ function PressureCookerGame({ level = 1, onExit, onScoreUpdate, DiamondEngine })
                             <span style={{ color: '#00ff88' }}>{timerSec}s</span>
                         </div>
                         <div style={{ marginTop: 16, padding: 12, background: 'linear-gradient(135deg, rgba(0,255,136,0.15), rgba(0,212,255,0.15))', borderRadius: 12, color: '#00ff88', fontWeight: 700 }}>
-                            💎 +{Math.floor(score / 50) + 10} Diamonds earned!
+                            Diamonds +{Math.floor(score / 50) + 10} Diamonds earned!
                         </div>
                     </div>
                     <button onClick={onExit} style={{ padding: '14px 40px', fontSize: 16, fontWeight: 600, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 30, color: '#fff', cursor: 'pointer' }}>
@@ -665,10 +720,10 @@ function PressureCookerGame({ level = 1, onExit, onScoreUpdate, DiamondEngine })
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 🧩 PATTERN RECOGNITION GAME COMPONENT
+// Pattern PATTERN RECOGNITION GAME COMPONENT
 // Identify the pattern - what action does this range shape represent?
 // ═══════════════════════════════════════════════════════════════════════════
-function PatternRecognitionGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) {
+function PatternRecognitionGame({ level = 1, onExit, onScoreUpdate, DiamondEngine, userId }) {
     const [gameState, setGameState] = useState('ready'); // ready | playing | revealed | gameover
     const [currentPattern, setCurrentPattern] = useState(null);
     const [score, setScore] = useState(0);
@@ -730,6 +785,36 @@ function PatternRecognitionGame({ level = 1, onExit, onScoreUpdate, DiamondEngin
                 const newBalance = DiamondEngine.award(diamondReward);
                 onScoreUpdate?.(newBalance);
             }
+
+            // ═══════════════════════════════════════════════════════════════════════════
+            // 📊 PERSIST TO SUPABASE — Session, Achievements
+            // ═══════════════════════════════════════════════════════════════════════════
+            if (userId) {
+                const accuracy = Math.round((correctAnswers / maxRounds) * 100);
+
+                gameSessionService.recordSession(userId, {
+                    gameMode: 'pattern_recognition',
+                    level,
+                    scenarioId: currentPattern?.scenario?.title,
+                    score,
+                    accuracy,
+                    timeTaken: 0,
+                    diamondsSpent: 0,
+                    diamondsEarned: diamondReward,
+                    completed: true
+                }).then(r => console.log('[PatternRecognition] Session recorded:', r))
+                    .catch(e => console.warn('[PatternRecognition] Session failed:', e));
+
+                achievementService.checkAndUnlock(userId, {
+                    gamesPlayed: 1,
+                    accuracy,
+                    level,
+                    gameMode: 'pattern_recognition',
+                    currentStreak: streak,
+                    modesPlayed: ['pattern_recognition']
+                }).then(u => u.length > 0 && console.log('[PatternRecognition] Achievements:', u))
+                    .catch(e => console.warn('[PatternRecognition] Achievement check failed:', e));
+            }
             return;
         }
         const pattern = generatePattern();
@@ -738,7 +823,7 @@ function PatternRecognitionGame({ level = 1, onExit, onScoreUpdate, DiamondEngin
         setGameState('playing');
         setRound(prev => prev + 1);
         setUserAnswer(null);
-    }, [round, maxRounds, generatePattern, correctAnswers, score, DiamondEngine, onScoreUpdate]);
+    }, [round, maxRounds, generatePattern, correctAnswers, score, DiamondEngine, onScoreUpdate, userId, level, streak, currentPattern]);
 
     const handleAnswer = useCallback((action) => {
         if (gameState !== 'playing' || !currentPattern) return;
@@ -844,7 +929,7 @@ function PatternRecognitionGame({ level = 1, onExit, onScoreUpdate, DiamondEngin
 
             {gameState === 'ready' && (
                 <div style={{ marginTop: 60 }}>
-                    <div style={{ fontSize: 80, marginBottom: 20 }}>🧩</div>
+                    <div style={{ fontSize: 80, marginBottom: 20 }}>Pattern</div>
                     <h1 style={{ fontFamily: 'Orbitron', fontSize: 32, color: '#00D4FF', marginBottom: 16 }}>PATTERN RECOGNITION</h1>
                     <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 30, lineHeight: 1.6 }}>
                         See a partial range → Identify the dominant action!<br />
@@ -879,7 +964,7 @@ function PatternRecognitionGame({ level = 1, onExit, onScoreUpdate, DiamondEngin
                             marginBottom: 16
                         }}>
                             {userAnswer === currentPattern.correctAnswer
-                                ? `✓ Correct! This is a ${currentPattern.correctAnswer.toUpperCase()} range`
+                                ? ` Correct! This is a ${currentPattern.correctAnswer.toUpperCase()} range`
                                 : `✗ Wrong! This is a ${currentPattern.correctAnswer.toUpperCase()} range`}
                         </div>
                     )}
@@ -904,7 +989,7 @@ function PatternRecognitionGame({ level = 1, onExit, onScoreUpdate, DiamondEngin
 
             {gameState === 'gameover' && (
                 <div style={{ marginTop: 40 }}>
-                    <div style={{ fontSize: 80, marginBottom: 20 }}>{correctAnswers >= 6 ? '🏆' : '📊'}</div>
+                    <div style={{ fontSize: 80, marginBottom: 20 }}>{correctAnswers >= 6 ? 'Trophy' : ''}</div>
                     <h1 style={{ fontFamily: 'Orbitron', fontSize: 32, color: correctAnswers >= 6 ? '#00ff88' : '#ffaa00', marginBottom: 30 }}>
                         {correctAnswers >= 6 ? 'EXPERT PATTERN READER!' : 'KEEP STUDYING!'}
                     </h1>
@@ -919,7 +1004,7 @@ function PatternRecognitionGame({ level = 1, onExit, onScoreUpdate, DiamondEngin
                         </div>
                         {(correctAnswers * 2 + Math.floor(score / 100)) > 0 && (
                             <div style={{ marginTop: 16, padding: 12, background: 'linear-gradient(135deg, rgba(0,255,136,0.15), rgba(0,212,255,0.15))', borderRadius: 12, color: '#00ff88', fontWeight: 700 }}>
-                                💎 +{correctAnswers * 2 + Math.floor(score / 100)} Diamonds earned!
+                                Diamonds +{correctAnswers * 2 + Math.floor(score / 100)} Diamonds earned!
                             </div>
                         )}
                     </div>
@@ -933,10 +1018,10 @@ function PatternRecognitionGame({ level = 1, onExit, onScoreUpdate, DiamondEngin
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 🎛️ MIXED STRATEGY GAME COMPONENT
+// Mix MIXED STRATEGY GAME COMPONENT
 // Slider-based frequency training for complex spots
 // ═══════════════════════════════════════════════════════════════════════════
-function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) {
+function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, DiamondEngine, userId }) {
     const [gameState, setGameState] = useState('ready'); // ready | playing | revealed | gameover
     const [currentScenario, setCurrentScenario] = useState(null);
     const [targetAction, setTargetAction] = useState(null);
@@ -977,6 +1062,36 @@ function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) 
                 const newBalance = DiamondEngine.award(diamondReward);
                 onScoreUpdate?.(newBalance);
             }
+
+            // ═══════════════════════════════════════════════════════════════════════════
+            // 📊 PERSIST TO SUPABASE — Session, Achievements
+            // ═══════════════════════════════════════════════════════════════════════════
+            if (userId) {
+                const accuracy = Math.round((score / (roundsPlayed * 500)) * 100);
+
+                gameSessionService.recordSession(userId, {
+                    gameMode: 'mixed_strategy',
+                    level,
+                    scenarioId: currentScenario?.title,
+                    score,
+                    accuracy,
+                    timeTaken: 0,
+                    diamondsSpent: 0,
+                    diamondsEarned: diamondReward,
+                    completed: true
+                }).then(r => console.log('[MixedStrategy] Session recorded:', r))
+                    .catch(e => console.warn('[MixedStrategy] Session failed:', e));
+
+                achievementService.checkAndUnlock(userId, {
+                    gamesPlayed: 1,
+                    accuracy,
+                    level,
+                    gameMode: 'mixed_strategy',
+                    currentStreak: streak,
+                    modesPlayed: ['mixed_strategy']
+                }).then(u => u.length > 0 && console.log('[MixedStrategy] Achievements:', u))
+                    .catch(e => console.warn('[MixedStrategy] Achievement check failed:', e));
+            }
             return;
         }
 
@@ -986,7 +1101,7 @@ function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) 
         setGameState('playing');
         setUserFreq(50);
         setRoundsPlayed(prev => prev + 1);
-    }, [roundsPlayed, maxRounds, getMixedScenario, score, DiamondEngine, onScoreUpdate]);
+    }, [roundsPlayed, maxRounds, getMixedScenario, score, DiamondEngine, onScoreUpdate, userId, level, streak, currentScenario]);
 
     const handleSubmit = () => {
         if (gameState !== 'playing') return;
@@ -1052,7 +1167,7 @@ function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) 
 
             {gameState === 'ready' && (
                 <div style={{ marginTop: 60 }}>
-                    <div style={{ fontSize: 80, marginBottom: 20 }}>🎛️</div>
+                    <div style={{ fontSize: 80, marginBottom: 20 }}>Mix</div>
                     <h1 style={{ fontFamily: 'Orbitron', fontSize: 32, color: '#A855F7', marginBottom: 16 }}>MIXED STRATEGY</h1>
                     <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 30, lineHeight: 1.6 }}>
                         Not every decision is 100% frequency.<br />
@@ -1183,7 +1298,7 @@ function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) 
                     {/* Feedback */}
                     {gameState === 'revealed' && (
                         <div style={{ marginTop: 30, fontSize: 18, fontWeight: 700, color: diff <= 5 ? '#00ff88' : diff <= 15 ? '#ffaa00' : '#ff4444' }}>
-                            {diff === 0 ? '🎯 PERFECT!' : diff <= 5 ? '🔥 EXCELLENT!' : diff <= 15 ? '👍 CLOSE!' : '❌ WAY OFF!'}
+                            {diff === 0 ? ' PERFECT!' : diff <= 5 ? ' EXCELLENT!' : diff <= 15 ? '👍 CLOSE!' : '❌ WAY OFF!'}
                         </div>
                     )}
 
@@ -1212,7 +1327,7 @@ function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) 
 
             {gameState === 'gameover' && (
                 <div style={{ marginTop: 40 }}>
-                    <div style={{ fontSize: 80, marginBottom: 20 }}>🎛️</div>
+                    <div style={{ fontSize: 80, marginBottom: 20 }}>Mix</div>
                     <h1 style={{ fontFamily: 'Orbitron', fontSize: 32, marginBottom: 30 }}>SESSION COMPLETE</h1>
                     <div style={{ background: 'rgba(0,0,0,0.4)', borderRadius: 16, padding: 24, marginBottom: 30 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.1)', fontSize: 18, color: '#fff' }}>
@@ -1230,14 +1345,268 @@ function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) 
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 🎮 MAIN COMPONENT
+// 💎 OUT OF DIAMONDS MODAL
+// ═══════════════════════════════════════════════════════════════════════════
+function OutOfDiamondsModal({ isOpen, onClose, gameCost = 5 }) {
+    if (!isOpen) return null;
+
+    return (
+        <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.85)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000,
+        }}>
+            <div style={{
+                background: 'linear-gradient(135deg, #1a0a2a, #0a0a12)',
+                borderRadius: 24,
+                padding: 32,
+                maxWidth: 420,
+                width: '90%',
+                textAlign: 'center',
+                border: '2px solid rgba(255, 107, 0, 0.5)',
+                boxShadow: '0 0 60px rgba(255, 107, 0, 0.3)',
+            }}>
+                <div style={{ fontSize: 64, marginBottom: 16 }}>💎</div>
+                <h2 style={{
+                    fontFamily: 'Orbitron, sans-serif',
+                    fontSize: 28,
+                    fontWeight: 900,
+                    color: '#ff6b00',
+                    marginBottom: 8,
+                }}>OUT OF DIAMONDS</h2>
+                <p style={{
+                    color: 'rgba(255,255,255,0.7)',
+                    fontSize: 16,
+                    marginBottom: 24,
+                    lineHeight: 1.6,
+                }}>
+                    You need <strong style={{ color: '#FFD700' }}>{gameCost} diamonds</strong> to play this game.
+                </p>
+
+                <div style={{
+                    background: 'linear-gradient(135deg, rgba(138, 43, 226, 0.2), rgba(0, 212, 255, 0.2))',
+                    borderRadius: 16,
+                    padding: 20,
+                    marginBottom: 24,
+                    border: '1px solid rgba(138, 43, 226, 0.3)',
+                }}>
+                    <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>
+                        🎁 GET VIP FOR
+                    </div>
+                    <div style={{
+                        fontFamily: 'Orbitron, sans-serif',
+                        fontSize: 32,
+                        fontWeight: 900,
+                        color: '#fff',
+                        marginBottom: 4,
+                    }}>
+                        $19.99<span style={{ fontSize: 16, opacity: 0.7 }}>/month</span>
+                    </div>
+                    <div style={{ color: '#00ff88', fontSize: 14, fontWeight: 600 }}>
+                        UNLIMITED ACCESS • No diamonds needed
+                    </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: 12 }}>
+                    <button
+                        onClick={onClose}
+                        style={{
+                            flex: 1,
+                            padding: '14px 24px',
+                            background: 'rgba(255,255,255,0.1)',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            borderRadius: 12,
+                            color: '#fff',
+                            fontSize: 14,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                        }}
+                    >
+                        Maybe Later
+                    </button>
+                    <a
+                        href="/hub/store?tab=vip"
+                        style={{
+                            flex: 1,
+                            padding: '14px 24px',
+                            background: 'linear-gradient(135deg, #ff6b00, #ff0066)',
+                            border: 'none',
+                            borderRadius: 12,
+                            color: '#fff',
+                            fontSize: 14,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            textDecoration: 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                        }}
+                    >
+                        Get Diamonds
+                    </a>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 📅 DAILY CHALLENGE CARD
+// ═══════════════════════════════════════════════════════════════════════════
+function DailyChallengeCard({ challenge, streak, completed, onPlay, loading }) {
+    if (loading) {
+        return (
+            <div style={{
+                background: 'linear-gradient(135deg, rgba(255, 107, 0, 0.1), rgba(255, 0, 102, 0.1))',
+                borderRadius: 16,
+                padding: 24,
+                marginBottom: 24,
+                border: '1px solid rgba(255, 107, 0, 0.3)',
+                textAlign: 'center',
+            }}>
+                <div style={{ color: 'rgba(255,255,255,0.5)' }}>Loading daily challenge...</div>
+            </div>
+        );
+    }
+
+    if (!challenge) return null;
+
+    return (
+        <div style={{
+            background: 'linear-gradient(135deg, rgba(255, 107, 0, 0.15), rgba(255, 0, 102, 0.1))',
+            borderRadius: 16,
+            padding: 24,
+            marginBottom: 24,
+            border: completed ? '2px solid #00ff88' : '2px solid rgba(255, 107, 0, 0.5)',
+            position: 'relative',
+            overflow: 'hidden',
+        }}>
+            {/* Streak Badge */}
+            {streak?.current_streak > 0 && (
+                <div style={{
+                    position: 'absolute',
+                    top: 12,
+                    right: 12,
+                    background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                    borderRadius: 20,
+                    padding: '6px 14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                }}>
+                    <span style={{ fontSize: 16 }}>🔥</span>
+                    <span style={{ fontWeight: 700, color: '#000', fontSize: 14 }}>
+                        {streak.current_streak} day streak
+                    </span>
+                </div>
+            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
+                <div style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: 14,
+                    background: completed ? 'rgba(0, 255, 136, 0.2)' : 'rgba(255, 107, 0, 0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 28,
+                }}>
+                    {completed ? '✅' : '📅'}
+                </div>
+                <div>
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1 }}>
+                        Daily Challenge
+                    </div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>
+                        {challenge.title || `Level ${challenge.level || 1} Challenge`}
+                    </div>
+                </div>
+            </div>
+
+            <div style={{
+                display: 'flex',
+                gap: 16,
+                marginBottom: 16,
+                flexWrap: 'wrap',
+            }}>
+                <div style={{
+                    background: 'rgba(0,0,0,0.3)',
+                    borderRadius: 8,
+                    padding: '8px 14px',
+                }}>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Mode</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{challenge.game_mode || 'Range'}</div>
+                </div>
+                <div style={{
+                    background: 'rgba(0,0,0,0.3)',
+                    borderRadius: 8,
+                    padding: '8px 14px',
+                }}>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Target</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: '#FFD700' }}>{challenge.target_accuracy || 75}% accuracy</div>
+                </div>
+                <div style={{
+                    background: 'rgba(0,0,0,0.3)',
+                    borderRadius: 8,
+                    padding: '8px 14px',
+                }}>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Reward</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: '#00ff88' }}>+{challenge.diamond_reward || 50} 💎</div>
+                </div>
+            </div>
+
+            {completed ? (
+                <div style={{
+                    background: 'rgba(0, 255, 136, 0.2)',
+                    borderRadius: 10,
+                    padding: '12px 20px',
+                    textAlign: 'center',
+                    color: '#00ff88',
+                    fontWeight: 700,
+                }}>
+                    ✓ Challenge Completed Today!
+                </div>
+            ) : (
+                <button
+                    onClick={onPlay}
+                    style={{
+                        width: '100%',
+                        padding: '14px 24px',
+                        background: 'linear-gradient(135deg, #ff6b00, #ff0066)',
+                        border: 'none',
+                        borderRadius: 12,
+                        color: '#fff',
+                        fontSize: 16,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                    }}
+                >
+                    🎯 Play Daily Challenge
+                </button>
+            )}
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 export default function MemoryGamesPage() {
     const router = useRouter();
+    const { user } = useAvatar();
+    const userId = user?.id;
     const containerRef = useRef(null);
 
     // Zustand Global State (replaces some local useState)
-    const currentLevel = useMemoryStore((s) => s.currentLevel);
+    const currentLevel = useMemoryStore((s) => s.currentLevel) || 1; // Fallback to level 1 if undefined
     const setCurrentLevel = useMemoryStore((s) => s.setCurrentLevel);
     const currentView = useMemoryStore((s) => s.currentView);
     const setCurrentView = useMemoryStore((s) => s.setCurrentView);
@@ -1246,11 +1615,31 @@ export default function MemoryGamesPage() {
 
     // Game state (keep local for game session)
     const [mode, setMode] = useState('menu'); // 'menu' | 'game' | 'result' | 'speed-drill'
-    const [gameType, setGameType] = useState('range'); // 'range' | 'speed'
+    const [gameType, setGameType] = useState('range'); // 'range' | 'speed' | 'leaderboard' | 'daily'
     const [currentScenario, setCurrentScenario] = useState(null);
     const [userGrid, setUserGrid] = useState({});
     const [selectedAction, setSelectedAction] = useState('raise');
     const [gradeResult, setGradeResult] = useState(null);
+
+    // Leaderboard state
+    const [leaderboardData, setLeaderboardData] = useState([]);
+    const [leaderboardLoading, setLeaderboardLoading] = useState(false);
+    const [leaderboardMode, setLeaderboardMode] = useState('range-memory');
+    const [userRank, setUserRank] = useState(null);
+
+    // Daily Challenge state
+    const [dailyChallenge, setDailyChallenge] = useState(null);
+    const [challengeLoading, setChallengeLoading] = useState(false);
+    const [userStreak, setUserStreak] = useState({ current_streak: 0, longest_streak: 0 });
+    const [challengeCompleted, setChallengeCompleted] = useState(false);
+
+    // Scenario Filter state
+    const [showFilters, setShowFilters] = useState(false);
+    const [scenarioFilters, setScenarioFilters] = useState({});
+
+    // AI Generation state
+    const [useAIGeneration, setUseAIGeneration] = useState(false);
+    const [aiGenerating, setAIGenerating] = useState(false);
 
     // Timer state
     const [timeRemaining, setTimeRemaining] = useState(90);
@@ -1262,9 +1651,18 @@ export default function MemoryGamesPage() {
     const [comboName, setComboName] = useState(null);
     const [multiplier, setMultiplier] = useState(1);
 
-    // Economy state
+    // Economy state - fetched from Supabase
     const [diamondBalance, setDiamondBalance] = useState(100);
     const [isVIP, setIsVIP] = useState(false);
+
+    // Initialize Supabase client
+    const supabase = useRef(null);
+    if (!supabase.current && typeof window !== 'undefined') {
+        supabase.current = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        );
+    }
     const [lastReward, setLastReward] = useState(null);
 
     // Progress state
@@ -1274,12 +1672,109 @@ export default function MemoryGamesPage() {
     // Visual state
     const [screenShake, setScreenShake] = useState(false);
     const [showComboPopup, setShowComboPopup] = useState(false);
+    const [menuOpen, setMenuOpen] = useState(false);
+    const [showOutOfDiamondsModal, setShowOutOfDiamondsModal] = useState(false);
 
-    // Initialize effects CSS and load balance
+    // Hamburger menu preferences
+    const [preferences, setPreferences] = useState({
+        soundEffects: true,
+        showHints: true,
+        autoSave: true
+    });
+
+    // Load preferences from Supabase on mount
+    useEffect(() => {
+        if (userId) {
+            getMemoryGamesPreferences(userId).then(setPreferences);
+        }
+    }, []);
+
+    const updatePreference = useCallback(async (key, value) => {
+        const newPrefs = { ...preferences, [key]: value };
+        setPreferences(newPrefs);
+
+        if (userId) {
+            try {
+                await updateMemoryGamesPreferences(userId, { [key]: value });
+            } catch (error) {
+                console.error('Failed to save preference:', error);
+            }
+        }
+    }, [preferences]);
+
+    const menuConfig = getMenuConfig('memory-games', user, preferences, {
+        setSoundEffects: (val) => updatePreference('soundEffects', val),
+        setKeyboardShortcuts: (val) => updatePreference('keyboardShortcuts', val),
+        setShowTimer: (val) => updatePreference('showTimer', val),
+        setVisualHints: (val) => updatePreference('visualHints', val)
+    });
+
+    //  INTRO VIDEO STATE - Video plays while page loads in background
+    // Only show once per session (not on every reload)
+    const [showIntro, setShowIntro] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return !sessionStorage.getItem('memory-games-intro-seen');
+        }
+        return false;
+    });
+    const introVideoRef = useRef(null);
+
+    // Mark intro as seen when it ends
+    const handleIntroEnd = useCallback(() => {
+        sessionStorage.setItem('memory-games-intro-seen', 'true');
+        setShowIntro(false);
+    }, []);
+
+    // Attempt to unmute video after it starts playing
+    const handleIntroPlay = useCallback(() => {
+        if (introVideoRef.current) {
+            introVideoRef.current.muted = false;
+        }
+    }, []);
+
+    // Safe helper to get level config with fallback
+    const safeLevelConfig = getLevelConfig(currentLevel) || { timer: 90, gridSize: 13, maxHands: 20 };
+
+    // Initialize effects CSS and DiamondEngine with user session
     useEffect(() => {
         EffectsEngine.initCSS();
-        setDiamondBalance(DiamondEngine.getBalance());
-        setIsVIP(DiamondEngine.isVIP());
+
+        // Initialize DiamondEngine with user session
+        const initializeDiamondEngine = async () => {
+            try {
+                // Get user session
+                if (supabase.current) {
+                    const { data: { session } } = await supabase.current.auth.getSession();
+                    const user = session?.user;
+
+                    if (user) {
+                        setUserId(user.id);
+                        // Initialize DiamondEngine with user ID
+                        await DiamondEngine.init(user.id);
+
+                        // Load balance and VIP status
+                        const balance = await DiamondEngine.getBalance();
+                        const vipStatus = await DiamondEngine.isVIP();
+
+                        setDiamondBalance(balance);
+                        setIsVIP(vipStatus);
+                    } else {
+                        // Guest user - use localStorage fallback
+                        await DiamondEngine.init(null);
+                        const balance = await DiamondEngine.getBalance();
+                        setDiamondBalance(balance);
+                    }
+                }
+            } catch (e) {
+                console.error('[MemoryGames] Failed to initialize DiamondEngine:', e);
+                // Fallback to localStorage
+                await DiamondEngine.init(null);
+                const balance = await DiamondEngine.getBalance();
+                setDiamondBalance(balance);
+            }
+        };
+
+        initializeDiamondEngine();
     }, []);
 
     // Timer logic
@@ -1323,22 +1818,75 @@ export default function MemoryGamesPage() {
     const startGame = async (level) => {
         // Check diamond access
         if (!isVIP) {
-            const result = DiamondEngine.deduct(GAME_COST);
+            const result = await DiamondEngine.deduct(GAME_COST);
             if (!result.success) {
-                alert(`Not enough diamonds! Need ${GAME_COST}💎 to play.\n\nGet VIP for $19.99/month for unlimited access!`);
+                setShowOutOfDiamondsModal(true);
                 return;
             }
             setDiamondBalance(result.balance);
         }
 
-        const scenario = getRandomScenario(level);
+        let scenario = null;
+
+        // Use AI Generation if enabled (VIP feature)
+        if (useAIGeneration) {
+            setAIGenerating(true);
+            try {
+                // Build filter params from active filters
+                const requestBody = {
+                    level,
+                    position: scenarioFilters.position || undefined,
+                    stackDepth: scenarioFilters.stackDepth || undefined,
+                    format: scenarioFilters.format || undefined,
+                };
+
+                const response = await fetch('/api/gto/generate-scenario', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody),
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.scenario) {
+                    scenario = result.scenario;
+                    console.log('[MemoryGames] AI-generated scenario:', scenario.title);
+                } else {
+                    console.error('[MemoryGames] AI generation failed:', result.error);
+                    // Fallback to static scenarios
+                    scenario = null;
+                }
+            } catch (error) {
+                console.error('[MemoryGames] AI generation error:', error);
+                // Fallback to static scenarios
+                scenario = null;
+            } finally {
+                setAIGenerating(false);
+            }
+        }
+
+        // Fallback: Use static scenarios if AI generation failed or is disabled
         if (!scenario) {
-            alert('No scenarios available for this level yet!');
+            let levelScenarios = getScenariosByLevel(level);
+
+            // Apply filters if any are active
+            if (Object.keys(scenarioFilters).filter(k => scenarioFilters[k]).length > 0) {
+                levelScenarios = filterScenarios(levelScenarios, scenarioFilters);
+            }
+
+            // Select random scenario from filtered list
+            scenario = levelScenarios.length > 0
+                ? levelScenarios[Math.floor(Math.random() * levelScenarios.length)]
+                : null;
+        }
+
+        if (!scenario) {
+            alert('No scenarios available for this level!\n\nTry adjusting or resetting your filters.');
             return;
         }
 
         // Get level-specific config for progressive difficulty
-        const levelConfig = getLevelConfig(level);
+        const levelConfig = getLevelConfig(level) || { timer: 90, gridSize: 13, maxHands: 20 };
 
         setCurrentLevel(level);
         setCurrentScenario(scenario);
@@ -1432,6 +1980,109 @@ export default function MemoryGamesPage() {
             setConsecutivePasses(0);
         }
 
+        // ═══════════════════════════════════════════════════════════════════════════
+        // 📊 PERSIST TO SUPABASE — Leaderboard, ELO, Daily Challenge
+        // ═══════════════════════════════════════════════════════════════════════════
+        if (user?.id) {
+            const gameMode = selectedGameMode || 'range';
+            const timeTaken = Math.floor((60 - timer) + (60 * (getLevelConfig(currentLevel).timeLimit / 60 - 1)));
+
+            // 1. Update leaderboard (only if passed)
+            if (passed) {
+                leaderboardService.updateLeaderboard(
+                    user.id,
+                    gameMode,
+                    currentLevel,
+                    result.score,
+                    result.score, // accuracy
+                    timeTaken,
+                    null // sessionId
+                ).then(res => {
+                    console.log('[Memory] Leaderboard updated:', res);
+                }).catch(err => {
+                    console.warn('[Memory] Leaderboard update failed:', err);
+                });
+            }
+
+            // 2. Update ELO rating
+            processGameResult(user.id, currentLevel, result.score, gamesPlayed || 0)
+                .then(eloResult => {
+                    console.log('[Memory] ELO updated:', eloResult);
+                    if (eloResult?.rank) {
+                        setEloRank && setEloRank(eloResult.rank);
+                    }
+                }).catch(err => {
+                    console.warn('[Memory] ELO update failed:', err);
+                });
+
+            // 3. Check and complete daily challenge
+            dailyChallengeService.getTodaysChallenge().then(challengeData => {
+                if (challengeData?.success && challengeData?.challenge && !challengeData.completed) {
+                    const challenge = challengeData.challenge;
+                    // Check if this game matches the daily challenge
+                    if (challenge.level === currentLevel && result.score >= challenge.target_accuracy) {
+                        dailyChallengeService.completeChallenge(
+                            user.id,
+                            challenge.id,
+                            result.score,
+                            result.score,
+                            timeTaken
+                        ).then(completionResult => {
+                            if (completionResult?.success) {
+                                console.log('[Memory] Daily challenge completed! Streak:', completionResult.streak);
+                                // Award bonus diamonds for daily challenge
+                                const bonus = challenge.diamond_reward || 25;
+                                DiamondEngine.award(bonus);
+                                setDiamondBalance(prev => prev + bonus);
+                            }
+                        }).catch(err => {
+                            console.warn('[Memory] Daily challenge completion failed:', err);
+                        });
+                    }
+                }
+            });
+
+            // 4. Increment games played counter
+            const newGamesPlayed = (gamesPlayed || 0) + 1;
+            setGamesPlayed && setGamesPlayed(newGamesPlayed);
+
+            // 5. Record game session for analytics
+            gameSessionService.recordSession(user.id, {
+                gameMode,
+                level: currentLevel,
+                scenarioId: currentScenario?.id || currentScenario?.title,
+                score: result.score,
+                accuracy: result.score,
+                timeTaken,
+                diamondsSpent: isVIP ? 0 : 10,
+                diamondsEarned: passed ? totalReward : 0,
+                completed: true
+            }).then(sessionResult => {
+                console.log('[Memory] Session recorded:', sessionResult);
+            }).catch(err => {
+                console.warn('[Memory] Session recording failed:', err);
+            });
+
+            // 6. Check and unlock achievements
+            achievementService.checkAndUnlock(user.id, {
+                gamesPlayed: newGamesPlayed,
+                accuracy: result.score,
+                timeTaken,
+                level: currentLevel,
+                gameMode,
+                totalDiamonds: diamondBalance,
+                aiScenariosCompleted: useAIGeneration ? 1 : 0,
+                currentStreak: consecutivePasses,
+                modesPlayed: [gameMode] // TODO: track all modes played
+            }).then(unlocked => {
+                if (unlocked.length > 0) {
+                    console.log('[Memory] Achievements unlocked:', unlocked);
+                }
+            }).catch(err => {
+                console.warn('[Memory] Achievement check failed:', err);
+            });
+        }
+
         setMode('result');
     };
 
@@ -1440,11 +2091,11 @@ export default function MemoryGamesPage() {
         let name = null;
         let mult = 1;
 
-        if (comboCount >= 20) { name = '🔥 LEGENDARY!'; mult = 3.0; }
+        if (comboCount >= 20) { name = ' LEGENDARY!'; mult = 3.0; }
         else if (comboCount >= 15) { name = '💀 UNSTOPPABLE!'; mult = 2.5; }
-        else if (comboCount >= 10) { name = '⚡ ON FIRE!'; mult = 2.0; }
-        else if (comboCount >= 7) { name = '🎯 DOMINATING!'; mult = 1.7; }
-        else if (comboCount >= 5) { name = '✨ HOT STREAK!'; mult = 1.5; }
+        else if (comboCount >= 10) { name = '++ ON FIRE!'; mult = 2.0; }
+        else if (comboCount >= 7) { name = ' DOMINATING!'; mult = 1.7; }
+        else if (comboCount >= 5) { name = ' HOT STREAK!'; mult = 1.5; }
         else if (comboCount >= 3) { name = '👍 NICE!'; mult = 1.2; }
 
         setComboName(name);
@@ -1475,6 +2126,167 @@ export default function MemoryGamesPage() {
         startGame(currentLevel);
     };
 
+    // Load leaderboard data
+    const loadLeaderboard = useCallback(async () => {
+        setLeaderboardLoading(true);
+        try {
+            // Initialize service with supabase client if not done
+            if (supabase.current) {
+                await leaderboardService.initialize(supabase.current);
+            }
+
+            const result = await leaderboardService.getLeaderboard(leaderboardMode, null, 50);
+            if (result.success) {
+                setLeaderboardData(result.leaderboard);
+            }
+
+            // Get user rank if logged in
+            if (userId) {
+                const rankResult = await leaderboardService.getUserRank(userId, leaderboardMode, null);
+                if (rankResult.success) {
+                    setUserRank(rankResult);
+                }
+            }
+        } catch (error) {
+            console.error('[MemoryGames] Failed to load leaderboard:', error);
+        } finally {
+            setLeaderboardLoading(false);
+        }
+    }, [leaderboardMode, userId]);
+
+    // Load daily challenge data
+    const loadDailyChallenge = useCallback(async () => {
+        setChallengeLoading(true);
+        try {
+            // Initialize service with supabase client if not done
+            if (supabase.current) {
+                await dailyChallengeService.initialize(supabase.current);
+            }
+
+            const result = await dailyChallengeService.getTodaysChallenge();
+            if (result.success && result.challenge) {
+                // Parse scenario from scenario_id JSON string
+                let challenge = { ...result.challenge };
+                if (challenge.scenario_id && typeof challenge.scenario_id === 'string') {
+                    try {
+                        const scenario = JSON.parse(challenge.scenario_id);
+                        // Merge scenario properties into challenge object
+                        challenge = {
+                            ...challenge,
+                            title: scenario.title || challenge.title,
+                            description: scenario.description || challenge.description,
+                            tip: scenario.tip,
+                            solution: scenario.solution,
+                            position: scenario.position,
+                            stackDepth: scenario.stackDepth,
+                            scenario: scenario // Keep full scenario for gameplay
+                        };
+                    } catch (e) {
+                        console.warn('[MemoryGames] Could not parse scenario_id:', e);
+                    }
+                }
+                setDailyChallenge(challenge);
+                setChallengeCompleted(result.completed);
+            }
+
+            // Get user streak if logged in
+            if (userId) {
+                const streakResult = await dailyChallengeService.getUserStreak(userId);
+                if (streakResult.success) {
+                    setUserStreak(streakResult.streak);
+                }
+            }
+        } catch (error) {
+            console.error('[MemoryGames] Failed to load daily challenge:', error);
+        } finally {
+            setChallengeLoading(false);
+        }
+    }, [userId]);
+
+    // Submit score to leaderboard after game ends
+    const submitToLeaderboard = useCallback(async (gameMode, level, score, accuracy, timeTaken) => {
+        if (!userId) return; // Only logged-in users
+
+        try {
+            if (supabase.current) {
+                await leaderboardService.initialize(supabase.current);
+            }
+
+            const sessionId = crypto.randomUUID();
+            const result = await leaderboardService.updateLeaderboard(
+                userId, gameMode, level, score, accuracy, timeTaken, sessionId
+            );
+
+            if (result.new_record) {
+                // Show celebration for new record
+                SoundEngine.play('levelUp');
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }
+
+            return result;
+        } catch (error) {
+            console.error('[MemoryGames] Failed to submit score:', error);
+        }
+    }, [userId]);
+
+    // Handle VIP upgrade - initiate Stripe checkout for VIP subscription
+    const handleVipUpgrade = useCallback(async () => {
+        // Check if user is logged in
+        if (!userId) {
+            alert('Please log in to upgrade to VIP!');
+            return;
+        }
+
+        try {
+            // Get auth token for API call
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.access_token) {
+                alert('Please log in to upgrade to VIP!');
+                return;
+            }
+
+            // Call checkout session API
+            const response = await fetch('/api/store/create-checkout-session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({
+                    type: 'subscription',
+                    items: [{
+                        name: 'Memory Matrix VIP',
+                        tier: 'vip',
+                        priceId: process.env.NEXT_PUBLIC_STRIPE_VIP_PRICE_ID || 'price_vip_monthly' // Configured in Stripe dashboard
+                    }],
+                    successUrl: `${window.location.origin}/hub/memory-games?vip_success=true`,
+                    cancelUrl: `${window.location.origin}/hub/memory-games?vip_canceled=true`
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success && result.data?.url) {
+                // Redirect to Stripe checkout
+                window.location.href = result.data.url;
+            } else {
+                // Handle error - show helpful message
+                if (result.error?.code === 'PAYMENTS_NOT_CONFIGURED') {
+                    alert('VIP subscriptions coming soon! Payment processing is being set up.');
+                } else {
+                    alert(result.error?.message || 'Failed to start checkout. Please try again.');
+                }
+            }
+        } catch (error) {
+            console.error('[MemoryGames] VIP upgrade error:', error);
+            alert('Something went wrong. Please try again later.');
+        }
+    }, [userId]);
+
     // Timer color
     const getTimerColor = () => {
         if (timeRemaining > 30) return '#00ff88';
@@ -1487,18 +2299,70 @@ export default function MemoryGamesPage() {
 
     return (
         <PageTransition>
+            {/*  INTRO VIDEO OVERLAY - Plays while page loads behind it */}
+            {showIntro && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    zIndex: 99999,
+                    background: '#000',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                }}>
+                    <video
+                        ref={introVideoRef}
+                        src="/videos/memory-games-intro.mp4"
+                        autoPlay
+                        muted
+                        playsInline
+                        onPlay={handleIntroPlay}
+                        onEnded={handleIntroEnd}
+                        onError={handleIntroEnd}
+                        style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover'
+                        }}
+                    />
+                    {/* Skip button */}
+                    <button
+                        onClick={handleIntroEnd}
+                        style={{
+                            position: 'absolute',
+                            top: 20,
+                            right: 20,
+                            padding: '8px 20px',
+                            background: 'rgba(255,255,255,0.2)',
+                            backdropFilter: 'blur(10px)',
+                            border: '1px solid rgba(255,255,255,0.3)',
+                            borderRadius: 20,
+                            color: 'white',
+                            fontSize: 14,
+                            fontWeight: 500,
+                            cursor: 'pointer',
+                            zIndex: 100000
+                        }}
+                    >
+                        Skip
+                    </button>
+                </div>
+            )}
             <Head>
                 <title>Memory Matrix — Smarter.Poker</title>
                 <meta name="description" content="Master GTO ranges through video game training" />
-                <meta name="viewport" content="width=800, user-scalable=no" />
+                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
                 <style>{`
-                    .memory-games-page { width: 800px; max-width: 800px; margin: 0 auto; overflow-x: hidden; }
-                    @media (max-width: 500px) { .memory-games-page { zoom: 0.5; } }
-                    @media (min-width: 501px) and (max-width: 700px) { .memory-games-page { zoom: 0.75; } }
-                    @media (min-width: 701px) and (max-width: 900px) { .memory-games-page { zoom: 0.95; } }
-                    @media (min-width: 901px) { .memory-games-page { zoom: 1.2; } }
-                    @media (min-width: 1400px) { .memory-games-page { zoom: 1.5; } }
+                    .memory-games-page { width: 100%; max-width: 100%; margin: 0 auto; overflow-x: hidden; }
+                    
+                    
+                    
+                    
+                    
                 `}</style>
             </Head>
 
@@ -1514,58 +2378,20 @@ export default function MemoryGamesPage() {
                 <div style={styles.bgGrid} />
                 <div style={styles.bgGlow} />
 
-                {/* Header */}
-                <div style={styles.header}>
-                    <button
-                        onClick={() => mode === 'game' || mode === 'result' ? setMode('menu') : router.push('/hub')}
-                        style={styles.backButton}
-                    >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M19 12H5M12 19l-7-7 7-7" />
-                        </svg>
-                        <span>{mode === 'menu' ? 'Hub' : 'Menu'}</span>
-                    </button>
+                {/* Standard Hub Header - DO NOT MODIFY */}
+                <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
 
-                    <div style={styles.headerStats}>
-                        {/* VIP Badge */}
-                        {isVIP && (
-                            <div style={styles.vipBadge}>
-                                👑 VIP
-                            </div>
-                        )}
-
-                        {/* Combo Display */}
-                        {combo > 0 && (
-                            <div style={{
-                                ...styles.comboBadge,
-                                animation: showComboPopup ? 'pulse 0.5s ease-in-out' : 'none',
-                            }}>
-                                🔥 {combo}x
-                            </div>
-                        )}
-
-                        {/* XP Display */}
-                        <div style={styles.statBadge}>
-                            <span style={styles.statIcon}>⭐</span>
-                            <span style={styles.statValue}>{totalXP.toLocaleString()} XP</span>
-                        </div>
-
-                        {/* Diamond Display */}
-                        <div style={{
-                            ...styles.statBadge,
-                            ...styles.diamondBadge,
-                            position: 'relative',
-                        }}>
-                            <span style={styles.statIcon}>💎</span>
-                            <span style={{ ...styles.statValue, color: '#00D4FF' }}>
-                                {diamondBalance.toLocaleString()}
-                            </span>
-                            {lastReward && Date.now() - lastReward.timestamp < 2000 && (
-                                <div style={styles.rewardPopup}>+{lastReward.diamonds} 💎</div>
-                            )}
-                        </div>
-                    </div>
-                </div>
+                {/* Hamburger Menu */}
+                <HamburgerMenu
+                    isOpen={menuOpen}
+                    onClose={() => setMenuOpen(false)}
+                    direction="left"
+                    theme="dark"
+                    user={null}
+                    showProfile={false}
+                    menuItems={menuConfig.menuItems}
+                    bottomLinks={menuConfig.bottomLinks}
+                />
 
                 {/* Combo Popup */}
                 {showComboPopup && comboName && (
@@ -1581,15 +2407,29 @@ export default function MemoryGamesPage() {
                         <>
                             {/* Title */}
                             <div style={styles.titleSection}>
-                                <div style={styles.orbIcon}>🧠</div>
+                                <div style={styles.orbIcon}></div>
                                 <h1 style={styles.title}>MEMORY MATRIX</h1>
                                 <p style={styles.subtitle}>
                                     Master GTO ranges through high-pressure video game training
                                 </p>
                                 <div style={styles.costInfo}>
-                                    {isVIP ? '👑 VIP: Unlimited Access' : `💎 ${GAME_COST} Diamonds per game`}
+                                    {isVIP ? ' VIP: Unlimited Access' : `Diamonds ${GAME_COST} Diamonds per game`}
                                 </div>
                             </div>
+
+                            {/* Daily Challenge Card */}
+                            <DailyChallengeCard
+                                challenge={dailyChallenge}
+                                streak={userStreak}
+                                completed={challengeCompleted}
+                                loading={challengeLoading}
+                                onPlay={() => {
+                                    if (dailyChallenge) {
+                                        setCurrentLevel(dailyChallenge.level || 1);
+                                        startGame(dailyChallenge.level || 1);
+                                    }
+                                }}
+                            />
 
                             {/* Game Mode Tabs */}
                             <div style={styles.gameModeTabs}>
@@ -1600,7 +2440,7 @@ export default function MemoryGamesPage() {
                                         ...(gameType === 'range' ? styles.gameModeTabActive : {}),
                                     }}
                                 >
-                                    🧠 Range
+                                    Range
                                 </button>
                                 <button
                                     onClick={() => setGameType('speed')}
@@ -1609,7 +2449,7 @@ export default function MemoryGamesPage() {
                                         ...(gameType === 'speed' ? styles.gameModeTabActive : {}),
                                     }}
                                 >
-                                    ⚡ Speed
+                                    ++ Speed
                                 </button>
                                 <button
                                     onClick={() => setGameType('pressure')}
@@ -1618,7 +2458,7 @@ export default function MemoryGamesPage() {
                                         ...(gameType === 'pressure' ? styles.gameModeTabActive : {}),
                                     }}
                                 >
-                                    🔥 Pressure
+                                    Pressure
                                 </button>
                                 <button
                                     onClick={() => setGameType('pattern')}
@@ -1627,7 +2467,7 @@ export default function MemoryGamesPage() {
                                         ...(gameType === 'pattern' ? styles.gameModeTabActive : {}),
                                     }}
                                 >
-                                    🧩 Pattern
+                                    Pattern Pattern
                                 </button>
                                 <button
                                     onClick={() => setGameType('mixed')}
@@ -1636,7 +2476,7 @@ export default function MemoryGamesPage() {
                                         ...(gameType === 'mixed' ? styles.gameModeTabActive : {}),
                                     }}
                                 >
-                                    🎛️ Mixed
+                                    Mix Mixed
                                 </button>
                                 <button
                                     onClick={() => router.push('/hub/memory-campaign')}
@@ -1647,14 +2487,62 @@ export default function MemoryGamesPage() {
                                         color: '#FFD700',
                                     }}
                                 >
-                                    🏆 Campaign
+                                    Trophy Campaign
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setGameType('leaderboard');
+                                        loadLeaderboard();
+                                    }}
+                                    style={{
+                                        ...styles.gameModeTab,
+                                        ...(gameType === 'leaderboard' ? styles.gameModeTabActive : {}),
+                                    }}
+                                >
+                                    Rankings
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setGameType('daily');
+                                        loadDailyChallenge();
+                                    }}
+                                    style={{
+                                        ...styles.gameModeTab,
+                                        background: gameType === 'daily' ? 'linear-gradient(135deg, rgba(0, 255, 136, 0.2), rgba(0, 212, 255, 0.2))' : 'rgba(255, 255, 255, 0.05)',
+                                        border: gameType === 'daily' ? '2px solid #00ff88' : '2px solid rgba(255, 255, 255, 0.1)',
+                                        color: gameType === 'daily' ? '#00ff88' : 'rgba(255, 255, 255, 0.5)',
+                                    }}
+                                >
+                                    📅 Daily
+                                </button>
+                                <button
+                                    onClick={() => setGameType('spot')}
+                                    style={{
+                                        ...styles.gameModeTab,
+                                        background: gameType === 'spot' ? 'rgba(249, 115, 22, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                                        border: gameType === 'spot' ? '2px solid #F97316' : '2px solid rgba(255, 255, 255, 0.1)',
+                                        color: gameType === 'spot' ? '#F97316' : 'rgba(255, 255, 255, 0.5)',
+                                    }}
+                                >
+                                    Spot
+                                </button>
+                                <button
+                                    onClick={() => setGameType('tournament')}
+                                    style={{
+                                        ...styles.gameModeTab,
+                                        background: gameType === 'tournament' ? 'rgba(236, 72, 153, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                                        border: gameType === 'tournament' ? '2px solid #EC4899' : '2px solid rgba(255, 255, 255, 0.1)',
+                                        color: gameType === 'tournament' ? '#EC4899' : 'rgba(255, 255, 255, 0.5)',
+                                    }}
+                                >
+                                    VS Ranked
                                 </button>
                             </div>
 
                             {/* Speed Drill Mode */}
                             {gameType === 'speed' && (
                                 <div style={styles.speedDrillCard}>
-                                    <div style={{ fontSize: 48, marginBottom: 16 }}>⚡</div>
+                                    <div style={{ fontSize: 48, marginBottom: 16 }}>++</div>
                                     <h2 style={{ fontSize: 24, fontWeight: 700, color: '#FFD700', marginBottom: 8 }}>
                                         SPEED DRILL
                                     </h2>
@@ -1663,11 +2551,11 @@ export default function MemoryGamesPage() {
                                         Time gets shorter the better you do. 3 lives, don't lose them!
                                     </p>
                                     <button
-                                        onClick={() => {
+                                        onClick={async () => {
                                             if (!isVIP) {
-                                                const result = DiamondEngine.deduct(GAME_COST);
+                                                const result = await DiamondEngine.deduct(GAME_COST);
                                                 if (!result.success) {
-                                                    alert(`Not enough diamonds!`);
+                                                    setShowOutOfDiamondsModal(true);
                                                     return;
                                                 }
                                                 setDiamondBalance(result.balance);
@@ -1688,21 +2576,21 @@ export default function MemoryGamesPage() {
                                     background: 'linear-gradient(135deg, rgba(255, 68, 68, 0.1), rgba(255, 0, 102, 0.1))',
                                     border: '2px solid rgba(255, 68, 68, 0.3)',
                                 }}>
-                                    <div style={{ fontSize: 48, marginBottom: 16 }}>🔥</div>
+                                    <div style={{ fontSize: 48, marginBottom: 16 }}></div>
                                     <h2 style={{ fontSize: 24, fontWeight: 700, color: '#ff4444', marginBottom: 8 }}>
                                         PRESSURE COOKER
                                     </h2>
                                     <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 20 }}>
                                         Answer 10 hands before the clock runs out!<br />
-                                        ✓ Correct = +3 seconds | ✗ Wrong = -5 seconds<br />
+                                        Correct = +3 seconds | ✗ Wrong = -5 seconds<br />
                                         <span style={{ color: '#ff4444' }}>Can you defuse the bomb? 💣</span>
                                     </p>
                                     <button
-                                        onClick={() => {
+                                        onClick={async () => {
                                             if (!isVIP) {
-                                                const result = DiamondEngine.deduct(GAME_COST);
+                                                const result = await DiamondEngine.deduct(GAME_COST);
                                                 if (!result.success) {
-                                                    alert(`Not enough diamonds!`);
+                                                    setShowOutOfDiamondsModal(true);
                                                     return;
                                                 }
                                                 setDiamondBalance(result.balance);
@@ -1726,7 +2614,7 @@ export default function MemoryGamesPage() {
                                     background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(0, 136, 255, 0.1))',
                                     border: '2px solid rgba(0, 212, 255, 0.3)',
                                 }}>
-                                    <div style={{ fontSize: 48, marginBottom: 16 }}>🧩</div>
+                                    <div style={{ fontSize: 48, marginBottom: 16 }}>Pattern</div>
                                     <h2 style={{ fontSize: 24, fontWeight: 700, color: '#00D4FF', marginBottom: 8 }}>
                                         PATTERN RECOGNITION
                                     </h2>
@@ -1736,11 +2624,11 @@ export default function MemoryGamesPage() {
                                         Train your GTO intuition across 8 patterns.
                                     </p>
                                     <button
-                                        onClick={() => {
+                                        onClick={async () => {
                                             if (!isVIP) {
-                                                const result = DiamondEngine.deduct(GAME_COST);
+                                                const result = await DiamondEngine.deduct(GAME_COST);
                                                 if (!result.success) {
-                                                    alert(`Not enough diamonds!`);
+                                                    setShowOutOfDiamondsModal(true);
                                                     return;
                                                 }
                                                 setDiamondBalance(result.balance);
@@ -1764,7 +2652,7 @@ export default function MemoryGamesPage() {
                                     background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(217, 70, 239, 0.1))',
                                     border: '2px solid rgba(168, 85, 247, 0.3)',
                                 }}>
-                                    <div style={{ fontSize: 48, marginBottom: 16 }}>🎛️</div>
+                                    <div style={{ fontSize: 48, marginBottom: 16 }}>Mix</div>
                                     <h2 style={{ fontSize: 24, fontWeight: 700, color: '#A855F7', marginBottom: 8 }}>
                                         MIXED STRATEGY
                                     </h2>
@@ -1774,11 +2662,11 @@ export default function MemoryGamesPage() {
                                         10 Rounds of high-precision training.
                                     </p>
                                     <button
-                                        onClick={() => {
+                                        onClick={async () => {
                                             if (!isVIP) {
-                                                const result = DiamondEngine.deduct(GAME_COST);
+                                                const result = await DiamondEngine.deduct(GAME_COST);
                                                 if (!result.success) {
-                                                    alert(`Not enough diamonds!`);
+                                                    setShowOutOfDiamondsModal(true);
                                                     return;
                                                 }
                                                 setDiamondBalance(result.balance);
@@ -1795,13 +2683,606 @@ export default function MemoryGamesPage() {
                                 </div>
                             )}
 
+                            {/* Spot Trainer Mode */}
+                            {gameType === 'spot' && (
+                                <div style={{
+                                    ...styles.speedDrillCard,
+                                    background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.1), rgba(234, 88, 12, 0.1))',
+                                    border: '2px solid rgba(249, 115, 22, 0.3)',
+                                }}>
+                                    <div style={{ fontSize: 48, marginBottom: 16 }}>🎯</div>
+                                    <h2 style={{ fontSize: 24, fontWeight: 700, color: '#F97316', marginBottom: 8 }}>
+                                        SPOT TRAINER
+                                    </h2>
+                                    <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 20 }}>
+                                        Play through entire hand trees from preflop to river!<br />
+                                        Learn how ranges evolve on each street.<br />
+                                        Compare your EV to optimal GTO play.
+                                    </p>
+                                    <button
+                                        onClick={async () => {
+                                            if (!isVIP) {
+                                                const result = await DiamondEngine.deduct(GAME_COST);
+                                                if (!result.success) {
+                                                    setShowOutOfDiamondsModal(true);
+                                                    return;
+                                                }
+                                                setDiamondBalance(result.balance);
+                                            }
+                                            setMode('spot-trainer');
+                                        }}
+                                        style={{
+                                            ...styles.speedDrillButton,
+                                            background: 'linear-gradient(135deg, #F97316, #EA580C)',
+                                        }}
+                                    >
+                                        START SPOT TRAINER
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Tournament Mode */}
+                            {gameType === 'tournament' && (
+                                <div style={{
+                                    ...styles.speedDrillCard,
+                                    background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(219, 39, 119, 0.1))',
+                                    border: '2px solid rgba(236, 72, 153, 0.3)',
+                                }}>
+                                    <div style={{ fontSize: 48, marginBottom: 16 }}>🏆</div>
+                                    <h2 style={{ fontSize: 24, fontWeight: 700, color: '#EC4899', marginBottom: 8 }}>
+                                        VS RANKED
+                                    </h2>
+                                    <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 20 }}>
+                                        Head-to-head GTO challenges for ELO ranking!<br />
+                                        Beat simulated opponents to climb the ladder.<br />
+                                        <span style={{ color: '#EC4899' }}>Win diamonds & bragging rights!</span>
+                                    </p>
+                                    <button
+                                        onClick={async () => {
+                                            if (!isVIP) {
+                                                const result = await DiamondEngine.deduct(GAME_COST);
+                                                if (!result.success) {
+                                                    setShowOutOfDiamondsModal(true);
+                                                    return;
+                                                }
+                                                setDiamondBalance(result.balance);
+                                            }
+                                            setMode('tournament');
+                                        }}
+                                        style={{
+                                            ...styles.speedDrillButton,
+                                            background: 'linear-gradient(135deg, #EC4899, #DB2777)',
+                                        }}
+                                    >
+                                        ENTER RANKED BATTLE
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Leaderboard Section */}
+                            {gameType === 'leaderboard' && (
+                                <div style={{
+                                    background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.05), rgba(255, 140, 0, 0.05))',
+                                    border: '2px solid rgba(255, 215, 0, 0.3)',
+                                    borderRadius: 20,
+                                    padding: 24,
+                                    maxWidth: 800,
+                                    margin: '0 auto',
+                                }}>
+                                    <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                                        <div style={{ fontSize: 48, marginBottom: 12 }}>Trophy</div>
+                                        <h2 style={{ fontSize: 28, fontWeight: 700, color: '#FFD700', marginBottom: 8 }}>
+                                            GLOBAL LEADERBOARD
+                                        </h2>
+                                        <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>
+                                            Compete with players worldwide. Top scores win prizes!
+                                        </p>
+                                    </div>
+
+                                    {/* Mode Toggle */}
+                                    <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
+                                        {[
+                                            { id: 'range-memory', label: ' Range', color: '#00D4FF' },
+                                            { id: 'speed-drill', label: '++ Speed', color: '#FFD700' },
+                                            { id: 'pressure-cooker', label: ' Pressure', color: '#ff4444' },
+                                            { id: 'pattern-recognition', label: 'Pattern Pattern', color: '#00D4FF' },
+                                            { id: 'mixed-strategy', label: 'Mix Mixed', color: '#A855F7' },
+                                        ].map(mode => (
+                                            <button
+                                                key={mode.id}
+                                                onClick={() => {
+                                                    setLeaderboardMode(mode.id);
+                                                    loadLeaderboard();
+                                                }}
+                                                style={{
+                                                    padding: '8px 16px',
+                                                    fontSize: 12,
+                                                    fontWeight: 600,
+                                                    background: leaderboardMode === mode.id ? `${mode.color}22` : 'rgba(0,0,0,0.3)',
+                                                    border: `2px solid ${leaderboardMode === mode.id ? mode.color : 'rgba(255,255,255,0.1)'}`,
+                                                    borderRadius: 20,
+                                                    color: leaderboardMode === mode.id ? mode.color : 'rgba(255,255,255,0.5)',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.2s ease',
+                                                }}
+                                            >
+                                                {mode.label}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {/* User Rank Display */}
+                                    {userRank && (
+                                        <div style={{
+                                            background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(138, 43, 226, 0.15))',
+                                            border: '2px solid #00D4FF',
+                                            borderRadius: 12,
+                                            padding: 16,
+                                            marginBottom: 20,
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                        }}>
+                                            <div>
+                                                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>YOUR RANK</div>
+                                                <div style={{ fontSize: 32, fontWeight: 900, color: '#00D4FF' }}>#{userRank.rank || '—'}</div>
+                                            </div>
+                                            <div style={{ textAlign: 'right' }}>
+                                                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>BEST SCORE</div>
+                                                <div style={{ fontSize: 24, fontWeight: 700, color: '#fff' }}>{userRank.score || 0}</div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Leaderboard Table */}
+                                    <div style={{
+                                        background: 'rgba(0,0,0,0.4)',
+                                        borderRadius: 12,
+                                        overflow: 'hidden',
+                                        maxHeight: 400,
+                                        overflowY: 'auto',
+                                    }}>
+                                        {leaderboardLoading ? (
+                                            <div style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,0.5)' }}>
+                                                <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
+                                                Loading rankings...
+                                            </div>
+                                        ) : leaderboardData.length === 0 ? (
+                                            <div style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,0.5)' }}>
+                                                <div style={{ fontSize: 32, marginBottom: 12 }}></div>
+                                                No rankings yet. Be the first!
+                                            </div>
+                                        ) : (
+                                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                                <thead>
+                                                    <tr style={{ background: 'rgba(255,215,0,0.1)' }}>
+                                                        <th style={{ padding: '12px 16px', textAlign: 'left', color: '#FFD700', fontSize: 12, fontWeight: 600 }}>RANK</th>
+                                                        <th style={{ padding: '12px 16px', textAlign: 'left', color: '#FFD700', fontSize: 12, fontWeight: 600 }}>PLAYER</th>
+                                                        <th style={{ padding: '12px 16px', textAlign: 'right', color: '#FFD700', fontSize: 12, fontWeight: 600 }}>SCORE</th>
+                                                        <th style={{ padding: '12px 16px', textAlign: 'right', color: '#FFD700', fontSize: 12, fontWeight: 600 }}>STREAK</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {leaderboardData.map((entry, idx) => (
+                                                        <tr
+                                                            key={entry.user_id}
+                                                            style={{
+                                                                background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)',
+                                                                borderBottom: '1px solid rgba(255,255,255,0.05)',
+                                                            }}
+                                                        >
+                                                            <td style={{ padding: '12px 16px', color: idx < 3 ? '#FFD700' : '#fff', fontSize: 14, fontWeight: idx < 3 ? 700 : 400 }}>
+                                                                {idx === 0 ? '' : idx === 1 ? '' : idx === 2 ? '' : `#${idx + 1}`}
+                                                            </td>
+                                                            <td style={{ padding: '12px 16px', color: '#fff', fontSize: 14 }}>
+                                                                {entry.display_name || 'Anonymous'}
+                                                            </td>
+                                                            <td style={{ padding: '12px 16px', color: '#00ff88', fontSize: 14, fontWeight: 600, textAlign: 'right' }}>
+                                                                {entry.score?.toLocaleString()}
+                                                            </td>
+                                                            <td style={{ padding: '12px 16px', color: '#FF6B00', fontSize: 14, textAlign: 'right' }}>
+                                                                {entry.streak || 0}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        )}
+                                    </div>
+
+                                    {/* Refresh Button */}
+                                    <div style={{ textAlign: 'center', marginTop: 20 }}>
+                                        <button
+                                            onClick={loadLeaderboard}
+                                            disabled={leaderboardLoading}
+                                            style={{
+                                                padding: '12px 32px',
+                                                fontSize: 14,
+                                                fontWeight: 600,
+                                                background: 'rgba(255,255,255,0.1)',
+                                                border: '1px solid rgba(255,255,255,0.2)',
+                                                borderRadius: 30,
+                                                color: '#fff',
+                                                cursor: 'pointer',
+                                            }}
+                                        >
+                                            🔄 Refresh Rankings
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Daily Challenge Section */}
+                            {gameType === 'daily' && (
+                                <div style={{
+                                    background: 'linear-gradient(135deg, rgba(0, 255, 136, 0.05), rgba(0, 212, 255, 0.05))',
+                                    border: '2px solid rgba(0, 255, 136, 0.3)',
+                                    borderRadius: 20,
+                                    padding: 24,
+                                    maxWidth: 600,
+                                    margin: '0 auto',
+                                }}>
+                                    {/* Streak Display */}
+                                    <div style={{
+                                        display: 'flex',
+                                        justifyContent: 'center',
+                                        gap: 32,
+                                        marginBottom: 24,
+                                    }}>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 48, marginBottom: 4 }}></div>
+                                            <div style={{ fontSize: 32, fontWeight: 900, color: '#FF6B00' }}>{userStreak.current_streak || 0}</div>
+                                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Current Streak</div>
+                                        </div>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 48, marginBottom: 4 }}></div>
+                                            <div style={{ fontSize: 32, fontWeight: 900, color: '#FFD700' }}>{userStreak.longest_streak || 0}</div>
+                                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Best Streak</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Challenge Card */}
+                                    <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                                        <div style={{ fontSize: 48, marginBottom: 12 }}>📅</div>
+                                        <h2 style={{ fontSize: 28, fontWeight: 700, color: '#00ff88', marginBottom: 8 }}>
+                                            DAILY CHALLENGE
+                                        </h2>
+                                        <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', marginBottom: 20 }}>
+                                            Complete today's challenge to keep your streak alive!
+                                        </p>
+                                    </div>
+
+                                    {challengeLoading ? (
+                                        <div style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,0.5)' }}>
+                                            <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
+                                            Loading today's challenge...
+                                        </div>
+                                    ) : challengeCompleted ? (
+                                        <div style={{
+                                            background: 'linear-gradient(135deg, rgba(0, 255, 136, 0.2), rgba(0, 212, 255, 0.2))',
+                                            border: '2px solid #00ff88',
+                                            borderRadius: 16,
+                                            padding: 32,
+                                            textAlign: 'center',
+                                        }}>
+                                            <div style={{ fontSize: 64, marginBottom: 16 }}>✅</div>
+                                            <h3 style={{ fontSize: 24, fontWeight: 700, color: '#00ff88', marginBottom: 8 }}>
+                                                CHALLENGE COMPLETE!
+                                            </h3>
+                                            <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)' }}>
+                                                Come back tomorrow for a new challenge!
+                                            </p>
+                                            <div style={{ marginTop: 20, fontSize: 18, color: '#FFD700' }}>
+                                                +{dailyChallenge?.diamond_reward || 50} Diamonds Earned!
+                                            </div>
+                                        </div>
+                                    ) : dailyChallenge ? (
+                                        <div style={{
+                                            background: 'rgba(0,0,0,0.4)',
+                                            border: '1px solid rgba(255,255,255,0.1)',
+                                            borderRadius: 16,
+                                            padding: 24,
+                                        }}>
+                                            <div style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 16,
+                                                marginBottom: 16,
+                                                padding: '12px 16px',
+                                                background: 'rgba(0, 255, 136, 0.1)',
+                                                borderRadius: 12,
+                                            }}>
+                                                <div style={{ fontSize: 32 }}>
+                                                    {dailyChallenge.game_mode === 'range-memory' ? '' :
+                                                        dailyChallenge.game_mode === 'speed-drill' ? '++' :
+                                                            dailyChallenge.game_mode === 'pressure-cooker' ? '' :
+                                                                dailyChallenge.game_mode === 'pattern-recognition' ? 'Pattern' : 'Mix'}
+                                                </div>
+                                                <div>
+                                                    <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>
+                                                        {dailyChallenge.title || 'Today\'s Challenge'}
+                                                    </div>
+                                                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
+                                                        Level {dailyChallenge.level || 1} • {dailyChallenge.game_mode?.replace('-', ' ').toUpperCase()}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 20 }}>
+                                                {dailyChallenge.description || `Score ${dailyChallenge.target_accuracy || 80}% or higher to complete the challenge.`}
+                                            </p>
+
+                                            <div style={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                padding: '12px 16px',
+                                                background: 'rgba(255,215,0,0.1)',
+                                                borderRadius: 12,
+                                                marginBottom: 20,
+                                            }}>
+                                                <div>
+                                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>TARGET SCORE</div>
+                                                    <div style={{ fontSize: 20, fontWeight: 700, color: '#00ff88' }}>{dailyChallenge.target_accuracy || 80}%</div>
+                                                </div>
+                                                <div style={{ textAlign: 'right' }}>
+                                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>REWARD</div>
+                                                    <div style={{ fontSize: 20, fontWeight: 700, color: '#FFD700' }}>{dailyChallenge.diamond_reward || 50}Diamonds</div>
+                                                </div>
+                                            </div>
+
+                                            <button
+                                                onClick={() => {
+                                                    // Start the challenge based on game mode
+                                                    const mode = dailyChallenge.game_mode;
+                                                    if (mode === 'range-memory') {
+                                                        startGame(dailyChallenge.level || 1);
+                                                    } else if (mode === 'speed-drill') {
+                                                        setMode('speed-drill');
+                                                    } else if (mode === 'pressure-cooker') {
+                                                        setMode('pressure-cooker');
+                                                    } else if (mode === 'pattern-recognition') {
+                                                        setMode('pattern-recognition');
+                                                    } else if (mode === 'mixed-strategy') {
+                                                        setMode('mixed-strategy');
+                                                    }
+                                                }}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '16px 32px',
+                                                    fontSize: 18,
+                                                    fontWeight: 700,
+                                                    background: 'linear-gradient(135deg, #00ff88, #00D4FF)',
+                                                    color: '#000',
+                                                    border: 'none',
+                                                    borderRadius: 50,
+                                                    cursor: 'pointer',
+                                                    boxShadow: '0 0 30px rgba(0, 255, 136, 0.4)',
+                                                }}
+                                            >
+                                                START DAILY CHALLENGE
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div style={{
+                                            background: 'rgba(255,165,0,0.1)',
+                                            border: '1px solid rgba(255,165,0,0.3)',
+                                            borderRadius: 16,
+                                            padding: 32,
+                                            textAlign: 'center',
+                                        }}>
+                                            <div style={{ fontSize: 48, marginBottom: 12 }}></div>
+                                            <h3 style={{ fontSize: 18, fontWeight: 600, color: '#FFA500', marginBottom: 8 }}>
+                                                No Challenge Available
+                                            </h3>
+                                            <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>
+                                                Check back soon for today's challenge!
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {/* Streak Rewards Info */}
+                                    <div style={{
+                                        marginTop: 24,
+                                        padding: 16,
+                                        background: 'rgba(0,0,0,0.3)',
+                                        borderRadius: 12,
+                                        textAlign: 'center',
+                                    }}>
+                                        <div style={{ fontSize: 14, fontWeight: 600, color: '#FFD700', marginBottom: 8 }}>
+                                            STREAK REWARDS
+                                        </div>
+                                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.6 }}>
+                                            7 days: +100Diamonds bonus • 30 days: +500Diamonds bonus • 100 days: +2000Diamonds bonus
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Spot Trainer Mode */}
+                            {gameType === 'spot' && (
+                                <div style={{
+                                    ...styles.speedDrillCard,
+                                    background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.1), rgba(234, 88, 12, 0.1))',
+                                    border: '2px solid rgba(249, 115, 22, 0.3)',
+                                }}>
+                                    <div style={{ fontSize: 48, marginBottom: 16 }}></div>
+                                    <h2 style={{ fontSize: 24, fontWeight: 700, color: '#F97316', marginBottom: 8 }}>
+                                        SPOT TRAINER
+                                    </h2>
+                                    <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 20 }}>
+                                        Full hand trees from preflop to river.<br />
+                                        Multi-street decision training with EV comparison.<br />
+                                        Learn to navigate complex spots optimally.
+                                    </p>
+                                    <button
+                                        onClick={async () => {
+                                            if (!isVIP) {
+                                                const result = await DiamondEngine.deduct(GAME_COST);
+                                                if (!result.success) {
+                                                    alert(`Not enough diamonds!`);
+                                                    return;
+                                                }
+                                                setDiamondBalance(result.balance);
+                                            }
+                                            setMode('spot-trainer');
+                                        }}
+                                        style={{
+                                            ...styles.speedDrillButton,
+                                            background: 'linear-gradient(135deg, #F97316, #EA580C)',
+                                        }}
+                                    >
+                                        START SPOT TRAINING
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Tournament Mode */}
+                            {gameType === 'tournament' && (
+                                <div style={{
+                                    ...styles.speedDrillCard,
+                                    background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(219, 39, 119, 0.1))',
+                                    border: '2px solid rgba(236, 72, 153, 0.3)',
+                                }}>
+                                    <div style={{ fontSize: 48, marginBottom: 16 }}>VS</div>
+                                    <h2 style={{ fontSize: 24, fontWeight: 700, color: '#EC4899', marginBottom: 8 }}>
+                                        RANKED BATTLES
+                                    </h2>
+                                    <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 20 }}>
+                                        Competitive ELO-ranked range battles.<br />
+                                        Climb the ladder from Beginner to Grandmaster.<br />
+                                        Earn diamonds and prove your skills!
+                                    </p>
+                                    <button
+                                        onClick={async () => {
+                                            if (!isVIP) {
+                                                const result = await DiamondEngine.deduct(GAME_COST);
+                                                if (!result.success) {
+                                                    alert(`Not enough diamonds!`);
+                                                    return;
+                                                }
+                                                setDiamondBalance(result.balance);
+                                            }
+                                            setMode('tournament-mode');
+                                        }}
+                                        style={{
+                                            ...styles.speedDrillButton,
+                                            background: 'linear-gradient(135deg, #EC4899, #DB2777)',
+                                        }}
+                                    >
+                                        Trophy ENTER RANKED MODE
+                                    </button>
+                                </div>
+                            )}
+
                             {/* Level Grid - Only show for Range Memory */}
                             {gameType === 'range' && (
                                 <>
+                                    {/* Filter Toggle Button + AI Generation Toggle */}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                                        <h3 style={{ margin: 0, fontSize: 16, color: 'rgba(255,255,255,0.8)' }}>
+                                            Select a Level
+                                        </h3>
+                                        <div style={{ display: 'flex', gap: 8 }}>
+                                            {/* AI Generation Toggle (VIP Feature) */}
+                                            <button
+                                                onClick={() => setUseAIGeneration(!useAIGeneration)}
+                                                style={{
+                                                    padding: '8px 16px',
+                                                    background: useAIGeneration ? 'rgba(255, 215, 0, 0.2)' : 'rgba(255, 255, 255, 0.1)',
+                                                    border: useAIGeneration ? '1px solid #FFD700' : '1px solid rgba(255, 255, 255, 0.2)',
+                                                    borderRadius: 20,
+                                                    color: useAIGeneration ? '#FFD700' : 'rgba(255, 255, 255, 0.7)',
+                                                    fontSize: 13,
+                                                    fontWeight: 600,
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: 6,
+                                                }}
+                                                title="Generate unique scenarios using AI (powered by Grok)"
+                                            >
+                                                🤖 {useAIGeneration ? 'AI ON' : 'AI Mode'}
+                                            </button>
+
+                                            {/* Filter Toggle */}
+                                            <button
+                                                onClick={() => setShowFilters(!showFilters)}
+                                                style={{
+                                                    padding: '8px 16px',
+                                                    background: showFilters ? 'rgba(0, 212, 255, 0.2)' : 'rgba(255, 255, 255, 0.1)',
+                                                    border: showFilters ? '1px solid #00D4FF' : '1px solid rgba(255, 255, 255, 0.2)',
+                                                    borderRadius: 20,
+                                                    color: showFilters ? '#00D4FF' : 'rgba(255, 255, 255, 0.7)',
+                                                    fontSize: 13,
+                                                    fontWeight: 600,
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: 6,
+                                                }}
+                                            >
+                                                🔍 {showFilters ? 'Hide Filters' : 'Filter Scenarios'}
+                                                {Object.keys(scenarioFilters).filter(k => scenarioFilters[k]).length > 0 && (
+                                                    <span style={{
+                                                        background: '#00D4FF',
+                                                        color: '#000',
+                                                        padding: '2px 6px',
+                                                        borderRadius: 10,
+                                                        fontSize: 11,
+                                                        fontWeight: 700,
+                                                    }}>
+                                                        {Object.keys(scenarioFilters).filter(k => scenarioFilters[k]).length}
+                                                    </span>
+                                                )}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Filter Panel */}
+                                    {showFilters && (
+                                        <ScenarioFilterPanel
+                                            onFilterChange={(filters) => {
+                                                setScenarioFilters(filters);
+                                            }}
+                                            onClose={() => setShowFilters(false)}
+                                            currentFilters={scenarioFilters}
+                                            availableScenarios={(() => {
+                                                const allScenarios = [
+                                                    ...LEVEL_1_SCENARIOS,
+                                                    ...LEVEL_2_SCENARIOS,
+                                                    ...LEVEL_3_SCENARIOS,
+                                                    ...LEVEL_4_SCENARIOS,
+                                                    ...LEVEL_5_SCENARIOS,
+                                                    ...LEVEL_6_SCENARIOS,
+                                                    ...LEVEL_7_SCENARIOS,
+                                                    ...LEVEL_8_SCENARIOS,
+                                                    ...LEVEL_9_SCENARIOS,
+                                                    ...LEVEL_10_SCENARIOS,
+                                                ];
+                                                return allScenarios.length;
+                                            })()}
+                                            filteredCount={(() => {
+                                                const allScenarios = [
+                                                    ...LEVEL_1_SCENARIOS,
+                                                    ...LEVEL_2_SCENARIOS,
+                                                    ...LEVEL_3_SCENARIOS,
+                                                    ...LEVEL_4_SCENARIOS,
+                                                    ...LEVEL_5_SCENARIOS,
+                                                    ...LEVEL_6_SCENARIOS,
+                                                    ...LEVEL_7_SCENARIOS,
+                                                    ...LEVEL_8_SCENARIOS,
+                                                    ...LEVEL_9_SCENARIOS,
+                                                    ...LEVEL_10_SCENARIOS,
+                                                ];
+                                                return filterScenarios(allScenarios, scenarioFilters).length;
+                                            })()}
+                                        />
+                                    )}
+
                                     <div style={styles.levelGrid}>
                                         {LEVELS.map((level, idx) => {
                                             const scenarioCount = getLevelScenarios(level.level);
-                                            const levelConfig = getLevelConfig(level.level);
+                                            const levelConfig = getLevelConfig(level.level) || { timer: 90, gridSize: 13, maxHands: 20, xpMultiplier: 1 };
                                             const isUnlocked = idx === 0 || consecutivePasses >= (idx * 5);
 
                                             return (
@@ -1819,7 +3300,7 @@ export default function MemoryGamesPage() {
                                                     <h3 style={styles.levelName}>{level.name}</h3>
                                                     <p style={styles.levelFocus}>{level.focus}</p>
                                                     <div style={styles.levelMeta}>
-                                                        <span>⏱️ {levelConfig.timer}s</span>
+                                                        <span> {levelConfig.timer}s</span>
                                                         <span>×{levelConfig.xpMultiplier} XP</span>
                                                     </div>
                                                     <div style={styles.levelMeta}>
@@ -1847,11 +3328,11 @@ export default function MemoryGamesPage() {
                             {/* VIP Upsell */}
                             {!isVIP && (
                                 <div style={styles.vipUpsell}>
-                                    <div style={styles.vipTitle}>👑 GO VIP — $19.99/month</div>
+                                    <div style={styles.vipTitle}> GO VIP — $19.99/month</div>
                                     <div style={styles.vipFeatures}>
                                         Unlimited games • All levels • No diamond cost • Exclusive modes
                                     </div>
-                                    <button style={styles.vipButton}>
+                                    <button style={styles.vipButton} onClick={handleVipUpgrade}>
                                         Upgrade to VIP
                                     </button>
                                 </div>
@@ -1866,6 +3347,7 @@ export default function MemoryGamesPage() {
                             onExit={() => setMode('menu')}
                             onScoreUpdate={(newBalance) => setDiamondBalance(newBalance)}
                             DiamondEngine={DiamondEngine}
+                            userId={userId}
                         />
                     )}
 
@@ -1876,6 +3358,7 @@ export default function MemoryGamesPage() {
                             onExit={() => setMode('menu')}
                             onScoreUpdate={(newBalance) => setDiamondBalance(newBalance)}
                             DiamondEngine={DiamondEngine}
+                            userId={userId}
                         />
                     )}
 
@@ -1886,6 +3369,7 @@ export default function MemoryGamesPage() {
                             onExit={() => setMode('menu')}
                             onScoreUpdate={(newBalance) => setDiamondBalance(newBalance)}
                             DiamondEngine={DiamondEngine}
+                            userId={userId}
                         />
                     )}
 
@@ -1896,7 +3380,82 @@ export default function MemoryGamesPage() {
                             onExit={() => setMode('menu')}
                             onScoreUpdate={(newBalance) => setDiamondBalance(newBalance)}
                             DiamondEngine={DiamondEngine}
+                            userId={userId}
                         />
+                    )}
+
+                    {/* Spot Trainer Mode - Full Implementation */}
+                    {mode === 'spot-trainer' && (
+                        <SpotTrainerGame
+                            level={currentLevel}
+                            onExit={() => setMode('menu')}
+                            onScoreUpdate={(newBalance) => setDiamondBalance(newBalance)}
+                            DiamondEngine={DiamondEngine}
+                            userId={userId}
+                        />
+                    )}
+
+                    {/* Tournament Mode - Full Implementation */}
+                    {mode === 'tournament' && (
+                        <TournamentModeGame
+                            level={currentLevel}
+                            onExit={() => setMode('menu')}
+                            onScoreUpdate={(newBalance) => setDiamondBalance(newBalance)}
+                            DiamondEngine={DiamondEngine}
+                            userId={userId}
+                        />
+                    )}
+
+                    {/* Out of Diamonds Modal */}
+                    <OutOfDiamondsModal
+                        isOpen={showOutOfDiamondsModal}
+                        onClose={() => setShowOutOfDiamondsModal(false)}
+                        gameCost={GAME_COST}
+                    />
+
+                    {/* AI Generation Loading Overlay */}
+                    {aiGenerating && (
+                        <div style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            background: 'rgba(0, 0, 0, 0.85)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 9999,
+                        }}>
+                            <div style={{
+                                fontSize: 48,
+                                marginBottom: 20,
+                                animation: 'pulse 1.5s infinite',
+                            }}>
+                                🤖
+                            </div>
+                            <div style={{
+                                fontSize: 20,
+                                fontWeight: 600,
+                                color: '#FFD700',
+                                marginBottom: 10,
+                            }}>
+                                Grok AI is generating your scenario...
+                            </div>
+                            <div style={{
+                                fontSize: 14,
+                                color: 'rgba(255, 255, 255, 0.6)',
+                            }}>
+                                Creating a unique, solver-accurate training challenge
+                            </div>
+                            <style>{`
+                                @keyframes pulse {
+                                    0%, 100% { transform: scale(1); }
+                                    50% { transform: scale(1.15); }
+                                }
+                            `}</style>
+                        </div>
                     )}
 
                     {(mode === 'game' || mode === 'result') && currentScenario && (
@@ -1906,7 +3465,7 @@ export default function MemoryGamesPage() {
                                 <div
                                     style={{
                                         ...styles.timerBar,
-                                        width: `${(timeRemaining / getLevelConfig(currentLevel).timer) * 100}%`,
+                                        width: `${(timeRemaining / safeLevelConfig.timer) * 100}%`,
                                         backgroundColor: getTimerColor(),
                                     }}
                                 />
@@ -1921,11 +3480,11 @@ export default function MemoryGamesPage() {
                             {/* Scenario Header */}
                             <div style={styles.gameHeader}>
                                 <div>
-                                    <div style={styles.levelBadge}>Level {currentLevel} • ⏱️ {getLevelConfig(currentLevel).timer}s</div>
+                                    <div style={styles.levelBadge}>Level {currentLevel} •  {safeLevelConfig.timer}s</div>
                                     <h2 style={styles.scenarioTitle}>{currentScenario.title}</h2>
                                     <p style={styles.scenarioDesc}>{currentScenario.description}</p>
                                     {currentScenario.tip && !gradeResult && (
-                                        <p style={styles.tipText}>💡 {currentScenario.tip}</p>
+                                        <p style={styles.tipText}> {currentScenario.tip}</p>
                                     )}
                                 </div>
                                 {gradeResult && (
@@ -1942,7 +3501,7 @@ export default function MemoryGamesPage() {
                                                 ? 'linear-gradient(135deg, #00ff88, #00D4FF)'
                                                 : 'linear-gradient(135deg, #ff4444, #ff6b6b)',
                                         }}>
-                                            {gradeResult.score >= 85 ? '✓ PASSED' : '✗ FAILED'}
+                                            {gradeResult.score >= 85 ? ' PASSED' : '✗ FAILED'}
                                         </div>
                                     </div>
                                 )}
@@ -2031,7 +3590,7 @@ export default function MemoryGamesPage() {
                                 <div style={styles.feedbackPanel}>
                                     <div style={styles.feedbackGrid}>
                                         <div style={styles.feedbackItem}>
-                                            <span style={{ color: '#00ff88' }}>✓ Correct</span>
+                                            <span style={{ color: '#00ff88' }}> Correct</span>
                                             <span style={styles.feedbackValue}>{gradeResult.correctHands}</span>
                                         </div>
                                         <div style={styles.feedbackItem}>
@@ -2049,7 +3608,7 @@ export default function MemoryGamesPage() {
                                     </div>
                                     {gradeResult.score >= 85 && lastReward && (
                                         <div style={styles.rewardSummary}>
-                                            💎 +{lastReward.diamonds} Diamonds earned! (×{multiplier} multiplier)
+                                            Diamonds +{lastReward.diamonds} Diamonds earned! (×{multiplier} multiplier)
                                         </div>
                                     )}
                                 </div>

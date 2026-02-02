@@ -1,5 +1,5 @@
 /**
- * 💎 COSMETIC SHOP - The Diamond Exchange
+ * <img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/> COSMETIC SHOP - The Diamond Exchange
  * 
  * Where diamonds become style. Features:
  * - Card Skins
@@ -339,7 +339,7 @@ export function CosmeticShop({
                                 margin: 0,
                                 color: '#fff'
                             }}>
-                                💎 Diamond Exchange
+                                <img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/> Diamond Exchange
                             </h2>
                             <p style={{ fontSize: '13px', color: '#888', margin: '4px 0 0' }}>
                                 Turn your grind into style
@@ -354,7 +354,7 @@ export function CosmeticShop({
                                 alignItems: 'center',
                                 gap: '8px'
                             }}>
-                                <span style={{ fontSize: '20px' }}>💎</span>
+                                <span style={{ fontSize: '20px' }}><img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/></span>
                                 <span style={{
                                     fontSize: '18px',
                                     fontWeight: 700,
@@ -629,7 +629,7 @@ function ShopItemCard({
                             gap: '6px'
                         }}
                     >
-                        <span>💎</span>
+                        <span><img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/></span>
                         {item.price === 0 ? 'FREE' : item.price.toLocaleString()}
                     </button>
                 )}

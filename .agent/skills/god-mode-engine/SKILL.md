@@ -12,22 +12,21 @@ Complete implementation of the Smarter.Poker "God Mode" training system.
 | Component | File | Lines |
 |-----------|------|-------|
 | Database Schema | `database/migrations/god_mode_engine.sql` | 322 |
-| Game Seeder | `scripts/seed_games.py` | 350 |
+| Game Seeder | `scripts/seed_games.py` | 450 |
 | Engine Core | `src/engine/engine_core.py` | 733 |
-| Frontend | `src/components/training/GameSession.tsx` | 900+ |
+| GameSession | `src/components/training/GameSession.tsx` | 900+ |
+| LevelSelector | `src/components/training/LevelSelector.tsx` | 400+ |
+| ChartGrid | `src/components/training/ChartGrid.tsx` | 500+ |
+| MentalGym | `src/components/training/MentalGym.tsx` | 400+ |
+| GameArena | `src/components/training/GameArena.tsx` | 850+ |
+| RoundSummary | `src/components/training/RoundSummary.tsx` | 500+ |
+| Card | `src/components/training/Card.tsx` | 280+ |
+| Chip | `src/components/training/Chip.tsx` | 230+ |
 | API Server | `server.py` | 500+ |
-| **GameCard** | `src/components/training/GameCard.jsx` | 295 |
+| GameCard | `src/components/training/GameCard.jsx` | 295 |
 | Training Page | `pages/hub/training.js` | 1108 |
-| **LevelSelector** | `src/components/training/LevelSelector.tsx` | 697 |
-| Play Page | `pages/hub/training/play/[gameId].js` | 85 |
-| Arena Page | `pages/hub/training/arena/[gameId].js` | 120 |
-| **ChartGrid** | `src/components/training/ChartGrid.tsx` | 580 |
-| **MentalGym** | `src/components/training/MentalGym.tsx` | 520 |
-| **GameArena** | `src/components/training/GameArena.tsx` | 950 |
-| **RoundSummary** | `src/components/training/RoundSummary.tsx` | 980 |
-| **Card** | `src/components/training/Card.tsx` | 320 |
-| **Chip** | `src/components/training/Chip.tsx` | 350 |
-| Mock Data Script | `scripts/setup_dummy_data.py` | 450 |
+| Play Page | `pages/hub/training/play/[gameId].js` | 100+ |
+| Arena Page | `pages/hub/training/arena/[gameId].js` | 150+ |
 
 ---
 
@@ -48,6 +47,29 @@ Complete implementation of the Smarter.Poker "God Mode" training system.
     (60)  (19)   (21)
 ```
 
+### Component Flow
+
+```
+/hub/training
+     │
+     ▼
+GameCard (click)
+     │
+     ▼
+/hub/training/play/[gameId] ──► LevelSelector
+     │
+     ▼ (select level)
+/hub/training/arena/[gameId] ──► GameArena
+     │                              │
+     │                    ┌─────────┼─────────┐
+     │                    ▼         ▼         ▼
+     │              PokerTable  ChartGrid  MentalGym
+     │                 (PIO)     (CHART)  (SCENARIO)
+     │
+     ▼ (session complete)
+RoundSummary ──► Victory/Defeat screen
+```
+
 ---
 
 ## Run Commands
@@ -61,428 +83,169 @@ npm run dev
 
 # Seed games
 python3 scripts/seed_games.py --stats
-```
 
----
-
-## Step 6: Training Hub Enhancements
-
-### GameCard Features
-| Feature | Description |
-|---------|-------------|
-| **Progress Bar** | Visual "Level X/10" with animated fill |
-| **Action States** | `▶ START` / `▶ RESUME` / `✓ MASTERED` |
-| **Color Coding** | Cyan=new, Green=progress, Gold=mastered |
-
-### Preserved Features
-- Netflix-style horizontal scroll lanes
-- 5-category filter tabs
-- Mastered crown overlay + gold border
-- Streak badge, Daily Challenge, Fix Your Leaks
-
----
-
-## Step 7: Level Select Screen
-
-### Route Flow
-```
-/hub/training         → Training Hub (100 games)
-     ↓ click game
-/hub/training/play/[gameId]  → Level Selector (10 levels)
-     ↓ click level
-/hub/training/arena/[gameId] → Game Session (20 hands)
-```
-
-### LevelSelector Features
-| Feature | Description |
-|---------|-------------|
-| **Vertical Level Map** | Levels 1-10 with connection lines |
-| **Lock Logic** | Level 1 always open, others need 85%+ on previous |
-| **High Scores** | Shows best % with color coding |
-| **Play States** | PLAY / RETRY / REPLAY buttons |
-| **Passing Grades** | Scales from 85% (L1) to 100% (L10) |
-
-### API Integration
-```javascript
-// Fetch progress
-GET /api/training/progress?userId=X&gameId=Y
-
-// Start session
-POST /api/session/start
-Body: { user_id, game_id, level }
-```
-
----
-
-## Step 8: Missing Engines (CHART & SCENARIO)
-
-### ChartGrid.tsx — Push/Fold Training
-| Feature | Description |
-|---------|-------------|
-| **13x13 Grid** | All 169 hand combos (pairs diagonal, suited above, offsuit below) |
-| **Cell Interaction** | Click hand → action popup (PUSH/FOLD) |
-| **Visual Feedback** | Green=correct, Red=wrong, Gold=highlighted question |
-| **Position Display** | Hero position badge with color coding |
-| **Stack Depth** | Shows BB stack for ICM decisions |
-| **Result Overlay** | Animated correct/incorrect with hand info |
-
-### MentalGym.tsx — Psychology Training
-| Feature | Description |
-|---------|-------------|
-| **Scenario Text** | Large italic quote with emotional context |
-| **Countdown Timer** | Visual pressure with 15s default |
-| **Choice Buttons** | Big buttons with icons and emotional type tags |
-| **Emotional Types** | `impulsive` / `rational` / `passive` / `aggressive` |
-| **Feedback Panel** | Explanation + emotional lesson after choice |
-| **Trigger Badges** | TILT ALERT / FEAR TEST / GREED CHECK |
-
-### Integration with GameSession
-```typescript
-// Engine detection and component switching
-if (engineType === 'PIO') → PokerTable component
-if (engineType === 'CHART') → ChartGrid component
-if (engineType === 'SCENARIO') → MentalGym component
-```
-
----
-
-## Step 9: Game HUD (The Container)
-
-### GameArena.tsx — HUD Wrapper
-| Feature | Description |
-|---------|-------------|
-| **Health Bar** | Visual HP with color transition (Green→Yellow→Red) |
-| **Damage Animation** | Shake + floating "-X" indicator |
-| **Hand Counter** | "Hand: X/20" with live accuracy % |
-| **XP Display** | Running total with "+XP" animation |
-| **Quit Button** | Confirm dialog before exit |
-| **Level Failed Modal** | Shows on HP=0 with retry/exit options |
-| **Session Complete Modal** | Shows pass/fail with stats |
-
-### Engine Routing
-```tsx
-<GameArena>
-  {engineType === 'PIO' && <PIOEngine />}
-  {engineType === 'CHART' && <ChartGrid />}
-  {engineType === 'SCENARIO' && <MentalGym />}
-</GameArena>
-```
-
-### State Flow
-```
-User Action → API Submit → Result
-                ↓
-    ┌─────────────────────────┐
-    │  isCorrect?             │
-    │  ├─ Yes: +XP, next hand │
-    │  └─ No: -HP, shake      │
-    │                         │
-    │  HP <= 0? → Failed Modal│
-    │  Hand 20? → Complete    │
-    └─────────────────────────┘
-```
-
-### Passing Grades by Level
-| Level | Pass % |
-|-------|--------|
-| 1 | 85% |
-| 2 | 87% |
-| 3 | 89% |
-| ... | ... |
-| 10 | 100% |
-
----
-
-## Step 10: Victory Screen (RoundSummary)
-
-### RoundSummary.tsx — Post-Game Modal
-| Feature | Description |
-|---------|-------------|
-| **Animated Score** | Large accuracy % with ring animation |
-| **Pass/Fail Theme** | Gold confetti on pass, red on fail |
-| **XP Breakdown** | Animated XP earned + perfect bonus |
-| **Blunder Review** | Top 3 worst mistakes with damage shown |
-| **Action Buttons** | Next Level / Retry / Exit options |
-| **Streak Badge** | Shows best streak if > 3 hands |
-
-### Confetti System
-```typescript
-// 80 particles with random positions and rotations
-<Confetti count={80} />
-// Colors: Gold, Orange, Cyan, Green, Purple
-```
-
-### Animation Phases
-| Phase | Delay | Content |
-|-------|-------|---------|
-| 0 | 0ms | Modal entrance |
-| 1 | 300ms | Score circle + ring |
-| 2 | 1500ms | Stats grid + XP bar |
-| 3 | 2500ms | Blunders section |
-| 4 | 3500ms | Action buttons |
-
-### Blunder Tracking
-```typescript
-interface BlunderData {
-    handNumber: number;
-    heroHand: string;
-    board?: string;
-    userAction: string;
-    correctAction: string;
-    evLoss: number;
-    damage: number;
-}
-// Sorted by damage, top 3 displayed
-```
-
-### Integration with GameArena
-```tsx
-// Triggers when all 20 hands complete
-{showComplete && sessionStats && (
-    <RoundSummary
-        isOpen={true}
-        passed={sessionStats.passed}
-        level={level}
-        passingGrade={PASSING_GRADES[level - 1]}
-        stats={sessionStats}
-        gameName={gameName}
-        onNextLevel={handleNextLevel}
-        onRetry={handleRetry}
-        onExit={onExit}
-        onReviewHand={handleReviewHand}
-    />
-)}
-```
-
----
-
-## Skill Files
-
-| File | Purpose |
-|------|---------|
-| `SKILL.md` | Main guide |
-| `ENGINE_CORE_REFERENCE.md` | Python backend |
-| `GAMESESSION_REFERENCE.md` | React frontend |
-| `SERVER_REFERENCE.md` | FastAPI endpoints |
-| `SEEDER_REFERENCE.md` | Game seeding |
-| `TRAINING_HUB_REFERENCE.md` | Training Hub UI |
-| `DATABASE_DEPLOYMENT.md` | Browser automation |
-| `CHARTGRID_REFERENCE.md` | Push/fold chart UI |
-| `MENTALGYM_REFERENCE.md` | Mental game scenarios |
-| `GAMEARENA_REFERENCE.md` | HUD wrapper & game loop |
-| `ROUNDSUMMARY_REFERENCE.md` | Victory/defeat modal |
-| `GRAPHICS_REFERENCE.md` | Card & Chip components |
-
----
-
-## Step 11: Navigation Wiring (Next.js Routing)
-
-### Route Architecture (File-Based)
-```
-/pages/hub/training.js          → Training Hub (100 games)
-/pages/hub/training/play/[gameId].js   → Level Selector (10 levels)
-/pages/hub/training/arena/[gameId].js  → Game Arena (20 hands)
-```
-
-### Navigation Flow
-```
-┌─────────────────────┐
-│   Training Hub      │  /hub/training
-│   (100 Game Cards)  │
-└─────────┬───────────┘
-          │ click game → intro splash
-          ▼
-┌─────────────────────┐
-│   Level Selector    │  /hub/training/play/{gameId}
-│   (10 Level Map)    │
-└─────────┬───────────┘
-          │ click level → API start session
-          ▼
-┌─────────────────────┐
-│   Game Arena        │  /hub/training/arena/{gameId}?level=X&session=Y
-│   (20 Hand Session) │
-└─────────────────────┘
-```
-
-### Key Navigation Functions
-
-**Training Hub → Level Selector:**
-```javascript
-// pages/hub/training.js
-const handleGameClick = (game) => {
-    setPendingGame(game);
-    setShowIntro(true);  // Show intro splash
-};
-
-const handleIntroComplete = () => {
-    router.push(`/hub/training/play/${pendingGame.id}`);
-};
-```
-
-**Level Selector → Game Arena:**
-```javascript
-// LevelSelector.tsx
-const handlePlayLevel = async (level: number) => {
-    // 1. Start session via API
-    const session = await fetch('/api/session/start', {
-        method: 'POST',
-        body: JSON.stringify({ user_id, game_id, level }),
-    });
-
-    // 2. Navigate to arena with params
-    router.push(`/hub/training/arena/${gameId}?level=${level}&session=${session.session_id}`);
-};
-```
-
-**Game Arena → Back:**
-```javascript
-// GameArena exits
-onExit → router.push(`/hub/training/play/${gameId}`);
-onLevelComplete → router.push with query params for toast
-```
-
-### Query Parameters
-| Route | Params | Description |
-|-------|--------|-------------|
-| `/play/[gameId]` | `completed`, `level`, `score`, `passed`, `xp` | After completing a level |
-| `/arena/[gameId]` | `level`, `session` | Starting a game session |
-
----
-
-## Step 12: Graphics Engine (Cards & Chips)
-
-### Card.tsx — Visual Playing Cards
-| Feature | Description |
-|---------|-------------|
-| **Suit Colors** | Red for Hearts/Diamonds, Black for Spades/Clubs |
-| **Suit Symbols** | Corner + center display of rank and suit |
-| **Card Back** | Blue patterned back with SP logo |
-| **Animations** | `flip`, `slide`, `deal` entrance effects |
-| **Sizes** | `small` (45x63), `medium` (60x84), `large` (80x112) |
-
-```tsx
-// Basic usage
-<Card rank="A" suit="h" />
-
-// With animation
-<Card rank="K" suit="s" animate="deal" delay={0.2} />
-
-// Parse string format
-const cards = parseCards("AhKd");
-<CardGroup cards={cards} animate="slide" />
-```
-
-### Chip.tsx — Poker Chips
-| Feature | Description |
-|---------|-------------|
-| **Denominations** | 1=White, 5=Red, 25=Green, 100=Black, 500=Purple, 1K=Orange |
-| **Stacking** | Auto-stack effect for large amounts |
-| **3D Effects** | Radial gradients, shadows, edge notches |
-| **Animations** | Spring-based entrance and hover effects |
-
-```tsx
-// Single chip
-<Chip amount={100} size="medium" />
-
-// Stacked chips
-<ChipStack amount={5000} maxChips={5} />
-
-// Pot display
-<PotDisplay amount={1250} label="POT" />
-
-// Bet indicator
-<BetIndicator amount={300} position="bottom" />
-```
-
-### Chip Color Guide
-| Value | Color | Hex |
-|-------|-------|-----|
-| 1 | White | #FFFFFF |
-| 5 | Red | #E53935 |
-| 25 | Green | #43A047 |
-| 100 | Black | #212121 |
-| 500 | Purple | #7B1FA2 |
-| 1000 | Orange | #FF8F00 |
-| 5000 | Pink | #F06292 |
-| 10000 | Gold | #FFD700 |
-
-### Card Utilities
-```typescript
-// Parse single card "Ah" → { rank: "A", suit: "h" }
-parseCardString("Ah")
-
-// Parse multiple "AhKd" → [{ rank: "A", suit: "h" }, { rank: "K", suit: "d" }]
-parseCards("AhKd")
-
-// Also handles spaced format
-parseCards("Ah Kd Qc")
-```
-
----
-
-## Step 13: Mock Data Generation (Safety Net)
-
-### Purpose
-Creates dummy data files for CHART and SCENARIO engines to prevent crashes when the app tries to load game data that doesn't exist yet.
-
-### Script Location
-`scripts/setup_dummy_data.py`
-
-### Run Command
-```bash
+# Setup dummy data
 python3 scripts/setup_dummy_data.py
 ```
 
-### Created Files
+---
 
-**Charts (`/data/charts/`):**
-| File | Description |
-|------|-------------|
-| `push_fold_basic.json` | Basic push/fold ranges for 10-15bb |
-| `push_fold_advanced.json` | ICM-adjusted ranges (bubble/FT) |
-| `bb_defense.json` | BB defense vs button opens |
+## Implementation Steps
 
-**Scenarios (`/data/scenarios/`):**
-| File | Description |
-|------|-------------|
-| `tilt_test.json` | Tilt control scenarios (3 hands) |
-| `fear_test.json` | Fear management scenarios (2 hands) |
-| `greed_test.json` | Greed control scenarios (2 hands) |
-| `patience_test.json` | Patience test scenarios (1 hand) |
+### Step 1-6: Core Engine (Completed)
+- [x] Database schema
+- [x] Game seeder (100 games)
+- [x] Engine core backend
+- [x] Frontend GameSession component
+- [x] FastAPI server
+- [x] Training Hub enhancements
 
-### Chart Data Structure
-```json
-{
-  "name": "Push/Fold Basic",
-  "positions": ["BTN", "SB", "CO", ...],
-  "charts": {
-    "BTN": {
-      "15bb": { "AA": "PUSH", "KK": "PUSH", ... },
-      "10bb": { "AA": "PUSH", ... }
-    }
-  },
-  "default_action": "FOLD"
+### Step 7: Level Select Screen
+- [x] `LevelSelector.tsx` - 10-level progression display
+- [x] Visual indicators: locked/unlocked/current/passed
+- [x] Difficulty curve display (85%-100% passing grades)
+- [x] XP rewards preview
+
+### Step 8: Engine Components
+- [x] `ChartGrid.tsx` - 13x13 push/fold chart
+  - Interactive cell selection
+  - Color-coded actions (PUSH=green, FOLD=red, 3BET=blue)
+  - Position and stack depth display
+  - Visual feedback for correct/wrong answers
+- [x] `MentalGym.tsx` - Mental game scenarios
+  - Large scenario text display
+  - Countdown timer with pressure
+  - Emotional type badges
+  - Timed decision making
+
+### Step 9: Game HUD (GameArena)
+- [x] `GameArena.tsx` - Full game session wrapper
+- [x] Health bar with heart icons
+- [x] Hand counter (hand X of 20)
+- [x] XP display with streak bonus
+- [x] Conditional engine rendering
+- [x] Demo mode for testing without API
+
+### Step 10: Victory/Defeat Screen
+- [x] `RoundSummary.tsx` - Session completion screen
+- [x] Phased reveal animation (SCORE → XP → BLUNDERS → ACTIONS)
+- [x] Confetti celebration on pass
+- [x] Animated score counter
+- [x] Top 3 blunders review
+- [x] Next level / Retry / Exit buttons
+
+### Step 11: Navigation Wiring
+- [x] `/hub/training/play/[gameId].js` → LevelSelector
+- [x] `/hub/training/arena/[gameId].js` → GameArena
+- [x] Session params via URL (level, session)
+
+### Step 12: Graphics Engine
+- [x] `Card.tsx` - Playing card component
+  - SVG suit symbols
+  - Color coding (red/black)
+  - Sizes: small, medium, large
+  - Flip/deal animations
+  - CardGroup for hand display
+- [x] `Chip.tsx` - Poker chip component
+  - Denomination colors (1=white, 5=red, 25=green, 100=black, 500=purple, 1000=gold)
+  - ChipStack for stacking effect
+  - PotDisplay for pot visualization
+
+### Step 13: Mock Data
+- [x] `scripts/setup_dummy_data.py` - Data setup script
+- [x] `/data/charts/push_fold_ranges.json` - Push/fold charts
+- [x] `/data/charts/3bet_ranges.json` - 3-bet/call ranges
+- [x] `/data/charts/icm_bubble_ranges.json` - ICM bubble charts
+- [x] `/data/scenarios/mental_game.json` - Mental game scenarios
+- [x] Validation system for data files
+
+---
+
+## Data Files
+
+| File | Engine | Count |
+|------|--------|-------|
+| `push_fold_ranges.json` | CHART | 5 charts |
+| `3bet_ranges.json` | CHART | 2 charts |
+| `icm_bubble_ranges.json` | CHART | 3 charts |
+| `mental_game.json` | SCENARIO | 10 scenarios (5 categories) |
+| `sample_hands.json` | PIO | 20 demo hands |
+
+---
+
+## Component Props
+
+### ChartGrid
+```typescript
+interface ChartGridProps {
+  chartType: 'PUSH_FOLD' | '3BET_CALL' | 'ICM_BUBBLE';
+  heroPosition: string;
+  stackBB: number;
+  phase: 'DISPLAY' | 'SELECT' | 'RESULT';
+  selectedCell?: string;
+  correctCell?: string;
+  resultFeedback?: 'CORRECT' | 'WRONG';
+  onAction: (action: string) => void;
 }
 ```
 
-### Scenario Data Structure
-```json
-{
-  "id": "tilt_test_001",
-  "name": "Tilt Control Test",
-  "category": "tilt",
-  "scenarios": [
-    {
-      "id": "tilt_001",
-      "intro": "You just lost 3 buy-ins...",
-      "choices": [
-        { "id": "BREATHE", "label": "Take a Deep Breath", "emotional_type": "rational" },
-        { "id": "TILT", "label": "Express Frustration", "emotional_type": "impulsive" }
-      ],
-      "correct_choice": "BREATHE",
-      "explanation": "..."
-    }
-  ]
+### MentalGym
+```typescript
+interface MentalGymProps {
+  scenario: {
+    title: string;
+    context: string;
+    prompt: string;
+    options: Array<{
+      id: string;
+      text: string;
+      type: 'rational' | 'impulsive' | 'passive' | 'aggressive';
+      correct: boolean;
+      feedback: string;
+    }>;
+    timeout_seconds: number;
+  };
+  onAnswer: (optionId: string, timedOut: boolean) => void;
+  timeRemaining?: number;
+}
+```
+
+### GameArena
+```typescript
+interface GameArenaProps {
+  gameId: string;
+  level: number;
+  sessionId: string;
+  engineType: 'PIO' | 'CHART' | 'SCENARIO';
+  onSessionComplete: (result: SessionResult) => void;
+  onExit: () => void;
+}
+```
+
+### RoundSummary
+```typescript
+interface RoundSummaryProps {
+  result: {
+    passed: boolean;
+    score: number;
+    totalHands: number;
+    correctHands: number;
+    xpEarned: number;
+    streakBonus: number;
+    blunders: Array<{
+      hand: number;
+      heroCards: string[];
+      board: string[];
+      yourAction: string;
+      correctAction: string;
+      evLoss: number;
+    }>;
+  };
+  level: number;
+  gameName: string;
+  onNextLevel: () => void;
+  onRetry: () => void;
+  onExit: () => void;
 }
 ```
 
@@ -490,17 +253,31 @@ python3 scripts/setup_dummy_data.py
 
 ## Deployment Checklist
 
-- [x] Step 1: Database schema
-- [x] Step 2: Game seeder (100 games)
-- [x] Step 3: Engine core backend
-- [x] Step 4: GameSession component
-- [x] Step 5: FastAPI server
-- [x] Step 6: Training Hub enhancements
-- [x] Step 7: Level Select screen
-- [x] Step 8: Missing Engines (ChartGrid & MentalGym)
-- [x] **Step 9: Game HUD (GameArena wrapper)**
-- [x] **Step 10: Victory Screen (RoundSummary)**
-- [x] **Step 11: Navigation Wiring (Next.js Routing)**
-- [x] **Step 12: Graphics Engine (Card & Chip components)**
-- [x] **Step 13: Mock Data Generation (Safety Net)**
-- [ ] Step 14: Production deploy
+- [x] Database schema
+- [x] Game seeder (100 games)
+- [x] Engine core backend
+- [x] Frontend component
+- [x] FastAPI server
+- [x] Training Hub enhancements
+- [x] Level Select screen
+- [x] Engine components (ChartGrid, MentalGym)
+- [x] Game HUD (GameArena)
+- [x] Victory/Defeat screen (RoundSummary)
+- [x] Navigation wiring
+- [x] Graphics engine (Card, Chip)
+- [x] Mock data setup
+- [ ] Production deploy
+
+---
+
+## Skill Files
+
+| File | Purpose |
+|------|---------|
+| `SKILL.md` | Main guide (this file) |
+| `ENGINE_CORE_REFERENCE.md` | Python backend |
+| `GAMESESSION_REFERENCE.md` | React frontend |
+| `SERVER_REFERENCE.md` | FastAPI endpoints |
+| `SEEDER_REFERENCE.md` | Game seeding |
+| `TRAINING_HUB_REFERENCE.md` | Training Hub UI |
+| `DATABASE_DEPLOYMENT.md` | Browser automation |

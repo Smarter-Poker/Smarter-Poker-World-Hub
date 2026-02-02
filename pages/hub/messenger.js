@@ -1,5 +1,5 @@
 /**
- * 💬 SMARTER.POKER MESSENGER V2.0
+ *  SMARTER.POKER MESSENGER V2.0
  * Full-featured Facebook Messenger clone with premium design
  * Real-time chat, read receipts, typing indicators, and poker-themed UI
  * Enhanced with: optimistic updates, message reactions, sound notifications
@@ -7,15 +7,35 @@
 
 import Head from 'next/head';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../src/config/hamburgerMenus';
+import { messengerPreferences } from '../../src/services/preferences-service';
+
+// Dynamic import for LiveKit (client-side only)
+const LiveKitCall = dynamic(
+    () => import('../../src/components/video/LiveKitCall'),
+    { ssr: false }
+);
+
+// Dynamic import for Jarvis AI Widget (client-side only)
+const JarvisMessengerWidget = dynamic(
+    () => import('../../src/world/components/Jarvis/JarvisMessengerWidget'),
+    { ssr: false }
+);
 
 // God-Mode Stack
 import { useMessengerStore } from '../../src/stores/messengerStore';
+import { useOneSignal } from '../../src/contexts/OneSignalContext';
+import { useUnreadCount } from '../../src/hooks/useUnreadCount';
+import { createRingTone } from '../../src/utils/ringTone';
+import { createMultiDeviceAuthListener, withRetry, safeAsync, getCircuit, isOnline, persistSession, getPersistedSession } from '../../src/utils/authGuard';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🎨 COLOR PALETTE - Premium Poker Theme
@@ -91,6 +111,34 @@ function formatDateHeader(timestamp) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// 📱 FACEBOOK-STYLE SVG ICONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+const PhoneIcon = ({ size = 20, color = '#0084FF' }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+        <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" />
+    </svg>
+);
+
+const VideoIcon = ({ size = 20, color = '#0084FF' }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+        <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z" />
+    </svg>
+);
+
+const SearchIcon = ({ size = 20, color = '#0084FF' }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+        <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+    </svg>
+);
+
+const InfoIcon = ({ size = 20, color = '#0084FF' }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+    </svg>
+);
+
+// ═══════════════════════════════════════════════════════════════════════════
 // 🖼️ AVATAR COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -149,15 +197,17 @@ function Avatar({ src, name, size = 40, online, showOnline = true }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 📝 MESSAGE INPUT COMPONENT
+//  MESSAGE INPUT COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
-function MessageInput({ onSend, onTyping, disabled }) {
+function MessageInput({ onSend, onTyping, onMediaUpload, disabled }) {
     const [text, setText] = useState('');
     const [showEmoji, setShowEmoji] = useState(false);
+    const [uploading, setUploading] = useState(false);
     const inputRef = useRef(null);
+    const fileInputRef = useRef(null);
 
-    const emojis = ['😀', '😂', '❤️', '👍', '🔥', '🎉', '😎', '🤔', '👏', '💯', '♠️', '♥️', '♦️', '♣️', '🃏', '🎰'];
+    const emojis = ['😀', '😂', '', '👍', '', '', '😎', '🤔', '👏', '💯', 's', 'h', 'd', 'c', '', ''];
 
     const handleSend = () => {
         if (!text.trim()) return;
@@ -191,21 +241,62 @@ function MessageInput({ onSend, onTyping, disabled }) {
             alignItems: 'center',
             gap: 8,
         }}>
-            {/* Action buttons */}
-            <button style={{
-                width: 36, height: 36, borderRadius: '50%', border: 'none',
-                background: 'transparent', cursor: 'pointer', fontSize: 20, color: C.blue,
-            }}>➕</button>
+            {/* Photo/Video Upload Button */}
+            <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/*,video/*"
+                style={{ display: 'none' }}
+                onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file || !onMediaUpload) return;
+                    setUploading(true);
+                    try {
+                        await onMediaUpload(file);
+                    } finally {
+                        setUploading(false);
+                        e.target.value = '';
+                    }
+                }}
+            />
+            <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                style={{
+                    width: 32, height: 32, borderRadius: '50%', border: 'none',
+                    background: 'transparent', cursor: uploading ? 'wait' : 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    opacity: uploading ? 0.5 : 1, padding: 0,
+                }}
+                title="Send photo or video"
+            >
+                {uploading ? (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill={C.blue}>
+                        <circle cx="12" cy="12" r="10" stroke={C.blue} strokeWidth="2" fill="none" strokeDasharray="31.4" strokeLinecap="round">
+                            <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite" />
+                        </circle>
+                    </svg>
+                ) : (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill={C.blue}>
+                        <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" stroke={C.blue} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                )}
+            </button>
 
-            <button style={{
-                width: 36, height: 36, borderRadius: '50%', border: 'none',
-                background: 'transparent', cursor: 'pointer', fontSize: 20, color: C.blue,
-            }}>📷</button>
-
-            <button style={{
-                width: 36, height: 36, borderRadius: '50%', border: 'none',
-                background: 'transparent', cursor: 'pointer', fontSize: 20, color: C.blue,
-            }}>🎁</button>
+            {/* GIF button */}
+            <button
+                style={{
+                    width: 32, height: 32, borderRadius: '50%', border: 'none',
+                    background: 'transparent', cursor: 'pointer', display: 'flex',
+                    alignItems: 'center', justifyContent: 'center', padding: 0,
+                }}
+                title="Send GIF"
+            >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <rect x="3" y="5" width="18" height="14" rx="2" stroke={C.blue} strokeWidth="1.5" />
+                    <text x="12" y="14" textAnchor="middle" fontSize="7" fontWeight="bold" fill={C.blue}>GIF</text>
+                </svg>
+            </button>
 
             {/* Input wrapper */}
             <div style={{
@@ -232,6 +323,7 @@ function MessageInput({ onSend, onTyping, disabled }) {
                         padding: '10px 0',
                         fontSize: 15,
                         outline: 'none',
+                        color: '#050505',
                     }}
                 />
 
@@ -241,10 +333,20 @@ function MessageInput({ onSend, onTyping, disabled }) {
                         border: 'none',
                         background: 'transparent',
                         cursor: 'pointer',
-                        fontSize: 20,
                         padding: 4,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                     }}
-                >😊</button>
+                    title="Choose emoji"
+                >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" stroke={C.blue} strokeWidth="1.5" />
+                        <path d="M8 14s1.5 2 4 2 4-2 4-2" stroke={C.blue} strokeWidth="1.5" strokeLinecap="round" />
+                        <circle cx="9" cy="10" r="1" fill={C.blue} />
+                        <circle cx="15" cy="10" r="1" fill={C.blue} />
+                    </svg>
+                </button>
 
                 {/* Emoji picker */}
                 {showEmoji && (
@@ -276,29 +378,37 @@ function MessageInput({ onSend, onTyping, disabled }) {
                 )}
             </div>
 
-            {/* Send button */}
+            {/* Send button - Facebook Messenger style */}
             <button
                 onClick={handleSend}
                 disabled={!text.trim()}
                 style={{
-                    width: 36, height: 36, borderRadius: '50%', border: 'none',
+                    width: 32, height: 32, borderRadius: '50%', border: 'none',
                     background: text.trim() ? C.blue : 'transparent',
                     cursor: text.trim() ? 'pointer' : 'default',
-                    fontSize: 18,
-                    color: text.trim() ? 'white' : C.blue,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    padding: 0,
                 }}
+                title={text.trim() ? "Send message" : "Send like"}
             >
-                {text.trim() ? '➤' : '👍'}
+                {text.trim() ? (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                        <path d="M2 21l21-9L2 3v7l15 2-15 2z" fill="white" />
+                    </svg>
+                ) : (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill={C.blue}>
+                        <path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3" stroke={C.blue} strokeWidth="1.5" fill="none" />
+                    </svg>
+                )}
             </button>
         </div>
     );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 🔔 TOAST NOTIFICATION COMPONENT
+//  TOAST NOTIFICATION COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
 function Toast({ toast, onDismiss }) {
@@ -327,12 +437,12 @@ function Toast({ toast, onDismiss }) {
             alignItems: 'center',
             gap: 8,
         }}>
-            <span>{toast.type === 'error' ? '⚠️' : '✓'}</span>
+            <span>{toast.type === 'error' ? '' : ''}</span>
             <span>{toast.message}</span>
             <button
                 onClick={onDismiss}
                 style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', marginLeft: 8 }}
-            >✕</button>
+            >×</button>
         </div>
     );
 }
@@ -365,7 +475,7 @@ function TypingIndicator({ name }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 💬 MESSAGE BUBBLE COMPONENT
+//  MESSAGE BUBBLE COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
 
@@ -386,10 +496,10 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
             >⚠</span>
         );
         if (status === 'read' || message.is_read) {
-            return <span style={{ color: '#0084FF', fontSize: 10 }} title="Read">✓✓</span>;
+            return <span style={{ color: '#0084FF', fontSize: 10 }} title="Read"></span>;
         }
         // Delivered/sent
-        return <span style={{ color: '#31A24C', fontSize: 10 }} title="Delivered">✓</span>;
+        return <span style={{ color: '#31A24C', fontSize: 10 }} title="Delivered"></span>;
     };
 
     const handleReaction = async (emoji) => {
@@ -466,7 +576,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                         boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                         zIndex: 10,
                     }}>
-                        {['❤️', '👍', '😂', '😮', '😢'].map(emoji => (
+                        {['', '👍', '😂', '😮', '😢'].map(emoji => (
                             <button
                                 key={emoji}
                                 onClick={() => handleReaction(emoji)}
@@ -514,10 +624,32 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                         boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                         overflow: 'hidden',
                         zIndex: 20,
-                        minWidth: 120,
+                        minWidth: 180,
                     }}>
                         <button
-                            onClick={handleDelete}
+                            onClick={() => {
+                                onDelete(message.id, 'for_me');
+                                setShowMenu(false);
+                            }}
+                            style={{
+                                display: 'block',
+                                width: '100%',
+                                padding: '10px 16px',
+                                border: 'none',
+                                background: 'transparent',
+                                cursor: 'pointer',
+                                textAlign: 'left',
+                                color: C.text,
+                                fontSize: 14,
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                        >Delete for Me</button>
+                        <button
+                            onClick={() => {
+                                onDelete(message.id, 'for_everyone');
+                                setShowMenu(false);
+                            }}
                             style={{
                                 display: 'block',
                                 width: '100%',
@@ -531,7 +663,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                             }}
                             onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
                             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                        >🗑️ Delete</button>
+                        >Delete for Everyone</button>
                     </div>
                 )}
 
@@ -545,8 +677,133 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                     borderBottomRightRadius: isOwn && !isLastInGroup ? 4 : 18,
                     borderBottomLeftRadius: !isOwn && !isLastInGroup ? 4 : 18,
                     wordBreak: 'break-word',
+                    overflow: 'hidden',
                 }}>
-                    {message.content || message.text}
+                    {/* Render media content (images/videos) */}
+                    {(() => {
+                        const content = message.content || message.text || '';
+
+                        // Check for call receipt: [CALL_RECEIPT]📹 Video call • 2m 15s
+                        if (content.startsWith('[CALL_RECEIPT]')) {
+                            const callInfo = content.replace('[CALL_RECEIPT]', '');
+                            return (
+                                <div style={{
+                                    textAlign: 'center',
+                                    padding: '4px 8px',
+                                    color: C.muted,
+                                    fontSize: 13,
+                                    opacity: 0.9,
+                                }}>
+                                    {callInfo}
+                                </div>
+                            );
+                        }
+
+
+                        // Check for image markdown: [Image](url) or 📷 [Image](url) - support both
+                        const imageMatch = content.match(/(?:📷\s*)?\[Image\]\(([^)]+)\)/);
+                        const imageUrl = imageMatch?.[1] || message.media_url;
+
+                        // Check for video markdown: [Video](url) or  [Video](url) - support both
+                        const videoMatch = content.match(/(?:\s*)?\[Video\]\(([^)]+)\)/);
+                        const videoUrl = videoMatch?.[1];
+
+                        // Check if content is just a direct image/video URL
+                        const directImageUrl = content.match(/^https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp)(\?[^\s]*)?$/i);
+                        const directVideoUrl = content.match(/^https?:\/\/[^\s]+\.(mp4|webm|mov)(\?[^\s]*)?$/i);
+
+                        if (imageUrl || directImageUrl) {
+                            const url = imageUrl || directImageUrl[0];
+                            return (
+                                <div style={{ margin: '-8px -12px', borderRadius: 18, overflow: 'hidden' }}>
+                                    <img
+                                        src={url}
+                                        alt="Shared image"
+                                        style={{
+                                            maxWidth: '100%',
+                                            maxHeight: 300,
+                                            display: 'block',
+                                            borderRadius: 12,
+                                            cursor: 'pointer',
+                                        }}
+                                        onClick={() => window.open(url, '_blank')}
+                                        onError={(e) => {
+                                            e.target.style.display = 'none';
+                                            e.target.insertAdjacentHTML('afterend', '<span>Image failed to load</span>');
+                                        }}
+                                    />
+                                </div>
+                            );
+                        }
+
+                        if (videoUrl || directVideoUrl) {
+                            const url = videoUrl || directVideoUrl[0];
+                            return (
+                                <div style={{ margin: '-8px -12px', borderRadius: 18, overflow: 'hidden' }}>
+                                    <video
+                                        src={url}
+                                        controls
+                                        style={{
+                                            maxWidth: '100%',
+                                            maxHeight: 300,
+                                            display: 'block',
+                                            borderRadius: 12,
+                                        }}
+                                        onError={(e) => {
+                                            e.target.style.display = 'none';
+                                            e.target.insertAdjacentHTML('afterend', '<span>Video failed to load</span>');
+                                        }}
+                                    />
+                                </div>
+                            );
+                        }
+
+                        // Regular text content - make URLs clickable
+                        // Check if it's a call invite
+                        const isCallInvite = content.includes('Call Started!') && content.includes('meet.jit.si');
+
+                        // Convert URLs to clickable links
+                        const urlRegex = /(https?:\/\/[^\s]+)/g;
+                        const parts = content.split(urlRegex);
+
+                        return (
+                            <div style={isCallInvite ? {
+                                background: isOwn ? 'rgba(255,255,255,0.15)' : 'rgba(0,132,255,0.1)',
+                                padding: 8,
+                                borderRadius: 12,
+                                margin: '-4px -8px',
+                            } : {}}>
+                                {parts.map((part, i) => {
+                                    if (urlRegex.test(part)) {
+                                        // Reset regex lastIndex
+                                        urlRegex.lastIndex = 0;
+                                        return (
+                                            <a
+                                                key={i}
+                                                href={part}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                style={{
+                                                    color: isOwn ? '#90CAF9' : C.blue,
+                                                    textDecoration: 'underline',
+                                                    wordBreak: 'break-all',
+                                                }}
+                                            >
+                                                {part.includes('meet.jit.si') ? '🔗 Join Call' : part}
+                                            </a>
+                                        );
+                                    }
+                                    // Preserve newlines
+                                    return part.split('\n').map((line, j) => (
+                                        <span key={`${i}-${j}`}>
+                                            {j > 0 && <br />}
+                                            {line}
+                                        </span>
+                                    ));
+                                })}
+                            </div>
+                        );
+                    })()}
                 </div>
 
                 {/* Display reactions */}
@@ -641,7 +898,15 @@ function ConversationItem({ conversation, isActive, onClick, currentUserId }) {
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                 }}>
-                    {lastMsg?.slice(0, 35)}{lastMsg?.length > 35 ? '...' : ''}
+                    {(() => {
+                        // Clean up message preview - strip [CALL_RECEIPT] prefix
+                        let preview = lastMsg || '';
+                        if (preview.startsWith('[CALL_RECEIPT]')) {
+                            preview = preview.replace('[CALL_RECEIPT]', '');
+                        }
+                        const displayText = preview.slice(0, 35) + (preview.length > 35 ? '...' : '');
+                        return displayText;
+                    })()}
                     <span style={{ color: C.textSec }}> · {timeAgo(conversation.last_message_at)}</span>
                 </div>
             </div>
@@ -659,7 +924,7 @@ function ConversationItem({ conversation, isActive, onClick, currentUserId }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 🔍 SEARCH BAR COMPONENT
+//  SEARCH BAR COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
 function SearchBar({ value, onChange, onSearchUser, searchResults, onSelectUser, inputRef, composing }) {
@@ -675,7 +940,7 @@ function SearchBar({ value, onChange, onSearchUser, searchResults, onSelectUser,
                     fontSize: 14,
                     fontWeight: 500,
                 }}>
-                    ✨ New Message - Search for a user below
+                     New Message - Search for a user below
                 </div>
             )}
             <div style={{
@@ -686,7 +951,7 @@ function SearchBar({ value, onChange, onSearchUser, searchResults, onSelectUser,
                 padding: '0 12px',
                 border: composing ? `2px solid ${C.blue}` : 'none',
             }}>
-                <span style={{ color: C.textSec, marginRight: 8 }}>🔍</span>
+                <span style={{ color: C.textSec, marginRight: 8 }}></span>
                 <input
                     ref={inputRef}
                     type="text"
@@ -700,6 +965,7 @@ function SearchBar({ value, onChange, onSearchUser, searchResults, onSelectUser,
                         padding: '10px 0',
                         fontSize: 15,
                         outline: 'none',
+                        color: '#050505',
                     }}
                 />
             </div>
@@ -779,12 +1045,64 @@ export default function MessengerPage() {
     const [showMessageSearch, setShowMessageSearch] = useState(false);
     const [totalUnreadCount, setTotalUnreadCount] = useState(0);
     const [onlineUsers, setOnlineUsers] = useState(new Set());
+    const [friends, setFriends] = useState([]); // Friends list for quick access
+    // Jitsi Call State
+    const [showCall, setShowCall] = useState(false);
+    const [callType, setCallType] = useState('video'); // 'audio' or 'video'
+    const [callRoomName, setCallRoomName] = useState('');
+    const [showUserInfo, setShowUserInfo] = useState(false);
+    const [showPushPrompt, setShowPushPrompt] = useState(false);
+    // Incoming Call State (for seamless calling like Snapchat/WhatsApp)
+    const [incomingCall, setIncomingCall] = useState(null); // { callerId, callerName, callerAvatar, callType, roomName }
+    const [callingUser, setCallingUser] = useState(null); // Track who we're calling
+    const incomingCallAudioRef = useRef(null);
+    // outgoingCallAudioRef removed - using Web Audio API createRingTone() instead
+    const outgoingRingToneRef = useRef(null); // Web Audio API ring tone (more reliable)
+    const callTimeoutRef = useRef(null);
+    const callStartTimeRef = useRef(null); // Track call start for duration
+
+    // Hamburger Menu State
+    const [menuOpen, setMenuOpen] = useState(false);
+    const [preferences, setPreferences] = useState({
+        notifications: true,
+        readReceipts: true,
+        activeStatus: true,
+        messageSounds: true
+    });
+
+    // OneSignal Push Notifications
+    const { isInitialized: pushReady, isSubscribed: pushSubscribed, subscribe: subscribePush, setExternalUserId } = useOneSignal();
+
+    // Load preferences from service (localStorage + Supabase)
+    useEffect(() => {
+        messengerPreferences.get(user?.id).then(prefs => {
+            setPreferences(prefs);
+        });
+    }, [user]);
+
+    // Preference update handler with Supabase sync
+    const updatePreference = async (key, value) => {
+        const updated = { ...preferences, [key]: value };
+        setPreferences(updated);
+        await messengerPreferences.update(user?.id, { [key]: value });
+    };
+
+    // Global unread count for header badge - refresh after reading messages
+    const { refreshUnread } = useUnreadCount();
 
     const messagesEndRef = useRef(null);
     const searchTimeout = useRef(null);
     const searchInputRef = useRef(null);
     const typingTimeout = useRef(null);
     const messageSearchTimeout = useRef(null);
+
+    // Menu config with handlers
+    const menuConfig = getMenuConfig('messenger', user, preferences, {
+        setNotifications: (val) => updatePreference('notifications', val),
+        setReadReceipts: (val) => updatePreference('readReceipts', val),
+        setActiveStatus: (val) => updatePreference('activeStatus', val),
+        setMessageSounds: (val) => updatePreference('messageSounds', val)
+    });
 
     // Check for mobile
     useEffect(() => {
@@ -794,11 +1112,47 @@ export default function MessengerPage() {
         return () => window.removeEventListener('resize', check);
     }, []);
 
+
     // Load user and conversations
     useEffect(() => {
         async function init() {
             try {
-                const { data: { user: authUser } } = await supabase.auth.getUser();
+                //  BULLETPROOF: Try localStorage first for instant session (PWA/notification opens)
+                let authUser = null;
+
+                // First, try to get user from localStorage (faster, works offline)
+                if (typeof window !== 'undefined') {
+                    try {
+                        const authData = localStorage.getItem('smarter-poker-auth');
+                        if (authData) {
+                            const tokenData = JSON.parse(authData);
+                            authUser = tokenData?.user || null;
+                        }
+                        // Fallback to legacy sb-* keys
+                        if (!authUser) {
+                            const sbKeys = Object.keys(localStorage).filter(
+                                k => k.startsWith('sb-') && k.endsWith('-auth-token')
+                            );
+                            if (sbKeys.length > 0) {
+                                const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+                                authUser = tokenData?.user || null;
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('[Messenger] Error reading localStorage:', e);
+                    }
+                }
+
+                // If not in localStorage, try Supabase API (but don't fail if it errors)
+                if (!authUser) {
+                    try {
+                        const { data } = await supabase.auth.getUser();
+                        authUser = data?.user || null;
+                    } catch (e) {
+                        console.warn('[Messenger] getUser failed, using localStorage only:', e);
+                    }
+                }
+
                 if (authUser) {
                     const { data: profile } = await supabase
                         .from('profiles')
@@ -808,6 +1162,17 @@ export default function MessengerPage() {
 
                     setUser({ ...authUser, ...profile });
                     await loadConversations(authUser.id);
+
+                    // Load friends for quick access
+                    const { data: friendships } = await supabase
+                        .from('friendships')
+                        .select('friend_id, friend:profiles!friendships_friend_id_fkey(id, username, full_name, avatar_url)')
+                        .eq('user_id', authUser.id)
+                        .eq('status', 'accepted');
+
+                    if (friendships) {
+                        setFriends(friendships.map(f => f.friend).filter(Boolean));
+                    }
                 }
             } catch (e) {
                 console.error('Init error:', e);
@@ -816,6 +1181,77 @@ export default function MessengerPage() {
         }
         init();
     }, []);
+
+    //  MULTI-DEVICE RESILIENCE: Listen for auth changes from ANY device
+    // This handles: token refresh, login from another device, session recovery
+    useEffect(() => {
+        const cleanup = createMultiDeviceAuthListener(supabase, async (authUser, event) => {
+            console.log('[MESSENGER] Multi-device auth event:', event, 'User:', authUser?.id?.slice(0, 8) || 'none');
+
+            if (!authUser) {
+                // User signed out - clear state
+                setUser(null);
+                setConversations([]);
+                setMessages([]);
+                setActiveConversation(null);
+                return;
+            }
+
+            // User is authenticated (from any device) - ensure we have latest data
+            if (authUser.id !== user?.id || event === 'TOKEN_REFRESHED') {
+                // Update user state
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('id, username, avatar_url')
+                    .eq('id', authUser.id)
+                    .single();
+
+                setUser({ ...authUser, ...profile });
+
+                // Reload conversations (uses API-first approach, resilient to RLS)
+                await loadConversations(authUser.id);
+            }
+        }, 500); // 500ms debounce to handle rapid token events
+
+        return cleanup;
+    }, [user?.id]); // Re-subscribe if user changes
+
+    // Check for pending calls when messenger opens (for users coming from push notification)
+    useEffect(() => {
+        if (!user?.id) return;
+
+        async function checkPendingCalls() {
+            try {
+                const res = await fetch(`/api/calls/pending?userId=${user.id}`);
+                const result = await res.json();
+
+                if (result.success && result.pendingCall) {
+                    const call = result.pendingCall;
+                    console.log('📞 Found pending call:', call);
+
+                    // Show incoming call UI
+                    setIncomingCall({
+                        callerId: call.callerId,
+                        callerName: call.callerName,
+                        callerAvatar: call.callerAvatar,
+                        callType: call.callType,
+                        roomName: call.roomName,
+                        pendingCallId: call.id, // Store ID for cleanup
+                    });
+
+                    // Play incoming call sound
+                    if (incomingCallAudioRef.current) {
+                        incomingCallAudioRef.current.loop = true;
+                        incomingCallAudioRef.current.play().catch(() => { });
+                    }
+                }
+            } catch (e) {
+                console.warn('Failed to check pending calls:', e);
+            }
+        }
+
+        checkPendingCalls();
+    }, [user?.id]);
 
     // Scroll to bottom when messages change
     useEffect(() => {
@@ -854,12 +1290,20 @@ export default function MessengerPage() {
                     return [...prev, { ...newMsg, profiles: profile }];
                 });
 
-                // Update conversation preview
-                setConversations(prev => prev.map(c =>
-                    c.id === activeConversation.id
-                        ? { ...c, last_message_preview: newMsg.content, last_message_at: newMsg.created_at }
-                        : c
-                ));
+                // Update conversation preview and re-sort to move to top
+                setConversations(prev => {
+                    const updated = prev.map(c =>
+                        c.id === activeConversation.id
+                            ? { ...c, last_message_preview: newMsg.content, last_message_at: newMsg.created_at }
+                            : c
+                    );
+                    // Re-sort by last_message_at (most recent first)
+                    return updated.sort((a, b) => {
+                        const timeA = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
+                        const timeB = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
+                        return timeB - timeA;
+                    });
+                });
             })
             .subscribe();
 
@@ -885,6 +1329,180 @@ export default function MessengerPage() {
         return () => supabase.removeChannel(typingChannel);
     }, [user, activeConversation]);
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 📞 CALL SIGNALING VIA SUPABASE REALTIME
+    // Listen for incoming calls, call accepted/declined, call ended
+    // ═══════════════════════════════════════════════════════════════════════════
+    useEffect(() => {
+        if (!user) return;
+
+        const callChannel = supabase
+            .channel(`call-signal:${user.id}`)
+            .on('broadcast', { event: 'incoming_call' }, (payload) => {
+                console.log('📞 Incoming call signal received:', payload);
+                const { callerId, callerName, callerAvatar, callType, roomName } = payload.payload;
+
+                // Don't show incoming call if we're already in a call
+                if (showCall) return;
+
+                // 🔒 TAB CLAIM: Only one tab should handle the call
+                // Use localStorage to prevent multiple tabs from all ringing
+                const claimKey = `call_claim_${roomName}`;
+                const existingClaim = localStorage.getItem(claimKey);
+                const now = Date.now();
+
+                // If another tab claimed this call within the last 30 seconds, ignore
+                if (existingClaim && (now - parseInt(existingClaim)) < 30000) {
+                    console.log('📞 Call already claimed by another tab, ignoring');
+                    return;
+                }
+
+                // Claim this call for this tab
+                localStorage.setItem(claimKey, now.toString());
+
+                // Clean up old claims after 35 seconds
+                setTimeout(() => localStorage.removeItem(claimKey), 35000);
+
+                setIncomingCall({ callerId, callerName, callerAvatar, callType, roomName });
+
+                // Play ringing sound
+                if (incomingCallAudioRef.current) {
+                    incomingCallAudioRef.current.loop = true;
+                    incomingCallAudioRef.current.play().catch(() => { });
+                }
+
+                // Auto-decline after 30 seconds
+                callTimeoutRef.current = setTimeout(() => {
+                    handleDeclineCall('timeout');
+                }, 30000);
+            })
+            .on('broadcast', { event: 'call_declined' }, (payload) => {
+                console.log('📞 Call declined:', payload);
+                if (callingUser) {
+                    const reason = payload.payload.reason === 'timeout' ? 'No answer' : 'Call declined';
+                    setToast({ type: 'info', message: reason });
+                    setCallingUser(null);
+                    // Stop outgoing ring (Web Audio only now)
+                    if (outgoingRingToneRef.current) outgoingRingToneRef.current.stop();
+                }
+            })
+            .on('broadcast', { event: 'call_accepted' }, (payload) => {
+                console.log('📞 Call accepted:', payload);
+                // The caller's call is already showing, just clear the "calling" state
+                setCallingUser(null);
+                // Track call start time for call receipt
+                callStartTimeRef.current = Date.now();
+                // Stop outgoing ring - call connected! (Web Audio only now)
+                if (outgoingRingToneRef.current) outgoingRingToneRef.current.stop();
+            })
+            .on('broadcast', { event: 'call_ended' }, (payload) => {
+                console.log('📞 Call ended by other party:', payload);
+                setShowCall(false);
+                setCallRoomName('');
+                setToast({ type: 'info', message: 'Call ended' });
+                // Stop any ringing (Web Audio only now)
+                if (outgoingRingToneRef.current) outgoingRingToneRef.current.stop();
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(callChannel);
+            if (callTimeoutRef.current) clearTimeout(callTimeoutRef.current);
+        };
+    }, [user, showCall, callingUser]);
+
+    // Handle accepting incoming call
+    const handleAcceptCall = async () => {
+        if (!incomingCall || !user) return;
+
+        // Stop ringing
+        if (incomingCallAudioRef.current) {
+            incomingCallAudioRef.current.pause();
+            incomingCallAudioRef.current.currentTime = 0;
+        }
+        if (callTimeoutRef.current) clearTimeout(callTimeoutRef.current);
+
+        // Notify caller that we accepted (subscribe, send, then cleanup)
+        try {
+            const channel = supabase.channel(`call-signal:${incomingCall.callerId}`);
+            await new Promise((resolve, reject) => {
+                channel.subscribe((status) => {
+                    if (status === 'SUBSCRIBED') resolve();
+                    else if (status === 'CHANNEL_ERROR') reject(new Error('Channel error'));
+                });
+            });
+            await channel.send({
+                type: 'broadcast',
+                event: 'call_accepted',
+                payload: { accepterId: user.id }
+            });
+            // Cleanup after a short delay
+            setTimeout(() => supabase.removeChannel(channel), 1000);
+        } catch (e) {
+            console.warn('Failed to send accept signal:', e);
+        }
+
+        // Join the call
+        callStartTimeRef.current = Date.now(); // Track start time for receipt
+        setCallRoomName(incomingCall.roomName);
+        setCallType(incomingCall.callType);
+        setShowCall(true);
+
+        // Cancel pending call in database
+        if (incomingCall.pendingCallId) {
+            fetch('/api/calls/cancel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ callId: incomingCall.pendingCallId }),
+            }).catch(() => { });
+        }
+
+        setIncomingCall(null);
+    };
+
+    // Handle declining incoming call
+    const handleDeclineCall = async (reason = 'declined') => {
+        if (!incomingCall) return;
+
+        // Stop ringing
+        if (incomingCallAudioRef.current) {
+            incomingCallAudioRef.current.pause();
+            incomingCallAudioRef.current.currentTime = 0;
+        }
+        if (callTimeoutRef.current) clearTimeout(callTimeoutRef.current);
+
+        // Notify caller that we declined (subscribe, send, then cleanup)
+        try {
+            const channel = supabase.channel(`call-signal:${incomingCall.callerId}`);
+            await new Promise((resolve, reject) => {
+                channel.subscribe((status) => {
+                    if (status === 'SUBSCRIBED') resolve();
+                    else if (status === 'CHANNEL_ERROR') reject(new Error('Channel error'));
+                });
+            });
+            await channel.send({
+                type: 'broadcast',
+                event: 'call_declined',
+                payload: { declinerId: user?.id, reason }
+            });
+            // Cleanup after a short delay
+            setTimeout(() => supabase.removeChannel(channel), 1000);
+        } catch (e) {
+            console.warn('Failed to send decline signal:', e);
+        }
+
+        // Cancel pending call in database
+        if (incomingCall.pendingCallId) {
+            fetch('/api/calls/cancel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ callId: incomingCall.pendingCallId }),
+            }).catch(() => { });
+        }
+
+        setIncomingCall(null);
+    };
+
     // Broadcast our typing state
     const broadcastTyping = () => {
         if (!user || !activeConversation) return;
@@ -896,85 +1514,194 @@ export default function MessengerPage() {
     };
 
     const loadConversations = async (userId) => {
+        //  HARDENED: Circuit breaker + offline detection + retry + guaranteed fallback
+        const circuit = getCircuit('messenger-conversations', { failureThreshold: 3, resetTimeout: 30000 });
+
+        console.log('[MESSENGER] Loading conversations for userId:', userId, 'Online:', isOnline());
+
+        // Check offline - return cached data if available
+        if (!isOnline()) {
+            console.warn('[MESSENGER] Offline - using cached conversations');
+            // Keep existing conversations if we have them
+            return;
+        }
+
         try {
-            // Get conversations through participants
-            const { data: participations } = await supabase
-                .from('social_conversation_participants')
-                .select(`
-                    conversation_id,
-                    last_read_at,
-                    social_conversations (
-                        id,
-                        last_message_at,
-                        last_message_preview,
-                        is_group
-                    )
-                `)
-                .eq('user_id', userId)
-                .order('social_conversations(last_message_at)', { ascending: false });
+            // PRIMARY: Use API with service_role + circuit breaker
+            const result = await circuit.execute(
+                async () => {
+                    const resp = await fetch('/api/messenger/get-conversations', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userId }),
+                    });
+                    if (!resp.ok) throw new Error(`API returned ${resp.status}`);
+                    return await resp.json();
+                },
+                // Fallback when circuit is OPEN - use empty (don't crash)
+                async () => ({ success: true, conversations: conversations || [] })
+            );
 
-            if (!participations) return;
+            console.log('[MESSENGER] API result:', result);
+            if (result.success && Array.isArray(result.conversations)) {
+                setConversations(result.conversations);
+                return;
+            }
+        } catch (apiErr) {
+            console.warn('[MESSENGER] API with circuit breaker failed:', apiErr);
+        }
 
-            // Enrich with other participant info
-            const enriched = await Promise.all(
-                participations.map(async (p) => {
-                    const { data: participants } = await supabase
+        // FALLBACK 1: Try direct Supabase query with retry
+        try {
+            const { data, error } = await withRetry(
+                async () => {
+                    const { data: participations, error: partError } = await supabase
                         .from('social_conversation_participants')
-                        .select('user_id, profiles(id, username, avatar_url)')
-                        .eq('conversation_id', p.conversation_id)
-                        .neq('user_id', userId);
+                        .select(`
+                            conversation_id,
+                            last_read_at,
+                            social_conversations (
+                                id,
+                                last_message_at,
+                                last_message_preview,
+                                is_group
+                            )
+                        `)
+                        .eq('user_id', userId)
+                        .order('social_conversations(last_message_at)', { ascending: false });
 
-                    const otherUser = participants?.[0]?.profiles;
+                    if (partError) throw partError;
+                    return { data: participations, error: null };
+                },
+                { maxAttempts: 2, baseDelayMs: 500, circuitName: 'supabase-conversations' }
+            );
 
-                    // Count unread
-                    const { count } = await supabase
-                        .from('social_messages')
-                        .select('id', { count: 'exact', head: true })
-                        .eq('conversation_id', p.conversation_id)
-                        .neq('sender_id', userId)
-                        .gt('created_at', p.last_read_at || '1970-01-01');
+            if (!data || data.length === 0) {
+                console.log('[MESSENGER] No participations found for user');
+                setConversations([]);
+                return;
+            }
 
-                    return {
-                        id: p.conversation_id,
-                        ...p.social_conversations,
-                        otherUser,
-                        unreadCount: count || 0,
-                        last_read_at: p.last_read_at,
-                    };
+            // Enrich with other participant info (with safeAsync to prevent crash)
+            const enriched = await Promise.all(
+                data.map(async (p) => {
+                    try {
+                        const { data: participants } = await supabase
+                            .from('social_conversation_participants')
+                            .select('user_id, profiles(id, username, avatar_url)')
+                            .eq('conversation_id', p.conversation_id)
+                            .neq('user_id', userId);
+
+                        // 🔒 FIX: Handle group chats vs 1-on-1 properly
+                        // For 1-on-1: exactly 1 other participant
+                        // For groups: multiple participants - can't call (would need to pick one)
+                        let otherUser = null;
+                        const otherParticipants = participants || [];
+
+                        if (otherParticipants.length === 1) {
+                            // 1-on-1 conversation - clear who to call
+                            otherUser = otherParticipants[0]?.profiles;
+                            if (!otherUser && otherParticipants[0]?.user_id) {
+                                const { data: directProfile } = await supabase
+                                    .from('profiles')
+                                    .select('id, username, avatar_url')
+                                    .eq('id', otherParticipants[0].user_id)
+                                    .single();
+                                otherUser = directProfile || { id: otherParticipants[0].user_id, username: 'User', avatar_url: null };
+                            }
+                        } else if (otherParticipants.length > 1) {
+                            // Group chat - for display, show first user but mark as group
+                            otherUser = otherParticipants[0]?.profiles;
+                            if (otherUser) {
+                                otherUser = { ...otherUser, isGroupChat: true, participantCount: otherParticipants.length + 1 };
+                            }
+                        }
+
+                        // Count unread (don't crash if this fails)
+                        let unreadCount = 0;
+                        try {
+                            const { count } = await supabase
+                                .from('social_messages')
+                                .select('id', { count: 'exact', head: true })
+                                .eq('conversation_id', p.conversation_id)
+                                .neq('sender_id', userId)
+                                .gt('created_at', p.last_read_at || '1970-01-01');
+                            unreadCount = count || 0;
+                        } catch (e) { }
+
+                        return {
+                            id: p.conversation_id,
+                            ...p.social_conversations,
+                            otherUser,
+                            unreadCount,
+                            last_read_at: p.last_read_at,
+                        };
+                    } catch (e) {
+                        // Individual enrichment failed - return partial data
+                        return {
+                            id: p.conversation_id,
+                            ...p.social_conversations,
+                            otherUser: null,
+                            unreadCount: 0,
+                            last_read_at: p.last_read_at,
+                        };
+                    }
                 })
             );
 
-            setConversations(enriched.filter(c => c.otherUser));
+            // Sort and set - filter out conversations without other users
+            const sorted = enriched
+                .filter(c => c.otherUser)
+                .sort((a, b) => {
+                    const timeA = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
+                    const timeB = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
+                    return timeB - timeA;
+                });
+            setConversations(sorted);
         } catch (e) {
-            console.error('Load conversations error:', e);
+            console.error('[MESSENGER] All fallbacks failed:', e);
+            // FINAL FALLBACK: Don't crash - keep existing conversations or set empty
+            if (!conversations || conversations.length === 0) {
+                setConversations([]);
+            }
         }
     };
 
     const loadMessages = async (conversationId) => {
         setLoadingMessages(true);
         try {
-            const { data } = await supabase
-                .from('social_messages')
-                .select(`
-                    id,
-                    content,
-                    created_at,
-                    sender_id,
-                    profiles:sender_id (id, username, avatar_url)
-                `)
-                .eq('conversation_id', conversationId)
-                .eq('is_deleted', false)
-                .order('created_at', { ascending: true })
-                .limit(100);
+            console.log('[ANTIGRAVITY] Loading messages for conversation:', conversationId);
 
-            setMessages(data || []);
+            // Use API route to bypass RLS issues
+            const response = await fetch('/api/messenger/get-messages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ conversationId, userId: user.id }),
+            });
 
-            // Mark as read
-            await supabase
-                .from('social_conversation_participants')
-                .update({ last_read_at: new Date().toISOString() })
-                .eq('conversation_id', conversationId)
-                .eq('user_id', user.id);
+            const result = await response.json();
+            console.log('[ANTIGRAVITY] API result:', result);
+
+            if (result.success && result.messages) {
+                setMessages(result.messages);
+            } else {
+                console.warn('[ANTIGRAVITY] API failed, result:', result);
+                setMessages([]);
+            }
+
+            // Mark as read - use API with service role to bypass RLS
+            try {
+                await fetch('/api/messenger/mark-read', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ conversationId, userId: user.id }),
+                });
+            } catch (e) {
+                console.error('Mark read failed:', e);
+            }
+
+            //  Immediately refresh global unread count to clear header badge
+            if (refreshUnread) refreshUnread();
 
         } catch (e) {
             console.error('Load messages error:', e);
@@ -985,6 +1712,41 @@ export default function MessengerPage() {
     const handleSelectConversation = async (conversation) => {
         setActiveConversation(conversation);
         if (isMobile) setShowSidebar(false);
+
+        // Special handling for Jarvis AI
+        if (conversation.isJarvis) {
+            // Load Jarvis conversation from localStorage
+            const saved = localStorage.getItem('jarvis_messenger_history');
+            if (saved) {
+                try {
+                    const history = JSON.parse(saved);
+                    setMessages(history);
+                } catch (e) {
+                    console.error('Failed to load Jarvis history:', e);
+                    setMessages([{
+                        id: 'welcome',
+                        content: "Hey! I'm Jarvis, your poker AI assistant. Ask me anything about strategy, hand analysis, or GTO concepts.",
+                        created_at: new Date().toISOString(),
+                        sender_id: 'jarvis',
+                        profiles: { id: 'jarvis', username: 'jarvis', full_name: 'Jarvis', avatar_url: null },
+                        isJarvis: true
+                    }]);
+                }
+            } else {
+                // Show welcome message
+                setMessages([{
+                    id: 'welcome',
+                    content: "Hey! I'm Jarvis, your poker AI assistant. Ask me anything about strategy, hand analysis, or GTO concepts.",
+                    created_at: new Date().toISOString(),
+                    sender_id: 'jarvis',
+                    profiles: { id: 'jarvis', username: 'jarvis', full_name: 'Jarvis', avatar_url: null },
+                    isJarvis: true
+                }]);
+            }
+            return;
+        }
+
+        // Regular conversation handling
         await loadMessages(conversation.id);
 
         // Update local unread count
@@ -996,6 +1758,87 @@ export default function MessengerPage() {
     const handleSendMessage = async (content) => {
         if (!user || !activeConversation || !content.trim()) return;
 
+        // Special handling for Jarvis AI
+        if (activeConversation.isJarvis) {
+            const userMsg = {
+                id: `user-${Date.now()}`,
+                content: content.trim(),
+                created_at: new Date().toISOString(),
+                sender_id: user.id,
+                profiles: { id: user.id, username: user.username, avatar_url: user.avatar_url },
+                isUser: true
+            };
+
+            setMessages(prev => {
+                const updated = [...prev, userMsg];
+                localStorage.setItem('jarvis_messenger_history', JSON.stringify(updated));
+                return updated;
+            });
+
+            // Show typing indicator
+            const typingMsg = {
+                id: 'typing',
+                content: 'Thinking...',
+                created_at: new Date().toISOString(),
+                sender_id: 'jarvis',
+                profiles: { id: 'jarvis', username: 'jarvis', full_name: 'Jarvis', avatar_url: null },
+                isJarvis: true,
+                isTyping: true
+            };
+            setMessages(prev => [...prev, typingMsg]);
+
+            try {
+                const response = await fetch('/api/geeves/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: content,
+                        context: 'messenger',
+                        history: messages.slice(-6).map(m => ({
+                            role: m.isUser ? 'user' : 'assistant',
+                            content: m.content
+                        }))
+                    })
+                });
+
+                const data = await response.json();
+
+                // Remove typing indicator and add response
+                setMessages(prev => {
+                    const withoutTyping = prev.filter(m => m.id !== 'typing');
+                    const jarvisMsg = {
+                        id: `jarvis-${Date.now()}`,
+                        content: data.response || data.message || "I'm having trouble processing that. Try asking again.",
+                        created_at: new Date().toISOString(),
+                        sender_id: 'jarvis',
+                        profiles: { id: 'jarvis', username: 'jarvis', full_name: 'Jarvis', avatar_url: null },
+                        isJarvis: true
+                    };
+                    const updated = [...withoutTyping, jarvisMsg];
+                    localStorage.setItem('jarvis_messenger_history', JSON.stringify(updated));
+                    return updated;
+                });
+            } catch (error) {
+                console.error('Jarvis chat error:', error);
+                setMessages(prev => {
+                    const withoutTyping = prev.filter(m => m.id !== 'typing');
+                    const errorMsg = {
+                        id: `jarvis-error-${Date.now()}`,
+                        content: "Connection issue. Please try again.",
+                        created_at: new Date().toISOString(),
+                        sender_id: 'jarvis',
+                        profiles: { id: 'jarvis', username: 'jarvis', full_name: 'Jarvis', avatar_url: null },
+                        isJarvis: true
+                    };
+                    const updated = [...withoutTyping, errorMsg];
+                    localStorage.setItem('jarvis_messenger_history', JSON.stringify(updated));
+                    return updated;
+                });
+            }
+            return;
+        }
+
+        // Regular message handling
         // Optimistic update - show message immediately
         const tempId = `temp-${Date.now()}`;
         const optimisticMsg = {
@@ -1007,11 +1850,20 @@ export default function MessengerPage() {
             status: 'sending',
         };
         setMessages(prev => [...prev, optimisticMsg]);
-        setConversations(prev => prev.map(c =>
-            c.id === activeConversation.id
-                ? { ...c, last_message_preview: content, last_message_at: new Date().toISOString() }
-                : c
-        ));
+        // Update conversation preview and re-sort to move to top
+        setConversations(prev => {
+            const updated = prev.map(c =>
+                c.id === activeConversation.id
+                    ? { ...c, last_message_preview: content, last_message_at: new Date().toISOString() }
+                    : c
+            );
+            // Re-sort by last_message_at (most recent first)
+            return updated.sort((a, b) => {
+                const timeA = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
+                const timeB = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
+                return timeB - timeA;
+            });
+        });
 
         try {
             const { data, error } = await supabase.rpc('fn_send_message', {
@@ -1053,31 +1905,154 @@ export default function MessengerPage() {
         }
     };
 
-    // Handle message deletion
-    const handleDeleteMessage = async (messageId) => {
+    // Handle message deletion (Facebook-style: delete for me vs delete for everyone)
+    const handleDeleteMessage = async (messageId, deleteType = 'for_me') => {
         if (!user) return;
-        try {
-            const { data: success, error } = await supabase.rpc('fn_delete_message', {
-                p_message_id: messageId,
-                p_user_id: user.id,
+
+        // For Jarvis messages, just remove from localStorage
+        if (activeConversation?.isJarvis) {
+            setMessages(prev => {
+                const updated = deleteType === 'all'
+                    ? []
+                    : prev.filter(m => m.id !== messageId);
+                localStorage.setItem('jarvis_messenger_history', JSON.stringify(updated));
+                return updated;
             });
+            setToast({ type: 'success', message: deleteType === 'all' ? 'All messages deleted' : 'Message deleted' });
+            return;
+        }
 
-            if (error) throw error;
+        try {
+            if (deleteType === 'for_everyone') {
+                // Delete for everyone (only if you sent it)
+                const { data: success, error } = await supabase.rpc('fn_delete_message', {
+                    p_message_id: messageId,
+                    p_user_id: user.id,
+                });
 
-            if (success) {
-                // Update UI to show deleted message
-                setMessages(prev => prev.map(m =>
-                    m.id === messageId
-                        ? { ...m, content: '[Message deleted]', is_deleted: true }
-                        : m
-                ));
-                setToast({ type: 'success', message: 'Message deleted' });
+                if (error) throw error;
+
+                if (success) {
+                    setMessages(prev => prev.map(m =>
+                        m.id === messageId
+                            ? { ...m, content: '[Message deleted]', is_deleted: true }
+                            : m
+                    ));
+                    setToast({ type: 'success', message: 'Message deleted for everyone' });
+                } else {
+                    setToast({ type: 'error', message: 'Could not delete message' });
+                }
             } else {
-                setToast({ type: 'error', message: 'Could not delete message' });
+                // Delete for me only (hide locally)
+                setMessages(prev => prev.filter(m => m.id !== messageId));
+                setToast({ type: 'success', message: 'Message removed' });
             }
         } catch (e) {
             console.error('Delete message error:', e);
             setToast({ type: 'error', message: 'Failed to delete message' });
+        }
+    };
+
+    // Handle media (photo/video) upload
+    const handleMediaUpload = async (file) => {
+        if (!user || !activeConversation || !file) {
+            console.log('handleMediaUpload: missing user, conversation, or file');
+            return;
+        }
+
+        console.log('handleMediaUpload: starting upload', { fileName: file.name, fileType: file.type, fileSize: file.size });
+
+        const isImage = file.type.startsWith('image/');
+        const isVideo = file.type.startsWith('video/');
+        if (!isImage && !isVideo) {
+            setToast({ type: 'error', message: 'Only images and videos are supported' });
+            return;
+        }
+
+        // File size limit: 10MB for images, 50MB for videos
+        const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+        if (file.size > maxSize) {
+            setToast({ type: 'error', message: `File too large. Max ${isVideo ? '50MB' : '10MB'}` });
+            return;
+        }
+
+        // Optimistic UI update
+        const tempId = `temp-${Date.now()}`;
+        const mediaPreview = URL.createObjectURL(file);
+        const tempMessage = {
+            id: tempId,
+            content: isImage ? `Photo` : `Video`,
+            media_url: mediaPreview,
+            media_type: isImage ? 'image' : 'video',
+            created_at: new Date().toISOString(),
+            sender_id: user.id,
+            status: 'sending',
+            profiles: { id: user.id, username: user.user_metadata?.username, avatar_url: user.user_metadata?.avatar_url },
+        };
+        setMessages(prev => [...prev, tempMessage]);
+        setToast({ type: 'success', message: 'Uploading...' });
+        setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+
+        try {
+            // Upload to Supabase Storage - use user-media bucket which exists
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${user.id}/messages/${Date.now()}.${fileExt}`;
+
+            console.log('Uploading to user-media bucket:', fileName);
+
+            const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('user-media')
+                .upload(fileName, file, {
+                    cacheControl: '3600',
+                    upsert: false
+                });
+
+            if (uploadError) {
+                console.error('Upload error:', uploadError);
+                throw uploadError;
+            }
+
+            console.log('Upload successful:', uploadData);
+
+            // Get public URL
+            const { data: urlData } = supabase.storage
+                .from('user-media')
+                .getPublicUrl(fileName);
+
+            console.log('Public URL:', urlData.publicUrl);
+
+            // Send message with media URL
+            const content = isImage
+                ? `[Image](${urlData.publicUrl})`
+                : `[Video](${urlData.publicUrl})`;
+
+            const { data, error } = await supabase.rpc('fn_send_message', {
+                p_conversation_id: activeConversation.id,
+                p_sender_id: user.id,
+                p_content: content,
+            });
+
+            if (error) {
+                console.error('Send message error:', error);
+                throw error;
+            }
+
+            console.log('Message sent with ID:', data);
+
+            // Update message with real data
+            setMessages(prev => prev.map(m =>
+                m.id === tempId
+                    ? { ...m, id: data, content, media_url: urlData.publicUrl, status: 'sent' }
+                    : m
+            ));
+
+            setToast({ type: 'success', message: `${isImage ? 'Photo' : 'Video'} sent!` });
+        } catch (e) {
+            console.error('Media upload error:', e);
+            setMessages(prev => prev.map(m =>
+                m.id === tempId ? { ...m, status: 'failed' } : m
+            ));
+            setToast({ type: 'error', message: `Upload failed: ${e.message || 'Unknown error'}` });
         }
     };
 
@@ -1195,6 +2170,231 @@ export default function MessengerPage() {
         const total = conversations.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
         setTotalUnreadCount(total);
     }, [conversations]);
+
+    // 📲 Link OneSignal to user ID for push notifications
+    useEffect(() => {
+        if (user?.id && pushReady && setExternalUserId) {
+            // Link user's Supabase ID to OneSignal for targeted notifications
+            setExternalUserId(user.id);
+
+            // Show prompt if not subscribed after 3 seconds
+            if (!pushSubscribed) {
+                const timer = setTimeout(() => {
+                    setShowPushPrompt(true);
+                }, 3000);
+                return () => clearTimeout(timer);
+            }
+        }
+    }, [user?.id, pushReady, pushSubscribed, setExternalUserId]);
+
+    // Start a Jitsi call - Now uses real-time signaling for instant popup
+    const startCall = async (type) => {
+        if (!activeConversation || !user) return;
+        const otherUser = activeConversation?.otherUser;
+
+        // 🔒 CRITICAL VALIDATION: Ensure we're calling the right person
+        if (!otherUser?.id) {
+            setToast({ type: 'error', message: 'Cannot start call - user not found' });
+            console.error('❌ CALL ERROR: otherUser is missing!', { activeConversation });
+            return;
+        }
+
+        // Block calls in group chats - only 1-on-1 calls are supported
+        if (otherUser.isGroupChat) {
+            setToast({ type: 'error', message: 'Calls are only available in 1-on-1 conversations' });
+            return;
+        }
+
+        // NEVER call yourself - this would be a bug
+        if (otherUser.id === user.id) {
+            setToast({ type: 'error', message: 'Cannot call yourself' });
+            console.error('❌ CALL ERROR: Attempted to call self!', { otherUser, currentUser: user.id });
+            return;
+        }
+
+        console.log('📞 INITIATING CALL:', {
+            callingUser: otherUser.id,
+            callingUsername: otherUser.username,
+            currentUser: user.id,
+            conversationId: activeConversation.id,
+        });
+
+        // Generate unique room name: smarter-poker-{conversationId}-{timestamp}
+        const roomName = `smarter-poker-${activeConversation.id.slice(0, 8)}-${Date.now()}`;
+        const callerName = user.user_metadata?.full_name || user.user_metadata?.username || user.user_metadata?.poker_alias || 'Someone';
+        const callerAvatar = user.user_metadata?.avatar_url || null;
+
+        // Set calling state to show "Calling..." UI
+        setCallingUser(otherUser);
+        setCallType(type);
+
+        // 📞 Send real-time call signal to the other user
+        // CRITICAL: Must subscribe before sending broadcast
+        try {
+            const channel = supabase.channel(`call-signal:${otherUser.id}`);
+            await new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => reject(new Error('Channel timeout')), 5000);
+                channel.subscribe((status) => {
+                    if (status === 'SUBSCRIBED') {
+                        clearTimeout(timeout);
+                        resolve();
+                    } else if (status === 'CHANNEL_ERROR') {
+                        clearTimeout(timeout);
+                        reject(new Error('Channel error'));
+                    }
+                });
+            });
+
+            await channel.send({
+                type: 'broadcast',
+                event: 'incoming_call',
+                payload: {
+                    callerId: user.id,
+                    callerName: callerName,
+                    callerAvatar: callerAvatar,
+                    callType: type,
+                    roomName: roomName,
+                }
+            });
+            console.log('📞 Call signal sent to:', otherUser.id);
+
+            // Cleanup channel after a delay (receiver has their own listener)
+            setTimeout(() => supabase.removeChannel(channel), 2000);
+
+            // 📱 Create pending call in database (for offline users)
+            try {
+                await fetch('/api/calls/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        callerId: user.id,
+                        calleeId: otherUser.id,
+                        callerName: callerName,
+                        callerAvatar: callerAvatar,
+                        callType: type,
+                        roomName: roomName,
+                    }),
+                });
+                console.log('📱 Pending call created in database');
+            } catch (e) {
+                console.warn('Failed to create pending call:', e);
+            }
+
+
+            // Also send push notification for users not on the page
+            // This will make their phone RING like a real call!
+            try {
+                const pushRes = await fetch('/api/notifications/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: `Incoming ${type === 'video' ? 'Video' : 'Voice'} Call`,
+                        message: `${callerName} is calling you`,
+                        url: `https://smarter.poker/hub/messenger`,
+                        externalUserIds: [otherUser.id],
+                        // 📞 CALL-SPECIFIC: Makes the phone ring like a real call!
+                        isCall: true,
+                        callType: type,
+                        roomName: roomName,
+                        callerId: user.id,
+                    }),
+                });
+                const pushResult = await pushRes.json();
+                console.log('📞 Push notification result:', pushResult);
+                if (!pushRes.ok || pushResult.error) {
+                    console.warn('Push notification issue:', pushResult);
+                }
+            } catch (pushError) {
+                console.warn('Push notification failed:', pushError);
+            }
+        } catch (e) {
+            console.error('Failed to send call signal:', e);
+            setToast({ type: 'error', message: 'Failed to call. Please try again.' });
+            setCallingUser(null);
+            return;
+        }
+
+        // Start the call immediately for the caller
+        setCallRoomName(roomName);
+        setShowCall(true);
+
+        //  Play outgoing ring sound while waiting for answer
+        // Use Web Audio API ring tone only (removed backup audio element to prevent double ringtone)
+        if (!outgoingRingToneRef.current) {
+            outgoingRingToneRef.current = createRingTone();
+        }
+        if (outgoingRingToneRef.current) {
+            outgoingRingToneRef.current.start();
+        }
+
+        setToast({ type: 'info', message: `Calling ${otherUser.full_name || otherUser.username}...` });
+    };
+
+    // End call - notify the other party
+    const endCall = async () => {
+        // Notify the other user that call ended (subscribe, send, then cleanup)
+        if (activeConversation?.otherUser?.id) {
+            try {
+                const channel = supabase.channel(`call-signal:${activeConversation.otherUser.id}`);
+                await new Promise((resolve) => {
+                    const timeout = setTimeout(resolve, 2000); // Don't block UI for too long
+                    channel.subscribe((status) => {
+                        if (status === 'SUBSCRIBED') {
+                            clearTimeout(timeout);
+                            resolve();
+                        }
+                    });
+                });
+                await channel.send({
+                    type: 'broadcast',
+                    event: 'call_ended',
+                    payload: { enderId: user?.id }
+                });
+                setTimeout(() => supabase.removeChannel(channel), 1000);
+            } catch (e) {
+                console.warn('Failed to send end call signal:', e);
+            }
+        }
+
+        // Save call receipt if call was actually connected (not just ringing)
+        if (callStartTimeRef.current && activeConversation?.id && user?.id) {
+            const callDuration = Math.floor((Date.now() - callStartTimeRef.current) / 1000);
+            const durationStr = callDuration >= 60
+                ? `${Math.floor(callDuration / 60)}m ${callDuration % 60}s`
+                : `${callDuration}s`;
+            const callMessage = `${callType === 'video' ? 'Video' : 'Voice'} call - ${durationStr}`;
+
+            // Save call receipt as a message
+            try {
+                await supabase.rpc('fn_send_message', {
+                    p_conversation_id: activeConversation.id,
+                    p_sender_id: user.id,
+                    p_content: `[CALL_RECEIPT]${callMessage}`,
+                });
+            } catch (e) {
+                console.warn('Failed to save call receipt:', e);
+            }
+        }
+        callStartTimeRef.current = null;
+
+        // Cancel any pending call in database (in case call wasn't answered)
+        if (activeConversation?.otherUser?.id && user?.id) {
+            fetch('/api/calls/cancel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    callerId: user.id,
+                    calleeId: activeConversation.otherUser.id
+                }),
+            }).catch(() => { });
+        }
+
+        setShowCall(false);
+        setCallRoomName('');
+        setCallingUser(null);
+        setToast({ type: 'info', message: 'Call ended' });
+    };
+
     if (loading) {
         return (
             <div style={{
@@ -1205,7 +2405,7 @@ export default function MessengerPage() {
                 background: C.bg,
             }}>
                 <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 48, marginBottom: 16 }}>💬</div>
+                    <div style={{ fontSize: 48, marginBottom: 16 }}></div>
                     <div style={{ color: C.textSec }}>Loading Messenger...</div>
                 </div>
             </div>
@@ -1231,7 +2431,7 @@ export default function MessengerPage() {
                         borderRadius: 16,
                         boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
                     }}>
-                        <div style={{ fontSize: 64, marginBottom: 16 }}>💬</div>
+                        <div style={{ fontSize: 64, marginBottom: 16 }}></div>
                         <h2 style={{ margin: '0 0 8px', color: C.text }}>Sign in to Messenger</h2>
                         <p style={{ color: C.textSec, marginBottom: 24 }}>Connect with your poker network</p>
                         <Link href="/auth/login" style={{
@@ -1255,15 +2455,46 @@ export default function MessengerPage() {
         <>
             <Head>
                 <title>Messenger | Smarter.Poker</title>
-                <meta name="viewport" content="width=800, user-scalable=no" />
+                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
                 <style>{`
-                    /* 800px Design Canvas - CSS Zoom Scaling (Training Page Template) */
-                    .messenger-page { width: 800px; max-width: 800px; margin: 0 auto; overflow-x: hidden; }
-                    @media (max-width: 500px) { .messenger-page { zoom: 0.5; } }
-                    @media (min-width: 501px) and (max-width: 700px) { .messenger-page { zoom: 0.75; } }
-                    @media (min-width: 701px) and (max-width: 900px) { .messenger-page { zoom: 0.95; } }
-                    @media (min-width: 901px) { .messenger-page { zoom: 1.2; } }
-                    @media (min-width: 1400px) { .messenger-page { zoom: 1.5; } }
+                    /* MOBILE-FIRST MESSENGER */
+                    .messenger-page { 
+                        width: 100%; 
+                        max-width: 100%; 
+                        margin: 0 auto; 
+                        overflow-x: hidden;
+                        /* Account for UniversalHeader height */
+                        height: calc(100vh - 54px);
+                        height: calc(100dvh - 54px);
+                    }
+                    
+                    /* Mobile-specific messenger styles */
+                    @media (max-width: 768px) {
+                        .messenger-page {
+                            height: calc(100vh - 54px);
+                            height: calc(100dvh - 54px);
+                        }
+                        
+                        /* Smaller avatars on mobile */
+                        .messenger-page img[src*="avatar"],
+                        .messenger-page [style*="borderRadius: '50%'"] {
+                            max-width: 44px;
+                            max-height: 44px;
+                        }
+                        
+                        /* Conversation list - tighter padding */
+                        .messenger-page aside {
+                            padding: 0;
+                        }
+                        
+                        /* Message bubbles - wider on mobile */
+                        .messenger-page [style*="paddingLeft: 60px"],
+                        .messenger-page [style*="paddingRight: 60px"] {
+                            padding-left: 8px !important;
+                            padding-right: 8px !important;
+                        }
+                    }
+                    
                     @keyframes bounce {
                         0%, 60%, 100% { transform: translateY(0); }
                         30% { transform: translateY(-4px); }
@@ -1271,12 +2502,285 @@ export default function MessengerPage() {
                 `}</style>
             </Head>
 
+            {/* UNIVERSAL HEADER - Mobile responsive with diamond/XP */}
+            <UniversalHeader
+                pageDepth={2}
+                onMenuClick={() => setMenuOpen(true)}
+            />
+
+            {/* Hamburger Menu */}
+            <HamburgerMenu
+                isOpen={menuOpen}
+                onClose={() => setMenuOpen(false)}
+                direction="left"
+                theme="dark"
+                user={user}
+                showProfile={true}
+                menuItems={menuConfig.menuItems}
+                bottomLinks={menuConfig.bottomLinks}
+            />
+
             {/* Toast Notifications */}
             <Toast toast={toast} onDismiss={() => setToast(null)} />
 
+            {/* Push Notification Subscription Banner */}
+            {showPushPrompt && !pushSubscribed && (
+                <div style={{
+                    position: 'fixed',
+                    bottom: isMobile ? 70 : 20,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: 'linear-gradient(135deg, #1877F2, #0A5DC7)',
+                    color: 'white',
+                    padding: '12px 20px',
+                    borderRadius: 12,
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+                    zIndex: 1000,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    maxWidth: 400,
+                }}>
+                    <span style={{ fontSize: 28 }}></span>
+                    <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600, marginBottom: 2 }}>Enable Call Notifications</div>
+                        <div style={{ fontSize: 12, opacity: 0.9 }}>Get notified when someone calls you</div>
+                    </div>
+                    <button
+                        onClick={async () => {
+                            const success = await subscribePush();
+                            if (success) {
+                                setShowPushPrompt(false);
+                                setToast({ type: 'success', message: 'Push notifications enabled!' });
+                            }
+                        }}
+                        style={{
+                            padding: '8px 16px',
+                            background: 'white',
+                            color: '#1877F2',
+                            border: 'none',
+                            borderRadius: 8,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                        }}
+                    >Enable</button>
+                    <button
+                        onClick={() => setShowPushPrompt(false)}
+                        style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'white',
+                            cursor: 'pointer',
+                            fontSize: 18,
+                            opacity: 0.7,
+                        }}
+                    >×</button>
+                </div>
+            )}
+
+            {/* Ringing Audio for Incoming Calls */}
+            <audio
+                ref={incomingCallAudioRef}
+                src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleR0tRXFuYz0mFTNNaWxofmh+YKStoJd/aGtbL09OYUFRYWOHeoKK"
+            />
+
+
+
+            {/* Outgoing Ring: Using Web Audio API createRingTone() instead */}
+
+            {/* ════════════════════════════════════════════════════════
+                INCOMING CALL POPUP - Shows when someone calls you
+                ════════════════════════════════════════════════════════ */}
+            {incomingCall && (
+                <div style={{
+                    position: 'fixed',
+                    inset: 0,
+                    zIndex: 10000,
+                    background: 'rgba(0, 0, 0, 0.85)',
+                    backdropFilter: 'blur(8px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                }}>
+                    <div style={{
+                        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+                        borderRadius: 24,
+                        padding: 40,
+                        textAlign: 'center',
+                        boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        maxWidth: 360,
+                        width: '90%',
+                    }}>
+                        {/* Call Type Icon */}
+                        <div style={{
+                            fontSize: 48,
+                            marginBottom: 16,
+                            animation: 'pulse 1.5s infinite',
+                        }}>
+                            {incomingCall.callType === 'video' ? 'Video' : 'Voice'}
+                        </div>
+
+                        {/* Caller Avatar */}
+                        <div style={{
+                            width: 100,
+                            height: 100,
+                            borderRadius: '50%',
+                            margin: '0 auto 16px',
+                            background: incomingCall.callerAvatar
+                                ? `url(${incomingCall.callerAvatar}) center/cover`
+                                : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: 40,
+                            color: 'white',
+                            border: '3px solid rgba(255,255,255,0.2)',
+                            boxShadow: '0 0 0 4px rgba(0,132,255,0.3), 0 0 30px rgba(0,132,255,0.4)',
+                            animation: 'ring 1.5s infinite',
+                        }}>
+                            {!incomingCall.callerAvatar && (incomingCall.callerName?.[0]?.toUpperCase() || '?')}
+                        </div>
+
+                        {/* Caller Name */}
+                        <h2 style={{
+                            color: 'white',
+                            fontSize: 24,
+                            fontWeight: 600,
+                            margin: '0 0 8px 0',
+                        }}>
+                            {incomingCall.callerName}
+                        </h2>
+
+                        {/* Call Type Label */}
+                        <p style={{
+                            color: 'rgba(255,255,255,0.7)',
+                            fontSize: 16,
+                            margin: '0 0 32px 0',
+                        }}>
+                            Incoming {incomingCall.callType === 'video' ? 'Video' : 'Voice'} Call...
+                        </p>
+
+                        {/* Accept / Decline Buttons */}
+                        <div style={{ display: 'flex', gap: 20, justifyContent: 'center' }}>
+                            <button
+                                onClick={() => handleDeclineCall('declined')}
+                                style={{
+                                    width: 70,
+                                    height: 70,
+                                    borderRadius: '50%',
+                                    border: 'none',
+                                    background: 'linear-gradient(135deg, #ff4757 0%, #c0392b 100%)',
+                                    color: 'white',
+                                    fontSize: 28,
+                                    cursor: 'pointer',
+                                    boxShadow: '0 4px 20px rgba(255,71,87,0.4)',
+                                    transition: 'transform 0.2s',
+                                }}
+                                onMouseOver={e => e.currentTarget.style.transform = 'scale(1.1)'}
+                                onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+                                title="Decline"
+                            >
+                                ×
+                            </button>
+                            <button
+                                onClick={handleAcceptCall}
+                                style={{
+                                    width: 70,
+                                    height: 70,
+                                    borderRadius: '50%',
+                                    border: 'none',
+                                    background: 'linear-gradient(135deg, #00b894 0%, #27ae60 100%)',
+                                    color: 'white',
+                                    fontSize: 28,
+                                    cursor: 'pointer',
+                                    boxShadow: '0 4px 20px rgba(0,184,148,0.4)',
+                                    transition: 'transform 0.2s',
+                                }}
+                                onMouseOver={e => e.currentTarget.style.transform = 'scale(1.1)'}
+                                onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+                                title="Accept"
+                            >
+                                
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Ring Animation Keyframes */}
+                    <style>{`
+                        @keyframes ring {
+                            0%, 100% { box-shadow: 0 0 0 4px rgba(0,132,255,0.3), 0 0 30px rgba(0,132,255,0.4); }
+                            50% { box-shadow: 0 0 0 8px rgba(0,132,255,0.2), 0 0 50px rgba(0,132,255,0.6); }
+                        }
+                        @keyframes pulse {
+                            0%, 100% { transform: scale(1); }
+                            50% { transform: scale(1.1); }
+                        }
+                    `}</style>
+                </div>
+            )}
+
+            {/* LiveKit Video Call Modal - True seamless WhatsApp/Snapchat style */}
+            {showCall && callRoomName && (
+                <div style={{
+                    position: 'fixed',
+                    inset: 0,
+                    zIndex: 9999,
+                    background: '#000',
+                    display: 'flex',
+                    flexDirection: 'column',
+                }}>
+                    {/* Call Header */}
+                    <div style={{
+                        padding: '12px 16px',
+                        background: 'rgba(0,0,0,0.9)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        borderBottom: '1px solid #333',
+                        zIndex: 10,
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            {callType === 'video' ? <VideoIcon size={24} color="white" /> : <PhoneIcon size={24} color="white" />}
+                            <div>
+                                <div style={{ color: 'white', fontWeight: 600 }}>
+                                    {callType === 'video' ? 'Video' : 'Voice'} Call with {activeConversation?.otherUser?.username || 'User'}
+                                </div>
+                                <div style={{ color: '#888', fontSize: 12 }}>Smarter Poker Video</div>
+                            </div>
+                        </div>
+                        <button
+                            onClick={endCall}
+                            style={{
+                                padding: '10px 20px',
+                                background: '#E53935',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: 8,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8,
+                            }}
+                        >
+                            📵 End Call
+                        </button>
+                    </div>
+                    {/* LiveKit Video Component */}
+                    <LiveKitCall
+                        roomName={callRoomName}
+                        participantName={user?.user_metadata?.username || user?.user_metadata?.poker_alias || 'User'}
+                        participantId={user?.id}
+                        callType={callType}
+                        otherUserName={activeConversation?.otherUser?.username}
+                        onEnd={endCall}
+                    />
+                </div>
+            )}
+
             <div className="messenger-page" style={{
                 display: 'flex',
-                height: '100vh',
                 background: C.bg,
                 fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif',
             }}>
@@ -1289,9 +2793,9 @@ export default function MessengerPage() {
                     borderRight: `1px solid ${C.border}`,
                     display: (isMobile && !showSidebar) ? 'none' : 'flex',
                     flexDirection: 'column',
-                    height: '100vh',
+                    height: '100%',
                 }}>
-                    {/* Header */}
+                    {/* Header - Facebook Messenger Style */}
                     <div style={{
                         padding: '12px 16px',
                         display: 'flex',
@@ -1299,26 +2803,30 @@ export default function MessengerPage() {
                         justifyContent: 'space-between',
                     }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <Link href="/hub/social-media">
-                                <Avatar src={user.avatar_url} name={user.username} size={40} />
-                            </Link>
-                            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: C.text }}>Chats</h1>
-                        </div>
-                        <div style={{ display: 'flex', gap: 8 }}>
-                            <button
-                                onClick={() => {
-                                    setComposing(true);
-                                    setTimeout(() => searchInputRef.current?.focus(), 100);
-                                }}
-                                title="New Message"
-                                style={{
+                            {/* Back Button */}
+                            <Link href="/hub/social-media" style={{ textDecoration: 'none' }}>
+                                <button style={{
                                     width: 36, height: 36, borderRadius: '50%',
-                                    background: composing ? C.blue : C.bg,
-                                    border: 'none', cursor: 'pointer', fontSize: 16,
-                                    color: composing ? 'white' : C.text,
-                                    transition: 'all 0.2s',
-                                }}>✏️</button>
+                                    background: C.bg, border: 'none', cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontSize: 18, color: C.text,
+                                }}>←</button>
+                            </Link>
+                            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700, color: C.blue }}>messenger</h1>
                         </div>
+                        <button
+                            onClick={() => {
+                                setComposing(true);
+                                setTimeout(() => searchInputRef.current?.focus(), 100);
+                            }}
+                            title="New Message"
+                            style={{
+                                width: 36, height: 36, borderRadius: '50%',
+                                background: composing ? C.blue : C.bg,
+                                border: 'none', cursor: 'pointer', fontSize: 16,
+                                color: composing ? 'white' : C.text,
+                                transition: 'all 0.2s',
+                            }}>✏️</button>
                     </div>
 
                     {/* Search */}
@@ -1335,43 +2843,130 @@ export default function MessengerPage() {
                         composing={composing}
                     />
 
-                    {/* Conversations */}
+
+                    {/* Conversations List - Only show actual conversations with messages */}
                     <div style={{ flex: 1, overflowY: 'auto' }}>
                         {conversations.length === 0 ? (
-                            <div style={{
-                                textAlign: 'center',
-                                padding: 40,
-                            }}>
-                                <div style={{ fontSize: 48, marginBottom: 12 }}>💬</div>
+                            <div style={{ padding: 40, textAlign: 'center' }}>
+                                <div style={{ fontSize: 48, marginBottom: 12 }}></div>
                                 <div style={{ color: C.text, fontWeight: 500, marginBottom: 4 }}>No conversations yet</div>
-                                <div style={{ fontSize: 13, color: C.textSec, marginBottom: 20 }}>Search for someone to start chatting!</div>
+                                <div style={{ fontSize: 13, color: C.textSec, marginBottom: 20 }}>Search for people to start messaging!</div>
                                 <button
                                     onClick={() => {
                                         setComposing(true);
                                         setTimeout(() => searchInputRef.current?.focus(), 100);
                                     }}
                                     style={{
+                                        padding: '12px 24px',
                                         background: C.blue,
                                         color: 'white',
                                         border: 'none',
-                                        borderRadius: 8,
-                                        padding: '12px 24px',
-                                        fontSize: 15,
+                                        borderRadius: 24,
                                         fontWeight: 600,
+                                        fontSize: 15,
                                         cursor: 'pointer',
-                                    }}
-                                >✏️ Start New Chat</button>
+                                        marginTop: 16,
+                                    }}>Search for people</button>
                             </div>
                         ) : (
-                            conversations.map(conv => (
-                                <ConversationItem
-                                    key={conv.id}
-                                    conversation={conv}
-                                    isActive={activeConversation?.id === conv.id}
-                                    onClick={() => handleSelectConversation(conv)}
-                                    currentUserId={user.id}
-                                />
-                            ))
+                            <>
+                                {/* Jarvis AI - Locked at Top */}
+                                <div
+                                    onClick={() => handleSelectConversation({
+                                        id: 'jarvis-ai',
+                                        isJarvis: true,
+                                        otherUser: {
+                                            id: 'jarvis',
+                                            username: 'jarvis',
+                                            full_name: 'Jarvis',
+                                            avatar_url: null
+                                        },
+                                        last_message_preview: 'Your Poker AI Assistant',
+                                        last_message_at: new Date().toISOString(),
+                                        unread_count: 0
+                                    })}
+                                    style={{
+                                        padding: '12px 16px',
+                                        cursor: 'pointer',
+                                        background: activeConversation?.id === 'jarvis-ai'
+                                            ? 'linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(0, 150, 255, 0.1))'
+                                            : '#2a2a2a',
+                                        borderBottom: `1px solid ${C.border}`,
+                                        borderLeft: activeConversation?.id === 'jarvis-ai' ? '3px solid #00D4FF' : '3px solid transparent',
+                                        transition: 'all 0.2s',
+                                        position: 'relative'
+                                    }}
+                                    onMouseEnter={e => {
+                                        if (activeConversation?.id !== 'jarvis-ai') {
+                                            e.currentTarget.style.background = 'rgba(0, 212, 255, 0.05)';
+                                        }
+                                    }}
+                                    onMouseLeave={e => {
+                                        if (activeConversation?.id !== 'jarvis-ai') {
+                                            e.currentTarget.style.background = '#2a2a2a';
+                                        }
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                        {/* Jarvis Avatar */}
+                                        <img
+                                            src="/images/jarvis-avatar.png"
+                                            alt="Jarvis AI"
+                                            style={{
+                                                width: 48,
+                                                height: 48,
+                                                borderRadius: '50%',
+                                                objectFit: 'cover',
+                                                boxShadow: '0 2px 8px rgba(0, 212, 255, 0.3)',
+                                                border: '2px solid #00D4FF',
+                                                position: 'relative'
+                                            }}
+                                        />
+                                        {/* Always Online Indicator */}
+                                        <div style={{
+                                            position: 'absolute',
+                                            bottom: 0,
+                                            left: 36,
+                                            width: 14,
+                                            height: 14,
+                                            borderRadius: '50%',
+                                            background: C.green,
+                                            border: '2px solid white'
+                                        }} />
+
+                                        {/* Jarvis Info */}
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{
+                                                marginBottom: 4
+                                            }}>
+                                                <span style={{
+                                                    fontWeight: 600,
+                                                    fontSize: 15,
+                                                    color: '#00D4FF'
+                                                }}>Jarvis</span>
+                                            </div>
+                                            <div style={{
+                                                fontSize: 13,
+                                                color: '#00D4FF',
+                                                lineHeight: 1.3
+                                            }}>
+                                                Your Personal Smarter.Poker Coach - Always Online Always Available! Ask Me Anything...
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Regular Conversations */}
+                                {conversations.map(conv => (
+                                    <ConversationItem
+                                        key={conv.id}
+                                        conversation={conv}
+                                        isActive={activeConversation?.id === conv.id}
+                                        onClick={() => handleSelectConversation(conv)}
+                                        currentUserId={user.id}
+                                    />
+                                ))}
+                            </>
                         )}
                     </div>
 
@@ -1383,7 +2978,7 @@ export default function MessengerPage() {
                     }}>
                         <Link href="/hub/social-media" style={{
                             color: C.blue, fontSize: 14, fontWeight: 500, textDecoration: 'none',
-                        }}>← Back to Social Hub</Link>
+                        }}>Back to Social Hub</Link>
                     </div>
                 </aside>
 
@@ -1396,241 +2991,255 @@ export default function MessengerPage() {
                     flexDirection: 'column',
                     background: C.card,
                 }}>
-                    {activeConversation ? (
-                        <>
-                            {/* Chat Header */}
-                            <div style={{
-                                padding: '10px 16px',
-                                borderBottom: `1px solid ${C.border}`,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 12,
-                                background: C.card,
-                            }}>
-                                {isMobile && (
-                                    <button
-                                        onClick={() => setShowSidebar(true)}
-                                        style={{
-                                            background: 'none', border: 'none', cursor: 'pointer',
-                                            fontSize: 20, padding: 4,
-                                        }}
-                                    >←</button>
-                                )}
-
-                                <Link href={`/hub/user/${otherUser?.username}`}>
-                                    <Avatar src={otherUser?.avatar_url} name={otherUser?.username} size={40} online />
-                                </Link>
-
-                                <div style={{ flex: 1 }}>
-                                    <div style={{ fontWeight: 600, fontSize: 15 }}>{otherUser?.username}</div>
-                                    <div style={{ fontSize: 12, color: C.textSec }}>Active now</div>
-                                </div>
-
-                                <div style={{ display: 'flex', gap: 8 }}>
-                                    <button
-                                        onClick={() => setShowMessageSearch(!showMessageSearch)}
-                                        style={{
-                                            width: 36, height: 36, borderRadius: '50%',
-                                            background: showMessageSearch ? C.bg : 'transparent',
-                                            border: 'none', cursor: 'pointer', fontSize: 18,
-                                            color: C.blue,
-                                        }}
-                                        title="Search messages"
-                                    >🔍</button>
-                                    <button style={{
-                                        width: 36, height: 36, borderRadius: '50%',
-                                        background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 18,
-                                        color: C.blue,
-                                    }}>📞</button>
-                                    <button style={{
-                                        width: 36, height: 36, borderRadius: '50%',
-                                        background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 18,
-                                        color: C.blue,
-                                    }}>📹</button>
-                                    <button style={{
-                                        width: 36, height: 36, borderRadius: '50%',
-                                        background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 18,
-                                        color: C.blue,
-                                    }}>ℹ️</button>
-                                </div>
-                            </div>
-
-                            {/* Message Search Bar */}
-                            {showMessageSearch && (
+                    {
+                        activeConversation ? (
+                            <>
+                                {/* Chat Header */}
                                 <div style={{
-                                    padding: '8px 16px',
+                                    padding: '10px 16px',
                                     borderBottom: `1px solid ${C.border}`,
-                                    background: C.bg,
-                                    position: 'relative',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 12,
+                                    background: C.card,
                                 }}>
-                                    <div style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        background: C.card,
-                                        borderRadius: 20,
-                                        padding: '0 12px',
-                                        border: `1px solid ${C.border}`,
-                                    }}>
-                                        <span style={{ color: C.textSec, marginRight: 8 }}>🔍</span>
-                                        <input
-                                            type="text"
-                                            value={messageSearchQuery}
-                                            onChange={e => {
-                                                setMessageSearchQuery(e.target.value);
-                                                handleMessageSearch(e.target.value);
-                                            }}
-                                            placeholder="Search in this conversation..."
+                                    {isMobile && (
+                                        <button
+                                            onClick={() => setShowSidebar(true)}
                                             style={{
-                                                flex: 1,
-                                                border: 'none',
-                                                background: 'transparent',
-                                                padding: '8px 0',
-                                                fontSize: 14,
-                                                outline: 'none',
+                                                background: 'none', border: 'none', cursor: 'pointer',
+                                                fontSize: 20, padding: 4,
                                             }}
-                                        />
-                                        {messageSearchQuery && (
-                                            <button
-                                                onClick={() => { setMessageSearchQuery(''); setMessageSearchResults([]); }}
-                                                style={{
-                                                    background: 'none', border: 'none', cursor: 'pointer',
-                                                    color: C.textSec, fontSize: 14,
-                                                }}
-                                            >✕</button>
-                                        )}
+                                        >←</button>
+                                    )}
+
+                                    <Link href={`/hub/user/${otherUser?.username}`}>
+                                        <Avatar src={otherUser?.avatar_url} name={otherUser?.username} size={40} online />
+                                    </Link>
+
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ fontWeight: 600, fontSize: 15 }}>{otherUser?.username}</div>
+                                        <div style={{ fontSize: 12, color: C.textSec }}>Active now</div>
                                     </div>
 
-                                    {/* Search Results Dropdown */}
-                                    {messageSearchResults.length > 0 && (
-                                        <div style={{
-                                            position: 'absolute',
-                                            top: '100%',
-                                            left: 16,
-                                            right: 16,
-                                            background: C.card,
-                                            borderRadius: 8,
-                                            boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-                                            maxHeight: 240,
-                                            overflowY: 'auto',
-                                            zIndex: 100,
-                                        }}>
-                                            <div style={{ padding: '8px 12px', fontSize: 12, color: C.textSec, borderBottom: `1px solid ${C.border}` }}>
-                                                {messageSearchResults.length} result{messageSearchResults.length !== 1 ? 's' : ''}
-                                            </div>
-                                            {messageSearchResults.map(result => (
-                                                <div
-                                                    key={result.id}
-                                                    onClick={() => {
-                                                        // Scroll to message (future: highlight it)
-                                                        const el = document.getElementById(`msg-${result.id}`);
-                                                        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                                        setShowMessageSearch(false);
-                                                        setMessageSearchQuery('');
-                                                        setMessageSearchResults([]);
-                                                    }}
-                                                    style={{
-                                                        padding: '10px 12px',
-                                                        borderBottom: `1px solid ${C.border}`,
-                                                        cursor: 'pointer',
-                                                    }}
-                                                    onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
-                                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                                                >
-                                                    <div style={{ fontSize: 13, color: C.text, marginBottom: 2 }}>
-                                                        {result.content.slice(0, 80)}{result.content.length > 80 ? '...' : ''}
-                                                    </div>
-                                                    <div style={{ fontSize: 11, color: C.textSec }}>
-                                                        {timeAgo(result.created_at)}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                        <button
+                                            onClick={() => setShowMessageSearch(!showMessageSearch)}
+                                            style={{
+                                                width: 36, height: 36, borderRadius: '50%',
+                                                background: showMessageSearch ? C.bg : 'transparent',
+                                                border: 'none', cursor: 'pointer',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            }}
+                                            title="Search messages"
+                                        ><SearchIcon size={20} /></button>
+                                        <button
+                                            onClick={() => startCall('audio')}
+                                            title="Voice call"
+                                            style={{
+                                                width: 36, height: 36, borderRadius: '50%',
+                                                background: 'transparent', border: 'none', cursor: 'pointer',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            }}><PhoneIcon size={20} /></button>
+                                        <button
+                                            onClick={() => startCall('video')}
+                                            title="Video call"
+                                            style={{
+                                                width: 36, height: 36, borderRadius: '50%',
+                                                background: 'transparent', border: 'none', cursor: 'pointer',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            }}><VideoIcon size={20} /></button>
+                                        <button
+                                            onClick={() => setShowUserInfo(!showUserInfo)}
+                                            title="User info"
+                                            style={{
+                                                width: 36, height: 36, borderRadius: '50%',
+                                                background: showUserInfo ? C.bg : 'transparent', border: 'none', cursor: 'pointer',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            }}><InfoIcon size={20} /></button>
+                                    </div>
+                                </div >
 
-                            {/* Messages */}
+                                {/* Message Search Bar */}
+                                {
+                                    showMessageSearch && (
+                                        <div style={{
+                                            padding: '8px 16px',
+                                            borderBottom: `1px solid ${C.border}`,
+                                            background: C.bg,
+                                            position: 'relative',
+                                        }}>
+                                            <div style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                background: C.card,
+                                                borderRadius: 20,
+                                                padding: '0 12px',
+                                                border: `1px solid ${C.border}`,
+                                            }}>
+                                                <span style={{ color: C.textSec, marginRight: 8 }}></span>
+                                                <input
+                                                    type="text"
+                                                    value={messageSearchQuery}
+                                                    onChange={e => {
+                                                        setMessageSearchQuery(e.target.value);
+                                                        handleMessageSearch(e.target.value);
+                                                    }}
+                                                    placeholder="Search in this conversation..."
+                                                    style={{
+                                                        flex: 1,
+                                                        border: 'none',
+                                                        background: 'transparent',
+                                                        padding: '8px 0',
+                                                        fontSize: 14,
+                                                        outline: 'none',
+                                                    }}
+                                                />
+                                                {messageSearchQuery && (
+                                                    <button
+                                                        onClick={() => { setMessageSearchQuery(''); setMessageSearchResults([]); }}
+                                                        style={{
+                                                            background: 'none', border: 'none', cursor: 'pointer',
+                                                            color: C.textSec, fontSize: 14,
+                                                        }}
+                                                    >×</button>
+                                                )}
+                                            </div>
+
+                                            {/* Search Results Dropdown */}
+                                            {messageSearchResults.length > 0 && (
+                                                <div style={{
+                                                    position: 'absolute',
+                                                    top: '100%',
+                                                    left: 16,
+                                                    right: 16,
+                                                    background: C.card,
+                                                    borderRadius: 8,
+                                                    boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+                                                    maxHeight: 240,
+                                                    overflowY: 'auto',
+                                                    zIndex: 100,
+                                                }}>
+                                                    <div style={{ padding: '8px 12px', fontSize: 12, color: C.textSec, borderBottom: `1px solid ${C.border}` }}>
+                                                        {messageSearchResults.length} result{messageSearchResults.length !== 1 ? 's' : ''}
+                                                    </div>
+                                                    {messageSearchResults.map(result => (
+                                                        <div
+                                                            key={result.id}
+                                                            onClick={() => {
+                                                                // Scroll to message (future: highlight it)
+                                                                const el = document.getElementById(`msg-${result.id}`);
+                                                                el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                                                setShowMessageSearch(false);
+                                                                setMessageSearchQuery('');
+                                                                setMessageSearchResults([]);
+                                                            }}
+                                                            style={{
+                                                                padding: '10px 12px',
+                                                                borderBottom: `1px solid ${C.border}`,
+                                                                cursor: 'pointer',
+                                                            }}
+                                                            onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
+                                                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                                        >
+                                                            <div style={{ fontSize: 13, color: C.text, marginBottom: 2 }}>
+                                                                {result.content.slice(0, 80)}{result.content.length > 80 ? '...' : ''}
+                                                            </div>
+                                                            <div style={{ fontSize: 11, color: C.textSec }}>
+                                                                {timeAgo(result.created_at)}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )
+                                }
+
+                                {/* Messages */}
+                                <div style={{
+                                    flex: 1,
+                                    overflowY: 'auto',
+                                    padding: '16px 0',
+                                }}>
+                                    {/* User info header */}
+                                    <div style={{ textAlign: 'center', marginBottom: 24, padding: '0 20px' }}>
+                                        <Avatar src={otherUser?.avatar_url} name={otherUser?.username} size={80} showOnline={false} />
+                                        <div style={{ marginTop: 12, fontWeight: 600, fontSize: 17 }}>{otherUser?.username}</div>
+                                        <div style={{ color: C.textSec, fontSize: 13 }}>Smarter.Poker Member</div>
+                                        <Link href={`/hub/user/${otherUser?.username}`} style={{
+                                            display: 'inline-block',
+                                            marginTop: 12,
+                                            padding: '8px 16px',
+                                            background: C.bg,
+                                            borderRadius: 8,
+                                            color: C.text,
+                                            textDecoration: 'none',
+                                            fontSize: 14,
+                                            fontWeight: 500,
+                                        }}>View Profile</Link>
+                                    </div>
+
+                                    {loadingMessages ? (
+                                        <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
+                                            Loading messages...
+                                        </div>
+                                    ) : messages.length === 0 ? (
+                                        <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
+                                            <div style={{ fontSize: 32, marginBottom: 8 }}>👋</div>
+                                            Say hi to start the conversation!
+                                        </div>
+                                    ) : (
+                                        messages.map((msg, i) => {
+                                            const isOwn = msg.sender_id === user.id;
+                                            const prevMsg = messages[i - 1];
+                                            const nextMsg = messages[i + 1];
+                                            const showAvatar = !prevMsg || prevMsg.sender_id !== msg.sender_id;
+                                            const isLastInGroup = !nextMsg || nextMsg.sender_id !== msg.sender_id;
+
+                                            return (
+                                                <MessageBubble
+                                                    key={msg.id}
+                                                    message={msg}
+                                                    isOwn={isOwn}
+                                                    showAvatar={showAvatar}
+                                                    sender={msg.profiles}
+                                                    showTime={isLastInGroup}
+                                                    isLastInGroup={isLastInGroup}
+                                                    onReact={handleReaction}
+                                                    onDelete={handleDeleteMessage}
+                                                    currentUserId={user.id}
+                                                />
+                                            );
+                                        })
+                                    )}
+                                    {/* Typing indicator */}
+                                    {otherTyping && <TypingIndicator name={otherUser?.username} />}
+                                    <div ref={messagesEndRef} />
+                                </div>
+
+                                {/* Message Input */}
+                                <MessageInput onSend={handleSendMessage} onTyping={broadcastTyping} onMediaUpload={handleMediaUpload} />
+                            </>
+                        ) : (
+                            /* No conversation selected */
                             <div style={{
                                 flex: 1,
-                                overflowY: 'auto',
-                                padding: '16px 0',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexDirection: 'column',
+                                color: C.textSec,
                             }}>
-                                {/* User info header */}
-                                <div style={{ textAlign: 'center', marginBottom: 24, padding: '0 20px' }}>
-                                    <Avatar src={otherUser?.avatar_url} name={otherUser?.username} size={80} showOnline={false} />
-                                    <div style={{ marginTop: 12, fontWeight: 600, fontSize: 17 }}>{otherUser?.username}</div>
-                                    <div style={{ color: C.textSec, fontSize: 13 }}>Smarter.Poker Member</div>
-                                    <Link href={`/hub/user/${otherUser?.username}`} style={{
-                                        display: 'inline-block',
-                                        marginTop: 12,
-                                        padding: '8px 16px',
-                                        background: C.bg,
-                                        borderRadius: 8,
-                                        color: C.text,
-                                        textDecoration: 'none',
-                                        fontSize: 14,
-                                        fontWeight: 500,
-                                    }}>View Profile</Link>
-                                </div>
-
-                                {loadingMessages ? (
-                                    <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
-                                        Loading messages...
-                                    </div>
-                                ) : messages.length === 0 ? (
-                                    <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
-                                        <div style={{ fontSize: 32, marginBottom: 8 }}>👋</div>
-                                        Say hi to start the conversation!
-                                    </div>
-                                ) : (
-                                    messages.map((msg, i) => {
-                                        const isOwn = msg.sender_id === user.id;
-                                        const prevMsg = messages[i - 1];
-                                        const nextMsg = messages[i + 1];
-                                        const showAvatar = !prevMsg || prevMsg.sender_id !== msg.sender_id;
-                                        const isLastInGroup = !nextMsg || nextMsg.sender_id !== msg.sender_id;
-
-                                        return (
-                                            <MessageBubble
-                                                key={msg.id}
-                                                message={msg}
-                                                isOwn={isOwn}
-                                                showAvatar={showAvatar}
-                                                sender={msg.profiles}
-                                                showTime={isLastInGroup}
-                                                isLastInGroup={isLastInGroup}
-                                                onReact={handleReaction}
-                                                onDelete={handleDeleteMessage}
-                                                currentUserId={user.id}
-                                            />
-                                        );
-                                    })
-                                )}
-                                {/* Typing indicator */}
-                                {otherTyping && <TypingIndicator name={otherUser?.username} />}
-                                <div ref={messagesEndRef} />
+                                <div style={{ fontSize: 80, marginBottom: 16 }}></div>
+                                <h2 style={{ margin: 0, color: C.text, fontWeight: 600 }}>Select a conversation</h2>
+                                <p style={{ marginTop: 8, color: C.textSec }}>Choose from your existing chats or search for someone new</p>
                             </div>
+                        )}
+                </main >
 
-                            {/* Message Input */}
-                            <MessageInput onSend={handleSendMessage} onTyping={broadcastTyping} />
-                        </>
-                    ) : (
-                        /* No conversation selected */
-                        <div style={{
-                            flex: 1,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexDirection: 'column',
-                            color: C.textSec,
-                        }}>
-                            <div style={{ fontSize: 80, marginBottom: 16 }}>💬</div>
-                            <h2 style={{ margin: 0, color: C.text, fontWeight: 600 }}>Select a conversation</h2>
-                            <p style={{ marginTop: 8, color: C.textSec }}>Choose from your existing chats or search for someone new</p>
-                        </div>
-                    )}
-                </main>
-            </div>
+                {/* Jarvis is now integrated as a conversation in the list */}
+            </div >
         </>
     );
 }

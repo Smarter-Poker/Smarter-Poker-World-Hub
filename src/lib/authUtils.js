@@ -26,12 +26,22 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 /**
  * Get the current authenticated user from localStorage
- * This bypasses supabase.auth.getUser() which throws AbortError
+ * Uses explicit 'smarter-poker-auth' key (primary) with fallback to legacy sb-* keys
  */
 export function getAuthUser() {
     if (typeof window === 'undefined') return null;
 
     try {
+        // PRIMARY: Use explicit storage key (set in supabase.ts)
+        const explicitAuth = localStorage.getItem('smarter-poker-auth');
+        if (explicitAuth) {
+            const tokenData = JSON.parse(explicitAuth);
+            if (tokenData?.user) {
+                return tokenData.user;
+            }
+        }
+
+        // FALLBACK: Legacy sb-* keys (for backwards compatibility during migration)
         const sbKeys = Object.keys(localStorage).filter(
             k => k.startsWith('sb-') && k.endsWith('-auth-token')
         );
@@ -49,11 +59,22 @@ export function getAuthUser() {
 
 /**
  * Get the current session token for authenticated requests
+ * Uses explicit 'smarter-poker-auth' key (primary) with fallback to legacy sb-* keys
  */
 export function getSessionToken() {
     if (typeof window === 'undefined') return null;
 
     try {
+        // PRIMARY: Use explicit storage key
+        const explicitAuth = localStorage.getItem('smarter-poker-auth');
+        if (explicitAuth) {
+            const tokenData = JSON.parse(explicitAuth);
+            if (tokenData?.access_token) {
+                return tokenData.access_token;
+            }
+        }
+
+        // FALLBACK: Legacy sb-* keys
         const sbKeys = Object.keys(localStorage).filter(
             k => k.startsWith('sb-') && k.endsWith('-auth-token')
         );
@@ -106,6 +127,21 @@ export async function queryProfiles(userId, select = '*') {
         `/rest/v1/profiles?id=eq.${userId}&select=${encodeURIComponent(select)}`
     );
     return data[0] || null;
+}
+
+/**
+ * Query user diamond balance from user_diamond_balance table
+ */
+export async function queryDiamondBalance(userId) {
+    try {
+        const data = await fetchWithAuth(
+            `/rest/v1/user_diamond_balance?user_id=eq.${userId}&select=balance`
+        );
+        return data[0]?.balance || 0;
+    } catch (e) {
+        console.error('[AuthUtils] Diamond balance fetch error:', e);
+        return 0;
+    }
 }
 
 /**
@@ -165,6 +201,7 @@ export async function updateTable(table, match, data) {
 
 /**
  * React hook for getting current user with auto-refresh
+ * Listens for cross-tab storage changes for session sync
  */
 export function useAuthUser() {
     const [user, setUser] = useState(null);
@@ -177,7 +214,9 @@ export function useAuthUser() {
 
         // Listen for storage changes (cross-tab auth sync)
         const handleStorage = (e) => {
-            if (e.key?.startsWith('sb-') && e.key?.endsWith('-auth-token')) {
+            // Listen for both explicit key and legacy keys
+            if (e.key === 'smarter-poker-auth' ||
+                (e.key?.startsWith('sb-') && e.key?.endsWith('-auth-token'))) {
                 setUser(getAuthUser());
             }
         };
@@ -197,6 +236,7 @@ export default {
     getSessionToken,
     fetchWithAuth,
     queryProfiles,
+    queryDiamondBalance,
     querySocialPosts,
     queryTable,
     insertIntoTable,

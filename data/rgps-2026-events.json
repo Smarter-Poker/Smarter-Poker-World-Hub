@@ -1,0 +1,134 @@
+{
+  "metadata": {
+    "tour": "RunGood Poker Series",
+    "year": 2026,
+    "total_stops": 7,
+    "source_url": "https://rungoodgear.com/poker-series/",
+    "last_updated": "2026-01-26",
+    "notes": "Complete 2026 RGPS schedule. Grassroots tour with affordable $600 main events and $135-$400 side events."
+  },
+  "stops": [
+    {
+      "stop_uid": "RGPS-LODGE-2026",
+      "name": "RunGood Poker Series at The Lodge",
+      "venue": "The Lodge Card Club",
+      "city": "Round Rock",
+      "state": "TX",
+      "start_date": "2026-01-19",
+      "end_date": "2026-02-01",
+      "events": [
+        {"event_number": 1, "event_name": "$200 NLH Opener", "buy_in": 200, "start_date": "2026-01-19", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 15000, "blind_levels": "20 min"},
+        {"event_number": 2, "event_name": "$135 NLH", "buy_in": 135, "start_date": "2026-01-20", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 12000, "blind_levels": "20 min"},
+        {"event_number": 3, "event_name": "$200 PLO", "buy_in": 200, "start_date": "2026-01-21", "start_time": "12:00 PM", "game_type": "PLO", "event_type": "side_event", "starting_stack": 15000, "blind_levels": "20 min"},
+        {"event_number": 4, "event_name": "$200 NLH Bounty", "buy_in": 200, "start_date": "2026-01-22", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "bounty", "bounty": 50, "starting_stack": 15000, "blind_levels": "20 min"},
+        {"event_number": 5, "event_name": "$400 NLH Deep Stack", "buy_in": 400, "start_date": "2026-01-23", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 25000, "blind_levels": "30 min"},
+        {"event_number": 6, "event_name": "$135 NLH Ladies", "buy_in": 135, "start_date": "2026-01-24", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "ladies", "starting_stack": 12000, "blind_levels": "20 min"},
+        {"event_number": 7, "event_name": "$600 RunGood Main Event", "buy_in": 600, "start_date": "2026-01-28", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B", "C"], "guaranteed": 300000, "days": 4, "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 8, "event_name": "$200 NLH Turbo", "buy_in": 200, "start_date": "2026-01-31", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "turbo", "starting_stack": 15000, "blind_levels": "15 min"}
+      ]
+    },
+    {
+      "stop_uid": "RGPS-TULSA-2026",
+      "name": "RunGood Poker Series Tulsa Passport",
+      "venue": "Hard Rock Hotel & Casino Tulsa",
+      "city": "Catoosa",
+      "state": "OK",
+      "start_date": "2026-01-20",
+      "end_date": "2026-01-25",
+      "events": [
+        {"event_number": 1, "event_name": "$200 NLH Opener", "buy_in": 200, "start_date": "2026-01-20", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 15000, "blind_levels": "20 min"},
+        {"event_number": 2, "event_name": "$135 NLH", "buy_in": 135, "start_date": "2026-01-21", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 12000, "blind_levels": "20 min"},
+        {"event_number": 3, "event_name": "$200 PLO", "buy_in": 200, "start_date": "2026-01-21", "start_time": "6:00 PM", "game_type": "PLO", "event_type": "side_event", "starting_stack": 15000, "blind_levels": "20 min"},
+        {"event_number": 4, "event_name": "$600 RunGood Main Event", "buy_in": 600, "start_date": "2026-01-22", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B"], "guaranteed": 200000, "days": 3, "starting_stack": 25000, "blind_levels": "40 min"},
+        {"event_number": 5, "event_name": "$200 NLH Turbo", "buy_in": 200, "start_date": "2026-01-24", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "turbo", "starting_stack": 15000, "blind_levels": "15 min"}
+      ]
+    },
+    {
+      "stop_uid": "RGPS-JAMUL-2026",
+      "name": "RunGood Poker Series Jamul",
+      "venue": "Jamul Casino",
+      "city": "San Diego",
+      "state": "CA",
+      "start_date": "2026-02-17",
+      "end_date": "2026-02-22",
+      "events": [
+        {"event_number": 1, "event_name": "$200 NLH Opener", "buy_in": 200, "start_date": "2026-02-17", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 15000, "blind_levels": "20 min"},
+        {"event_number": 2, "event_name": "$135 NLH", "buy_in": 135, "start_date": "2026-02-18", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 12000, "blind_levels": "20 min"},
+        {"event_number": 3, "event_name": "$200 PLO", "buy_in": 200, "start_date": "2026-02-18", "start_time": "6:00 PM", "game_type": "PLO", "event_type": "side_event", "starting_stack": 15000, "blind_levels": "20 min"},
+        {"event_number": 4, "event_name": "$800 RunGood Main Event", "buy_in": 800, "start_date": "2026-02-19", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B"], "guaranteed": 150000, "days": 3, "starting_stack": 30000, "blind_levels": "40 min"},
+        {"event_number": 5, "event_name": "$200 NLH Turbo", "buy_in": 200, "start_date": "2026-02-21", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "turbo", "starting_stack": 15000, "blind_levels": "15 min"}
+      ]
+    },
+    {
+      "stop_uid": "RGPS-BORGATA-2026",
+      "name": "RunGood Poker Series Borgata",
+      "venue": "Borgata Hotel Casino & Spa",
+      "city": "Atlantic City",
+      "state": "NJ",
+      "start_date": "2026-03-05",
+      "end_date": "2026-03-16",
+      "events": [
+        {"event_number": 1, "event_name": "$200 NLH Opener", "buy_in": 200, "start_date": "2026-03-05", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 15000, "blind_levels": "20 min"},
+        {"event_number": 2, "event_name": "$400 NLH Deep Stack", "buy_in": 400, "start_date": "2026-03-06", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 25000, "blind_levels": "30 min"},
+        {"event_number": 3, "event_name": "$200 PLO", "buy_in": 200, "start_date": "2026-03-07", "start_time": "11:00 AM", "game_type": "PLO", "event_type": "side_event", "starting_stack": 15000, "blind_levels": "20 min"},
+        {"event_number": 4, "event_name": "$200 NLH Bounty", "buy_in": 200, "start_date": "2026-03-08", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "bounty", "bounty": 50, "starting_stack": 15000, "blind_levels": "20 min"},
+        {"event_number": 5, "event_name": "$400 NLH Seniors", "buy_in": 400, "start_date": "2026-03-09", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "seniors", "age_req": "50+", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 6, "event_name": "$800 RunGood Main Event", "buy_in": 800, "start_date": "2026-03-11", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B", "C"], "guaranteed": 200000, "days": 4, "starting_stack": 30000, "blind_levels": "40 min"},
+        {"event_number": 7, "event_name": "$200 NLH Turbo", "buy_in": 200, "start_date": "2026-03-15", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "turbo", "starting_stack": 15000, "blind_levels": "15 min"}
+      ]
+    },
+    {
+      "stop_uid": "RGPS-PALACE-2026",
+      "name": "RunGood Poker Series Palace Poker",
+      "venue": "Palace Poker",
+      "city": "Grand Prairie (Dallas)",
+      "state": "TX",
+      "start_date": "2026-03-20",
+      "end_date": "2026-03-29",
+      "events": [
+        {"event_number": 1, "event_name": "$200 NLH Opener", "buy_in": 200, "start_date": "2026-03-20", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 15000, "blind_levels": "20 min"},
+        {"event_number": 2, "event_name": "$135 NLH", "buy_in": 135, "start_date": "2026-03-21", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 12000, "blind_levels": "20 min"},
+        {"event_number": 3, "event_name": "$200 PLO", "buy_in": 200, "start_date": "2026-03-22", "start_time": "12:00 PM", "game_type": "PLO", "event_type": "side_event", "starting_stack": 15000, "blind_levels": "20 min"},
+        {"event_number": 4, "event_name": "$400 NLH Deep Stack", "buy_in": 400, "start_date": "2026-03-23", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 25000, "blind_levels": "30 min"},
+        {"event_number": 5, "event_name": "$800 RunGood Main Event", "buy_in": 800, "start_date": "2026-03-25", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B", "C"], "guaranteed": 250000, "days": 4, "starting_stack": 30000, "blind_levels": "40 min"},
+        {"event_number": 6, "event_name": "$200 NLH Turbo", "buy_in": 200, "start_date": "2026-03-28", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "turbo", "starting_stack": 15000, "blind_levels": "15 min"}
+      ]
+    },
+    {
+      "stop_uid": "RGPS-MGM-NATIONAL-HARBOR-2026",
+      "name": "RunGood Poker Series MGM National Harbor",
+      "venue": "MGM National Harbor",
+      "city": "Oxon Hill (Washington DC)",
+      "state": "MD",
+      "start_date": "2026-04-14",
+      "end_date": "2026-04-19",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Opener", "buy_in": 400, "start_date": "2026-04-14", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$400 PLO", "buy_in": 400, "start_date": "2026-04-15", "start_time": "11:00 AM", "game_type": "PLO", "event_type": "side_event", "starting_stack": 20000, "blind_levels": "30 min"},
+        {"event_number": 3, "event_name": "$1,700 RunGood Main Event", "buy_in": 1700, "start_date": "2026-04-16", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B"], "guaranteed": 300000, "days": 3, "starting_stack": 40000, "blind_levels": "40 min"},
+        {"event_number": 4, "event_name": "$400 NLH Turbo", "buy_in": 400, "start_date": "2026-04-18", "start_time": "12:00 PM", "game_type": "NLH", "event_type": "turbo", "starting_stack": 20000, "blind_levels": "15 min"}
+      ]
+    },
+    {
+      "stop_uid": "RGPS-THUNDER-VALLEY-FINALE-2026",
+      "name": "RunGood Poker Series Season Finale Thunder Valley",
+      "venue": "Thunder Valley Casino Resort",
+      "city": "Lincoln",
+      "state": "CA",
+      "start_date": "2026-07-16",
+      "end_date": "2026-08-03",
+      "events": [
+        {"event_number": 1, "event_name": "$400 NLH Opener", "buy_in": 400, "start_date": "2026-07-16", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 25000, "blind_levels": "30 min"},
+        {"event_number": 2, "event_name": "$600 NLH Deep Stack", "buy_in": 600, "start_date": "2026-07-17", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 35000, "blind_levels": "30 min"},
+        {"event_number": 3, "event_name": "$400 PLO", "buy_in": 400, "start_date": "2026-07-18", "start_time": "11:00 AM", "game_type": "PLO", "event_type": "side_event", "starting_stack": 25000, "blind_levels": "30 min"},
+        {"event_number": 4, "event_name": "$400 NLH Bounty", "buy_in": 400, "start_date": "2026-07-19", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "bounty", "bounty": 100, "starting_stack": 25000, "blind_levels": "30 min"},
+        {"event_number": 5, "event_name": "$600 NLH Seniors", "buy_in": 600, "start_date": "2026-07-20", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "seniors", "age_req": "50+", "starting_stack": 30000, "blind_levels": "30 min"},
+        {"event_number": 6, "event_name": "$1,100 NLH", "buy_in": 1100, "start_date": "2026-07-21", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "side_event", "starting_stack": 35000, "blind_levels": "40 min"},
+        {"event_number": 7, "event_name": "$600 PLO", "buy_in": 600, "start_date": "2026-07-22", "start_time": "11:00 AM", "game_type": "PLO", "event_type": "side_event", "starting_stack": 30000, "blind_levels": "30 min"},
+        {"event_number": 8, "event_name": "$2,700 Season Championship Main Event", "buy_in": 2700, "start_date": "2026-07-27", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "main_event", "flights": ["A", "B", "C", "D"], "guaranteed": 1000000, "days": 5, "starting_stack": 50000, "blind_levels": "60 min"},
+        {"event_number": 9, "event_name": "$5,300 High Roller", "buy_in": 5300, "start_date": "2026-07-31", "start_time": "1:00 PM", "game_type": "NLH", "event_type": "high_roller", "days": 2, "starting_stack": 50000, "blind_levels": "40 min"},
+        {"event_number": 10, "event_name": "$600 NLH Turbo Closer", "buy_in": 600, "start_date": "2026-08-02", "start_time": "11:00 AM", "game_type": "NLH", "event_type": "turbo", "starting_stack": 25000, "blind_levels": "15 min"}
+      ]
+    }
+  ]
+}
