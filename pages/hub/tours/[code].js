@@ -30,7 +30,7 @@ const TOUR_TYPE_LABELS = {
 
 const ACTIVITY_TYPE_COLORS = {
   update: { bg: 'rgba(96, 165, 250, 0.15)', text: '#60a5fa', border: 'rgba(96, 165, 250, 0.3)' },
-  announcement: { bg: 'rgba(212, 168, 83, 0.15)', text: '#d4a853', border: 'rgba(212, 168, 83, 0.3)' },
+  announcement: { bg: 'rgba(0, 212, 255, 0.15)', text: '#00D4FF', border: 'rgba(0, 212, 255, 0.3)' },
   promotion: { bg: 'rgba(74, 222, 128, 0.15)', text: '#4ade80', border: 'rgba(74, 222, 128, 0.3)' },
   result: { bg: 'rgba(167, 139, 250, 0.15)', text: '#a78bfa', border: 'rgba(167, 139, 250, 0.3)' },
 };
@@ -558,7 +558,7 @@ export default function TourDetailPage() {
                         <div className="stop-dates">{stop.dates || 'TBD'}</div>
                         {stopVenueId && (
                           <div className="stop-link-icon">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
                           </div>
                         )}
                       </div>
@@ -718,8 +718,8 @@ const styles = `
   .loading-spinner {
     width: 40px;
     height: 40px;
-    border: 3px solid rgba(212, 168, 83, 0.2);
-    border-top-color: #d4a853;
+    border: 3px solid rgba(0, 212, 255, 0.2);
+    border-top-color: #00D4FF;
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
   }
@@ -769,17 +769,17 @@ const styles = `
   .back-link-btn {
     margin-top: 12px;
     padding: 10px 24px;
-    background: rgba(212, 168, 83, 0.15);
-    border: 1px solid rgba(212, 168, 83, 0.3);
+    background: rgba(0, 212, 255, 0.15);
+    border: 1px solid rgba(0, 212, 255, 0.3);
     border-radius: 8px;
-    color: #d4a853;
+    color: #00D4FF;
     text-decoration: none;
     font-size: 14px;
     font-weight: 500;
     transition: all 0.2s;
   }
   .back-link-btn:hover {
-    background: rgba(212, 168, 83, 0.25);
+    background: rgba(0, 212, 255, 0.25);
   }
 
   /* Header Section */
@@ -816,14 +816,14 @@ const styles = `
     transition: color 0.2s;
   }
   .breadcrumb-link:hover {
-    color: #d4a853;
+    color: #00D4FF;
   }
   .breadcrumb-sep {
     margin: 0 8px;
     color: #475569;
   }
   .breadcrumb-current {
-    color: #d4a853;
+    color: #00D4FF;
     font-weight: 600;
     max-width: 280px;
     white-space: nowrap;
@@ -875,9 +875,9 @@ const styles = `
     border-color: rgba(255, 255, 255, 0.2);
   }
   .follow-btn.followed {
-    background: rgba(212, 168, 83, 0.15);
-    border-color: rgba(212, 168, 83, 0.4);
-    color: #d4a853;
+    background: rgba(0, 212, 255, 0.15);
+    border-color: rgba(0, 212, 255, 0.4);
+    color: #00D4FF;
   }
   .follow-count {
     display: inline-flex;
@@ -887,10 +887,10 @@ const styles = `
     height: 20px;
     padding: 0 6px;
     border-radius: 10px;
-    background: rgba(212, 168, 83, 0.2);
+    background: rgba(0, 212, 255, 0.2);
     font-size: 11px;
     font-weight: 700;
-    color: #d4a853;
+    color: #00D4FF;
   }
   .share-message {
     font-size: 12px;
@@ -989,13 +989,13 @@ const styles = `
     font-weight: 500;
   }
   .main-event-buyin {
-    color: #d4a853;
+    color: #00D4FF;
     font-weight: 600;
   }
   .about-link {
     display: inline-flex;
     align-items: center;
-    color: #d4a853;
+    color: #00D4FF;
     text-decoration: none;
     font-size: 14px;
     font-weight: 500;
@@ -1045,8 +1045,8 @@ const styles = `
     height: 24px;
     padding: 0 8px;
     border-radius: 12px;
-    background: rgba(212, 168, 83, 0.15);
-    color: #d4a853;
+    background: rgba(0, 212, 255, 0.15);
+    color: #00D4FF;
     font-size: 13px;
     font-weight: 600;
   }
@@ -1070,7 +1070,7 @@ const styles = `
   }
   .series-card:hover {
     background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(212, 168, 83, 0.3);
+    border-color: rgba(0, 212, 255, 0.3);
     transform: translateY(-1px);
   }
   .series-card-header {
@@ -1109,15 +1109,15 @@ const styles = `
     margin-bottom: 6px;
   }
   .venue-link-text {
-    color: #d4a853;
+    color: #00D4FF;
     text-decoration: underline;
-    text-decoration-color: rgba(212, 168, 83, 0.3);
+    text-decoration-color: rgba(0, 212, 255, 0.3);
     text-underline-offset: 2px;
     cursor: pointer;
     transition: text-decoration-color 0.2s;
   }
   .venue-link-text:hover {
-    text-decoration-color: #d4a853;
+    text-decoration-color: #00D4FF;
   }
   .series-venue svg,
   .series-location svg,
@@ -1147,7 +1147,7 @@ const styles = `
   .meta-value {
     font-size: 15px;
     font-weight: 700;
-    color: #d4a853;
+    color: #00D4FF;
   }
   .series-card-arrow {
     position: absolute;
@@ -1158,7 +1158,7 @@ const styles = `
     transition: color 0.2s;
   }
   .series-card:hover .series-card-arrow {
-    color: #d4a853;
+    color: #00D4FF;
   }
 
   /* Empty State */
@@ -1205,14 +1205,14 @@ const styles = `
     cursor: pointer;
   }
   .stop-clickable:hover {
-    border-color: rgba(212, 168, 83, 0.3);
+    border-color: rgba(0, 212, 255, 0.3);
   }
   .stop-index {
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background: rgba(212, 168, 83, 0.15);
-    color: #d4a853;
+    background: rgba(0, 212, 255, 0.15);
+    color: #00D4FF;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1231,7 +1231,7 @@ const styles = `
     color: #e2e8f0;
   }
   .stop-clickable .stop-name {
-    color: #d4a853;
+    color: #00D4FF;
   }
   .stop-location {
     display: block;
@@ -1386,7 +1386,7 @@ const styles = `
   .result-winner {
     font-size: 14px;
     font-weight: 700;
-    color: #d4a853;
+    color: #00D4FF;
   }
   .result-prize {
     font-size: 14px;
@@ -1436,13 +1436,13 @@ const styles = `
     font-family: 'Inter', sans-serif;
     cursor: pointer;
     transition: all 0.2s;
-    background: rgba(212, 168, 83, 0.12);
-    border: 1px solid rgba(212, 168, 83, 0.3);
-    color: #d4a853;
+    background: rgba(0, 212, 255, 0.12);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    color: #00D4FF;
   }
   .notif-btn:hover {
-    background: rgba(212, 168, 83, 0.22);
-    border-color: #d4a853;
+    background: rgba(0, 212, 255, 0.22);
+    border-color: #00D4FF;
   }
   .notif-enabled {
     font-size: 13px;

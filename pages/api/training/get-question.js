@@ -67,22 +67,36 @@ export default async function handler(req, res) {
         }
 
         // ═══════════════════════════════════════════════════════════════════
-        // STEP 3: TRY PIO SOLVER DATA FIRST (Source of Truth)
+        // STEP 3: ROUTE TO CORRECT ENGINE BASED ON GAME CONFIG
         // ═══════════════════════════════════════════════════════════════════
         let question = null;
 
-        console.log('[Training] 📊 Querying PIO solver data...');
-        try {
-            const pioScenarios = await pioQueryService.queryScenarios(gameId, parseInt(level), userId);
+        // Route based on preferredEngine from game config
+        if (preferredEngine === 'SCENARIO') {
+            // SCENARIO ENGINE: Mental Game / Psychology - Uses Grok AI
+            console.log('[Training] 🧠 Using SCENARIO engine (Grok AI) for psychology/mental game');
+            question = await generateQuestionWithGrok(gameId, 'SCENARIO', level, gameType, game, gameConfig);
 
-            if (pioScenarios && pioScenarios.length > 0) {
-                console.log(`[Training] ✅ Found ${pioScenarios.length} PIO scenarios`);
-                question = await generateQuestionFromPIO(pioScenarios, gameId, level, game);
-            } else {
-                console.log('[Training] ⚠️ No PIO data available for this game/level');
+        } else if (preferredEngine === 'CHART') {
+            // CHART ENGINE: Push/Fold Charts - Uses memory_charts_gold
+            console.log('[Training] 📊 Using CHART engine for push/fold training');
+            question = await generateQuestionFromChart(gameId, level, game, stackDepth);
+
+        } else {
+            // PIO ENGINE: GTO Solver Data (Default)
+            console.log('[Training] 📊 Using PIO engine - querying solver data...');
+            try {
+                const pioScenarios = await pioQueryService.queryScenarios(gameId, parseInt(level), userId);
+
+                if (pioScenarios && pioScenarios.length > 0) {
+                    console.log(`[Training] ✅ Found ${pioScenarios.length} PIO scenarios`);
+                    question = await generateQuestionFromPIO(pioScenarios, gameId, level, game);
+                } else {
+                    console.log('[Training] ⚠️ No PIO data available, falling back to Grok');
+                }
+            } catch (pioError) {
+                console.warn('[Training] ⚠️ PIO query failed:', pioError.message);
             }
-        } catch (pioError) {
-            console.warn('[Training] ⚠️ PIO query failed, continuing to cache:', pioError.message);
         }
 
         // ═══════════════════════════════════════════════════════════════════
@@ -97,14 +111,12 @@ export default async function handler(req, res) {
                 .eq('game_id', gameId)
                 .eq('level', level)
                 .not('question_id', 'in', `(${seenQuestionIds.join(',') || 'null'})`)
-                .limit(10); // Get 10 random candidates
+                .limit(10);
 
             if (cachedQuestions && cachedQuestions.length > 0) {
-                // Pick random question from cache
                 const randomIndex = Math.floor(Math.random() * cachedQuestions.length);
                 question = cachedQuestions[randomIndex].question_data;
 
-                // Increment times_used counter
                 await supabase
                     .from('training_question_cache')
                     .update({ times_used: supabase.raw('times_used + 1') })
@@ -363,6 +375,77 @@ async function getPIOQuestion(gameId, level, seenIds) {
     // This function is now deprecated in favor of generateQuestionFromPIO
     // which uses the new PIO Query Service
     return null;
+}
+
+/**
+ * CHART ENGINE: Generate question from push/fold charts
+ * Uses memory_charts_gold table
+ */
+async function generateQuestionFromChart(gameId, level, game, stackDepth) {
+    try {
+        console.log(`[Training] 📊 Querying chart data for ${stackDepth}bb...`);
+
+        // Query chart data matching the stack depth
+        const { data: charts, error } = await supabase
+            .from('memory_charts_gold')
+            .select('*')
+            .lte('stack_depth', stackDepth + 5)
+            .gte('stack_depth', stackDepth - 5)
+            .limit(10);
+
+        if (error || !charts || charts.length === 0) {
+            console.log('[Training] ⚠️ No chart data found for this stack depth');
+            return null;
+        }
+
+        // Pick random chart
+        const chart = charts[Math.floor(Math.random() * charts.length)];
+        const handMatrix = chart.hand_matrix || {};
+        const hands = Object.keys(handMatrix);
+
+        if (hands.length === 0) {
+            console.log('[Training] ⚠️ Chart has no hands');
+            return null;
+        }
+
+        // Pick random hand
+        const heroHand = hands[Math.floor(Math.random() * hands.length)];
+        const handData = handMatrix[heroHand];
+
+        // Determine correct action (push if push freq > 0.5)
+        const pushFreq = handData?.push || 0;
+        const correctAction = pushFreq > 0.5 ? 'push' : 'fold';
+
+        const question = {
+            id: `chart_${chart.chart_id}_${Date.now()}`,
+            type: 'CHART',
+            source: 'CHART_DATABASE',
+            scenario: {
+                stackDepth: chart.stack_depth,
+                heroPosition: chart.hero_position,
+                villainAction: chart.villain_action,
+                heroHand: heroHand
+            },
+            question: `You're in ${chart.hero_position || 'the button'} with ${heroHand}. Stack: ${chart.stack_depth}BB. ${chart.villain_action || 'Folded to you'}. Push or Fold?`,
+            options: [
+                { id: 'push', text: 'Push All-In' },
+                { id: 'fold', text: 'Fold' }
+            ],
+            correctAnswer: correctAction,
+            explanation: pushFreq > 0.5
+                ? `This is a ${(pushFreq * 100).toFixed(0)}% push in ICM charts. ${heroHand} has enough equity to shove here.`
+                : `This is a fold in ICM charts (only ${(pushFreq * 100).toFixed(0)}% push). ${heroHand} doesn't have enough equity.`,
+            difficulty: level,
+            heroHand: heroHand
+        };
+
+        console.log('[Training] ✅ Generated CHART question for', heroHand, '-', correctAction);
+        return question;
+
+    } catch (error) {
+        console.error('[Training] ❌ Error generating chart question:', error);
+        return null;
+    }
 }
 
 /**

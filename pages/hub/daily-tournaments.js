@@ -466,7 +466,7 @@ export default function DailyTournaments() {
                         letter-spacing: 1px;
                     }
                     .dt-header .white { color: #fff; }
-                    .dt-header .gold { color: #d4a853; }
+                    .dt-header .gold { color: #00D4FF; }
                     .dt-header .subtitle {
                         font-size: 14px;
                         color: rgba(255,255,255,0.5);
@@ -500,7 +500,7 @@ export default function DailyTournaments() {
                         background: rgba(255,255,255,0.1);
                     }
                     .day-tab.active {
-                        background: linear-gradient(135deg, #d4a853, #b8860b);
+                        background: linear-gradient(135deg, #00D4FF, #0099CC);
                         border-color: transparent;
                         color: #000;
                     }
@@ -544,8 +544,8 @@ export default function DailyTournaments() {
                         transition: all 0.2s;
                     }
                     .search-form input:focus {
-                        border-color: rgba(212,168,83,0.5);
-                        box-shadow: 0 0 0 3px rgba(212,168,83,0.1);
+                        border-color: rgba(0,212,255,0.5);
+                        box-shadow: 0 0 0 3px rgba(0,212,255,0.1);
                     }
                     .search-form input::placeholder { color: rgba(255,255,255,0.4); }
 
@@ -572,9 +572,9 @@ export default function DailyTournaments() {
                         background: rgba(255,255,255,0.1);
                     }
                     .btn-filters.active {
-                        background: rgba(212,168,83,0.2);
-                        border-color: rgba(212,168,83,0.5);
-                        color: #d4a853;
+                        background: rgba(0,212,255,0.2);
+                        border-color: rgba(0,212,255,0.5);
+                        color: #00D4FF;
                     }
 
                     .stats-display {
@@ -618,9 +618,9 @@ export default function DailyTournaments() {
                     }
                     .chip:hover { background: rgba(255,255,255,0.1); }
                     .chip.active {
-                        background: rgba(212,168,83,0.2);
-                        border-color: rgba(212,168,83,0.5);
-                        color: #d4a853;
+                        background: rgba(0,212,255,0.2);
+                        border-color: rgba(0,212,255,0.5);
+                        color: #00D4FF;
                     }
                     .filter-actions {
                         display: flex;
@@ -641,7 +641,7 @@ export default function DailyTournaments() {
                     .btn-apply {
                         flex: 2;
                         padding: 12px;
-                        background: linear-gradient(135deg, #d4a853, #b8860b);
+                        background: linear-gradient(135deg, #00D4FF, #0099CC);
                         border: none;
                         border-radius: 10px;
                         color: #000;
@@ -652,7 +652,7 @@ export default function DailyTournaments() {
                     }
                     .btn-apply:hover {
                         transform: translateY(-1px);
-                        box-shadow: 0 4px 12px rgba(212,168,83,0.3);
+                        box-shadow: 0 4px 12px rgba(0,212,255,0.3);
                     }
 
                     /* Layout */
@@ -695,14 +695,14 @@ export default function DailyTournaments() {
                         background: rgba(255,255,255,0.1);
                     }
                     .state-chip.active {
-                        background: rgba(212,168,83,0.15);
-                        border-color: rgba(212,168,83,0.4);
+                        background: rgba(0,212,255,0.15);
+                        border-color: rgba(0,212,255,0.4);
                     }
                     .state-abbr {
                         font-weight: 600;
-                        color: #d4a853;
+                        color: #00D4FF;
                     }
-                    .state-chip.active .state-abbr { color: #d4a853; }
+                    .state-chip.active .state-abbr { color: #00D4FF; }
                     .state-name { color: rgba(255,255,255,0.7); font-size: 13px; }
 
                     .source-info p {
@@ -731,7 +731,7 @@ export default function DailyTournaments() {
                         color: rgba(255,255,255,0.7);
                     }
                     .type-item .count {
-                        color: #d4a853;
+                        color: #00D4FF;
                         font-weight: 600;
                     }
 
@@ -748,7 +748,7 @@ export default function DailyTournaments() {
                         width: 40px;
                         height: 40px;
                         border: 3px solid rgba(255,255,255,0.1);
-                        border-top-color: #d4a853;
+                        border-top-color: #00D4FF;
                         border-radius: 50%;
                         animation: spin 1s linear infinite;
                         margin-bottom: 16px;
@@ -757,10 +757,10 @@ export default function DailyTournaments() {
                     .empty-state button {
                         margin-top: 16px;
                         padding: 12px 24px;
-                        background: rgba(212,168,83,0.2);
-                        border: 1px solid rgba(212,168,83,0.4);
+                        background: rgba(0,212,255,0.2);
+                        border: 1px solid rgba(0,212,255,0.4);
                         border-radius: 8px;
-                        color: #d4a853;
+                        color: #00D4FF;
                         cursor: pointer;
                         transition: all 0.2s;
                     }
@@ -831,7 +831,7 @@ export default function DailyTournaments() {
                     .highlight-value {
                         font-size: 24px;
                         font-weight: 700;
-                        color: #d4a853;
+                        color: #00D4FF;
                     }
 
                     .game-breakdown { display: flex; flex-direction: column; gap: 10px; }
@@ -843,7 +843,7 @@ export default function DailyTournaments() {
                         border-radius: 6px;
                     }
                     .game-name { font-size: 13px; color: rgba(255,255,255,0.8); }
-                    .game-count { font-size: 13px; color: #d4a853; font-weight: 600; }
+                    .game-count { font-size: 13px; color: #00D4FF; font-weight: 600; }
 
                     .quick-links { display: flex; flex-direction: column; gap: 10px; }
                     .quick-link {
@@ -1008,7 +1008,7 @@ function TournamentCard({ tournament }) {
                 .card-buyin {
                     font-size: 18px;
                     font-weight: 700;
-                    color: #d4a853;
+                    color: #00D4FF;
                 }
                 .card-venue {
                     font-size: 16px;
@@ -1060,7 +1060,7 @@ function TournamentCard({ tournament }) {
                     transition: color 0.15s;
                 }
                 .card-venue-link:hover {
-                    color: #d4a853;
+                    color: #00D4FF;
                     text-decoration: underline;
                 }
                 .card-actions {
@@ -1085,12 +1085,12 @@ function TournamentCard({ tournament }) {
                     color: #fff;
                 }
                 .card-link.venue-link {
-                    border-color: rgba(212, 168, 83, 0.3);
-                    color: #d4a853;
+                    border-color: rgba(0, 212, 255, 0.3);
+                    color: #00D4FF;
                 }
                 .card-link.venue-link:hover {
-                    background: rgba(212, 168, 83, 0.15);
-                    border-color: rgba(212, 168, 83, 0.5);
+                    background: rgba(0, 212, 255, 0.15);
+                    border-color: rgba(0, 212, 255, 0.5);
                 }
             `}</style>
         </div>

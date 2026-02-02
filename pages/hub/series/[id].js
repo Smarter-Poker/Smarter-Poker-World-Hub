@@ -27,7 +27,7 @@ const TOUR_COLORS = {
 
 // Series type styling
 const SERIES_TYPE_COLORS = {
-  major:      { bg: '#d4a853', text: '#000' },
+  major:      { bg: '#00D4FF', text: '#000' },
   circuit:    { bg: '#60a5fa', text: '#000' },
   regional:   { bg: '#a78bfa', text: '#000' },
   'mid-major': { bg: '#4ade80', text: '#000' },
@@ -36,13 +36,13 @@ const SERIES_TYPE_COLORS = {
 
 const ACTIVITY_TYPE_COLORS = {
   update: { bg: 'rgba(96, 165, 250, 0.15)', text: '#60a5fa', border: 'rgba(96, 165, 250, 0.3)' },
-  announcement: { bg: 'rgba(212, 168, 83, 0.15)', text: '#d4a853', border: 'rgba(212, 168, 83, 0.3)' },
+  announcement: { bg: 'rgba(0, 212, 255, 0.15)', text: '#00D4FF', border: 'rgba(0, 212, 255, 0.3)' },
   promotion: { bg: 'rgba(74, 222, 128, 0.15)', text: '#4ade80', border: 'rgba(74, 222, 128, 0.3)' },
   result: { bg: 'rgba(167, 139, 250, 0.15)', text: '#a78bfa', border: 'rgba(167, 139, 250, 0.3)' },
 };
 
 const PODIUM_COLORS = {
-  1: '#d4a853',
+  1: '#00D4FF',
   2: '#c0c0c0',
   3: '#cd7f32',
 };
@@ -820,7 +820,7 @@ const styles = `
   .series-page {
     min-height: 100vh;
     background: radial-gradient(ellipse at 20% 50%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
-                radial-gradient(ellipse at 80% 20%, rgba(212, 168, 83, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(0, 212, 255, 0.06) 0%, transparent 50%),
                 linear-gradient(180deg, #030712 0%, #0f172a 100%);
     padding: 80px 16px 60px;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -853,14 +853,14 @@ const styles = `
     transition: color 0.2s;
   }
   .breadcrumb-link:hover {
-    color: #d4a853;
+    color: #00D4FF;
   }
   .breadcrumb-sep {
     margin: 0 8px;
     color: #475569;
   }
   .breadcrumb-current {
-    color: #d4a853;
+    color: #00D4FF;
     font-weight: 600;
     max-width: 280px;
     white-space: nowrap;
@@ -951,14 +951,14 @@ const styles = `
   }
 
   .follow-btn {
-    background: rgba(212, 168, 83, 0.12);
-    border: 1px solid rgba(212, 168, 83, 0.3);
-    color: #d4a853;
+    background: rgba(0, 212, 255, 0.12);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    color: #00D4FF;
   }
 
   .follow-btn:hover {
-    background: rgba(212, 168, 83, 0.22);
-    border-color: #d4a853;
+    background: rgba(0, 212, 255, 0.22);
+    border-color: #00D4FF;
   }
 
   .follow-btn.following {
@@ -980,10 +980,10 @@ const styles = `
     height: 20px;
     padding: 0 6px;
     border-radius: 10px;
-    background: rgba(212, 168, 83, 0.2);
+    background: rgba(0, 212, 255, 0.2);
     font-size: 11px;
     font-weight: 700;
-    color: #d4a853;
+    color: #00D4FF;
   }
 
   .share-btn {
@@ -1034,7 +1034,7 @@ const styles = `
   }
 
   .stat-value.gold {
-    color: #d4a853;
+    color: #00D4FF;
   }
 
   .inline-type-dot {
@@ -1101,14 +1101,14 @@ const styles = `
     font-weight: 500;
   }
   .venue-value-link {
-    color: #d4a853;
+    color: #00D4FF;
     text-decoration: underline;
-    text-decoration-color: rgba(212, 168, 83, 0.3);
+    text-decoration-color: rgba(0, 212, 255, 0.3);
     text-underline-offset: 2px;
     transition: text-decoration-color 0.2s;
   }
   .venue-value-link:hover {
-    text-decoration-color: #d4a853;
+    text-decoration-color: #00D4FF;
   }
 
   .venue-links {
@@ -1135,20 +1135,20 @@ const styles = `
     color: #93bbfc;
   }
   .venue-link-primary {
-    color: #d4a853;
-    background: rgba(212, 168, 83, 0.08);
+    color: #00D4FF;
+    background: rgba(0, 212, 255, 0.08);
     padding: 6px 12px;
     border-radius: 6px;
-    border: 1px solid rgba(212, 168, 83, 0.2);
+    border: 1px solid rgba(0, 212, 255, 0.2);
   }
   .venue-link-primary:hover {
-    color: #d4a853;
-    background: rgba(212, 168, 83, 0.15);
-    border-color: rgba(212, 168, 83, 0.4);
+    color: #00D4FF;
+    background: rgba(0, 212, 255, 0.15);
+    border-color: rgba(0, 212, 255, 0.4);
   }
 
   .venue-link.external {
-    color: #d4a853;
+    color: #00D4FF;
   }
 
   .venue-link.external:hover {
@@ -1215,7 +1215,7 @@ const styles = `
   }
 
   .event-buyin {
-    color: #d4a853;
+    color: #00D4FF;
     font-weight: 700;
     white-space: nowrap;
   }
@@ -1235,10 +1235,10 @@ const styles = `
     user-select: none;
   }
   .event-row-clickable:hover {
-    background: rgba(212, 168, 83, 0.06) !important;
+    background: rgba(0, 212, 255, 0.06) !important;
   }
   .event-row-clickable.expanded {
-    background: rgba(212, 168, 83, 0.08) !important;
+    background: rgba(0, 212, 255, 0.08) !important;
     border-bottom-color: transparent;
   }
   .event-row-clickable.expanded td {
@@ -1252,11 +1252,11 @@ const styles = `
   }
   .event-detail-row td {
     padding: 0 12px 16px !important;
-    border-bottom: 1px solid rgba(212, 168, 83, 0.15) !important;
+    border-bottom: 1px solid rgba(0, 212, 255, 0.15) !important;
   }
   .event-detail-content {
     background: rgba(15, 23, 42, 0.6);
-    border: 1px solid rgba(212, 168, 83, 0.15);
+    border: 1px solid rgba(0, 212, 255, 0.15);
     border-radius: 10px;
     padding: 16px 20px;
   }
@@ -1286,7 +1286,7 @@ const styles = `
     font-weight: 500;
   }
   .detail-highlight {
-    color: #d4a853;
+    color: #00D4FF;
     font-weight: 700;
   }
 
@@ -1463,7 +1463,7 @@ const styles = `
   .ind-result-winner {
     font-size: 14px;
     font-weight: 700;
-    color: #d4a853;
+    color: #00D4FF;
   }
 
   .ind-result-prize {
@@ -1543,8 +1543,8 @@ const styles = `
   .loading-spinner {
     width: 40px;
     height: 40px;
-    border: 3px solid rgba(212, 168, 83, 0.15);
-    border-top-color: #d4a853;
+    border: 3px solid rgba(0, 212, 255, 0.15);
+    border-top-color: #00D4FF;
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
   }
@@ -1586,10 +1586,10 @@ const styles = `
     display: inline-flex;
     align-items: center;
     padding: 12px 24px;
-    background: rgba(212, 168, 83, 0.12);
-    border: 1px solid rgba(212, 168, 83, 0.3);
+    background: rgba(0, 212, 255, 0.12);
+    border: 1px solid rgba(0, 212, 255, 0.3);
     border-radius: 10px;
-    color: #d4a853;
+    color: #00D4FF;
     text-decoration: none;
     font-size: 14px;
     font-weight: 600;
@@ -1597,8 +1597,8 @@ const styles = `
   }
 
   .back-link-btn:hover {
-    background: rgba(212, 168, 83, 0.22);
-    border-color: #d4a853;
+    background: rgba(0, 212, 255, 0.22);
+    border-color: #00D4FF;
   }
 
   /* Responsive */
