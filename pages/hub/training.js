@@ -951,6 +951,31 @@ export default function TrainingPage() {
                         {/* Streaks Badge */}
                         <StreaksBadge bestStreak={bestStreak} />
 
+                        {/* Gamification Quick-Access Nav */}
+                        <div style={gamificationNavStyles.container}>
+                            <div
+                                style={gamificationNavStyles.navButton}
+                                onClick={() => router.push('/hub/training/leaderboard')}
+                            >
+                                <span style={gamificationNavStyles.icon}>🏆</span>
+                                <span style={gamificationNavStyles.label}>Leaderboard</span>
+                            </div>
+                            <div
+                                style={gamificationNavStyles.navButton}
+                                onClick={() => router.push('/hub/training/achievements')}
+                            >
+                                <span style={gamificationNavStyles.icon}>🏅</span>
+                                <span style={gamificationNavStyles.label}>Achievements</span>
+                            </div>
+                            <div
+                                style={gamificationNavStyles.navButton}
+                                onClick={() => router.push('/hub/training/jarvis')}
+                            >
+                                <span style={gamificationNavStyles.icon}>🧠</span>
+                                <span style={gamificationNavStyles.label}>Jarvis</span>
+                            </div>
+                        </div>
+
                         {/* Filters */}
                         <FilterBar
                             active={activeFilter}

@@ -7,3 +7,7 @@ export { default as LedgerTimeline } from './LedgerTimeline';
 export { default as LogEntryModal } from './LogEntryModal';
 export { default as LeakAlertPanel } from './LeakAlertPanel';
 export { default as BankrollRulesCard } from './BankrollRulesCard';
+export { default as BankrollTrendChart } from './BankrollTrendChart';
+export { default as QuickLogWidget } from './QuickLogWidget';
+export { default as BankrollStreaks } from './BankrollStreaks';
+export { default as JarvisLeakInsights } from './JarvisLeakInsights';

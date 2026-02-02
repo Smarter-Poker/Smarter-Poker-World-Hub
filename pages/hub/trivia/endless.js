@@ -34,6 +34,14 @@ export default function EndlessModePage() {
     const [eliminatedOptions, setEliminatedOptions] = useState([]);
     const [userDiamonds, setUserDiamonds] = useState(0);
 
+    // Skip Question Lifeline state (3💎 each use)
+    const [skipUsedThisQuestion, setSkipUsedThisQuestion] = useState(false);
+
+    // Double Chance Lifeline state (3💎 - get 2 attempts)
+    const [doubleChanceActive, setDoubleChanceActive] = useState(false);
+    const [doubleChanceUsedThisQuestion, setDoubleChanceUsedThisQuestion] = useState(false);
+    const [firstAttemptWrong, setFirstAttemptWrong] = useState(null);
+
     const startTimeRef = useRef(null);
 
     // Calculate multiplier based on streak (increases every 5 questions)
@@ -109,8 +117,13 @@ export default function EndlessModePage() {
         setDiamondsEarned(0);
         setMultiplier(1);
         setCurrentIndex(0);
-        setFiftyFiftyUsedFree(false); // Reset free 50/50 for new game
+        // Reset all lifeline states for new game
+        setFiftyFiftyUsedFree(false);
         setEliminatedOptions([]);
+        setSkipUsedThisQuestion(false);
+        setDoubleChanceActive(false);
+        setDoubleChanceUsedThisQuestion(false);
+        setFirstAttemptWrong(null);
         startTimeRef.current = Date.now();
     }
 
@@ -156,8 +169,83 @@ export default function EndlessModePage() {
         setEliminatedOptions(toEliminate);
     }
 
+    // Skip Question Function (costs 3💎)
+    async function useSkipQuestion() {
+        if (showResult || skipUsedThisQuestion) return;
+
+        if (userDiamonds < 3) {
+            alert('Not enough diamonds! You need 3💎 to skip.');
+            return;
+        }
+
+        // Deduct diamonds
+        if (userId) {
+            try {
+                await supabase
+                    .from('profiles')
+                    .update({ diamonds: userDiamonds - 3 })
+                    .eq('id', userId);
+                setUserDiamonds(prev => prev - 3);
+            } catch (e) {
+                console.error('Failed to deduct diamonds:', e);
+                return;
+            }
+        }
+
+        setSkipUsedThisQuestion(true);
+
+        // Move to next question without penalty (keep streak)
+        setCurrentIndex(prev => prev + 1);
+        setSelectedAnswer(null);
+        setShowResult(false);
+        setEliminatedOptions([]);
+        setSkipUsedThisQuestion(false);
+        setDoubleChanceActive(false);
+        setDoubleChanceUsedThisQuestion(false);
+        setFirstAttemptWrong(null);
+    }
+
+    // Double Chance Function (costs 3💎 - gives 2 attempts)
+    async function useDoubleChance() {
+        if (showResult || doubleChanceUsedThisQuestion || doubleChanceActive) return;
+
+        if (userDiamonds < 3) {
+            alert('Not enough diamonds! You need 3💎 for Double Chance.');
+            return;
+        }
+
+        // Deduct diamonds
+        if (userId) {
+            try {
+                await supabase
+                    .from('profiles')
+                    .update({ diamonds: userDiamonds - 3 })
+                    .eq('id', userId);
+                setUserDiamonds(prev => prev - 3);
+            } catch (e) {
+                console.error('Failed to deduct diamonds:', e);
+                return;
+            }
+        }
+
+        setDoubleChanceActive(true);
+        setDoubleChanceUsedThisQuestion(true);
+    }
+
     function selectAnswer(index) {
         if (selectedAnswer !== null) return;
+
+        // If Double Chance active and this is first attempt
+        if (doubleChanceActive && firstAttemptWrong === null) {
+            const currentQuestion = questions[currentIndex];
+            const correct = index === currentQuestion?.correct_index;
+
+            if (!correct) {
+                // First wrong attempt - allow second try
+                setFirstAttemptWrong(index);
+                return; // Don't show result yet, let them try again
+            }
+        }
 
         const currentQuestion = questions[currentIndex];
         const correct = index === currentQuestion?.correct_index;
@@ -174,7 +262,11 @@ export default function EndlessModePage() {
                 setCurrentIndex(prev => prev + 1);
                 setSelectedAnswer(null);
                 setShowResult(false);
-                setEliminatedOptions([]); // Reset 50/50 for next question
+                setEliminatedOptions([]);
+                setSkipUsedThisQuestion(false);
+                setDoubleChanceActive(false);
+                setDoubleChanceUsedThisQuestion(false);
+                setFirstAttemptWrong(null);
             }, 1000);
         } else {
             setTimeout(() => {
@@ -444,43 +536,118 @@ export default function EndlessModePage() {
                                         })}
                                     </div>
 
-                                    {/* 50/50 Lifeline Button */}
+                                    {/* Lifeline Buttons Row */}
                                     {!showResult && (
-                                        <button
-                                            onClick={useFiftyFifty}
-                                            disabled={eliminatedOptions.length > 0}
-                                            style={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                gap: '8px',
-                                                width: '100%',
-                                                padding: '14px',
-                                                marginTop: '16px',
-                                                background: eliminatedOptions.length > 0
-                                                    ? 'rgba(100,100,100,0.2)'
-                                                    : 'linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.1))',
-                                                border: eliminatedOptions.length > 0
-                                                    ? '1px solid rgba(100,100,100,0.3)'
-                                                    : '1px solid rgba(139, 92, 246, 0.4)',
-                                                borderRadius: '10px',
-                                                color: eliminatedOptions.length > 0 ? 'rgba(255,255,255,0.4)' : 'white',
-                                                fontSize: '15px',
-                                                fontWeight: 'bold',
-                                                cursor: eliminatedOptions.length > 0 ? 'default' : 'pointer',
-                                                transition: 'all 0.2s'
-                                            }}
-                                        >
-                                            <span style={{ fontSize: '18px' }}>⚡</span>
-                                            <span>50/50</span>
-                                            {eliminatedOptions.length > 0 ? (
-                                                <span style={{ fontSize: '13px', opacity: 0.7 }}>USED</span>
-                                            ) : fiftyFiftyUsedFree ? (
-                                                <span style={{ fontSize: '13px', color: '#00D4FF' }}>5💎</span>
-                                            ) : (
-                                                <span style={{ fontSize: '13px', color: '#22c55e' }}>FREE</span>
-                                            )}
-                                        </button>
+                                        <div style={{
+                                            display: 'flex',
+                                            gap: '10px',
+                                            marginTop: '16px'
+                                        }}>
+                                            {/* 50/50 Button */}
+                                            <button
+                                                onClick={useFiftyFifty}
+                                                disabled={eliminatedOptions.length > 0}
+                                                style={{
+                                                    flex: 1,
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '4px',
+                                                    padding: '12px 8px',
+                                                    background: eliminatedOptions.length > 0
+                                                        ? 'rgba(100, 100, 100, 0.2)'
+                                                        : fiftyFiftyUsedFree
+                                                            ? 'linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 150, 200, 0.3))'
+                                                            : 'linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(20, 150, 80, 0.3))',
+                                                    border: `2px solid ${eliminatedOptions.length > 0
+                                                        ? '#666'
+                                                        : fiftyFiftyUsedFree
+                                                            ? '#00D4FF'
+                                                            : '#22c55e'}`,
+                                                    borderRadius: '12px',
+                                                    color: eliminatedOptions.length > 0 ? '#666' : 'white',
+                                                    fontSize: '13px',
+                                                    fontWeight: 'bold',
+                                                    cursor: eliminatedOptions.length > 0 ? 'default' : 'pointer',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                            >
+                                                <span style={{ fontSize: '20px' }}>⚡</span>
+                                                <span>50/50</span>
+                                                {eliminatedOptions.length > 0 ? (
+                                                    <span style={{ fontSize: '11px', opacity: 0.7 }}>USED</span>
+                                                ) : fiftyFiftyUsedFree ? (
+                                                    <span style={{ fontSize: '11px', color: '#00D4FF' }}>5💎</span>
+                                                ) : (
+                                                    <span style={{ fontSize: '11px', color: '#22c55e' }}>FREE</span>
+                                                )}
+                                            </button>
+
+                                            {/* Skip Question Button */}
+                                            <button
+                                                onClick={useSkipQuestion}
+                                                disabled={userDiamonds < 3}
+                                                style={{
+                                                    flex: 1,
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '4px',
+                                                    padding: '12px 8px',
+                                                    background: userDiamonds < 3
+                                                        ? 'rgba(100, 100, 100, 0.2)'
+                                                        : 'linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(200, 150, 30, 0.3))',
+                                                    border: `2px solid ${userDiamonds < 3 ? '#666' : '#fbbf24'}`,
+                                                    borderRadius: '12px',
+                                                    color: userDiamonds < 3 ? '#666' : 'white',
+                                                    fontSize: '13px',
+                                                    fontWeight: 'bold',
+                                                    cursor: userDiamonds < 3 ? 'default' : 'pointer',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                            >
+                                                <span style={{ fontSize: '20px' }}>⏭️</span>
+                                                <span>Skip</span>
+                                                <span style={{ fontSize: '11px', color: '#fbbf24' }}>3💎</span>
+                                            </button>
+
+                                            {/* Double Chance Button */}
+                                            <button
+                                                onClick={useDoubleChance}
+                                                disabled={doubleChanceUsedThisQuestion || doubleChanceActive || userDiamonds < 3}
+                                                style={{
+                                                    flex: 1,
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '4px',
+                                                    padding: '12px 8px',
+                                                    background: (doubleChanceUsedThisQuestion || doubleChanceActive || userDiamonds < 3)
+                                                        ? 'rgba(100, 100, 100, 0.2)'
+                                                        : 'linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(120, 60, 180, 0.3))',
+                                                    border: `2px solid ${(doubleChanceUsedThisQuestion || doubleChanceActive || userDiamonds < 3) ? '#666' : '#a855f7'}`,
+                                                    borderRadius: '12px',
+                                                    color: (doubleChanceUsedThisQuestion || doubleChanceActive || userDiamonds < 3) ? '#666' : 'white',
+                                                    fontSize: '13px',
+                                                    fontWeight: 'bold',
+                                                    cursor: (doubleChanceUsedThisQuestion || doubleChanceActive || userDiamonds < 3) ? 'default' : 'pointer',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                            >
+                                                <span style={{ fontSize: '20px' }}>🎯</span>
+                                                <span>2x Try</span>
+                                                {doubleChanceActive ? (
+                                                    <span style={{ fontSize: '11px', color: '#22c55e' }}>ACTIVE</span>
+                                                ) : doubleChanceUsedThisQuestion ? (
+                                                    <span style={{ fontSize: '11px', opacity: 0.7 }}>USED</span>
+                                                ) : (
+                                                    <span style={{ fontSize: '11px', color: '#a855f7' }}>3💎</span>
+                                                )}
+                                            </button>
+                                        </div>
                                     )}
 
                                     <div style={{

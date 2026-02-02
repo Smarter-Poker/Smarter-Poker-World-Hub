@@ -33,6 +33,10 @@ import LedgerTimeline from '../../src/components/bankroll/LedgerTimeline';
 import LogEntryModal from '../../src/components/bankroll/LogEntryModal';
 import LeakAlertPanel from '../../src/components/bankroll/LeakAlertPanel';
 import BankrollRulesCard from '../../src/components/bankroll/BankrollRulesCard';
+import BankrollTrendChart from '../../src/components/bankroll/BankrollTrendChart';
+import QuickLogWidget from '../../src/components/bankroll/QuickLogWidget';
+import BankrollStreaks from '../../src/components/bankroll/BankrollStreaks';
+import JarvisLeakInsights from '../../src/components/bankroll/JarvisLeakInsights';
 
 const SIDEBAR_SECTIONS = [
   { id: 'dashboard', label: 'Dashboard', icon: '◎' },
@@ -496,6 +500,16 @@ export default function BankrollManagerPage() {
                     isLoading={isLoading}
                   />
                 </div>
+
+                {/* Quick Log Widget */}
+                <QuickLogWidget
+                  userId={userId}
+                  onSubmit={handleLogSubmit}
+                  onOpenFullModal={() => setShowLogModal(true)}
+                />
+
+                {/* Bankroll Trend Chart */}
+                <BankrollTrendChart entries={entries} isLoading={isLoading} />
 
                 {/* Recent Activity Section */}
                 <div style={styles.activitySection}>

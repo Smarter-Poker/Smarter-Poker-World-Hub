@@ -54,6 +54,14 @@ export default function SurvivalGamePage() {
     const [eliminatedOptions, setEliminatedOptions] = useState([]); // Indices of eliminated wrong answers
     const [userDiamonds, setUserDiamonds] = useState(0); // Current diamond balance
 
+    // Skip Question Lifeline state (3💎 each use)
+    const [skipUsedThisQuestion, setSkipUsedThisQuestion] = useState(false);
+
+    // Double Chance Lifeline state (3💎 - get 2 attempts)
+    const [doubleChanceActive, setDoubleChanceActive] = useState(false);
+    const [doubleChanceUsedThisQuestion, setDoubleChanceUsedThisQuestion] = useState(false);
+    const [firstAttemptWrong, setFirstAttemptWrong] = useState(null);
+
     // User state
     const [userId, setUserId] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -198,8 +206,85 @@ export default function SurvivalGamePage() {
         setEliminatedOptions(toEliminate);
     }
 
+    // Skip Question Function (costs 3💎)
+    async function useSkipQuestion() {
+        if (showResult || skipUsedThisQuestion) return;
+
+        if (userDiamonds < 3) {
+            alert('Not enough diamonds! You need 3💎 to skip.');
+            return;
+        }
+
+        // Deduct diamonds
+        if (userId) {
+            try {
+                await supabase
+                    .from('profiles')
+                    .update({ diamonds: userDiamonds - 3 })
+                    .eq('id', userId);
+                setUserDiamonds(prev => prev - 3);
+            } catch (e) {
+                console.error('Failed to deduct diamonds:', e);
+                return;
+            }
+        }
+
+        setSkipUsedThisQuestion(true);
+
+        // Move to next question without penalty
+        if (currentQuestionIndex < QUESTIONS_PER_LEVEL - 1) {
+            setCurrentQuestionIndex(prev => prev + 1);
+            setSelectedAnswer(null);
+            setShowResult(false);
+            setEliminatedOptions([]);
+            setSkipUsedThisQuestion(false);
+            setDoubleChanceActive(false);
+            setDoubleChanceUsedThisQuestion(false);
+            setFirstAttemptWrong(null);
+        }
+    }
+
+    // Double Chance Function (costs 3💎 - gives 2 attempts)
+    async function useDoubleChance() {
+        if (showResult || doubleChanceUsedThisQuestion || doubleChanceActive) return;
+
+        if (userDiamonds < 3) {
+            alert('Not enough diamonds! You need 3💎 for Double Chance.');
+            return;
+        }
+
+        // Deduct diamonds
+        if (userId) {
+            try {
+                await supabase
+                    .from('profiles')
+                    .update({ diamonds: userDiamonds - 3 })
+                    .eq('id', userId);
+                setUserDiamonds(prev => prev - 3);
+            } catch (e) {
+                console.error('Failed to deduct diamonds:', e);
+                return;
+            }
+        }
+
+        setDoubleChanceActive(true);
+        setDoubleChanceUsedThisQuestion(true);
+    }
+
     function selectAnswer(index) {
         if (selectedAnswer !== null || showResult) return;
+
+        // If Double Chance active and this is first attempt
+        if (doubleChanceActive && firstAttemptWrong === null) {
+            const currentQuestion = questions[currentQuestionIndex];
+            const isCorrect = index === currentQuestion?.correct_index;
+
+            if (!isCorrect) {
+                // First wrong attempt - allow second try
+                setFirstAttemptWrong(index);
+                return; // Don't show result yet, let them try again
+            }
+        }
 
         const currentQuestion = questions[currentQuestionIndex];
         const isCorrect = index === currentQuestion?.correct_index;
@@ -228,11 +313,15 @@ export default function SurvivalGamePage() {
                 // Can't possibly pass - game over
                 setGameState('gameOver');
             } else {
-                // Next question
+                // Next question - reset all lifeline states
                 setCurrentQuestionIndex(prev => prev + 1);
                 setSelectedAnswer(null);
                 setShowResult(false);
-                setEliminatedOptions([]); // Reset 50/50 for next question
+                setEliminatedOptions([]);
+                setSkipUsedThisQuestion(false);
+                setDoubleChanceActive(false);
+                setDoubleChanceUsedThisQuestion(false);
+                setFirstAttemptWrong(null);
             }
         }, 1200);
     }
@@ -576,47 +665,118 @@ export default function SurvivalGamePage() {
                                         })}
                                     </div>
 
-                                    {/* 50/50 Lifeline Button */}
+                                    {/* Lifeline Buttons Row */}
                                     {!showResult && (
-                                        <button
-                                            onClick={useFiftyFifty}
-                                            disabled={eliminatedOptions.length > 0}
-                                            style={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                gap: '8px',
-                                                width: '100%',
-                                                marginTop: '20px',
-                                                padding: '14px 20px',
-                                                background: eliminatedOptions.length > 0
-                                                    ? 'rgba(100, 100, 100, 0.2)'
-                                                    : fiftyFiftyUsedFree
-                                                        ? 'linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 150, 200, 0.3))'
-                                                        : 'linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(20, 150, 80, 0.3))',
-                                                border: `2px solid ${eliminatedOptions.length > 0
-                                                    ? '#666'
-                                                    : fiftyFiftyUsedFree
-                                                        ? '#00D4FF'
-                                                        : '#22c55e'}`,
-                                                borderRadius: '12px',
-                                                color: eliminatedOptions.length > 0 ? '#666' : 'white',
-                                                fontSize: '16px',
-                                                fontWeight: 'bold',
-                                                cursor: eliminatedOptions.length > 0 ? 'default' : 'pointer',
-                                                transition: 'all 0.2s'
-                                            }}
-                                        >
-                                            <span style={{ fontSize: '20px' }}>⚡</span>
-                                            <span>50/50</span>
-                                            {eliminatedOptions.length > 0 ? (
-                                                <span style={{ fontSize: '13px', opacity: 0.7 }}>USED</span>
-                                            ) : fiftyFiftyUsedFree ? (
-                                                <span style={{ fontSize: '13px', color: '#00D4FF' }}>5💎</span>
-                                            ) : (
-                                                <span style={{ fontSize: '13px', color: '#22c55e' }}>FREE</span>
-                                            )}
-                                        </button>
+                                        <div style={{
+                                            display: 'flex',
+                                            gap: '10px',
+                                            marginTop: '20px'
+                                        }}>
+                                            {/* 50/50 Button */}
+                                            <button
+                                                onClick={useFiftyFifty}
+                                                disabled={eliminatedOptions.length > 0}
+                                                style={{
+                                                    flex: 1,
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '4px',
+                                                    padding: '12px 8px',
+                                                    background: eliminatedOptions.length > 0
+                                                        ? 'rgba(100, 100, 100, 0.2)'
+                                                        : fiftyFiftyUsedFree
+                                                            ? 'linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 150, 200, 0.3))'
+                                                            : 'linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(20, 150, 80, 0.3))',
+                                                    border: `2px solid ${eliminatedOptions.length > 0
+                                                        ? '#666'
+                                                        : fiftyFiftyUsedFree
+                                                            ? '#00D4FF'
+                                                            : '#22c55e'}`,
+                                                    borderRadius: '12px',
+                                                    color: eliminatedOptions.length > 0 ? '#666' : 'white',
+                                                    fontSize: '13px',
+                                                    fontWeight: 'bold',
+                                                    cursor: eliminatedOptions.length > 0 ? 'default' : 'pointer',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                            >
+                                                <span style={{ fontSize: '20px' }}>⚡</span>
+                                                <span>50/50</span>
+                                                {eliminatedOptions.length > 0 ? (
+                                                    <span style={{ fontSize: '11px', opacity: 0.7 }}>USED</span>
+                                                ) : fiftyFiftyUsedFree ? (
+                                                    <span style={{ fontSize: '11px', color: '#00D4FF' }}>5💎</span>
+                                                ) : (
+                                                    <span style={{ fontSize: '11px', color: '#22c55e' }}>FREE</span>
+                                                )}
+                                            </button>
+
+                                            {/* Skip Question Button */}
+                                            <button
+                                                onClick={useSkipQuestion}
+                                                disabled={userDiamonds < 3}
+                                                style={{
+                                                    flex: 1,
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '4px',
+                                                    padding: '12px 8px',
+                                                    background: userDiamonds < 3
+                                                        ? 'rgba(100, 100, 100, 0.2)'
+                                                        : 'linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(200, 150, 30, 0.3))',
+                                                    border: `2px solid ${userDiamonds < 3 ? '#666' : '#fbbf24'}`,
+                                                    borderRadius: '12px',
+                                                    color: userDiamonds < 3 ? '#666' : 'white',
+                                                    fontSize: '13px',
+                                                    fontWeight: 'bold',
+                                                    cursor: userDiamonds < 3 ? 'default' : 'pointer',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                            >
+                                                <span style={{ fontSize: '20px' }}>⏭️</span>
+                                                <span>Skip</span>
+                                                <span style={{ fontSize: '11px', color: '#fbbf24' }}>3💎</span>
+                                            </button>
+
+                                            {/* Double Chance Button */}
+                                            <button
+                                                onClick={useDoubleChance}
+                                                disabled={doubleChanceUsedThisQuestion || doubleChanceActive || userDiamonds < 3}
+                                                style={{
+                                                    flex: 1,
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '4px',
+                                                    padding: '12px 8px',
+                                                    background: (doubleChanceUsedThisQuestion || doubleChanceActive || userDiamonds < 3)
+                                                        ? 'rgba(100, 100, 100, 0.2)'
+                                                        : 'linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(120, 60, 180, 0.3))',
+                                                    border: `2px solid ${(doubleChanceUsedThisQuestion || doubleChanceActive || userDiamonds < 3) ? '#666' : '#a855f7'}`,
+                                                    borderRadius: '12px',
+                                                    color: (doubleChanceUsedThisQuestion || doubleChanceActive || userDiamonds < 3) ? '#666' : 'white',
+                                                    fontSize: '13px',
+                                                    fontWeight: 'bold',
+                                                    cursor: (doubleChanceUsedThisQuestion || doubleChanceActive || userDiamonds < 3) ? 'default' : 'pointer',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                            >
+                                                <span style={{ fontSize: '20px' }}>🎯</span>
+                                                <span>2x Try</span>
+                                                {doubleChanceActive ? (
+                                                    <span style={{ fontSize: '11px', color: '#22c55e' }}>ACTIVE</span>
+                                                ) : doubleChanceUsedThisQuestion ? (
+                                                    <span style={{ fontSize: '11px', opacity: 0.7 }}>USED</span>
+                                                ) : (
+                                                    <span style={{ fontSize: '11px', color: '#a855f7' }}>3💎</span>
+                                                )}
+                                            </button>
+                                        </div>
                                     )}
                                 </div>
                             </>
