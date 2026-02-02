@@ -675,6 +675,12 @@ export default function BankrollManagerPage() {
 
           {/* Right Sidebar - Assistant Panel */}
           <aside style={styles.assistantPanel}>
+            {/* Jarvis AI Insights */}
+            <JarvisLeakInsights userId={userId} onRefresh={loadData} />
+
+            {/* Streaks & Gamification */}
+            <BankrollStreaks userId={userId} isLoading={isLoading} />
+
             <LeakAlertPanel
               leakAnalysis={leakAnalysis}
               locationId={locationFilter}

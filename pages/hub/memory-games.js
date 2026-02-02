@@ -1298,7 +1298,7 @@ function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, DiamondEngine, us
                     {/* Feedback */}
                     {gameState === 'revealed' && (
                         <div style={{ marginTop: 30, fontSize: 18, fontWeight: 700, color: diff <= 5 ? '#00ff88' : diff <= 15 ? '#ffaa00' : '#ff4444' }}>
-                            {diff === 0 ? ' PERFECT!' : diff <= 5 ? ' EXCELLENT!' : diff <= 15 ? '👍 CLOSE!' : '❌ WAY OFF!'}
+                            {diff === 0 ? 'PERFECT!' : diff <= 5 ? 'EXCELLENT!' : diff <= 15 ? 'CLOSE!' : 'WAY OFF!'}
                         </div>
                     )}
 
@@ -1373,7 +1373,7 @@ function OutOfDiamondsModal({ isOpen, onClose, gameCost = 5 }) {
                 border: '2px solid rgba(255, 107, 0, 0.5)',
                 boxShadow: '0 0 60px rgba(255, 107, 0, 0.3)',
             }}>
-                <div style={{ fontSize: 64, marginBottom: 16 }}>💎</div>
+                <div style={{ fontSize: 64, marginBottom: 16 }}><svg width='64' height='64' viewBox='0 0 24 24' fill='none'><path d='M12 2L2 9l10 13 10-13L12 2z' fill='#00D4FF' /><path d='M12 2L2 9h20L12 2z' fill='#00B8E6' /></svg></div>
                 <h2 style={{
                     fontFamily: 'Orbitron, sans-serif',
                     fontSize: 28,
@@ -1398,7 +1398,7 @@ function OutOfDiamondsModal({ isOpen, onClose, gameCost = 5 }) {
                     border: '1px solid rgba(138, 43, 226, 0.3)',
                 }}>
                     <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>
-                        🎁 GET VIP FOR
+                        GET VIP FOR
                     </div>
                     <div style={{
                         fontFamily: 'Orbitron, sans-serif',
@@ -1501,7 +1501,7 @@ function DailyChallengeCard({ challenge, streak, completed, onPlay, loading }) {
                     alignItems: 'center',
                     gap: 6,
                 }}>
-                    <span style={{ fontSize: 16 }}>🔥</span>
+                    <span style={{ fontSize: 16, color: '#FF6B00' }}>★</span>
                     <span style={{ fontWeight: 700, color: '#000', fontSize: 14 }}>
                         {streak.current_streak} day streak
                     </span>
@@ -1519,7 +1519,7 @@ function DailyChallengeCard({ challenge, streak, completed, onPlay, loading }) {
                     justifyContent: 'center',
                     fontSize: 28,
                 }}>
-                    {completed ? '✅' : '📅'}
+                    {completed ? '✓' : '◉'}
                 </div>
                 <div>
                     <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1 }}>
@@ -1559,7 +1559,7 @@ function DailyChallengeCard({ challenge, streak, completed, onPlay, loading }) {
                     padding: '8px 14px',
                 }}>
                     <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Reward</div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: '#00ff88' }}>+{challenge.diamond_reward || 50} 💎</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: '#00ff88' }}>+{challenge.diamond_reward || 50} Diamonds</div>
                 </div>
             </div>
 
@@ -1589,7 +1589,7 @@ function DailyChallengeCard({ challenge, streak, completed, onPlay, loading }) {
                         cursor: 'pointer',
                     }}
                 >
-                    🎯 Play Daily Challenge
+                    Play Daily Challenge
                 </button>
             )}
         </div>
@@ -3085,7 +3085,7 @@ export default function MemoryGamesPage() {
                                     background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.1), rgba(234, 88, 12, 0.1))',
                                     border: '2px solid rgba(249, 115, 22, 0.3)',
                                 }}>
-                                    <div style={{ fontSize: 48, marginBottom: 16 }}>🎯</div>
+                                    <div style={{ fontSize: 48, marginBottom: 16 }}>◎</div>
                                     <h2 style={{ fontSize: 24, fontWeight: 700, color: '#F97316', marginBottom: 8 }}>
                                         SPOT TRAINER
                                     </h2>
@@ -3123,7 +3123,7 @@ export default function MemoryGamesPage() {
                                     background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(219, 39, 119, 0.1))',
                                     border: '2px solid rgba(236, 72, 153, 0.3)',
                                 }}>
-                                    <div style={{ fontSize: 48, marginBottom: 16 }}>🏆</div>
+                                    <div style={{ fontSize: 48, marginBottom: 16 }}>⬡</div>
                                     <h2 style={{ fontSize: 24, fontWeight: 700, color: '#EC4899', marginBottom: 8 }}>
                                         VS RANKED
                                     </h2>
@@ -3360,7 +3360,7 @@ export default function MemoryGamesPage() {
                                             padding: 32,
                                             textAlign: 'center',
                                         }}>
-                                            <div style={{ fontSize: 64, marginBottom: 16 }}>✅</div>
+                                            <div style={{ fontSize: 64, marginBottom: 16, color: '#00ff88' }}>✓</div>
                                             <h3 style={{ fontSize: 24, fontWeight: 700, color: '#00ff88', marginBottom: 8 }}>
                                                 CHALLENGE COMPLETE!
                                             </h3>
@@ -3596,7 +3596,7 @@ export default function MemoryGamesPage() {
                                                 }}
                                                 title="Generate unique scenarios using Jarvis AI"
                                             >
-                                                🤖 {useAIGeneration ? 'AI ON' : 'AI Mode'}
+                                                {useAIGeneration ? 'AI ON' : 'AI Mode'}
                                             </button>
 
                                             {/* Filter Toggle */}
@@ -3828,7 +3828,7 @@ export default function MemoryGamesPage() {
                                 marginBottom: 20,
                                 animation: 'pulse 1.5s infinite',
                             }}>
-                                🤖
+                                ◈
                             </div>
                             <div style={{
                                 fontSize: 20,
