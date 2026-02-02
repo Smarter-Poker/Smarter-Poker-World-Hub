@@ -1,10 +1,10 @@
 /* CLUB ARENA — Leaderboard | Facebook Dark Theme */
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 
 const FB = { primary: '#2374E1', background: '#18191A', cardBg: '#242526', textPrimary: '#E4E6EB', textSecondary: '#B0B3B8', border: '#3E4042', gold: '#F7C52A' };
 

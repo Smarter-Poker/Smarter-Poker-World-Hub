@@ -17,7 +17,7 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getVideoLibraryPreferences, updateVideoLibraryPreferences } from '../../src/services/videoLibraryPreferences';
 import { getVideoFavorites, addVideoFavorite, removeVideoFavorite } from '../../src/services/videoFavorites';
 import { getWatchLater, addToWatchLater, removeFromWatchLater } from '../../src/services/videoWatchLater';
-import { addVideoWatchHistory } from '../../src/services/videoWatchHistory';
+import { updateWatchDuration, getWatchedVideos } from '../../src/services/videoWatchHistory';
 
 // God-Mode Stack
 import { useVideoLibraryStore } from '../../src/stores/videoLibraryStore';
@@ -404,6 +404,11 @@ export default function VideoLibraryPage() {
     // Content tracking state
     const [favorites, setFavorites] = useState(new Set());
     const [watchLater, setWatchLater] = useState(new Set());
+    const [watchedVideos, setWatchedVideos] = useState(new Set()); // Videos watched 60+ seconds
+
+    // Watch time tracking
+    const watchStartTimeRef = useRef(null);
+    const currentWatchingVideoRef = useRef(null);
 
     // Hamburger menu preferences
     const [preferences, setPreferences] = useState({
@@ -448,6 +453,11 @@ export default function VideoLibraryPage() {
             getWatchLater(userId).then(data => {
                 setWatchLater(new Set(data.map(v => v.video_id)));
             }).catch(err => console.error('Error loading watch later:', err));
+
+            // Load watched videos (60+ second threshold)
+            getWatchedVideos(userId, 60).then(watchedSet => {
+                setWatchedVideos(watchedSet);
+            }).catch(err => console.error('Error loading watched videos:', err));
         }
     }, [userId]);
 
@@ -514,6 +524,43 @@ export default function VideoLibraryPage() {
         }
     }, [userId, watchLater]);
 
+    // Handle opening a video - start timer
+    const handleOpenVideo = useCallback((video) => {
+        watchStartTimeRef.current = Date.now();
+        currentWatchingVideoRef.current = video;
+        setSelectedVideo(video);
+    }, []);
+
+    // Handle closing a video - save watch duration
+    const handleCloseVideo = useCallback(async () => {
+        if (watchStartTimeRef.current && currentWatchingVideoRef.current && userId) {
+            const watchedSeconds = Math.floor((Date.now() - watchStartTimeRef.current) / 1000);
+            const video = currentWatchingVideoRef.current;
+
+            if (watchedSeconds > 0) {
+                try {
+                    await updateWatchDuration(userId, video.id, watchedSeconds, {
+                        title: video.title,
+                        url: `https://youtube.com/watch?v=${video.videoId}`,
+                        thumbnail: `https://img.youtube.com/vi/${video.videoId}/maxresdefault.jpg`
+                    });
+
+                    // If user watched 60+ seconds, add to watched set for immediate UI update
+                    if (watchedSeconds >= 60) {
+                        setWatchedVideos(prev => new Set(prev).add(video.id));
+                    }
+                } catch (err) {
+                    console.error('Error saving watch duration:', err);
+                }
+            }
+        }
+
+        // Clear refs
+        watchStartTimeRef.current = null;
+        currentWatchingVideoRef.current = null;
+        setSelectedVideo(null);
+    }, [userId]);
+
     // Filter videos
     useEffect(() => {
         let filtered = FULL_VIDEOS;
@@ -533,13 +580,20 @@ export default function VideoLibraryPage() {
                 v.source.toLowerCase().includes(q)
             );
         }
+        // Sort watched videos to end of list
+        filtered = filtered.sort((a, b) => {
+            const aWatched = watchedVideos.has(a.id);
+            const bWatched = watchedVideos.has(b.id);
+            if (aWatched === bWatched) return 0;
+            return aWatched ? 1 : -1; // Watched videos go to end
+        });
         setVideos(filtered);
-    }, [selectedSource, selectedType, searchQuery]);
+    }, [selectedSource, selectedType, searchQuery, watchedVideos]);
 
     // Close modal on escape
     useEffect(() => {
         const handleKey = (e) => {
-            if (e.key === 'Escape') setSelectedVideo(null);
+            if (e.key === 'Escape') handleCloseVideo();
         };
         window.addEventListener('keydown', handleKey);
         return () => window.removeEventListener('keydown', handleKey);
