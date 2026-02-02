@@ -7,6 +7,12 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 
+// Supabase services for persistence
+import gameSessionService from '../services/GameSessionService';
+import achievementService from '../services/AchievementService';
+import leaderboardService from '../services/LeaderboardService';
+import { processGameResult } from './ELOService';
+
 // ═══════════════════════════════════════════════════════════════════════════
 // ELO SYSTEM
 // ═══════════════════════════════════════════════════════════════════════════
@@ -345,9 +351,9 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
             }]);
 
             // Award diamonds for winning
-            if (playerWon && DiamondEngine) {
-                const reward = Math.round((5 + Math.abs(eloChange) / 10));
-                DiamondEngine.award(reward);
+            const diamondsEarned = playerWon ? Math.round((5 + Math.abs(eloChange) / 10)) : 0;
+            if (diamondsEarned > 0 && DiamondEngine) {
+                DiamondEngine.award(diamondsEarned);
                 onScoreUpdate?.(DiamondEngine.getBalance());
             }
 
@@ -356,6 +362,75 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                     particleCount: 100,
                     spread: 70,
                     origin: { y: 0.6 }
+                });
+            }
+
+            // ═══════════════════════════════════════════════════════════════════════════
+            // 📊 PERSIST TO SUPABASE — Session, ELO, Leaderboard, Achievements
+            // ═══════════════════════════════════════════════════════════════════════════
+            if (userId) {
+                const gameMode = 'tournament';
+                const accuracy = Math.round((playerScore / ROUNDS_PER_MATCH) * 100);
+
+                // 1. Update leaderboard (only if won)
+                if (playerWon) {
+                    leaderboardService.updateLeaderboard(
+                        userId,
+                        gameMode,
+                        1, // level
+                        newElo,
+                        accuracy,
+                        0, // timeTaken
+                        null // sessionId
+                    ).then(res => {
+                        console.log('[Tournament] Leaderboard updated:', res);
+                    }).catch(err => {
+                        console.warn('[Tournament] Leaderboard update failed:', err);
+                    });
+                }
+
+                // 2. Update ELO rating in profiles table
+                processGameResult(userId, 1, accuracy, roundsPlayed)
+                    .then(eloResult => {
+                        console.log('[Tournament] ELO persisted:', eloResult);
+                    }).catch(err => {
+                        console.warn('[Tournament] ELO persist failed:', err);
+                    });
+
+                // 3. Record game session for analytics
+                gameSessionService.recordSession(userId, {
+                    gameMode,
+                    level: 1,
+                    scenarioId: `match-vs-${opponent.name}`,
+                    score: playerScore,
+                    accuracy,
+                    timeTaken: 0,
+                    diamondsSpent: 0,
+                    diamondsEarned,
+                    completed: true
+                }).then(sessionResult => {
+                    console.log('[Tournament] Session recorded:', sessionResult);
+                }).catch(err => {
+                    console.warn('[Tournament] Session recording failed:', err);
+                });
+
+                // 4. Check and unlock achievements
+                achievementService.checkAndUnlock(userId, {
+                    gamesPlayed: roundsPlayed + 1,
+                    accuracy,
+                    timeTaken: 0,
+                    level: 1,
+                    gameMode,
+                    totalDiamonds: DiamondEngine?.getBalance() || 0,
+                    aiScenariosCompleted: 0,
+                    currentStreak: playerWon ? 1 : 0,
+                    modesPlayed: [gameMode]
+                }).then(unlocked => {
+                    if (unlocked.length > 0) {
+                        console.log('[Tournament] Achievements unlocked:', unlocked);
+                    }
+                }).catch(err => {
+                    console.warn('[Tournament] Achievement check failed:', err);
                 });
             }
 

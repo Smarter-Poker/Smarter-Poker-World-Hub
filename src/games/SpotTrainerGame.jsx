@@ -7,6 +7,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 
+// Supabase services for persistence
+import gameSessionService from '../services/GameSessionService';
+import achievementService from '../services/AchievementService';
+import leaderboardService from '../services/LeaderboardService';
+import { processGameResult } from './ELOService';
+
 // ═══════════════════════════════════════════════════════════════════════════
 // SPOT SCENARIOS — Full hand trees with multi-street decisions
 // ═══════════════════════════════════════════════════════════════════════════
@@ -421,7 +427,7 @@ const CardDisplay = ({ cards, size = 'medium' }) => {
 // ═══════════════════════════════════════════════════════════════════════════
 // SPOT TRAINER COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
-export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine }) {
+export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine, userId }) {
     const [currentSpotIndex, setCurrentSpotIndex] = useState(0);
     const [currentStreetIndex, setCurrentStreetIndex] = useState(0);
     const [selectedOption, setSelectedOption] = useState(null);
@@ -483,10 +489,79 @@ export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine }
 
             // Award diamonds based on performance
             const accuracy = (correctAnswers / totalAnswers) * 100;
-            if (accuracy >= 70 && DiamondEngine) {
-                const reward = Math.round(accuracy / 10);
-                DiamondEngine.award(reward);
+            const diamondsEarned = accuracy >= 70 ? Math.round(accuracy / 10) : 0;
+            if (diamondsEarned > 0 && DiamondEngine) {
+                DiamondEngine.award(diamondsEarned);
                 onScoreUpdate?.(DiamondEngine.getBalance());
+            }
+
+            // ═══════════════════════════════════════════════════════════════════════════
+            // 📊 PERSIST TO SUPABASE — Session, ELO, Leaderboard, Achievements
+            // ═══════════════════════════════════════════════════════════════════════════
+            if (userId) {
+                const gameMode = 'spot_trainer';
+                const finalScore = score + (accuracy >= 70 ? 100 : 0);
+
+                // 1. Update leaderboard (only if passed)
+                if (accuracy >= 70) {
+                    leaderboardService.updateLeaderboard(
+                        userId,
+                        gameMode,
+                        1, // level
+                        finalScore,
+                        accuracy,
+                        0, // timeTaken (not timed)
+                        null // sessionId
+                    ).then(res => {
+                        console.log('[SpotTrainer] Leaderboard updated:', res);
+                    }).catch(err => {
+                        console.warn('[SpotTrainer] Leaderboard update failed:', err);
+                    });
+                }
+
+                // 2. Update ELO rating
+                processGameResult(userId, 1, accuracy, 0)
+                    .then(eloResult => {
+                        console.log('[SpotTrainer] ELO updated:', eloResult);
+                    }).catch(err => {
+                        console.warn('[SpotTrainer] ELO update failed:', err);
+                    });
+
+                // 3. Record game session for analytics
+                gameSessionService.recordSession(userId, {
+                    gameMode,
+                    level: 1,
+                    scenarioId: SPOT_SCENARIOS[0]?.id,
+                    score: finalScore,
+                    accuracy,
+                    timeTaken: 0,
+                    diamondsSpent: 0,
+                    diamondsEarned,
+                    completed: true
+                }).then(sessionResult => {
+                    console.log('[SpotTrainer] Session recorded:', sessionResult);
+                }).catch(err => {
+                    console.warn('[SpotTrainer] Session recording failed:', err);
+                });
+
+                // 4. Check and unlock achievements
+                achievementService.checkAndUnlock(userId, {
+                    gamesPlayed: 1,
+                    accuracy,
+                    timeTaken: 0,
+                    level: 1,
+                    gameMode,
+                    totalDiamonds: DiamondEngine?.getBalance() || 0,
+                    aiScenariosCompleted: 0,
+                    currentStreak: streakCount,
+                    modesPlayed: [gameMode]
+                }).then(unlocked => {
+                    if (unlocked.length > 0) {
+                        console.log('[SpotTrainer] Achievements unlocked:', unlocked);
+                    }
+                }).catch(err => {
+                    console.warn('[SpotTrainer] Achievement check failed:', err);
+                });
             }
         }
     };
