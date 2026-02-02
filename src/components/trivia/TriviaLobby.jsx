@@ -45,11 +45,11 @@ const MODE_CARDS = [
     {
         id: 'survival',
         name: 'Survival Mode',
-        description: 'Answer until you miss. Rewards stack every 5!',
+        description: '10 levels, 20 questions each. Thresholds get harder!',
         icon: Heart,
         color: '#ef4444',
         glowColor: '#ef4444',
-        diamondReward: '1+/Q',
+        diamondReward: '10+',
         perfectBonus: null
     }
 ];
@@ -63,6 +63,11 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
             return;
         }
         if (modeId === 'daily' && dailyCompleted) {
+            return;
+        }
+        // Survival Mode uses standalone page with 10 levels
+        if (modeId === 'survival') {
+            router.push('/hub/trivia/survival-game');
             return;
         }
         router.push(`/hub/trivia/${modeId}`);

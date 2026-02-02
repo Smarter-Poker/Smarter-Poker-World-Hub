@@ -45,6 +45,21 @@ interface SessionStats {
     perfectHands?: number;
 }
 
+// AI Coaching response from Grok
+interface AICoaching {
+    overallGrade: string;
+    headline: string;
+    strengths: string[];
+    areasToImprove: string[];
+    detailedFeedback: string;
+    recommendedDrill?: {
+        name: string;
+        reason: string;
+    };
+    motivationalQuote?: string;
+    readyForNextLevel: boolean;
+}
+
 interface RoundSummaryProps {
     isOpen: boolean;
     passed: boolean;
@@ -52,6 +67,8 @@ interface RoundSummaryProps {
     passingGrade: number;
     stats: SessionStats;
     gameName: string;
+    gameId?: string;  // For AI coaching API
+    mistakes?: Array<{ question: any; userAnswer: string; correctAnswer: string }>;
     onNextLevel: () => void;
     onRetry: () => void;
     onExit: () => void;
@@ -141,13 +158,54 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
     passingGrade,
     stats,
     gameName,
+    gameId,
+    mistakes,
     onNextLevel,
     onRetry,
     onExit,
     onReviewHand,
 }) => {
-    const [phase, setPhase] = useState<'SCORE' | 'XP' | 'BLUNDERS' | 'ACTIONS'>('SCORE');
+    const [phase, setPhase] = useState<'SCORE' | 'XP' | 'COACHING' | 'BLUNDERS' | 'ACTIONS'>('SCORE');
     const [showConfetti, setShowConfetti] = useState(false);
+    const [aiCoaching, setAiCoaching] = useState<AICoaching | null>(null);
+    const [isLoadingCoaching, setIsLoadingCoaching] = useState(false);
+
+    // Fetch AI coaching when component opens
+    useEffect(() => {
+        async function fetchCoaching() {
+            if (!isOpen || !gameId) return;
+
+            setIsLoadingCoaching(true);
+            try {
+                const response = await fetch('/api/training/coaching-summary', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        gameId,
+                        gameName,
+                        level,
+                        questionsAnswered: stats.handsPlayed,
+                        questionsCorrect: stats.correctAnswers,
+                        accuracy: stats.accuracy,
+                        streak: stats.bestStreak,
+                        timeSpentSeconds: stats.timeElapsed,
+                        mistakes: mistakes || []
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success && data.coaching) {
+                    setAiCoaching(data.coaching);
+                }
+            } catch (error) {
+                console.error('[RoundSummary] Failed to fetch AI coaching:', error);
+            } finally {
+                setIsLoadingCoaching(false);
+            }
+        }
+
+        fetchCoaching();
+    }, [isOpen, gameId, gameName, level, stats, mistakes]);
 
     // Animate through phases
     useEffect(() => {
@@ -164,11 +222,14 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
         // Phase 2: Show XP after 1.5s
         timers.push(setTimeout(() => setPhase('XP'), 1500));
 
-        // Phase 3: Show blunders after 3s
-        timers.push(setTimeout(() => setPhase('BLUNDERS'), 3000));
+        // Phase 3: Show coaching after 2.5s (if AI coaching available)
+        timers.push(setTimeout(() => setPhase('COACHING'), 2500));
 
-        // Phase 4: Show actions after 4s
-        timers.push(setTimeout(() => setPhase('ACTIONS'), 4000));
+        // Phase 4: Show blunders after 4s
+        timers.push(setTimeout(() => setPhase('BLUNDERS'), 4000));
+
+        // Phase 5: Show actions after 5s
+        timers.push(setTimeout(() => setPhase('ACTIONS'), 5000));
 
         // Show confetti if passed
         if (passed) {

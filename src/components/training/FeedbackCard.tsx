@@ -13,8 +13,26 @@
  * - CRITICAL MISTAKE badge for >1.0 BB punt
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GROK EXPLANATION INTERFACE
+// ═══════════════════════════════════════════════════════════════════════════
+
+interface GrokExplanation {
+    headline: string;
+    shortExplanation: string;
+    deepDive?: {
+        equityAnalysis?: string;
+        rangeConsiderations?: string;
+        evCalculation?: string;
+        boardTexture?: string;
+    };
+    keyTakeaway: string;
+    similarSpots?: string;
+    confidence: number;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -42,6 +60,22 @@ interface FeedbackCardProps {
     onContinue: () => void;
     onStudyMore?: () => void;
     showDetails?: boolean;
+    // For Grok AI explanations
+    question?: {
+        question: string;
+        scenario?: {
+            heroPosition?: string;
+            heroHand?: string;
+            board?: string;
+            pot?: number;
+            villainPosition?: string;
+            action?: string;
+            heroStack?: number;
+        };
+        explanation?: string;
+    };
+    gameId?: string;
+    level?: number;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -85,9 +119,50 @@ export function FeedbackCard({
     result,
     onContinue,
     onStudyMore,
-    showDetails = true
+    showDetails = true,
+    question,
+    gameId,
+    level
 }: FeedbackCardProps) {
     const [showAltLines, setShowAltLines] = useState(false);
+    const [grokExplanation, setGrokExplanation] = useState<GrokExplanation | null>(null);
+    const [isLoadingExplanation, setIsLoadingExplanation] = useState(false);
+    const [showDeepDive, setShowDeepDive] = useState(false);
+
+    // Fetch Grok GTO explanation when card mounts
+    useEffect(() => {
+        async function fetchGrokExplanation() {
+            // Only fetch if we have question data
+            if (!question || !result) return;
+
+            setIsLoadingExplanation(true);
+            try {
+                const response = await fetch('/api/training/explain-answer', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        question,
+                        userAnswer: result.userAction.action,
+                        correctAnswer: result.gtoLine.action,
+                        wasCorrect: result.isCorrect,
+                        gameId: gameId || 'unknown',
+                        level: level || 1
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success && data.explanation) {
+                    setGrokExplanation(data.explanation);
+                }
+            } catch (error) {
+                console.error('[FeedbackCard] Failed to fetch Grok explanation:', error);
+            } finally {
+                setIsLoadingExplanation(false);
+            }
+        }
+
+        fetchGrokExplanation();
+    }, [question, result, gameId, level]);
 
     // Determine severity level
     const severity = useMemo(() => {
@@ -209,7 +284,7 @@ export function FeedbackCard({
                     )}
                 </div>
 
-                {/* Translator Explanation */}
+                {/* Translator Explanation (or Grok headline if available) */}
                 <motion.p
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -221,8 +296,146 @@ export function FeedbackCard({
                         margin: 0
                     }}
                 >
-                    {result.explanation}
+                    {grokExplanation?.shortExplanation || result.explanation}
                 </motion.p>
+
+                {/* 🧠 GROK AI DEEP DIVE */}
+                {question && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.4 }}
+                        style={{ marginTop: '16px' }}
+                    >
+                        <button
+                            onClick={() => setShowDeepDive(!showDeepDive)}
+                            style={{
+                                width: '100%',
+                                padding: '10px 14px',
+                                background: isLoadingExplanation
+                                    ? 'rgba(0, 212, 255, 0.1)'
+                                    : showDeepDive
+                                        ? 'rgba(0, 212, 255, 0.2)'
+                                        : 'rgba(0, 212, 255, 0.1)',
+                                border: '1px solid rgba(0, 212, 255, 0.4)',
+                                borderRadius: '10px',
+                                color: '#00d4ff',
+                                fontSize: '12px',
+                                fontWeight: 600,
+                                cursor: isLoadingExplanation ? 'wait' : 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                🧠 {isLoadingExplanation ? 'Jarvis Analyzing...' : 'Jarvis Deep Dive Analysis'}
+                            </span>
+                            {!isLoadingExplanation && (
+                                <span style={{
+                                    transform: showDeepDive ? 'rotate(180deg)' : 'rotate(0deg)',
+                                    transition: 'transform 0.2s'
+                                }}>
+                                    ▼
+                                </span>
+                            )}
+                            {isLoadingExplanation && (
+                                <motion.span
+                                    animate={{ rotate: 360 }}
+                                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                                >
+                                    ⏳
+                                </motion.span>
+                            )}
+                        </button>
+
+                        <AnimatePresence>
+                            {showDeepDive && grokExplanation && (
+                                <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    transition={{ duration: 0.3 }}
+                                    style={{
+                                        marginTop: '12px',
+                                        padding: '16px',
+                                        background: 'rgba(0, 212, 255, 0.05)',
+                                        borderRadius: '10px',
+                                        border: '1px solid rgba(0, 212, 255, 0.2)',
+                                        overflow: 'hidden'
+                                    }}
+                                >
+                                    {/* Deep Dive Content */}
+                                    {grokExplanation.deepDive && (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                            {grokExplanation.deepDive.rangeConsiderations && (
+                                                <div>
+                                                    <div style={{ fontSize: '10px', fontWeight: 700, color: '#00d4ff', marginBottom: '4px', textTransform: 'uppercase' }}>
+                                                        📊 Range Analysis
+                                                    </div>
+                                                    <p style={{ fontSize: '13px', color: COLORS.textPrimary, margin: 0, lineHeight: 1.5 }}>
+                                                        {grokExplanation.deepDive.rangeConsiderations}
+                                                    </p>
+                                                </div>
+                                            )}
+                                            {grokExplanation.deepDive.equityAnalysis && (
+                                                <div>
+                                                    <div style={{ fontSize: '10px', fontWeight: 700, color: '#00d4ff', marginBottom: '4px', textTransform: 'uppercase' }}>
+                                                        📈 Equity vs Range
+                                                    </div>
+                                                    <p style={{ fontSize: '13px', color: COLORS.textPrimary, margin: 0, lineHeight: 1.5 }}>
+                                                        {grokExplanation.deepDive.equityAnalysis}
+                                                    </p>
+                                                </div>
+                                            )}
+                                            {grokExplanation.deepDive.boardTexture && (
+                                                <div>
+                                                    <div style={{ fontSize: '10px', fontWeight: 700, color: '#00d4ff', marginBottom: '4px', textTransform: 'uppercase' }}>
+                                                        🃏 Board Texture
+                                                    </div>
+                                                    <p style={{ fontSize: '13px', color: COLORS.textPrimary, margin: 0, lineHeight: 1.5 }}>
+                                                        {grokExplanation.deepDive.boardTexture}
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Key Takeaway */}
+                                    {grokExplanation.keyTakeaway && (
+                                        <div style={{
+                                            marginTop: grokExplanation.deepDive ? '16px' : 0,
+                                            padding: '12px',
+                                            background: 'rgba(255, 215, 0, 0.1)',
+                                            borderRadius: '8px',
+                                            border: '1px solid rgba(255, 215, 0, 0.3)'
+                                        }}>
+                                            <div style={{ fontSize: '10px', fontWeight: 700, color: COLORS.gtoGold, marginBottom: '6px', textTransform: 'uppercase' }}>
+                                                💡 Key Takeaway
+                                            </div>
+                                            <p style={{ fontSize: '14px', color: COLORS.textPrimary, margin: 0, fontWeight: 500, lineHeight: 1.5 }}>
+                                                {grokExplanation.keyTakeaway}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {/* Similar Spots */}
+                                    {grokExplanation.similarSpots && (
+                                        <p style={{
+                                            fontSize: '12px',
+                                            color: COLORS.textSecondary,
+                                            margin: '12px 0 0 0',
+                                            fontStyle: 'italic'
+                                        }}>
+                                            📚 {grokExplanation.similarSpots}
+                                        </p>
+                                    )}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </motion.div>
+                )}
             </div>
 
             {/* ═══ LAYER 2: THE PROOF (GTO PRIMARY LINE) ═══ */}

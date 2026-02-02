@@ -1685,6 +1685,13 @@ export default function MemoryGamesPage() {
         loading: false
     });
 
+    // Jarvis Post-Game Coach state
+    const [coachAnalysis, setCoachAnalysis] = useState({
+        show: false,
+        loading: false,
+        analysis: null
+    });
+
     // Hamburger menu preferences
     const [preferences, setPreferences] = useState({
         soundEffects: true,
@@ -2178,7 +2185,77 @@ export default function MemoryGamesPage() {
         }
     };
 
+    // Fetch Jarvis post-game analysis
+    const fetchCoachAnalysis = async (gradeResult) => {
+        if (!gradeResult) return;
+
+        // Build mistakes array
+        const mistakes = [];
+
+        // Wrong action hands
+        if (gradeResult.wrongActionHands) {
+            gradeResult.wrongActionHands.forEach(hand => {
+                mistakes.push({
+                    hand,
+                    userAction: userGrid[hand] || 'fold',
+                    correctAction: currentScenario?.solution?.[hand] || 'raise'
+                });
+            });
+        }
+
+        // Missed hands (should have selected but didn't)
+        if (gradeResult.missedHands) {
+            gradeResult.missedHands.forEach(hand => {
+                mistakes.push({
+                    hand,
+                    userAction: 'fold',
+                    correctAction: currentScenario?.solution?.[hand] || 'raise'
+                });
+            });
+        }
+
+        setCoachAnalysis({
+            show: true,
+            loading: true,
+            analysis: null
+        });
+
+        try {
+            const response = await fetch('/api/gto/analyze-game', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    mistakes,
+                    scenario: currentScenario,
+                    finalScore: gradeResult.score,
+                    position: currentScenario?.position,
+                    stackDepth: currentScenario?.stackDepth
+                })
+            });
+
+            const result = await response.json();
+
+            setCoachAnalysis({
+                show: true,
+                loading: false,
+                analysis: result.analysis
+            });
+        } catch (error) {
+            console.error('[MemoryGames] Coach analysis error:', error);
+            setCoachAnalysis({
+                show: true,
+                loading: false,
+                analysis: {
+                    summary: "Great effort! Review your mistakes to improve.",
+                    patternInsights: [],
+                    recommendations: ["Practice this scenario again"]
+                }
+            });
+        }
+    };
+
     // Load leaderboard data
+
     const loadLeaderboard = useCallback(async () => {
         setLeaderboardLoading(true);
         try {
@@ -3665,7 +3742,7 @@ export default function MemoryGamesPage() {
                                     )}
 
                                     {/* Ask Jarvis Why Button - shows when there are mistakes */}
-                                    {(gradeResult.missedHands.length > 0 || gradeResult.wrongActionHands.length > 0) && (
+                                    {(gradeResult.missedHands.length > 0 || gradeResult.wrongActionHands.length > 0) && (<>
                                         <button
                                             onClick={() => {
                                                 const firstMistake = gradeResult.wrongActionHands[0] || gradeResult.missedHands[0];
@@ -3692,9 +3769,106 @@ export default function MemoryGamesPage() {
                                         >
                                             🤖 Ask Jarvis: Why was I wrong?
                                         </button>
+                                        <button
+                                            onClick={() => fetchCoachAnalysis(gradeResult)}
+                                            style={{
+                                                marginTop: 8,
+                                                padding: '10px 20px',
+                                                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(6, 182, 212, 0.3))',
+                                                border: '1px solid rgba(16, 185, 129, 0.5)',
+                                                borderRadius: 12,
+                                                color: '#fff',
+                                                fontSize: 13,
+                                                fontWeight: 500,
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: 8,
+                                                width: '100%'
+                                            }}
+                                        >
+                                            📊 Get Full Game Analysis
+                                        </button>
+                                    </>)}
+
+
+                                    {/* Jarvis Coach Panel */}
+                                    {coachAnalysis.show && (
+                                        <div style={{
+                                            marginTop: 16,
+                                            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(6, 182, 212, 0.1))',
+                                            border: '1px solid rgba(16, 185, 129, 0.3)',
+                                            borderRadius: 12,
+                                            padding: 16
+                                        }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                                                <span style={{ fontSize: 20 }}>🧠</span>
+                                                <span style={{ fontFamily: 'Orbitron', fontSize: 14, color: '#10B981' }}>Jarvis Analysis</span>
+                                            </div>
+
+                                            {coachAnalysis.loading ? (
+                                                <div style={{ textAlign: 'center', padding: 20, color: 'rgba(255, 255, 255, 0.6)' }}>
+                                                    <div style={{ marginBottom: 8 }}>🤔</div>
+                                                    Jarvis is analyzing your game...
+                                                </div>
+                                            ) : coachAnalysis.analysis ? (
+                                                <div>
+                                                    {/* Summary */}
+                                                    <div style={{
+                                                        color: 'rgba(255, 255, 255, 0.9)',
+                                                        lineHeight: 1.6,
+                                                        marginBottom: 12,
+                                                        fontSize: 14
+                                                    }}>
+                                                        {coachAnalysis.analysis.summary}
+                                                    </div>
+
+                                                    {/* Pattern Insights */}
+                                                    {coachAnalysis.analysis.patternInsights?.length > 0 && (
+                                                        <div style={{ marginBottom: 12 }}>
+                                                            <div style={{ fontSize: 12, color: '#10B981', marginBottom: 6 }}>💡 Patterns Detected</div>
+                                                            {coachAnalysis.analysis.patternInsights.map((item, i) => (
+                                                                <div key={i} style={{
+                                                                    background: 'rgba(0, 0, 0, 0.2)',
+                                                                    borderRadius: 8,
+                                                                    padding: 8,
+                                                                    marginBottom: 6,
+                                                                    fontSize: 13
+                                                                }}>
+                                                                    <span style={{ color: '#FFD700' }}>{item.pattern}:</span>{' '}
+                                                                    <span style={{ color: 'rgba(255, 255, 255, 0.7)' }}>{item.insight}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Recommendations */}
+                                                    {coachAnalysis.analysis.recommendations?.length > 0 && (
+                                                        <div>
+                                                            <div style={{ fontSize: 12, color: '#06B6D4', marginBottom: 6 }}>🎯 Next Steps</div>
+                                                            {coachAnalysis.analysis.recommendations.map((rec, i) => (
+                                                                <div key={i} style={{
+                                                                    display: 'flex',
+                                                                    alignItems: 'flex-start',
+                                                                    gap: 8,
+                                                                    marginBottom: 4,
+                                                                    fontSize: 13,
+                                                                    color: 'rgba(255, 255, 255, 0.8)'
+                                                                }}>
+                                                                    <span>•</span>
+                                                                    <span>{rec}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ) : null}
+                                        </div>
                                     )}
                                 </div>
                             )}
+
 
                             {/* Jarvis Explain Modal */}
                             {explainModal.show && (
