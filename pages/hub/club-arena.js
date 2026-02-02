@@ -10,6 +10,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../src/config/hamburgerMenus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // IMAGE PATHS (proxied from club-arena.vercel.app via next.config.js rewrites)
@@ -281,6 +283,7 @@ export default function ClubArenaPage() {
     const [showCreateClub, setShowCreateClub] = useState(false);
     const [showJoinClub, setShowJoinClub] = useState(false);
     const [showFindPlayer, setShowFindPlayer] = useState(false);
+    const [menuOpen, setMenuOpen] = useState(false);
 
     useEffect(() => {
         loadUserData();
@@ -394,7 +397,7 @@ export default function ClubArenaPage() {
                 <div style={S.bgBase} />
                 <div style={S.bgOverlay} />
 
-                <UniversalHeader pageDepth={1} />
+                <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
 
                 <div className="ca-container" style={S.mainContent}>
 
@@ -431,9 +434,9 @@ export default function ClubArenaPage() {
                     <div
                         style={S.sharkClubWrapper}
                         onClick={() => {
-                            // Navigate to first club or show create modal
+                            // Navigate to club lobby or show create modal
                             if (activeClub) {
-                                router.push(`/hub/club-arena/clubs/${activeClub.id}`);
+                                router.push(`/hub/club-arena/lobby?club=${activeClub.club_id}`);
                             } else {
                                 user ? setShowCreateClub(true) : alert('Please sign in first');
                             }
@@ -484,6 +487,17 @@ export default function ClubArenaPage() {
                 {showCreateClub && <CreateClubModal user={user} onClose={() => setShowCreateClub(false)} onCreated={handleClubCreated} />}
                 {showJoinClub && <JoinClubModal user={user} onClose={() => setShowJoinClub(false)} onJoined={handleClubJoined} />}
                 {showFindPlayer && <FindPlayerModal onClose={() => setShowFindPlayer(false)} />}
+
+                {/* Hamburger Menu */}
+                <HamburgerMenu
+                    isOpen={menuOpen}
+                    onClose={() => setMenuOpen(false)}
+                    direction="left"
+                    theme="dark"
+                    user={user}
+                    showProfile={true}
+                    {...getMenuConfig('club-arena', user, {}, {})}
+                />
             </div>
         </>
     );
