@@ -9,21 +9,21 @@ import AvatarGallery from './AvatarGallery';
 import CustomAvatarBuilder from './CustomAvatarBuilder';
 
 export default function AvatarSelectorModal({ isOpen, onClose, isVip = false }) {
-    const [activeTab, setActiveTab] = useState('library');
+  const [activeTab, setActiveTab] = useState('library');
 
-    if (!isOpen) return null;
+  if (!isOpen) return null;
 
-    function handleSelect(avatarId) {
-        // Avatar selected successfully
-        setTimeout(() => {
-            onClose();
-        }, 500);
-    }
+  function handleSelect(avatarId) {
+    // Avatar selected successfully
+    setTimeout(() => {
+      onClose();
+    }, 500);
+  }
 
-    return (
-        <div className="avatar-modal-overlay" onClick={onClose}>
-            <div className="avatar-modal" onClick={(e) => e.stopPropagation()}>
-                <style jsx>{`
+  return (
+    <div className="avatar-modal-overlay" onClick={onClose}>
+      <div className="avatar-modal" onClick={(e) => e.stopPropagation()}>
+        <style jsx>{`
           .avatar-modal-overlay {
             position: fixed;
             top: 0;
@@ -161,35 +161,35 @@ export default function AvatarSelectorModal({ isOpen, onClose, isVip = false }) 
           }
         `}</style>
 
-                <div className="modal-header">
-                    <button className="close-btn" onClick={onClose} aria-label="Close">
-                        ×
-                    </button>
+        <div className="modal-header">
+          <button className="close-btn" onClick={onClose} aria-label="Close">
+            ×
+          </button>
 
-                    <div className="tabs">
-                        <button
-                            className={`tab-btn ${activeTab === 'library' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('library')}
-                        >
-                            📚 Avatar Library
-                        </button>
-                        <button
-                            className={`tab-btn ${activeTab === 'custom' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('custom')}
-                        >
-                            🤖 Custom AI Generator
-                        </button>
-                    </div>
-                </div>
-
-                <div className="modal-content">
-                    {activeTab === 'library' ? (
-                        <AvatarGallery onSelect={handleSelect} />
-                    ) : (
-                        <CustomAvatarBuilder isVip={isVip} />
-                    )}
-                </div>
-            </div>
+          <div className="tabs">
+            <button
+              className={`tab-btn ${activeTab === 'library' ? 'active' : ''}`}
+              onClick={() => setActiveTab('library')}
+            >
+              📚 Avatar Library
+            </button>
+            <button
+              className={`tab-btn ${activeTab === 'custom' ? 'active' : ''}`}
+              onClick={() => setActiveTab('custom')}
+            >
+              <img src="/images/jarvis-avatar.png" alt="Jarvis" style={{ width: 18, height: 18, borderRadius: '50%', marginRight: 6, verticalAlign: 'middle' }} /> Custom AI Generator
+            </button>
+          </div>
         </div>
-    );
+
+        <div className="modal-content">
+          {activeTab === 'library' ? (
+            <AvatarGallery onSelect={handleSelect} />
+          ) : (
+            <CustomAvatarBuilder isVip={isVip} />
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }

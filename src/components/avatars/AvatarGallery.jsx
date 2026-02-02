@@ -431,7 +431,7 @@ export default function AvatarGallery({ onSelect }) {
                 transition: 'all 0.3s ease'
               }}
             >
-              🤖 Create Custom Avatar
+              <img src="/images/jarvis-avatar.png" alt="Jarvis" style={{ width: 20, height: 20, borderRadius: '50%', marginRight: 8, verticalAlign: 'middle' }} /> Create Custom Avatar
             </button>
           </div>
         </div>

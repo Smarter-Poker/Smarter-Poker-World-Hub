@@ -510,7 +510,7 @@ export default function BankrollManagerPage() {
                     title="Travel ROI"
                     value={
                       stats
-                        ? `${stats.travelROI < 0 ? '-' : ''}$${Math.abs(stats.travelROI).toLocaleString()}`
+                        ? formatCurrency(stats.travelROI, preferences.currencyEUR)
                         : '—'
                     }
                     suffix="Last Trip"

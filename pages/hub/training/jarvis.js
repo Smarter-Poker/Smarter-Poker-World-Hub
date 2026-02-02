@@ -61,7 +61,7 @@ export default function JarvisDashboard() {
 
                     {loading ? (
                         <div style={styles.loading}>
-                            <div style={styles.loadingIcon}>🤖</div>
+                            <img src="/images/jarvis-avatar.png" alt="Jarvis" style={{ width: 48, height: 48, borderRadius: '50%' }} />
                             <p>Analyzing your training data...</p>
                         </div>
                     ) : !user ? (

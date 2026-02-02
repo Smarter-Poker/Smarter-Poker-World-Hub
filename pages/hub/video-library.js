@@ -1501,7 +1501,7 @@ export default function VideoLibraryPage() {
                             transition: 'all 0.3s ease',
                         }}
                     >
-                        <span style={{ fontSize: 18 }}>🤖</span>
+                        <img src="/images/jarvis-avatar.png" alt="Jarvis" style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover' }} />
                         {aiAnalysisLoading ? 'Loading...' : 'Jarvis AI'}
                     </button>
 
@@ -1598,7 +1598,7 @@ export default function VideoLibraryPage() {
                                     alignItems: 'center',
                                     gap: 8,
                                 }}>
-                                    <span style={{ fontSize: 20 }}>🤖</span>
+                                    <img src="/images/jarvis-avatar.png" alt="Jarvis" style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }} />
                                     Jarvis Commentary
                                 </h3>
                                 <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, margin: 0, marginTop: 4 }}>

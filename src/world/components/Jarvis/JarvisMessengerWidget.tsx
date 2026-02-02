@@ -122,7 +122,7 @@ export function JarvisMessengerWidget({ onMinimize }: JarvisMessengerWidgetProps
                     zIndex: 1000
                 }}
             >
-                <span style={{ fontSize: '24px' }}>🤖</span>
+                <img src="/images/jarvis-avatar.png" alt="Jarvis" style={{ width: 28, height: 28, borderRadius: '50%' }} />
             </motion.button>
         );
     }
@@ -169,7 +169,7 @@ export function JarvisMessengerWidget({ onMinimize }: JarvisMessengerWidgetProps
                         justifyContent: 'center',
                         fontSize: '16px'
                     }}>
-                        🤖
+                        <img src="/images/jarvis-avatar.png" alt="Jarvis" style={{ width: 20, height: 20, borderRadius: '50%' }} />
                     </div>
                     <div>
                         <div style={{ fontSize: '13px', fontWeight: 600, color: '#FFD700' }}>

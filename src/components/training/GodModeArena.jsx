@@ -15,13 +15,35 @@ import useMillionaireGame from '../../hooks/useMillionaireGame';
 import TRAINING_CONFIG from '../../config/trainingConfig';
 import { getGameById } from '../../data/TRAINING_LIBRARY';
 
-// Games with custom full-screen UIs that DON'T need wrapper header/footer
+// ALL GAMES use full-screen immersive UI with GameUIRouter
+// Poker games → UniversalDynamicTable
+// Psychology games → Specialized UI
 const FULL_SCREEN_UI_GAMES = [
-    'mtt-007', 'mtt-018',  // MTT games
-    'cash-002', 'cash-018', // Cash games
-    'spins-003', 'spins-007', // Spins games
-    'psy-003', 'psy-012', // Psychology games
-    'adv-001', 'adv-017', // Advanced games
+    // Cash Games (25)
+    'cash-001', 'cash-002', 'cash-003', 'cash-004', 'cash-005',
+    'cash-006', 'cash-007', 'cash-008', 'cash-009', 'cash-010',
+    'cash-011', 'cash-012', 'cash-013', 'cash-014', 'cash-015',
+    'cash-016', 'cash-017', 'cash-018', 'cash-019', 'cash-020',
+    'cash-021', 'cash-022', 'cash-023', 'cash-024', 'cash-025',
+    // MTT Games (25)
+    'mtt-001', 'mtt-002', 'mtt-003', 'mtt-004', 'mtt-005',
+    'mtt-006', 'mtt-007', 'mtt-008', 'mtt-009', 'mtt-010',
+    'mtt-011', 'mtt-012', 'mtt-013', 'mtt-014', 'mtt-015',
+    'mtt-016', 'mtt-017', 'mtt-018', 'mtt-019', 'mtt-020',
+    'mtt-021', 'mtt-022', 'mtt-023', 'mtt-024', 'mtt-025',
+    // Spins Games (10)
+    'spins-001', 'spins-002', 'spins-003', 'spins-004', 'spins-005',
+    'spins-006', 'spins-007', 'spins-008', 'spins-009', 'spins-010',
+    // Psychology Games (20)
+    'psy-001', 'psy-002', 'psy-003', 'psy-004', 'psy-005',
+    'psy-006', 'psy-007', 'psy-008', 'psy-009', 'psy-010',
+    'psy-011', 'psy-012', 'psy-013', 'psy-014', 'psy-015',
+    'psy-016', 'psy-017', 'psy-018', 'psy-019', 'psy-020',
+    // Advanced Games (20)
+    'adv-001', 'adv-002', 'adv-003', 'adv-004', 'adv-005',
+    'adv-006', 'adv-007', 'adv-008', 'adv-009', 'adv-010',
+    'adv-011', 'adv-012', 'adv-013', 'adv-014', 'adv-015',
+    'adv-016', 'adv-017', 'adv-018', 'adv-019', 'adv-020',
 ];
 
 /**

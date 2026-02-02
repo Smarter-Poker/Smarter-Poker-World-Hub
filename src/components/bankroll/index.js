@@ -24,3 +24,5 @@ export { default as SessionTimer } from './SessionTimer';
 export { default as HistoricalComparison } from './HistoricalComparison';
 export { default as VarianceCalculator } from './VarianceCalculator';
 export { default as BankrollHeatMap } from './BankrollHeatMap';
+export { default as TripROICalculator } from './TripROICalculator';
+
