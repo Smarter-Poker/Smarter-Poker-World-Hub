@@ -952,10 +952,8 @@ const GameSession: React.FC<GameSessionProps> = ({
                             { id: 'BREATHE', label: 'Take a Deep Breath', icon: '🧘', emotionalType: 'rational' },
                             { id: 'LEAVE', label: 'Leave the Table', icon: '🚪', emotionalType: 'passive' },
                         ]}
-                        correctChoice={(currentHand as any).correctChoice || 'BREATHE'}
+                        correctChoiceId={(currentHand as any).correctChoice || 'BREATHE'}
                         timeLimit={(currentHand as any).timeLimit || 15}
-                        riggedOutcome={(currentHand as any).riggedOutcome}
-                        emotionalTrigger={(currentHand as any).emotionalTrigger}
                         phase={scenarioPhase}
                         resultFeedback={scenarioFeedback}
                         onChoice={(choiceId) => {

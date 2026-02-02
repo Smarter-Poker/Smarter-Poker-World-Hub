@@ -25,7 +25,13 @@ import { TRIVIA_ACHIEVEMENTS, checkNewUnlocks } from '../../../src/config/trivia
 
 // Phase 2 Enhancement Imports
 import DoubleOrNothing from '../../../src/components/trivia/DoubleOrNothing';
-import SurvivalModeGame from '../../../src/components/trivia/SurvivalModeGame';
+import dynamic from 'next/dynamic';
+
+// Dynamic import to prevent SSR issues
+const SurvivalModeGame = dynamic(
+    () => import('../../../src/components/trivia/SurvivalModeGame'),
+    { ssr: false, loading: () => <div>Loading Survival Mode...</div> }
+);
 
 const CATEGORY_MAP = {
     daily: null,
