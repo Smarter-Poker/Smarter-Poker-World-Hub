@@ -26,3 +26,9 @@ export { default as VarianceCalculator } from './VarianceCalculator';
 export { default as BankrollHeatMap } from './BankrollHeatMap';
 export { default as TripROICalculator } from './TripROICalculator';
 
+// Phase 5 Components
+export { default as ReceiptScanner } from './ReceiptScanner';
+export { default as TaxReportPanel } from './TaxReportPanel';
+export { default as StakingTracker } from './StakingTracker';
+export { default as SeriesTracker } from './SeriesTracker';
+export { default as SessionHandReview } from './SessionHandReview';

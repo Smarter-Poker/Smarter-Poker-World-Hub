@@ -83,8 +83,11 @@ const AVATARS = [
 function getCardPath(card) {
     if (!card || card.length < 2) return '/cards/back.png';
 
-    const rank = card[0].toLowerCase();
+    const rankChar = card[0].toLowerCase();
     const suit = card[1].toLowerCase();
+
+    // Handle tens - card notation uses 'T' but image files use '10'
+    const rank = rankChar === 't' ? '10' : rankChar;
 
     const suitMap = {
         'h': 'hearts',
@@ -96,6 +99,7 @@ function getCardPath(card) {
     const suitName = suitMap[suit] || 'hearts';
     return `/cards/${suitName}_${rank}.png`;
 }
+
 
 // Parse hero position from string to seat index
 function getHeroSeatIndex(heroPosition, playerCount) {

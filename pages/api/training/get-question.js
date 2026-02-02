@@ -451,16 +451,34 @@ async function generateQuestionFromChart(gameId, level, game, stackDepth) {
         const pushFreq = handData?.push || 0;
         const correctAction = pushFreq > 0.5 ? 'push' : 'fold';
 
+        // Parse hero hand into card format for UniversalDynamicTable
+        const parseHandToCards = (hand) => {
+            if (!hand || hand.length < 2) return ['As', 'Ks'];
+            // Hand format could be "AKs" or "AA" or "T9o"
+            const suits = ['s', 'h', 'd', 'c'];
+            const r1 = hand[0];
+            const r2 = hand.length >= 2 ? hand[1] : hand[0];
+            const suited = hand.endsWith('s');
+            return [r1 + (suited ? 's' : 'h'), r2 + (suited ? 's' : 'd')];
+        };
+
         const question = {
             id: `chart_${chart.chart_id}_${Date.now()}`,
             type: 'CHART',
             source: 'CHART_DATABASE',
             scenario: {
                 stackDepth: chart.stack_depth,
-                heroPosition: chart.hero_position,
-                villainAction: chart.villain_action,
+                heroPosition: chart.hero_position || 'BTN',
+                heroStack: chart.stack_depth || 15,
+                villainAction: chart.villain_action || '',
+                villainPosition: 'BB',
+                villainStack: chart.stack_depth || 15,
+                pot: 1.5, // Preflop push/fold pot
+                board: '', // Preflop
+                action: chart.villain_action || 'Folded to you',
                 heroHand: heroHand
             },
+            heroCards: parseHandToCards(heroHand),
             question: `You're in ${chart.hero_position || 'the button'} with ${heroHand}. Stack: ${chart.stack_depth}BB. ${chart.villain_action || 'Folded to you'}. Push or Fold?`,
             options: [
                 { id: 'push', text: 'Push All-In' },
@@ -700,13 +718,23 @@ IMPORTANT: Make the scenario realistic for ${gameTypeDisplay}. Use proper GTO re
 /**
  * Hardcoded fallback questions when all else fails
  */
-function getHardcodedQuestion(engineType, level) {
+function getHardcodedQuestion(engineType, level, gameType) {
     const questions = {
         PIO: [
             {
                 id: `fallback_pio_${Date.now()}`,
                 type: 'PIO',
-                scenario: { heroPosition: 'BTN', heroStack: 100, gameType: '6-Max Cash' },
+                scenario: {
+                    heroPosition: 'BTN',
+                    heroStack: 100,
+                    villainPosition: 'UTG',
+                    villainStack: 100,
+                    pot: 4.5,
+                    board: '',
+                    action: 'UTG raises to 3bb',
+                    gameType: '6-Max Cash'
+                },
+                heroCards: ['Ac', 'Ks'],
                 question: 'You are on the Button with AcKs. UTG raises to 3bb. What is the optimal play?',
                 options: [
                     { id: 'a', text: 'Fold' },
@@ -720,7 +748,17 @@ function getHardcodedQuestion(engineType, level) {
             {
                 id: `fallback_pio2_${Date.now()}`,
                 type: 'PIO',
-                scenario: { heroPosition: 'BB', heroStack: 25, gameType: 'MTT' },
+                scenario: {
+                    heroPosition: 'BB',
+                    heroStack: 25,
+                    villainPosition: 'BTN',
+                    villainStack: 30,
+                    pot: 4,
+                    board: '',
+                    action: 'BTN raises to 2.5bb',
+                    gameType: 'MTT'
+                },
+                heroCards: ['Qh', 'Jd'],
                 question: 'You are in the BB with 25bb. BTN opens to 2.5bb. SB folds. You have QJo. What is your play?',
                 options: [
                     { id: 'a', text: 'Fold' },
@@ -736,7 +774,18 @@ function getHardcodedQuestion(engineType, level) {
             {
                 id: `fallback_chart_${Date.now()}`,
                 type: 'CHART',
-                scenario: { position: 'SB', stackBB: 10 },
+                scenario: {
+                    heroPosition: 'SB',
+                    heroStack: 10,
+                    villainPosition: 'BB',
+                    villainStack: 12,
+                    pot: 1.5,
+                    board: '',
+                    action: 'Folded to you',
+                    position: 'SB',
+                    stackBB: 10
+                },
+                heroCards: ['As', '5s'],
                 question: 'You have 10bb in the SB with A5s. It folds to you. Should you push or fold?',
                 options: [
                     { id: 'a', text: 'Push' },
@@ -752,7 +801,10 @@ function getHardcodedQuestion(engineType, level) {
             {
                 id: `fallback_scenario_${Date.now()}`,
                 type: 'SCENARIO',
-                scenario: { title: 'Tilt Management' },
+                scenario: {
+                    title: 'Tilt Management',
+                    isPsychology: true // Flag for specialized UI
+                },
                 question: 'You just lost a big pot with AA vs 72o all-in preflop. What should you do?',
                 options: [
                     { id: 'a', text: 'Play faster to win it back' },

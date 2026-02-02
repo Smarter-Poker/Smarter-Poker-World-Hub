@@ -414,6 +414,7 @@ export default function VideoLibraryPage() {
     const [aiAnalysis, setAiAnalysis] = useState(null); // Current video AI analysis
     const [aiAnalysisLoading, setAiAnalysisLoading] = useState(false);
     const [showAiPanel, setShowAiPanel] = useState(false); // Toggle AI panel visibility
+    const [bottomSheetExpanded, setBottomSheetExpanded] = useState(false); // Mobile bottom sheet expanded state
     const [currentVideoTime, setCurrentVideoTime] = useState(0); // Current playback position in seconds
     const [activeInsight, setActiveInsight] = useState(null); // Current insight being displayed
     const [insightHistory, setInsightHistory] = useState([]); // Past insights shown
@@ -1571,239 +1572,294 @@ export default function VideoLibraryPage() {
                         />
                     </div>
 
-                    {/* Jarvis AI Contextual Insight Panel */}
-                    <div style={{
-                        position: 'absolute',
-                        top: 0,
-                        right: showAiPanel ? 0 : -400,
-                        width: 380,
-                        height: '100%',
-                        background: 'linear-gradient(180deg, rgba(10,15,30,0.98) 0%, rgba(15,20,40,0.98) 100%)',
-                        borderLeft: '2px solid rgba(0, 212, 255, 0.3)',
-                        transition: 'right 0.3s ease',
-                        zIndex: 1002,
-                        overflowY: 'auto',
-                        padding: '24px 20px',
-                        boxShadow: '-10px 0 40px rgba(0, 0, 0, 0.5)',
-                    }}>
-                        {/* Panel Header with Close Button */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                            <div>
-                                <h3 style={{
-                                    color: '#00D4FF',
-                                    fontSize: 18,
-                                    fontWeight: 700,
-                                    margin: 0,
+                    {/* Jarvis AI Bottom Sheet / Side Panel (Responsive) */}
+                    <div
+                        className="jarvis-panel"
+                        style={{
+                            position: 'absolute',
+                            /* Desktop: Side panel from right */
+                            /* Mobile: Bottom sheet from bottom */
+                            background: 'linear-gradient(180deg, rgba(10,15,30,0.98) 0%, rgba(15,20,40,0.98) 100%)',
+                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                            zIndex: 1002,
+                            overflowY: 'auto',
+                            boxShadow: '-10px 0 40px rgba(0, 0, 0, 0.5)',
+                        }}
+                    >
+                        {/* Drag Handle (Mobile Only) */}
+                        <div
+                            className="jarvis-drag-handle"
+                            onClick={() => setBottomSheetExpanded(!bottomSheetExpanded)}
+                            style={{
+                                width: '100%',
+                                padding: '12px 0 8px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                gap: 8,
+                            }}
+                        >
+                            <div style={{
+                                width: 40,
+                                height: 4,
+                                background: 'rgba(255,255,255,0.3)',
+                                borderRadius: 2,
+                            }} />
+                            {/* Collapsed Preview (Mobile) */}
+                            <div className="jarvis-collapsed-preview" style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 10,
+                                width: '100%',
+                                padding: '0 16px',
+                            }}>
+                                <img src="/images/jarvis-avatar.png" alt="Jarvis" style={{ width: 28, height: 28, borderRadius: '50%' }} />
+                                <div style={{ flex: 1 }}>
+                                    <span style={{ color: '#00D4FF', fontSize: 13, fontWeight: 600 }}>Jarvis Commentary</span>
+                                    {activeInsight && (
+                                        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                            {activeInsight.title}
+                                        </p>
+                                    )}
+                                </div>
+                                <div style={{
+                                    width: 24,
+                                    height: 24,
+                                    borderRadius: '50%',
+                                    background: 'rgba(0,212,255,0.2)',
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: 8,
-                                }}>
-                                    <img src="/images/jarvis-avatar.png" alt="Jarvis" style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }} />
-                                    Jarvis Commentary
-                                </h3>
-                                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, margin: 0, marginTop: 4 }}>
-                                    Live insights at key moments
-                                </p>
+                                    justifyContent: 'center',
+                                    fontSize: 12,
+                                    color: '#00D4FF',
+                                    transform: bottomSheetExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                                    transition: 'transform 0.3s ease',
+                                }}>▲</div>
                             </div>
-                            <button
-                                onClick={() => setShowAiPanel(false)}
-                                style={{
-                                    background: 'rgba(255,255,255,0.1)',
-                                    border: 'none',
-                                    borderRadius: '50%',
-                                    width: 32,
-                                    height: 32,
-                                    color: 'white',
-                                    cursor: 'pointer',
-                                    fontSize: 16,
-                                }}
-                            >×</button>
                         </div>
 
-                        {aiAnalysisLoading ? (
-                            <div style={{ textAlign: 'center', padding: 40 }}>
-                                <div style={{ fontSize: 32, marginBottom: 16 }}>⏳</div>
-                                <p style={{ color: 'rgba(255,255,255,0.7)' }}>Preparing insights...</p>
-                            </div>
-                        ) : aiAnalysis ? (
-                            <>
-                                {/* Current Active Insight */}
-                                {activeInsight ? (
-                                    <div style={{
-                                        padding: '16px',
-                                        background: activeInsight.type === 'keyHand'
-                                            ? 'linear-gradient(135deg, rgba(255, 68, 68, 0.15) 0%, rgba(255, 68, 68, 0.05) 100%)'
-                                            : 'linear-gradient(135deg, rgba(0, 212, 255, 0.15) 0%, rgba(0, 212, 255, 0.05) 100%)',
-                                        borderRadius: 12,
-                                        borderLeft: `4px solid ${activeInsight.type === 'keyHand' ? '#FF4444' : '#00D4FF'}`,
-                                        marginBottom: 20,
-                                        animation: 'slideIn 0.4s ease',
+                        {/* Panel Content */}
+                        <div className="jarvis-panel-content" style={{ padding: '0 20px 24px' }}>
+                            {/* Panel Header (Desktop) */}
+                            <div className="jarvis-desktop-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                                <div>
+                                    <h3 style={{
+                                        color: '#00D4FF',
+                                        fontSize: 18,
+                                        fontWeight: 700,
+                                        margin: 0,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 8,
                                     }}>
-                                        {/* Insight Header */}
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                                            <span style={{
-                                                color: activeInsight.type === 'keyHand' ? '#FF4444' : '#00D4FF',
-                                                fontSize: 11,
+                                        <img src="/images/jarvis-avatar.png" alt="Jarvis" style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }} />
+                                        Jarvis Commentary
+                                    </h3>
+                                    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, margin: 0, marginTop: 4 }}>
+                                        Live insights at key moments
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setShowAiPanel(false)}
+                                    style={{
+                                        background: 'rgba(255,255,255,0.1)',
+                                        border: 'none',
+                                        borderRadius: '50%',
+                                        width: 32,
+                                        height: 32,
+                                        color: 'white',
+                                        cursor: 'pointer',
+                                        fontSize: 16,
+                                    }}
+                                >×</button>
+                            </div>
+
+                            {aiAnalysisLoading ? (
+                                <div style={{ textAlign: 'center', padding: 40 }}>
+                                    <div style={{ fontSize: 32, marginBottom: 16 }}>⏳</div>
+                                    <p style={{ color: 'rgba(255,255,255,0.7)' }}>Preparing insights...</p>
+                                </div>
+                            ) : aiAnalysis ? (
+                                <>
+                                    {/* Current Active Insight */}
+                                    {activeInsight ? (
+                                        <div style={{
+                                            padding: '16px',
+                                            background: activeInsight.type === 'keyHand'
+                                                ? 'linear-gradient(135deg, rgba(255, 68, 68, 0.15) 0%, rgba(255, 68, 68, 0.05) 100%)'
+                                                : 'linear-gradient(135deg, rgba(0, 212, 255, 0.15) 0%, rgba(0, 212, 255, 0.05) 100%)',
+                                            borderRadius: 12,
+                                            borderLeft: `4px solid ${activeInsight.type === 'keyHand' ? '#FF4444' : '#00D4FF'}`,
+                                            marginBottom: 20,
+                                            animation: 'slideIn 0.4s ease',
+                                        }}>
+                                            {/* Insight Header */}
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                                                <span style={{
+                                                    color: activeInsight.type === 'keyHand' ? '#FF4444' : '#00D4FF',
+                                                    fontSize: 11,
+                                                    fontWeight: 700,
+                                                    background: activeInsight.type === 'keyHand'
+                                                        ? 'rgba(255, 68, 68, 0.3)'
+                                                        : 'rgba(0, 212, 255, 0.3)',
+                                                    padding: '4px 10px',
+                                                    borderRadius: 6,
+                                                }}>{activeInsight.timestamp}</span>
+                                                <span style={{
+                                                    fontSize: 10,
+                                                    color: 'rgba(255,255,255,0.5)',
+                                                    textTransform: 'uppercase',
+                                                    letterSpacing: '1px'
+                                                }}>
+                                                    {activeInsight.type === 'keyHand' ? '♠️ KEY HAND' : '📺 CHAPTER'}
+                                                </span>
+                                            </div>
+
+                                            {/* Insight Title */}
+                                            <h4 style={{
+                                                color: 'white',
+                                                fontSize: 16,
                                                 fontWeight: 700,
-                                                background: activeInsight.type === 'keyHand'
-                                                    ? 'rgba(255, 68, 68, 0.3)'
-                                                    : 'rgba(0, 212, 255, 0.3)',
-                                                padding: '4px 10px',
-                                                borderRadius: 6,
-                                            }}>{activeInsight.timestamp}</span>
-                                            <span style={{
-                                                fontSize: 10,
+                                                margin: 0,
+                                                marginBottom: 12,
+                                                lineHeight: 1.4
+                                            }}>
+                                                {activeInsight.title}
+                                            </h4>
+
+                                            {/* Key Hand Details */}
+                                            {activeInsight.type === 'keyHand' && (
+                                                <>
+                                                    {activeInsight.situation && (
+                                                        <div style={{ marginBottom: 10 }}>
+                                                            <span style={{ color: '#FFD700', fontSize: 11, fontWeight: 600 }}>SITUATION</span>
+                                                            <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, margin: '4px 0 0 0', lineHeight: 1.5 }}>
+                                                                {activeInsight.situation}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                    {activeInsight.analysis && (
+                                                        <div style={{ marginBottom: 10 }}>
+                                                            <span style={{ color: '#00D4FF', fontSize: 11, fontWeight: 600 }}>ANALYSIS</span>
+                                                            <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, margin: '4px 0 0 0', lineHeight: 1.5 }}>
+                                                                {activeInsight.analysis}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                    {activeInsight.result && (
+                                                        <div>
+                                                            <span style={{ color: '#10B981', fontSize: 11, fontWeight: 600 }}>RESULT</span>
+                                                            <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, margin: '4px 0 0 0', lineHeight: 1.5 }}>
+                                                                {activeInsight.result}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                </>
+                                            )}
+
+                                            {/* Chapter Description */}
+                                            {activeInsight.type === 'chapter' && activeInsight.description && (
+                                                <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, margin: 0, lineHeight: 1.5 }}>
+                                                    {activeInsight.description}
+                                                </p>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        /* Waiting for next insight */
+                                        <div style={{
+                                            padding: '24px',
+                                            background: 'rgba(255,255,255,0.03)',
+                                            borderRadius: 12,
+                                            border: '1px dashed rgba(255,255,255,0.15)',
+                                            textAlign: 'center',
+                                            marginBottom: 20,
+                                        }}>
+                                            <div style={{ fontSize: 28, marginBottom: 12, opacity: 0.6 }}>👀</div>
+                                            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, margin: 0 }}>
+                                                Watching for key moments...
+                                            </p>
+                                            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, margin: '8px 0 0 0' }}>
+                                                Insights will appear at important timestamps
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {/* Upcoming Insights Timeline */}
+                                    {getTimedInsights().filter(i => i.seconds > currentVideoTime).length > 0 && (
+                                        <div style={{ marginTop: 16 }}>
+                                            <h4 style={{
                                                 color: 'rgba(255,255,255,0.5)',
+                                                fontSize: 11,
+                                                fontWeight: 600,
+                                                marginBottom: 12,
                                                 textTransform: 'uppercase',
                                                 letterSpacing: '1px'
                                             }}>
-                                                {activeInsight.type === 'keyHand' ? '♠️ KEY HAND' : '📺 CHAPTER'}
-                                            </span>
-                                        </div>
-
-                                        {/* Insight Title */}
-                                        <h4 style={{
-                                            color: 'white',
-                                            fontSize: 16,
-                                            fontWeight: 700,
-                                            margin: 0,
-                                            marginBottom: 12,
-                                            lineHeight: 1.4
-                                        }}>
-                                            {activeInsight.title}
-                                        </h4>
-
-                                        {/* Key Hand Details */}
-                                        {activeInsight.type === 'keyHand' && (
-                                            <>
-                                                {activeInsight.situation && (
-                                                    <div style={{ marginBottom: 10 }}>
-                                                        <span style={{ color: '#FFD700', fontSize: 11, fontWeight: 600 }}>SITUATION</span>
-                                                        <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, margin: '4px 0 0 0', lineHeight: 1.5 }}>
-                                                            {activeInsight.situation}
-                                                        </p>
-                                                    </div>
-                                                )}
-                                                {activeInsight.analysis && (
-                                                    <div style={{ marginBottom: 10 }}>
-                                                        <span style={{ color: '#00D4FF', fontSize: 11, fontWeight: 600 }}>ANALYSIS</span>
-                                                        <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, margin: '4px 0 0 0', lineHeight: 1.5 }}>
-                                                            {activeInsight.analysis}
-                                                        </p>
-                                                    </div>
-                                                )}
-                                                {activeInsight.result && (
-                                                    <div>
-                                                        <span style={{ color: '#10B981', fontSize: 11, fontWeight: 600 }}>RESULT</span>
-                                                        <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, margin: '4px 0 0 0', lineHeight: 1.5 }}>
-                                                            {activeInsight.result}
-                                                        </p>
-                                                    </div>
-                                                )}
-                                            </>
-                                        )}
-
-                                        {/* Chapter Description */}
-                                        {activeInsight.type === 'chapter' && activeInsight.description && (
-                                            <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, margin: 0, lineHeight: 1.5 }}>
-                                                {activeInsight.description}
-                                            </p>
-                                        )}
-                                    </div>
-                                ) : (
-                                    /* Waiting for next insight */
-                                    <div style={{
-                                        padding: '24px',
-                                        background: 'rgba(255,255,255,0.03)',
-                                        borderRadius: 12,
-                                        border: '1px dashed rgba(255,255,255,0.15)',
-                                        textAlign: 'center',
-                                        marginBottom: 20,
-                                    }}>
-                                        <div style={{ fontSize: 28, marginBottom: 12, opacity: 0.6 }}>👀</div>
-                                        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, margin: 0 }}>
-                                            Watching for key moments...
-                                        </p>
-                                        <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, margin: '8px 0 0 0' }}>
-                                            Insights will appear at important timestamps
-                                        </p>
-                                    </div>
-                                )}
-
-                                {/* Upcoming Insights Timeline */}
-                                {getTimedInsights().filter(i => i.seconds > currentVideoTime).length > 0 && (
-                                    <div style={{ marginTop: 16 }}>
-                                        <h4 style={{
-                                            color: 'rgba(255,255,255,0.5)',
-                                            fontSize: 11,
-                                            fontWeight: 600,
-                                            marginBottom: 12,
-                                            textTransform: 'uppercase',
-                                            letterSpacing: '1px'
-                                        }}>
-                                            Coming Up
-                                        </h4>
-                                        {getTimedInsights()
-                                            .filter(i => i.seconds > currentVideoTime)
-                                            .slice(0, 3)
-                                            .map((insight, idx) => (
-                                                <div key={insight.id} style={{
-                                                    padding: '10px 12px',
-                                                    background: 'rgba(255,255,255,0.03)',
-                                                    borderRadius: 8,
-                                                    marginBottom: 8,
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: 12,
-                                                    opacity: 0.7,
-                                                }}>
-                                                    <span style={{
-                                                        color: insight.type === 'keyHand' ? '#FF4444' : '#00D4FF',
-                                                        fontSize: 10,
-                                                        fontWeight: 700,
-                                                        background: 'rgba(0,0,0,0.3)',
-                                                        padding: '3px 8px',
-                                                        borderRadius: 4,
-                                                        minWidth: 40,
-                                                        textAlign: 'center',
-                                                    }}>{insight.timestamp}</span>
-                                                    <span style={{
-                                                        color: 'rgba(255,255,255,0.7)',
-                                                        fontSize: 12,
-                                                        overflow: 'hidden',
-                                                        textOverflow: 'ellipsis',
-                                                        whiteSpace: 'nowrap',
+                                                Coming Up
+                                            </h4>
+                                            {getTimedInsights()
+                                                .filter(i => i.seconds > currentVideoTime)
+                                                .slice(0, 3)
+                                                .map((insight, idx) => (
+                                                    <div key={insight.id} style={{
+                                                        padding: '10px 12px',
+                                                        background: 'rgba(255,255,255,0.03)',
+                                                        borderRadius: 8,
+                                                        marginBottom: 8,
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: 12,
+                                                        opacity: 0.7,
                                                     }}>
-                                                        {insight.type === 'keyHand' ? '♠️' : '📺'} {insight.title}
-                                                    </span>
-                                                </div>
-                                            ))
-                                        }
-                                    </div>
-                                )}
+                                                        <span style={{
+                                                            color: insight.type === 'keyHand' ? '#FF4444' : '#00D4FF',
+                                                            fontSize: 10,
+                                                            fontWeight: 700,
+                                                            background: 'rgba(0,0,0,0.3)',
+                                                            padding: '3px 8px',
+                                                            borderRadius: 4,
+                                                            minWidth: 40,
+                                                            textAlign: 'center',
+                                                        }}>{insight.timestamp}</span>
+                                                        <span style={{
+                                                            color: 'rgba(255,255,255,0.7)',
+                                                            fontSize: 12,
+                                                            overflow: 'hidden',
+                                                            textOverflow: 'ellipsis',
+                                                            whiteSpace: 'nowrap',
+                                                        }}>
+                                                            {insight.type === 'keyHand' ? '♠️' : '📺'} {insight.title}
+                                                        </span>
+                                                    </div>
+                                                ))
+                                            }
+                                        </div>
+                                    )}
 
-                                {/* Summary at bottom */}
-                                {aiAnalysis.summary && (
-                                    <div style={{
-                                        marginTop: 24,
-                                        padding: '16px',
-                                        background: 'rgba(255, 215, 0, 0.08)',
-                                        borderRadius: 10,
-                                        borderLeft: '3px solid #FFD700',
-                                    }}>
-                                        <h4 style={{ color: '#FFD700', fontSize: 12, fontWeight: 600, marginBottom: 8 }}>📋 Video Overview</h4>
-                                        <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, lineHeight: 1.6, margin: 0 }}>
-                                            {aiAnalysis.summary}
-                                        </p>
-                                    </div>
-                                )}
-                            </>
-                        ) : (
-                            <div style={{ textAlign: 'center', padding: 40 }}>
-                                <div style={{ fontSize: 32, marginBottom: 16 }}>🎬</div>
-                                <p style={{ color: 'rgba(255,255,255,0.7)' }}>No insights available</p>
-                            </div>
-                        )}
+                                    {/* Summary at bottom */}
+                                    {aiAnalysis.summary && (
+                                        <div style={{
+                                            marginTop: 24,
+                                            padding: '16px',
+                                            background: 'rgba(255, 215, 0, 0.08)',
+                                            borderRadius: 10,
+                                            borderLeft: '3px solid #FFD700',
+                                        }}>
+                                            <h4 style={{ color: '#FFD700', fontSize: 12, fontWeight: 600, marginBottom: 8 }}>📋 Video Overview</h4>
+                                            <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, lineHeight: 1.6, margin: 0 }}>
+                                                {aiAnalysis.summary}
+                                            </p>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div style={{ textAlign: 'center', padding: 40 }}>
+                                    <div style={{ fontSize: 32, marginBottom: 16 }}>🎬</div>
+                                    <p style={{ color: 'rgba(255,255,255,0.7)' }}>No insights available</p>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Video info bar at bottom */}
@@ -1874,10 +1930,85 @@ export default function VideoLibraryPage() {
                 </div>
             )}
 
-            {/* CSS for hover effects */}
+            {/* CSS for hover effects and responsive Jarvis panel */}
             <style jsx global>{`
                 div:hover .play-btn {
                     opacity: 1 !important;
+                }
+
+                /* Jarvis Panel - Desktop (Side Panel) */
+                @media (min-width: 769px) {
+                    .jarvis-panel {
+                        top: 0 !important;
+                        right: ${showAiPanel ? '0' : '-400px'} !important;
+                        bottom: auto !important;
+                        left: auto !important;
+                        width: 380px !important;
+                        height: 100% !important;
+                        border-left: 2px solid rgba(0, 212, 255, 0.3) !important;
+                        border-top: none !important;
+                        border-radius: 0 !important;
+                        padding-top: 24px !important;
+                    }
+                    .jarvis-drag-handle {
+                        display: none !important;
+                    }
+                    .jarvis-desktop-header {
+                        display: flex !important;
+                    }
+                    .jarvis-collapsed-preview {
+                        display: none !important;
+                    }
+                }
+
+                /* Jarvis Panel - Mobile (Bottom Sheet) */
+                @media (max-width: 768px) {
+                    .jarvis-panel {
+                        top: auto !important;
+                        right: 0 !important;
+                        bottom: ${showAiPanel ? '0' : '-100%'} !important;
+                        left: 0 !important;
+                        width: 100% !important;
+                        height: ${bottomSheetExpanded ? '70vh' : '100px'} !important;
+                        max-height: 80vh !important;
+                        border-top: 2px solid rgba(0, 212, 255, 0.3) !important;
+                        border-left: none !important;
+                        border-radius: 20px 20px 0 0 !important;
+                        padding-top: 0 !important;
+                        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5) !important;
+                    }
+                    .jarvis-drag-handle {
+                        display: flex !important;
+                    }
+                    .jarvis-desktop-header {
+                        display: ${bottomSheetExpanded ? 'none' : 'none'} !important;
+                    }
+                    .jarvis-collapsed-preview {
+                        display: ${bottomSheetExpanded ? 'none' : 'flex'} !important;
+                    }
+                    .jarvis-panel-content {
+                        display: ${bottomSheetExpanded ? 'block' : 'none'} !important;
+                        max-height: calc(70vh - 60px) !important;
+                        overflow-y: auto !important;
+                    }
+                }
+
+                /* Animation for active insight cards */
+                @keyframes slideIn {
+                    from {
+                        opacity: 0;
+                        transform: translateY(10px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+
+                /* Pulse animation for when new insight appears */
+                @keyframes pulse {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.7; }
                 }
             `}</style>
         </PageTransition>
