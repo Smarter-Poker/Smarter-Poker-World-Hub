@@ -81,7 +81,7 @@ export default async function handler(req, res) {
             // Get cumulative stats from database
             const { data: leaderboardData } = await supabase
                 .from('training_leaderboard')
-                .select('sessions_completed, questions_correct, accuracy')
+                .select('sessions_completed, questions_correct, accuracy, perfect_rounds')
                 .eq('user_id', userId)
                 .eq('period_type', 'alltime')
                 .single();
@@ -99,9 +99,10 @@ export default async function handler(req, res) {
                 longestStreak: streakData?.longest_streak || 0,
                 totalSessions: leaderboardData?.sessions_completed || 0,
                 totalCorrect: leaderboardData?.questions_correct || 0,
-                // For perfect rounds, check if this session was perfect and add to count
-                perfectRounds: stats?.perfectRounds || 0
+                // Perfect rounds from leaderboard (cumulative)
+                perfectRounds: leaderboardData?.perfect_rounds || 0
             };
+
 
             // Get all definitions
             const { data: definitions } = await supabase

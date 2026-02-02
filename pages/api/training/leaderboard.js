@@ -15,7 +15,8 @@ export default async function handler(req, res) {
 
     // POST: Update leaderboard entry after session
     if (req.method === 'POST') {
-        const { userId, accuracy, questionsAnswered, questionsCorrect, bestStreak } = req.body;
+        const { userId, accuracy, questionsAnswered, questionsCorrect, bestStreak, gameId } = req.body;
+        const isPerfectRound = accuracy === 100;
 
         if (!userId) {
             return res.status(400).json({ error: 'userId required' });
@@ -51,6 +52,7 @@ export default async function handler(req, res) {
                             questions_correct: newCorrect,
                             accuracy: newTotal > 0 ? Math.round((newCorrect / newTotal) * 100) : 0,
                             best_streak: Math.max(existing.best_streak || 0, bestStreak || 0),
+                            perfect_rounds: (existing.perfect_rounds || 0) + (isPerfectRound ? 1 : 0),
                             updated_at: new Date().toISOString()
                         })
                         .eq('id', existing.id);
@@ -66,6 +68,7 @@ export default async function handler(req, res) {
                             questions_correct: questionsCorrect,
                             accuracy: questionsAnswered > 0 ? Math.round((questionsCorrect / questionsAnswered) * 100) : 0,
                             best_streak: bestStreak || 0,
+                            perfect_rounds: isPerfectRound ? 1 : 0,
                             total_xp: 0
                         });
                 }

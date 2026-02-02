@@ -11,3 +11,9 @@ export { default as BankrollTrendChart } from './BankrollTrendChart';
 export { default as QuickLogWidget } from './QuickLogWidget';
 export { default as BankrollStreaks } from './BankrollStreaks';
 export { default as JarvisLeakInsights } from './JarvisLeakInsights';
+
+// Phase 2 Components
+export { default as BankrollGoals } from './BankrollGoals';
+export { default as LocationAnalytics } from './LocationAnalytics';
+export { default as WeeklySummary } from './WeeklySummary';
+export { default as BankrollProjection } from './BankrollProjection';

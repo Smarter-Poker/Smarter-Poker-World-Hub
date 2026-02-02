@@ -91,8 +91,34 @@ const GamificationService = {
             results.errors.push('streak');
         }
 
+        // 4. Update weekly/monthly challenges
+        try {
+            const challengesRes = await fetch('/api/training/challenges', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId,
+                    sessionData: {
+                        accuracy,
+                        category: gameId?.split('_')[0] || 'general', // Extract category from gameId
+                        isPerfect: accuracy === 100
+                    }
+                })
+            });
+            results.challenges = await challengesRes.json();
+
+            // Check if any challenges were just completed
+            if (results.challenges?.newlyCompleted?.length > 0) {
+                results.challengesCompleted = results.challenges.newlyCompleted;
+            }
+        } catch (e) {
+            console.error('[GamificationService] Challenges error:', e);
+            results.errors.push('challenges');
+        }
+
         return { success: results.errors.length === 0, ...results };
     }
 };
+
 
 export default GamificationService;

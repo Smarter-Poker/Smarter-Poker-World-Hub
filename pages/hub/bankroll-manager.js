@@ -37,6 +37,11 @@ import BankrollTrendChart from '../../src/components/bankroll/BankrollTrendChart
 import QuickLogWidget from '../../src/components/bankroll/QuickLogWidget';
 import BankrollStreaks from '../../src/components/bankroll/BankrollStreaks';
 import JarvisLeakInsights from '../../src/components/bankroll/JarvisLeakInsights';
+// Phase 2 Components
+import BankrollGoals from '../../src/components/bankroll/BankrollGoals';
+import LocationAnalytics from '../../src/components/bankroll/LocationAnalytics';
+import WeeklySummary from '../../src/components/bankroll/WeeklySummary';
+import BankrollProjection from '../../src/components/bankroll/BankrollProjection';
 
 const SIDEBAR_SECTIONS = [
   { id: 'dashboard', label: 'Dashboard', icon: '◎' },
@@ -113,6 +118,7 @@ export default function BankrollManagerPage() {
     }
   }, [router.query]);
   const [showLogModal, setShowLogModal] = useState(false);
+  const [showProjection, setShowProjection] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -681,6 +687,16 @@ export default function BankrollManagerPage() {
             {/* Streaks & Gamification */}
             <BankrollStreaks userId={userId} isLoading={isLoading} />
 
+            {/* Goals */}
+            <BankrollGoals
+              userId={userId}
+              currentBankroll={stats?.currentBankroll || 0}
+              periodPL={stats?.monthlyPL || 0}
+            />
+
+            {/* Location Analytics */}
+            <LocationAnalytics entries={entries} isLoading={isLoading} />
+
             <LeakAlertPanel
               leakAnalysis={leakAnalysis}
               locationId={locationFilter}
@@ -779,6 +795,24 @@ export default function BankrollManagerPage() {
               </motion.div>
             </motion.div>
           )
+        )}
+      </AnimatePresence>
+
+      {/* Weekly Summary Pop-up (auto-shows once per week) */}
+      <WeeklySummary
+        userId={userId}
+        entries={entries}
+        stats={stats}
+      />
+
+      {/* Bankroll Projection Modal */}
+      <AnimatePresence>
+        {showProjection && (
+          <BankrollProjection
+            userId={userId}
+            currentBankroll={stats?.currentBankroll || 0}
+            onClose={() => setShowProjection(false)}
+          />
         )}
       </AnimatePresence>
     </PageTransition>

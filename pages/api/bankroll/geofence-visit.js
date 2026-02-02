@@ -1,0 +1,80 @@
+/**
+ * 📍 GEOFENCE VISIT TRACKER API
+ * ═══════════════════════════════════════════════════════════════════════════
+ * Records when a user enters a poker venue geo-fence
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+export default async function handler(req, res) {
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    const { userId, venueId, venueName, latitude, longitude } = req.body;
+
+    if (!userId || !venueId) {
+        return res.status(400).json({ error: 'userId and venueId required' });
+    }
+
+    try {
+        // Check if user already has a recent (within 6 hours) visit to this venue
+        const sixHoursAgo = new Date();
+        sixHoursAgo.setHours(sixHoursAgo.getHours() - 6);
+
+        const { data: recentVisit } = await supabase
+            .from('geofence_visits')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('venue_id', venueId)
+            .gte('entered_at', sixHoursAgo.toISOString())
+            .limit(1);
+
+        if (recentVisit && recentVisit.length > 0) {
+            // Already logged a recent visit to this venue
+            return res.status(200).json({
+                success: true,
+                message: 'Recent visit already logged',
+                existingVisitId: recentVisit[0].id
+            });
+        }
+
+        // Record the new geo-fence entry
+        const { data: newVisit, error } = await supabase
+            .from('geofence_visits')
+            .insert({
+                user_id: userId,
+                venue_id: venueId,
+                venue_name: venueName || 'Poker Venue',
+                entered_at: new Date().toISOString(),
+                notified: false,
+                session_logged: false
+            })
+            .select()
+            .single();
+
+        if (error) {
+            console.error('[Geofence] Insert error:', error);
+            return res.status(500).json({ error: error.message });
+        }
+
+        console.log(`[Geofence] Recorded visit for user ${userId} at ${venueName || venueId}`);
+
+        return res.status(200).json({
+            success: true,
+            message: 'Geofence visit recorded',
+            visitId: newVisit.id,
+            reminderScheduledFor: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString()
+        });
+
+    } catch (error) {
+        console.error('[Geofence] Server error:', error);
+        return res.status(500).json({ error: 'Failed to record visit' });
+    }
+}

@@ -46,6 +46,10 @@ import toast from '../../src/stores/toastStore';
 import { trainingSounds } from '../../src/utils/trainingSounds';
 import GamificationService from '../../services/GamificationService';
 import AchievementToast from '../../src/components/training/AchievementToast';
+import ChallengesWidget from '../../src/components/training/ChallengesWidget';
+import JarvisRecommendations from '../../src/components/training/JarvisRecommendations';
+import useTrainingRealtime from '../../src/hooks/useTrainingRealtime';
+
 
 // Register GSAP plugins
 if (typeof window !== 'undefined') {
@@ -627,6 +631,40 @@ export default function TrainingPage() {
     const [showOutOfDiamondsModal, setShowOutOfDiamondsModal] = useState(false);
     const GAME_COST = 10; // 10 diamonds per training game
 
+    // 🔔 User ID for authenticated features
+    const [userId, setUserId] = useState(null);
+
+    // 🔔 Real-time notifications for achievements/leaderboard changes
+    const {
+        newAchievement: realtimeAchievement,
+        leaderboardChange,
+        challengeComplete,
+        clearAchievement: clearRealtimeAchievement
+    } = useTrainingRealtime(userId);
+
+    // Show toast for realtime achievement
+    useEffect(() => {
+        if (realtimeAchievement) {
+            setUnlockedAchievements([realtimeAchievement]);
+            clearRealtimeAchievement();
+        }
+    }, [realtimeAchievement, clearRealtimeAchievement]);
+
+    // Show toast for leaderboard rank improvements
+    useEffect(() => {
+        if (leaderboardChange && leaderboardChange.newRank <= 10) {
+            toast.success(`🏆 You moved to #${leaderboardChange.newRank} on the ${leaderboardChange.periodType} leaderboard!`);
+        }
+    }, [leaderboardChange]);
+
+    // Show toast for challenge completions
+    useEffect(() => {
+        if (challengeComplete) {
+            toast.success(`🎯 Challenge Complete: ${challengeComplete.name}! Claim your reward!`);
+        }
+    }, [challengeComplete]);
+
+
     // Mark intro as seen when it ends
     const handleIntroEnd = useCallback(() => {
         sessionStorage.setItem('training-intro-seen', 'true');
@@ -646,6 +684,7 @@ export default function TrainingPage() {
             try {
                 const authUser = getAuthUser();
                 if (authUser) {
+                    setUserId(authUser.id); // For realtime features
                     await DiamondEngine.init(authUser.id);
                     const balance = await DiamondEngine.getBalance();
                     const vipStatus = await DiamondEngine.isVIP();
@@ -1010,12 +1049,40 @@ export default function TrainingPage() {
                             </div>
                             <div
                                 style={gamificationNavStyles.navButton}
+                                onClick={() => router.push('/hub/training/streaks')}
+                            >
+                                <span style={gamificationNavStyles.icon}>🔥</span>
+                                <span style={gamificationNavStyles.label}>Streaks</span>
+                            </div>
+                            <div
+                                style={gamificationNavStyles.navButton}
                                 onClick={() => router.push('/hub/training/jarvis')}
                             >
                                 <span style={gamificationNavStyles.icon}>🧠</span>
                                 <span style={gamificationNavStyles.label}>Jarvis</span>
                             </div>
                         </div>
+
+                        {/* 🎯 Weekly/Monthly Challenges Widget */}
+                        {userId && activeFilter === 'ALL' && (
+                            <ChallengesWidget
+                                userId={userId}
+                                onChallengeClaimed={(claimed) => {
+                                    toast.success(`💎 +${claimed.diamondsAwarded} diamonds claimed!`);
+                                }}
+                            />
+                        )}
+
+                        {/* 🤖 Jarvis Recommendations Widget */}
+                        {userId && activeFilter === 'ALL' && (
+                            <JarvisRecommendations
+                                userId={userId}
+                                onGameClick={(game) => {
+                                    const fullGame = TRAINING_LIBRARY.find(g => g.id === game.id);
+                                    if (fullGame) handleGameClick(fullGame);
+                                }}
+                            />
+                        )}
 
                         {/* Filters */}
                         <FilterBar
@@ -1026,6 +1093,7 @@ export default function TrainingPage() {
 
                         {/* Game Lanes */}
                         <div className="lanes-container-responsive" style={styles.lanesContainer}>
+
                             {/* TODAY'S DAILY CHALLENGE lane */}
                             {dailyChallenges.length > 0 && activeFilter === 'ALL' && (
                                 <GameLane
@@ -1092,8 +1160,9 @@ export default function TrainingPage() {
                         </div>
                     </div>
                 </>
-            )}
-        </PageTransition>
+            )
+            }
+        </PageTransition >
     );
 }
 
