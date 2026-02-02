@@ -50,7 +50,7 @@ export default function DiamondArenaStats() {
                         </button>
 
                         <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#fff', marginBottom: '30px' }}>
-                            📊 My Stats
+                             My Stats
                         </h1>
 
                         {/* Stats Grid */}
@@ -62,7 +62,7 @@ export default function DiamondArenaStats() {
 
                             <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '24px' }}>
                                 <div style={{ color: '#9ca3af', fontSize: '14px', marginBottom: '8px' }}>Total Winnings</div>
-                                <div style={{ color: '#fbbf24', fontSize: '32px', fontWeight: 'bold' }}>💎 {stats.totalWinnings.toLocaleString()}</div>
+                                <div style={{ color: '#fbbf24', fontSize: '32px', fontWeight: 'bold' }}>Diamonds {stats.totalWinnings.toLocaleString()}</div>
                             </div>
 
                             <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '24px' }}>
@@ -72,7 +72,7 @@ export default function DiamondArenaStats() {
 
                             <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '24px' }}>
                                 <div style={{ color: '#9ca3af', fontSize: '14px', marginBottom: '8px' }}>Current Streak</div>
-                                <div style={{ color: '#fff', fontSize: '32px', fontWeight: 'bold' }}>🔥 {stats.currentStreak}</div>
+                                <div style={{ color: '#fff', fontSize: '32px', fontWeight: 'bold' }}> {stats.currentStreak}</div>
                             </div>
 
                             <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '24px' }}>

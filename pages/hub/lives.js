@@ -434,7 +434,7 @@ export default function LivesPage() {
                                 alignItems: 'center',
                                 gap: 4,
                             }}>
-                                {likedStreams[stream.id] ? '❤️' : '🤍'}
+                                {likedStreams[stream.id] ? '' : ''}
                                 <span style={{ fontSize: 12 }}>{likedStreams[stream.id] ? 'Liked' : 'Like'}</span>
                             </button>
 
@@ -450,7 +450,7 @@ export default function LivesPage() {
                                 alignItems: 'center',
                                 gap: 4,
                             }}>
-                                💬
+                                
                                 <span style={{ fontSize: 12 }}>Chat</span>
                             </button>
 
@@ -466,7 +466,7 @@ export default function LivesPage() {
                                 alignItems: 'center',
                                 gap: 4,
                             }}>
-                                📤
+                                
                                 <span style={{ fontSize: 12 }}>{shareMsg || 'Share'}</span>
                             </button>
                         </div>

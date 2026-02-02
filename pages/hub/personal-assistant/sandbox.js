@@ -939,13 +939,13 @@ export default function VirtualSandboxPage() {
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
             >
-              <span style={styles.warningIcon}>⚠️</span>
+              <span style={styles.warningIcon}></span>
               {showWarningBanner}
               <button
                 style={styles.warningClose}
                 onClick={() => setShowWarningBanner(null)}
               >
-                ✕
+                ×
               </button>
             </motion.div>
           )}

@@ -11,8 +11,8 @@ export default function DiamondArcadeAchievements() {
     const router = useRouter();
 
     const achievements = [
-        { id: 1, name: 'First Win', description: 'Win your first arcade game', unlocked: true, icon: '🎮' },
-        { id: 2, name: 'Speed Demon', description: 'Score 40+ in Hand Snap', unlocked: true, icon: '⚡' },
+        { id: 1, name: 'First Win', description: 'Win your first arcade game', unlocked: true, icon: '' },
+        { id: 2, name: 'Speed Demon', description: 'Score 40+ in Hand Snap', unlocked: true, icon: '++' },
         { id: 3, name: 'Perfect Game', description: 'Get all answers correct', unlocked: false, icon: '💯' },
     ];
 
@@ -43,7 +43,7 @@ export default function DiamondArcadeAchievements() {
                         </button>
 
                         <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#fff', marginBottom: '30px' }}>
-                            🏅 Arcade Achievements
+                             Arcade Achievements
                         </h1>
 
                         <div style={{ display: 'grid', gap: '16px' }}>
@@ -72,7 +72,7 @@ export default function DiamondArcadeAchievements() {
                                     </div>
                                     {achievement.unlocked && (
                                         <div style={{ marginLeft: 'auto', color: '#10b981', fontWeight: 'bold' }}>
-                                            ✓ Unlocked
+                                             Unlocked
                                         </div>
                                     )}
                                 </div>

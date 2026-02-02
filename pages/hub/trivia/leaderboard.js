@@ -46,7 +46,7 @@ export default function TriviaLeaderboard() {
                         </button>
 
                         <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#fff', marginBottom: '30px' }}>
-                            🏆 Trivia Leaderboard
+                            Trophy Trivia Leaderboard
                         </h1>
 
                         <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', overflow: 'hidden' }}>
@@ -64,9 +64,9 @@ export default function TriviaLeaderboard() {
                                     {leaderboard.map(player => (
                                         <tr key={player.rank} style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                                             <td style={{ padding: '16px', color: '#fff', fontWeight: 'bold' }}>
-                                                {player.rank === 1 && '🥇'}
-                                                {player.rank === 2 && '🥈'}
-                                                {player.rank === 3 && '🥉'}
+                                                {player.rank === 1 && ''}
+                                                {player.rank === 2 && ''}
+                                                {player.rank === 3 && ''}
                                                 {player.rank > 3 && `#${player.rank}`}
                                             </td>
                                             <td style={{ padding: '16px', color: '#fff' }}>{player.username}</td>
@@ -74,7 +74,7 @@ export default function TriviaLeaderboard() {
                                                 {player.score.toLocaleString()}
                                             </td>
                                             <td style={{ padding: '16px', color: '#f59e0b', textAlign: 'right' }}>
-                                                🔥 {player.streak}
+                                                 {player.streak}
                                             </td>
                                             <td style={{ padding: '16px', color: '#10b981', textAlign: 'right', fontWeight: 'bold' }}>
                                                 {player.accuracy}%

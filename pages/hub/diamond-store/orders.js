@@ -116,7 +116,7 @@ export default function OrderHistory() {
                             <h2 style={styles.emptyTitle}>No orders yet</h2>
                             <p style={styles.emptyText}>Your order history will appear here after your first purchase</p>
                             <Link href="/hub/diamond-store" style={styles.shopButton}>
-                                💎 Visit Diamond Store
+                                Diamonds Visit Diamond Store
                             </Link>
                         </div>
                     ) : (

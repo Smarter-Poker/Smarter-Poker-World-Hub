@@ -51,7 +51,7 @@ export default function TrainingPlayPage() {
                 color: '#fff',
             }}>
                 <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 48, marginBottom: 16 }}>🎮</div>
+                    <div style={{ fontSize: 48, marginBottom: 16 }}></div>
                     <p>Loading Level Selector...</p>
                 </div>
             </div>

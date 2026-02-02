@@ -46,7 +46,7 @@ export default function MemoryGamesStats() {
                         </button>
 
                         <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#fff', marginBottom: '30px' }}>
-                            📊 My Memory Stats
+                             My Memory Stats
                         </h1>
 
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>

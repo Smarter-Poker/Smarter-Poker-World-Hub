@@ -81,7 +81,7 @@ export default function ProfileRedirect() {
             color: 'white'
         }}>
             <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 32, marginBottom: 16 }}>♠️</div>
+                <div style={{ fontSize: 32, marginBottom: 16 }}>s</div>
                 <div style={{ opacity: 0.7 }}>Loading your profile...</div>
             </div>
         </div>

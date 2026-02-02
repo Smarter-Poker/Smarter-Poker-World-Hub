@@ -1,5 +1,5 @@
 /**
- * 💬 SMARTER.POKER MESSENGER V2.0
+ *  SMARTER.POKER MESSENGER V2.0
  * Full-featured Facebook Messenger clone with premium design
  * Real-time chat, read receipts, typing indicators, and poker-themed UI
  * Enhanced with: optimistic updates, message reactions, sound notifications
@@ -197,7 +197,7 @@ function Avatar({ src, name, size = 40, online, showOnline = true }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 📝 MESSAGE INPUT COMPONENT
+//  MESSAGE INPUT COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
 function MessageInput({ onSend, onTyping, onMediaUpload, disabled }) {
@@ -207,7 +207,7 @@ function MessageInput({ onSend, onTyping, onMediaUpload, disabled }) {
     const inputRef = useRef(null);
     const fileInputRef = useRef(null);
 
-    const emojis = ['😀', '😂', '❤️', '👍', '🔥', '🎉', '😎', '🤔', '👏', '💯', '♠️', '♥️', '♦️', '♣️', '🃏', '🎰'];
+    const emojis = ['😀', '😂', '', '👍', '', '', '😎', '🤔', '👏', '💯', 's', 'h', 'd', 'c', '', ''];
 
     const handleSend = () => {
         if (!text.trim()) return;
@@ -408,7 +408,7 @@ function MessageInput({ onSend, onTyping, onMediaUpload, disabled }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 🔔 TOAST NOTIFICATION COMPONENT
+//  TOAST NOTIFICATION COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
 function Toast({ toast, onDismiss }) {
@@ -437,12 +437,12 @@ function Toast({ toast, onDismiss }) {
             alignItems: 'center',
             gap: 8,
         }}>
-            <span>{toast.type === 'error' ? '⚠️' : '✓'}</span>
+            <span>{toast.type === 'error' ? '' : ''}</span>
             <span>{toast.message}</span>
             <button
                 onClick={onDismiss}
                 style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', marginLeft: 8 }}
-            >✕</button>
+            >×</button>
         </div>
     );
 }
@@ -475,7 +475,7 @@ function TypingIndicator({ name }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 💬 MESSAGE BUBBLE COMPONENT
+//  MESSAGE BUBBLE COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
 
@@ -496,10 +496,10 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
             >⚠</span>
         );
         if (status === 'read' || message.is_read) {
-            return <span style={{ color: '#0084FF', fontSize: 10 }} title="Read">✓✓</span>;
+            return <span style={{ color: '#0084FF', fontSize: 10 }} title="Read"></span>;
         }
         // Delivered/sent
-        return <span style={{ color: '#31A24C', fontSize: 10 }} title="Delivered">✓</span>;
+        return <span style={{ color: '#31A24C', fontSize: 10 }} title="Delivered"></span>;
     };
 
     const handleReaction = async (emoji) => {
@@ -576,7 +576,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                         boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                         zIndex: 10,
                     }}>
-                        {['❤️', '👍', '😂', '😮', '😢'].map(emoji => (
+                        {['', '👍', '😂', '😮', '😢'].map(emoji => (
                             <button
                                 key={emoji}
                                 onClick={() => handleReaction(emoji)}
@@ -704,8 +704,8 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                         const imageMatch = content.match(/(?:📷\s*)?\[Image\]\(([^)]+)\)/);
                         const imageUrl = imageMatch?.[1] || message.media_url;
 
-                        // Check for video markdown: [Video](url) or 🎬 [Video](url) - support both
-                        const videoMatch = content.match(/(?:🎬\s*)?\[Video\]\(([^)]+)\)/);
+                        // Check for video markdown: [Video](url) or  [Video](url) - support both
+                        const videoMatch = content.match(/(?:\s*)?\[Video\]\(([^)]+)\)/);
                         const videoUrl = videoMatch?.[1];
 
                         // Check if content is just a direct image/video URL
@@ -924,7 +924,7 @@ function ConversationItem({ conversation, isActive, onClick, currentUserId }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 🔍 SEARCH BAR COMPONENT
+//  SEARCH BAR COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
 function SearchBar({ value, onChange, onSearchUser, searchResults, onSelectUser, inputRef, composing }) {
@@ -940,7 +940,7 @@ function SearchBar({ value, onChange, onSearchUser, searchResults, onSelectUser,
                     fontSize: 14,
                     fontWeight: 500,
                 }}>
-                    ✨ New Message - Search for a user below
+                     New Message - Search for a user below
                 </div>
             )}
             <div style={{
@@ -951,7 +951,7 @@ function SearchBar({ value, onChange, onSearchUser, searchResults, onSelectUser,
                 padding: '0 12px',
                 border: composing ? `2px solid ${C.blue}` : 'none',
             }}>
-                <span style={{ color: C.textSec, marginRight: 8 }}>🔍</span>
+                <span style={{ color: C.textSec, marginRight: 8 }}></span>
                 <input
                     ref={inputRef}
                     type="text"
@@ -1117,7 +1117,7 @@ export default function MessengerPage() {
     useEffect(() => {
         async function init() {
             try {
-                // 🛡️ BULLETPROOF: Try localStorage first for instant session (PWA/notification opens)
+                //  BULLETPROOF: Try localStorage first for instant session (PWA/notification opens)
                 let authUser = null;
 
                 // First, try to get user from localStorage (faster, works offline)
@@ -1182,7 +1182,7 @@ export default function MessengerPage() {
         init();
     }, []);
 
-    // 🛡️ MULTI-DEVICE RESILIENCE: Listen for auth changes from ANY device
+    //  MULTI-DEVICE RESILIENCE: Listen for auth changes from ANY device
     // This handles: token refresh, login from another device, session recovery
     useEffect(() => {
         const cleanup = createMultiDeviceAuthListener(supabase, async (authUser, event) => {
@@ -1514,7 +1514,7 @@ export default function MessengerPage() {
     };
 
     const loadConversations = async (userId) => {
-        // 🛡️ HARDENED: Circuit breaker + offline detection + retry + guaranteed fallback
+        //  HARDENED: Circuit breaker + offline detection + retry + guaranteed fallback
         const circuit = getCircuit('messenger-conversations', { failureThreshold: 3, resetTimeout: 30000 });
 
         console.log('[MESSENGER] Loading conversations for userId:', userId, 'Online:', isOnline());
@@ -1700,7 +1700,7 @@ export default function MessengerPage() {
                 console.error('Mark read failed:', e);
             }
 
-            // 🔔 Immediately refresh global unread count to clear header badge
+            //  Immediately refresh global unread count to clear header badge
             if (refreshUnread) refreshUnread();
 
         } catch (e) {
@@ -2318,7 +2318,7 @@ export default function MessengerPage() {
         setCallRoomName(roomName);
         setShowCall(true);
 
-        // 🔔 Play outgoing ring sound while waiting for answer
+        //  Play outgoing ring sound while waiting for answer
         // Use Web Audio API ring tone only (removed backup audio element to prevent double ringtone)
         if (!outgoingRingToneRef.current) {
             outgoingRingToneRef.current = createRingTone();
@@ -2405,7 +2405,7 @@ export default function MessengerPage() {
                 background: C.bg,
             }}>
                 <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 48, marginBottom: 16 }}>💬</div>
+                    <div style={{ fontSize: 48, marginBottom: 16 }}></div>
                     <div style={{ color: C.textSec }}>Loading Messenger...</div>
                 </div>
             </div>
@@ -2431,7 +2431,7 @@ export default function MessengerPage() {
                         borderRadius: 16,
                         boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
                     }}>
-                        <div style={{ fontSize: 64, marginBottom: 16 }}>💬</div>
+                        <div style={{ fontSize: 64, marginBottom: 16 }}></div>
                         <h2 style={{ margin: '0 0 8px', color: C.text }}>Sign in to Messenger</h2>
                         <p style={{ color: C.textSec, marginBottom: 24 }}>Connect with your poker network</p>
                         <Link href="/auth/login" style={{
@@ -2541,7 +2541,7 @@ export default function MessengerPage() {
                     gap: 12,
                     maxWidth: 400,
                 }}>
-                    <span style={{ fontSize: 28 }}>🔔</span>
+                    <span style={{ fontSize: 28 }}></span>
                     <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: 600, marginBottom: 2 }}>Enable Call Notifications</div>
                         <div style={{ fontSize: 12, opacity: 0.9 }}>Get notified when someone calls you</div>
@@ -2574,7 +2574,7 @@ export default function MessengerPage() {
                             fontSize: 18,
                             opacity: 0.7,
                         }}
-                    >✕</button>
+                    >×</button>
                 </div>
             )}
 
@@ -2681,7 +2681,7 @@ export default function MessengerPage() {
                                 onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
                                 title="Decline"
                             >
-                                ✕
+                                ×
                             </button>
                             <button
                                 onClick={handleAcceptCall}
@@ -2701,7 +2701,7 @@ export default function MessengerPage() {
                                 onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
                                 title="Accept"
                             >
-                                ✓
+                                
                             </button>
                         </div>
                     </div>
@@ -2848,7 +2848,7 @@ export default function MessengerPage() {
                     <div style={{ flex: 1, overflowY: 'auto' }}>
                         {conversations.length === 0 ? (
                             <div style={{ padding: 40, textAlign: 'center' }}>
-                                <div style={{ fontSize: 48, marginBottom: 12 }}>💬</div>
+                                <div style={{ fontSize: 48, marginBottom: 12 }}></div>
                                 <div style={{ color: C.text, fontWeight: 500, marginBottom: 4 }}>No conversations yet</div>
                                 <div style={{ fontSize: 13, color: C.textSec, marginBottom: 20 }}>Search for people to start messaging!</div>
                                 <button
@@ -3077,7 +3077,7 @@ export default function MessengerPage() {
                                                 padding: '0 12px',
                                                 border: `1px solid ${C.border}`,
                                             }}>
-                                                <span style={{ color: C.textSec, marginRight: 8 }}>🔍</span>
+                                                <span style={{ color: C.textSec, marginRight: 8 }}></span>
                                                 <input
                                                     type="text"
                                                     value={messageSearchQuery}
@@ -3102,7 +3102,7 @@ export default function MessengerPage() {
                                                             background: 'none', border: 'none', cursor: 'pointer',
                                                             color: C.textSec, fontSize: 14,
                                                         }}
-                                                    >✕</button>
+                                                    >×</button>
                                                 )}
                                             </div>
 
@@ -3231,7 +3231,7 @@ export default function MessengerPage() {
                                 flexDirection: 'column',
                                 color: C.textSec,
                             }}>
-                                <div style={{ fontSize: 80, marginBottom: 16 }}>💬</div>
+                                <div style={{ fontSize: 80, marginBottom: 16 }}></div>
                                 <h2 style={{ margin: 0, color: C.text, fontWeight: 600 }}>Select a conversation</h2>
                                 <p style={{ marginTop: 8, color: C.textSec }}>Choose from your existing chats or search for someone new</p>
                             </div>

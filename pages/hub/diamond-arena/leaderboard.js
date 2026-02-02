@@ -47,7 +47,7 @@ export default function DiamondArenaLeaderboard() {
                         </button>
 
                         <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#fff', marginBottom: '30px' }}>
-                            🏆 Leaderboard
+                            Trophy Leaderboard
                         </h1>
 
                         {/* Filters */}
@@ -87,14 +87,14 @@ export default function DiamondArenaLeaderboard() {
                                     {leaderboard.map(player => (
                                         <tr key={player.rank} style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                                             <td style={{ padding: '16px', color: '#fff', fontWeight: 'bold' }}>
-                                                {player.rank === 1 && '🥇'}
-                                                {player.rank === 2 && '🥈'}
-                                                {player.rank === 3 && '🥉'}
+                                                {player.rank === 1 && ''}
+                                                {player.rank === 2 && ''}
+                                                {player.rank === 3 && ''}
                                                 {player.rank > 3 && `#${player.rank}`}
                                             </td>
                                             <td style={{ padding: '16px', color: '#fff' }}>{player.username}</td>
                                             <td style={{ padding: '16px', color: '#fbbf24', textAlign: 'right', fontWeight: 'bold' }}>
-                                                💎 {player.diamonds.toLocaleString()}
+                                                Diamonds {player.diamonds.toLocaleString()}
                                             </td>
                                             <td style={{ padding: '16px', color: '#9ca3af', textAlign: 'right' }}>{player.games}</td>
                                             <td style={{ padding: '16px', color: '#10b981', textAlign: 'right', fontWeight: 'bold' }}>

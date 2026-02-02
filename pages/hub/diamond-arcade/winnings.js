@@ -42,7 +42,7 @@ export default function DiamondArcadeWinnings() {
                         </button>
 
                         <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#fff', marginBottom: '30px' }}>
-                            💎 My Winnings
+                            Diamonds My Winnings
                         </h1>
 
                         <div style={{ display: 'grid', gap: '16px' }}>
@@ -61,7 +61,7 @@ export default function DiamondArcadeWinnings() {
                                 >
                                     <div>
                                         <div style={{ color: '#fff', fontWeight: 'bold', marginBottom: '4px' }}>
-                                            {win.game} - {win.rank === 1 ? '🥇' : win.rank === 2 ? '🥈' : '🥉'} {win.rank}{win.rank === 1 ? 'st' : win.rank === 2 ? 'nd' : 'rd'} Place
+                                            {win.game} - {win.rank === 1 ? '' : win.rank === 2 ? '' : ''} {win.rank}{win.rank === 1 ? 'st' : win.rank === 2 ? 'nd' : 'rd'} Place
                                         </div>
                                         <div style={{ color: '#9ca3af', fontSize: '14px' }}>
                                             {new Date(win.date).toLocaleDateString()}
@@ -69,7 +69,7 @@ export default function DiamondArcadeWinnings() {
                                     </div>
 
                                     <div style={{ color: '#fbbf24', fontSize: '24px', fontWeight: 'bold' }}>
-                                        +{win.diamonds.toLocaleString()} 💎
+                                        +{win.diamonds.toLocaleString()} Diamonds
                                     </div>
                                 </div>
                             ))}

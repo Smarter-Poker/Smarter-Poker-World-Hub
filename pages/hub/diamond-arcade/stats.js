@@ -46,7 +46,7 @@ export default function DiamondArcadeStats() {
                         </button>
 
                         <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#fff', marginBottom: '30px' }}>
-                            📊 My Arcade Stats
+                             My Arcade Stats
                         </h1>
 
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
@@ -67,7 +67,7 @@ export default function DiamondArcadeStats() {
 
                             <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '24px' }}>
                                 <div style={{ color: '#9ca3af', fontSize: '14px', marginBottom: '8px' }}>Diamonds Earned</div>
-                                <div style={{ color: '#fbbf24', fontSize: '32px', fontWeight: 'bold' }}>💎 {stats.diamondsEarned.toLocaleString()}</div>
+                                <div style={{ color: '#fbbf24', fontSize: '32px', fontWeight: 'bold' }}>Diamonds {stats.diamondsEarned.toLocaleString()}</div>
                             </div>
                         </div>
                     </div>

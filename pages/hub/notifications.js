@@ -39,7 +39,7 @@ export default function NotificationsPage() {
 
     useEffect(() => {
         const fetchNotifications = async () => {
-            // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
+            //  BULLETPROOF: Use authUtils to avoid AbortError
             const au = getAuthUser();
             if (au) {
                 setUser(au);
@@ -250,7 +250,7 @@ export default function NotificationsPage() {
                     .eq('status', 'pending');
             }
 
-            // 🔥 FACEBOOK-STYLE: Auto-convert to follower
+            //  FACEBOOK-STYLE: Auto-convert to follower
             // The requester now FOLLOWS the person who declined
             await supabase.from('follows').upsert({
                 follower_id: requesterId,     // Person who sent request
@@ -352,14 +352,14 @@ export default function NotificationsPage() {
                 <div style={{ maxWidth: 680, margin: '0 auto' }}>
                     {notifications.length === 0 ? (
                         <div style={{ padding: 40, textAlign: 'center' }}>
-                            <div style={{ fontSize: 48 }}>🔔</div>
+                            <div style={{ fontSize: 48 }}></div>
                             <h3 style={{ color: C.text, marginTop: 16 }}>No notifications yet</h3>
                             <p style={{ color: C.textSec }}>When someone likes, comments, or tags you, you'll see it here.</p>
                         </div>
                     ) : (
                         notifications.map(n => {
                             const isPoker = n._source === 'poker';
-                            const actionIcon = isPoker ? '♠' : n.type === 'like' ? '👍' : n.type === 'comment' ? '💬' : n.type === 'mention' ? '@' : n.type === 'friend_request' ? '👥' : n.type === 'friend_accepted' ? '✓' : n.type === 'new_follow' ? '💜' : n.type === 'live' ? '🔴' : '🔔';
+                            const actionIcon = isPoker ? 's' : n.type === 'like' ? '👍' : n.type === 'comment' ? '' : n.type === 'mention' ? '@' : n.type === 'friend_request' ? '' : n.type === 'friend_accepted' ? '' : n.type === 'new_follow' ? '' : n.type === 'live' ? '🔴' : '';
                             const iconBg = isPoker ? '#2D8B4E' : n.type === 'like' ? '#1877F2' : n.type === 'comment' ? '#44BD32' : n.type === 'live' ? '#FA383E' : n.type === 'friend_request' || n.type === 'friend_accepted' ? '#42B72A' : '#65676B';
 
                             // Navigate to page detail for poker, user profile for social

@@ -78,7 +78,7 @@ export default function SettingsPage() {
     const router = useRouter();
     const { avatar, isVip, user: contextUser, initializing } = useAvatar();
     const [userProfile, setUserProfile] = useState(null);
-    const [localUser, setLocalUser] = useState(null); // 🛡️ Fallback from localStorage
+    const [localUser, setLocalUser] = useState(null); //  Fallback from localStorage
     const [activeSection, setActiveSection] = useState('account');
     const [saved, setSaved] = useState(false);
     const [showAvatarBuilder, setShowAvatarBuilder] = useState(false);
@@ -100,10 +100,10 @@ export default function SettingsPage() {
     // Menu config
     const menuConfig = getMenuConfig('settings', user, {}, {});
 
-    // 🛡️ Use context user or localStorage fallback
+    //  Use context user or localStorage fallback
     const user = contextUser || localUser;
 
-    // 🛡️ BULLETPROOF: Read user from localStorage immediately (same as UniversalHeader)
+    //  BULLETPROOF: Read user from localStorage immediately (same as UniversalHeader)
     useEffect(() => {
         if (typeof window !== 'undefined' && !contextUser) {
             try {
@@ -407,15 +407,15 @@ export default function SettingsPage() {
 
     const sections = [
         { id: 'account', label: 'Account', icon: '👤' },
-        { id: 'notifications', label: 'Notifications', icon: '🔔' },
+        { id: 'notifications', label: 'Notifications', icon: '' },
         { id: 'privacy', label: 'Privacy', icon: '🔒' },
         { id: 'appearance', label: 'Appearance', icon: '🎨' },
         { id: 'display', label: 'Display & Sound', icon: '🎵' },
-        { id: 'gameplay', label: 'Gameplay', icon: '🎮' },
+        { id: 'gameplay', label: 'Gameplay', icon: '' },
         { id: 'billing', label: 'Billing & Payments', icon: '💳' },
         { id: 'blocked', label: 'Blocked Users', icon: '🚫' },
         { id: 'data', label: 'Data Export', icon: '📦' },
-        { id: 'delete', label: 'Delete Account', icon: '⚠️' },
+        { id: 'delete', label: 'Delete Account', icon: '' },
     ];
 
     return (
@@ -458,7 +458,7 @@ export default function SettingsPage() {
                     bottomLinks={menuConfig.bottomLinks}
                 />
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                    <h1 style={styles.pageTitle}>⚙️ Settings</h1>
+                    <h1 style={styles.pageTitle}> Settings</h1>
                     <button
                         onClick={saveSettings}
                         style={{
@@ -468,7 +468,7 @@ export default function SettingsPage() {
                                 : 'linear-gradient(135deg, #00D4FF, #0088cc)',
                         }}
                     >
-                        {saved ? '✓ Saved' : 'Save Changes'}
+                        {saved ? ' Saved' : 'Save Changes'}
                     </button>
                 </div>
 
@@ -557,7 +557,7 @@ export default function SettingsPage() {
                                             </span>
                                             {isVip && (
                                                 <span style={{ color: '#FFD700', fontSize: 13, marginTop: 4 }}>
-                                                    💎 VIP Member
+                                                    Diamonds VIP Member
                                                 </span>
                                             )}
                                         </div>
@@ -646,7 +646,7 @@ export default function SettingsPage() {
                                                                     fontSize: 10,
                                                                     color: '#000',
                                                                 }}>
-                                                                    ✓
+                                                                    
                                                                 </div>
                                                             )}
                                                         </>
@@ -686,7 +686,7 @@ export default function SettingsPage() {
                                                 transition: 'all 0.3s ease',
                                             }}
                                         >
-                                            ✨ Create Custom Avatar
+                                             Create Custom Avatar
                                         </button>
                                         <button
                                             onClick={() => router.push('/hub/avatars-complete')}
@@ -721,7 +721,7 @@ export default function SettingsPage() {
                                             border: '1px solid rgba(255, 215, 0, 0.2)',
                                         }}>
                                             <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13 }}>
-                                                💎 Free users get 1 custom avatar.
+                                                Diamonds Free users get 1 custom avatar.
                                                 <a
                                                     href="/hub/vip"
                                                     style={{
@@ -764,7 +764,7 @@ export default function SettingsPage() {
                                         onClick={() => setShow2FAModal(true)}
                                         style={styles.secondaryButton}
                                     >
-                                        {twoFactorEnabled ? '✓ 2FA Enabled' : 'Enable 2FA'}
+                                        {twoFactorEnabled ? ' 2FA Enabled' : 'Enable 2FA'}
                                     </button>
                                     <button
                                         onClick={async () => {
@@ -1051,7 +1051,7 @@ export default function SettingsPage() {
                                     <div style={styles.settingGroup}>
                                         <h3 style={styles.groupTitle}>VIP Membership</h3>
                                         <div style={styles.vipBadge}>
-                                            <span style={styles.vipIcon}>👑</span>
+                                            <span style={styles.vipIcon}></span>
                                             <div>
                                                 <div style={styles.vipTitle}>Active VIP Member</div>
                                                 <div style={styles.vipSubtitle}>Enjoying premium benefits</div>
@@ -1116,11 +1116,11 @@ export default function SettingsPage() {
                         {/* Delete Account Section */}
                         {activeSection === 'delete' && (
                             <div style={styles.section}>
-                                <h2 style={styles.sectionTitle}>⚠️ Delete Account</h2>
+                                <h2 style={styles.sectionTitle}> Delete Account</h2>
 
                                 <div style={styles.dangerZone}>
                                     <div style={styles.warningBox}>
-                                        <div style={styles.warningIcon}>⚠️</div>
+                                        <div style={styles.warningIcon}></div>
                                         <div>
                                             <h3 style={styles.warningTitle}>Danger Zone</h3>
                                             <p style={styles.warningText}>
@@ -1264,7 +1264,7 @@ export default function SettingsPage() {
                                 </div>
 
                                 <div style={styles.dangerCard}>
-                                    <h3 style={styles.dangerTitle}>⚠️ Danger Zone</h3>
+                                    <h3 style={styles.dangerTitle}> Danger Zone</h3>
                                     <p style={styles.dangerDesc}>
                                         These actions are irreversible. Please proceed with caution.
                                     </p>
@@ -1340,7 +1340,7 @@ export default function SettingsPage() {
                             zIndex: 1001
                         }}
                     >
-                        ✕ Close
+                        × Close
                     </button>
                     <CustomAvatarBuilder isVip={isVip} onClose={() => setShowAvatarBuilder(false)} />
                 </div>
@@ -1481,7 +1481,7 @@ export default function SettingsPage() {
                                     marginBottom: 20,
                                     textAlign: 'center'
                                 }}>
-                                    <div style={{ fontSize: 48, marginBottom: 12 }}>✓</div>
+                                    <div style={{ fontSize: 48, marginBottom: 12 }}></div>
                                     <h3 style={{ color: '#0f0', fontSize: 18, marginBottom: 8 }}>2FA is Active</h3>
                                     <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, margin: 0 }}>
                                         Your account is protected with two-factor authentication

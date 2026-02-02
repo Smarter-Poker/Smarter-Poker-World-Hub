@@ -11,8 +11,8 @@ export default function TriviaAchievements() {
     const router = useRouter();
 
     const achievements = [
-        { id: 1, name: 'First Steps', description: 'Answer your first question', unlocked: true, icon: '🎯' },
-        { id: 2, name: 'Streak Master', description: 'Get a 50 question streak', unlocked: false, icon: '🔥' },
+        { id: 1, name: 'First Steps', description: 'Answer your first question', unlocked: true, icon: '' },
+        { id: 2, name: 'Streak Master', description: 'Get a 50 question streak', unlocked: false, icon: '' },
         { id: 3, name: 'Perfect Score', description: '100% accuracy in a session', unlocked: true, icon: '💯' },
     ];
 
@@ -43,7 +43,7 @@ export default function TriviaAchievements() {
                         </button>
 
                         <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#fff', marginBottom: '30px' }}>
-                            🏅 Achievements
+                             Achievements
                         </h1>
 
                         <div style={{ display: 'grid', gap: '16px' }}>
@@ -72,7 +72,7 @@ export default function TriviaAchievements() {
                                     </div>
                                     {achievement.unlocked && (
                                         <div style={{ marginLeft: 'auto', color: '#10b981', fontWeight: 'bold' }}>
-                                            ✓ Unlocked
+                                             Unlocked
                                         </div>
                                     )}
                                 </div>

@@ -328,7 +328,7 @@ const SOURCES = [
     { id: 'TRITON', name: 'Triton Poker', logo: '/images/video-sources/triton.png' },
     { id: 'LATB', name: 'Live at the Bike', logo: '/images/video-sources/latb.png' },
     { id: 'TCH', name: 'TCH Live', logo: '/images/video-sources/tch.png' },
-    { id: 'POKERGO', name: 'PokerGO', logo: null, emoji: '🎬' },
+    { id: 'POKERGO', name: 'PokerGO', logo: null, emoji: '' },
     // Major Tours
     { id: 'WSOP', name: 'WSOP', logo: '/images/video-sources/wsop.png' },
     { id: 'WPT', name: 'WPT', logo: '/images/video-sources/wpt.png' },
@@ -336,23 +336,23 @@ const SOURCES = [
     // Top Vloggers
     { id: 'BRAD_OWEN', name: 'Brad Owen', logo: '/images/video-sources/brad_owen.png' },
     { id: 'NEEME', name: 'Andrew Neeme', logo: null, emoji: '🎥' },
-    { id: 'RAMPAGE', name: 'Rampage Poker', logo: null, emoji: '🚀' },
-    { id: 'MARIANO', name: 'Mariano', logo: null, emoji: '🃏' },
+    { id: 'RAMPAGE', name: 'Rampage Poker', logo: null, emoji: '' },
+    { id: 'MARIANO', name: 'Mariano', logo: null, emoji: '' },
     { id: 'WOLFGANG', name: 'Wolfgang Poker', logo: null, emoji: '🐺' },
     { id: 'JOHNNIE', name: 'JohnnieVibes', logo: null, emoji: '🎸' },
     { id: 'BOSKI', name: 'Boski', logo: null, emoji: '🎭' },
-    { id: 'RYAN', name: 'Ryan Depaulo', logo: null, emoji: '🎰' },
+    { id: 'RYAN', name: 'Ryan Depaulo', logo: null, emoji: '' },
     // Training/Strategy
     { id: 'JLITTLE', name: 'Jonathan Little', logo: null, emoji: '📚' },
     { id: 'POLK', name: 'Doug Polk', logo: null, emoji: '👊' },
-    { id: 'BART', name: 'Bart Hanson', logo: null, emoji: '📊' },
-    { id: 'UPSWING', name: 'Upswing Poker', logo: null, emoji: '📈' },
+    { id: 'BART', name: 'Bart Hanson', logo: null, emoji: '' },
+    { id: 'UPSWING', name: 'Upswing Poker', logo: null, emoji: '' },
     // Celebrity Pros
     { id: 'NEGREANU', name: 'Daniel Negreanu', logo: null, emoji: '🐐' },
-    { id: 'HELLMUTH', name: 'Phil Hellmuth', logo: null, emoji: '👑' },
-    { id: 'IVEY', name: 'Phil Ivey', logo: null, emoji: '🎯' },
-    { id: 'DWAN', name: 'Tom Dwan', logo: null, emoji: '💎' },
-    { id: 'GARRETT', name: 'Garrett Adelstein', logo: null, emoji: '🏆' },
+    { id: 'HELLMUTH', name: 'Phil Hellmuth', logo: null, emoji: '' },
+    { id: 'IVEY', name: 'Phil Ivey', logo: null, emoji: '' },
+    { id: 'DWAN', name: 'Tom Dwan', logo: null, emoji: 'Diamonds' },
+    { id: 'GARRETT', name: 'Garrett Adelstein', logo: null, emoji: 'Trophy' },
 ];
 
 const C = {
@@ -411,7 +411,7 @@ export default function VideoLibraryPage() {
         captions: false
     });
 
-    // 🎬 INTRO VIDEO STATE - Video plays while page loads in background
+    //  INTRO VIDEO STATE - Video plays while page loads in background
     // Only show once per session (not on every reload)
     const [showIntro, setShowIntro] = useState(() => {
         if (typeof window !== 'undefined') {
@@ -549,7 +549,7 @@ export default function VideoLibraryPage() {
 
     return (
         <PageTransition>
-            {/* 🎬 INTRO VIDEO OVERLAY - Plays while page loads behind it */}
+            {/*  INTRO VIDEO OVERLAY - Plays while page loads behind it */}
             {showIntro && (
                 <div style={{
                     position: 'fixed',
@@ -693,7 +693,7 @@ export default function VideoLibraryPage() {
                                 top: '50%',
                                 transform: 'translateY(-50%)',
                                 fontSize: 18,
-                            }}>🔍</span>
+                            }}></span>
                         </div>
                     </div>
 
@@ -705,9 +705,9 @@ export default function VideoLibraryPage() {
                         justifyContent: 'center',
                     }}>
                         {[
-                            { id: 'cash', name: '💰 Cash Games', icon: '🎰' },
+                            { id: 'cash', name: ' Cash Games', icon: '' },
                             { id: 'ALL', name: 'All Videos', icon: '🌍' },
-                            { id: 'tournament', name: '🏆 Tournaments', icon: '👑' },
+                            { id: 'tournament', name: 'Trophy Tournaments', icon: '' },
                         ].map(type => (
                             <button
                                 key={type.id}
@@ -977,7 +977,7 @@ export default function VideoLibraryPage() {
                         padding: '80px 20px',
                         color: C.textSec,
                     }}>
-                        <div style={{ fontSize: 64, marginBottom: 16 }}>🎬</div>
+                        <div style={{ fontSize: 64, marginBottom: 16 }}></div>
                         <h3 style={{ color: C.text, marginBottom: 8 }}>No videos found</h3>
                         <p>Try adjusting your search or filter</p>
                     </div>
@@ -1031,7 +1031,7 @@ export default function VideoLibraryPage() {
                             zIndex: 1001,
                             backdropFilter: 'blur(10px)',
                         }}
-                    >✕</button>
+                    >×</button>
 
                     {/* Fullscreen YouTube embed */}
                     <div style={{

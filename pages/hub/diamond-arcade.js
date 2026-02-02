@@ -46,7 +46,7 @@ const GAME_CARD_STYLES = {
             radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.3) 0%, transparent 60%),
             linear-gradient(180deg, transparent 50%, rgba(0,0,0,0.4) 100%)
         `,
-        icon: '⚡',
+        icon: 'Lightning',
         accentColor: '#fbbf24',
         boxShadow: 'inset 0 0 40px rgba(251, 191, 36, 0.15), inset 0 0 80px rgba(59, 130, 246, 0.1)',
     },
@@ -59,7 +59,7 @@ const GAME_CARD_STYLES = {
             radial-gradient(circle at 30% 60%, rgba(251, 191, 36, 0.2) 0%, transparent 40%),
             linear-gradient(180deg, transparent 50%, rgba(0,0,0,0.5) 100%)
         `,
-        icon: '🃏',
+        icon: '',
         accentColor: '#ef4444',
         boxShadow: 'inset 0 0 50px rgba(239, 68, 68, 0.2), inset 0 0 80px rgba(0,0,0,0.3)',
     },
@@ -72,7 +72,7 @@ const GAME_CARD_STYLES = {
             radial-gradient(circle at 70% 30%, rgba(251, 191, 36, 0.15) 0%, transparent 35%),
             linear-gradient(180deg, transparent 50%, rgba(0,0,0,0.4) 100%)
         `,
-        icon: '🎯',
+        icon: 'Target',
         accentColor: '#22c55e',
         boxShadow: 'inset 0 0 50px rgba(34, 197, 94, 0.2), inset 0 0 80px rgba(0,0,0,0.2)',
     },
@@ -163,7 +163,7 @@ export default function DiamondArcade() {
         setAnimations: (val) => updatePreference('animations', val)
     });
 
-    // 🎬 INTRO VIDEO STATE - Video plays while page loads in background
+    //  INTRO VIDEO STATE - Video plays while page loads in background
     // Only show once per session (not on every reload)
     const [showIntro, setShowIntro] = useState(() => {
         if (typeof window !== 'undefined') {
@@ -389,7 +389,7 @@ export default function DiamondArcade() {
 
     return (
         <>
-            {/* 🎬 INTRO VIDEO OVERLAY - Plays while page loads behind it */}
+            {/*  INTRO VIDEO OVERLAY - Plays while page loads behind it */}
             {showIntro && (
                 <div style={{
                     position: 'fixed',
@@ -510,12 +510,12 @@ export default function DiamondArcade() {
                                 <div style={styles.headerBanner}>
                                     <div style={styles.headerBannerInner}>
                                         <div style={styles.headerDecorLeft}>◆</div>
-                                        <h1 style={styles.arcadeTitle}>💎 DIAMOND ARCADE</h1>
+                                        <h1 style={styles.arcadeTitle}>DIAMOND ARCADE</h1>
                                         <div style={styles.headerDecorRight}>◆</div>
                                     </div>
                                     <div style={styles.headerStats}>
-                                        <span style={styles.balanceText}>Balance: <strong>{balance.toLocaleString()}</strong> 💎</span>
-                                        <span style={styles.streakText}>🔥 STREAK x{streak}</span>
+                                        <span style={styles.balanceText}>Balance: <strong>{balance.toLocaleString()}</strong>  Diamonds</span>
+                                        <span style={styles.streakText}>STREAK x{streak}</span>
                                     </div>
                                 </div>
 
@@ -526,7 +526,7 @@ export default function DiamondArcade() {
                                     <div style={styles.jackpotBorder}>
                                         <div style={styles.jackpotInner}>
                                             <div style={styles.jackpotLabel}>
-                                                <span style={styles.slotIcon}>🎰</span>
+                                                <span style={styles.slotIcon}></span>
                                                 <span style={styles.jackpotLabelText}>PROGRESSIVE JACKPOT</span>
                                             </div>
 
@@ -537,7 +537,7 @@ export default function DiamondArcade() {
                                                     animate={{ y: [0, -15, 0], scale: [1, 1.05, 1] }}
                                                     transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                                                 >
-                                                    💎
+                                                     Diamonds
                                                 </motion.div>
                                                 {/* Floating Shards */}
                                                 {[...Array(8)].map((_, i) => (
@@ -560,7 +560,7 @@ export default function DiamondArcade() {
                                                 ))}
                                             </div>
 
-                                            <div style={styles.jackpotAmount}>{jackpot.toLocaleString()} 💎</div>
+                                            <div style={styles.jackpotAmount}>{jackpot.toLocaleString()}  Diamonds</div>
                                             <div style={styles.jackpotTimer}>Next Draw: 3d 14h 22m</div>
                                         </div>
                                     </div>
@@ -598,7 +598,7 @@ export default function DiamondArcade() {
                                                 </div>
                                                 <div style={styles.gameCardFooter}>
                                                     <div style={styles.priceAndBadge}>
-                                                        <span style={styles.gamePrice}>{game.entryFee} 💎💎</span>
+                                                        <span style={styles.gamePrice}>{game.entryFee}  Diamonds</span>
                                                         <span style={{ ...styles.gameBadge, background: game.badgeColor }}>{game.badge}</span>
                                                     </div>
                                                 </div>
@@ -617,7 +617,7 @@ export default function DiamondArcade() {
                                         <span style={styles.challengeName}>Board Nuts Blitz</span>
                                     </div>
                                     <div style={styles.challengeContent}>
-                                        <div style={styles.challengePrize}>Top 100 Split 10,000 💎</div>
+                                        <div style={styles.challengePrize}>Top 100 Split 10,000  Diamonds</div>
                                         <div style={styles.challengeStats}>
                                             Your Rank: <span style={styles.highlight}>#234</span> • Best Score: <span style={styles.highlight}>847 pts</span> • Leader: <span style={styles.highlight}>1,203 pts</span>
                                         </div>
@@ -628,7 +628,7 @@ export default function DiamondArcade() {
                                         whileTap={{ scale: 0.95 }}
                                         onClick={() => startGame('board-nuts')}
                                     >
-                                        PLAY NOW - 25 💎
+                                        PLAY NOW - 25  Diamonds
                                     </motion.button>
                                 </div>
 
@@ -645,7 +645,7 @@ export default function DiamondArcade() {
                                     <div style={styles.duelsGrid}>
                                         <motion.div style={styles.duelCard} whileHover={{ scale: 1.03 }}>
                                             <div style={styles.duelName}>QUICK DUEL</div>
-                                            <div style={styles.duelPrice}>25 💎💎</div>
+                                            <div style={styles.duelPrice}>25  Diamonds</div>
                                             <button
                                                 style={styles.duelButton}
                                                 onClick={() => findDuelMatch('quick')}
@@ -654,7 +654,7 @@ export default function DiamondArcade() {
                                         </motion.div>
                                         <motion.div style={styles.duelCard} whileHover={{ scale: 1.03 }}>
                                             <div style={styles.duelName}>BEST OF 3</div>
-                                            <div style={styles.duelPrice}>50 💎💎</div>
+                                            <div style={styles.duelPrice}>50  Diamonds</div>
                                             <button
                                                 style={styles.duelButton}
                                                 onClick={() => findDuelMatch('best-of-3')}
@@ -662,9 +662,9 @@ export default function DiamondArcade() {
                                             >{duelSearching === 'best-of-3' ? 'SEARCHING...' : 'FIND MATCH'}</button>
                                         </motion.div>
                                         <motion.div style={{ ...styles.duelCard, ...styles.duelCardHighRoller }} whileHover={{ scale: 1.03 }}>
-                                            <div style={styles.duelCrown}>👑</div>
+                                            <div style={styles.duelCrown}></div>
                                             <div style={styles.duelName}>HIGH ROLLER</div>
-                                            <div style={styles.duelPrice}>100 💎💎</div>
+                                            <div style={styles.duelPrice}>100  Diamonds</div>
                                             <button
                                                 style={{ ...styles.duelButton, ...styles.duelButtonGold }}
                                                 onClick={() => findDuelMatch('high-roller')}
@@ -690,7 +690,7 @@ export default function DiamondArcade() {
                                 <div style={styles.statsBar}>
                                     <div style={styles.statItem}>
                                         <span style={styles.statLabel}>Today:</span>
-                                        <span style={styles.statValue}>+{stats.todayProfit} 💎</span>
+                                        <span style={styles.statValue}>+{stats.todayProfit}  Diamonds</span>
                                     </div>
                                     <div style={styles.statDivider}>▸</div>
                                     <div style={styles.statItem}>
@@ -708,9 +708,9 @@ export default function DiamondArcade() {
                                     BOTTOM NAV
                                 ═══════════════════════════════════════════════════════════════ */}
                                 <div style={styles.bottomNav}>
-                                    <motion.div style={styles.navIcon} whileHover={{ scale: 1.1 }}>⚡</motion.div>
-                                    <motion.div style={styles.navIcon} whileHover={{ scale: 1.1 }}>🎯</motion.div>
-                                    <motion.div style={styles.navIcon} whileHover={{ scale: 1.1 }}>🏆</motion.div>
+                                    <motion.div style={styles.navIcon} whileHover={{ scale: 1.1 }}>Lightning</motion.div>
+                                    <motion.div style={styles.navIcon} whileHover={{ scale: 1.1 }}>Target</motion.div>
+                                    <motion.div style={styles.navIcon} whileHover={{ scale: 1.1 }}>Trophy</motion.div>
                                 </div>
                             </motion.div>
                         )}
@@ -730,7 +730,7 @@ export default function DiamondArcade() {
                                     <h2 style={styles.gameTitle}>{activeGame.name}</h2>
                                     <div style={styles.gameStats}>
                                         <span style={styles.timerDisplay}>⏱ {timeLeft}s</span>
-                                        <span style={styles.scoreDisplay}>✓ {correctCount}/{questionIndex + 1}</span>
+                                        <span style={styles.scoreDisplay}> {correctCount}/{questionIndex + 1}</span>
                                     </div>
                                 </div>
 
@@ -822,11 +822,11 @@ export default function DiamondArcade() {
                                 animate={{ opacity: 1, scale: 1 }}
                                 style={styles.resultArea}
                             >
-                                <h2 style={styles.resultTitle}>{gameResult.won ? '🎉 WINNER!' : '💔 Game Over'}</h2>
+                                <h2 style={styles.resultTitle}>{gameResult.won ? ' WINNER!' : '💔 Game Over'}</h2>
                                 <div style={styles.resultStats}>
                                     <p>Correct: {correctCount} / {activeGame?.questionsCount || 0}</p>
                                     <p style={styles.prizeDisplay}>
-                                        {gameResult.won ? `+${gameResult.finalPrize} 💎` : `Lost ${activeGame?.entryFee || 0} 💎`}
+                                        {gameResult.won ? `+${gameResult.finalPrize}  Diamonds` : `Lost ${activeGame?.entryFee || 0}  Diamonds`}
                                     </p>
                                 </div>
                                 <motion.button

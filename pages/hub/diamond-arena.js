@@ -106,7 +106,7 @@ export default function DiamondArenaPage() {
     if (!mounted) {
         return (
             <div style={styles.loadingContainer}>
-                <div style={styles.loadingSpinner}>💎</div>
+                <div style={styles.loadingSpinner}>Diamonds</div>
                 <p style={styles.loadingText}>Loading Diamond Arena...</p>
             </div>
         );
@@ -151,7 +151,7 @@ export default function DiamondArenaPage() {
                 {!iframeLoaded && (
                     <div style={styles.loadingOverlay}>
                         <div style={styles.loadingContent}>
-                            <div style={styles.diamondPulse}>💎</div>
+                            <div style={styles.diamondPulse}>Diamonds</div>
                             <h2 style={styles.loadingTitle}>DIAMOND ARENA</h2>
                             <p style={styles.loadingSubtitle}>Entering the Arena...</p>
                             <div style={styles.progressBar}>

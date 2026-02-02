@@ -157,9 +157,9 @@ export default function DiamondArenaSchedule() {
                                             {t.name}
                                         </h3>
                                         <div style={{ display: 'flex', gap: '20px', color: '#9ca3af', fontSize: '14px' }}>
-                                            <span>💎 {t.buyIn === 0 ? 'Freeroll' : `${t.buyIn} Diamonds`}</span>
-                                            <span>🏆 {t.prize.toLocaleString()} Prize Pool</span>
-                                            <span>👥 {t.registered}/{t.maxPlayers}</span>
+                                            <span>Diamonds {t.buyIn === 0 ? 'Freeroll' : `${t.buyIn} Diamonds`}</span>
+                                            <span>Trophy {t.prize.toLocaleString()} Prize Pool</span>
+                                            <span> {t.registered}/{t.maxPlayers}</span>
                                             <span>🕐 {new Date(t.startTime).toLocaleString()}</span>
                                         </div>
                                     </div>

@@ -36,10 +36,10 @@ import BankrollRulesCard from '../../src/components/bankroll/BankrollRulesCard';
 
 const SIDEBAR_SECTIONS = [
   { id: 'dashboard', label: 'Dashboard', icon: '◎' },
-  { id: 'log-session', label: 'Log Session', icon: '📝' },
+  { id: 'log-session', label: 'Log Session', icon: '' },
   { id: 'trips', label: 'Trips & Expenses', icon: '✈' },
   { id: 'leaks', label: 'Leaks', icon: '⚠' },
-  { id: 'reports', label: 'Reports', icon: '📊' },
+  { id: 'reports', label: 'Reports', icon: '' },
   { id: 'settings', label: 'Settings', icon: '⚙' },
 ];
 
@@ -135,7 +135,7 @@ export default function BankrollManagerPage() {
   const [locations, setLocations] = useState([]);
   const [leakAnalysis, setLeakAnalysis] = useState(null);
 
-  // 🎬 INTRO VIDEO STATE - Video plays while page loads in background
+  //  INTRO VIDEO STATE - Video plays while page loads in background
   // Only show once per session (not on every reload)
   const [showIntro, setShowIntro] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -259,7 +259,7 @@ export default function BankrollManagerPage() {
 
   return (
     <PageTransition>
-      {/* 🎬 INTRO VIDEO OVERLAY - Plays while page loads behind it */}
+      {/*  INTRO VIDEO OVERLAY - Plays while page loads behind it */}
       {showIntro && (
         <div style={{
           position: 'fixed',
@@ -414,7 +414,7 @@ export default function BankrollManagerPage() {
           </div>
 
           <div style={styles.topBarRight}>
-            <button style={styles.searchButton}>🔍</button>
+            <button style={styles.searchButton}></button>
           </div>
         </div>
 

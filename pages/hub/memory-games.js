@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   🧠 MEMORY MATRIX 2.0 — THE GTO WIZARD KILLER
+    MEMORY MATRIX 2.0 — THE GTO WIZARD KILLER
    Full Video Game Experience with Pressure, Combos, and Diamond Economy
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -41,15 +41,20 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getMemoryGamesPreferences, updateMemoryGamesPreferences } from '../../src/services/memoryGamesPreferences';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 💎 DIAMOND ENGINE — Local storage with VIP check
+// Diamonds DIAMOND ENGINE — Local storage with VIP check
 // ═══════════════════════════════════════════════════════════════════════════
 // ═══════════════════════════════════════════════════════════════════════════
-// 💎 DIAMOND ENGINE - Import Supabase-powered version
+// Diamonds DIAMOND ENGINE - Import Supabase-powered version
 // ═══════════════════════════════════════════════════════════════════════════
 import DiamondEngine from '../../src/services/DiamondEngine';
 import leaderboardService from '../../src/services/LeaderboardService';
 import dailyChallengeService from '../../src/services/DailyChallengeService';
 
+// New Game Mode Components (dynamic imports for code splitting)
+import dynamic from 'next/dynamic';
+const SpotTrainerGame = dynamic(() => import('../../src/games/SpotTrainerGame'), { ssr: false });
+const TournamentModeGame = dynamic(() => import('../../src/games/TournamentModeGame'), { ssr: false });
+import ScenarioFilterPanel, { filterScenarios } from '../../src/games/ScenarioFilterPanel';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🎨 ACTION COLORS
@@ -99,7 +104,7 @@ function gradeUserGrid(userGrid, solution) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ⚡ SPEED DRILL GAME COMPONENT
+// ++ SPEED DRILL GAME COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) {
     const [gameState, setGameState] = useState('ready'); // ready | playing | revealed | gameover
@@ -245,14 +250,14 @@ function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) {
                 </div>
                 {streak > 0 && (
                     <div style={{ padding: '6px 12px', background: 'linear-gradient(135deg, #ff6b00, #ff0066)', borderRadius: 20, fontWeight: 700, color: '#fff' }}>
-                        🔥 {streak}x
+                        {streak}x
                     </div>
                 )}
             </div>
 
             {gameState === 'ready' && (
                 <div style={{ marginTop: 60 }}>
-                    <div style={{ fontSize: 80, marginBottom: 20 }}>⚡</div>
+                    <div style={{ fontSize: 80, marginBottom: 20 }}>++</div>
                     <h1 style={{ fontFamily: 'Orbitron', fontSize: 36, color: '#FFD700', marginBottom: 16 }}>SPEED DRILL</h1>
                     <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 30, lineHeight: 1.6 }}>
                         Flash a hand → Pick the action → Build streaks!<br />
@@ -270,7 +275,7 @@ function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) {
                     {/* Lives */}
                     <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 16 }}>
                         {[0, 1, 2].map(i => (
-                            <span key={i} style={{ fontSize: 24, opacity: i < lives ? 1 : 0.3 }}>❤️</span>
+                            <span key={i} style={{ fontSize: 24, opacity: i < lives ? 1 : 0.3 }}></span>
                         ))}
                     </div>
 
@@ -308,7 +313,7 @@ function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) {
                     {gameState === 'revealed' && (
                         <div style={{ fontSize: 18, fontWeight: 700, color: userAnswer === currentHand.correctAction ? '#00ff88' : '#ff4444', marginBottom: 16 }}>
                             {userAnswer === currentHand.correctAction
-                                ? `✓ Correct! +${100 + (streak - 1) * 10}`
+                                ? ` Correct! +${100 + (streak - 1) * 10}`
                                 : `✗ Wrong! Should ${currentHand.correctAction.toUpperCase()}`}
                         </div>
                     )}
@@ -342,7 +347,7 @@ function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) {
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.1)', fontSize: 18, color: '#fff' }}>
                             <span>Best Streak</span>
-                            <span>🔥 {maxStreak}</span>
+                            <span> {maxStreak}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', fontSize: 18, color: '#fff' }}>
                             <span>Hands Played</span>
@@ -350,7 +355,7 @@ function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) {
                         </div>
                         {score >= 100 && (
                             <div style={{ marginTop: 16, padding: 12, background: 'linear-gradient(135deg, rgba(0,255,136,0.15), rgba(0,212,255,0.15))', borderRadius: 12, color: '#00ff88', fontWeight: 700 }}>
-                                💎 +{Math.floor(score / 100)} Diamonds earned!
+                                Diamonds +{Math.floor(score / 100)} Diamonds earned!
                             </div>
                         )}
                     </div>
@@ -364,7 +369,7 @@ function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 🔥 PRESSURE COOKER GAME COMPONENT
+//  PRESSURE COOKER GAME COMPONENT
 // Bomb defusal style - answer 10 spots before time runs out!
 // ═══════════════════════════════════════════════════════════════════════════
 function PressureCookerGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) {
@@ -507,11 +512,11 @@ function PressureCookerGame({ level = 1, onExit, onScoreUpdate, DiamondEngine })
 
             {gameState === 'ready' && (
                 <div style={{ marginTop: 60 }}>
-                    <div style={{ fontSize: 80, marginBottom: 20 }}>🔥</div>
+                    <div style={{ fontSize: 80, marginBottom: 20 }}></div>
                     <h1 style={{ fontFamily: 'Orbitron', fontSize: 36, color: '#ff4444', marginBottom: 16 }}>PRESSURE COOKER</h1>
                     <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 30, lineHeight: 1.6 }}>
                         Answer 10 hands before time runs out!<br />
-                        ✓ Correct = +3 seconds<br />
+                        Correct = +3 seconds<br />
                         ✗ Wrong = -5 seconds<br />
                         <span style={{ color: '#ff4444' }}>Clock is ticking... 💣</span>
                     </p>
@@ -570,7 +575,7 @@ function PressureCookerGame({ level = 1, onExit, onScoreUpdate, DiamondEngine })
                     {gameState === 'revealed' && (
                         <div style={{ fontSize: 18, fontWeight: 700, color: userAnswer === currentHand.correctAction ? '#00ff88' : '#ff4444', marginBottom: 16 }}>
                             {userAnswer === currentHand.correctAction
-                                ? `✓ +${100 + (streak - 1) * 20} (+3s)`
+                                ? ` +${100 + (streak - 1) * 20} (+3s)`
                                 : `✗ ${currentHand.correctAction.toUpperCase()} (-5s)`}
                         </div>
                     )}
@@ -595,7 +600,7 @@ function PressureCookerGame({ level = 1, onExit, onScoreUpdate, DiamondEngine })
 
             {gameState === 'success' && (
                 <div style={{ marginTop: 40 }}>
-                    <div style={{ fontSize: 80, marginBottom: 20 }}>🏆</div>
+                    <div style={{ fontSize: 80, marginBottom: 20 }}>Trophy</div>
                     <h1 style={{ fontFamily: 'Orbitron', fontSize: 36, color: '#00ff88', marginBottom: 30 }}>DEFUSED!</h1>
                     <div style={{ background: 'rgba(0,0,0,0.4)', borderRadius: 16, padding: 24, marginBottom: 30 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.1)', fontSize: 18, color: '#fff' }}>
@@ -607,7 +612,7 @@ function PressureCookerGame({ level = 1, onExit, onScoreUpdate, DiamondEngine })
                             <span style={{ color: '#00ff88' }}>{timerSec}s</span>
                         </div>
                         <div style={{ marginTop: 16, padding: 12, background: 'linear-gradient(135deg, rgba(0,255,136,0.15), rgba(0,212,255,0.15))', borderRadius: 12, color: '#00ff88', fontWeight: 700 }}>
-                            💎 +{Math.floor(score / 50) + 10} Diamonds earned!
+                            Diamonds +{Math.floor(score / 50) + 10} Diamonds earned!
                         </div>
                     </div>
                     <button onClick={onExit} style={{ padding: '14px 40px', fontSize: 16, fontWeight: 600, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 30, color: '#fff', cursor: 'pointer' }}>
@@ -854,7 +859,7 @@ function PatternRecognitionGame({ level = 1, onExit, onScoreUpdate, DiamondEngin
                             marginBottom: 16
                         }}>
                             {userAnswer === currentPattern.correctAnswer
-                                ? `✓ Correct! This is a ${currentPattern.correctAnswer.toUpperCase()} range`
+                                ? ` Correct! This is a ${currentPattern.correctAnswer.toUpperCase()} range`
                                 : `✗ Wrong! This is a ${currentPattern.correctAnswer.toUpperCase()} range`}
                         </div>
                     )}
@@ -879,7 +884,7 @@ function PatternRecognitionGame({ level = 1, onExit, onScoreUpdate, DiamondEngin
 
             {gameState === 'gameover' && (
                 <div style={{ marginTop: 40 }}>
-                    <div style={{ fontSize: 80, marginBottom: 20 }}>{correctAnswers >= 6 ? '🏆' : '📊'}</div>
+                    <div style={{ fontSize: 80, marginBottom: 20 }}>{correctAnswers >= 6 ? 'Trophy' : ''}</div>
                     <h1 style={{ fontFamily: 'Orbitron', fontSize: 32, color: correctAnswers >= 6 ? '#00ff88' : '#ffaa00', marginBottom: 30 }}>
                         {correctAnswers >= 6 ? 'EXPERT PATTERN READER!' : 'KEEP STUDYING!'}
                     </h1>
@@ -894,7 +899,7 @@ function PatternRecognitionGame({ level = 1, onExit, onScoreUpdate, DiamondEngin
                         </div>
                         {(correctAnswers * 2 + Math.floor(score / 100)) > 0 && (
                             <div style={{ marginTop: 16, padding: 12, background: 'linear-gradient(135deg, rgba(0,255,136,0.15), rgba(0,212,255,0.15))', borderRadius: 12, color: '#00ff88', fontWeight: 700 }}>
-                                💎 +{correctAnswers * 2 + Math.floor(score / 100)} Diamonds earned!
+                                Diamonds +{correctAnswers * 2 + Math.floor(score / 100)} Diamonds earned!
                             </div>
                         )}
                     </div>
@@ -1158,7 +1163,7 @@ function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) 
                     {/* Feedback */}
                     {gameState === 'revealed' && (
                         <div style={{ marginTop: 30, fontSize: 18, fontWeight: 700, color: diff <= 5 ? '#00ff88' : diff <= 15 ? '#ffaa00' : '#ff4444' }}>
-                            {diff === 0 ? '🎯 PERFECT!' : diff <= 5 ? '🔥 EXCELLENT!' : diff <= 15 ? '👍 CLOSE!' : '❌ WAY OFF!'}
+                            {diff === 0 ? ' PERFECT!' : diff <= 5 ? ' EXCELLENT!' : diff <= 15 ? '👍 CLOSE!' : '❌ WAY OFF!'}
                         </div>
                     )}
 
@@ -1205,7 +1210,7 @@ function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, DiamondEngine }) 
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 🎮 MAIN COMPONENT
+//  MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 export default function MemoryGamesPage() {
     const router = useRouter();
@@ -1307,7 +1312,7 @@ export default function MemoryGamesPage() {
         setAutoSave: (val) => updatePreference('autoSave', val)
     });
 
-    // 🎬 INTRO VIDEO STATE - Video plays while page loads in background
+    //  INTRO VIDEO STATE - Video plays while page loads in background
     // Only show once per session (not on every reload)
     const [showIntro, setShowIntro] = useState(() => {
         if (typeof window !== 'undefined') {
@@ -1418,7 +1423,7 @@ export default function MemoryGamesPage() {
         if (!isVIP) {
             const result = DiamondEngine.deduct(GAME_COST);
             if (!result.success) {
-                alert(`Not enough diamonds! Need ${GAME_COST}💎 to play.\n\nGet VIP for $19.99/month for unlimited access!`);
+                alert(`Not enough diamonds! Need ${GAME_COST}Diamonds to play.\n\nGet VIP for $19.99/month for unlimited access!`);
                 return;
             }
             setDiamondBalance(result.balance);
@@ -1533,11 +1538,11 @@ export default function MemoryGamesPage() {
         let name = null;
         let mult = 1;
 
-        if (comboCount >= 20) { name = '🔥 LEGENDARY!'; mult = 3.0; }
+        if (comboCount >= 20) { name = ' LEGENDARY!'; mult = 3.0; }
         else if (comboCount >= 15) { name = '💀 UNSTOPPABLE!'; mult = 2.5; }
-        else if (comboCount >= 10) { name = '⚡ ON FIRE!'; mult = 2.0; }
-        else if (comboCount >= 7) { name = '🎯 DOMINATING!'; mult = 1.7; }
-        else if (comboCount >= 5) { name = '✨ HOT STREAK!'; mult = 1.5; }
+        else if (comboCount >= 10) { name = '++ ON FIRE!'; mult = 2.0; }
+        else if (comboCount >= 7) { name = ' DOMINATING!'; mult = 1.7; }
+        else if (comboCount >= 5) { name = ' HOT STREAK!'; mult = 1.5; }
         else if (comboCount >= 3) { name = '👍 NICE!'; mult = 1.2; }
 
         setComboName(name);
@@ -1667,7 +1672,7 @@ export default function MemoryGamesPage() {
 
     return (
         <PageTransition>
-            {/* 🎬 INTRO VIDEO OVERLAY - Plays while page loads behind it */}
+            {/*  INTRO VIDEO OVERLAY - Plays while page loads behind it */}
             {showIntro && (
                 <div style={{
                     position: 'fixed',
@@ -1775,13 +1780,13 @@ export default function MemoryGamesPage() {
                         <>
                             {/* Title */}
                             <div style={styles.titleSection}>
-                                <div style={styles.orbIcon}>🧠</div>
+                                <div style={styles.orbIcon}></div>
                                 <h1 style={styles.title}>MEMORY MATRIX</h1>
                                 <p style={styles.subtitle}>
                                     Master GTO ranges through high-pressure video game training
                                 </p>
                                 <div style={styles.costInfo}>
-                                    {isVIP ? '👑 VIP: Unlimited Access' : `💎 ${GAME_COST} Diamonds per game`}
+                                    {isVIP ? ' VIP: Unlimited Access' : `Diamonds ${GAME_COST} Diamonds per game`}
                                 </div>
                             </div>
 
@@ -1794,7 +1799,7 @@ export default function MemoryGamesPage() {
                                         ...(gameType === 'range' ? styles.gameModeTabActive : {}),
                                     }}
                                 >
-                                    🧠 Range
+                                    Range
                                 </button>
                                 <button
                                     onClick={() => setGameType('speed')}
@@ -1803,7 +1808,7 @@ export default function MemoryGamesPage() {
                                         ...(gameType === 'speed' ? styles.gameModeTabActive : {}),
                                     }}
                                 >
-                                    ⚡ Speed
+                                    ++ Speed
                                 </button>
                                 <button
                                     onClick={() => setGameType('pressure')}
@@ -1812,7 +1817,7 @@ export default function MemoryGamesPage() {
                                         ...(gameType === 'pressure' ? styles.gameModeTabActive : {}),
                                     }}
                                 >
-                                    🔥 Pressure
+                                    Pressure
                                 </button>
                                 <button
                                     onClick={() => setGameType('pattern')}
@@ -1841,7 +1846,7 @@ export default function MemoryGamesPage() {
                                         color: '#FFD700',
                                     }}
                                 >
-                                    🏆 Campaign
+                                    Trophy Campaign
                                 </button>
                                 <button
                                     onClick={() => {
@@ -1853,7 +1858,7 @@ export default function MemoryGamesPage() {
                                         ...(gameType === 'leaderboard' ? styles.gameModeTabActive : {}),
                                     }}
                                 >
-                                    📊 Rankings
+                                    Rankings
                                 </button>
                                 <button
                                     onClick={() => {
@@ -1869,12 +1874,34 @@ export default function MemoryGamesPage() {
                                 >
                                     📅 Daily
                                 </button>
+                                <button
+                                    onClick={() => setGameType('spot')}
+                                    style={{
+                                        ...styles.gameModeTab,
+                                        background: gameType === 'spot' ? 'rgba(249, 115, 22, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                                        border: gameType === 'spot' ? '2px solid #F97316' : '2px solid rgba(255, 255, 255, 0.1)',
+                                        color: gameType === 'spot' ? '#F97316' : 'rgba(255, 255, 255, 0.5)',
+                                    }}
+                                >
+                                    Spot
+                                </button>
+                                <button
+                                    onClick={() => setGameType('tournament')}
+                                    style={{
+                                        ...styles.gameModeTab,
+                                        background: gameType === 'tournament' ? 'rgba(236, 72, 153, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                                        border: gameType === 'tournament' ? '2px solid #EC4899' : '2px solid rgba(255, 255, 255, 0.1)',
+                                        color: gameType === 'tournament' ? '#EC4899' : 'rgba(255, 255, 255, 0.5)',
+                                    }}
+                                >
+                                    ⚔️ Ranked
+                                </button>
                             </div>
 
                             {/* Speed Drill Mode */}
                             {gameType === 'speed' && (
                                 <div style={styles.speedDrillCard}>
-                                    <div style={{ fontSize: 48, marginBottom: 16 }}>⚡</div>
+                                    <div style={{ fontSize: 48, marginBottom: 16 }}>++</div>
                                     <h2 style={{ fontSize: 24, fontWeight: 700, color: '#FFD700', marginBottom: 8 }}>
                                         SPEED DRILL
                                     </h2>
@@ -1908,13 +1935,13 @@ export default function MemoryGamesPage() {
                                     background: 'linear-gradient(135deg, rgba(255, 68, 68, 0.1), rgba(255, 0, 102, 0.1))',
                                     border: '2px solid rgba(255, 68, 68, 0.3)',
                                 }}>
-                                    <div style={{ fontSize: 48, marginBottom: 16 }}>🔥</div>
+                                    <div style={{ fontSize: 48, marginBottom: 16 }}></div>
                                     <h2 style={{ fontSize: 24, fontWeight: 700, color: '#ff4444', marginBottom: 8 }}>
                                         PRESSURE COOKER
                                     </h2>
                                     <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 20 }}>
                                         Answer 10 hands before the clock runs out!<br />
-                                        ✓ Correct = +3 seconds | ✗ Wrong = -5 seconds<br />
+                                        Correct = +3 seconds | ✗ Wrong = -5 seconds<br />
                                         <span style={{ color: '#ff4444' }}>Can you defuse the bomb? 💣</span>
                                     </p>
                                     <button
@@ -2026,7 +2053,7 @@ export default function MemoryGamesPage() {
                                     margin: '0 auto',
                                 }}>
                                     <div style={{ textAlign: 'center', marginBottom: 24 }}>
-                                        <div style={{ fontSize: 48, marginBottom: 12 }}>🏆</div>
+                                        <div style={{ fontSize: 48, marginBottom: 12 }}>Trophy</div>
                                         <h2 style={{ fontSize: 28, fontWeight: 700, color: '#FFD700', marginBottom: 8 }}>
                                             GLOBAL LEADERBOARD
                                         </h2>
@@ -2038,9 +2065,9 @@ export default function MemoryGamesPage() {
                                     {/* Mode Toggle */}
                                     <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
                                         {[
-                                            { id: 'range-memory', label: '🧠 Range', color: '#00D4FF' },
-                                            { id: 'speed-drill', label: '⚡ Speed', color: '#FFD700' },
-                                            { id: 'pressure-cooker', label: '🔥 Pressure', color: '#ff4444' },
+                                            { id: 'range-memory', label: ' Range', color: '#00D4FF' },
+                                            { id: 'speed-drill', label: '++ Speed', color: '#FFD700' },
+                                            { id: 'pressure-cooker', label: ' Pressure', color: '#ff4444' },
                                             { id: 'pattern-recognition', label: '🧩 Pattern', color: '#00D4FF' },
                                             { id: 'mixed-strategy', label: '🎛️ Mixed', color: '#A855F7' },
                                         ].map(mode => (
@@ -2105,7 +2132,7 @@ export default function MemoryGamesPage() {
                                             </div>
                                         ) : leaderboardData.length === 0 ? (
                                             <div style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,0.5)' }}>
-                                                <div style={{ fontSize: 32, marginBottom: 12 }}>🎮</div>
+                                                <div style={{ fontSize: 32, marginBottom: 12 }}></div>
                                                 No rankings yet. Be the first!
                                             </div>
                                         ) : (
@@ -2128,7 +2155,7 @@ export default function MemoryGamesPage() {
                                                             }}
                                                         >
                                                             <td style={{ padding: '12px 16px', color: idx < 3 ? '#FFD700' : '#fff', fontSize: 14, fontWeight: idx < 3 ? 700 : 400 }}>
-                                                                {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`}
+                                                                {idx === 0 ? '' : idx === 1 ? '' : idx === 2 ? '' : `#${idx + 1}`}
                                                             </td>
                                                             <td style={{ padding: '12px 16px', color: '#fff', fontSize: 14 }}>
                                                                 {entry.display_name || 'Anonymous'}
@@ -2137,7 +2164,7 @@ export default function MemoryGamesPage() {
                                                                 {entry.score?.toLocaleString()}
                                                             </td>
                                                             <td style={{ padding: '12px 16px', color: '#FF6B00', fontSize: 14, textAlign: 'right' }}>
-                                                                🔥 {entry.streak || 0}
+                                                                {entry.streak || 0}
                                                             </td>
                                                         </tr>
                                                     ))}
@@ -2186,12 +2213,12 @@ export default function MemoryGamesPage() {
                                         marginBottom: 24,
                                     }}>
                                         <div style={{ textAlign: 'center' }}>
-                                            <div style={{ fontSize: 48, marginBottom: 4 }}>🔥</div>
+                                            <div style={{ fontSize: 48, marginBottom: 4 }}></div>
                                             <div style={{ fontSize: 32, fontWeight: 900, color: '#FF6B00' }}>{userStreak.current_streak || 0}</div>
                                             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Current Streak</div>
                                         </div>
                                         <div style={{ textAlign: 'center' }}>
-                                            <div style={{ fontSize: 48, marginBottom: 4 }}>👑</div>
+                                            <div style={{ fontSize: 48, marginBottom: 4 }}></div>
                                             <div style={{ fontSize: 32, fontWeight: 900, color: '#FFD700' }}>{userStreak.longest_streak || 0}</div>
                                             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Best Streak</div>
                                         </div>
@@ -2229,7 +2256,7 @@ export default function MemoryGamesPage() {
                                                 Come back tomorrow for a new challenge!
                                             </p>
                                             <div style={{ marginTop: 20, fontSize: 18, color: '#FFD700' }}>
-                                                +{dailyChallenge?.diamond_reward || 50} 💎 Earned!
+                                                +{dailyChallenge?.diamond_reward || 50} Diamonds Earned!
                                             </div>
                                         </div>
                                     ) : dailyChallenge ? (
@@ -2249,9 +2276,9 @@ export default function MemoryGamesPage() {
                                                 borderRadius: 12,
                                             }}>
                                                 <div style={{ fontSize: 32 }}>
-                                                    {dailyChallenge.game_mode === 'range-memory' ? '🧠' :
-                                                        dailyChallenge.game_mode === 'speed-drill' ? '⚡' :
-                                                            dailyChallenge.game_mode === 'pressure-cooker' ? '🔥' :
+                                                    {dailyChallenge.game_mode === 'range-memory' ? '' :
+                                                        dailyChallenge.game_mode === 'speed-drill' ? '++' :
+                                                            dailyChallenge.game_mode === 'pressure-cooker' ? '' :
                                                                 dailyChallenge.game_mode === 'pattern-recognition' ? '🧩' : '🎛️'}
                                                 </div>
                                                 <div>
@@ -2282,7 +2309,7 @@ export default function MemoryGamesPage() {
                                                 </div>
                                                 <div style={{ textAlign: 'right' }}>
                                                     <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>REWARD</div>
-                                                    <div style={{ fontSize: 20, fontWeight: 700, color: '#FFD700' }}>{dailyChallenge.diamond_reward || 50}💎</div>
+                                                    <div style={{ fontSize: 20, fontWeight: 700, color: '#FFD700' }}>{dailyChallenge.diamond_reward || 50}Diamonds</div>
                                                 </div>
                                             </div>
 
@@ -2315,7 +2342,7 @@ export default function MemoryGamesPage() {
                                                     boxShadow: '0 0 30px rgba(0, 255, 136, 0.4)',
                                                 }}
                                             >
-                                                🚀 START DAILY CHALLENGE
+                                                START DAILY CHALLENGE
                                             </button>
                                         </div>
                                     ) : (
@@ -2326,7 +2353,7 @@ export default function MemoryGamesPage() {
                                             padding: 32,
                                             textAlign: 'center',
                                         }}>
-                                            <div style={{ fontSize: 48, marginBottom: 12 }}>⚠️</div>
+                                            <div style={{ fontSize: 48, marginBottom: 12 }}></div>
                                             <h3 style={{ fontSize: 18, fontWeight: 600, color: '#FFA500', marginBottom: 8 }}>
                                                 No Challenge Available
                                             </h3>
@@ -2345,12 +2372,88 @@ export default function MemoryGamesPage() {
                                         textAlign: 'center',
                                     }}>
                                         <div style={{ fontSize: 14, fontWeight: 600, color: '#FFD700', marginBottom: 8 }}>
-                                            🎁 STREAK REWARDS
+                                            STREAK REWARDS
                                         </div>
                                         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.6 }}>
-                                            7 days: +100💎 bonus • 30 days: +500💎 bonus • 100 days: +2000💎 bonus
+                                            7 days: +100Diamonds bonus • 30 days: +500Diamonds bonus • 100 days: +2000Diamonds bonus
                                         </div>
                                     </div>
+                                </div>
+                            )}
+
+                            {/* Spot Trainer Mode */}
+                            {gameType === 'spot' && (
+                                <div style={{
+                                    ...styles.speedDrillCard,
+                                    background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.1), rgba(234, 88, 12, 0.1))',
+                                    border: '2px solid rgba(249, 115, 22, 0.3)',
+                                }}>
+                                    <div style={{ fontSize: 48, marginBottom: 16 }}></div>
+                                    <h2 style={{ fontSize: 24, fontWeight: 700, color: '#F97316', marginBottom: 8 }}>
+                                        SPOT TRAINER
+                                    </h2>
+                                    <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 20 }}>
+                                        Full hand trees from preflop to river.<br />
+                                        Multi-street decision training with EV comparison.<br />
+                                        Learn to navigate complex spots optimally.
+                                    </p>
+                                    <button
+                                        onClick={() => {
+                                            if (!isVIP) {
+                                                const result = DiamondEngine.deduct(GAME_COST);
+                                                if (!result.success) {
+                                                    alert(`Not enough diamonds!`);
+                                                    return;
+                                                }
+                                                setDiamondBalance(result.balance);
+                                            }
+                                            setMode('spot-trainer');
+                                        }}
+                                        style={{
+                                            ...styles.speedDrillButton,
+                                            background: 'linear-gradient(135deg, #F97316, #EA580C)',
+                                        }}
+                                    >
+                                        START SPOT TRAINING
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Tournament Mode */}
+                            {gameType === 'tournament' && (
+                                <div style={{
+                                    ...styles.speedDrillCard,
+                                    background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(219, 39, 119, 0.1))',
+                                    border: '2px solid rgba(236, 72, 153, 0.3)',
+                                }}>
+                                    <div style={{ fontSize: 48, marginBottom: 16 }}>⚔️</div>
+                                    <h2 style={{ fontSize: 24, fontWeight: 700, color: '#EC4899', marginBottom: 8 }}>
+                                        RANKED BATTLES
+                                    </h2>
+                                    <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 20 }}>
+                                        Competitive ELO-ranked range battles.<br />
+                                        Climb the ladder from Beginner to Grandmaster.<br />
+                                        Earn diamonds and prove your skills!
+                                    </p>
+                                    <button
+                                        onClick={() => {
+                                            if (!isVIP) {
+                                                const result = DiamondEngine.deduct(GAME_COST);
+                                                if (!result.success) {
+                                                    alert(`Not enough diamonds!`);
+                                                    return;
+                                                }
+                                                setDiamondBalance(result.balance);
+                                            }
+                                            setMode('tournament-mode');
+                                        }}
+                                        style={{
+                                            ...styles.speedDrillButton,
+                                            background: 'linear-gradient(135deg, #EC4899, #DB2777)',
+                                        }}
+                                    >
+                                        Trophy ENTER RANKED MODE
+                                    </button>
                                 </div>
                             )}
 
@@ -2378,7 +2481,7 @@ export default function MemoryGamesPage() {
                                                     <h3 style={styles.levelName}>{level.name}</h3>
                                                     <p style={styles.levelFocus}>{level.focus}</p>
                                                     <div style={styles.levelMeta}>
-                                                        <span>⏱️ {levelConfig.timer}s</span>
+                                                        <span> {levelConfig.timer}s</span>
                                                         <span>×{levelConfig.xpMultiplier} XP</span>
                                                     </div>
                                                     <div style={styles.levelMeta}>
@@ -2406,7 +2509,7 @@ export default function MemoryGamesPage() {
                             {/* VIP Upsell */}
                             {!isVIP && (
                                 <div style={styles.vipUpsell}>
-                                    <div style={styles.vipTitle}>👑 GO VIP — $19.99/month</div>
+                                    <div style={styles.vipTitle}> GO VIP — $19.99/month</div>
                                     <div style={styles.vipFeatures}>
                                         Unlimited games • All levels • No diamond cost • Exclusive modes
                                     </div>
@@ -2458,6 +2561,27 @@ export default function MemoryGamesPage() {
                         />
                     )}
 
+                    {/* Spot Trainer Mode - Full Implementation */}
+                    {mode === 'spot-trainer' && (
+                        <SpotTrainerGame
+                            level={currentLevel}
+                            onExit={() => setMode('menu')}
+                            onScoreUpdate={(newBalance) => setDiamondBalance(newBalance)}
+                            DiamondEngine={DiamondEngine}
+                        />
+                    )}
+
+                    {/* Tournament Mode - Full Implementation */}
+                    {mode === 'tournament-mode' && (
+                        <TournamentModeGame
+                            level={currentLevel}
+                            onExit={() => setMode('menu')}
+                            onScoreUpdate={(newBalance) => setDiamondBalance(newBalance)}
+                            DiamondEngine={DiamondEngine}
+                            userId={userId}
+                        />
+                    )}
+
                     {(mode === 'game' || mode === 'result') && currentScenario && (
                         <>
                             {/* Timer Bar */}
@@ -2480,11 +2604,11 @@ export default function MemoryGamesPage() {
                             {/* Scenario Header */}
                             <div style={styles.gameHeader}>
                                 <div>
-                                    <div style={styles.levelBadge}>Level {currentLevel} • ⏱️ {safeLevelConfig.timer}s</div>
+                                    <div style={styles.levelBadge}>Level {currentLevel} •  {safeLevelConfig.timer}s</div>
                                     <h2 style={styles.scenarioTitle}>{currentScenario.title}</h2>
                                     <p style={styles.scenarioDesc}>{currentScenario.description}</p>
                                     {currentScenario.tip && !gradeResult && (
-                                        <p style={styles.tipText}>💡 {currentScenario.tip}</p>
+                                        <p style={styles.tipText}> {currentScenario.tip}</p>
                                     )}
                                 </div>
                                 {gradeResult && (
@@ -2501,7 +2625,7 @@ export default function MemoryGamesPage() {
                                                 ? 'linear-gradient(135deg, #00ff88, #00D4FF)'
                                                 : 'linear-gradient(135deg, #ff4444, #ff6b6b)',
                                         }}>
-                                            {gradeResult.score >= 85 ? '✓ PASSED' : '✗ FAILED'}
+                                            {gradeResult.score >= 85 ? ' PASSED' : '✗ FAILED'}
                                         </div>
                                     </div>
                                 )}
@@ -2590,7 +2714,7 @@ export default function MemoryGamesPage() {
                                 <div style={styles.feedbackPanel}>
                                     <div style={styles.feedbackGrid}>
                                         <div style={styles.feedbackItem}>
-                                            <span style={{ color: '#00ff88' }}>✓ Correct</span>
+                                            <span style={{ color: '#00ff88' }}> Correct</span>
                                             <span style={styles.feedbackValue}>{gradeResult.correctHands}</span>
                                         </div>
                                         <div style={styles.feedbackItem}>
@@ -2608,7 +2732,7 @@ export default function MemoryGamesPage() {
                                     </div>
                                     {gradeResult.score >= 85 && lastReward && (
                                         <div style={styles.rewardSummary}>
-                                            💎 +{lastReward.diamonds} Diamonds earned! (×{multiplier} multiplier)
+                                            Diamonds +{lastReward.diamonds} Diamonds earned! (×{multiplier} multiplier)
                                         </div>
                                     )}
                                 </div>

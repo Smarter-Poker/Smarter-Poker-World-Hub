@@ -44,7 +44,7 @@ export default function DiamondArcadePrizes() {
                         </button>
 
                         <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#fff', marginBottom: '30px' }}>
-                            💰 Prize Pool
+                             Prize Pool
                         </h1>
 
                         <div style={{ display: 'grid', gap: '16px' }}>
@@ -71,7 +71,7 @@ export default function DiamondArcadePrizes() {
                                     </div>
 
                                     <div style={{ color: '#fbbf24', fontSize: '24px', fontWeight: 'bold' }}>
-                                        💎 {prize.diamonds.toLocaleString()}
+                                        Diamonds {prize.diamonds.toLocaleString()}
                                     </div>
                                 </div>
                             ))}

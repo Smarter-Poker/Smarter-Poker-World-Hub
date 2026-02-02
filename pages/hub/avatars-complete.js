@@ -153,7 +153,7 @@ export default function AvatarsComplete() {
         }
 
         if (isVip && customAvatars.length >= 5) {
-            alert('⚠️ You have 5/5 custom avatars! Please delete one to create a new avatar.');
+            alert(' You have 5/5 custom avatars! Please delete one to create a new avatar.');
             return;
         }
 
@@ -335,7 +335,7 @@ export default function AvatarsComplete() {
                                                 justifyContent: 'center',
                                                 zIndex: 10
                                             }}>
-                                            ✕
+                                            ×
                                         </button>
                                         <img
                                             src={custom.image_url}
@@ -507,7 +507,7 @@ export default function AvatarsComplete() {
                                 cursor: 'pointer',
                                 zIndex: 1001
                             }}>
-                            ✕ Close
+                            × Close
                         </button>
                         <CustomAvatarBuilder isVip={isVip} onClose={handleCloseBuilder} user={user} />
                     </div>

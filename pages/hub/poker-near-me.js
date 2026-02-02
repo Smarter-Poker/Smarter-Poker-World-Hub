@@ -1,5 +1,5 @@
 /**
- * 🗺️ POKER NEAR ME - Live Venue Finder
+ *  POKER NEAR ME - Live Venue Finder
  * Find poker rooms, casinos, and tournaments near you
  */
 

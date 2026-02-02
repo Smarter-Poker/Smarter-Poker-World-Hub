@@ -37,7 +37,7 @@ export default function TriviaSettings() {
                         </button>
 
                         <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#fff', marginBottom: '12px' }}>
-                            ⚙️ Trivia Settings
+                             Trivia Settings
                         </h1>
                         <p style={{ color: '#9ca3af', marginBottom: '40px' }}>
                             Customize your trivia experience

@@ -109,7 +109,7 @@ const FALLBACK_IMAGES = {
 // News Box Component - Dedicated display box for each story
 function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, isRead }) {
     const categoryColors = {
-        tournament: { bg: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24', icon: '🏆' },
+        tournament: { bg: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24', icon: 'Trophy' },
         strategy: { bg: 'rgba(124, 58, 237, 0.15)', color: '#a78bfa', icon: '📚' },
         industry: { bg: 'rgba(34, 197, 94, 0.15)', color: '#22c55e', icon: '💼' },
         news: { bg: 'rgba(0, 212, 255, 0.15)', color: '#2374E1', icon: '📰' },
@@ -538,7 +538,7 @@ function ReelCard({ reel, onClick, openExternal }) {
 
     // Get display values with proper fallbacks
     const thumbnailUrl = getReelThumbnail(reel);
-    const displayTitle = reel.title || reel.caption?.split('\n')[0]?.replace(/^🎬\s*/, '') || 'Poker Reel';
+    const displayTitle = reel.title || reel.caption?.split('\n')[0]?.replace(/^\s*/, '') || 'Poker Reel';
     const channelName = reel.channel_name || reel.profiles?.full_name || reel.profiles?.username || 'Smarter.Poker';
     const isYouTube = reel.video_url?.includes('youtube.com') || reel.video_url?.includes('youtu.be');
 
@@ -718,12 +718,12 @@ function MSPTBox({ msptNews, onOpenMSPT }) {
 // Placeholder Box for sources without articles yet
 function SourcePlaceholderBox({ sourceName, sourceUrl, index, openExternal }) {
     const sourceInfo = {
-        'PokerNews': { icon: '🃏', color: '#2374E1', url: 'https://www.pokernews.com' },
-        'MSPT': { icon: '🎰', color: '#dc2626', url: 'https://msptpoker.com' },
-        'CardPlayer': { icon: '♠️', color: '#22c55e', url: 'https://www.cardplayer.com' },
-        'WSOP': { icon: '🏆', color: '#fbbf24', url: 'https://www.wsop.com' },
-        'Poker.org': { icon: '♦️', color: '#8b5cf6', url: 'https://www.poker.org' },
-        'Pokerfuse': { icon: '🔥', color: '#f97316', url: 'https://pokerfuse.com' }
+        'PokerNews': { icon: '', color: '#2374E1', url: 'https://www.pokernews.com' },
+        'MSPT': { icon: '', color: '#dc2626', url: 'https://msptpoker.com' },
+        'CardPlayer': { icon: 's', color: '#22c55e', url: 'https://www.cardplayer.com' },
+        'WSOP': { icon: 'Trophy', color: '#fbbf24', url: 'https://www.wsop.com' },
+        'Poker.org': { icon: 'd', color: '#8b5cf6', url: 'https://www.poker.org' },
+        'Pokerfuse': { icon: '', color: '#f97316', url: 'https://pokerfuse.com' }
     };
 
     const info = sourceInfo[sourceName] || { icon: '📰', color: '#2374E1', url: '#' };
@@ -863,7 +863,7 @@ export default function NewsHub() {
         setAutoRefresh: (val) => updatePreference('autoRefresh', val)
     });
 
-    // 🎬 INTRO VIDEO STATE - Video plays while page loads in background
+    //  INTRO VIDEO STATE - Video plays while page loads in background
     // Only show once per session (not on every reload)
     const [showIntro, setShowIntro] = useState(() => {
         if (typeof window !== 'undefined') {
@@ -1183,7 +1183,7 @@ export default function NewsHub() {
 
     return (
         <PageTransition>
-            {/* 🎬 INTRO VIDEO OVERLAY - Plays while page loads behind it */}
+            {/*  INTRO VIDEO OVERLAY - Plays while page loads behind it */}
             {showIntro && (
                 <div style={{
                     position: 'fixed',

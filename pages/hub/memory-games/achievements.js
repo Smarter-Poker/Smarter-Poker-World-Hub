@@ -11,9 +11,9 @@ export default function MemoryGamesAchievements() {
     const router = useRouter();
 
     const achievements = [
-        { id: 1, name: 'First Match', description: 'Complete your first memory game', unlocked: true, icon: '🧠' },
+        { id: 1, name: 'First Match', description: 'Complete your first memory game', unlocked: true, icon: '' },
         { id: 2, name: 'Perfect Memory', description: 'Complete a game with no mistakes', unlocked: true, icon: '💯' },
-        { id: 3, name: 'Speed Demon', description: 'Complete a game in under 60 seconds', unlocked: false, icon: '⚡' },
+        { id: 3, name: 'Speed Demon', description: 'Complete a game in under 60 seconds', unlocked: false, icon: '++' },
     ];
 
     return (
@@ -43,7 +43,7 @@ export default function MemoryGamesAchievements() {
                         </button>
 
                         <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#fff', marginBottom: '30px' }}>
-                            🏅 Memory Achievements
+                             Memory Achievements
                         </h1>
 
                         <div style={{ display: 'grid', gap: '16px' }}>
@@ -72,7 +72,7 @@ export default function MemoryGamesAchievements() {
                                     </div>
                                     {achievement.unlocked && (
                                         <div style={{ marginLeft: 'auto', color: '#10b981', fontWeight: 'bold' }}>
-                                            ✓ Unlocked
+                                             Unlocked
                                         </div>
                                     )}
                                 </div>

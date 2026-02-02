@@ -113,7 +113,7 @@ function PokerResumeBadge({ hendonData, isOwnProfile = false, onOpenResume }) {
                         width: 40, height: 40, borderRadius: '50%',
                         background: hasHendon ? 'linear-gradient(135deg, #FFD700, #FFA500)' : 'rgba(255,255,255,0.1)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20
-                    }}>{hasHendon ? '🏆' : '🎯'}</div>
+                    }}>{hasHendon ? 'Trophy' : ''}</div>
                     <div>
                         <div style={{ fontWeight: 700, fontSize: 16 }}>POKER RESUME</div>
                         <div style={{ fontSize: 11, opacity: 0.6 }}>Tournament Career Statistics</div>
@@ -123,7 +123,7 @@ function PokerResumeBadge({ hendonData, isOwnProfile = false, onOpenResume }) {
                     <div style={{
                         background: 'rgba(255, 215, 0, 0.15)', border: '1px solid rgba(255, 215, 0, 0.4)',
                         padding: '3px 10px', borderRadius: 16, fontSize: 10, fontWeight: 600, color: C.gold
-                    }}>✓ VERIFIED</div>
+                    }}> VERIFIED</div>
                 ) : (
                     <div style={{
                         background: 'rgba(255, 255, 255, 0.1)', border: '1px solid rgba(255, 255, 255, 0.2)',
@@ -337,7 +337,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId 
                             fontSize: 18, color: C.textSec, padding: 8, borderRadius: 20
                         }}
                         title="Delete post"
-                    >🗑️</button>
+                    ></button>
                 )}
             </div>
             {post.content && (
@@ -378,7 +378,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId 
             </div>
             <div style={{ borderTop: `1px solid ${C.border}`, display: 'flex' }}>
                 <button onClick={handleLike} style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: liked ? C.blue : C.textSec, fontWeight: liked ? 700 : 500, fontSize: 13, transition: 'all 0.2s' }}>👍 {liked ? 'Liked' : 'Like'}</button>
-                <button onClick={handleComment} style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: showComments ? C.blue : C.textSec, fontWeight: 500, fontSize: 13 }}>💬 Comment</button>
+                <button onClick={handleComment} style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: showComments ? C.blue : C.textSec, fontWeight: 500, fontSize: 13 }}> Comment</button>
                 <button onClick={handleShare} style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontWeight: 500, fontSize: 13 }}>↗️ Share</button>
             </div>
             {/* Comment Section */}
@@ -746,7 +746,7 @@ export default function UserProfilePage() {
         return (
             <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 32, marginBottom: 16 }}>♠️</div>
+                    <div style={{ fontSize: 32, marginBottom: 16 }}>s</div>
                     <div style={{ color: C.textSec }}>Loading profile...</div>
                 </div>
             </div>
@@ -757,7 +757,7 @@ export default function UserProfilePage() {
         return (
             <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 48, marginBottom: 16 }}>🔍</div>
+                    <div style={{ fontSize: 48, marginBottom: 16 }}></div>
                     <h2 style={{ color: C.text, margin: '0 0 8px' }}>User not found</h2>
                     <p style={{ color: C.textSec }}>The profile you're looking for doesn't exist.</p>
                     <Link href="/hub/social-media" style={{ color: C.blue, fontWeight: 600 }}>Back to Social</Link>
@@ -820,9 +820,9 @@ export default function UserProfilePage() {
 
                     {/* Intro Bar - Location, Work, School */}
                     <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 8, fontSize: 14, color: C.textSec }}>
-                        {locationParts.length > 0 && <span>📍 {locationParts.join(', ')}</span>}
+                        {locationParts.length > 0 && <span> {locationParts.join(', ')}</span>}
                         {profile.occupation && <span>· 💼 {profile.occupation}</span>}
-                        {profile.home_casino && <span>· 🎰 {profile.home_casino}</span>}
+                        {profile.home_casino && <span>·  {profile.home_casino}</span>}
                         {profile.instagram && <span>· 📸 @{profile.instagram.replace('@', '')}</span>}
                     </div>
 
@@ -860,7 +860,7 @@ export default function UserProfilePage() {
                                     <button style={{
                                         padding: '10px 20px', background: '#e4e6eb', color: C.text,
                                         borderRadius: 8, border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: 14
-                                    }}>👥 Friends</button>
+                                    }}> Friends</button>
                                 ) : friendRequestSent ? (
                                     <button style={{
                                         padding: '10px 20px', background: '#e4e6eb', color: C.textSec,
@@ -875,7 +875,7 @@ export default function UserProfilePage() {
                                 <button onClick={handleMessage} style={{
                                     flex: 1, padding: '10px 16px', background: C.blue, color: 'white',
                                     borderRadius: 8, border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: 14
-                                }}>💬 Message</button>
+                                }}> Message</button>
                                 <div style={{ position: 'relative' }}>
                                     <button onClick={() => setShowProfileMenu(!showProfileMenu)} style={{
                                         padding: '10px 14px', background: '#e4e6eb', color: C.text,
@@ -947,7 +947,7 @@ export default function UserProfilePage() {
                                                 width: '100%', padding: '10px 14px', background: 'transparent',
                                                 border: 'none', textAlign: 'left', cursor: 'pointer',
                                                 fontSize: 14, color: '#F02849', borderRadius: 6, display: 'flex', gap: 10
-                                            }}>⚠️ Report user</button>
+                                            }}> Report user</button>
                                         </div>
                                     )}
                                     {profileMenuMsg && (
@@ -1001,7 +1001,7 @@ export default function UserProfilePage() {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                                     {profile.city && (
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 14, color: C.text }}>
-                                            <span style={{ fontSize: 18 }}>📍</span>
+                                            <span style={{ fontSize: 18 }}></span>
                                             <span>Lives in <strong>{profile.city}{profile.state ? `, ${profile.state}` : ''}</strong></span>
                                         </div>
                                     )}
@@ -1019,7 +1019,7 @@ export default function UserProfilePage() {
                                     )}
                                     {profile.favorite_game && (
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 14, color: C.text }}>
-                                            <span style={{ fontSize: 18 }}>🎰</span>
+                                            <span style={{ fontSize: 18 }}></span>
                                             <span>Favorite game: <strong>{profile.favorite_game}</strong></span>
                                         </div>
                                     )}
@@ -1031,7 +1031,7 @@ export default function UserProfilePage() {
                                     )}
                                     {profile.favorite_hand && (
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 14, color: C.text }}>
-                                            <span style={{ fontSize: 18 }}>🃏</span>
+                                            <span style={{ fontSize: 18 }}></span>
                                             <span>Favorite hand: <strong>{profile.favorite_hand}</strong></span>
                                         </div>
                                     )}
@@ -1121,7 +1121,7 @@ export default function UserProfilePage() {
                                     posts.map(post => <PostCard key={post.id} post={post} author={profile} isOwnProfile={isOwnProfile} onDelete={handleDeletePost} currentUserId={currentUser?.id} />)
                                 ) : (
                                     <div style={{ background: C.card, borderRadius: 12, padding: 40, textAlign: 'center', color: C.textSec }}>
-                                        <div style={{ fontSize: 32, marginBottom: 12 }}>📝</div>
+                                        <div style={{ fontSize: 32, marginBottom: 12 }}></div>
                                         <p>No posts yet</p>
                                     </div>
                                 )}
@@ -1324,7 +1324,7 @@ export default function UserProfilePage() {
                                 </div>
                             ) : (
                                 <div style={{ background: C.card, borderRadius: 12, padding: 40, textAlign: 'center', color: C.textSec }}>
-                                    <div style={{ fontSize: 32, marginBottom: 12 }}>🎬</div>
+                                    <div style={{ fontSize: 32, marginBottom: 12 }}></div>
                                     <p>No reels yet</p>
                                 </div>
                             )}

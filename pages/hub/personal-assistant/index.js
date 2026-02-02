@@ -32,7 +32,7 @@ export default function PersonalAssistantPage() {
   const [mounted, setMounted] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
 
-  // 🎬 INTRO VIDEO STATE - Video plays while page loads in background
+  //  INTRO VIDEO STATE - Video plays while page loads in background
   // Only show once per session (not on every reload)
   const [showIntro, setShowIntro] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -75,7 +75,7 @@ export default function PersonalAssistantPage() {
 
   return (
     <PageTransition>
-      {/* 🎬 INTRO VIDEO OVERLAY - Plays while page loads behind it */}
+      {/*  INTRO VIDEO OVERLAY - Plays while page loads behind it */}
       {showIntro && (
         <div style={{
           position: 'fixed',

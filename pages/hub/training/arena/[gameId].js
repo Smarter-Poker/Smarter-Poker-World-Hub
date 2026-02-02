@@ -16,7 +16,7 @@ import Head from 'next/head';
 import dynamic from 'next/dynamic';
 import { getAuthUser } from '../../../../src/lib/authUtils';
 
-// 🎯 GOLDEN LOCK STANDARD - Fixed Canvas: 862x1024px
+//  GOLDEN LOCK STANDARD - Fixed Canvas: 862x1024px
 const CANVAS_WIDTH = 862;
 const CANVAS_HEIGHT = 1024;
 
@@ -43,7 +43,7 @@ function LoadingScreen() {
                 fontSize: 64,
                 marginBottom: 24,
                 animation: 'pulse 1.5s infinite',
-            }}>🎰</div>
+            }}></div>
             <p style={{ color: '#94a3b8', fontSize: 16 }}>Loading Training Arena...</p>
             <style jsx>{`
                 @keyframes pulse {
@@ -75,7 +75,7 @@ export default function TrainingArenaPage() {
     const [loading, setLoading] = useState(true);
     const [scale, setScale] = useState(1);
 
-    // 🎯 GOLDEN LOCK: Calculate viewport scale factor
+    //  GOLDEN LOCK: Calculate viewport scale factor
     useEffect(() => {
         const calculateScale = () => {
             const scaleX = window.innerWidth / CANVAS_WIDTH;
@@ -132,7 +132,7 @@ export default function TrainingArenaPage() {
                 `}</style>
             </Head>
 
-            {/* 🎯 GOLDEN LOCK: Scaled container wrapper */}
+            {/*  GOLDEN LOCK: Scaled container wrapper */}
             <div style={{
                 width: '100%',
                 height: '100vh',

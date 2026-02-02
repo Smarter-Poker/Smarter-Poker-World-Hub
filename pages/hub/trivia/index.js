@@ -61,7 +61,7 @@ export default function TriviaHubPage() {
     useEffect(() => {
         async function loadUserData() {
             try {
-                // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
+                //  BULLETPROOF: Use authUtils to avoid AbortError
                 const user = getAuthUser();
 
                 if (user) {

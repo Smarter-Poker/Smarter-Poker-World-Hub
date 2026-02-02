@@ -161,7 +161,7 @@ export default function HelpPage() {
                             justifyContent: 'center',
                             fontSize: 24,
                         }}>
-                            💬
+                            
                         </div>
                         <div>
                             <div style={{ color: C.text, fontWeight: 600, fontSize: 16, marginBottom: 4 }}>
@@ -194,7 +194,7 @@ export default function HelpPage() {
                             justifyContent: 'center',
                             fontSize: 24,
                         }}>
-                            📧
+                            
                         </div>
                         <div>
                             <div style={{ color: C.text, fontWeight: 600, fontSize: 16, marginBottom: 4 }}>
@@ -353,7 +353,7 @@ export default function HelpPage() {
                                 gap: 8,
                                 padding: '12px 0',
                             }}>
-                                <span>⚙️</span>
+                                <span></span>
                                 Account Settings
                                 <span style={{ marginLeft: 'auto', color: C.textSec }}>→</span>
                             </Link>

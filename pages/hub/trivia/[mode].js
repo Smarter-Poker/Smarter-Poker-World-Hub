@@ -49,7 +49,7 @@ export default function TriviaModePage() {
             setError(null);
 
             try {
-                // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
+                //  BULLETPROOF: Use authUtils to avoid AbortError
                 const user = getAuthUser();
                 if (user) {
                     setUserId(user.id);
@@ -416,13 +416,13 @@ export default function TriviaModePage() {
                                     {modeConfig.diamondCost > 0 && (
                                         <div className="detail">
                                             <span className="label">Entry Cost</span>
-                                            <span className="value">{modeConfig.diamondCost} 💎</span>
+                                            <span className="value">{modeConfig.diamondCost} Diamonds</span>
                                         </div>
                                     )}
                                 </div>
 
                                 <button className="start-btn" onClick={startGame}>
-                                    {mode === 'arcade' ? `Play (${modeConfig.diamondCost} 💎)` : 'Start Quiz'}
+                                    {mode === 'arcade' ? `Play (${modeConfig.diamondCost} Diamonds)` : 'Start Quiz'}
                                 </button>
                             </div>
 

@@ -170,11 +170,20 @@ export default function MTTDeepStackUI({
                                         <div style={styles.badgeStack}>{stackSize} BB</div>
                                     </div>
 
-                                    {/* Hero Cards - positioned right next to badge */}
+                                    {/* Hero Cards - FANNED like holding cards in hand */}
                                     {isHero && (
                                         <div style={styles.heroCardsInline}>
-                                            <img src={getCardPath(card1)} alt={card1} style={styles.card} />
-                                            <img src={getCardPath(card2)} alt={card2} style={{ ...styles.card, marginLeft: -34 }} />
+                                            <img src={getCardPath(card1)} alt={card1} style={{
+                                                ...styles.card,
+                                                transform: 'rotate(-12deg)',
+                                                transformOrigin: 'bottom center',
+                                            }} />
+                                            <img src={getCardPath(card2)} alt={card2} style={{
+                                                ...styles.card,
+                                                transform: 'rotate(8deg)',
+                                                transformOrigin: 'bottom center',
+                                                marginLeft: -20,
+                                            }} />
                                         </div>
                                     )}
                                 </div>

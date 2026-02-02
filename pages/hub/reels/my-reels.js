@@ -56,16 +56,16 @@ export default function MyReels() {
                 <UniversalHeader pageDepth={2} />
 
                 <div style={styles.content}>
-                    <h1 style={styles.title}>🎬 My Reels</h1>
+                    <h1 style={styles.title}> My Reels</h1>
 
                     {loading ? (
                         <div style={styles.loadingContainer}>
-                            <div style={styles.spinner}>🎬</div>
+                            <div style={styles.spinner}></div>
                             <p style={styles.loadingText}>Loading reels...</p>
                         </div>
                     ) : reels.length === 0 ? (
                         <div style={styles.emptyState}>
-                            <div style={styles.emptyIcon}>🎬</div>
+                            <div style={styles.emptyIcon}></div>
                             <h2 style={styles.emptyTitle}>No reels yet</h2>
                             <p style={styles.emptyText}>Upload your first reel to get started</p>
                         </div>
@@ -76,7 +76,7 @@ export default function MyReels() {
                                     <video src={reel.video_url} style={styles.video} />
                                     <p style={styles.caption}>{reel.caption}</p>
                                     <div style={styles.stats}>
-                                        ❤️ {reel.likes_count || 0} • 💬 {reel.comments_count || 0}
+                                         {reel.likes_count || 0} •  {reel.comments_count || 0}
                                     </div>
                                 </div>
                             ))}

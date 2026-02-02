@@ -63,7 +63,7 @@ export default function BankrollExport() {
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <div>
                                         <div style={{ color: '#fff', fontWeight: 'bold', marginBottom: '4px' }}>
-                                            📊 CSV Format
+                                             CSV Format
                                         </div>
                                         <div style={{ color: '#9ca3af', fontSize: '14px' }}>
                                             Compatible with Excel and Google Sheets
@@ -129,7 +129,7 @@ export default function BankrollExport() {
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <div>
                                         <div style={{ color: '#fff', fontWeight: 'bold', marginBottom: '4px' }}>
-                                            📑 PDF Report
+                                             PDF Report
                                         </div>
                                         <div style={{ color: '#9ca3af', fontSize: '14px' }}>
                                             Formatted report with charts and graphs
