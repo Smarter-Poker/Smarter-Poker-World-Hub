@@ -245,8 +245,7 @@ export default function GodModeArena({
                 </button>
                 <div style={styles.gameTitle}>{gameName || 'Training'}</div>
                 <div style={styles.stats}>
-                    <span style={{ color: '#fbbf24' }}>⚡ {totalXP} XP</span>
-                    <span style={{ color: '#22c55e', marginLeft: 12 }}>
+                    <span style={{ color: '#22c55e' }}>
                         ✓ {correctCount}/{questionNumber - 1}
                     </span>
                 </div>

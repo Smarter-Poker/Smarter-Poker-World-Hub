@@ -541,18 +541,6 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
 
                 {/* Right: Stats + Mute */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    {/* XP Display */}
-                    <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        color: '#a855f7',
-                        fontWeight: 700,
-                        fontSize: '14px'
-                    }}>
-                        ⚡ {progression.state.totalXP.toLocaleString()} XP
-                    </div>
-
                     {/* Diamonds Display */}
                     <div style={{
                         display: 'flex',
@@ -562,7 +550,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                         fontWeight: 700,
                         fontSize: '14px'
                     }}>
-                        <img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/> {progression.state.totalDiamonds.toLocaleString()}
+                        <img src="/images/diamond.png" alt="Diamond" style={{ width: 20, height: 20, display: "inline-block", verticalAlign: "middle" }} /> {progression.state.totalDiamonds.toLocaleString()}
                     </div>
 
                     {/* Score */}

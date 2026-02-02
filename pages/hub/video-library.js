@@ -410,6 +410,11 @@ export default function VideoLibraryPage() {
     const [watchStats, setWatchStats] = useState(null); // User's watch statistics
     const [showStats, setShowStats] = useState(false); // Stats modal visibility
 
+    // Jarvis AI Analysis state
+    const [aiAnalysis, setAiAnalysis] = useState(null); // Current video AI analysis
+    const [aiAnalysisLoading, setAiAnalysisLoading] = useState(false);
+    const [showAiPanel, setShowAiPanel] = useState(false); // Toggle AI panel visibility
+
     // Watch time tracking
     const watchStartTimeRef = useRef(null);
     const currentWatchingVideoRef = useRef(null);
@@ -543,11 +548,28 @@ export default function VideoLibraryPage() {
         }
     }, [userId, watchLater]);
 
-    // Handle opening a video - start timer
-    const handleOpenVideo = useCallback((video) => {
+    // Handle opening a video - start timer and fetch AI analysis
+    const handleOpenVideo = useCallback(async (video) => {
         watchStartTimeRef.current = Date.now();
         currentWatchingVideoRef.current = video;
         setSelectedVideo(video);
+        setShowAiPanel(false);
+
+        // Fetch Jarvis AI analysis for this video
+        setAiAnalysisLoading(true);
+        try {
+            const response = await fetch(
+                `/api/video/analyze?videoId=${video.videoId}&title=${encodeURIComponent(video.title)}`
+            );
+            const data = await response.json();
+            if (data.success && data.analysis) {
+                setAiAnalysis(data.analysis);
+            }
+        } catch (err) {
+            console.error('Failed to fetch AI analysis:', err);
+        } finally {
+            setAiAnalysisLoading(false);
+        }
     }, []);
 
     // Handle closing a video - save watch duration
@@ -1350,11 +1372,40 @@ export default function VideoLibraryPage() {
                         }}
                     >×</button>
 
+                    {/* Jarvis AI Analysis button */}
+                    <button
+                        onClick={() => setShowAiPanel(!showAiPanel)}
+                        style={{
+                            position: 'absolute',
+                            top: 16,
+                            right: 80,
+                            height: 48,
+                            padding: '0 20px',
+                            background: showAiPanel ? 'linear-gradient(135deg, #00D4FF 0%, #7B2CBF 100%)' : 'rgba(255,255,255,0.2)',
+                            border: showAiPanel ? '2px solid #00D4FF' : 'none',
+                            borderRadius: 24,
+                            color: 'white',
+                            fontSize: 14,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            zIndex: 1001,
+                            backdropFilter: 'blur(10px)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            transition: 'all 0.3s ease',
+                        }}
+                    >
+                        <span style={{ fontSize: 18 }}>🤖</span>
+                        {aiAnalysisLoading ? 'Loading...' : 'Jarvis AI'}
+                    </button>
+
                     {/* Fullscreen YouTube embed */}
                     <div style={{
                         flex: 1,
-                        width: '100%',
+                        width: showAiPanel ? 'calc(100% - 380px)' : '100%',
                         height: '100%',
+                        transition: 'width 0.3s ease',
                     }}>
                         <iframe
                             src={`https://www.youtube.com/embed/${selectedVideo.videoId}?autoplay=1&rel=0&modestbranding=1&fs=1&iv_load_policy=3&showinfo=0`}
@@ -1367,6 +1418,175 @@ export default function VideoLibraryPage() {
                                 border: 'none',
                             }}
                         />
+                    </div>
+
+                    {/* Jarvis AI Analysis Panel */}
+                    <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        right: showAiPanel ? 0 : -400,
+                        width: 380,
+                        height: '100%',
+                        background: 'linear-gradient(180deg, rgba(10,15,30,0.98) 0%, rgba(15,20,40,0.98) 100%)',
+                        borderLeft: '2px solid rgba(0, 212, 255, 0.3)',
+                        transition: 'right 0.3s ease',
+                        zIndex: 1002,
+                        overflowY: 'auto',
+                        padding: '24px 20px',
+                        boxShadow: '-10px 0 40px rgba(0, 0, 0, 0.5)',
+                    }}>
+                        {/* Panel Header */}
+                        <div style={{ marginBottom: 24 }}>
+                            <h3 style={{
+                                color: '#00D4FF',
+                                fontSize: 20,
+                                fontWeight: 700,
+                                margin: 0,
+                                marginBottom: 8,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 10,
+                            }}>
+                                <span style={{ fontSize: 24 }}>🤖</span>
+                                Jarvis AI Analysis
+                            </h3>
+                            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, margin: 0 }}>
+                                AI-powered poker insights
+                            </p>
+                        </div>
+
+                        {aiAnalysisLoading ? (
+                            <div style={{ textAlign: 'center', padding: 40 }}>
+                                <div style={{ fontSize: 32, marginBottom: 16 }}>⏳</div>
+                                <p style={{ color: 'rgba(255,255,255,0.7)' }}>Analyzing video...</p>
+                            </div>
+                        ) : aiAnalysis ? (
+                            <>
+                                {/* Summary */}
+                                {aiAnalysis.summary && (
+                                    <div style={{ marginBottom: 24 }}>
+                                        <h4 style={{ color: '#FFD700', fontSize: 14, fontWeight: 600, marginBottom: 8 }}>📋 Summary</h4>
+                                        <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, lineHeight: 1.6 }}>
+                                            {aiAnalysis.summary}
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* Chapters */}
+                                {aiAnalysis.chapters?.length > 0 && (
+                                    <div style={{ marginBottom: 24 }}>
+                                        <h4 style={{ color: '#00D4FF', fontSize: 14, fontWeight: 600, marginBottom: 12 }}>📺 Chapters</h4>
+                                        {aiAnalysis.chapters.map((chapter, idx) => (
+                                            <div key={idx} style={{
+                                                padding: '10px 14px',
+                                                background: 'rgba(0, 212, 255, 0.08)',
+                                                borderRadius: 8,
+                                                marginBottom: 8,
+                                                borderLeft: '3px solid #00D4FF',
+                                            }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                                    <span style={{
+                                                        color: '#00D4FF',
+                                                        fontSize: 12,
+                                                        fontWeight: 700,
+                                                        background: 'rgba(0, 212, 255, 0.2)',
+                                                        padding: '3px 8px',
+                                                        borderRadius: 4,
+                                                    }}>{chapter.timestamp}</span>
+                                                    <span style={{ color: 'white', fontSize: 13, fontWeight: 600 }}>{chapter.title}</span>
+                                                </div>
+                                                {chapter.description && (
+                                                    <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, marginTop: 6, marginBottom: 0 }}>
+                                                        {chapter.description}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Key Hands */}
+                                {aiAnalysis.keyHands?.length > 0 && (
+                                    <div style={{ marginBottom: 24 }}>
+                                        <h4 style={{ color: '#FF4444', fontSize: 14, fontWeight: 600, marginBottom: 12 }}>♠️ Key Hands</h4>
+                                        {aiAnalysis.keyHands.map((hand, idx) => (
+                                            <div key={idx} style={{
+                                                padding: '12px 14px',
+                                                background: 'rgba(255, 68, 68, 0.08)',
+                                                borderRadius: 8,
+                                                marginBottom: 10,
+                                                borderLeft: '3px solid #FF4444',
+                                            }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                                                    <span style={{
+                                                        color: '#FF4444',
+                                                        fontSize: 11,
+                                                        fontWeight: 700,
+                                                        background: 'rgba(255, 68, 68, 0.2)',
+                                                        padding: '2px 6px',
+                                                        borderRadius: 4,
+                                                    }}>{hand.timestamp || 'N/A'}</span>
+                                                    <span style={{ color: 'white', fontSize: 13, fontWeight: 600 }}>{hand.title}</span>
+                                                </div>
+                                                {hand.situation && (
+                                                    <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 6 }}>
+                                                        <strong style={{ color: '#FFD700' }}>Situation:</strong> {hand.situation}
+                                                    </p>
+                                                )}
+                                                {hand.analysis && (
+                                                    <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 6 }}>
+                                                        <strong style={{ color: '#00D4FF' }}>Analysis:</strong> {hand.analysis}
+                                                    </p>
+                                                )}
+                                                {hand.result && (
+                                                    <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, margin: 0 }}>
+                                                        <strong style={{ color: '#10B981' }}>Result:</strong> {hand.result}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Learning Points */}
+                                {aiAnalysis.learningPoints?.length > 0 && (
+                                    <div style={{ marginBottom: 24 }}>
+                                        <h4 style={{ color: '#10B981', fontSize: 14, fontWeight: 600, marginBottom: 12 }}>🎯 Learning Points</h4>
+                                        {aiAnalysis.learningPoints.map((point, idx) => (
+                                            <div key={idx} style={{
+                                                padding: '10px 14px',
+                                                background: 'rgba(16, 185, 129, 0.08)',
+                                                borderRadius: 8,
+                                                marginBottom: 8,
+                                                borderLeft: '3px solid #10B981',
+                                            }}>
+                                                <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12, margin: 0 }}>
+                                                    ✓ {point}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* AI Note */}
+                                {aiAnalysis.note && (
+                                    <p style={{
+                                        color: 'rgba(255,255,255,0.4)',
+                                        fontSize: 10,
+                                        textAlign: 'center',
+                                        fontStyle: 'italic',
+                                        margin: 0,
+                                    }}>
+                                        {aiAnalysis.note}
+                                    </p>
+                                )}
+                            </>
+                        ) : (
+                            <div style={{ textAlign: 'center', padding: 40 }}>
+                                <div style={{ fontSize: 32, marginBottom: 16 }}>🎬</div>
+                                <p style={{ color: 'rgba(255,255,255,0.7)' }}>No analysis available</p>
+                            </div>
+                        )}
                     </div>
 
                     {/* Video info bar at bottom */}

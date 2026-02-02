@@ -599,7 +599,6 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
                     <span style={{ color: '#60a5fa' }}>L{levelIndex + 1}/{totalLevels}</span>
                     <span>Q: {questionIndex + 1}/{questions.length}</span>
                     <span style={{ color: '#4ade80' }}>✓ {score}</span>
-                    <span style={{ color: '#fbbf24' }}>XP: {totalXP}</span>
                 </div>
             </div>
 
