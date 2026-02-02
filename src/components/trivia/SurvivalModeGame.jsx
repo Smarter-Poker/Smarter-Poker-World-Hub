@@ -3,10 +3,11 @@
  * Endless questions until you answer wrong - rewards stack every 5!
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, Skull, Gem, CheckCircle, XCircle, Trophy, Flame } from 'lucide-react';
 import { calculateDiamonds } from '../../lib/trivia/triviaEngine';
+import './SurvivalModeGame.css';
 
 export default function SurvivalModeGame({
     questions,
@@ -127,17 +128,21 @@ export default function SurvivalModeGame({
             </div>
 
             {/* Multiplier Indicator */}
-            <div
-                className="multiplier-bar"
-                style={{ '--mult-color': getMultiplierColor(multiplier) }}
-            >
+            <div className="multiplier-bar">
                 <div className="mult-progress">
                     <div
                         className="mult-fill"
-                        style={{ width: `${((streak % 5) / 5) * 100}%` }}
+                        style={{
+                            width: `${((streak % 5) / 5) * 100}%`,
+                            background: getMultiplierColor(multiplier),
+                            boxShadow: `0 0 10px ${getMultiplierColor(multiplier)}`
+                        }}
                     />
                 </div>
-                <div className="mult-badge">
+                <div
+                    className="mult-badge"
+                    style={{ background: getMultiplierColor(multiplier) }}
+                >
                     <span>{multiplier}x</span>
                 </div>
                 <span className="mult-next">
@@ -150,7 +155,7 @@ export default function SurvivalModeGame({
                 {!isGameOver ? (
                     <motion.div
                         key={currentIndex}
-                        className="question-card"
+                        className="survival-question-card"
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
@@ -160,11 +165,11 @@ export default function SurvivalModeGame({
                             Question #{streak + 1}
                         </div>
 
-                        <h2 className="question-text">{currentQuestion?.question}</h2>
+                        <h2 className="survival-question-text">{currentQuestion?.question}</h2>
 
-                        <div className="options">
+                        <div className="survival-options">
                             {currentQuestion?.options.map((option, index) => {
-                                let optionClass = 'option';
+                                let optionClass = 'survival-option';
                                 if (showResult) {
                                     if (index === currentQuestion.correct_index) {
                                         optionClass += ' correct';
@@ -227,302 +232,6 @@ export default function SurvivalModeGame({
                     </motion.div>
                 )}
             </AnimatePresence>
-
-            <style jsx>{`
-                .survival-game {
-                    max-width: 700px;
-                    margin: 0 auto;
-                    padding: 20px;
-                }
-
-                .survival-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 16px;
-                    padding: 16px 20px;
-                    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(0, 0, 0, 0.3));
-                    border: 1px solid rgba(239, 68, 68, 0.3);
-                    border-radius: 12px;
-                }
-
-                .lives-display {
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                }
-
-                .lives-text {
-                    font-family: 'Orbitron', sans-serif;
-                    font-size: 16px;
-                    font-weight: 700;
-                    color: #ef4444;
-                    text-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
-                }
-
-                .streak-display {
-                    display: flex;
-                    align-items: center;
-                    gap: 6px;
-                    color: #fbbf24;
-                }
-
-                .streak-icon {
-                    animation: flicker 0.5s ease-in-out infinite alternate;
-                }
-
-                @keyframes flicker {
-                    from { opacity: 1; }
-                    to { opacity: 0.6; }
-                }
-
-                .streak-count {
-                    font-family: 'Orbitron', sans-serif;
-                    font-size: 24px;
-                    font-weight: 700;
-                }
-
-                .streak-label {
-                    font-size: 10px;
-                    opacity: 0.7;
-                }
-
-                .diamonds-display {
-                    display: flex;
-                    align-items: center;
-                    gap: 6px;
-                    color: #00D4FF;
-                }
-
-                .diamond-icon {
-                    animation: pulse-glow 2s ease-in-out infinite;
-                }
-
-                @keyframes pulse-glow {
-                    0%, 100% { filter: drop-shadow(0 0 4px rgba(0, 212, 255, 0.5)); }
-                    50% { filter: drop-shadow(0 0 10px rgba(0, 212, 255, 0.8)); }
-                }
-
-                .diamonds-count {
-                    font-family: 'Orbitron', sans-serif;
-                    font-size: 20px;
-                    font-weight: 700;
-                }
-
-                .multiplier-bar {
-                    display: flex;
-                    align-items: center;
-                    gap: 12px;
-                    padding: 10px 16px;
-                    background: rgba(0, 0, 0, 0.3);
-                    border-radius: 8px;
-                    margin-bottom: 24px;
-                }
-
-                .mult-progress {
-                    flex: 1;
-                    height: 8px;
-                    background: rgba(255, 255, 255, 0.1);
-                    border-radius: 4px;
-                    overflow: hidden;
-                }
-
-                .mult-fill {
-                    height: 100%;
-                    background: var(--mult-color);
-                    transition: width 0.3s ease;
-                    box-shadow: 0 0 10px var(--mult-color);
-                }
-
-                .mult-badge {
-                    padding: 4px 12px;
-                    background: var(--mult-color);
-                    border-radius: 4px;
-                    font-family: 'Orbitron', sans-serif;
-                    font-size: 14px;
-                    font-weight: 700;
-                    color: #000;
-                }
-
-                .mult-next {
-                    font-size: 11px;
-                    color: rgba(255, 255, 255, 0.5);
-                    white-space: nowrap;
-                }
-
-                .question-card {
-                    background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    border-radius: 16px;
-                    padding: 32px;
-                }
-
-                .question-number {
-                    font-size: 12px;
-                    color: rgba(255, 255, 255, 0.5);
-                    text-transform: uppercase;
-                    letter-spacing: 1px;
-                    margin-bottom: 16px;
-                }
-
-                .question-text {
-                    font-size: 22px;
-                    font-weight: 600;
-                    color: #ffffff;
-                    line-height: 1.4;
-                    margin: 0 0 28px 0;
-                }
-
-                .options {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 12px;
-                }
-
-                .option {
-                    display: flex;
-                    align-items: center;
-                    gap: 16px;
-                    padding: 16px 20px;
-                    background: rgba(255, 255, 255, 0.05);
-                    border: 2px solid rgba(255, 255, 255, 0.1);
-                    border-radius: 10px;
-                    color: rgba(255, 255, 255, 0.9);
-                    font-size: 16px;
-                    text-align: left;
-                    cursor: pointer;
-                    transition: all 0.15s ease;
-                }
-
-                .option:hover:not(:disabled) {
-                    background: rgba(255, 255, 255, 0.1);
-                    border-color: rgba(239, 68, 68, 0.5);
-                }
-
-                .option:disabled {
-                    cursor: default;
-                }
-
-                .option.correct {
-                    background: rgba(34, 197, 94, 0.15);
-                    border-color: #22c55e;
-                }
-
-                .option.incorrect {
-                    background: rgba(239, 68, 68, 0.15);
-                    border-color: #ef4444;
-                }
-
-                .option-letter {
-                    width: 32px;
-                    height: 32px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    background: rgba(255, 255, 255, 0.1);
-                    border-radius: 6px;
-                    font-weight: 700;
-                    font-size: 14px;
-                    flex-shrink: 0;
-                }
-
-                .result-icon.correct {
-                    color: #22c55e;
-                }
-
-                .result-icon.incorrect {
-                    color: #ef4444;
-                }
-
-                .reward-preview {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 6px;
-                    margin-top: 24px;
-                    padding: 12px;
-                    background: rgba(0, 212, 255, 0.1);
-                    border: 1px solid rgba(0, 212, 255, 0.2);
-                    border-radius: 8px;
-                    color: #00D4FF;
-                    font-size: 13px;
-                }
-
-                .game-over-card {
-                    text-align: center;
-                    padding: 48px;
-                    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(0, 0, 0, 0.4));
-                    border: 2px solid rgba(239, 68, 68, 0.4);
-                    border-radius: 16px;
-                }
-
-                .game-over-icon {
-                    color: #ef4444;
-                    margin-bottom: 24px;
-                }
-
-                .game-over-card h2 {
-                    font-family: 'Orbitron', sans-serif;
-                    font-size: 32px;
-                    color: #ef4444;
-                    margin: 0 0 32px 0;
-                    text-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
-                }
-
-                .final-stats {
-                    display: flex;
-                    justify-content: center;
-                    gap: 48px;
-                }
-
-                .stat {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    gap: 8px;
-                }
-
-                .stat svg {
-                    color: #fbbf24;
-                }
-
-                .stat:last-child svg {
-                    color: #00D4FF;
-                }
-
-                .stat-value {
-                    font-family: 'Orbitron', sans-serif;
-                    font-size: 36px;
-                    font-weight: 700;
-                    color: #ffffff;
-                }
-
-                .stat-label {
-                    font-size: 12px;
-                    color: rgba(255, 255, 255, 0.6);
-                    text-transform: uppercase;
-                }
-
-                .survival-loading {
-                    text-align: center;
-                    padding: 48px;
-                    color: rgba(255, 255, 255, 0.6);
-                }
-
-                .loading-spinner {
-                    width: 40px;
-                    height: 40px;
-                    border: 3px solid rgba(255, 255, 255, 0.1);
-                    border-top-color: #ef4444;
-                    border-radius: 50%;
-                    animation: spin 1s linear infinite;
-                    margin: 0 auto 16px;
-                }
-
-                @keyframes spin {
-                    to { transform: rotate(360deg); }
-                }
-            `}</style>
         </div>
     );
 }
