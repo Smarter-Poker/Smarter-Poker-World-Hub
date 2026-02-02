@@ -1345,6 +1345,258 @@ function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, DiamondEngine, us
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// 💎 OUT OF DIAMONDS MODAL
+// ═══════════════════════════════════════════════════════════════════════════
+function OutOfDiamondsModal({ isOpen, onClose, gameCost = 5 }) {
+    if (!isOpen) return null;
+
+    return (
+        <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.85)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000,
+        }}>
+            <div style={{
+                background: 'linear-gradient(135deg, #1a0a2a, #0a0a12)',
+                borderRadius: 24,
+                padding: 32,
+                maxWidth: 420,
+                width: '90%',
+                textAlign: 'center',
+                border: '2px solid rgba(255, 107, 0, 0.5)',
+                boxShadow: '0 0 60px rgba(255, 107, 0, 0.3)',
+            }}>
+                <div style={{ fontSize: 64, marginBottom: 16 }}>💎</div>
+                <h2 style={{
+                    fontFamily: 'Orbitron, sans-serif',
+                    fontSize: 28,
+                    fontWeight: 900,
+                    color: '#ff6b00',
+                    marginBottom: 8,
+                }}>OUT OF DIAMONDS</h2>
+                <p style={{
+                    color: 'rgba(255,255,255,0.7)',
+                    fontSize: 16,
+                    marginBottom: 24,
+                    lineHeight: 1.6,
+                }}>
+                    You need <strong style={{ color: '#FFD700' }}>{gameCost} diamonds</strong> to play this game.
+                </p>
+
+                <div style={{
+                    background: 'linear-gradient(135deg, rgba(138, 43, 226, 0.2), rgba(0, 212, 255, 0.2))',
+                    borderRadius: 16,
+                    padding: 20,
+                    marginBottom: 24,
+                    border: '1px solid rgba(138, 43, 226, 0.3)',
+                }}>
+                    <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>
+                        🎁 GET VIP FOR
+                    </div>
+                    <div style={{
+                        fontFamily: 'Orbitron, sans-serif',
+                        fontSize: 32,
+                        fontWeight: 900,
+                        color: '#fff',
+                        marginBottom: 4,
+                    }}>
+                        $19.99<span style={{ fontSize: 16, opacity: 0.7 }}>/month</span>
+                    </div>
+                    <div style={{ color: '#00ff88', fontSize: 14, fontWeight: 600 }}>
+                        UNLIMITED ACCESS • No diamonds needed
+                    </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: 12 }}>
+                    <button
+                        onClick={onClose}
+                        style={{
+                            flex: 1,
+                            padding: '14px 24px',
+                            background: 'rgba(255,255,255,0.1)',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            borderRadius: 12,
+                            color: '#fff',
+                            fontSize: 14,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                        }}
+                    >
+                        Maybe Later
+                    </button>
+                    <a
+                        href="/hub/store?tab=vip"
+                        style={{
+                            flex: 1,
+                            padding: '14px 24px',
+                            background: 'linear-gradient(135deg, #ff6b00, #ff0066)',
+                            border: 'none',
+                            borderRadius: 12,
+                            color: '#fff',
+                            fontSize: 14,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            textDecoration: 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                        }}
+                    >
+                        Get Diamonds
+                    </a>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 📅 DAILY CHALLENGE CARD
+// ═══════════════════════════════════════════════════════════════════════════
+function DailyChallengeCard({ challenge, streak, completed, onPlay, loading }) {
+    if (loading) {
+        return (
+            <div style={{
+                background: 'linear-gradient(135deg, rgba(255, 107, 0, 0.1), rgba(255, 0, 102, 0.1))',
+                borderRadius: 16,
+                padding: 24,
+                marginBottom: 24,
+                border: '1px solid rgba(255, 107, 0, 0.3)',
+                textAlign: 'center',
+            }}>
+                <div style={{ color: 'rgba(255,255,255,0.5)' }}>Loading daily challenge...</div>
+            </div>
+        );
+    }
+
+    if (!challenge) return null;
+
+    return (
+        <div style={{
+            background: 'linear-gradient(135deg, rgba(255, 107, 0, 0.15), rgba(255, 0, 102, 0.1))',
+            borderRadius: 16,
+            padding: 24,
+            marginBottom: 24,
+            border: completed ? '2px solid #00ff88' : '2px solid rgba(255, 107, 0, 0.5)',
+            position: 'relative',
+            overflow: 'hidden',
+        }}>
+            {/* Streak Badge */}
+            {streak?.current_streak > 0 && (
+                <div style={{
+                    position: 'absolute',
+                    top: 12,
+                    right: 12,
+                    background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                    borderRadius: 20,
+                    padding: '6px 14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                }}>
+                    <span style={{ fontSize: 16 }}>🔥</span>
+                    <span style={{ fontWeight: 700, color: '#000', fontSize: 14 }}>
+                        {streak.current_streak} day streak
+                    </span>
+                </div>
+            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
+                <div style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: 14,
+                    background: completed ? 'rgba(0, 255, 136, 0.2)' : 'rgba(255, 107, 0, 0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 28,
+                }}>
+                    {completed ? '✅' : '📅'}
+                </div>
+                <div>
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1 }}>
+                        Daily Challenge
+                    </div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>
+                        {challenge.title || `Level ${challenge.level || 1} Challenge`}
+                    </div>
+                </div>
+            </div>
+
+            <div style={{
+                display: 'flex',
+                gap: 16,
+                marginBottom: 16,
+                flexWrap: 'wrap',
+            }}>
+                <div style={{
+                    background: 'rgba(0,0,0,0.3)',
+                    borderRadius: 8,
+                    padding: '8px 14px',
+                }}>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Mode</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{challenge.game_mode || 'Range'}</div>
+                </div>
+                <div style={{
+                    background: 'rgba(0,0,0,0.3)',
+                    borderRadius: 8,
+                    padding: '8px 14px',
+                }}>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Target</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: '#FFD700' }}>{challenge.target_accuracy || 75}% accuracy</div>
+                </div>
+                <div style={{
+                    background: 'rgba(0,0,0,0.3)',
+                    borderRadius: 8,
+                    padding: '8px 14px',
+                }}>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Reward</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: '#00ff88' }}>+{challenge.diamond_reward || 50} 💎</div>
+                </div>
+            </div>
+
+            {completed ? (
+                <div style={{
+                    background: 'rgba(0, 255, 136, 0.2)',
+                    borderRadius: 10,
+                    padding: '12px 20px',
+                    textAlign: 'center',
+                    color: '#00ff88',
+                    fontWeight: 700,
+                }}>
+                    ✓ Challenge Completed Today!
+                </div>
+            ) : (
+                <button
+                    onClick={onPlay}
+                    style={{
+                        width: '100%',
+                        padding: '14px 24px',
+                        background: 'linear-gradient(135deg, #ff6b00, #ff0066)',
+                        border: 'none',
+                        borderRadius: 12,
+                        color: '#fff',
+                        fontSize: 16,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                    }}
+                >
+                    🎯 Play Daily Challenge
+                </button>
+            )}
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 //  MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 export default function MemoryGamesPage() {
@@ -1421,6 +1673,7 @@ export default function MemoryGamesPage() {
     const [screenShake, setScreenShake] = useState(false);
     const [showComboPopup, setShowComboPopup] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
+    const [showOutOfDiamondsModal, setShowOutOfDiamondsModal] = useState(false);
 
     // Hamburger menu preferences
     const [preferences, setPreferences] = useState({
@@ -1567,7 +1820,7 @@ export default function MemoryGamesPage() {
         if (!isVIP) {
             const result = DiamondEngine.deduct(GAME_COST);
             if (!result.success) {
-                alert(`Not enough diamonds! Need ${GAME_COST}Diamonds to play.\n\nGet VIP for $19.99/month for unlimited access!`);
+                setShowOutOfDiamondsModal(true);
                 return;
             }
             setDiamondBalance(result.balance);
@@ -2144,6 +2397,20 @@ export default function MemoryGamesPage() {
                                 </div>
                             </div>
 
+                            {/* Daily Challenge Card */}
+                            <DailyChallengeCard
+                                challenge={dailyChallenge}
+                                streak={userStreak}
+                                completed={challengeCompleted}
+                                loading={challengeLoading}
+                                onPlay={() => {
+                                    if (dailyChallenge) {
+                                        setCurrentLevel(dailyChallenge.level || 1);
+                                        startGame(dailyChallenge.level || 1);
+                                    }
+                                }}
+                            />
+
                             {/* Game Mode Tabs */}
                             <div style={styles.gameModeTabs}>
                                 <button
@@ -2268,7 +2535,7 @@ export default function MemoryGamesPage() {
                                             if (!isVIP) {
                                                 const result = DiamondEngine.deduct(GAME_COST);
                                                 if (!result.success) {
-                                                    alert(`Not enough diamonds!`);
+                                                    setShowOutOfDiamondsModal(true);
                                                     return;
                                                 }
                                                 setDiamondBalance(result.balance);
@@ -2303,7 +2570,7 @@ export default function MemoryGamesPage() {
                                             if (!isVIP) {
                                                 const result = DiamondEngine.deduct(GAME_COST);
                                                 if (!result.success) {
-                                                    alert(`Not enough diamonds!`);
+                                                    setShowOutOfDiamondsModal(true);
                                                     return;
                                                 }
                                                 setDiamondBalance(result.balance);
@@ -2341,7 +2608,7 @@ export default function MemoryGamesPage() {
                                             if (!isVIP) {
                                                 const result = DiamondEngine.deduct(GAME_COST);
                                                 if (!result.success) {
-                                                    alert(`Not enough diamonds!`);
+                                                    setShowOutOfDiamondsModal(true);
                                                     return;
                                                 }
                                                 setDiamondBalance(result.balance);
@@ -2379,7 +2646,7 @@ export default function MemoryGamesPage() {
                                             if (!isVIP) {
                                                 const result = DiamondEngine.deduct(GAME_COST);
                                                 if (!result.success) {
-                                                    alert(`Not enough diamonds!`);
+                                                    setShowOutOfDiamondsModal(true);
                                                     return;
                                                 }
                                                 setDiamondBalance(result.balance);
@@ -2417,7 +2684,7 @@ export default function MemoryGamesPage() {
                                             if (!isVIP) {
                                                 const result = DiamondEngine.deduct(GAME_COST);
                                                 if (!result.success) {
-                                                    alert(`Not enough diamonds!`);
+                                                    setShowOutOfDiamondsModal(true);
                                                     return;
                                                 }
                                                 setDiamondBalance(result.balance);
@@ -2455,7 +2722,7 @@ export default function MemoryGamesPage() {
                                             if (!isVIP) {
                                                 const result = DiamondEngine.deduct(GAME_COST);
                                                 if (!result.success) {
-                                                    alert(`Not enough diamonds!`);
+                                                    setShowOutOfDiamondsModal(true);
                                                     return;
                                                 }
                                                 setDiamondBalance(result.balance);
@@ -3118,6 +3385,13 @@ export default function MemoryGamesPage() {
                             userId={userId}
                         />
                     )}
+
+                    {/* Out of Diamonds Modal */}
+                    <OutOfDiamondsModal
+                        isOpen={showOutOfDiamondsModal}
+                        onClose={() => setShowOutOfDiamondsModal(false)}
+                        gameCost={GAME_COST}
+                    />
 
                     {/* AI Generation Loading Overlay */}
                     {aiGenerating && (

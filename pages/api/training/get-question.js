@@ -13,6 +13,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getGrokClient } from '../../../src/lib/grokClient';
 import TRAINING_CONFIG from '../../../src/config/trainingConfig';
 import { getGameConfig, getStackDepthNumber } from '../../../src/config/gameConfigs';
+import { pioQueryService } from '../../../src/services/PIOQueryService';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -66,37 +67,55 @@ export default async function handler(req, res) {
         }
 
         // ═══════════════════════════════════════════════════════════════════
-        // STEP 3: TRY CACHED QUESTIONS FIRST (For 10 Test Games)
+        // STEP 3: TRY PIO SOLVER DATA FIRST (Source of Truth)
         // ═══════════════════════════════════════════════════════════════════
-        // NOTE: Temporarily skipping PIO database query due to ES6/CommonJS compatibility issues
-        // The 10 test games have 500 cached questions ready to use
         let question = null;
 
-        console.log('[Training] 💾 Checking question cache...');
+        console.log('[Training] 📊 Querying PIO solver data...');
+        try {
+            const pioScenarios = await pioQueryService.queryScenarios(gameId, parseInt(level), userId);
 
-        const { data: cachedQuestions } = await supabase
-            .from('training_question_cache')
-            .select('question_data, question_id')
-            .eq('game_id', gameId)
-            .eq('level', level)
-            .not('question_id', 'in', `(${seenQuestionIds.join(',') || 'null'})`)
-            .limit(10); // Get 10 random candidates
-
-        if (cachedQuestions && cachedQuestions.length > 0) {
-            // Pick random question from cache
-            const randomIndex = Math.floor(Math.random() * cachedQuestions.length);
-            question = cachedQuestions[randomIndex].question_data;
-
-            // Increment times_used counter
-            await supabase
-                .from('training_question_cache')
-                .update({ times_used: supabase.raw('times_used + 1') })
-                .eq('question_id', cachedQuestions[randomIndex].question_id);
-
-            console.log('[Training] ✅ Loaded from cache:', question.scenario || question.question);
-        } else {
-            console.log('[Training] ⚠️ No cached questions found, will try Grok');
+            if (pioScenarios && pioScenarios.length > 0) {
+                console.log(`[Training] ✅ Found ${pioScenarios.length} PIO scenarios`);
+                question = await generateQuestionFromPIO(pioScenarios, gameId, level, game);
+            } else {
+                console.log('[Training] ⚠️ No PIO data available for this game/level');
+            }
+        } catch (pioError) {
+            console.warn('[Training] ⚠️ PIO query failed, continuing to cache:', pioError.message);
         }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // STEP 4: TRY CACHED QUESTIONS (Fallback)
+        // ═══════════════════════════════════════════════════════════════════
+        if (!question) {
+            console.log('[Training] 💾 Checking question cache...');
+
+            const { data: cachedQuestions } = await supabase
+                .from('training_question_cache')
+                .select('question_data, question_id')
+                .eq('game_id', gameId)
+                .eq('level', level)
+                .not('question_id', 'in', `(${seenQuestionIds.join(',') || 'null'})`)
+                .limit(10); // Get 10 random candidates
+
+            if (cachedQuestions && cachedQuestions.length > 0) {
+                // Pick random question from cache
+                const randomIndex = Math.floor(Math.random() * cachedQuestions.length);
+                question = cachedQuestions[randomIndex].question_data;
+
+                // Increment times_used counter
+                await supabase
+                    .from('training_question_cache')
+                    .update({ times_used: supabase.raw('times_used + 1') })
+                    .eq('question_id', cachedQuestions[randomIndex].question_id);
+
+                console.log('[Training] ✅ Loaded from cache:', question.scenario || question.question);
+            } else {
+                console.log('[Training] ⚠️ No cached questions found, will try Grok');
+            }
+        }
+
 
         // ═══════════════════════════════════════════════════════════════════
         // STEP 4: GENERATE WITH GROK AI (Last Resort)
