@@ -245,6 +245,7 @@ const VIP_MEMBERSHIP = {
         price: 19.99,
         interval: 'month',
         popular: true,
+        priceId: process.env.NEXT_PUBLIC_STRIPE_VIP_MONTHLY_PRICE_ID || 'price_vip_monthly', // Stripe Price ID
     },
     annual: {
         id: 'vip-annual',
@@ -253,6 +254,7 @@ const VIP_MEMBERSHIP = {
         interval: 'year',
         savings: 39.89, // 2 months free
         popular: false,
+        priceId: process.env.NEXT_PUBLIC_STRIPE_VIP_ANNUAL_PRICE_ID || 'price_vip_annual', // Stripe Price ID
     },
 };
 
@@ -865,7 +867,7 @@ export default function DiamondStorePage() {
     };
 
     // Direct VIP subscription checkout (no cart)
-    const handleVIPSubscribe = async (tier) => {
+    const handleVIPSubscribe = async () => {
         setIsProcessing(true);
 
         try {
@@ -885,14 +887,38 @@ export default function DiamondStorePage() {
                 return;
             }
 
-            // For now, show coming soon message
-            // TODO: Add Stripe Price IDs for VIP subscriptions
-            alert('VIP subscriptions coming soon! We need to configure Stripe Price IDs first.');
-            setIsProcessing(false);
+            // Get the selected VIP plan
+            const plan = selectedVIP === 'vip-monthly' ? VIP_MEMBERSHIP.monthly : VIP_MEMBERSHIP.annual;
+
+            // Create checkout session
+            const response = await fetch('/api/store/create-checkout-session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({
+                    type: 'subscription',
+                    items: [{
+                        name: plan.name,
+                        priceId: plan.priceId,
+                        tier: 'vip'
+                    }]
+                })
+            });
+
+            const data = await response.json();
+
+            if (!data.success) {
+                throw new Error(data.error?.message || 'Failed to create subscription checkout');
+            }
+
+            // Redirect to Stripe Checkout
+            window.location.href = data.data.url;
 
         } catch (error) {
             console.error('VIP subscribe error:', error);
-            alert('Failed to start VIP subscription. Please try again.');
+            alert(error.message || 'Failed to start VIP subscription. Please try again.');
             setIsProcessing(false);
         }
     };
@@ -902,8 +928,62 @@ export default function DiamondStorePage() {
         handleAddToCart(pkg);
     };
 
-    const handleMerchPurchase = (itemId) => {
-        alert('Merchandise store coming soon!');
+    const handleMerchPurchase = async (itemId) => {
+        const item = MERCHANDISE.find(m => m.id === itemId);
+        if (!item) return;
+
+        setIsProcessing(true);
+
+        try {
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+            if (!user || authError) {
+                alert('Please sign in to purchase merchandise');
+                setIsProcessing(false);
+                return;
+            }
+
+            const { data: { session } } = await supabase.auth.getSession();
+
+            if (!session) {
+                alert('Session expired. Please refresh and try again.');
+                setIsProcessing(false);
+                return;
+            }
+
+            // Create checkout session for merchandise
+            const response = await fetch('/api/store/create-checkout-session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({
+                    type: 'merchandise',
+                    items: [{
+                        name: item.name,
+                        description: item.description,
+                        price: item.price,
+                        image: item.image ? `${window.location.origin}${item.image}` : null,
+                        quantity: 1
+                    }]
+                })
+            });
+
+            const data = await response.json();
+
+            if (!data.success) {
+                throw new Error(data.error?.message || 'Failed to create checkout');
+            }
+
+            // Redirect to Stripe Checkout
+            window.location.href = data.data.url;
+
+        } catch (error) {
+            console.error('Merch purchase error:', error);
+            alert(error.message || 'Failed to start checkout. Please try again.');
+            setIsProcessing(false);
+        }
     };
 
     const selectedPkg = DIAMOND_PACKAGES.find(p => p.id === selectedPackage);
@@ -1026,7 +1106,7 @@ export default function DiamondStorePage() {
                                 ...(activeTab === 'vip' ? styles.tabButtonActiveVIP : {}),
                             }}
                         >
-                             VIP Membership
+                            VIP Membership
                         </button>
                         <button
                             onClick={() => setActiveTab('merch')}
@@ -1035,7 +1115,7 @@ export default function DiamondStorePage() {
                                 ...(activeTab === 'merch' ? styles.tabButtonActive : {}),
                             }}
                         >
-                             Merch
+                            Merch
                         </button>
                         <button
                             onClick={() => setActiveTab('rewards')}
@@ -1044,7 +1124,7 @@ export default function DiamondStorePage() {
                                 ...(activeTab === 'rewards' ? styles.tabButtonActive : {}),
                             }}
                         >
-                             Smarter Rewards
+                            Smarter Rewards
                         </button>
                     </div>
 
@@ -1246,7 +1326,7 @@ export default function DiamondStorePage() {
                                             ...(rewardsSubTab === 'xp' ? styles.rewardsSubTabActive : {}),
                                         }}
                                     >
-                                         XP System
+                                        XP System
                                     </button>
                                     <button
                                         onClick={() => setRewardsSubTab('eggs')}
@@ -1255,7 +1335,7 @@ export default function DiamondStorePage() {
                                             ...(rewardsSubTab === 'eggs' ? styles.rewardsSubTabActive : {}),
                                         }}
                                     >
-                                         Easter Eggs
+                                        Easter Eggs
                                     </button>
                                 </div>
 
