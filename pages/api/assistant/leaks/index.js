@@ -22,29 +22,70 @@ export default async function handler(req, res) {
     }
 
     try {
-      let query = supabase
-        .from('user_leaks')
-        .select('*')
-        .eq('user_id', userId)
-        .order('last_detected_at', { ascending: false });
+      // Fetch from legacy user_leaks table
+      let legacyLeaks = [];
+      try {
+        let query = supabase
+          .from('user_leaks')
+          .select('*')
+          .eq('user_id', userId)
+          .order('last_detected_at', { ascending: false });
 
-      if (status) {
-        query = query.eq('status', status);
+        if (status) {
+          query = query.eq('status', status);
+        }
+
+        const { data } = await query;
+        legacyLeaks = data || [];
+      } catch (e) {
+        console.log('No user_leaks table or error:', e.message);
       }
 
-      const { data: leaks, error } = await query;
+      // Also fetch from new user_training_leaks table (Memory Matrix)
+      let trainingLeaks = [];
+      try {
+        let query = supabase
+          .from('user_training_leaks')
+          .select('*')
+          .eq('user_id', userId)
+          .order('detected_at', { ascending: false });
 
-      if (error) {
-        // Table might not exist yet - return demo data
-        return res.status(200).json({
-          success: true,
-          leaks: getDemoLeaks(userId),
-          isDemo: true
-        });
+        if (status === 'resolved') {
+          query = query.not('fixed_at', 'is', null);
+        } else if (status) {
+          query = query.is('fixed_at', null);
+        }
+
+        const { data } = await query;
+        // Transform to match expected format
+        trainingLeaks = (data || []).map(leak => ({
+          id: leak.id,
+          user_id: leak.user_id,
+          leak_type: leak.leak_type,
+          leak_category: 'training',
+          situation_class: leak.description,
+          status: leak.fixed_at ? 'resolved' : 'persistent',
+          confidence: leak.count >= 5 ? 'high' : leak.count >= 3 ? 'medium' : 'low',
+          avg_ev_loss_bb: 0.10, // Default EV loss
+          occurrence_count: leak.count,
+          optimal_frequency: 50,
+          current_frequency: 50 + (leak.count * 5),
+          first_detected_at: leak.detected_at,
+          last_detected_at: leak.updated_at || leak.detected_at,
+          trend_data: [],
+          explanation: leak.description,
+          why_leaking_ev: `Detected ${leak.count} times during Memory Matrix training: ${leak.description}`,
+          recommended_drill: leak.recommended_drill
+        }));
+      } catch (e) {
+        console.log('No user_training_leaks table or error:', e.message);
       }
+
+      // Combine both sources
+      const allLeaks = [...legacyLeaks, ...trainingLeaks];
 
       // If no leaks found, return demo data
-      if (!leaks || leaks.length === 0) {
+      if (allLeaks.length === 0) {
         return res.status(200).json({
           success: true,
           leaks: getDemoLeaks(userId),
@@ -54,7 +95,7 @@ export default async function handler(req, res) {
 
       return res.status(200).json({
         success: true,
-        leaks,
+        leaks: allLeaks,
         isDemo: false
       });
 
@@ -68,6 +109,7 @@ export default async function handler(req, res) {
       });
     }
   }
+
 
   if (req.method === 'POST') {
     const leak = req.body;

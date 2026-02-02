@@ -758,16 +758,59 @@ export const MENU_CONFIGS = {
 
     'club-arena': (user, state, handlers) => ({
         menuItems: [
-            createMenuItem.section('Club Arena'),
+            createMenuItem.section('Club Navigation'),
             createMenuItem.navigation('My Clubs', '/hub/club-arena'),
             createMenuItem.navigation('Find Clubs', '/hub/club-arena#find'),
+            createMenuItem.navigation('Create Club', '/hub/club-arena#create'),
             createMenuItem.divider(),
-            createMenuItem.section('Quick Links'),
-            createMenuItem.navigation('Home', '/hub'),
-            createMenuItem.navigation('Settings', '/hub/settings')
+            createMenuItem.section('Game Modes'),
+            createMenuItem.navigation('Cash Games', '/hub/club-arena?mode=cash'),
+            createMenuItem.navigation('Tournaments', '/hub/club-arena?mode=tournament'),
+            createMenuItem.navigation('Sit & Go', '/hub/club-arena?mode=sng'),
+            createMenuItem.navigation('Spin-It', '/hub/club-arena?mode=spin'),
+            createMenuItem.divider(),
+            createMenuItem.section('Club Features'),
+            createMenuItem.navigation('Messages', '/hub/club-arena/messages'),
+            createMenuItem.navigation('Players', '/hub/club-arena/players'),
+            createMenuItem.navigation('Cashier', '/hub/club-arena/cashier'),
+            createMenuItem.navigation('Leaderboard', '/hub/club-arena/leaderboard'),
+            createMenuItem.navigation('Hand Histories', '/hub/club-arena/hand-histories'),
+            createMenuItem.navigation('Player Stats', '/hub/club-arena/player-stats'),
+            createMenuItem.divider(),
+            createMenuItem.section('Settings'),
+            createMenuItem.toggle(
+                'Sound Effects',
+                state.soundEffects !== false,
+                handlers.setSoundEffects
+            ),
+            createMenuItem.toggle(
+                'Notifications',
+                state.notifications !== false,
+                handlers.setNotifications
+            ),
+            createMenuItem.toggle(
+                'Auto-Rebuy',
+                state.autoRebuy || false,
+                handlers.setAutoRebuy
+            ),
+            createMenuItem.toggle(
+                'Show Table Previews',
+                state.tablePreview !== false,
+                handlers.setTablePreview,
+                'See table cards before joining'
+            ),
+            createMenuItem.toggle(
+                'Compact View',
+                state.compactView || false,
+                handlers.setCompactView
+            ),
+            createMenuItem.divider(),
+            createMenuItem.navigation('Table Preferences', '/hub/settings?section=table'),
+            createMenuItem.navigation('Privacy Settings', '/hub/settings?section=privacy')
         ],
         bottomLinks: [
-            { label: 'Help', href: '/hub/help', icon: MenuIcons.help }
+            { label: 'Help & Rules', href: '/hub/help', icon: MenuIcons.help },
+            { label: 'Home', href: '/hub', icon: MenuIcons.home }
         ]
     }),
 
