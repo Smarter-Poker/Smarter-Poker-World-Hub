@@ -21,35 +21,35 @@ const ORB_METADATA = {
     'social-media': {
         title: 'Social Media',
         description: 'Connect with fellow poker players, share hands, and build your network',
-        emoji: '💬',
+        emoji: '',
         color: '#ff4d4d',
         features: ['Friend Feed', 'Hand Sharing', 'Player Connections', 'Notifications', 'Messages'],
     },
     'club-arena': {
         title: 'Club Arena',
         description: 'Join poker clubs, compete in club tournaments, and climb the leaderboards',
-        emoji: '🏛️',
+        emoji: '',
         color: '#ff9900',
         features: ['Club Discovery', 'Club Tournaments', 'Member Rankings', 'Club Chat', 'Club Wars'],
     },
     'diamond-arena': {
         title: 'Diamond Arena',
         description: 'High-stakes competitive play with diamond entry fees and massive prize pools',
-        emoji: '💎',
+        emoji: 'Diamonds',
         color: '#ffee00',
         features: ['Diamond Tournaments', 'Prize Pools', 'Leaderboards', 'Buy-ins', 'Payouts'],
     },
     'training': {
         title: 'GTO Training',
         description: 'Master Game Theory Optimal play with AI-powered drills and scenarios',
-        emoji: '🎯',
+        emoji: '',
         color: '#00ff66',
         features: ['GTO Drills', 'Hand Analysis', 'Leak Detection', 'Skill Levels 1-10', '85% Mastery Gate'],
     },
     'memory-games': {
         title: 'Memory Games',
         description: 'Sharpen your poker memory with range recall and pattern recognition games',
-        emoji: '🧠',
+        emoji: '',
         color: '#00ffff',
         features: ['Range Memory', 'Pattern Recognition', 'Speed Drills', 'Memory Challenges', 'Brain Training'],
     },
@@ -63,21 +63,21 @@ const ORB_METADATA = {
     'diamond-arcade': {
         title: 'Diamond Arcade',
         description: 'Risk diamonds. Test skills. Beat the house in fast-paced poker games!',
-        emoji: '🎰',
+        emoji: '',
         color: '#9900ff',
         features: ['Speed Games', 'Jackpot Games', 'Daily Rotation', 'Progressive Jackpot', 'Leaderboards'],
     },
     'bankroll-manager': {
         title: 'Bankroll Manager',
         description: 'Track your poker finances, manage your bankroll, and analyze your results',
-        emoji: '💰',
+        emoji: '',
         color: '#ff00ff',
         features: ['Bankroll Tracking', 'Session Logs', 'Profit/Loss Charts', 'Stop-Loss Alerts', 'Tilt Detection'],
     },
     'poker-near-me': {
         title: 'Poker Near Me',
         description: 'Find live poker games, casinos, and home games in your area',
-        emoji: '📍',
+        emoji: '',
         color: '#ffffff',
         features: ['Live Game Finder', 'Casino Directory', 'Home Game Network', 'Game Ratings', 'Travel Mode'],
     },
@@ -91,7 +91,7 @@ const ORB_METADATA = {
     'settings': {
         title: 'Settings',
         description: 'Customize your Smarter.Poker experience',
-        emoji: '⚙️',
+        emoji: '',
         color: '#888888',
         features: ['Account Settings', 'Privacy Controls', 'Notifications', 'Theme Options', 'Data Export'],
     },
@@ -189,7 +189,7 @@ export default function OrbPage() {
 
                     {/* Coming Soon Badge */}
                     <div style={styles.comingSoonBadge}>
-                        🚀 COMING SOON
+                         COMING SOON
                     </div>
 
                     {/* Features Preview */}
@@ -201,7 +201,7 @@ export default function OrbPage() {
                                     ...styles.featureCard,
                                     borderColor: `${orbMeta.color}44`,
                                 }}>
-                                    <span style={styles.featureIcon}>✨</span>
+                                    <span style={styles.featureIcon}></span>
                                     <span style={styles.featureName}>{feature}</span>
                                 </div>
                             ))}

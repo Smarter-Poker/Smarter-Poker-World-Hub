@@ -111,7 +111,7 @@ export default function TrainingProgress() {
     if (loading) {
         return (
             <div style={styles.loadingContainer}>
-                <div style={styles.spinner}>📊</div>
+                <div style={styles.spinner}></div>
                 <p style={styles.loadingText}>Loading your progress...</p>
             </div>
         );
@@ -143,12 +143,12 @@ export default function TrainingProgress() {
                 <UniversalHeader pageDepth={2} />
 
                 <div style={styles.content}>
-                    <h1 style={styles.title}>📊 Your Training Progress</h1>
+                    <h1 style={styles.title}> Your Training Progress</h1>
 
                     {/* Overall Stats */}
                     <div style={styles.statsGrid}>
                         <StatCard
-                            icon="🎯"
+                            icon=""
                             label="Total Questions"
                             value={stats.totalQuestions.toLocaleString()}
                         />
@@ -158,13 +158,13 @@ export default function TrainingProgress() {
                             value={stats.correctAnswers.toLocaleString()}
                         />
                         <StatCard
-                            icon="📈"
+                            icon=""
                             label="Accuracy"
                             value={`${stats.accuracy}%`}
                             color={stats.accuracy >= 80 ? '#31A24C' : stats.accuracy >= 60 ? '#FFB800' : '#FF4444'}
                         />
                         <StatCard
-                            icon="⏱️"
+                            icon=""
                             label="Avg Time/Question"
                             value={`${stats.averageTime}s`}
                         />
@@ -192,7 +192,7 @@ export default function TrainingProgress() {
                     {/* Weak Areas */}
                     {stats.weakAreas.length > 0 && (
                         <section style={styles.section}>
-                            <h2 style={styles.sectionTitle}>⚠️ Areas to Improve</h2>
+                            <h2 style={styles.sectionTitle}> Areas to Improve</h2>
                             <div style={styles.weakAreasList}>
                                 {stats.weakAreas.map(area => (
                                     <WeakAreaCard key={area.category} {...area} />

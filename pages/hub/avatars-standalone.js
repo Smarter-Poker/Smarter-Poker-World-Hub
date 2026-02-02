@@ -79,7 +79,7 @@ export default function AvatarsStandalone() {
                             border: '1px solid rgba(0, 245, 255, 0.3)'
                         }}>
                             <p style={{ fontSize: '14px', color: '#00f5ff', marginBottom: '10px' }}>
-                                ✓ Selected: {selectedAvatar.name}
+                                 Selected: {selectedAvatar.name}
                             </p>
                             <img
                                 src={selectedAvatar.image}

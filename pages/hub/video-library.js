@@ -10,6 +10,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import { useAvatar } from '../../src/contexts/AvatarContext';
+import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../src/config/hamburgerMenus';
+import { getVideoLibraryPreferences, updateVideoLibraryPreferences } from '../../src/services/videoLibraryPreferences';
+import { getVideoFavorites, addVideoFavorite, removeVideoFavorite } from '../../src/services/videoFavorites';
+import { getWatchLater, addToWatchLater, removeFromWatchLater } from '../../src/services/videoWatchLater';
+import { addVideoWatchHistory } from '../../src/services/videoWatchHistory';
 
 // God-Mode Stack
 import { useVideoLibraryStore } from '../../src/stores/videoLibraryStore';
@@ -321,7 +328,7 @@ const SOURCES = [
     { id: 'TRITON', name: 'Triton Poker', logo: '/images/video-sources/triton.png' },
     { id: 'LATB', name: 'Live at the Bike', logo: '/images/video-sources/latb.png' },
     { id: 'TCH', name: 'TCH Live', logo: '/images/video-sources/tch.png' },
-    { id: 'POKERGO', name: 'PokerGO', logo: null, emoji: '🎬' },
+    { id: 'POKERGO', name: 'PokerGO', logo: null, emoji: '' },
     // Major Tours
     { id: 'WSOP', name: 'WSOP', logo: '/images/video-sources/wsop.png' },
     { id: 'WPT', name: 'WPT', logo: '/images/video-sources/wpt.png' },
@@ -329,23 +336,23 @@ const SOURCES = [
     // Top Vloggers
     { id: 'BRAD_OWEN', name: 'Brad Owen', logo: '/images/video-sources/brad_owen.png' },
     { id: 'NEEME', name: 'Andrew Neeme', logo: null, emoji: '🎥' },
-    { id: 'RAMPAGE', name: 'Rampage Poker', logo: null, emoji: '🚀' },
-    { id: 'MARIANO', name: 'Mariano', logo: null, emoji: '🃏' },
+    { id: 'RAMPAGE', name: 'Rampage Poker', logo: null, emoji: '' },
+    { id: 'MARIANO', name: 'Mariano', logo: null, emoji: '' },
     { id: 'WOLFGANG', name: 'Wolfgang Poker', logo: null, emoji: '🐺' },
     { id: 'JOHNNIE', name: 'JohnnieVibes', logo: null, emoji: '🎸' },
     { id: 'BOSKI', name: 'Boski', logo: null, emoji: '🎭' },
-    { id: 'RYAN', name: 'Ryan Depaulo', logo: null, emoji: '🎰' },
+    { id: 'RYAN', name: 'Ryan Depaulo', logo: null, emoji: '' },
     // Training/Strategy
     { id: 'JLITTLE', name: 'Jonathan Little', logo: null, emoji: '📚' },
     { id: 'POLK', name: 'Doug Polk', logo: null, emoji: '👊' },
-    { id: 'BART', name: 'Bart Hanson', logo: null, emoji: '📊' },
-    { id: 'UPSWING', name: 'Upswing Poker', logo: null, emoji: '📈' },
+    { id: 'BART', name: 'Bart Hanson', logo: null, emoji: '' },
+    { id: 'UPSWING', name: 'Upswing Poker', logo: null, emoji: '' },
     // Celebrity Pros
     { id: 'NEGREANU', name: 'Daniel Negreanu', logo: null, emoji: '🐐' },
-    { id: 'HELLMUTH', name: 'Phil Hellmuth', logo: null, emoji: '👑' },
-    { id: 'IVEY', name: 'Phil Ivey', logo: null, emoji: '🎯' },
-    { id: 'DWAN', name: 'Tom Dwan', logo: null, emoji: '💎' },
-    { id: 'GARRETT', name: 'Garrett Adelstein', logo: null, emoji: '🏆' },
+    { id: 'HELLMUTH', name: 'Phil Hellmuth', logo: null, emoji: '' },
+    { id: 'IVEY', name: 'Phil Ivey', logo: null, emoji: '' },
+    { id: 'DWAN', name: 'Tom Dwan', logo: null, emoji: 'Diamonds' },
+    { id: 'GARRETT', name: 'Garrett Adelstein', logo: null, emoji: 'Trophy' },
 ];
 
 const C = {
@@ -360,7 +367,11 @@ const C = {
 };
 
 export default function VideoLibraryPage() {
-    // Zustand Global State (replaces UI-related useState)
+    const router = useRouter();
+    const { user } = useAvatar();
+    const userId = user?.id;
+
+    // Zustand storebal State (replaces UI-related useState)
     const selectedCategory = useVideoLibraryStore((s) => s.selectedCategory);
     const setSelectedCategory = useVideoLibraryStore((s) => s.setSelectedCategory);
     const selectedVideo = useVideoLibraryStore((s) => s.selectedVideo);
@@ -372,10 +383,35 @@ export default function VideoLibraryPage() {
     const [videos, setVideos] = useState(FULL_VIDEOS);
     const [selectedSource, setSelectedSource] = useState('ALL');
     const [selectedType, setSelectedType] = useState('ALL'); // 'ALL', 'cash', 'tournament'
+
+    // Handle query parameters for deep linking
+    useEffect(() => {
+        if (router.query.type) {
+            setSelectedType(router.query.type.toUpperCase());
+        }
+        if (router.query.source) {
+            setSelectedSource(router.query.source.toUpperCase());
+        }
+        if (router.query.filter) {
+            setSearchQuery(router.query.filter);
+        }
+    }, [router.query]);
     const [searchQuery, setSearchQuery] = useState('');
     const modalRef = useRef(null);
+    const [menuOpen, setMenuOpen] = useState(false);
 
-    // 🎬 INTRO VIDEO STATE - Video plays while page loads in background
+    // Content tracking state
+    const [favorites, setFavorites] = useState(new Set());
+    const [watchLater, setWatchLater] = useState(new Set());
+
+    // Hamburger menu preferences
+    const [preferences, setPreferences] = useState({
+        autoplay: true,
+        hdQuality: true,
+        captions: false
+    });
+
+    //  INTRO VIDEO STATE - Video plays while page loads in background
     // Only show once per session (not on every reload)
     const [showIntro, setShowIntro] = useState(() => {
         if (typeof window !== 'undefined') {
@@ -397,6 +433,85 @@ export default function VideoLibraryPage() {
             introVideoRef.current.muted = false;
         }
     }, []);
+
+    // Load preferences from Supabase on mount
+    useEffect(() => {
+        if (userId) {
+            getVideoLibraryPreferences(userId).then(setPreferences);
+
+            // Load favorites and watch later lists
+            getVideoFavorites(userId).then(data => {
+                setFavorites(new Set(data.map(v => v.video_id)));
+            }).catch(err => console.error('Error loading favorites:', err));
+
+            getWatchLater(userId).then(data => {
+                setWatchLater(new Set(data.map(v => v.video_id)));
+            }).catch(err => console.error('Error loading watch later:', err));
+        }
+    }, [userId]);
+
+    // Hamburger menu handlers - save to Supabase
+    const updatePreference = useCallback(async (key, value) => {
+        const newPrefs = { ...preferences, [key]: value };
+        setPreferences(newPrefs);
+
+        if (userId) {
+            try {
+                await updateVideoLibraryPreferences(userId, { [key]: value });
+            } catch (error) {
+                console.error('Failed to save preference:', error);
+            }
+        }
+    }, [preferences]);
+
+    const menuConfig = getMenuConfig('video-library', null, preferences, {
+        setAutoplay: (val) => updatePreference('autoplay', val),
+        setHdQuality: (val) => updatePreference('hdQuality', val),
+        setCaptions: (val) => updatePreference('captions', val)
+    });
+
+    // Content tracking handlers
+    const toggleFavorite = useCallback(async (video) => {
+        if (!userId) return;
+
+        const videoId = video.id;
+        if (favorites.has(videoId)) {
+            await removeVideoFavorite(userId, videoId);
+            setFavorites(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(videoId);
+                return newSet;
+            });
+        } else {
+            await addVideoFavorite(userId, videoId, {
+                title: video.title,
+                source: video.source,
+                video_url: `https://youtube.com/watch?v=${video.videoId}`
+            });
+            setFavorites(prev => new Set(prev).add(videoId));
+        }
+    }, [userId, favorites]);
+
+    const toggleWatchLater = useCallback(async (video) => {
+        if (!userId) return;
+
+        const videoId = video.id;
+        if (watchLater.has(videoId)) {
+            await removeFromWatchLater(userId, videoId);
+            setWatchLater(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(videoId);
+                return newSet;
+            });
+        } else {
+            await addToWatchLater(userId, videoId, {
+                title: video.title,
+                source: video.source,
+                video_url: `https://youtube.com/watch?v=${video.videoId}`
+            });
+            setWatchLater(prev => new Set(prev).add(videoId));
+        }
+    }, [userId, watchLater]);
 
     // Filter videos
     useEffect(() => {
@@ -434,7 +549,7 @@ export default function VideoLibraryPage() {
 
     return (
         <PageTransition>
-            {/* 🎬 INTRO VIDEO OVERLAY - Plays while page loads behind it */}
+            {/*  INTRO VIDEO OVERLAY - Plays while page loads behind it */}
             {showIntro && (
                 <div style={{
                     position: 'fixed',
@@ -528,7 +643,19 @@ export default function VideoLibraryPage() {
                             alignItems: 'center',
                             gap: 16,
                         }}>
-                            <UniversalHeader pageDepth={1} />
+                            <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
+
+                            {/* Hamburger Menu */}
+                            <HamburgerMenu
+                                isOpen={menuOpen}
+                                onClose={() => setMenuOpen(false)}
+                                direction="left"
+                                theme="dark"
+                                user={null}
+                                showProfile={false}
+                                menuItems={menuConfig.menuItems}
+                                bottomLinks={menuConfig.bottomLinks}
+                            />
                             <h1 style={{
                                 color: C.text,
                                 fontSize: 28,
@@ -566,7 +693,7 @@ export default function VideoLibraryPage() {
                                 top: '50%',
                                 transform: 'translateY(-50%)',
                                 fontSize: 18,
-                            }}>🔍</span>
+                            }}></span>
                         </div>
                     </div>
 
@@ -578,9 +705,9 @@ export default function VideoLibraryPage() {
                         justifyContent: 'center',
                     }}>
                         {[
-                            { id: 'cash', name: '💰 Cash Games', icon: '🎰' },
+                            { id: 'cash', name: ' Cash Games', icon: '' },
                             { id: 'ALL', name: 'All Videos', icon: '🌍' },
-                            { id: 'tournament', name: '🏆 Tournaments', icon: '👑' },
+                            { id: 'tournament', name: 'Trophy Tournaments', icon: '' },
                         ].map(type => (
                             <button
                                 key={type.id}
@@ -850,7 +977,7 @@ export default function VideoLibraryPage() {
                         padding: '80px 20px',
                         color: C.textSec,
                     }}>
-                        <div style={{ fontSize: 64, marginBottom: 16 }}>🎬</div>
+                        <div style={{ fontSize: 64, marginBottom: 16 }}></div>
                         <h3 style={{ color: C.text, marginBottom: 8 }}>No videos found</h3>
                         <p>Try adjusting your search or filter</p>
                     </div>
@@ -904,7 +1031,7 @@ export default function VideoLibraryPage() {
                             zIndex: 1001,
                             backdropFilter: 'blur(10px)',
                         }}
-                    >✕</button>
+                    >×</button>
 
                     {/* Fullscreen YouTube embed */}
                     <div style={{

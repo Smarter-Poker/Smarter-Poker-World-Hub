@@ -9,24 +9,25 @@ module.exports = {
     return 'build-v19-2-baked-assets-' + Date.now();
   },
 
-  // Club Arena rewrites - MUST be in next.config.js with beforeFiles
-  // to take precedence over dynamic [orbId].js route
-  // Fixed: now pointing to club-arena.vercel.app (not deprecated club.smarter.poker)
+  // Club Arena static assets are proxied from the Club Arena Vercel deployment
+  // The pages/hub/club-arena.js pages render the UI, but images/videos come from club-arena.vercel.app
   async rewrites() {
-    return {
-      beforeFiles: [
-        // Club Arena - served from club-arena.vercel.app
-        {
-          source: '/hub/club-arena',
-          destination: 'https://club-arena.vercel.app/hub/club-arena/?v=28012026v3',
-        },
-        {
-          source: '/hub/club-arena/:path*',
-          destination: 'https://club-arena.vercel.app/hub/club-arena/:path*',
-        },
-      ],
-    };
+    return [
+      // Club Arena images (action bar, tiles, cards, etc.)
+      {
+        source: '/hub/club-arena/images/:path*',
+        destination: 'https://club-arena.vercel.app/images/:path*',
+      },
+      // Club Arena videos
+      {
+        source: '/hub/club-arena/videos/:path*',
+        destination: 'https://club-arena.vercel.app/videos/:path*',
+      },
+      // Club Arena manifest and other static files
+      {
+        source: '/hub/club-arena/manifest.json',
+        destination: 'https://club-arena.vercel.app/manifest.json',
+      },
+    ];
   },
 }
-
-// Force redeploy 1769586614

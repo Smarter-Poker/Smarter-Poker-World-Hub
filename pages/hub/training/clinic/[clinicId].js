@@ -245,7 +245,7 @@ export default function ClinicPlayPage() {
                 <style>{EFFECT_STYLES}</style>
                 <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a1628', color: '#fff' }}>
                     <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 80, marginBottom: 16 }}>{passed ? '🏆' : '🔄'}</div>
+                        <div style={{ fontSize: 80, marginBottom: 16 }}>{passed ? 'Trophy' : '🔄'}</div>
                         <h1 style={{ fontSize: 32, color: passed ? '#4CAF50' : '#fff' }}>
                             {passed ? 'LEAK FIXED!' : 'KEEP TRYING'}
                         </h1>
@@ -257,7 +257,7 @@ export default function ClinicPlayPage() {
                                 borderRadius: 20,
                                 marginBottom: 16
                             }}>
-                                🏅 {clinic.badge}
+                                 {clinic.badge}
                             </div>
                         )}
                         <div style={{ fontSize: 56, fontWeight: 800, color: passed ? '#4CAF50' : '#FF6B35' }}>{accuracy}%</div>

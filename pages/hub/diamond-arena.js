@@ -7,23 +7,63 @@
 
 import Head from 'next/head';
 import Link from 'next/link';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
+import { useAvatar } from '../../src/contexts/AvatarContext';
 
 // God-Mode Stack
 import { useDiamondArenaStore } from '../../src/stores/diamondArenaStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../src/config/hamburgerMenus';
+import { getDiamondArenaPreferences, updateDiamondArenaPreferences } from '../../src/services/diamondArenaPreferences';
 
 export default function DiamondArenaPage() {
     const router = useRouter();
+    const { user } = useAvatar();
+    const userId = user?.id;
     const iframeRef = useRef(null);
     const [iframeLoaded, setIframeLoaded] = useState(false);
     const [mounted, setMounted] = useState(false);
     const [isNavigating, setIsNavigating] = useState(false);
+    const [menuOpen, setMenuOpen] = useState(false);
+
+    // Hamburger menu preferences
+    const [preferences, setPreferences] = useState({
+        soundEffects: true,
+        animations: true,
+        autoRebuy: false
+    });
+
+    // Load preferences from Supabase on mount
+    useEffect(() => {
+        if (userId) {
+            getDiamondArenaPreferences(userId).then(setPreferences);
+        }
+    }, []);
+
+    const updatePreference = useCallback(async (key, value) => {
+        const newPrefs = { ...preferences, [key]: value };
+        setPreferences(newPrefs);
+
+        if (userId) {
+            try {
+                await updateDiamondArenaPreferences(userId, { [key]: value });
+            } catch (error) {
+                console.error('Failed to save preference:', error);
+            }
+        }
+    }, [preferences]);
+
+    const menuConfig = getMenuConfig('diamond-arena', null, preferences, {
+        setSoundEffects: (val) => updatePreference('soundEffects', val),
+        setAnimations: (val) => updatePreference('animations', val),
+        setAutoRebuy: (val) => updatePreference('autoRebuy', val)
+    });
 
     useEffect(() => {
         setMounted(true);
@@ -66,7 +106,7 @@ export default function DiamondArenaPage() {
     if (!mounted) {
         return (
             <div style={styles.loadingContainer}>
-                <div style={styles.loadingSpinner}>💎</div>
+                <div style={styles.loadingSpinner}>Diamonds</div>
                 <p style={styles.loadingText}>Loading Diamond Arena...</p>
             </div>
         );
@@ -92,14 +132,26 @@ export default function DiamondArenaPage() {
             <div className="diamond-arena-page" style={styles.container}>
                 {/* Universal Header */}
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1001 }}>
-                    <UniversalHeader pageDepth={1} />
+                    <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
                 </div>
+
+                {/* Hamburger Menu */}
+                <HamburgerMenu
+                    isOpen={menuOpen}
+                    onClose={() => setMenuOpen(false)}
+                    direction="left"
+                    theme="dark"
+                    user={null}
+                    showProfile={false}
+                    menuItems={menuConfig.menuItems}
+                    bottomLinks={menuConfig.bottomLinks}
+                />
 
                 {/* Loading Overlay */}
                 {!iframeLoaded && (
                     <div style={styles.loadingOverlay}>
                         <div style={styles.loadingContent}>
-                            <div style={styles.diamondPulse}>💎</div>
+                            <div style={styles.diamondPulse}>Diamonds</div>
                             <h2 style={styles.loadingTitle}>DIAMOND ARENA</h2>
                             <p style={styles.loadingSubtitle}>Entering the Arena...</p>
                             <div style={styles.progressBar}>

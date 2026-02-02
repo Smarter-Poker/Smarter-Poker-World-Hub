@@ -48,7 +48,7 @@ export default function GodModeDemoPage() {
         switch (type) {
             case 'mastery':
                 masteryCelebration();
-                toast.success('Mastery Achieved! 🏆');
+                toast.success('Mastery Achieved! Trophy');
                 break;
             case 'achievement':
                 achievementCelebration();
@@ -56,11 +56,11 @@ export default function GodModeDemoPage() {
                 break;
             case 'streak':
                 streakCelebration(10);
-                toast.success('10-Day Streak! 🔥');
+                toast.success('10-Day Streak! ');
                 break;
             case 'levelup':
                 levelUpCelebration();
-                toast.success('Level Up! 🚀');
+                toast.success('Level Up! ');
                 break;
             case 'fireworks':
                 fireworksCelebration();
@@ -119,7 +119,7 @@ export default function GodModeDemoPage() {
                         <motion.div variants={staggerItem}>
                             <AnimatedCard hoverable style={{ marginBottom: 40, padding: 32 }}>
                                 <h2 style={{ color: '#fff', fontSize: 24, marginBottom: 24 }}>
-                                    🔔 Toast Notifications
+                                     Toast Notifications
                                 </h2>
                                 <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                                     <AnimatedButton variant="success" onClick={() => handleToastDemo('success')}>
@@ -142,20 +142,20 @@ export default function GodModeDemoPage() {
                         <motion.div variants={staggerItem}>
                             <AnimatedCard hoverable style={{ marginBottom: 40, padding: 32 }}>
                                 <h2 style={{ color: '#fff', fontSize: 24, marginBottom: 24 }}>
-                                    🎉 Confetti Celebrations
+                                     Confetti Celebrations
                                 </h2>
                                 <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                                     <AnimatedButton variant="primary" onClick={() => handleConfettiDemo('mastery')}>
-                                        Mastery 🏆
+                                        Mastery Trophy
                                     </AnimatedButton>
                                     <AnimatedButton variant="success" onClick={() => handleConfettiDemo('achievement')}>
                                         Achievement ⭐
                                     </AnimatedButton>
                                     <AnimatedButton variant="danger" onClick={() => handleConfettiDemo('streak')}>
-                                        Streak 🔥
+                                        Streak 
                                     </AnimatedButton>
                                     <AnimatedButton variant="primary" onClick={() => handleConfettiDemo('levelup')}>
-                                        Level Up 🚀
+                                        Level Up 
                                     </AnimatedButton>
                                     <AnimatedButton variant="success" onClick={() => handleConfettiDemo('fireworks')}>
                                         Fireworks 🎆

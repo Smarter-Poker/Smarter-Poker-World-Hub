@@ -4,26 +4,64 @@
  */
 
 import Head from 'next/head';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
+import { useAvatar } from '../../../src/contexts/AvatarContext';
 
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import TriviaLobby from '../../../src/components/trivia/TriviaLobby';
+import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../../src/config/hamburgerMenus';
+import { getTriviaPreferences, updateTriviaPreferences } from '../../../src/services/triviaPreferences';
 
 export default function TriviaHubPage() {
+    const { user } = useAvatar();
+    const userId = user?.id;
     const [userDiamonds, setUserDiamonds] = useState(0);
     const [dailyCompleted, setDailyCompleted] = useState(false);
     const [currentStreak, setCurrentStreak] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
+    const [menuOpen, setMenuOpen] = useState(false);
+
+    // Hamburger menu preferences
+    const [preferences, setPreferences] = useState({
+        soundEffects: true,
+        showHints: true
+    });
+
+    // Load preferences from Supabase on mount
+    useEffect(() => {
+        if (userId) {
+            getTriviaPreferences(userId).then(setPreferences);
+        }
+    }, []);
+
+    const updatePreference = useCallback(async (key, value) => {
+        const newPrefs = { ...preferences, [key]: value };
+        setPreferences(newPrefs);
+
+        if (userId) {
+            try {
+                await updateTriviaPreferences(userId, { [key]: value });
+            } catch (error) {
+                console.error('Failed to save preference:', error);
+            }
+        }
+    }, [preferences]);
+
+    const menuConfig = getMenuConfig('trivia', null, preferences, {
+        setSoundEffects: (val) => updatePreference('soundEffects', val),
+        setShowHints: (val) => updatePreference('showHints', val)
+    });
 
     // Using existing supabase instance from lib
 
     useEffect(() => {
         async function loadUserData() {
             try {
-                // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
+                //  BULLETPROOF: Use authUtils to avoid AbortError
                 const user = getAuthUser();
 
                 if (user) {
@@ -90,7 +128,19 @@ export default function TriviaHubPage() {
             <div className="trivia-page">
                 <div className="bg-overlay" />
 
-                <UniversalHeader pageDepth={1} />
+                <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
+
+                {/* Hamburger Menu */}
+                <HamburgerMenu
+                    isOpen={menuOpen}
+                    onClose={() => setMenuOpen(false)}
+                    direction="left"
+                    theme="dark"
+                    user={null}
+                    showProfile={false}
+                    menuItems={menuConfig.menuItems}
+                    bottomLinks={menuConfig.bottomLinks}
+                />
 
                 <div className="content">
                     {isLoading ? (

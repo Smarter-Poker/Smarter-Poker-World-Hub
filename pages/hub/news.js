@@ -19,6 +19,8 @@ import { useRouter } from 'next/router';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
+import { supabase } from '../../src/lib/supabase';
+import { useAvatar } from '../../src/contexts/AvatarContext';
 import {
     Search, Clock, Eye, TrendingUp, Trophy, Calendar,
     Zap, Play, Mail, Check, Flame, MapPin, ExternalLink, Loader,
@@ -30,6 +32,10 @@ import {
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { useExternalLink } from '../../src/components/ui/ExternalLinkModal';
+import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../src/config/hamburgerMenus';
+import { getNewsPreferences, updateNewsPreferences } from '../../src/services/newsPreferences';
+import { getNewsBookmarks, addNewsBookmark, removeNewsBookmark } from '../../src/services/newsBookmarks';
 
 // Fallback data
 const FALLBACK_NEWS = [
@@ -103,7 +109,7 @@ const FALLBACK_IMAGES = {
 // News Box Component - Dedicated display box for each story
 function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, isRead }) {
     const categoryColors = {
-        tournament: { bg: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24', icon: '🏆' },
+        tournament: { bg: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24', icon: 'Trophy' },
         strategy: { bg: 'rgba(124, 58, 237, 0.15)', color: '#a78bfa', icon: '📚' },
         industry: { bg: 'rgba(34, 197, 94, 0.15)', color: '#22c55e', icon: '💼' },
         news: { bg: 'rgba(0, 212, 255, 0.15)', color: '#2374E1', icon: '📰' },
@@ -121,7 +127,7 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
         >
             {/* Quick Actions */}
             <div className="box-actions">
-                <button onClick={(e) => { e.stopPropagation(); onBookmark(article.id); }} title="Bookmark">
+                <button onClick={(e) => { e.stopPropagation(); onBookmark(article.id, article); }} title="Bookmark">
                     {isBookmarked ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}
                 </button>
                 <button onClick={(e) => { e.stopPropagation(); onShare(article); }} title="Share">
@@ -532,7 +538,7 @@ function ReelCard({ reel, onClick, openExternal }) {
 
     // Get display values with proper fallbacks
     const thumbnailUrl = getReelThumbnail(reel);
-    const displayTitle = reel.title || reel.caption?.split('\n')[0]?.replace(/^🎬\s*/, '') || 'Poker Reel';
+    const displayTitle = reel.title || reel.caption?.split('\n')[0]?.replace(/^\s*/, '') || 'Poker Reel';
     const channelName = reel.channel_name || reel.profiles?.full_name || reel.profiles?.username || 'Smarter.Poker';
     const isYouTube = reel.video_url?.includes('youtube.com') || reel.video_url?.includes('youtu.be');
 
@@ -712,12 +718,12 @@ function MSPTBox({ msptNews, onOpenMSPT }) {
 // Placeholder Box for sources without articles yet
 function SourcePlaceholderBox({ sourceName, sourceUrl, index, openExternal }) {
     const sourceInfo = {
-        'PokerNews': { icon: '🃏', color: '#2374E1', url: 'https://www.pokernews.com' },
-        'MSPT': { icon: '🎰', color: '#dc2626', url: 'https://msptpoker.com' },
-        'CardPlayer': { icon: '♠️', color: '#22c55e', url: 'https://www.cardplayer.com' },
-        'WSOP': { icon: '🏆', color: '#fbbf24', url: 'https://www.wsop.com' },
-        'Poker.org': { icon: '♦️', color: '#8b5cf6', url: 'https://www.poker.org' },
-        'Pokerfuse': { icon: '🔥', color: '#f97316', url: 'https://pokerfuse.com' }
+        'PokerNews': { icon: '', color: '#2374E1', url: 'https://www.pokernews.com' },
+        'MSPT': { icon: '', color: '#dc2626', url: 'https://msptpoker.com' },
+        'CardPlayer': { icon: 's', color: '#22c55e', url: 'https://www.cardplayer.com' },
+        'WSOP': { icon: 'Trophy', color: '#fbbf24', url: 'https://www.wsop.com' },
+        'Poker.org': { icon: 'd', color: '#8b5cf6', url: 'https://www.poker.org' },
+        'Pokerfuse': { icon: '', color: '#f97316', url: 'https://pokerfuse.com' }
     };
 
     const info = sourceInfo[sourceName] || { icon: '📰', color: '#2374E1', url: '#' };
@@ -777,6 +783,8 @@ function SourcePlaceholderBox({ sourceName, sourceUrl, index, openExternal }) {
 
 export default function NewsHub() {
     const router = useRouter();
+    const { user } = useAvatar();
+    const userId = user?.id;
 
     // Core State
     const [news, setNews] = useState([]);
@@ -789,6 +797,19 @@ export default function NewsHub() {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [activeTab, setActiveTab] = useState('all');
+
+    // Handle query parameters for deep linking
+    useEffect(() => {
+        if (router.query.tab) {
+            setActiveTab(router.query.tab);
+        }
+        if (router.query.source) {
+            setSourceFilter(router.query.source);
+        }
+        if (router.query.filter) {
+            setCategoryFilter(router.query.filter);
+        }
+    }, [router.query]);
     const [activeSection, setActiveSection] = useState('news'); // 'news' or 'videos'
     const [email, setEmail] = useState('');
     const [subscribed, setSubscribed] = useState(false);
@@ -803,8 +824,46 @@ export default function NewsHub() {
     const [lastUpdate, setLastUpdate] = useState(null);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [showAllStories, setShowAllStories] = useState(false);
+    const [menuOpen, setMenuOpen] = useState(false);
 
-    // 🎬 INTRO VIDEO STATE - Video plays while page loads in background
+    // Hamburger menu preferences
+    const [preferences, setPreferences] = useState({
+        notifications: true,
+        autoRefresh: false
+    });
+
+
+    // Load preferences and bookmarks from Supabase on mount
+    useEffect(() => {
+        if (userId) {
+            getNewsPreferences(userId).then(setPreferences);
+
+            // Load bookmarks
+            getNewsBookmarks(userId).then(data => {
+                setBookmarks(data.map(b => b.article_id));
+            }).catch(err => console.error('Error loading bookmarks:', err));
+        }
+    }, [userId]);
+
+    const updatePreference = useCallback(async (key, value) => {
+        const newPrefs = { ...preferences, [key]: value };
+        setPreferences(newPrefs);
+
+        if (userId) {
+            try {
+                await updateNewsPreferences(userId, { [key]: value });
+            } catch (error) {
+                console.error('Failed to save preference:', error);
+            }
+        }
+    }, [preferences]);
+
+    const menuConfig = getMenuConfig('news', null, preferences, {
+        setNotifications: (val) => updatePreference('notifications', val),
+        setAutoRefresh: (val) => updatePreference('autoRefresh', val)
+    });
+
+    //  INTRO VIDEO STATE - Video plays while page loads in background
     // Only show once per session (not on every reload)
     const [showIntro, setShowIntro] = useState(() => {
         if (typeof window !== 'undefined') {
@@ -859,13 +918,22 @@ export default function NewsHub() {
     }, [darkMode]);
 
     // Toggle functions
-    const toggleBookmark = (articleId) => {
-        setBookmarks(prev =>
-            prev.includes(articleId)
-                ? prev.filter(id => id !== articleId)
-                : [...prev, articleId]
-        );
-    };
+    const toggleBookmark = useCallback(async (articleId, article = {}) => {
+        if (!userId) return;
+
+        if (bookmarks.includes(articleId)) {
+            await removeNewsBookmark(userId, articleId);
+            setBookmarks(prev => prev.filter(id => id !== articleId));
+        } else {
+            await addNewsBookmark(userId, articleId, {
+                title: article.title,
+                url: article.source_url,
+                source: article.source_name,
+                thumbnail: article.image_url
+            });
+            setBookmarks(prev => [...prev, articleId]);
+        }
+    }, [userId, bookmarks]);
 
     const markAsRead = (articleId) => {
         if (!readArticles.includes(articleId)) {
@@ -1115,7 +1183,7 @@ export default function NewsHub() {
 
     return (
         <PageTransition>
-            {/* 🎬 INTRO VIDEO OVERLAY - Plays while page loads behind it */}
+            {/*  INTRO VIDEO OVERLAY - Plays while page loads behind it */}
             {showIntro && (
                 <div style={{
                     position: 'fixed',
@@ -1174,7 +1242,19 @@ export default function NewsHub() {
             </Head>
 
             <div className={`news-hub ${darkMode ? '' : 'light'}`}>
-                <UniversalHeader pageDepth={1} />
+                <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
+
+                {/* Hamburger Menu */}
+                <HamburgerMenu
+                    isOpen={menuOpen}
+                    onClose={() => setMenuOpen(false)}
+                    direction="left"
+                    theme="dark"
+                    user={null}
+                    showProfile={false}
+                    menuItems={menuConfig.menuItems}
+                    bottomLinks={menuConfig.bottomLinks}
+                />
 
                 {/* Header Bar */}
                 <header className="header">

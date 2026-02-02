@@ -26,20 +26,20 @@ import { storePreferences } from '../../src/services/preferences-service';
 // ═══════════════════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════════════════
-// STANDARD DIAMOND REWARDS — 10 Ways to Earn (Daily Cap: 500 💎)
+// STANDARD DIAMOND REWARDS — 10 Ways to Earn (Daily Cap: 500 Diamonds)
 // Streak Multipliers: 1.0x (Days 1-3), 1.5x (Days 4-6), 2.0x (Day 7+)
 // ═══════════════════════════════════════════════════════════════════════════
 const STANDARD_REWARDS = [
-    { id: 'daily_login', icon: '📅', name: 'Daily Login', amount: '5-50 💎', note: 'Scales with streak (Day 1: 5💎, Day 7+: 50💎)', category: 'Daily' },
-    { id: 'first_training_of_day', icon: '🎯', name: 'First Training', amount: '+25 💎', note: 'Complete your first training session of the day', category: 'Daily' },
-    { id: 'level_completion_85', icon: '✅', name: 'Level Mastery', amount: '+10 💎', note: 'Complete a level with 85%+ accuracy', category: 'Training' },
-    { id: 'perfect_score_bonus', icon: '💯', name: 'Perfect Score', amount: '+5 💎', note: 'Bonus for 100% accuracy on a level', category: 'Training' },
-    { id: 'new_level_unlocked', icon: '🔓', name: 'Level Unlocked', amount: '+50 💎', note: 'Unlock a new training level', category: 'Training' },
-    { id: 'social_post_share', icon: '📝', name: 'Share Post', amount: '+15 💎', note: 'Share a hand, achievement, or thought', category: 'Social' },
-    { id: 'strategy_comment', icon: '💬', name: 'Strategy Comment', amount: '+5 💎', note: 'Leave a thoughtful strategy comment', category: 'Social' },
-    { id: 'xp_level_up', icon: '⬆️', name: 'XP Level Up', amount: '+100 💎', note: 'Reach a new XP level', category: 'Progression' },
-    { id: 'gto_chart_study', icon: '📊', name: 'Chart Study', amount: '+10 💎', note: 'Study GTO charts for 3+ minutes', category: 'Training' },
-    { id: 'referral_success', icon: '👥', name: 'Successful Referral', amount: '+500 💎', note: 'Refer a friend who verifies email & phone (BYPASSES CAP!)', category: 'Referral', bypassesCap: true },
+    { id: 'daily_login', icon: '📅', name: 'Daily Login', amount: '5-50 Diamonds', note: 'Scales with streak (Day 1: 5Diamonds, Day 7+: 50Diamonds)', category: 'Daily' },
+    { id: 'first_training_of_day', icon: '', name: 'First Training', amount: '+25 Diamonds', note: 'Complete your first training session of the day', category: 'Daily' },
+    { id: 'level_completion_85', icon: '✅', name: 'Level Mastery', amount: '+10 Diamonds', note: 'Complete a level with 85%+ accuracy', category: 'Training' },
+    { id: 'perfect_score_bonus', icon: '💯', name: 'Perfect Score', amount: '+5 Diamonds', note: 'Bonus for 100% accuracy on a level', category: 'Training' },
+    { id: 'new_level_unlocked', icon: '🔓', name: 'Level Unlocked', amount: '+50 Diamonds', note: 'Unlock a new training level', category: 'Training' },
+    { id: 'social_post_share', icon: '', name: 'Share Post', amount: '+15 Diamonds', note: 'Share a hand, achievement, or thought', category: 'Social' },
+    { id: 'strategy_comment', icon: '', name: 'Strategy Comment', amount: '+5 Diamonds', note: 'Leave a thoughtful strategy comment', category: 'Social' },
+    { id: 'xp_level_up', icon: '^', name: 'XP Level Up', amount: '+100 Diamonds', note: 'Reach a new XP level', category: 'Progression' },
+    { id: 'gto_chart_study', icon: '', name: 'Chart Study', amount: '+10 Diamonds', note: 'Study GTO charts for 3+ minutes', category: 'Training' },
+    { id: 'referral_success', icon: '', name: 'Successful Referral', amount: '+500 Diamonds', note: 'Refer a friend who verifies email & phone (BYPASSES CAP!)', category: 'Referral', bypassesCap: true },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -48,116 +48,116 @@ const STANDARD_REWARDS = [
 // ═══════════════════════════════════════════════════════════════════════════
 const EASTER_EGGS = {
     performance: [
-        { id: 'egg_gto_machine', icon: '🤖', name: 'GTO Machine', reward: '+100 💎', trigger: '100 questions, no hints', rarity: 'epic' },
-        { id: 'egg_speed_demon', icon: '⚡', name: 'Speed Demon', reward: '+50 💎', trigger: '20 correct answers < 3s each', rarity: 'rare' },
-        { id: 'egg_optimizer', icon: '🔧', name: 'The Optimizer', reward: '+40 💎', trigger: 'First-try fix on a Leak Signal', rarity: 'uncommon' },
-        { id: 'egg_dead_reckoning', icon: '🎯', name: 'Dead Reckoning', reward: '+200 💎', trigger: 'Level 5+ pass with 100% on first try', rarity: 'legendary' },
-        { id: 'egg_calculated_risk', icon: '📐', name: 'Calculated Risk', reward: '+30 💎', trigger: '5 consecutive close-to-GTO alternate lines', rarity: 'uncommon' },
-        { id: 'egg_deep_diver', icon: '🤿', name: 'Deep Diver', reward: '+60 💎', trigger: '60+ mins in Charts section in one day', rarity: 'rare' },
-        { id: 'egg_night_owl', icon: '🦉', name: 'The Night Owl', reward: '+50 💎', trigger: 'Complete training between 2AM-5AM', rarity: 'rare' },
-        { id: 'egg_perfectionist', icon: '✨', name: 'The Perfectionist', reward: '+150 💎', trigger: '5 consecutive levels with 0 errors', rarity: 'epic' },
-        { id: 'egg_comeback_kid', icon: '💪', name: 'The Comeback Kid', reward: '+75 💎', trigger: 'Pass with 95% after 2 fails', rarity: 'rare' },
-        { id: 'egg_chart_navigator', icon: '🗺️', name: 'Chart Navigator', reward: '+30 💎', trigger: 'Interact with 10 charts in 5 mins', rarity: 'uncommon' },
+        { id: 'egg_gto_machine', icon: '🤖', name: 'GTO Machine', reward: '+100 Diamonds', trigger: '100 questions, no hints', rarity: 'epic' },
+        { id: 'egg_speed_demon', icon: '++', name: 'Speed Demon', reward: '+50 Diamonds', trigger: '20 correct answers < 3s each', rarity: 'rare' },
+        { id: 'egg_optimizer', icon: '🔧', name: 'The Optimizer', reward: '+40 Diamonds', trigger: 'First-try fix on a Leak Signal', rarity: 'uncommon' },
+        { id: 'egg_dead_reckoning', icon: '', name: 'Dead Reckoning', reward: '+200 Diamonds', trigger: 'Level 5+ pass with 100% on first try', rarity: 'legendary' },
+        { id: 'egg_calculated_risk', icon: '📐', name: 'Calculated Risk', reward: '+30 Diamonds', trigger: '5 consecutive close-to-GTO alternate lines', rarity: 'uncommon' },
+        { id: 'egg_deep_diver', icon: '🤿', name: 'Deep Diver', reward: '+60 Diamonds', trigger: '60+ mins in Charts section in one day', rarity: 'rare' },
+        { id: 'egg_night_owl', icon: '🦉', name: 'The Night Owl', reward: '+50 Diamonds', trigger: 'Complete training between 2AM-5AM', rarity: 'rare' },
+        { id: 'egg_perfectionist', icon: '', name: 'The Perfectionist', reward: '+150 Diamonds', trigger: '5 consecutive levels with 0 errors', rarity: 'epic' },
+        { id: 'egg_comeback_kid', icon: '💪', name: 'The Comeback Kid', reward: '+75 Diamonds', trigger: 'Pass with 95% after 2 fails', rarity: 'rare' },
+        { id: 'egg_chart_navigator', icon: '', name: 'Chart Navigator', reward: '+30 Diamonds', trigger: 'Interact with 10 charts in 5 mins', rarity: 'uncommon' },
     ],
     timing_loyalty: [
-        { id: 'egg_sunrise_grinder', icon: '🌅', name: 'Sunrise Grinder', reward: '+50 💎', trigger: 'Training at local sunrise time', rarity: 'rare' },
-        { id: 'egg_anniversary', icon: '🎂', name: 'The Anniversary', reward: '+100 💎', trigger: 'Login 1 month to the minute after signup', rarity: 'epic' },
-        { id: 'egg_lunch_break', icon: '🥪', name: 'Lunch Break', reward: '+20 💎', trigger: '3 games between 12PM-1PM', rarity: 'common' },
-        { id: 'egg_weekend_warrior', icon: '⚔️', name: 'Weekend Warrior', reward: '+150 💎', trigger: 'Hit 500 cap on Sat & Sun', rarity: 'epic' },
-        { id: 'egg_new_year', icon: '🎆', name: 'New Year, New Ranges', reward: '+203 💎', trigger: 'Play on Jan 1st', rarity: 'rare' },
-        { id: 'egg_solidarity', icon: '🤝', name: 'Solidarity', reward: '+75 💎', trigger: 'Login at same time as 3 referrals', rarity: 'rare' },
-        { id: 'egg_button_masher', icon: '👆', name: 'Button Masher', reward: '+5 💎', trigger: 'Click logo 10 times rapidly', rarity: 'common' },
-        { id: 'egg_dark_mode_detective', icon: '🕵️', name: 'Dark Mode Detective', reward: '+10 💎', trigger: 'Toggle theme 5 times in 10s', rarity: 'common' },
-        { id: 'egg_librarian', icon: '📚', name: 'The Librarian', reward: '+30 💎', trigger: 'Search 20 specific player/game types', rarity: 'uncommon' },
-        { id: 'egg_precision_pointer', icon: '🎯', name: 'Precision Pointer', reward: '+15 💎', trigger: 'Hover every chart element before move', rarity: 'common' },
-        { id: 'egg_explorer', icon: '🧭', name: 'The Explorer', reward: '+25 💎', trigger: 'Click every tab in Manager < 30s', rarity: 'uncommon' },
-        { id: 'egg_jackpot', icon: '🎰', name: 'The Jackpot', reward: '+45 💎', trigger: '1/1000 chance Diamond Crit', rarity: 'legendary' },
-        { id: 'egg_binary_king', icon: '👑', name: 'Binary King', reward: '+20 💎', trigger: 'End day with 101 or 010 Diamonds', rarity: 'uncommon' },
-        { id: 'egg_developers_handshake', icon: '🤝', name: "Developer's Handshake", reward: '+50 💎', trigger: 'Scroll to bottom of Credits', rarity: 'rare' },
-        { id: 'egg_ghost', icon: '👻', name: 'The Ghost', reward: '+500 💎', trigger: '30-day streak with no missed tasks', rarity: 'legendary' },
+        { id: 'egg_sunrise_grinder', icon: '🌅', name: 'Sunrise Grinder', reward: '+50 Diamonds', trigger: 'Training at local sunrise time', rarity: 'rare' },
+        { id: 'egg_anniversary', icon: '🎂', name: 'The Anniversary', reward: '+100 Diamonds', trigger: 'Login 1 month to the minute after signup', rarity: 'epic' },
+        { id: 'egg_lunch_break', icon: '🥪', name: 'Lunch Break', reward: '+20 Diamonds', trigger: '3 games between 12PM-1PM', rarity: 'common' },
+        { id: 'egg_weekend_warrior', icon: 'X', name: 'Weekend Warrior', reward: '+150 Diamonds', trigger: 'Hit 500 cap on Sat & Sun', rarity: 'epic' },
+        { id: 'egg_new_year', icon: '🎆', name: 'New Year, New Ranges', reward: '+203 Diamonds', trigger: 'Play on Jan 1st', rarity: 'rare' },
+        { id: 'egg_solidarity', icon: '', name: 'Solidarity', reward: '+75 Diamonds', trigger: 'Login at same time as 3 referrals', rarity: 'rare' },
+        { id: 'egg_button_masher', icon: '👆', name: 'Button Masher', reward: '+5 Diamonds', trigger: 'Click logo 10 times rapidly', rarity: 'common' },
+        { id: 'egg_dark_mode_detective', icon: '', name: 'Dark Mode Detective', reward: '+10 Diamonds', trigger: 'Toggle theme 5 times in 10s', rarity: 'common' },
+        { id: 'egg_librarian', icon: '📚', name: 'The Librarian', reward: '+30 Diamonds', trigger: 'Search 20 specific player/game types', rarity: 'uncommon' },
+        { id: 'egg_precision_pointer', icon: '', name: 'Precision Pointer', reward: '+15 Diamonds', trigger: 'Hover every chart element before move', rarity: 'common' },
+        { id: 'egg_explorer', icon: '🧭', name: 'The Explorer', reward: '+25 Diamonds', trigger: 'Click every tab in Manager < 30s', rarity: 'uncommon' },
+        { id: 'egg_jackpot', icon: '', name: 'The Jackpot', reward: '+45 Diamonds', trigger: '1/1000 chance Diamond Crit', rarity: 'legendary' },
+        { id: 'egg_binary_king', icon: '', name: 'Binary King', reward: '+20 Diamonds', trigger: 'End day with 101 or 010 Diamonds', rarity: 'uncommon' },
+        { id: 'egg_developers_handshake', icon: '', name: "Developer's Handshake", reward: '+50 Diamonds', trigger: 'Scroll to bottom of Credits', rarity: 'rare' },
+        { id: 'egg_ghost', icon: '👻', name: 'The Ghost', reward: '+500 Diamonds', trigger: '30-day streak with no missed tasks', rarity: 'legendary' },
     ],
     strategy_mastery: [
-        { id: 'egg_machine', icon: '⚙️', name: 'The Machine', reward: '+100 💎', trigger: '50-question session, median time < 1.5s', rarity: 'epic' },
-        { id: 'egg_pure_strategy', icon: '♟️', name: 'Pure Strategy', reward: '+75 💎', trigger: 'Pick 100% freq move 25 times in a row', rarity: 'rare' },
-        { id: 'egg_mix_master', icon: '🎚️', name: 'Mix Master', reward: '+50 💎', trigger: 'Identify 5 mixed strategies in a row', rarity: 'rare' },
-        { id: 'egg_punisher', icon: '💀', name: 'The Punisher', reward: '+40 💎', trigger: 'Play correctly vs simulated whale line 10x', rarity: 'uncommon' },
-        { id: 'egg_folding_legend', icon: '🃏', name: 'Folding Legend', reward: '+60 💎', trigger: 'Find a GTO Fold with Top Pair', rarity: 'rare' },
-        { id: 'egg_value_extractor', icon: '💰', name: 'Value Extractor', reward: '+80 💎', trigger: 'Maximize EV in one level', rarity: 'epic' },
-        { id: 'egg_bluffcatcher', icon: '🎣', name: 'The Bluffcatcher', reward: '+50 💎', trigger: 'Correct call on triple-barrel bluff', rarity: 'rare' },
-        { id: 'egg_range_architect', icon: '🏗️', name: 'Range Architect', reward: '+40 💎', trigger: 'View full range of 1 position 50x', rarity: 'uncommon' },
-        { id: 'egg_equity_expert', icon: '📈', name: 'Equity Expert', reward: '+30 💎', trigger: 'Guess equity within 2%', rarity: 'uncommon' },
-        { id: 'egg_blocker_pro', icon: '🛡️', name: 'Blocker Pro', reward: '+45 💎', trigger: 'Win hand using specific blocker info', rarity: 'rare' },
-        { id: 'egg_overbet_outlaw', icon: '🤠', name: 'Overbet Outlaw', reward: '+35 💎', trigger: 'Execute 2x Pot overbet correctly', rarity: 'rare' },
-        { id: 'egg_minimum_defense', icon: '🛡️', name: 'Minimum Defense', reward: '+55 💎', trigger: 'Identify MDF correctly 3x', rarity: 'rare' },
-        { id: 'egg_sniper', icon: '🎯', name: 'The Sniper', reward: '+150 💎', trigger: 'Pass level with < 10s total on clock', rarity: 'legendary' },
-        { id: 'egg_check_raise_king', icon: '👑', name: 'Check-Raise King', reward: '+40 💎', trigger: 'Find 10 check-raise lines in 1 session', rarity: 'uncommon' },
-        { id: 'egg_tanker', icon: '⏱️', name: 'The Tanker', reward: '+20 💎', trigger: 'Spend exactly 29s on a question', rarity: 'common' },
-        { id: 'egg_postflop_wizard', icon: '🧙', name: 'Post-Flop Wizard', reward: '+100 💎', trigger: '0 missed Turn/River decisions for 24h', rarity: 'epic' },
-        { id: 'egg_preflop_bot', icon: '🤖', name: 'Pre-Flop Bot', reward: '+250 💎', trigger: '500 pre-flop decisions at 100% accuracy', rarity: 'legendary' },
-        { id: 'egg_small_baller', icon: '🏀', name: 'Small Baller', reward: '+30 💎', trigger: 'Win level using only 33% pot sizing', rarity: 'uncommon' },
-        { id: 'egg_polarizer', icon: '⚡', name: 'Polarizer', reward: '+50 💎', trigger: 'Identify polarized vs condensed range', rarity: 'rare' },
-        { id: 'egg_indifference_point', icon: '⚖️', name: 'Indifference Point', reward: '+100 💎', trigger: 'Make opponent EV zero', rarity: 'epic' },
+        { id: 'egg_machine', icon: '', name: 'The Machine', reward: '+100 Diamonds', trigger: '50-question session, median time < 1.5s', rarity: 'epic' },
+        { id: 'egg_pure_strategy', icon: '', name: 'Pure Strategy', reward: '+75 Diamonds', trigger: 'Pick 100% freq move 25 times in a row', rarity: 'rare' },
+        { id: 'egg_mix_master', icon: '', name: 'Mix Master', reward: '+50 Diamonds', trigger: 'Identify 5 mixed strategies in a row', rarity: 'rare' },
+        { id: 'egg_punisher', icon: '💀', name: 'The Punisher', reward: '+40 Diamonds', trigger: 'Play correctly vs simulated whale line 10x', rarity: 'uncommon' },
+        { id: 'egg_folding_legend', icon: '', name: 'Folding Legend', reward: '+60 Diamonds', trigger: 'Find a GTO Fold with Top Pair', rarity: 'rare' },
+        { id: 'egg_value_extractor', icon: '', name: 'Value Extractor', reward: '+80 Diamonds', trigger: 'Maximize EV in one level', rarity: 'epic' },
+        { id: 'egg_bluffcatcher', icon: '🎣', name: 'The Bluffcatcher', reward: '+50 Diamonds', trigger: 'Correct call on triple-barrel bluff', rarity: 'rare' },
+        { id: 'egg_range_architect', icon: '', name: 'Range Architect', reward: '+40 Diamonds', trigger: 'View full range of 1 position 50x', rarity: 'uncommon' },
+        { id: 'egg_equity_expert', icon: '', name: 'Equity Expert', reward: '+30 Diamonds', trigger: 'Guess equity within 2%', rarity: 'uncommon' },
+        { id: 'egg_blocker_pro', icon: '', name: 'Blocker Pro', reward: '+45 Diamonds', trigger: 'Win hand using specific blocker info', rarity: 'rare' },
+        { id: 'egg_overbet_outlaw', icon: '🤠', name: 'Overbet Outlaw', reward: '+35 Diamonds', trigger: 'Execute 2x Pot overbet correctly', rarity: 'rare' },
+        { id: 'egg_minimum_defense', icon: '', name: 'Minimum Defense', reward: '+55 Diamonds', trigger: 'Identify MDF correctly 3x', rarity: 'rare' },
+        { id: 'egg_sniper', icon: '', name: 'The Sniper', reward: '+150 Diamonds', trigger: 'Pass level with < 10s total on clock', rarity: 'legendary' },
+        { id: 'egg_check_raise_king', icon: '', name: 'Check-Raise King', reward: '+40 Diamonds', trigger: 'Find 10 check-raise lines in 1 session', rarity: 'uncommon' },
+        { id: 'egg_tanker', icon: '', name: 'The Tanker', reward: '+20 Diamonds', trigger: 'Spend exactly 29s on a question', rarity: 'common' },
+        { id: 'egg_postflop_wizard', icon: '🧙', name: 'Post-Flop Wizard', reward: '+100 Diamonds', trigger: '0 missed Turn/River decisions for 24h', rarity: 'epic' },
+        { id: 'egg_preflop_bot', icon: '🤖', name: 'Pre-Flop Bot', reward: '+250 Diamonds', trigger: '500 pre-flop decisions at 100% accuracy', rarity: 'legendary' },
+        { id: 'egg_small_baller', icon: '🏀', name: 'Small Baller', reward: '+30 Diamonds', trigger: 'Win level using only 33% pot sizing', rarity: 'uncommon' },
+        { id: 'egg_polarizer', icon: '++', name: 'Polarizer', reward: '+50 Diamonds', trigger: 'Identify polarized vs condensed range', rarity: 'rare' },
+        { id: 'egg_indifference_point', icon: '', name: 'Indifference Point', reward: '+100 Diamonds', trigger: 'Make opponent EV zero', rarity: 'epic' },
     ],
     social_viral: [
-        { id: 'egg_retweet_royalty', icon: '👑', name: 'Retweet Royalty', reward: '+500 💎', trigger: 'Developer shares your post', rarity: 'legendary' },
-        { id: 'egg_hashtag_hero', icon: '#️⃣', name: 'Hashtag Hero', reward: '+50 💎', trigger: 'Use 3 main tags in 10 posts', rarity: 'uncommon' },
-        { id: 'egg_recruiter', icon: '🎖️', name: 'The Recruiter', reward: '+200 💎', trigger: '2 referrals reach Level 5 same day', rarity: 'epic' },
-        { id: 'egg_video_star', icon: '🎬', name: 'Video Star', reward: '+150 💎', trigger: 'Post Mac Studio Terminal use', rarity: 'rare' },
-        { id: 'egg_comment_king', icon: '💬', name: 'Comment King', reward: '+100 💎', trigger: 'Strategy comment reaches 50 likes', rarity: 'rare' },
-        { id: 'egg_squad_goals', icon: '👥', name: 'Squad Goals', reward: '+250 💎', trigger: '5 referrals active simultaneously', rarity: 'epic' },
-        { id: 'egg_wall_of_fame', icon: '🏆', name: 'Wall of Fame', reward: '+300 💎', trigger: 'Featured on Daily Top Grinder', rarity: 'legendary' },
-        { id: 'egg_discord_diamond', icon: '💎', name: 'Discord Diamond', reward: '+50 💎', trigger: 'Reach Active role in Discord', rarity: 'uncommon' },
-        { id: 'egg_streamer', icon: '📺', name: "Streamer's Luck", reward: '+200 💎', trigger: 'Stream Orb for 1 hour', rarity: 'epic' },
-        { id: 'egg_ghost_writer', icon: '✍️', name: 'The Ghost Writer', reward: '+500 💎', trigger: 'Tip added to loading screen', rarity: 'legendary' },
-        { id: 'egg_feedback_loop', icon: '🐛', name: 'Feedback Loop', reward: '+300 💎', trigger: 'Submit bug that gets fixed', rarity: 'epic' },
-        { id: 'egg_social_butterfly', icon: '🦋', name: 'Social Butterfly', reward: '+40 💎', trigger: 'Share a loss/learning moment', rarity: 'common' },
-        { id: 'egg_stalking_success', icon: '👀', name: 'Stalking Success', reward: '+25 💎', trigger: 'Follow all 4 Agent accounts', rarity: 'common' },
-        { id: 'egg_bio_hacker', icon: '🔗', name: 'Bio Hacker', reward: '+100 💎', trigger: 'Orb URL in social bio', rarity: 'rare' },
-        { id: 'egg_group_chat_leader', icon: '💬', name: 'Group Chat Leader', reward: '+60 💎', trigger: 'Invite 3 to private study group', rarity: 'uncommon' },
-        { id: 'egg_diplomat', icon: '🌍', name: 'The Diplomat', reward: '+150 💎', trigger: 'Refer someone from different country', rarity: 'rare' },
-        { id: 'egg_meme_lord', icon: '😂', name: 'Meme Lord', reward: '+100 💎', trigger: 'Meme gets 20+ likes', rarity: 'rare' },
-        { id: 'egg_poll_master', icon: '📊', name: 'Poll Master', reward: '+30 💎', trigger: 'Vote in 10 Hand of the Day polls', rarity: 'common' },
-        { id: 'egg_ambassador', icon: '🏅', name: 'The Ambassador', reward: '+1,000 💎', trigger: 'Reach 20 successful referrals', rarity: 'legendary' },
-        { id: 'egg_storyteller', icon: '📱', name: 'Storyteller', reward: '+40 💎', trigger: 'Share Level Up to IG/FB Story', rarity: 'common' },
+        { id: 'egg_retweet_royalty', icon: '', name: 'Retweet Royalty', reward: '+500 Diamonds', trigger: 'Developer shares your post', rarity: 'legendary' },
+        { id: 'egg_hashtag_hero', icon: '#', name: 'Hashtag Hero', reward: '+50 Diamonds', trigger: 'Use 3 main tags in 10 posts', rarity: 'uncommon' },
+        { id: 'egg_recruiter', icon: '', name: 'The Recruiter', reward: '+200 Diamonds', trigger: '2 referrals reach Level 5 same day', rarity: 'epic' },
+        { id: 'egg_video_star', icon: '', name: 'Video Star', reward: '+150 Diamonds', trigger: 'Post Mac Studio Terminal use', rarity: 'rare' },
+        { id: 'egg_comment_king', icon: '', name: 'Comment King', reward: '+100 Diamonds', trigger: 'Strategy comment reaches 50 likes', rarity: 'rare' },
+        { id: 'egg_squad_goals', icon: '', name: 'Squad Goals', reward: '+250 Diamonds', trigger: '5 referrals active simultaneously', rarity: 'epic' },
+        { id: 'egg_wall_of_fame', icon: 'Trophy', name: 'Wall of Fame', reward: '+300 Diamonds', trigger: 'Featured on Daily Top Grinder', rarity: 'legendary' },
+        { id: 'egg_discord_diamond', icon: 'Diamonds', name: 'Discord Diamond', reward: '+50 Diamonds', trigger: 'Reach Active role in Discord', rarity: 'uncommon' },
+        { id: 'egg_streamer', icon: '📺', name: "Streamer's Luck", reward: '+200 Diamonds', trigger: 'Stream Orb for 1 hour', rarity: 'epic' },
+        { id: 'egg_ghost_writer', icon: '', name: 'The Ghost Writer', reward: '+500 Diamonds', trigger: 'Tip added to loading screen', rarity: 'legendary' },
+        { id: 'egg_feedback_loop', icon: '🐛', name: 'Feedback Loop', reward: '+300 Diamonds', trigger: 'Submit bug that gets fixed', rarity: 'epic' },
+        { id: 'egg_social_butterfly', icon: '🦋', name: 'Social Butterfly', reward: '+40 Diamonds', trigger: 'Share a loss/learning moment', rarity: 'common' },
+        { id: 'egg_stalking_success', icon: '👀', name: 'Stalking Success', reward: '+25 Diamonds', trigger: 'Follow all 4 Agent accounts', rarity: 'common' },
+        { id: 'egg_bio_hacker', icon: '🔗', name: 'Bio Hacker', reward: '+100 Diamonds', trigger: 'Orb URL in social bio', rarity: 'rare' },
+        { id: 'egg_group_chat_leader', icon: '', name: 'Group Chat Leader', reward: '+60 Diamonds', trigger: 'Invite 3 to private study group', rarity: 'uncommon' },
+        { id: 'egg_diplomat', icon: '🌍', name: 'The Diplomat', reward: '+150 Diamonds', trigger: 'Refer someone from different country', rarity: 'rare' },
+        { id: 'egg_meme_lord', icon: '😂', name: 'Meme Lord', reward: '+100 Diamonds', trigger: 'Meme gets 20+ likes', rarity: 'rare' },
+        { id: 'egg_poll_master', icon: '', name: 'Poll Master', reward: '+30 Diamonds', trigger: 'Vote in 10 Hand of the Day polls', rarity: 'common' },
+        { id: 'egg_ambassador', icon: '', name: 'The Ambassador', reward: '+1,000 Diamonds', trigger: 'Reach 20 successful referrals', rarity: 'legendary' },
+        { id: 'egg_storyteller', icon: '📱', name: 'Storyteller', reward: '+40 Diamonds', trigger: 'Share Level Up to IG/FB Story', rarity: 'common' },
     ],
     meta_interface: [
-        { id: 'egg_konami_code', icon: '🎮', name: 'Konami Code', reward: '+50 💎', trigger: 'Enter Up-Up-Down-Down on dash', rarity: 'rare' },
-        { id: 'egg_terminal_junkie', icon: '⌨️', name: 'Terminal Junkie', reward: '+75 💎', trigger: '10 commands without mouse', rarity: 'rare' },
-        { id: 'egg_collector', icon: '🎨', name: 'The Collector', reward: '+100 💎', trigger: 'Own 3 Orange Ball skins', rarity: 'epic' },
-        { id: 'egg_deep_sleeper', icon: '😴', name: 'Deep Sleeper', reward: '+50 💎', trigger: 'Leave Orb open for 24 hours', rarity: 'uncommon' },
-        { id: 'egg_efficiency_expert', icon: '⚡', name: 'Efficiency Expert', reward: '+20 💎', trigger: 'Login to Game in < 2s', rarity: 'common' },
-        { id: 'egg_volume_control', icon: '🔊', name: 'Volume Control', reward: '+5 💎', trigger: 'Toggle mute 10 times in a heater', rarity: 'common' },
-        { id: 'egg_window_shopper', icon: '🛍️', name: 'Window Shopper', reward: '+25 💎', trigger: 'View store 5 days, buy nothing', rarity: 'uncommon' },
-        { id: 'egg_data_miner', icon: '⛏️', name: 'Data Miner', reward: '+50 💎', trigger: 'Export hand history 10 times', rarity: 'rare' },
-        { id: 'egg_cleaner', icon: '🧹', name: 'The Cleaner', reward: '+10 💎', trigger: 'Clear all notifications', rarity: 'common' },
-        { id: 'egg_zoomer', icon: '🔍', name: 'Zoomer', reward: '+15 💎', trigger: 'Change UI scaling 3 times', rarity: 'common' },
-        { id: 'egg_ghost_user', icon: '👻', name: 'The Ghost User', reward: '+20 💎', trigger: 'Login via Incognito mode', rarity: 'uncommon' },
-        { id: 'egg_toggle_titan', icon: '🎚️', name: 'Toggle Titan', reward: '+30 💎', trigger: '50 Search filter switches', rarity: 'uncommon' },
-        { id: 'egg_scroll_marathon', icon: '📜', name: 'Scroll Marathon', reward: '+40 💎', trigger: 'Scroll to bottom of leaderboard', rarity: 'common' },
-        { id: 'egg_architect', icon: '🏗️', name: 'The Architect', reward: '+50 💎', trigger: 'Customize Dashboard layout', rarity: 'uncommon' },
-        { id: 'egg_multi_tabber', icon: '📑', name: 'Multi-Tabber', reward: '+100 💎', trigger: '4 charts open in 4 windows', rarity: 'epic' },
-        { id: 'egg_refresh_rebel', icon: '🔄', name: 'Refresh Rebel', reward: '+5 💎', trigger: 'Refresh during loading screen', rarity: 'common' },
-        { id: 'egg_hardware_enthusiast', icon: '💻', name: 'Hardware Enthusiast', reward: '+50 💎', trigger: 'Access from 3 different IPs', rarity: 'rare' },
-        { id: 'egg_waiter', icon: '⏳', name: 'The Waiter', reward: '+20 💎', trigger: 'Wait 5 mins on Reward screen', rarity: 'uncommon' },
-        { id: 'egg_minimalist', icon: '🎯', name: 'The Minimalist', reward: '+100 💎', trigger: 'Play with 0 HUD elements', rarity: 'epic' },
-        { id: 'egg_color_blind', icon: '🎨', name: 'Color Blind', reward: '+30 💎', trigger: 'Change Yellow Ball to custom color', rarity: 'uncommon' },
+        { id: 'egg_konami_code', icon: '', name: 'Konami Code', reward: '+50 Diamonds', trigger: 'Enter Up-Up-Down-Down on dash', rarity: 'rare' },
+        { id: 'egg_terminal_junkie', icon: '', name: 'Terminal Junkie', reward: '+75 Diamonds', trigger: '10 commands without mouse', rarity: 'rare' },
+        { id: 'egg_collector', icon: '🎨', name: 'The Collector', reward: '+100 Diamonds', trigger: 'Own 3 Orange Ball skins', rarity: 'epic' },
+        { id: 'egg_deep_sleeper', icon: '😴', name: 'Deep Sleeper', reward: '+50 Diamonds', trigger: 'Leave Orb open for 24 hours', rarity: 'uncommon' },
+        { id: 'egg_efficiency_expert', icon: '++', name: 'Efficiency Expert', reward: '+20 Diamonds', trigger: 'Login to Game in < 2s', rarity: 'common' },
+        { id: 'egg_volume_control', icon: '', name: 'Volume Control', reward: '+5 Diamonds', trigger: 'Toggle mute 10 times in a heater', rarity: 'common' },
+        { id: 'egg_window_shopper', icon: '', name: 'Window Shopper', reward: '+25 Diamonds', trigger: 'View store 5 days, buy nothing', rarity: 'uncommon' },
+        { id: 'egg_data_miner', icon: '', name: 'Data Miner', reward: '+50 Diamonds', trigger: 'Export hand history 10 times', rarity: 'rare' },
+        { id: 'egg_cleaner', icon: '🧹', name: 'The Cleaner', reward: '+10 Diamonds', trigger: 'Clear all notifications', rarity: 'common' },
+        { id: 'egg_zoomer', icon: '', name: 'Zoomer', reward: '+15 Diamonds', trigger: 'Change UI scaling 3 times', rarity: 'common' },
+        { id: 'egg_ghost_user', icon: '👻', name: 'The Ghost User', reward: '+20 Diamonds', trigger: 'Login via Incognito mode', rarity: 'uncommon' },
+        { id: 'egg_toggle_titan', icon: '', name: 'Toggle Titan', reward: '+30 Diamonds', trigger: '50 Search filter switches', rarity: 'uncommon' },
+        { id: 'egg_scroll_marathon', icon: '📜', name: 'Scroll Marathon', reward: '+40 Diamonds', trigger: 'Scroll to bottom of leaderboard', rarity: 'common' },
+        { id: 'egg_architect', icon: '', name: 'The Architect', reward: '+50 Diamonds', trigger: 'Customize Dashboard layout', rarity: 'uncommon' },
+        { id: 'egg_multi_tabber', icon: '', name: 'Multi-Tabber', reward: '+100 Diamonds', trigger: '4 charts open in 4 windows', rarity: 'epic' },
+        { id: 'egg_refresh_rebel', icon: '🔄', name: 'Refresh Rebel', reward: '+5 Diamonds', trigger: 'Refresh during loading screen', rarity: 'common' },
+        { id: 'egg_hardware_enthusiast', icon: '💻', name: 'Hardware Enthusiast', reward: '+50 Diamonds', trigger: 'Access from 3 different IPs', rarity: 'rare' },
+        { id: 'egg_waiter', icon: '⏳', name: 'The Waiter', reward: '+20 Diamonds', trigger: 'Wait 5 mins on Reward screen', rarity: 'uncommon' },
+        { id: 'egg_minimalist', icon: '', name: 'The Minimalist', reward: '+100 Diamonds', trigger: 'Play with 0 HUD elements', rarity: 'epic' },
+        { id: 'egg_color_blind', icon: '🎨', name: 'Color Blind', reward: '+30 Diamonds', trigger: 'Change Yellow Ball to custom color', rarity: 'uncommon' },
     ],
     legacy_milestones: [
-        { id: 'egg_centurion', icon: '💯', name: 'The Centurion', reward: '+1,000 💎', trigger: '100-day login streak', rarity: 'legendary' },
-        { id: 'egg_millionaire', icon: '💰', name: 'Millionaire', reward: '+2,500 💎', trigger: '1,000,000 lifetime XP', rarity: 'legendary' },
-        { id: 'egg_old_guard', icon: '🛡️', name: 'Old Guard', reward: '+500 💎', trigger: 'Member for 1 year', rarity: 'epic' },
-        { id: 'egg_finisher', icon: '🏁', name: 'The Finisher', reward: '+2,000 💎', trigger: 'Complete every training game in DB', rarity: 'legendary' },
-        { id: 'egg_zero_leak', icon: '💧', name: 'Zero Leak', reward: '+1,500 💎', trigger: '1,000 hands with no leak signals', rarity: 'legendary' },
-        { id: 'egg_high_roller', icon: '🎲', name: 'High Roller', reward: '+500 💎', trigger: 'Spend 10k Diamonds in one day', rarity: 'epic' },
-        { id: 'egg_oracle', icon: '🔮', name: 'The Oracle', reward: '+300 💎', trigger: 'Predict 10 GTO moves in a row', rarity: 'epic' },
-        { id: 'egg_server_first', icon: '🥇', name: 'Server First', reward: '+200 💎', trigger: 'Be the first to pass a new level', rarity: 'rare' },
-        { id: 'egg_diamond_hands', icon: '💎', name: 'Diamond Hands', reward: '+400 💎', trigger: 'Hold 5k+ Diamonds for 30 days', rarity: 'epic' },
-        { id: 'egg_whale', icon: '🐋', name: 'The Whale', reward: '+10,000 💎', trigger: 'Reach 100 Referrals', rarity: 'legendary' },
-        { id: 'egg_beta_tester', icon: '🧪', name: 'Beta Tester', reward: '+500 💎', trigger: 'User ID within first 500 signups', rarity: 'epic' },
-        { id: 'egg_level_100_boss', icon: '👑', name: 'Level 100 Boss', reward: '+1,000 💎', trigger: 'Reach Level 100', rarity: 'legendary' },
-        { id: 'egg_multi_level_master', icon: '⚡', name: 'Multi-Level Master', reward: '+250 💎', trigger: 'Clear 10 levels in 1 hour', rarity: 'epic' },
-        { id: 'egg_daily_legend', icon: '🌟', name: 'Daily Legend', reward: '+1,000 💎', trigger: 'Hit 500 cap 30 days in a row', rarity: 'legendary' },
-        { id: 'egg_infinity', icon: '♾️', name: 'To Infinity', reward: '+5,000 💎', trigger: 'Earn 1,000,000 total diamonds', rarity: 'legendary' },
+        { id: 'egg_centurion', icon: '💯', name: 'The Centurion', reward: '+1,000 Diamonds', trigger: '100-day login streak', rarity: 'legendary' },
+        { id: 'egg_millionaire', icon: '', name: 'Millionaire', reward: '+2,500 Diamonds', trigger: '1,000,000 lifetime XP', rarity: 'legendary' },
+        { id: 'egg_old_guard', icon: '', name: 'Old Guard', reward: '+500 Diamonds', trigger: 'Member for 1 year', rarity: 'epic' },
+        { id: 'egg_finisher', icon: '🏁', name: 'The Finisher', reward: '+2,000 Diamonds', trigger: 'Complete every training game in DB', rarity: 'legendary' },
+        { id: 'egg_zero_leak', icon: '💧', name: 'Zero Leak', reward: '+1,500 Diamonds', trigger: '1,000 hands with no leak signals', rarity: 'legendary' },
+        { id: 'egg_high_roller', icon: '', name: 'High Roller', reward: '+500 Diamonds', trigger: 'Spend 10k Diamonds in one day', rarity: 'epic' },
+        { id: 'egg_oracle', icon: '🔮', name: 'The Oracle', reward: '+300 Diamonds', trigger: 'Predict 10 GTO moves in a row', rarity: 'epic' },
+        { id: 'egg_server_first', icon: '', name: 'Server First', reward: '+200 Diamonds', trigger: 'Be the first to pass a new level', rarity: 'rare' },
+        { id: 'egg_diamond_hands', icon: 'Diamonds', name: 'Diamond Hands', reward: '+400 Diamonds', trigger: 'Hold 5k+ Diamonds for 30 days', rarity: 'epic' },
+        { id: 'egg_whale', icon: '🐋', name: 'The Whale', reward: '+10,000 Diamonds', trigger: 'Reach 100 Referrals', rarity: 'legendary' },
+        { id: 'egg_beta_tester', icon: '🧪', name: 'Beta Tester', reward: '+500 Diamonds', trigger: 'User ID within first 500 signups', rarity: 'epic' },
+        { id: 'egg_level_100_boss', icon: '', name: 'Level 100 Boss', reward: '+1,000 Diamonds', trigger: 'Reach Level 100', rarity: 'legendary' },
+        { id: 'egg_multi_level_master', icon: '++', name: 'Multi-Level Master', reward: '+250 Diamonds', trigger: 'Clear 10 levels in 1 hour', rarity: 'epic' },
+        { id: 'egg_daily_legend', icon: '', name: 'Daily Legend', reward: '+1,000 Diamonds', trigger: 'Hit 500 cap 30 days in a row', rarity: 'legendary' },
+        { id: 'egg_infinity', icon: 'inf', name: 'To Infinity', reward: '+5,000 Diamonds', trigger: 'Earn 1,000,000 total diamonds', rarity: 'legendary' },
     ],
 };
 
@@ -258,23 +258,23 @@ const VIP_MEMBERSHIP = {
 
 const VIP_BENEFITS = [
     // GOLD TIER CARD FEATURES
-    { icon: '📊', title: 'Show Stack in BBs', description: 'Display chip stacks in big blinds for better decisions', value: 'Gold' },
+    { icon: '', title: 'Show Stack in BBs', description: 'Display chip stacks in big blinds for better decisions', value: 'Gold' },
     { icon: '🐰', title: 'Rabbit Hunting', description: 'See what cards would have come after folding', value: 'Gold' },
-    { icon: '🛡️', title: 'Offline Protection', description: 'Protection when disconnected during hands', value: 'Gold' },
-    { icon: '⏱️', title: 'Auto Time Bank', description: 'Automatic time bank activation', value: 'Gold' },
+    { icon: '', title: 'Offline Protection', description: 'Protection when disconnected during hands', value: 'Gold' },
+    { icon: '', title: 'Auto Time Bank', description: 'Automatic time bank activation', value: 'Gold' },
     { icon: '🕐', title: 'Free Time Bank', description: '+120 seconds of free time bank', value: '+120' },
     { icon: '🎨', title: 'Available Themes', description: '3 exclusive table themes to choose from', value: '+3' },
     { icon: '🏠', title: 'Club Creation Limit', description: 'Create up to 3 private clubs', value: '+3' },
     { icon: '😀', title: 'Free Emojis', description: '1,200 free emojis to use at the tables', value: '+1200' },
-    { icon: '🏷️', title: 'Player Tags', description: '1,000 tags to track and label opponents', value: '+1000' },
-    { icon: '📈', title: 'Leaderboard Boost', description: '6% score boost on all leaderboards', value: '+6%' },
+    { icon: '', title: 'Player Tags', description: '1,000 tags to track and label opponents', value: '+1000' },
+    { icon: '', title: 'Leaderboard Boost', description: '6% score boost on all leaderboards', value: '+6%' },
     // SMARTER.POKER EXCLUSIVES
     { icon: '🎟️', title: 'Free Roll Entries', description: 'Free entry to all Diamond Arena freeroll tournaments', value: 'Unlimited' },
-    { icon: '🧠', title: 'Premium Training', description: 'Full access to all training modules & drills', value: '$50/mo' },
+    { icon: '', title: 'Premium Training', description: 'Full access to all training modules & drills', value: '$50/mo' },
     { icon: '🤖', title: 'AI Personal Assistant', description: 'Priority AI coaching & hand analysis', value: '$100/mo' },
-    { icon: '🎁', title: 'Daily Diamond Bonus', description: '+25 💎 free every day ($7.50/mo value)', value: '$7.50/mo' },
-    { icon: '✨', title: 'VIP Badge & Flair', description: 'Exclusive Gold VIP profile badge and cosmetics', value: 'Exclusive' },
-    { icon: '🚀', title: '2x XP Boost', description: 'Double XP earnings on all activities', value: '$25/mo' },
+    { icon: '', title: 'Daily Diamond Bonus', description: '+25 Diamonds free every day ($7.50/mo value)', value: '$7.50/mo' },
+    { icon: '', title: 'VIP Badge & Flair', description: 'Exclusive Gold VIP profile badge and cosmetics', value: 'Exclusive' },
+    { icon: '', title: '2x XP Boost', description: 'Double XP earnings on all activities', value: '$25/mo' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -418,7 +418,7 @@ function PackageCard({ pkg, onSelect, isSelected, onAddToCart }) {
                 gap: 10,
                 marginBottom: 12,
             }}>
-                <span style={{ fontSize: 32 }}>💎</span>
+                <span style={{ fontSize: 32 }}>Diamonds</span>
                 <div>
                     <div style={{
                         fontFamily: 'Orbitron, sans-serif',
@@ -467,7 +467,7 @@ function PackageCard({ pkg, onSelect, isSelected, onAddToCart }) {
                     fontSize: 10,
                     color: 'rgba(255, 255, 255, 0.5)',
                 }}>
-                    1💎 = $0.01
+                    1Diamonds = $0.01
                 </span>
             </div>
 
@@ -674,7 +674,7 @@ export default function DiamondStorePage() {
     const [selectedVIP, setSelectedVIP] = useState('vip-monthly');
     const [isProcessing, setIsProcessing] = useState(false);
 
-    // 🎬 INTRO VIDEO STATE - Video plays while page loads in background
+    //  INTRO VIDEO STATE - Video plays while page loads in background
     // Only show once per session (not on every reload)
     const [showIntro, setShowIntro] = useState(() => {
         if (typeof window !== 'undefined') {
@@ -753,7 +753,7 @@ export default function DiamondStorePage() {
             });
 
             // Show success message
-            alert('🎉 Purchase successful! Your diamonds have been added to your account.');
+            alert(' Purchase successful! Your diamonds have been added to your account.');
 
             // Clean up URL
             router.replace('/hub/diamond-store', undefined, { shallow: true });
@@ -912,7 +912,7 @@ export default function DiamondStorePage() {
     return (
         <>
             <PageTransition>
-                {/* 🎬 INTRO VIDEO OVERLAY - Plays while page loads behind it */}
+                {/*  INTRO VIDEO OVERLAY - Plays while page loads behind it */}
                 {showIntro && (
                     <div style={{
                         position: 'fixed',
@@ -1004,7 +1004,7 @@ export default function DiamondStorePage() {
                     />
                     <div style={styles.header}>
                         <div style={{ width: 100 }} />
-                        <h1 style={styles.pageTitle}>💎 Store</h1>
+                        <h1 style={styles.pageTitle}>Diamonds Store</h1>
                         <div style={{ width: 100 }} />
                     </div>
 
@@ -1017,7 +1017,7 @@ export default function DiamondStorePage() {
                                 ...(activeTab === 'diamonds' ? styles.tabButtonActive : {}),
                             }}
                         >
-                            💎 Diamonds
+                            Diamonds Diamonds
                         </button>
                         <button
                             onClick={() => setActiveTab('vip')}
@@ -1026,7 +1026,7 @@ export default function DiamondStorePage() {
                                 ...(activeTab === 'vip' ? styles.tabButtonActiveVIP : {}),
                             }}
                         >
-                            👑 VIP Membership
+                             VIP Membership
                         </button>
                         <button
                             onClick={() => setActiveTab('merch')}
@@ -1035,7 +1035,7 @@ export default function DiamondStorePage() {
                                 ...(activeTab === 'merch' ? styles.tabButtonActive : {}),
                             }}
                         >
-                            🛍️ Merch
+                             Merch
                         </button>
                         <button
                             onClick={() => setActiveTab('rewards')}
@@ -1044,7 +1044,7 @@ export default function DiamondStorePage() {
                                 ...(activeTab === 'rewards' ? styles.tabButtonActive : {}),
                             }}
                         >
-                            🎁 Smarter Rewards
+                             Smarter Rewards
                         </button>
                     </div>
 
@@ -1085,7 +1085,7 @@ export default function DiamondStorePage() {
                                                 <span style={styles.selectedLabel}>Selected:</span>
                                                 <span style={styles.selectedName}>{selectedPkg.name}</span>
                                                 <span style={styles.selectedDiamonds}>
-                                                    💎 {(selectedPkg.diamonds + selectedPkg.bonus).toLocaleString()}
+                                                    Diamonds {(selectedPkg.diamonds + selectedPkg.bonus).toLocaleString()}
                                                 </span>
                                             </>
                                         )}
@@ -1112,7 +1112,7 @@ export default function DiamondStorePage() {
                             <>
                                 {/* VIP Hero */}
                                 <div style={styles.vipHero}>
-                                    <h2 style={styles.vipTitle}>👑 VIP Membership</h2>
+                                    <h2 style={styles.vipTitle}> VIP Membership</h2>
                                     <p style={styles.vipSubtitle}>
                                         Unlock <strong>everything</strong> for one low monthly price. No diamond costs, no limits.
                                     </p>
@@ -1185,7 +1185,7 @@ export default function DiamondStorePage() {
                         {activeTab === 'merch' && (
                             <>
                                 <div style={styles.intro}>
-                                    <h2 style={styles.merchTitle}>🛍️ Official Merch</h2>
+                                    <h2 style={styles.merchTitle}> Official Merch</h2>
                                     <p style={styles.introText}>
                                         Rep the Smarter.Poker brand at the tables. Premium quality gear for serious players.
                                     </p>
@@ -1237,7 +1237,7 @@ export default function DiamondStorePage() {
                                             ...(rewardsSubTab === 'diamonds' ? styles.rewardsSubTabActive : {}),
                                         }}
                                     >
-                                        💎 Diamond Rewards
+                                        Diamonds Diamond Rewards
                                     </button>
                                     <button
                                         onClick={() => setRewardsSubTab('xp')}
@@ -1246,7 +1246,7 @@ export default function DiamondStorePage() {
                                             ...(rewardsSubTab === 'xp' ? styles.rewardsSubTabActive : {}),
                                         }}
                                     >
-                                        📈 XP System
+                                         XP System
                                     </button>
                                     <button
                                         onClick={() => setRewardsSubTab('eggs')}
@@ -1255,30 +1255,30 @@ export default function DiamondStorePage() {
                                             ...(rewardsSubTab === 'eggs' ? styles.rewardsSubTabActive : {}),
                                         }}
                                     >
-                                        🎁 Easter Eggs
+                                         Easter Eggs
                                     </button>
                                 </div>
 
                                 {/* OVERVIEW SUB-TAB */}
                                 {rewardsSubTab === 'overview' && (
                                     <div style={styles.rewardsOverview}>
-                                        <h2 style={styles.earnTitle}>🎁 Smarter Rewards</h2>
+                                        <h2 style={styles.earnTitle}> Smarter Rewards</h2>
                                         <p style={styles.introText}>
                                             Welcome to the Smarter Rewards system! Earn diamonds and XP by playing, training, and engaging with the community.
                                         </p>
 
                                         <div style={styles.overviewGrid}>
                                             <div style={styles.overviewCard}>
-                                                <div style={styles.overviewIcon}>💎</div>
+                                                <div style={styles.overviewIcon}>Diamonds</div>
                                                 <h3 style={styles.overviewCardTitle}>Diamond Rewards</h3>
                                                 <p style={styles.overviewCardText}>
                                                     Earn diamonds through daily logins, training, social engagement, and referrals.
-                                                    <strong style={{ color: '#00ff88' }}> Daily cap: 500 💎</strong> with streak multipliers!
+                                                    <strong style={{ color: '#00ff88' }}> Daily cap: 500 Diamonds</strong> with streak multipliers!
                                                 </p>
                                             </div>
 
                                             <div style={styles.overviewCard}>
-                                                <div style={styles.overviewIcon}>📈</div>
+                                                <div style={styles.overviewIcon}></div>
                                                 <h3 style={styles.overviewCardTitle}>XP System</h3>
                                                 <p style={styles.overviewCardText}>
                                                     Progress through <strong>infinite levels</strong> using the quadratic formula.
@@ -1287,7 +1287,7 @@ export default function DiamondStorePage() {
                                             </div>
 
                                             <div style={styles.overviewCard}>
-                                                <div style={styles.overviewIcon}>🎁</div>
+                                                <div style={styles.overviewIcon}></div>
                                                 <h3 style={styles.overviewCardTitle}>Easter Eggs</h3>
                                                 <p style={styles.overviewCardText}>
                                                     Discover <strong>100 hidden achievements</strong> across 6 categories.
@@ -1298,7 +1298,7 @@ export default function DiamondStorePage() {
 
                                         <div style={styles.quickStats}>
                                             <div style={styles.quickStat}>
-                                                <span style={styles.quickStatValue}>500 💎</span>
+                                                <span style={styles.quickStatValue}>500 Diamonds</span>
                                                 <span style={styles.quickStatLabel}>Daily Cap</span>
                                             </div>
                                             <div style={styles.quickStat}>
@@ -1320,7 +1320,7 @@ export default function DiamondStorePage() {
                                 {/* DIAMOND REWARDS SUB-TAB */}
                                 {rewardsSubTab === 'diamonds' && (
                                     <div style={styles.diamondRewardsSection}>
-                                        <h2 style={styles.earnTitle}>💎 Diamond Rewards</h2>
+                                        <h2 style={styles.earnTitle}>Diamonds Diamond Rewards</h2>
                                         <p style={styles.introText}>
                                             All 10 ways you can earn diamonds on Smarter.Poker
                                         </p>
@@ -1346,7 +1346,7 @@ export default function DiamondStorePage() {
 
                                         {/* Standard Rewards List */}
                                         <div style={styles.rewardCategory}>
-                                            <h3 style={styles.categoryTitle}>💎 All Standard Rewards</h3>
+                                            <h3 style={styles.categoryTitle}>Diamonds All Standard Rewards</h3>
                                             <div style={styles.rewardList}>
                                                 {STANDARD_REWARDS.map((reward, idx) => (
                                                     <div key={idx} style={reward.bypassesCap ? { ...styles.rewardItem, ...styles.referralHighlight } : styles.rewardItem}>
@@ -1366,7 +1366,7 @@ export default function DiamondStorePage() {
                                 {/* XP SYSTEM SUB-TAB */}
                                 {rewardsSubTab === 'xp' && (
                                     <div style={styles.xpSystemSection}>
-                                        <h2 style={styles.earnTitle}>📈 XP System - Infinite Progression</h2>
+                                        <h2 style={styles.earnTitle}> XP System - Infinite Progression</h2>
                                         <p style={styles.introText}>
                                             Level up using the quadratic formula: <code style={styles.formula}>Level = floor(sqrt(XP / 100)) + 1</code>
                                         </p>
@@ -1386,7 +1386,7 @@ export default function DiamondStorePage() {
                                         </div>
 
                                         {/* Example Milestones */}
-                                        <h3 style={styles.categoryTitle}>📊 Example Milestones</h3>
+                                        <h3 style={styles.categoryTitle}> Example Milestones</h3>
                                         <div style={styles.xpTableContainer}>
                                             <table style={styles.xpTable}>
                                                 <thead>
@@ -1422,14 +1422,14 @@ export default function DiamondStorePage() {
                                 {/* EASTER EGGS SUB-TAB */}
                                 {rewardsSubTab === 'eggs' && (
                                     <div style={styles.easterEggsSection}>
-                                        <h2 style={styles.earnTitle}>🎁 Easter Eggs - 100 Hidden Achievements</h2>
+                                        <h2 style={styles.earnTitle}> Easter Eggs - 100 Hidden Achievements</h2>
                                         <p style={styles.introText}>
                                             Discover 100 hidden achievements across 6 categories for massive bonus rewards!
                                         </p>
 
                                         {/* Performance Category (10 eggs) */}
                                         <div style={styles.eggCategory}>
-                                            <h3 style={styles.eggCategoryTitle}>🎯 Performance (10 Achievements)</h3>
+                                            <h3 style={styles.eggCategoryTitle}> Performance (10 Achievements)</h3>
                                             <div style={styles.eggGrid}>
                                                 {EASTER_EGGS.performance.map((egg) => (
                                                     <div key={egg.id} style={styles.eggCard}>
@@ -1447,7 +1447,7 @@ export default function DiamondStorePage() {
 
                                         {/* Timing & Loyalty Category (15 eggs) */}
                                         <div style={styles.eggCategory}>
-                                            <h3 style={styles.eggCategoryTitle}>⏰ Timing & Loyalty (15 Achievements)</h3>
+                                            <h3 style={styles.eggCategoryTitle}> Timing & Loyalty (15 Achievements)</h3>
                                             <div style={styles.eggGrid}>
                                                 {EASTER_EGGS.timing_loyalty.map((egg) => (
                                                     <div key={egg.id} style={styles.eggCard}>
@@ -1465,7 +1465,7 @@ export default function DiamondStorePage() {
 
                                         {/* Strategy & Mastery Category (20 eggs) */}
                                         <div style={styles.eggCategory}>
-                                            <h3 style={styles.eggCategoryTitle}>♟️ Strategy & Mastery (20 Achievements)</h3>
+                                            <h3 style={styles.eggCategoryTitle}> Strategy & Mastery (20 Achievements)</h3>
                                             <div style={styles.eggGrid}>
                                                 {EASTER_EGGS.strategy_mastery.map((egg) => (
                                                     <div key={egg.id} style={styles.eggCard}>
@@ -1483,7 +1483,7 @@ export default function DiamondStorePage() {
 
                                         {/* Social/Viral Category (20 eggs) */}
                                         <div style={styles.eggCategory}>
-                                            <h3 style={styles.eggCategoryTitle}>🌟 Social & Viral (20 Achievements)</h3>
+                                            <h3 style={styles.eggCategoryTitle}> Social & Viral (20 Achievements)</h3>
                                             <div style={styles.eggGrid}>
                                                 {EASTER_EGGS.social_viral.map((egg) => (
                                                     <div key={egg.id} style={styles.eggCard}>
@@ -1501,7 +1501,7 @@ export default function DiamondStorePage() {
 
                                         {/* Meta/Interface Category (20 eggs) */}
                                         <div style={styles.eggCategory}>
-                                            <h3 style={styles.eggCategoryTitle}>🎮 Meta & Interface (20 Achievements)</h3>
+                                            <h3 style={styles.eggCategoryTitle}> Meta & Interface (20 Achievements)</h3>
                                             <div style={styles.eggGrid}>
                                                 {EASTER_EGGS.meta_interface.map((egg) => (
                                                     <div key={egg.id} style={styles.eggCard}>
@@ -1519,7 +1519,7 @@ export default function DiamondStorePage() {
 
                                         {/* Legacy/Milestones Category (15 eggs) */}
                                         <div style={styles.eggCategory}>
-                                            <h3 style={styles.eggCategoryTitle}>🏆 Legacy & Milestones (15 Achievements)</h3>
+                                            <h3 style={styles.eggCategoryTitle}>Trophy Legacy & Milestones (15 Achievements)</h3>
                                             <div style={styles.eggGrid}>
                                                 {EASTER_EGGS.legacy_milestones.map((egg) => (
                                                     <div key={egg.id} style={styles.eggCard}>

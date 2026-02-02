@@ -13,22 +13,22 @@ import React from 'react';
 import { motion } from 'framer-motion';
 
 // 9-Max seat positions (VERTICAL STADIUM TABLE - portrait orientation)
-// Reference shows avatars VERY CLOSE to center, on INNER edge of gold rail
+// Attached to table on inner edge of gold rail
 const SEAT_POSITIONS = [
     // Hero at bottom center
-    { id: 'hero', x: 50, y: 85, isHero: true },
+    { id: 'hero', x: 50, y: 88, isHero: true },
 
-    // LEFT SIDE (4 villains) - MUCH closer to center
-    { id: 'v1', x: 30, y: 68 },  // Bottom-left
-    { id: 'v2', x: 30, y: 50 },  // Mid-left
-    { id: 'v3', x: 30, y: 32 },  // Upper-mid-left
-    { id: 'v4', x: 35, y: 18 },  // Top-left
+    // LEFT SIDE (4 villains) - Attached to inner rail edge
+    { id: 'v1', x: 25, y: 72 },  // Bottom-left
+    { id: 'v2', x: 22, y: 54 },  // Mid-left  
+    { id: 'v3', x: 22, y: 36 },  // Upper-mid-left
+    { id: 'v4', x: 30, y: 18 },  // Top-left
 
-    // RIGHT SIDE (4 villains) - MUCH closer to center
-    { id: 'v8', x: 70, y: 68 },  // Bottom-right
-    { id: 'v7', x: 70, y: 50 },  // Mid-right
-    { id: 'v6', x: 70, y: 32 },  // Upper-mid-right
-    { id: 'v5', x: 65, y: 18 },  // Top-right
+    // RIGHT SIDE (4 villains) - Attached to inner rail edge
+    { id: 'v8', x: 75, y: 72 },  // Bottom-right
+    { id: 'v7', x: 78, y: 54 },  // Mid-right
+    { id: 'v6', x: 78, y: 36 },  // Upper-mid-right
+    { id: 'v5', x: 70, y: 18 },  // Top-right
 ];
 
 // Convert card notation (e.g., 'Ah' for Ace of Hearts) to image path
@@ -160,25 +160,39 @@ export default function MTTDeepStackUI({
                                     style={styles.avatar}
                                 />
 
-                                {/* Badge */}
-                                <div style={styles.badge}>
-                                    <div style={styles.badgeLabel}>
-                                        {isHero ? 'Hero' : `Villain ${villainNumber}`}
+                                {/* Badge + Hero Cards in horizontal row */}
+                                <div style={isHero ? styles.heroRow : undefined}>
+                                    {/* Badge */}
+                                    <div style={styles.badge}>
+                                        <div style={styles.badgeLabel}>
+                                            {isHero ? 'Hero' : `Villain ${villainNumber}`}
+                                        </div>
+                                        <div style={styles.badgeStack}>{stackSize} BB</div>
                                     </div>
-                                    <div style={styles.badgeStack}>{stackSize} BB</div>
+
+                                    {/* Hero Cards - FANNED like holding cards in hand */}
+                                    {isHero && (
+                                        <div style={styles.heroCardsInline}>
+                                            <img src={getCardPath(card1)} alt={card1} style={{
+                                                ...styles.card,
+                                                transform: 'rotate(-12deg)',
+                                                transformOrigin: 'bottom center',
+                                            }} />
+                                            <img src={getCardPath(card2)} alt={card2} style={{
+                                                ...styles.card,
+                                                transform: 'rotate(8deg)',
+                                                transformOrigin: 'bottom center',
+                                                marginLeft: -20,
+                                            }} />
+                                        </div>
+                                    )}
                                 </div>
-
-
                             </div>
                         );
                     })}
                 </div>
 
-                {/* HERO CARDS - Bottom center below hero avatar */}
-                <div style={styles.heroCardsContainer}>
-                    <img src={getCardPath(card1)} alt={card1} style={styles.card} />
-                    <img src={getCardPath(card2)} alt={card2} style={styles.card} />
-                </div>
+                {/* Hero cards are now rendered inside the hero seat above */}
 
                 {/* POT - Center top */}
                 <div style={styles.pot}>POT 20</div>
@@ -363,20 +377,24 @@ const styles = {
         marginTop: 4,
     },
 
-    // Hero cards positioned at bottom center (below hero avatar)
-    heroCardsContainer: {
-        position: 'absolute',
-        bottom: '8%',
-        left: '50%',
-        transform: 'translateX(-50%)',
+    // Hero row: horizontal layout for badge + cards
+    heroRow: {
         display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'center',
         gap: 8,
-        zIndex: 10,
+    },
+
+    // Hero cards inline (next to badge)
+    heroCardsInline: {
+        display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'center',
     },
 
     card: {
-        width: 40,
-        height: 56,
+        width: 44,
+        height: 62,
         borderRadius: 4,
         boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
     },

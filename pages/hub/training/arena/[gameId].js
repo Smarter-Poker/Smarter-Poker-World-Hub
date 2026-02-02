@@ -16,6 +16,10 @@ import Head from 'next/head';
 import dynamic from 'next/dynamic';
 import { getAuthUser } from '../../../../src/lib/authUtils';
 
+//  GOLDEN LOCK STANDARD - Fixed Canvas: 862x1024px
+const CANVAS_WIDTH = 862;
+const CANVAS_HEIGHT = 1024;
+
 // Dynamic import for GodModeArena to avoid SSR issues
 const GodModeArena = dynamic(
     () => import('../../../../src/components/training/GodModeArena'),
@@ -39,7 +43,7 @@ function LoadingScreen() {
                 fontSize: 64,
                 marginBottom: 24,
                 animation: 'pulse 1.5s infinite',
-            }}>🎰</div>
+            }}></div>
             <p style={{ color: '#94a3b8', fontSize: 16 }}>Loading Training Arena...</p>
             <style jsx>{`
                 @keyframes pulse {
@@ -69,6 +73,21 @@ export default function TrainingArenaPage() {
 
     const [userId, setUserId] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [scale, setScale] = useState(1);
+
+    //  GOLDEN LOCK: Calculate viewport scale factor
+    useEffect(() => {
+        const calculateScale = () => {
+            const scaleX = window.innerWidth / CANVAS_WIDTH;
+            const scaleY = window.innerHeight / CANVAS_HEIGHT;
+            const newScale = Math.min(scaleX, scaleY, 1); // Never scale UP, only down
+            setScale(newScale);
+        };
+
+        calculateScale();
+        window.addEventListener('resize', calculateScale);
+        return () => window.removeEventListener('resize', calculateScale);
+    }, []);
 
     // Get user on mount
     useEffect(() => {
@@ -113,15 +132,32 @@ export default function TrainingArenaPage() {
                 `}</style>
             </Head>
 
-            <GodModeArena
-                userId={userId}
-                gameId={gameId}
-                gameName={gameName}
-                level={parseInt(level) || 1}
-                sessionId={`session-${Date.now()}`}
-                onComplete={handleComplete}
-                onExit={handleExit}
-            />
+            {/*  GOLDEN LOCK: Scaled container wrapper */}
+            <div style={{
+                width: '100%',
+                height: '100vh',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden',
+            }}>
+                <div style={{
+                    width: `${CANVAS_WIDTH}px`,
+                    height: `${CANVAS_HEIGHT}px`,
+                    transform: `scale(${scale})`,
+                    transformOrigin: 'center center',
+                }}>
+                    <GodModeArena
+                        userId={userId}
+                        gameId={gameId}
+                        gameName={gameName}
+                        level={parseInt(level) || 1}
+                        sessionId={`session-${Date.now()}`}
+                        onComplete={handleComplete}
+                        onExit={handleExit}
+                    />
+                </div>
+            </div>
         </>
     );
 }

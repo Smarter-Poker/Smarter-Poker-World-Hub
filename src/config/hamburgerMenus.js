@@ -364,6 +364,222 @@ export const MENU_CONFIGS = {
         bottomLinks: [
             { label: 'Help & Support', href: '/hub/help', icon: MenuIcons.help }
         ]
+    }),
+
+    'bankroll-manager': (user, state, handlers) => ({
+        menuItems: [
+            createMenuItem.section('Views'),
+            createMenuItem.navigation('Dashboard', '/hub/bankroll-manager?view=dashboard'),
+            createMenuItem.navigation('Log Session', '/hub/bankroll-manager?view=log-session'),
+            createMenuItem.navigation('Trips & Expenses', '/hub/bankroll-manager?view=trips'),
+            createMenuItem.navigation('Leaks Analysis', '/hub/bankroll-manager?view=leaks'),
+            createMenuItem.navigation('Reports', '/hub/bankroll-manager?view=reports'),
+            createMenuItem.divider(),
+            createMenuItem.section('Game Types'),
+            createMenuItem.navigation('Cash Games', '/hub/bankroll-manager?type=cash'),
+            createMenuItem.navigation('Tournaments', '/hub/bankroll-manager?type=tournament'),
+            createMenuItem.navigation('Casino', '/hub/bankroll-manager?type=casino'),
+            createMenuItem.navigation('Sports Betting', '/hub/bankroll-manager?type=sports'),
+            createMenuItem.divider(),
+            createMenuItem.section('Settings'),
+            createMenuItem.toggle('Auto-Save', state.autoSave !== false, handlers.setAutoSave),
+            createMenuItem.toggle('Notifications', state.notifications !== false, handlers.setNotifications),
+            createMenuItem.navigation('Bankroll Rules', '/hub/bankroll-manager?view=rules'),
+            createMenuItem.navigation('Export Data', '/hub/bankroll-manager/export')
+        ],
+        bottomLinks: [
+            { label: 'Help', href: '/hub/help', icon: MenuIcons.help }
+        ]
+    }),
+
+    'poker-near-me': (user, state, handlers) => ({
+        menuItems: [
+            createMenuItem.section('Browse'),
+            createMenuItem.navigation('Venues', '/hub/poker-near-me?tab=venues'),
+            createMenuItem.navigation('Tours', '/hub/poker-near-me?tab=tours'),
+            createMenuItem.navigation('Series', '/hub/poker-near-me?tab=series'),
+            createMenuItem.navigation('Daily Tournaments', '/hub/poker-near-me?tab=daily'),
+            createMenuItem.navigation('Live Games', '/hub/poker-near-me?tab=live'),
+            createMenuItem.navigation('Map View', '/hub/poker-near-me?tab=map'),
+            createMenuItem.divider(),
+            createMenuItem.section('My Lists'),
+            createMenuItem.navigation('Favorites', '/hub/poker-near-me?filter=favorites'),
+            createMenuItem.navigation('Search History', '/hub/poker-near-me?filter=history'),
+            createMenuItem.divider(),
+            createMenuItem.section('Settings'),
+            createMenuItem.toggle('Geofence Alerts', state.geofenceAlerts !== false, handlers.setGeofenceAlerts, 'Get notified when near poker venues'),
+            createMenuItem.toggle('Location Services', state.locationEnabled !== false, handlers.setLocationEnabled),
+            createMenuItem.toggle('Show Newcomer-Friendly', state.showNewcomerFriendly !== false, handlers.setShowNewcomerFriendly),
+            createMenuItem.navigation('Notification Preferences', '/hub/settings?section=notifications')
+        ],
+        bottomLinks: [
+            { label: 'Help', href: '/hub/help', icon: MenuIcons.help }
+        ]
+    }),
+
+    'video-library': (user, state, handlers) => ({
+        menuItems: [
+            createMenuItem.section('Browse'),
+            createMenuItem.navigation('All Videos', '/hub/video-library'),
+            createMenuItem.navigation('Cash Games', '/hub/video-library?type=cash'),
+            createMenuItem.navigation('Tournaments', '/hub/video-library?type=tournament'),
+            createMenuItem.divider(),
+            createMenuItem.section('Sources'),
+            createMenuItem.navigation('Hustler Casino Live', '/hub/video-library?source=HCL'),
+            createMenuItem.navigation('The Lodge', '/hub/video-library?source=LODGE'),
+            createMenuItem.navigation('Triton Poker', '/hub/video-library?source=TRITON'),
+            createMenuItem.navigation('Live at the Bike', '/hub/video-library?source=LATB'),
+            createMenuItem.navigation('TCH Live', '/hub/video-library?source=TCH'),
+            createMenuItem.navigation('WSOP', '/hub/video-library?source=WSOP'),
+            createMenuItem.navigation('WPT', '/hub/video-library?source=WPT'),
+            createMenuItem.divider(),
+            createMenuItem.section('My Library'),
+            createMenuItem.navigation('Favorites', '/hub/video-library?filter=favorites'),
+            createMenuItem.navigation('Watch History', '/hub/video-library?filter=history'),
+            createMenuItem.navigation('Watch Later', '/hub/video-library?filter=watchlater'),
+            createMenuItem.divider(),
+            createMenuItem.section('Settings'),
+            createMenuItem.toggle('Autoplay', state.autoplay !== false, handlers.setAutoplay),
+            createMenuItem.toggle('HD Quality', state.hdQuality !== false, handlers.setHdQuality),
+            createMenuItem.toggle('Captions', state.captions || false, handlers.setCaptions)
+        ],
+        bottomLinks: [
+            { label: 'Help', href: '/hub/help', icon: MenuIcons.help }
+        ]
+    }),
+
+    'diamond-arena': (user, state, handlers) => ({
+        menuItems: [
+            createMenuItem.section('Game Modes'),
+            createMenuItem.navigation('Cash Games', '/hub/diamond-arena?mode=cash'),
+            createMenuItem.navigation('Tournaments', '/hub/diamond-arena?mode=tournament'),
+            createMenuItem.navigation('Sit & Go', '/hub/diamond-arena?mode=sng'),
+            createMenuItem.divider(),
+            createMenuItem.section('My Arena'),
+            createMenuItem.navigation('Active Tables', '/hub/diamond-arena?filter=active'),
+            createMenuItem.navigation('Tournament Schedule', '/hub/diamond-arena/schedule'),
+            createMenuItem.navigation('Leaderboard', '/hub/diamond-arena/leaderboard'),
+            createMenuItem.navigation('My Stats', '/hub/diamond-arena/stats'),
+            createMenuItem.navigation('Hand History', '/hub/diamond-arena/history'),
+            createMenuItem.divider(),
+            createMenuItem.section('Diamond Store'),
+            createMenuItem.navigation('Buy Diamonds', '/hub/diamond-store?category=diamonds'),
+            createMenuItem.navigation('VIP Benefits', '/hub/diamond-store?category=vip'),
+            createMenuItem.divider(),
+            createMenuItem.section('Settings'),
+            createMenuItem.toggle('Sound Effects', state.soundEffects !== false, handlers.setSoundEffects),
+            createMenuItem.toggle('Animations', state.animations !== false, handlers.setAnimations),
+            createMenuItem.toggle('Auto-Rebuy', state.autoRebuy || false, handlers.setAutoRebuy),
+            createMenuItem.navigation('Table Preferences', '/hub/settings?section=table')
+        ],
+        bottomLinks: [
+            { label: 'Help & Rules', href: '/hub/help', icon: MenuIcons.help }
+        ]
+    }),
+
+    'trivia': (user, state, handlers) => ({
+        menuItems: [
+            createMenuItem.section('Game Modes'),
+            createMenuItem.navigation('Daily Challenge', '/hub/trivia?mode=daily'),
+            createMenuItem.navigation('Quick Play', '/hub/trivia?mode=quick'),
+            createMenuItem.navigation('Practice Mode', '/hub/trivia?mode=practice'),
+            createMenuItem.divider(),
+            createMenuItem.section('My Progress'),
+            createMenuItem.navigation('Leaderboard', '/hub/trivia/leaderboard'),
+            createMenuItem.navigation('My Stats', '/hub/trivia/stats'),
+            createMenuItem.navigation('Achievements', '/hub/trivia/achievements'),
+            createMenuItem.divider(),
+            createMenuItem.section('Settings'),
+            createMenuItem.toggle('Sound Effects', state.soundEffects !== false, handlers.setSoundEffects),
+            createMenuItem.toggle('Timer', state.timerEnabled !== false, handlers.setTimerEnabled),
+            createMenuItem.toggle('Hints', state.hintsEnabled || false, handlers.setHintsEnabled),
+            createMenuItem.navigation('Difficulty', '/hub/trivia/settings')
+        ],
+        bottomLinks: [
+            { label: 'Help', href: '/hub/help', icon: MenuIcons.help }
+        ]
+    }),
+
+    'news': (user, state, handlers) => ({
+        menuItems: [
+            createMenuItem.section('Browse'),
+            createMenuItem.navigation('All News', '/hub/news'),
+            createMenuItem.navigation('Videos', '/hub/news?tab=videos'),
+            createMenuItem.navigation('Reels', '/hub/news?tab=reels'),
+            createMenuItem.navigation('Events', '/hub/news?tab=events'),
+            createMenuItem.divider(),
+            createMenuItem.section('Sources'),
+            createMenuItem.navigation('PokerNews', '/hub/news?source=pokernews'),
+            createMenuItem.navigation('CardPlayer', '/hub/news?source=cardplayer'),
+            createMenuItem.navigation('WSOP', '/hub/news?source=wsop'),
+            createMenuItem.navigation('WPT', '/hub/news?source=wpt'),
+            createMenuItem.navigation('MSPT', '/hub/news?source=mspt'),
+            createMenuItem.divider(),
+            createMenuItem.section('My Feed'),
+            createMenuItem.navigation('Bookmarks', '/hub/news?filter=bookmarks'),
+            createMenuItem.navigation('Read Later', '/hub/news?filter=later'),
+            createMenuItem.divider(),
+            createMenuItem.section('Settings'),
+            createMenuItem.toggle('Push Notifications', state.pushNotifications || false, handlers.setPushNotifications),
+            createMenuItem.toggle('Email Digest', state.emailDigest || false, handlers.setEmailDigest),
+            createMenuItem.navigation('Manage Sources', '/hub/news/sources')
+        ],
+        bottomLinks: [
+            { label: 'Help', href: '/hub/help', icon: MenuIcons.help }
+        ]
+    }),
+
+    'diamond-arcade': (user, state, handlers) => ({
+        menuItems: [
+            createMenuItem.section('Games'),
+            createMenuItem.navigation('Hand Snap', '/hub/diamond-arcade?game=hand-snap'),
+            createMenuItem.navigation('Board Nuts', '/hub/diamond-arcade?game=board-nuts'),
+            createMenuItem.navigation('Chip Math', '/hub/diamond-arcade?game=chip-math'),
+            createMenuItem.divider(),
+            createMenuItem.section('Challenges'),
+            createMenuItem.navigation('Daily Challenge', '/hub/diamond-arcade?mode=daily'),
+            createMenuItem.navigation('Leaderboard', '/hub/diamond-arcade/leaderboard'),
+            createMenuItem.navigation('My Stats', '/hub/diamond-arcade/stats'),
+            createMenuItem.navigation('Achievements', '/hub/diamond-arcade/achievements'),
+            createMenuItem.divider(),
+            createMenuItem.section('Prizes'),
+            createMenuItem.navigation('Prize Pool', '/hub/diamond-arcade/prizes'),
+            createMenuItem.navigation('My Winnings', '/hub/diamond-arcade/winnings'),
+            createMenuItem.divider(),
+            createMenuItem.section('Settings'),
+            createMenuItem.toggle('Sound Effects', state.soundEffects !== false, handlers.setSoundEffects),
+            createMenuItem.toggle('Animations', state.animations !== false, handlers.setAnimations),
+            createMenuItem.toggle('Difficulty Hints', state.hints || false, handlers.setHints)
+        ],
+        bottomLinks: [
+            { label: 'Help & Rules', href: '/hub/help', icon: MenuIcons.help }
+        ]
+    }),
+
+    'memory-games': (user, state, handlers) => ({
+        menuItems: [
+            createMenuItem.section('Game Modes'),
+            createMenuItem.navigation('Speed Drill', '/hub/memory-games?mode=speed-drill'),
+            createMenuItem.navigation('Pressure Cooker', '/hub/memory-games?mode=pressure-cooker'),
+            createMenuItem.navigation('Pattern Recognition', '/hub/memory-games?mode=pattern'),
+            createMenuItem.navigation('Mixed Strategy', '/hub/memory-games?mode=mixed'),
+            createMenuItem.divider(),
+            createMenuItem.section('Progress'),
+            createMenuItem.navigation('Leaderboard', '/hub/memory-games/leaderboard'),
+            createMenuItem.navigation('My Stats', '/hub/memory-games/stats'),
+            createMenuItem.navigation('Achievements', '/hub/memory-games/achievements'),
+            createMenuItem.divider(),
+            createMenuItem.section('Settings'),
+            createMenuItem.toggle('Sound Effects', state.soundEffects !== false, handlers.setSoundEffects),
+            createMenuItem.toggle('Keyboard Shortcuts', state.keyboardShortcuts !== false, handlers.setKeyboardShortcuts),
+            createMenuItem.toggle('Show Timer', state.showTimer !== false, handlers.setShowTimer),
+            createMenuItem.toggle('Visual Hints', state.visualHints || false, handlers.setVisualHints),
+            createMenuItem.divider(),
+            createMenuItem.navigation('How to Play', '/hub/memory-games/tutorial')
+        ],
+        bottomLinks: [
+            { label: 'Help', href: '/hub/help', icon: MenuIcons.help }
+        ]
     })
 };
 

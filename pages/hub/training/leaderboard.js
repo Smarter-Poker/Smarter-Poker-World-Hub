@@ -113,7 +113,7 @@ export default function TrainingLeaderboard() {
                 <UniversalHeader pageDepth={2} />
 
                 <div style={styles.content}>
-                    <h1 style={styles.title}>🏆 Training Leaderboard</h1>
+                    <h1 style={styles.title}>Trophy Training Leaderboard</h1>
 
                     {/* Filters */}
                     <div style={styles.filters}>
@@ -152,7 +152,7 @@ export default function TrainingLeaderboard() {
                     {/* Leaderboard */}
                     {loading ? (
                         <div style={styles.loadingContainer}>
-                            <div style={styles.spinner}>🏆</div>
+                            <div style={styles.spinner}>Trophy</div>
                             <p style={styles.loadingText}>Loading leaderboard...</p>
                         </div>
                     ) : (
@@ -195,9 +195,9 @@ function LeaderboardEntry({ rank, username, avatarUrl, totalQuestions, correctAn
     };
 
     const getRankIcon = () => {
-        if (rank === 1) return '🥇';
-        if (rank === 2) return '🥈';
-        if (rank === 3) return '🥉';
+        if (rank === 1) return '';
+        if (rank === 2) return '';
+        if (rank === 3) return '';
         return null;
     };
 

@@ -1,5 +1,5 @@
 /**
- * 🎮 TRAINING PAGE — 100-Game Library with Video Game Feel
+ *  TRAINING PAGE — 100-Game Library with Video Game Feel
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * Features:
@@ -129,7 +129,7 @@ function TrainingHeader({ gamesPlayed = 0 }) {
                     onClick={() => router.push('/hub/diamond-store')}
                     style={{ ...headerStyles.statChip, cursor: 'pointer' }}
                 >
-                    <span style={{ fontSize: 14 }}>💎</span>
+                    <span style={{ fontSize: 14 }}>Diamonds</span>
                     <span style={headerStyles.statValue}>{diamonds.toLocaleString()}</span>
                     <span style={headerStyles.plusIcon}>+</span>
                 </div>
@@ -337,7 +337,7 @@ function StreaksBadge({ bestStreak }) {
             transition={{ duration: 0.4 }}
         >
             <div style={streakStyles.content}>
-                <span style={streakStyles.icon}>🔥</span>
+                <span style={streakStyles.icon}></span>
                 <div style={streakStyles.textContainer}>
                     <span style={streakStyles.label}>BEST STREAK</span>
                     <span style={streakStyles.value}>{bestStreak} in a row</span>
@@ -491,11 +491,11 @@ export default function TrainingPage() {
     const markGameCelebrated = useTrainingStore((s) => s.markGameCelebrated);
     const celebratedGames = useTrainingStore((s) => s.celebratedGames);
 
-    // 🎮 ARENA STATE - Show arena inline after intro video
+    //  ARENA STATE - Show arena inline after intro video
     const [showArena, setShowArena] = useState(false);
     const [activeGame, setActiveGame] = useState(null);
 
-    // 🎬 INTRO VIDEO STATE - Video plays while page loads in background
+    //  INTRO VIDEO STATE - Video plays while page loads in background
     // Only show once per session (not on every reload)
     const [showPageIntro, setShowPageIntro] = useState(() => {
         if (typeof window !== 'undefined') {
@@ -579,7 +579,7 @@ export default function TrainingPage() {
 
     // Handle game click - Show intro video first, then navigate
     const handleGameClick = (game) => {
-        console.log('🎮 Launching game:', game.name);
+        console.log(' Launching game:', game.name);
 
         // Check if game was just mastered (trigger celebration)
         const gameProgress = getGameProgress(game.id);
@@ -625,7 +625,7 @@ export default function TrainingPage() {
 
     // Handle arena completion
     const handleArenaComplete = (results) => {
-        console.log('🏆 Arena complete:', results);
+        console.log('Trophy Arena complete:', results);
         // Could show results modal or update progress here
         setShowArena(false);
         setActiveGame(null);
@@ -661,7 +661,7 @@ export default function TrainingPage() {
 
     return (
         <PageTransition>
-            {/* 🎬 INTRO VIDEO OVERLAY - Plays while page loads behind it */}
+            {/*  INTRO VIDEO OVERLAY - Plays while page loads behind it */}
             {showPageIntro && (
                 <div style={{
                     position: 'fixed',
@@ -746,7 +746,7 @@ export default function TrainingPage() {
                 `}</style>
             </Head>
 
-            {/* 🎮 INLINE ARENA - Takes over entire page when active */}
+            {/*  INLINE ARENA - Takes over entire page when active */}
             {showArena && activeGame && (
                 <GodModeArena
                     userId={getAuthUser()?.id || `anon-${Date.now()}`}

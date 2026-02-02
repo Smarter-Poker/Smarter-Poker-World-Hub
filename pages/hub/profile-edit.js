@@ -28,14 +28,14 @@ const C = {
     border: '#DADDE1', blue: '#1877F2', blueHover: '#166FE5', green: '#42B72A', gold: '#FFD700',
 };
 
-// Auto-format hand notation: 4s5s → 4♠5♠, AsKh → A♠K♥
+// Auto-format hand notation: 4s5s → 4s5s, AsKh → AsKh
 function formatFavoriteHand(input) {
     if (!input) return input;
     return input
-        .replace(/([AKQJT2-9])s/gi, '$1♠')
-        .replace(/([AKQJT2-9])h/gi, '$1♥')
-        .replace(/([AKQJT2-9])d/gi, '$1♦')
-        .replace(/([AKQJT2-9])c/gi, '$1♣');
+        .replace(/([AKQJT2-9])s/gi, '$1s')
+        .replace(/([AKQJT2-9])h/gi, '$1h')
+        .replace(/([AKQJT2-9])d/gi, '$1d')
+        .replace(/([AKQJT2-9])c/gi, '$1c');
 }
 
 function Avatar({ src, size = 120, onUpload }) {
@@ -129,7 +129,7 @@ function PokerResumeBadge({ hendonData, onRefresh, isRefreshing, syncStatus }) {
                         background: 'linear-gradient(135deg, #FFD700, #FFA500)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontSize: 24, boxShadow: '0 2px 10px rgba(255, 215, 0, 0.4)'
-                    }}>🏆</div>
+                    }}>Trophy</div>
                     <div>
                         <div style={{ fontWeight: 700, fontSize: 20, letterSpacing: 0.5 }}>POKER RESUME</div>
                         <div style={{ fontSize: 12, opacity: 0.6, marginTop: 2 }}>HendonMob Stats</div>
@@ -142,7 +142,7 @@ function PokerResumeBadge({ hendonData, onRefresh, isRefreshing, syncStatus }) {
                         padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600,
                         color: '#00FF88'
                     }}>
-                        ✓ SYNCED
+                         SYNCED
                     </div>
                 )}
             </div>
@@ -216,7 +216,7 @@ function PokerResumeBadge({ hendonData, onRefresh, isRefreshing, syncStatus }) {
                         </>
                     ) : (
                         <>
-                            <div style={{ fontSize: 48, marginBottom: 12 }}>📊</div>
+                            <div style={{ fontSize: 48, marginBottom: 12 }}></div>
                             <div style={{ fontSize: 14, opacity: 0.7, marginBottom: 16 }}>
                                 Click below to fetch your tournament stats from Hendon Mob
                             </div>
@@ -528,10 +528,10 @@ export default function ProfilePage() {
         // Award diamonds/XP for first avatar if this is the first time
         if (!originalProfile?.avatar_url) {
             await awardProfileReward('first_avatar', 15, 25);
-            setMessage('🎉 Avatar saved! +15 💎 +25 XP!');
+            setMessage('Avatar saved! +15 Diamonds +25 XP!');
             setOriginalProfile(prev => ({ ...prev, avatar_url: publicUrl }));
         } else {
-            setMessage('✓ Avatar saved!');
+            setMessage(' Avatar saved!');
         }
     };
 
@@ -584,7 +584,7 @@ export default function ProfilePage() {
             }
 
             setProfile(prev => ({ ...prev, cover_photo_url: publicUrl }));
-            setMessage('✓ Cover photo saved!');
+            setMessage(' Cover photo saved!');
         } catch (error) {
             setMessage('Error uploading cover photo: ' + error.message);
             console.error('Upload error:', error);
@@ -628,7 +628,7 @@ export default function ProfilePage() {
         }
 
         setProfile(prev => ({ ...prev, cover_photo_url: null }));
-        setMessage('✓ Cover photo removed!');
+        setMessage(' Cover photo removed!');
     };
 
     const handleSave = async () => {
@@ -673,13 +673,13 @@ export default function ProfilePage() {
             // First time setting avatar (15 diamonds, 25 XP)
             if (profile.avatar_url && (!originalProfile || !originalProfile.avatar_url)) {
                 await awardProfileReward('first_avatar', 15, 25);
-                rewards.push('🎉 +15 💎 +25 XP for adding profile picture!');
+                rewards.push('+15 Diamonds +25 XP for adding profile picture!');
             }
 
             // First time linking HendonMob (15 diamonds, 25 XP)
             if (profile.hendon_url && (!originalProfile || !originalProfile.hendon_url)) {
                 await awardProfileReward('hendonmob_linked', 15, 25);
-                rewards.push('🏆 +15 💎 +25 XP for linking Hendon Mob!');
+                rewards.push('+15 Diamonds +25 XP for linking Hendon Mob!');
             }
 
             if (rewards.length > 0) {
@@ -774,7 +774,7 @@ export default function ProfilePage() {
                             onMouseEnter={(e) => e.target.style.background = 'rgba(220,38,38,0.9)'}
                             onMouseLeave={(e) => e.target.style.background = 'rgba(0,0,0,0.7)'}
                         >
-                            🗑️ Remove
+                            Remove
                         </button>
                     )}
 
@@ -849,7 +849,7 @@ export default function ProfilePage() {
                                 gap: 6
                             }}
                         >
-                            🎬 Reels
+                            Reels
                         </button>
                         <button
                             onClick={() => setLivesGalleryOpen(true)}
@@ -991,7 +991,7 @@ export default function ProfilePage() {
                             <ProfileField label="Full Name" value={profile.full_name} onChange={updateField('full_name')} placeholder="John Doe" icon="📛" />
                             <ProfileField label="Username" value={profile.username} onChange={updateField('username')} placeholder="@johndoe" icon="@" />
                         </div>
-                        <ProfileField label="Bio" value={profile.bio} onChange={updateField('bio')} type="textarea" placeholder="Tell us about yourself and your poker journey..." icon="📝" />
+                        <ProfileField label="Bio" value={profile.bio} onChange={updateField('bio')} type="textarea" placeholder="Tell us about yourself and your poker journey..." icon="" />
 
                         {/* Profile Picture History */}
                         <ProfilePictureHistory
@@ -1004,7 +1004,7 @@ export default function ProfilePage() {
 
                     {/* Location */}
                     <div style={{ background: C.card, borderRadius: 8, padding: 20, marginBottom: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
-                        <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 600, color: C.text }}>📍 Location</h3>
+                        <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 600, color: C.text }}>Location</h3>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
                             <ProfileField label="City" value={profile.city} onChange={updateField('city')} placeholder="Las Vegas" />
                             <ProfileField label="State" value={profile.state} onChange={updateField('state')} placeholder="Nevada" />
@@ -1064,7 +1064,7 @@ export default function ProfilePage() {
                                         color: profile.card_back_preference === deck ? C.gold : C.textSec,
                                         textTransform: 'uppercase'
                                     }}>
-                                        {profile.card_back_preference === deck && '✓ '}
+                                        {profile.card_back_preference === deck && ' '}
                                         {deck}
                                     </div>
                                 </div>
@@ -1074,10 +1074,10 @@ export default function ProfilePage() {
 
                     {/* Poker Info */}
                     <div style={{ background: C.card, borderRadius: 8, padding: 20, marginBottom: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
-                        <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 600, color: C.text }}>🃏 Poker Info</h3>
+                        <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 600, color: C.text }}>Poker Info</h3>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
-                            <ProfileField label="Favorite Game" value={profile.favorite_game} onChange={updateField('favorite_game')} placeholder="No Limit Hold'em" icon="🎰" />
-                            <ProfileField label="Favorite Hand" value={profile.favorite_hand} onChange={(val) => updateField('favorite_hand')(formatFavoriteHand(val))} placeholder="A♠ K♠ or type AsKs" icon="🃏" />
+                            <ProfileField label="Favorite Game" value={profile.favorite_game} onChange={updateField('favorite_game')} placeholder="No Limit Hold'em" icon="" />
+                            <ProfileField label="Favorite Hand" value={profile.favorite_hand} onChange={(val) => updateField('favorite_hand')(formatFavoriteHand(val))} placeholder="As Ks or type AsKs" icon="" />
                             <ProfileField label="Home Casino" value={profile.home_casino} onChange={updateField('home_casino')} placeholder="Bellagio" icon="🏨" />
                             <ProfileField label="Birth Year" value={profile.birth_year} onChange={updateField('birth_year')} placeholder="1990" icon="🎂" />
                         </div>
@@ -1085,7 +1085,7 @@ export default function ProfilePage() {
 
                     {/* HendonMob Integration / Poker Resume */}
                     <div style={{ background: C.card, borderRadius: 8, padding: 20, marginBottom: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
-                        <h3 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 600, color: C.text }}>🏆 Poker Resume</h3>
+                        <h3 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 600, color: C.text }}>Poker Resume</h3>
                         <p style={{ fontSize: 13, color: C.textSec, marginBottom: 16 }}>
                             Link your Hendon Mob profile to automatically display your tournament stats.
                             Stats are synced directly from HendonMob.
@@ -1243,7 +1243,7 @@ export default function ProfilePage() {
                         padding: 16, display: 'flex', justifyContent: 'space-between',
                         alignItems: 'center', borderBottom: '1px solid #333'
                     }}>
-                        <h2 style={{ margin: 0, color: 'white', fontSize: 20 }}>🎬 My Reels</h2>
+                        <h2 style={{ margin: 0, color: 'white', fontSize: 20 }}>My Reels</h2>
                         <button
                             onClick={() => setReelsGalleryOpen(false)}
                             style={{
@@ -1262,7 +1262,7 @@ export default function ProfilePage() {
                                 textAlign: 'center', color: '#888',
                                 padding: 60
                             }}>
-                                <div style={{ fontSize: 48, marginBottom: 16 }}>🎬</div>
+                                <div style={{ fontSize: 48, marginBottom: 16 }}></div>
                                 <div style={{ fontSize: 18 }}>No reels yet</div>
                                 <div style={{ fontSize: 14, color: '#666', marginTop: 8 }}>
                                     Videos from your posts will appear here
@@ -1426,7 +1426,7 @@ export default function ProfilePage() {
                                                             background: '#1877F2', color: 'white',
                                                             border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer'
                                                         }}
-                                                    >📤 Post</button>
+                                                    >Post</button>
                                                     <button
                                                         onClick={async () => {
                                                             if (confirm('Delete this live stream?')) {
@@ -1439,7 +1439,7 @@ export default function ProfilePage() {
                                                             background: 'transparent', color: '#FA383E',
                                                             border: '1px solid #FA383E', fontSize: 14, fontWeight: 600, cursor: 'pointer'
                                                         }}
-                                                    >🗑️</button>
+                                                    ></button>
                                                 </div>
                                             )}
                                         </div>

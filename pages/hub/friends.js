@@ -98,7 +98,7 @@ function FollowButton({ isFollowing, onFollow, onUnfollow, size = 'normal' }) {
                     border: `1px solid ${hovering ? C.red : C.purple}`,
                 }}
             >
-                {hovering ? '✕ Unfollow' : '✓ Following'}
+                {hovering ? '× Unfollow' : ' Following'}
             </button>
         );
     }
@@ -141,46 +141,44 @@ function FriendRequestCard({ request, onAccept, onDecline }) {
                 <div style={{ fontWeight: 700, fontSize: 17, color: C.text, marginBottom: 4 }}>
                     {user?.full_name || user?.username || 'Poker Player'}
                 </div>
-                <div style={{ fontSize: 13, color: C.blue, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ animation: 'pulse 2s infinite' }}>🤝</span> Wants to be friends
-                </div>
-                <div style={{ display: 'flex', gap: 10 }}>
-                    <button
-                        onClick={() => onAccept(request)}
-                        style={{
-                            padding: '10px 24px',
-                            borderRadius: 10,
-                            border: 'none',
-                            background: C.gradient1,
-                            color: 'white',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)',
-                            transition: 'transform 0.2s',
-                        }}
-                    >
-                        ✓ Accept
-                    </button>
-                    <button
-                        onClick={() => onDecline(request)}
-                        style={{
-                            padding: '10px 24px',
-                            borderRadius: 10,
-                            border: `1px solid ${C.border}`,
-                            background: 'transparent',
-                            color: C.textSec,
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            transition: 'all 0.2s',
-                        }}
-                        title="They'll become your follower"
-                    >
-                        Decline
-                    </button>
-                </div>
-                <div style={{ fontSize: 11, color: C.textSec, marginTop: 8, fontStyle: 'italic' }}>
-                    💡 Declining will convert them to a follower
-                </div>
+                <span style={{ fontSize: 14, color: C.blue }}>Friend request pending</span>
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                    onClick={() => onAccept(request)}
+                    style={{
+                        padding: '10px 24px',
+                        borderRadius: 10,
+                        border: 'none',
+                        background: C.gradient1,
+                        color: 'white',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)',
+                        transition: 'transform 0.2s',
+                    }}
+                >
+                    Accept
+                </button>
+                <button
+                    onClick={() => onDecline(request)}
+                    style={{
+                        padding: '10px 24px',
+                        borderRadius: 10,
+                        border: `1px solid ${C.border}`,
+                        background: 'transparent',
+                        color: C.textSec,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                    }}
+                    title="They'll become your follower"
+                >
+                    Decline
+                </button>
+            </div>
+            <div style={{ fontSize: 11, color: C.textSec, marginTop: 8, fontStyle: 'italic' }}>
+                Declining will convert them to a follower
             </div>
         </div>
     );
@@ -227,18 +225,18 @@ function UserCard({
                     </div>
                 )}
                 {isFollower && !isFriend && (
-                    <div style={{ fontSize: 12, color: C.pink, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <span>💜</span> Follows you
+                    <div style={{ fontSize: 12, color: C.pink, marginBottom: 4 }}>
+                        Follows you
                     </div>
                 )}
                 {user.city && user.state && (
                     <div style={{ fontSize: 13, color: C.textSec, marginBottom: 4 }}>
-                        📍 {user.city}, {user.state}
+                        {user.city}, {user.state}
                     </div>
                 )}
                 {user.favorite_game && (
                     <div style={{ fontSize: 13, color: C.textSec }}>
-                        🃏 {user.favorite_game}
+                        {user.favorite_game}
                     </div>
                 )}
                 {/* Last Active Status */}
@@ -266,7 +264,7 @@ function UserCard({
                                 </>
                             ) : (
                                 <>
-                                    <span style={{ opacity: 0.6 }}>⏱️</span>
+                                    <span style={{ opacity: 0.6, fontSize: 10 }}>Active</span>
                                     Active {status}
                                 </>
                             )}
@@ -291,7 +289,7 @@ function UserCard({
                             gap: 6,
                         }}
                     >
-                        ✓ Friends
+                        Friends
                     </button>
                 ) : (
                     <>
@@ -338,7 +336,7 @@ function UserCard({
                     </>
                 )}
             </div>
-        </div>
+        </div >
     );
 }
 
@@ -440,7 +438,7 @@ export default function FriendsPage() {
     });
 
     const fetchData = async () => {
-        // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
+        //  BULLETPROOF: Use authUtils to avoid AbortError
         const authUser = getAuthUser();
         if (!authUser) {
             setLoading(false);
@@ -681,7 +679,7 @@ export default function FriendsPage() {
         setFriendRequests(prev => prev.filter(r => r.id !== request.id));
     };
 
-    // 🔥 DECLINE = AUTO-FOLLOW (Facebook style)
+    //  DECLINE = AUTO-FOLLOW (Facebook style)
     const handleDeclineRequest = async (request) => {
         if (!user) return;
 
@@ -691,7 +689,7 @@ export default function FriendsPage() {
             .delete()
             .eq('id', request.id);
 
-        // 🔥 Auto-convert declined requester to follower
+        //  Auto-convert declined requester to follower
         // The REQUESTER now FOLLOWS the person who declined
         await supabase
             .from('follows')
@@ -754,7 +752,7 @@ export default function FriendsPage() {
             color: C.text
         }}>
             <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 48, marginBottom: 16, animation: 'pulse 1.5s infinite' }}>👥</div>
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" style={{ marginBottom: 16, animation: 'pulse 1.5s infinite' }}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
                 <div>Loading connections...</div>
             </div>
         </div>
@@ -775,7 +773,7 @@ export default function FriendsPage() {
             if (isSearching) {
                 return (
                     <div style={{ textAlign: 'center', padding: 48, color: C.textSec }}>
-                        <div style={{ fontSize: 32, marginBottom: 16 }}>🔍</div>
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginBottom: 16 }}><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
                         <div>Searching...</div>
                     </div>
                 );
@@ -831,7 +829,7 @@ export default function FriendsPage() {
                         ))}
                     </div>
                 ) : (
-                    <EmptyState icon="🤷" message="No pending friend requests" />
+                    <EmptyState icon={<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5"><circle cx="12" cy="12" r="10" /><path d="M16 16s-1.5-2-4-2-4 2-4 2" /><line x1="9" y1="9" x2="9.01" y2="9" /><line x1="15" y1="9" x2="15.01" y2="9" /></svg>} message="No pending friend requests" />
                 );
 
             case 'friends':
@@ -852,7 +850,7 @@ export default function FriendsPage() {
                         ))}
                     </div>
                 ) : (
-                    <EmptyState icon="👥" message="You haven't added any friends yet" />
+                    <EmptyState icon={<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>} message="You haven't added any friends yet" />
                 );
 
             case 'following':
@@ -874,7 +872,7 @@ export default function FriendsPage() {
                         ))}
                     </div>
                 ) : (
-                    <EmptyState icon="🔍" message="You're not following anyone yet" />
+                    <EmptyState icon={<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>} message="You're not following anyone yet" />
                 );
 
             case 'followers':
@@ -896,7 +894,7 @@ export default function FriendsPage() {
                         ))}
                     </div>
                 ) : (
-                    <EmptyState icon="💜" message="No followers yet" />
+                    <EmptyState icon={<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>} message="No followers yet" />
                 );
 
             case 'discover':
@@ -920,7 +918,7 @@ export default function FriendsPage() {
                         ))}
                     </div>
                 ) : (
-                    <EmptyState icon="✨" message="No suggestions available" />
+                    <EmptyState icon="" message="No suggestions available" />
                 );
         }
     };
@@ -1020,7 +1018,7 @@ export default function FriendsPage() {
                         padding: '12px 20px',
                         border: `1px solid ${C.border}`,
                     }}>
-                        <span style={{ fontSize: 20, color: C.textSec }}>🔍</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
                         <input
                             type="text"
                             placeholder="Search for friends by name or username..."
@@ -1046,7 +1044,7 @@ export default function FriendsPage() {
                                     color: C.textSec,
                                     fontSize: 16,
                                 }}
-                            >✕</button>
+                            >×</button>
                         )}
                     </div>
                 </div>

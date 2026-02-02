@@ -22,7 +22,7 @@
  * ║  📖 Stories Bar (Line ~2330)                                              ║
  * ║     - StoriesBar component with stories fetch                            ║
  * ║                                                                           ║
- * ║  🎬 Reels Carousel (Lines ~2510)                                          ║
+ * ║   Reels Carousel (Lines ~2510)                                          ║
  * ║     - ReelsFeedCarousel inserted after every 3 posts                     ║
  * ║                                                                           ║
  * ║  🔴 Live Streaming (Lines ~2360-2400)                                     ║
@@ -111,7 +111,7 @@ function Avatar({ src, name, size = 40, online, onClick, linkTo }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 🎬 YOUTUBE URL HELPERS - Detect and convert YouTube URLs for embedding
+//  YOUTUBE URL HELPERS - Detect and convert YouTube URLs for embedding
 // ═══════════════════════════════════════════════════════════════════════════
 
 function isYouTubeUrl(url) {
@@ -163,7 +163,7 @@ function getYouTubeThumbnail(url) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 🔍 YOUTUBE VIDEO VALIDATOR - Check if video is available before posting
+//  YOUTUBE VIDEO VALIDATOR - Check if video is available before posting
 // YouTube returns a 120x90 placeholder for unavailable videos instead of 404
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -220,7 +220,7 @@ function VideoThumbnail({ url, style = {}, onValidated }) {
             color: 'white',
             ...style
         }}>
-            <span style={{ fontSize: 48, marginBottom: 8 }}>🎬</span>
+            <span style={{ fontSize: 48, marginBottom: 8 }}></span>
             <span style={{ fontSize: 14, opacity: 0.8 }}>
                 {showUnavailable ? 'Video Unavailable' : 'Video'}
             </span>
@@ -324,7 +324,7 @@ function VideoPostWrapper({ url, onValidVideoClick, children }) {
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         color: '#888',
                         fontSize: 28, pointerEvents: 'none'
-                    }}>⚠️</div>
+                    }}></div>
 
                     <div style={{
                         position: 'absolute', bottom: 8, left: 8,
@@ -332,7 +332,7 @@ function VideoPostWrapper({ url, onValidVideoClick, children }) {
                         padding: '4px 10px',
                         borderRadius: 4, color: 'white', fontSize: 12, fontWeight: 500
                     }}>
-                        ⚠️ Video unavailable
+                         Video unavailable
                     </div>
                 </>
             )}
@@ -343,7 +343,7 @@ function VideoPostWrapper({ url, onValidVideoClick, children }) {
 // ═══════════════════════════════════════════════════════════════════════════
 // 🔗 LINK PREVIEW CARD - Fetches and displays rich link metadata for feed posts
 // ═══════════════════════════════════════════════════════════════════════════
-// ⚠️ CRITICAL: DO NOT MODIFY without running /social-feed-protection workflow
+//  CRITICAL: DO NOT MODIFY without running /social-feed-protection workflow
 // This component has broken 4+ times. Key requirements:
 // - Uses useExternalLink for internal popups (NOT target="_blank")
 // - Image uses aspectRatio: '16/9' and objectFit: 'cover' (full width, no black bars)
@@ -476,7 +476,7 @@ function LinkPreviewCard({ url }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 🎬 FULL SCREEN VIDEO VIEWER - TikTok/Reels style immersive viewer
+//  FULL SCREEN VIDEO VIEWER - TikTok/Reels style immersive viewer
 // ═══════════════════════════════════════════════════════════════════════════
 
 function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLike, onComment, onShare }) {
@@ -527,7 +527,7 @@ function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLike, onC
                     border: 'none', cursor: 'pointer', color: 'white', fontSize: 24,
                     display: 'flex', alignItems: 'center', justifyContent: 'center'
                 }}
-            >✕</button>
+            >×</button>
 
             {/* Video Container - Detect YouTube URLs vs direct video files */}
             {isYouTubeUrl(videoUrl) ? (
@@ -597,14 +597,14 @@ function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLike, onC
                     border: 'none', borderRadius: '50%', width: 48, height: 48,
                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                     color: 'white', cursor: 'pointer', fontSize: 22
-                }}>❤️</button>
+                }}></button>
 
                 <button onClick={onComment} style={{
                     background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)',
                     border: 'none', borderRadius: '50%', width: 48, height: 48,
                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                     color: 'white', cursor: 'pointer', fontSize: 22
-                }}>💬</button>
+                }}></button>
 
                 <button onClick={onShare} style={{
                     background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)',
@@ -815,7 +815,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
         inputRef.current?.focus();
     };
 
-    // ⚠️ CRITICAL: handlePost - Core posting functionality
+    //  CRITICAL: handlePost - Core posting functionality
     // This has broken multiple times. Requires:
     // - RLS policy "Authenticated users can post" WITH CHECK (true)
     // - author_id set from user.id
@@ -865,7 +865,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
             mentions.push(match[1]);
         }
         // DEBUG: log linkPreview before passing to parent
-        console.log('[PostCreator] 📤 About to call onPost with linkPreview:', JSON.stringify(linkPreview, null, 2));
+        console.log('[PostCreator]  About to call onPost with linkPreview:', JSON.stringify(linkPreview, null, 2));
         const ok = await onPost(cleanContent, urls, type, mentions, linkPreview);
         if (ok) { setContent(''); setMedia([]); setLinkPreview(null); }
         else setError('Unable to post at this time. Please try again later.');
@@ -932,7 +932,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
                                         background: 'rgba(0,0,0,0.7)', border: 'none', color: 'white', cursor: 'pointer',
                                         fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center'
                                     }}
-                                >✕</button>
+                                >×</button>
                                 {m.type === 'video' && (
                                     <div style={{
                                         position: 'absolute', bottom: 4, left: 4, background: 'rgba(0,0,0,0.7)',
@@ -992,7 +992,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
                                         />
                                     ) : (
                                         <span style={{ fontSize: 48, opacity: 0.5 }}>
-                                            {linkPreview.type === 'video' ? '🎬' : '🔗'}
+                                            {linkPreview.type === 'video' ? '' : '🔗'}
                                         </span>
                                     )}
                                     {linkPreview.type === 'video' && linkPreview.image && (
@@ -1038,13 +1038,13 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
                                         color: 'white', cursor: 'pointer', fontSize: 14,
                                         display: 'flex', alignItems: 'center', justifyContent: 'center'
                                     }}
-                                >✕</button>
+                                >×</button>
                             </>
                         )}
                     </div>
                 </div>
             )}
-            {error && <div style={{ padding: '0 12px 8px', color: C.red, fontSize: 13 }}>⚠️ {error}</div>}
+            {error && <div style={{ padding: '0 12px 8px', color: C.red, fontSize: 13 }}> {error}</div>}
             <div style={{ borderTop: `1px solid ${C.border}`, padding: 8, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
                 <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap', flex: '1 1 auto', minWidth: 0 }}>
                     <input ref={fileRef} type="file" accept="image/*,video/*" multiple hidden onChange={handleFiles} />
@@ -1237,9 +1237,9 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                 {(post.authorId === currentUserId || post.isGodMode) && (
                     <div style={{ display: 'flex', gap: 8 }}>
                         {post.authorId !== currentUserId && post.isGodMode && (
-                            <span style={{ fontSize: 10, background: '#FFD700', color: '#000', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>👑 GOD</span>
+                            <span style={{ fontSize: 10, background: '#FFD700', color: '#000', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}> GOD</span>
                         )}
-                        <button onClick={() => onDelete(post.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec, fontSize: 16 }}>🗑️</button>
+                        <button onClick={() => onDelete(post.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec, fontSize: 16 }}></button>
                     </div>
                 )}
             </div>
@@ -1387,7 +1387,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
             </div>
             <div style={{ borderTop: `1px solid ${C.border}`, display: 'flex' }}>
                 <button onClick={handleLike} style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: liked ? C.blue : C.textSec, fontWeight: 500, fontSize: 13 }}>👍 {liked ? 'Liked' : 'Like'}</button>
-                <button onClick={handleToggleComments} style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: showComments ? C.blue : C.textSec, fontWeight: 500, fontSize: 13 }}>💬 Comment</button>
+                <button onClick={handleToggleComments} style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: showComments ? C.blue : C.textSec, fontWeight: 500, fontSize: 13 }}> Comment</button>
                 <button
                     onClick={() => {
                         const shareUrl = `${window.location.origin}/hub/post/${post.id}`;
@@ -1407,7 +1407,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                 <button
                     onClick={handleBookmark}
                     style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: bookmarked ? '#FFB800' : C.textSec, fontWeight: 500, fontSize: 13 }}
-                >{bookmarked ? '🔖' : '📑'} Save</button>
+                >{bookmarked ? '' : ''} Save</button>
             </div>
             {showComments && (
                 <div style={{ borderTop: `1px solid ${C.border}`, padding: 12 }}>
@@ -1468,7 +1468,7 @@ function ChatWindow({ chat, messages, currentUserId, onSend, onClose }) {
             <div style={{ padding: 8, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Avatar src={chat.avatar} name={chat.name} size={32} online={chat.online} />
                 <div style={{ flex: 1 }}><div style={{ fontWeight: 600, fontSize: 14 }}>{chat.name}</div></div>
-                <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14 }}>✕</button>
+                <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14 }}>×</button>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {messages.map((m, i) => (
@@ -1491,7 +1491,7 @@ function ContactsSidebar({ contacts, onOpenChat, onSearch, searchResults }) {
     return (
         <aside style={{ width: 200, position: 'sticky', top: 70, height: 'fit-content' }}>
             <h4 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 600, color: C.textSec }}>Contacts</h4>
-            <input value={q} onChange={e => { setQ(e.target.value); onSearch(e.target.value); }} placeholder="🔍 Search..." style={{ width: '100%', padding: '8px 10px', borderRadius: 20, border: 'none', background: C.bg, fontSize: 13, outline: 'none', marginBottom: 8, boxSizing: 'border-box' }} />
+            <input value={q} onChange={e => { setQ(e.target.value); onSearch(e.target.value); }} placeholder=" Search..." style={{ width: '100%', padding: '8px 10px', borderRadius: 20, border: 'none', background: C.bg, fontSize: 13, outline: 'none', marginBottom: 8, boxSizing: 'border-box' }} />
             {q.length >= 2 && searchResults.length > 0 && searchResults.map(u => (
                 <div key={u.id} onClick={() => onOpenChat(u)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 4px', cursor: 'pointer', borderRadius: 6 }}>
                     <Avatar name={u.username} size={32} /><span style={{ fontSize: 13 }}>{u.username}</span>
@@ -1842,7 +1842,7 @@ export default function SocialMediaPage() {
     const POSTS_PER_PAGE = 20;
     const MAX_FEED_CYCLES = 10; // Maximum loops before truly ending (shows tons of content)
 
-    // 👑 GOD MODE STATE
+    //  GOD MODE STATE
     const [isGodMode, setIsGodMode] = useState(false);
 
     // Global unread message count
@@ -1852,7 +1852,7 @@ export default function SocialMediaPage() {
     const [liveStreams, setLiveStreams] = useState([]);
     const [watchingStream, setWatchingStream] = useState(null);
 
-    // 🎬 INTRO VIDEO STATE - Video plays while page loads in background
+    //  INTRO VIDEO STATE - Video plays while page loads in background
     // Only show once per session (not on every reload)
     const [showIntro, setShowIntro] = useState(() => {
         if (typeof window !== 'undefined') {
@@ -1970,7 +1970,7 @@ export default function SocialMediaPage() {
                         const ownedProfiles = await ownedProfileRes.json();
                         if (ownedProfiles?.[0]) p = ownedProfiles[0];
                     }
-                    // 👑 Check for God Mode
+                    //  Check for God Mode
                     if (p?.role === 'god') {
                         setIsGodMode(true);
                     }
@@ -2084,7 +2084,7 @@ export default function SocialMediaPage() {
         })();
     }, []);
 
-    // 🔔 AUTO-MARK NOTIFICATIONS AS READ when dropdown opens
+    //  AUTO-MARK NOTIFICATIONS AS READ when dropdown opens
     useEffect(() => {
         if (showNotifications && notifications.length > 0 && user) {
             const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
@@ -2208,7 +2208,7 @@ export default function SocialMediaPage() {
                 setHasMorePosts(true);
             }
 
-            // 📈 FACEBOOK-STYLE RANKING: Score posts by relevance
+            //  FACEBOOK-STYLE RANKING: Score posts by relevance
             const calculatePostScore = (post) => {
                 let score = 0;
 
@@ -2256,7 +2256,7 @@ export default function SocialMediaPage() {
             // Fetch author profiles using native fetch to avoid AbortError
             if (mixedFeed.length > 0) {
                 const authorIds = [...new Set(mixedFeed.map(p => p.author_id).filter(Boolean))];
-                console.log('[Social] 🔍 Processing', mixedFeed.length, 'posts with', authorIds.length, 'unique authors');
+                console.log('[Social]  Processing', mixedFeed.length, 'posts with', authorIds.length, 'unique authors');
                 let authorMap = {};
                 if (authorIds.length) {
                     try {
@@ -2279,7 +2279,7 @@ export default function SocialMediaPage() {
                                 authorMap = Object.fromEntries(profiles.map(p => [p.id, p]));
                                 console.log('[Social] ✅ Author map created with', Object.keys(authorMap).length, 'entries');
                             } else {
-                                console.warn('[Social] ⚠️ No profiles returned from query');
+                                console.warn('[Social]  No profiles returned from query');
                             }
                         }
                     } catch (profileError) {
@@ -2393,9 +2393,9 @@ export default function SocialMediaPage() {
     }, []); // Empty deps - uses refs for current values
 
     const handlePost = async (content, urls, type, mentions = [], linkPreview = null) => {
-        console.log('[Social] 📝 handlePost called with:', { content: content?.substring(0, 50), urls, type, mentions, hasLinkPreview: !!linkPreview });
-        console.log('[Social] 📝 linkPreview FULL OBJECT:', JSON.stringify(linkPreview, null, 2));
-        console.log('[Social] 📝 User state:', { id: user?.id, name: user?.name, hasUser: !!user });
+        console.log('[Social]  handlePost called with:', { content: content?.substring(0, 50), urls, type, mentions, hasLinkPreview: !!linkPreview });
+        console.log('[Social]  linkPreview FULL OBJECT:', JSON.stringify(linkPreview, null, 2));
+        console.log('[Social]  User state:', { id: user?.id, name: user?.name, hasUser: !!user });
 
         if (!user?.id) {
             console.error('[Social] ❌ Cannot post: user.id is missing!', user);
@@ -2415,7 +2415,7 @@ export default function SocialMediaPage() {
 
             // EXPLICIT: Add link metadata if available (from link preview)
             if (linkPreview) {
-                console.log('[Social] 📝 Adding link metadata from preview:', linkPreview);
+                console.log('[Social]  Adding link metadata from preview:', linkPreview);
                 insertPayload.link_url = linkPreview.url || urls[0];
                 insertPayload.link_title = linkPreview.title || null;
                 insertPayload.link_description = linkPreview.description || null;
@@ -2423,7 +2423,7 @@ export default function SocialMediaPage() {
                 insertPayload.link_site_name = linkPreview.domain || null;
             }
 
-            console.log('[Social] 📝 FINAL insert payload:', JSON.stringify(insertPayload, null, 2));
+            console.log('[Social]  FINAL insert payload:', JSON.stringify(insertPayload, null, 2));
 
             const { data, error } = await supabase.from('social_posts').insert(insertPayload).select().single();
 
@@ -2452,7 +2452,7 @@ export default function SocialMediaPage() {
                 }
             }
 
-            // AUTO-SAVE VIDEOS TO REELS 🎬
+            // AUTO-SAVE VIDEOS TO REELS 
             // When a video is posted, automatically create a Reel entry
             if (type === 'video' && urls.length > 0) {
                 const videoUrl = urls.find(url =>
@@ -2470,7 +2470,7 @@ export default function SocialMediaPage() {
                         view_count: 0,
                         like_count: 0
                     });
-                    console.log('🎬 Video auto-saved to Reels!');
+                    console.log(' Video auto-saved to Reels!');
                 } catch (reelError) {
                     console.error('Failed to auto-save to Reels:', reelError);
                     // Don't fail the post if Reel creation fails
@@ -2655,7 +2655,7 @@ export default function SocialMediaPage() {
 
     return (
         <PageTransition>
-            {/* 🎬 INTRO VIDEO OVERLAY - Plays while page loads behind it */}
+            {/*  INTRO VIDEO OVERLAY - Plays while page loads behind it */}
             {showIntro && (
                 <div style={{
                     position: 'fixed',
@@ -2767,7 +2767,7 @@ export default function SocialMediaPage() {
                     <button onClick={() => setSidebarOpen(false)} style={{
                         background: '#f0f0f0', border: 'none', width: 32, height: 32,
                         borderRadius: '50%', cursor: 'pointer', fontSize: 16
-                    }}>✕</button>
+                    }}>×</button>
                 </div>
 
                 {/* User Profile Card */}
@@ -2814,7 +2814,7 @@ export default function SocialMediaPage() {
                             }}
                         >
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                                <span style={{ fontSize: 24 }}>🏆</span>
+                                <span style={{ fontSize: 24 }}>Trophy</span>
                                 <div>
                                     <div style={{ color: '#FFD700', fontWeight: 700, fontSize: 14 }}>POKER RESUME</div>
                                     <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10 }}>Tournament Stats</div>
@@ -3065,7 +3065,7 @@ export default function SocialMediaPage() {
                                 display: 'flex', alignItems: 'center', gap: 12,
                                 background: C.bg, borderRadius: 24, padding: '0 16px'
                             }}>
-                                <span style={{ fontSize: 18 }}>🔍</span>
+                                <span style={{ fontSize: 18 }}></span>
                                 <input
                                     type="text"
                                     value={globalSearchQuery}
@@ -3081,7 +3081,7 @@ export default function SocialMediaPage() {
                                     <button
                                         onClick={() => { setGlobalSearchQuery(''); setGlobalSearchResults({ users: [], posts: [] }); }}
                                         style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec }}
-                                    >✕</button>
+                                    >×</button>
                                 )}
                             </div>
                         </div>
@@ -3150,7 +3150,7 @@ export default function SocialMediaPage() {
                                 {/* No results */}
                                 {globalSearchResults.users.length === 0 && globalSearchResults.posts.length === 0 && (
                                     <div style={{ padding: '40px 20px', textAlign: 'center', color: C.textSec }}>
-                                        <div style={{ fontSize: 32, marginBottom: 8 }}>🔍</div>
+                                        <div style={{ fontSize: 32, marginBottom: 8 }}></div>
                                         No results found for "{globalSearchQuery}"
                                     </div>
                                 )}
@@ -3171,7 +3171,7 @@ export default function SocialMediaPage() {
                             <button
                                 onClick={() => setShowNotifications(false)}
                                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18 }}
-                            >✕</button>
+                            >×</button>
                         </div>
                         {notifications.length === 0 ? (
                             <div style={{ padding: 24, textAlign: 'center', color: C.textSec }}>
@@ -3180,7 +3180,7 @@ export default function SocialMediaPage() {
                         ) : (
                             notifications.map(n => {
                                 // Get action icon based on type
-                                const actionIcon = n.type === 'like' ? '👍' : n.type === 'comment' ? '💬' : n.type === 'mention' ? '@' : n.type === 'friend_request' ? '👥' : n.type === 'live' ? '🔴' : '🔔';
+                                const actionIcon = n.type === 'like' ? '👍' : n.type === 'comment' ? '' : n.type === 'mention' ? '@' : n.type === 'friend_request' ? '' : n.type === 'live' ? '🔴' : '';
                                 const iconBg = n.type === 'like' ? '#1877F2' : n.type === 'comment' ? '#44BD32' : n.type === 'live' ? '#FA383E' : n.type === 'friend_request' ? '#1877F2' : '#65676B';
 
                                 return (
@@ -3297,7 +3297,7 @@ export default function SocialMediaPage() {
                         {/* Posts Feed */}
                         {posts.length === 0 ? (
                             <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
-                                <div style={{ fontSize: 48 }}>🌟</div>
+                                <div style={{ fontSize: 48 }}></div>
                                 <h3 style={{ color: C.text }}>No posts yet</h3>
                                 <p>Be the first to share something!</p>
                             </div>

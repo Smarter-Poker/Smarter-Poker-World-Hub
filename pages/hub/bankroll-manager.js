@@ -12,6 +12,9 @@ import { supabase } from '../../src/lib/supabase';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../src/config/hamburgerMenus';
+import { getBankrollPreferences, updateBankrollPreferences } from '../../src/services/bankrollPreferences';
 
 // Bankroll library
 import { getBankrollStats } from '../../src/lib/bankroll/calculations';
@@ -33,10 +36,10 @@ import BankrollRulesCard from '../../src/components/bankroll/BankrollRulesCard';
 
 const SIDEBAR_SECTIONS = [
   { id: 'dashboard', label: 'Dashboard', icon: '◎' },
-  { id: 'log-session', label: 'Log Session', icon: '📝' },
+  { id: 'log-session', label: 'Log Session', icon: '' },
   { id: 'trips', label: 'Trips & Expenses', icon: '✈' },
   { id: 'leaks', label: 'Leaks', icon: '⚠' },
-  { id: 'reports', label: 'Reports', icon: '📊' },
+  { id: 'reports', label: 'Reports', icon: '' },
   { id: 'settings', label: 'Settings', icon: '⚙' },
 ];
 
@@ -95,8 +98,25 @@ export default function BankrollManagerPage() {
 
   // UI State
   const [activeSection, setActiveSection] = useState('dashboard');
+
+  // Handle query parameters for deep linking
+  useEffect(() => {
+    if (router.query.view) {
+      setActiveSection(router.query.view);
+    }
+    if (router.query.type) {
+      setCategoryFilter(router.query.type);
+    }
+  }, [router.query]);
   const [showLogModal, setShowLogModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // Hamburger menu preferences
+  const [preferences, setPreferences] = useState({
+    autoSave: true,
+    notifications: true
+  });
 
   // Filters
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -115,7 +135,7 @@ export default function BankrollManagerPage() {
   const [locations, setLocations] = useState([]);
   const [leakAnalysis, setLeakAnalysis] = useState(null);
 
-  // 🎬 INTRO VIDEO STATE - Video plays while page loads in background
+  //  INTRO VIDEO STATE - Video plays while page loads in background
   // Only show once per session (not on every reload)
   const [showIntro, setShowIntro] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -201,6 +221,32 @@ export default function BankrollManagerPage() {
     ? locations.find((l) => l.id === locationFilter)?.name || 'Unknown'
     : 'All Locations';
 
+  // Load preferences from Supabase on mount
+  useEffect(() => {
+    if (userId) {
+      getBankrollPreferences(userId).then(setPreferences);
+    }
+  }, [userId]);
+
+  // Hamburger menu handlers - save to Supabase
+  const updatePreference = useCallback(async (key, value) => {
+    const newPrefs = { ...preferences, [key]: value };
+    setPreferences(newPrefs);
+
+    if (userId) {
+      try {
+        await updateBankrollPreferences(userId, { [key]: value });
+      } catch (error) {
+        console.error('Failed to save preference:', error);
+      }
+    }
+  }, [userId, preferences]);
+
+  const menuConfig = getMenuConfig('bankroll-manager', user, preferences, {
+    setAutoSave: (val) => updatePreference('autoSave', val),
+    setNotifications: (val) => updatePreference('notifications', val)
+  });
+
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClick = () => {
@@ -213,7 +259,7 @@ export default function BankrollManagerPage() {
 
   return (
     <PageTransition>
-      {/* 🎬 INTRO VIDEO OVERLAY - Plays while page loads behind it */}
+      {/*  INTRO VIDEO OVERLAY - Plays while page loads behind it */}
       {showIntro && (
         <div style={{
           position: 'fixed',
@@ -282,7 +328,19 @@ export default function BankrollManagerPage() {
 
       <div className="bankroll-page" style={styles.container}>
         <div style={styles.bgGrid} />
-        <UniversalHeader pageDepth={2} />
+        <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
+
+        {/* Hamburger Menu */}
+        <HamburgerMenu
+          isOpen={menuOpen}
+          onClose={() => setMenuOpen(false)}
+          direction="left"
+          theme="dark"
+          user={user}
+          showProfile={false}
+          menuItems={menuConfig.menuItems}
+          bottomLinks={menuConfig.bottomLinks}
+        />
 
         {/* Top Bar with Filters */}
         <div style={styles.topBar}>
@@ -356,7 +414,7 @@ export default function BankrollManagerPage() {
           </div>
 
           <div style={styles.topBarRight}>
-            <button style={styles.searchButton}>🔍</button>
+            <button style={styles.searchButton}></button>
           </div>
         </div>
 

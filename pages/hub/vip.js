@@ -151,13 +151,42 @@ export default function VipPage() {
     const [billingCycle, setBillingCycle] = useState('monthly');
     const [currentTier, setCurrentTier] = useState('free');
     const [expandedFaq, setExpandedFaq] = useState(null);
+    const [user, setUser] = useState(null);
 
-    // Check user's current VIP status
+    // Load user's current VIP status from Supabase (with localStorage fallback)
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('sp-vip-tier');
-            if (saved) setCurrentTier(saved);
+        async function loadVipStatus() {
+            const authUser = getAuthUser();
+            setUser(authUser);
+
+            // Try localStorage first for instant feedback
+            if (typeof window !== 'undefined') {
+                const saved = localStorage.getItem('sp-vip-tier');
+                if (saved) setCurrentTier(saved);
+            }
+
+            // Then sync from Supabase if user is logged in
+            if (authUser?.id) {
+                try {
+                    const { data, error } = await supabase
+                        .from('profiles')
+                        .select('vip_tier')
+                        .eq('id', authUser.id)
+                        .single();
+
+                    if (!error && data?.vip_tier) {
+                        setCurrentTier(data.vip_tier);
+                        // Update localStorage for future quick loads
+                        if (typeof window !== 'undefined') {
+                            localStorage.setItem('sp-vip-tier', data.vip_tier);
+                        }
+                    }
+                } catch (e) {
+                    console.warn('[VIP] Failed to load VIP status from Supabase:', e);
+                }
+            }
         }
+<<<<<<< HEAD
         // Also load from Supabase as source of truth
         const loadFromSupabase = async () => {
             const authUser = getAuthUser();
@@ -173,6 +202,9 @@ export default function VipPage() {
             }
         };
         loadFromSupabase();
+=======
+        loadVipStatus();
+>>>>>>> origin/main
     }, []);
 
     const handleSubscribe = async (tierId) => {
@@ -200,6 +232,7 @@ export default function VipPage() {
         // Route to diamond store for checkout
         router.push('/hub/diamond-store?vip=' + tierId + '&cycle=' + billingCycle);
     };
+
 
     const faqs = [
         { q: 'Can I cancel anytime?', a: 'Yes. Cancel anytime from your Settings page. Your benefits remain active until the end of your billing period.' },
