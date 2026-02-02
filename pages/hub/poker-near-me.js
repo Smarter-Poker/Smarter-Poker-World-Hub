@@ -910,7 +910,13 @@ export default function PokerNearMePage() {
         try {
             const res = await fetch('/api/poker/live-games?active=true');
             const json = await res.json();
-            setLiveGames(json.games || json.data || []);
+            // API returns { venues: { [venue_id]: [...games] } } for active=true
+            // Flatten grouped venues object into a flat array of games
+            if (json.venues && typeof json.venues === 'object') {
+                setLiveGames(Object.values(json.venues).flat());
+            } else {
+                setLiveGames(json.games || json.data || []);
+            }
         } catch (e) {
             console.error('Fetch live games error:', e);
             setLiveGames([]);

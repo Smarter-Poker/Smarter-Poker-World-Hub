@@ -244,6 +244,9 @@ export default function VenueDetailPage() {
   // Nearby venues state
   const [nearbyVenues, setNearbyVenues] = useState([]);
 
+  // Social page state
+  const [socialPageSlug, setSocialPageSlug] = useState(null);
+
   // Related tours/series state
   const [relatedSeries, setRelatedSeries] = useState([]);
 
@@ -304,6 +307,19 @@ export default function VenueDetailPage() {
       }
     };
     fetchVenue();
+  }, [id]);
+
+  // Fetch linked social page (if one exists for this venue)
+  useEffect(function() {
+    if (!id) return;
+    fetch('/api/social/pages?linked_venue_id=' + String(id) + '&limit=1')
+      .then(function(r) { return r.json(); })
+      .then(function(json) {
+        if (json.success && json.data && json.data.length > 0) {
+          setSocialPageSlug(json.data[0].slug || json.data[0].id);
+        }
+      })
+      .catch(function() {});
   }, [id]);
 
   // Fetch live games
@@ -888,6 +904,17 @@ export default function VenueDetailPage() {
                   </svg>
                   {copySuccess ? 'Copied!' : 'Share'}
                 </button>
+                {socialPageSlug && (
+                  <button className="action-btn social-page-btn" onClick={function() { router.push('/hub/social-pages/' + socialPageSlug); }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                    Social Page
+                  </button>
+                )}
               </div>
             </header>
 

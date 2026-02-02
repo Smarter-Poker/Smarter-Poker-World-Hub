@@ -111,6 +111,48 @@ async function handleGet(req, res) {
     return res.status(400).json({ error: 'Provide user_id or page_type+page_id' });
 }
 
+/**
+ * Cross-sync follow/unfollow to social_page_followers when a linked social page exists.
+ * Best-effort: failures here don't affect the main follow operation.
+ * Only works for authenticated (UUID) user IDs - anonymous IDs are silently skipped.
+ */
+async function syncToSocialPageFollowers(userId, pageType, pageIdStr, action) {
+    try {
+        // Only sync venue follows (social pages link via linked_venue_id)
+        if (pageType !== 'venue') return;
+        // Skip anonymous user IDs (not valid UUIDs for social_page_followers FK)
+        if (!userId || userId.startsWith('anon-')) return;
+
+        const { data: socialPage } = await supabase
+            .from('social_pages')
+            .select('id')
+            .eq('linked_venue_id', pageIdStr)
+            .maybeSingle();
+
+        if (!socialPage) return;
+
+        if (action === 'follow') {
+            await supabase
+                .from('social_page_followers')
+                .upsert({
+                    page_id: socialPage.id,
+                    user_id: userId,
+                    role: 'follower',
+                    notifications_enabled: true,
+                }, { onConflict: 'page_id,user_id' });
+        } else {
+            await supabase
+                .from('social_page_followers')
+                .delete()
+                .eq('page_id', socialPage.id)
+                .eq('user_id', userId);
+        }
+    } catch (e) {
+        // Silent - cross-sync is best-effort
+        console.warn('[Follow API] Social page cross-sync error:', e.message);
+    }
+}
+
 async function handlePost(req, res) {
     const { page_type, page_id, action } = req.body;
     const userId = req.headers['x-user-id'] || req.body.user_id;
@@ -164,6 +206,9 @@ async function handlePost(req, res) {
             return res.status(500).json({ success: false, error: error.message });
         }
 
+        // Cross-sync to social page followers (best-effort)
+        syncToSocialPageFollowers(userId, page_type, pageIdStr, 'follow');
+
         return res.status(200).json({
             success: true,
             action: 'followed',
@@ -184,6 +229,9 @@ async function handlePost(req, res) {
             console.error('Error unfollowing page:', error);
             return res.status(500).json({ success: false, error: error.message });
         }
+
+        // Cross-sync to social page followers (best-effort)
+        syncToSocialPageFollowers(userId, page_type, pageIdStr, 'unfollow');
 
         return res.status(200).json({
             success: true,
