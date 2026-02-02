@@ -107,8 +107,7 @@ export default function SurvivalGamePage() {
             // Get questions with appropriate difficulty
             let query = supabase
                 .from('trivia_questions')
-                .select('*')
-                .eq('is_active', true);
+                .select('*');
 
             // Filter by difficulty for higher levels
             if (config.difficulty === 'hard') {
@@ -128,7 +127,6 @@ export default function SurvivalGamePage() {
                 const { data: fallbackData } = await supabase
                     .from('trivia_questions')
                     .select('*')
-                    .eq('is_active', true)
                     .limit(QUESTIONS_PER_LEVEL);
 
                 if (fallbackData) {

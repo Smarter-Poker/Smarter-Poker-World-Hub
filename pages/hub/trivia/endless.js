@@ -74,7 +74,6 @@ export default function EndlessModePage() {
             const { data, error } = await supabase
                 .from('trivia_questions')
                 .select('*')
-                .eq('is_active', true)
                 .order('id', { ascending: false })
                 .limit(50);
 
