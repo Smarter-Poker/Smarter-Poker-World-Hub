@@ -958,7 +958,7 @@ const GameSession: React.FC<GameSessionProps> = ({
                         emotionalTrigger={(currentHand as any).emotionalTrigger}
                         phase={scenarioPhase}
                         resultFeedback={scenarioFeedback}
-                        onChoice={(choiceId, timeRemaining) => {
+                        onChoice={(choiceId) => {
                             // Handle scenario choice
                             setScenarioPhase('SHOWING_RESULT');
                             submitAction(choiceId);

@@ -1,12 +1,17 @@
 /**
- * 🎯 TRAINING DAILY CHALLENGE CRON
+ * 🏆 TRAINING DAILY CHALLENGE + COMMUNITY SCENARIO — GROK POWERED
  * ═══════════════════════════════════════════════════════════════════════════
- * Runs daily at 06:00 UTC to generate new training challenges
- * Selects random games from each category for the daily challenge
+ * Runs daily at 06:05 UTC to generate new training challenges
+ * Features:
+ * - Selects a random game from rotating categories
+ * - Generates a UNIQUE Grok-powered scenario for the whole community
+ * - Same scenario for ALL users → creates global competition
+ * - Bonus diamonds (50) for completing with 80%+ accuracy
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { getGrokClient } from '../../../src/lib/grokClient';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -27,7 +32,7 @@ export default async function handler(req, res) {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     try {
-        console.log('[TrainingDailyChallenge] Starting daily challenge generation...');
+        console.log('[TrainingDailyChallenge] 🏆 Starting community challenge generation...');
 
         // Get today's date
         const today = new Date();
@@ -49,13 +54,12 @@ export default async function handler(req, res) {
             });
         }
 
-        // Select a random game from one of the harder categories
         // Rotate through categories based on day of week
         const categories = ['MTT', 'CASH', 'ADVANCED', 'SPINS', 'PSYCHOLOGY'];
         const dayOfWeek = today.getDay();
         const selectedCategory = categories[dayOfWeek % categories.length];
 
-        // Game IDs by category (picking mid-to-hard games)
+        // Game IDs by category (picking challenging games)
         const challengeGames = {
             MTT: ['mtt-004', 'mtt-010', 'mtt-013', 'mtt-015', 'mtt-021'],
             CASH: ['cash-005', 'cash-008', 'cash-012', 'cash-014', 'cash-021'],
@@ -68,10 +72,19 @@ export default async function handler(req, res) {
         const randomIndex = Math.floor(Math.random() * categoryGames.length);
         const selectedGameId = categoryGames[randomIndex];
 
-        // Determine level (3-7 for daily challenges, medium-hard difficulty)
-        const level = 3 + Math.floor(Math.random() * 5); // Levels 3-7
+        // Determine level (5-8 for daily challenges, harder difficulty)
+        const level = 5 + Math.floor(Math.random() * 4);
 
-        // Insert the daily challenge
+        // 🧠 GENERATE GROK-POWERED COMMUNITY SCENARIO
+        let communityScenario = null;
+        try {
+            communityScenario = await generateCommunityScenario(selectedCategory, level, challengeDate);
+            console.log('[TrainingDailyChallenge] ✅ Grok generated community scenario');
+        } catch (grokError) {
+            console.error('[TrainingDailyChallenge] Grok generation failed:', grokError.message);
+        }
+
+        // Insert the daily challenge with community scenario
         const { data: challenge, error } = await supabase
             .from('training_daily_challenges')
             .insert({
@@ -80,7 +93,8 @@ export default async function handler(req, res) {
                 level: level,
                 required_accuracy: 80,
                 bonus_xp_multiplier: 2.0,
-                bonus_diamonds: 50
+                bonus_diamonds: 50,
+                community_scenario: communityScenario // Store the Grok-generated scenario
             })
             .select()
             .single();
@@ -90,16 +104,17 @@ export default async function handler(req, res) {
             return res.status(500).json({ error: 'Failed to create challenge', details: error.message });
         }
 
-        console.log(`[TrainingDailyChallenge] Created challenge: ${selectedGameId} Level ${level}`);
+        console.log(`[TrainingDailyChallenge] 🏆 Created community challenge: ${selectedGameId} Level ${level}`);
 
         return res.status(200).json({
             success: true,
-            message: 'Daily challenge created',
+            message: 'Daily community challenge created',
             challenge: {
                 date: challengeDate,
                 gameId: selectedGameId,
                 level: level,
-                category: selectedCategory
+                category: selectedCategory,
+                hasCommunityScenario: !!communityScenario
             }
         });
 
@@ -108,3 +123,76 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'Internal server error', details: err.message });
     }
 }
+
+/**
+ * Generate a unique community scenario using Grok
+ */
+async function generateCommunityScenario(category, level, date) {
+    const grok = getGrokClient();
+
+    const gameTypeMap = {
+        MTT: 'deep-stack MTT tournament',
+        CASH: '6-max high-stakes cash game',
+        ADVANCED: 'advanced mixed-game (PLO/MTT)',
+        SPINS: '3-max hyper-turbo Spin & Go',
+        PSYCHOLOGY: 'high-pressure final table'
+    };
+
+    const gameType = gameTypeMap[category] || 'cash game';
+
+    const prompt = `Create a challenging GTO poker scenario for today's GLOBAL COMMUNITY CHALLENGE.
+    
+DATE: ${date}
+CATEGORY: ${category}
+GAME TYPE: ${gameType}
+DIFFICULTY: ${level}/10 (expert level - all community members compete)
+
+Requirements:
+1. This SAME scenario will be played by ALL users worldwide
+2. Must be genuinely difficult and test advanced concepts
+3. Include a clear GTO-optimal answer with solver reasoning
+4. Make it memorable and discussion-worthy
+
+Generate in this EXACT JSON format:
+{
+    "title": "Community Challenge: [Catchy title for this spot]",
+    "question": "Detailed scenario question",
+    "scenario": {
+        "heroPosition": "[Position]",
+        "heroHand": "[Specific hand]",
+        "heroStack": [Stack in bb],
+        "villainPosition": "[Position]",
+        "villainStack": [Stack in bb],
+        "board": "[Board cards or 'Preflop']",
+        "pot": [Pot in bb],
+        "action": "[What villain just did]",
+        "context": "[Any additional context like 'bubble of WSOP ME']"
+    },
+    "options": [
+        {"id": "a", "text": "[Option]", "frequency": "[GTO frequency %]"},
+        {"id": "b", "text": "[Option]", "frequency": "[GTO frequency %]"},
+        {"id": "c", "text": "[Option]", "frequency": "[GTO frequency %]"},
+        {"id": "d", "text": "[Option]", "frequency": "[GTO frequency %]"}
+    ],
+    "correctAnswer": "[letter]",
+    "explanation": "Detailed solver explanation with EV and range analysis",
+    "discussionPoints": ["Point 1", "Point 2", "Point 3"]
+}`;
+
+    const response = await grok.chat.completions.create({
+        model: 'grok-3',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.85,
+        max_tokens: 800,
+    });
+
+    const content = response.choices[0]?.message?.content || '';
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+
+    if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+    }
+
+    return null;
+}
+

@@ -113,7 +113,7 @@ function PokerResumeBadge({ hendonData, isOwnProfile = false, onOpenResume }) {
                         width: 40, height: 40, borderRadius: '50%',
                         background: hasHendon ? 'linear-gradient(135deg, #FFD700, #FFA500)' : 'rgba(255,255,255,0.1)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20
-                    }}>{hasHendon ? 'Trophy' : ''}</div>
+                    }}>{hasHendon ? '🏆' : ''}</div>
                     <div>
                         <div style={{ fontWeight: 700, fontSize: 16 }}>POKER RESUME</div>
                         <div style={{ fontSize: 11, opacity: 0.6 }}>Tournament Career Statistics</div>
@@ -205,7 +205,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId 
                 const myLike = (json.interactions || []).find(i => i.user_id === currentUserId);
                 if (myLike) setLiked(true);
             })
-            .catch(() => {});
+            .catch(() => { });
     }, [currentUserId, post.id]);
 
     const handleLike = async () => {
@@ -266,7 +266,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId 
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ post_id: post.id, user_id: currentUserId, interaction_type: 'share' })
-                }).catch(() => {});
+                }).catch(() => { });
             }
         } catch {
             setShareMsg('Share failed');
@@ -612,13 +612,13 @@ export default function UserProfilePage() {
                 var pokerUid = data.id || anonUid;
                 if (pokerUid) {
                     fetch('/api/poker/checkins?user_id=' + encodeURIComponent(pokerUid))
-                        .then(function(r) { return r.json(); })
-                        .then(function(j) { if (j.success) setPokerCheckins(j.checkins || j.data || []); })
-                        .catch(function() {});
+                        .then(function (r) { return r.json(); })
+                        .then(function (j) { if (j.success) setPokerCheckins(j.checkins || j.data || []); })
+                        .catch(function () { });
                     fetch('/api/poker/follow?user_id=' + encodeURIComponent(pokerUid))
-                        .then(function(r) { return r.json(); })
-                        .then(function(j) { if (j.success) setPokerFollowing(j.data || []); })
-                        .catch(function() {});
+                        .then(function (r) { return r.json(); })
+                        .then(function (j) { if (j.success) setPokerFollowing(j.data || []); })
+                        .catch(function () { });
                 }
 
             } catch (e) {
@@ -799,6 +799,21 @@ export default function UserProfilePage() {
                 }}>
                     {/* Dark overlay for better text visibility */}
                     <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.4), transparent)', borderRadius: '0 0 12px 12px' }} />
+
+                    {/* Cover Photo Upload Button - Own profile only */}
+                    {isOwnProfile && (
+                        <Link href="/hub/profile-edit" style={{
+                            position: 'absolute', bottom: 16, right: 16,
+                            display: 'flex', alignItems: 'center', gap: 8,
+                            padding: '8px 16px', background: 'rgba(0,0,0,0.6)',
+                            borderRadius: 8, color: 'white', fontSize: 14, fontWeight: 600,
+                            textDecoration: 'none', backdropFilter: 'blur(4px)',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            cursor: 'pointer', transition: 'all 0.2s'
+                        }}>
+                            📷 Edit Cover Photo
+                        </Link>
+                    )}
                 </div>
 
                 {/* PROFILE HEADER - Facebook Style */}
@@ -1140,14 +1155,14 @@ export default function UserProfilePage() {
                                         {pokerFollowing.map((f, i) => {
                                             var pageUrl = f.page_type === 'venue' ? `/hub/venues/${f.page_id}`
                                                 : f.page_type === 'tour' ? `/hub/tours/${f.page_id}`
-                                                : f.page_type === 'series' ? `/hub/series/${f.page_id}`
-                                                : '/hub/pages';
+                                                    : f.page_type === 'series' ? `/hub/series/${f.page_id}`
+                                                        : '/hub/pages';
                                             var typeLabel = f.page_type === 'venue' ? 'Venue'
                                                 : f.page_type === 'tour' ? 'Tour'
-                                                : f.page_type === 'series' ? 'Series' : 'Page';
+                                                    : f.page_type === 'series' ? 'Series' : 'Page';
                                             var typeColor = f.page_type === 'venue' ? '#1877F2'
                                                 : f.page_type === 'tour' ? '#E74C3C'
-                                                : '#F39C12';
+                                                    : '#F39C12';
                                             return (
                                                 <Link key={f.id || i} href={pageUrl} style={{ textDecoration: 'none' }}>
                                                     <div style={{
@@ -1168,7 +1183,7 @@ export default function UserProfilePage() {
                                                             </div>
                                                             <div style={{ fontSize: 12, color: C.textSec }}>{typeLabel}</div>
                                                         </div>
-                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
                                                     </div>
                                                 </Link>
                                             );
@@ -1202,7 +1217,7 @@ export default function UserProfilePage() {
                                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                             flexShrink: 0
                                                         }}>
-                                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
                                                         </div>
                                                         <div style={{ flex: 1, minWidth: 0 }}>
                                                             <div style={{ fontWeight: 600, fontSize: 14, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -1239,7 +1254,7 @@ export default function UserProfilePage() {
                                             color: C.text, fontSize: 14, fontWeight: 500,
                                             border: `1px solid ${C.border}`, transition: 'background 0.15s'
                                         }}>
-                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.blue} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={link.icon}/></svg>
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.blue} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={link.icon} /></svg>
                                             {link.label}
                                         </Link>
                                     ))}

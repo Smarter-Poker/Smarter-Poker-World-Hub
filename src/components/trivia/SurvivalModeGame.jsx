@@ -1,12 +1,10 @@
 /**
- * SURVIVAL MODE TRIVIA GAME
+ * SURVIVAL MODE TRIVIA GAME - MINIMAL VERSION
  * Endless questions until you answer wrong - rewards stack every 5!
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { Heart, Skull, Gem, CheckCircle, XCircle, Trophy, Flame } from 'lucide-react';
 import { calculateDiamonds } from '../../lib/trivia/triviaEngine';
-import './SurvivalModeGame.css';
 
 export default function SurvivalModeGame({
     questions,
@@ -26,25 +24,15 @@ export default function SurvivalModeGame({
     const startTimeRef = useRef(Date.now());
     const currentQuestion = questions?.[currentIndex];
 
-    // Calculate current multiplier (increases every 5 questions)
     useEffect(() => {
         setMultiplier(Math.floor(streak / 5) + 1);
     }, [streak]);
 
-    // Load more questions when running low
     useEffect(() => {
         if (questions && currentIndex >= questions.length - 3 && onLoadMoreQuestions) {
             onLoadMoreQuestions();
         }
     }, [currentIndex, questions?.length, onLoadMoreQuestions]);
-
-    const playSound = (isCorrect) => {
-        try {
-            const audio = new Audio(isCorrect ? '/sounds/correct.mp3' : '/sounds/incorrect.mp3');
-            audio.volume = isCorrect ? 0.6 : 0.5;
-            audio.play().catch(() => { });
-        } catch (e) { }
-    };
 
     const selectAnswer = (index) => {
         if (selectedAnswer !== null) return;
@@ -53,25 +41,19 @@ export default function SurvivalModeGame({
         setShowResult(true);
 
         const correct = index === currentQuestion?.correct_index;
-        playSound(correct);
-
         const newAnswers = [...answers, index];
         setAnswers(newAnswers);
 
         if (correct) {
-            // Award diamonds based on current multiplier
-            const diamondsForThisAnswer = multiplier;
-            setDiamondsEarned(prev => prev + diamondsForThisAnswer);
+            setDiamondsEarned(prev => prev + multiplier);
             setStreak(prev => prev + 1);
 
-            // Auto-advance after showing result
             setTimeout(() => {
                 setCurrentIndex(prev => prev + 1);
                 setSelectedAnswer(null);
                 setShowResult(false);
             }, 1000);
         } else {
-            // GAME OVER
             setIsGameOver(true);
 
             setTimeout(() => {
@@ -89,136 +71,152 @@ export default function SurvivalModeGame({
         }
     };
 
-    const getMultiplierColor = (mult) => {
-        if (mult >= 5) return '#FFD700';
-        if (mult >= 3) return '#A855F7';
-        if (mult >= 2) return '#06B6D4';
-        return '#22C55E';
-    };
-
     if (!currentQuestion && !isGameOver) {
         return (
-            <div className="survival-loading">
-                <div className="loading-spinner" />
-                <p>Loading more questions...</p>
+            <div style={{ textAlign: 'center', padding: '48px', color: 'white' }}>
+                <p>Loading questions...</p>
             </div>
         );
     }
 
     if (isGameOver) {
         return (
-            <div className="survival-game">
-                <div className="game-over-card">
-                    <div className="game-over-icon">
-                        <Skull size={64} />
-                    </div>
-                    <h2>GAME OVER</h2>
-                    <div className="final-stats">
-                        <div className="stat">
-                            <Trophy size={24} />
-                            <span className="stat-value">{streak}</span>
-                            <span className="stat-label">Questions Answered</span>
-                        </div>
-                        <div className="stat">
-                            <Gem size={24} />
-                            <span className="stat-value">{calculateDiamonds('survival', streak, streak + 1, 0)}</span>
-                            <span className="stat-label">Diamonds Earned</span>
-                        </div>
-                    </div>
-                </div>
+            <div style={{ textAlign: 'center', padding: '48px', color: 'white', background: 'rgba(239, 68, 68, 0.2)', borderRadius: '16px', margin: '20px' }}>
+                <h2 style={{ fontSize: '32px', color: '#ef4444', marginBottom: '24px' }}>GAME OVER</h2>
+                <p style={{ fontSize: '24px', marginBottom: '8px' }}>Streak: {streak}</p>
+                <p style={{ fontSize: '20px', color: '#00D4FF' }}>
+                    Diamonds Earned: {calculateDiamonds('survival', streak, streak + 1, 0)}
+                </p>
             </div>
         );
     }
 
     return (
-        <div className="survival-game">
-            {/* Survival Header */}
-            <div className="survival-header">
-                <div className="lives-display">
-                    <Heart size={24} fill="#ef4444" color="#ef4444" />
-                    <span className="lives-text">SURVIVAL</span>
-                </div>
-
-                <div className="streak-display">
-                    <Flame size={20} className="streak-icon" />
-                    <span className="streak-count">{streak}</span>
-                    <span className="streak-label">STREAK</span>
-                </div>
-
-                <div className="diamonds-display">
-                    <Gem size={20} className="diamond-icon" />
-                    <span className="diamonds-count">{diamondsEarned}</span>
-                </div>
+        <div style={{ maxWidth: '700px', margin: '0 auto', padding: '20px' }}>
+            {/* Header */}
+            <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                padding: '16px 20px',
+                background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(0, 0, 0, 0.3))',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                borderRadius: '12px',
+                marginBottom: '16px',
+                color: 'white'
+            }}>
+                <span style={{ color: '#ef4444', fontWeight: 'bold' }}>❤️ SURVIVAL</span>
+                <span style={{ color: '#fbbf24' }}>🔥 Streak: {streak}</span>
+                <span style={{ color: '#00D4FF' }}>💎 {diamondsEarned}</span>
             </div>
 
-            {/* Multiplier Indicator */}
-            <div className="multiplier-bar">
-                <div className="mult-progress">
-                    <div
-                        className="mult-fill"
-                        style={{
-                            width: `${((streak % 5) / 5) * 100}%`,
-                            background: getMultiplierColor(multiplier),
-                            boxShadow: `0 0 10px ${getMultiplierColor(multiplier)}`
-                        }}
-                    />
+            {/* Multiplier Bar */}
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '10px 16px',
+                background: 'rgba(0, 0, 0, 0.3)',
+                borderRadius: '8px',
+                marginBottom: '24px',
+                color: 'white'
+            }}>
+                <div style={{ flex: 1, height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
+                    <div style={{
+                        height: '100%',
+                        width: `${((streak % 5) / 5) * 100}%`,
+                        background: '#22c55e',
+                        transition: 'width 0.3s'
+                    }} />
                 </div>
-                <div
-                    className="mult-badge"
-                    style={{ background: getMultiplierColor(multiplier) }}
-                >
-                    <span>{multiplier}x</span>
-                </div>
-                <span className="mult-next">
-                    {5 - (streak % 5)} to next multiplier
-                </span>
+                <span style={{ fontWeight: 'bold' }}>{multiplier}x</span>
+                <span style={{ fontSize: '11px', opacity: 0.6 }}>{5 - (streak % 5)} to next</span>
             </div>
 
             {/* Question Card */}
-            <div className="survival-question-card">
-                <div className="question-number">
+            <div style={{
+                background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9))',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '16px',
+                padding: '32px'
+            }}>
+                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginBottom: '16px', textTransform: 'uppercase' }}>
                     Question #{streak + 1}
                 </div>
 
-                <h2 className="survival-question-text">{currentQuestion?.question}</h2>
+                <h2 style={{ fontSize: '22px', fontWeight: 600, color: 'white', lineHeight: 1.4, margin: '0 0 28px 0' }}>
+                    {currentQuestion?.question}
+                </h2>
 
-                <div className="survival-options">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     {currentQuestion?.options?.map((option, index) => {
-                        let optionClass = 'survival-option';
+                        let bg = 'rgba(255,255,255,0.05)';
+                        let borderColor = 'rgba(255,255,255,0.1)';
+
                         if (showResult) {
                             if (index === currentQuestion.correct_index) {
-                                optionClass += ' correct';
+                                bg = 'rgba(34, 197, 94, 0.15)';
+                                borderColor = '#22c55e';
                             } else if (index === selectedAnswer) {
-                                optionClass += ' incorrect';
+                                bg = 'rgba(239, 68, 68, 0.15)';
+                                borderColor = '#ef4444';
                             }
                         }
 
                         return (
                             <button
                                 key={index}
-                                className={optionClass}
                                 onClick={() => selectAnswer(index)}
                                 disabled={selectedAnswer !== null}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '16px',
+                                    padding: '16px 20px',
+                                    background: bg,
+                                    border: `2px solid ${borderColor}`,
+                                    borderRadius: '10px',
+                                    color: 'rgba(255,255,255,0.9)',
+                                    fontSize: '16px',
+                                    textAlign: 'left',
+                                    cursor: selectedAnswer !== null ? 'default' : 'pointer'
+                                }}
                             >
-                                <span className="option-letter">
+                                <span style={{
+                                    width: '32px',
+                                    height: '32px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    background: 'rgba(255,255,255,0.1)',
+                                    borderRadius: '6px',
+                                    fontWeight: 700,
+                                    fontSize: '14px'
+                                }}>
                                     {String.fromCharCode(65 + index)}
                                 </span>
-                                <span className="option-text">{option}</span>
-                                {showResult && index === currentQuestion.correct_index && (
-                                    <CheckCircle size={20} className="result-icon correct" />
-                                )}
-                                {showResult && index === selectedAnswer && index !== currentQuestion.correct_index && (
-                                    <XCircle size={20} className="result-icon incorrect" />
-                                )}
+                                <span style={{ flex: 1 }}>{option}</span>
+                                {showResult && index === currentQuestion.correct_index && '✓'}
+                                {showResult && index === selectedAnswer && index !== currentQuestion.correct_index && '✗'}
                             </button>
                         );
                     })}
                 </div>
 
                 {/* Reward Preview */}
-                <div className="reward-preview">
-                    <Gem size={14} />
-                    <span>+{multiplier} for correct answer</span>
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    marginTop: '24px',
+                    padding: '12px',
+                    background: 'rgba(0, 212, 255, 0.1)',
+                    border: '1px solid rgba(0, 212, 255, 0.2)',
+                    borderRadius: '8px',
+                    color: '#00D4FF',
+                    fontSize: '13px'
+                }}>
+                    💎 +{multiplier} for correct answer
                 </div>
             </div>
         </div>
