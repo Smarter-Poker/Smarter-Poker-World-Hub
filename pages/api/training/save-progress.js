@@ -183,8 +183,14 @@ export default async function handler(req, res) {
                 .single();
 
             if (insertError) {
-                console.error('Error creating progress:', insertError);
-                return res.status(500).json({ error: 'Failed to create progress' });
+                console.error('Error creating progress:', JSON.stringify(insertError, null, 2));
+                console.error('Insert payload:', { userId, gameId, level, questionsAnswered, questionsCorrect });
+                return res.status(500).json({
+                    error: 'Failed to create progress',
+                    details: insertError.message,
+                    code: insertError.code,
+                    hint: insertError.hint
+                });
             }
 
             // 3. Upsert leaderboard entry
