@@ -132,25 +132,18 @@ export default async function handler(req, res) {
             .eq('game_id', gameId)
             .single();
 
-        const newMasteryPercentage = passed ? level * 10 : (existingProgress?.mastery_percentage || 0);
-        const newHighestLevel = passed ? Math.max(level, existingProgress?.highest_level_completed || 0) : (existingProgress?.highest_level_completed || 0);
-        const newCurrentLevel = passed ? Math.min(level + 1, 10) : level;
-
         if (existingProgress) {
             // Update existing progress
             const { data: updatedProgress, error: updateError } = await supabase
                 .from('training_progress')
                 .update({
-                    current_level: newCurrentLevel,
-                    highest_level_completed: newHighestLevel,
-                    mastery_percentage: newMasteryPercentage,
-                    total_questions_answered: (existingProgress.total_questions_answered || 0) + questionsAnswered,
-                    total_correct: (existingProgress.total_correct || 0) + questionsCorrect,
-                    total_incorrect: (existingProgress.total_incorrect || 0) + (questionsAnswered - questionsCorrect),
+                    level: passed ? Math.min(level + 1, 10) : level,
+                    xp: (existingProgress.xp || 0) + xpEarned,
+                    hands_played: (existingProgress.hands_played || 0) + questionsAnswered,
+                    correct_answers: (existingProgress.correct_answers || 0) + questionsCorrect,
+                    total_answers: (existingProgress.total_answers || 0) + questionsAnswered,
                     current_streak: streak,
                     best_streak: Math.max(streak, existingProgress.best_streak || 0),
-                    total_xp_earned: (existingProgress.total_xp_earned || 0) + xpEarned,
-                    total_diamonds_earned: (existingProgress.total_diamonds_earned || 0) + diamondsEarned,
                     last_played_at: new Date().toISOString()
                 })
                 .eq('user_id', userId)
@@ -182,18 +175,14 @@ export default async function handler(req, res) {
                 .insert({
                     user_id: userId,
                     game_id: gameId,
-                    current_level: newCurrentLevel,
-                    highest_level_completed: newHighestLevel,
-                    mastery_percentage: newMasteryPercentage,
-                    total_questions_answered: questionsAnswered,
-                    total_correct: questionsCorrect,
-                    total_incorrect: questionsAnswered - questionsCorrect,
+                    level: passed ? Math.min(level + 1, 10) : level,
+                    xp: xpEarned,
+                    hands_played: questionsAnswered,
+                    correct_answers: questionsCorrect,
+                    total_answers: questionsAnswered,
                     current_streak: streak,
                     best_streak: streak,
-                    total_xp_earned: xpEarned,
-                    total_diamonds_earned: diamondsEarned,
-                    last_played_at: new Date().toISOString(),
-                    first_played_at: new Date().toISOString()
+                    last_played_at: new Date().toISOString()
                 })
                 .select()
                 .single();

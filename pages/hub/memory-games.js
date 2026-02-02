@@ -59,6 +59,7 @@ import { getMemoryGamesPreferences, updateMemoryGamesPreferences } from '../../s
 import DiamondEngine from '../../src/services/DiamondEngine';
 import leaderboardService from '../../src/services/LeaderboardService';
 import dailyChallengeService from '../../src/services/DailyChallengeService';
+import { processGameResult, getRankTitle } from '../../src/games/ELOService';
 
 // New Game Mode Components (dynamic imports for code splitting)
 import dynamic from 'next/dynamic';
@@ -1600,6 +1601,72 @@ export default function MemoryGamesPage() {
             setComboName(null);
             setMultiplier(1);
             setConsecutivePasses(0);
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // 📊 PERSIST TO SUPABASE — Leaderboard, ELO, Daily Challenge
+        // ═══════════════════════════════════════════════════════════════════════════
+        if (user?.id) {
+            const gameMode = selectedGameMode || 'range';
+            const timeTaken = Math.floor((60 - timer) + (60 * (getLevelConfig(currentLevel).timeLimit / 60 - 1)));
+
+            // 1. Update leaderboard (only if passed)
+            if (passed) {
+                leaderboardService.updateLeaderboard(
+                    user.id,
+                    gameMode,
+                    currentLevel,
+                    result.score,
+                    result.score, // accuracy
+                    timeTaken,
+                    null // sessionId
+                ).then(res => {
+                    console.log('[Memory] Leaderboard updated:', res);
+                }).catch(err => {
+                    console.warn('[Memory] Leaderboard update failed:', err);
+                });
+            }
+
+            // 2. Update ELO rating
+            processGameResult(user.id, currentLevel, result.score, gamesPlayed || 0)
+                .then(eloResult => {
+                    console.log('[Memory] ELO updated:', eloResult);
+                    if (eloResult?.rank) {
+                        setEloRank && setEloRank(eloResult.rank);
+                    }
+                }).catch(err => {
+                    console.warn('[Memory] ELO update failed:', err);
+                });
+
+            // 3. Check and complete daily challenge
+            dailyChallengeService.getTodaysChallenge().then(challengeData => {
+                if (challengeData?.success && challengeData?.challenge && !challengeData.completed) {
+                    const challenge = challengeData.challenge;
+                    // Check if this game matches the daily challenge
+                    if (challenge.level === currentLevel && result.score >= challenge.target_accuracy) {
+                        dailyChallengeService.completeChallenge(
+                            user.id,
+                            challenge.id,
+                            result.score,
+                            result.score,
+                            timeTaken
+                        ).then(completionResult => {
+                            if (completionResult?.success) {
+                                console.log('[Memory] Daily challenge completed! Streak:', completionResult.streak);
+                                // Award bonus diamonds for daily challenge
+                                const bonus = challenge.diamond_reward || 25;
+                                DiamondEngine.award(bonus);
+                                setDiamondBalance(prev => prev + bonus);
+                            }
+                        }).catch(err => {
+                            console.warn('[Memory] Daily challenge completion failed:', err);
+                        });
+                    }
+                }
+            });
+
+            // 4. Increment games played counter
+            setGamesPlayed && setGamesPlayed(prev => (prev || 0) + 1);
         }
 
         setMode('result');
