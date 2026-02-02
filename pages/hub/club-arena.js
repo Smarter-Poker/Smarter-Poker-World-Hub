@@ -551,20 +551,21 @@ const S = {
         zIndex: -2,
     },
     mainContent: {
-        position: 'relative', padding: '16px 12px 40px', zIndex: 1,
+        position: 'relative', padding: '8px 12px 40px', zIndex: 1,
     },
 
-    // ACTION BAR (baked image)
+    // ACTION BAR (baked image) - 80% width, centered
     actionBarWrapper: {
         position: 'relative',
-        width: '100%',
-        marginBottom: '16px',
+        width: '85%',
+        maxWidth: '420px',
+        margin: '0 auto 12px',
     },
     actionBarImage: {
         width: '100%',
         height: 'auto',
         display: 'block',
-        borderRadius: '12px',
+        borderRadius: '10px',
     },
     actionZone: {
         position: 'absolute',
@@ -575,13 +576,14 @@ const S = {
         cursor: 'pointer',
     },
 
-    // SHARK CLUB CARD (baked image)
+    // SHARK CLUB CARD (baked image) - 75% width, centered
     sharkClubWrapper: {
         position: 'relative',
-        width: '100%',
-        marginBottom: '16px',
+        width: '75%',
+        maxWidth: '340px',
+        margin: '0 auto 14px',
         cursor: 'pointer',
-        borderRadius: '16px',
+        borderRadius: '12px',
         overflow: 'hidden',
         animation: 'ca-glow 4s ease-in-out infinite',
     },
@@ -626,20 +628,23 @@ const S = {
         marginTop: '4px',
     },
 
-    // BOTTOM TILES (baked images)
+    // BOTTOM TILES (baked images) - uniform fixed size
     tilesGrid: {
         display: 'grid',
         gridTemplateColumns: 'repeat(5, 1fr)',
-        gap: '8px',
+        gap: '6px',
+        padding: '0 4px',
     },
     tileWrapper: {
-        borderRadius: '12px',
+        borderRadius: '8px',
         overflow: 'hidden',
         transition: 'transform 0.2s, box-shadow 0.2s',
+        aspectRatio: '1 / 1.3',
     },
     tileImage: {
         width: '100%',
-        height: 'auto',
+        height: '100%',
+        objectFit: 'cover',
         display: 'block',
     },
 };
