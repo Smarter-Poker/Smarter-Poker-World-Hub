@@ -1,0 +1,128 @@
+{
+  "id": "tilt_test_001",
+  "name": "Tilt Control Test",
+  "category": "tilt",
+  "difficulty": 1,
+  "scenarios": [
+    {
+      "id": "tilt_001",
+      "intro": "You just lost 3 buy-ins to coolers in the last hour. Your opponent just 4-bet shoved with 72o and hit a full house.",
+      "situation_context": "Session: -5 buy-ins | Time at table: 4 hours | Your image: Tight",
+      "emotional_trigger": "tilt",
+      "time_limit": 15,
+      "choices": [
+        {
+          "id": "TILT",
+          "label": "Express Frustration",
+          "description": "Type something in chat about their play",
+          "icon": "😤",
+          "emotional_type": "impulsive"
+        },
+        {
+          "id": "BREATHE",
+          "label": "Take a Deep Breath",
+          "description": "Pause, breathe, and refocus on the next hand",
+          "icon": "🧘",
+          "emotional_type": "rational"
+        },
+        {
+          "id": "LEAVE",
+          "label": "Leave the Table",
+          "description": "Take a break to clear your head",
+          "icon": "🚪",
+          "emotional_type": "passive"
+        },
+        {
+          "id": "DOUBLE",
+          "label": "Move Up Stakes",
+          "description": "Play higher to win it back faster",
+          "icon": "📈",
+          "emotional_type": "aggressive"
+        }
+      ],
+      "correct_choice": "BREATHE",
+      "explanation": "After a cooler, the best response is to take a breath and refocus. Expressing frustration gives opponents information, leaving might be premature, and moving up stakes while tilted is the worst poker decision you can make.",
+      "emotional_lesson": "Coolers happen to everyone. Your response to variance determines your long-term success, not the cooler itself."
+    },
+    {
+      "id": "tilt_002",
+      "intro": "You've been card dead for 2 hours. Finally you pick up AA, but get cracked by 96s who flopped two pair.",
+      "situation_context": "Session: -2 buy-ins | Table image: Nitty | Last 50 hands: 0 VPIP",
+      "emotional_trigger": "tilt",
+      "time_limit": 15,
+      "choices": [
+        {
+          "id": "LOOSEN",
+          "label": "Start Playing More Hands",
+          "description": "Loosen up to make up for being card dead",
+          "icon": "🃏",
+          "emotional_type": "impulsive"
+        },
+        {
+          "id": "MAINTAIN",
+          "label": "Maintain Your Strategy",
+          "description": "Stick to your ranges and wait for good spots",
+          "icon": "🎯",
+          "emotional_type": "rational"
+        },
+        {
+          "id": "QUIT",
+          "label": "Quit for the Day",
+          "description": "The deck is against you today",
+          "icon": "🏠",
+          "emotional_type": "passive"
+        },
+        {
+          "id": "REVENGE",
+          "label": "Target That Player",
+          "description": "Focus on getting your chips back from them",
+          "icon": "👊",
+          "emotional_type": "aggressive"
+        }
+      ],
+      "correct_choice": "MAINTAIN",
+      "explanation": "Being card dead doesn't change math. Your ranges are still +EV. Loosening up or targeting specific players are emotional, not strategic decisions.",
+      "emotional_lesson": "Variance is a feature, not a bug. Trust your strategy even when results are bad."
+    },
+    {
+      "id": "tilt_003",
+      "intro": "You made a hero call with bottom pair and were right! But the river gave villain a runner-runner flush.",
+      "situation_context": "Pot: 200BB | Your read was perfect | Villain: Recreational player",
+      "emotional_trigger": "tilt",
+      "time_limit": 15,
+      "choices": [
+        {
+          "id": "SHOW",
+          "label": "Show Your Hand",
+          "description": "Let them see the read was perfect",
+          "icon": "👀",
+          "emotional_type": "impulsive"
+        },
+        {
+          "id": "FOCUS",
+          "label": "Focus on the Process",
+          "description": "Great read - that's what matters",
+          "icon": "✅",
+          "emotional_type": "rational"
+        },
+        {
+          "id": "BERATE",
+          "label": "Comment on Their Play",
+          "description": "They need to know that was a bad call",
+          "icon": "😠",
+          "emotional_type": "aggressive"
+        },
+        {
+          "id": "LEAVE",
+          "label": "Take a Short Break",
+          "description": "Walk it off before the next hand",
+          "icon": "🚶",
+          "emotional_type": "passive"
+        }
+      ],
+      "correct_choice": "FOCUS",
+      "explanation": "Your process was perfect. That's all you can control. Showing, berating, or leaving all focus on the result instead of the decision.",
+      "emotional_lesson": "Process over results. You want players to make these calls against you - they'll lose in the long run."
+    }
+  ]
+}

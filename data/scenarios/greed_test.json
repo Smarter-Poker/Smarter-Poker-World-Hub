@@ -1,0 +1,88 @@
+{
+  "id": "greed_test_001",
+  "name": "Greed Control Test",
+  "category": "greed",
+  "difficulty": 2,
+  "scenarios": [
+    {
+      "id": "greed_001",
+      "intro": "You're up 5 buy-ins and running hot. You feel invincible and are considering moving up stakes.",
+      "situation_context": "Session: +5 buy-ins | Time: 3 hours | Your reads have been perfect",
+      "emotional_trigger": "greed",
+      "time_limit": 15,
+      "choices": [
+        {
+          "id": "MOVEUP",
+          "label": "Move Up Stakes",
+          "description": "Ride the heater while it lasts",
+          "icon": "📈",
+          "emotional_type": "impulsive"
+        },
+        {
+          "id": "STAY",
+          "label": "Stay at Current Stakes",
+          "description": "Stick to your bankroll management",
+          "icon": "🎯",
+          "emotional_type": "rational"
+        },
+        {
+          "id": "QUIT",
+          "label": "Lock Up the Win",
+          "description": "Quit while you're ahead",
+          "icon": "🔒",
+          "emotional_type": "passive"
+        },
+        {
+          "id": "DOUBLE",
+          "label": "Double Your Buy-In",
+          "description": "Add to the stack you're playing",
+          "icon": "💰",
+          "emotional_type": "aggressive"
+        }
+      ],
+      "correct_choice": "STAY",
+      "explanation": "Winning sessions don't change your edge or bankroll requirements. Moving up on a heater is gambling, not poker.",
+      "emotional_lesson": "Hot streaks end. Cold streaks end. Bankroll management is forever."
+    },
+    {
+      "id": "greed_002",
+      "intro": "You have top set on a wet board. Villain is showing strength. You could check for pot control or bet big for value.",
+      "situation_context": "Pot: 80BB | You have top set | Board has flush draw | Villain seems strong",
+      "emotional_trigger": "greed",
+      "time_limit": 15,
+      "choices": [
+        {
+          "id": "OVERBET",
+          "label": "Overbet the Pot",
+          "description": "Get maximum value from your monster",
+          "icon": "💎",
+          "emotional_type": "aggressive"
+        },
+        {
+          "id": "STANDARD",
+          "label": "Standard Value Bet",
+          "description": "Bet 60-75% pot for value",
+          "icon": "🎯",
+          "emotional_type": "rational"
+        },
+        {
+          "id": "CHECK",
+          "label": "Check for Pot Control",
+          "description": "Let them bluff or catch up",
+          "icon": "✋",
+          "emotional_type": "passive"
+        },
+        {
+          "id": "ALLIN",
+          "label": "Move All-In",
+          "description": "Don't let draws get there",
+          "icon": "🚀",
+          "emotional_type": "impulsive"
+        }
+      ],
+      "correct_choice": "STANDARD",
+      "explanation": "With top set, you want to extract value while keeping villain's range wide. Overbetting or shoving fold out too many hands.",
+      "emotional_lesson": "Maximum value doesn't mean maximum bet size. Think about what hands can call."
+    }
+  ]
+}

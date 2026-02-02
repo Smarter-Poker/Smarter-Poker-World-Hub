@@ -1,0 +1,88 @@
+{
+  "id": "fear_test_001",
+  "name": "Fear Management Test",
+  "category": "fear",
+  "difficulty": 2,
+  "scenarios": [
+    {
+      "id": "fear_001",
+      "intro": "You're in a big pot with the nut flush draw on the turn. Villain bets 75% pot and you know shoving is +EV.",
+      "situation_context": "Pot: 150BB | Your stack: 100BB | Villain covers you",
+      "emotional_trigger": "fear",
+      "time_limit": 15,
+      "choices": [
+        {
+          "id": "SHOVE",
+          "label": "Shove All-In",
+          "description": "Take the +EV play you identified",
+          "icon": "🚀",
+          "emotional_type": "rational"
+        },
+        {
+          "id": "CALL",
+          "label": "Just Call",
+          "description": "See the river before committing",
+          "icon": "📞",
+          "emotional_type": "passive"
+        },
+        {
+          "id": "FOLD",
+          "label": "Fold",
+          "description": "Too risky right now",
+          "icon": "🏃",
+          "emotional_type": "passive"
+        },
+        {
+          "id": "MINRAISE",
+          "label": "Min-Raise",
+          "description": "Build the pot but keep options open",
+          "icon": "📊",
+          "emotional_type": "impulsive"
+        }
+      ],
+      "correct_choice": "SHOVE",
+      "explanation": "If you've identified a +EV spot, fear shouldn't stop you. Calling or folding gives up equity. Min-raising is the worst of both worlds.",
+      "emotional_lesson": "Fear is information, not instruction. Acknowledge it, then execute your strategy."
+    },
+    {
+      "id": "fear_002",
+      "intro": "It's your first time at $5/$10. The players seem tougher than your usual $2/$5 game.",
+      "situation_context": "Bankroll: 30 buy-ins for this stake | First orbit | You feel nervous",
+      "emotional_trigger": "fear",
+      "time_limit": 15,
+      "choices": [
+        {
+          "id": "TIGHT",
+          "label": "Play Extra Tight",
+          "description": "Only play premium hands until you settle in",
+          "icon": "🛡️",
+          "emotional_type": "passive"
+        },
+        {
+          "id": "NORMAL",
+          "label": "Play Your Normal Game",
+          "description": "Trust your skills and ranges",
+          "icon": "🎯",
+          "emotional_type": "rational"
+        },
+        {
+          "id": "AGGRESSIVE",
+          "label": "Show Them You Belong",
+          "description": "Play aggressively to establish presence",
+          "icon": "💪",
+          "emotional_type": "aggressive"
+        },
+        {
+          "id": "LEAVE",
+          "label": "Move Down",
+          "description": "Maybe you're not ready",
+          "icon": "⬇️",
+          "emotional_type": "passive"
+        }
+      ],
+      "correct_choice": "NORMAL",
+      "explanation": "If you have the bankroll and skills, play your game. Being extra tight or aggressive are fear-based adjustments. Leaving before trying isn't growth.",
+      "emotional_lesson": "Growth happens outside comfort zones. Trust your preparation."
+    }
+  ]
+}
