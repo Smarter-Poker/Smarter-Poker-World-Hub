@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { Zap, Trophy, BookOpen, GraduationCap, Gem, Lock, ChevronRight, Flame, Heart, Skull, Infinity, Dices } from 'lucide-react';
+import { Zap, Trophy, BookOpen, GraduationCap, Gem, Lock, ChevronRight, Flame, Heart, Skull, Infinity } from 'lucide-react';
 import MetalFrame from '../ui/MetalFrame';
 import HexButton from '../ui/HexButton';
 import PortholeIcon from '../ui/PortholeIcon';
@@ -45,7 +45,7 @@ const MODE_CARDS = [
     {
         id: 'survival',
         name: 'Survival Mode',
-        description: '10 levels, 20 questions each. Thresholds get harder!',
+        description: '10 levels, 20 questions each. All categories combined!',
         icon: Heart,
         color: '#ef4444',
         glowColor: '#ef4444',
@@ -59,16 +59,6 @@ const MODE_CARDS = [
         icon: Infinity,
         color: '#8b5cf6',
         glowColor: '#8b5cf6',
-        diamondReward: '1+/Q',
-        perfectBonus: null
-    },
-    {
-        id: 'mixed',
-        name: 'Mixed Categories',
-        description: 'All 4 categories in rotation. Track your strengths!',
-        icon: Dices,
-        color: '#00D4FF',
-        glowColor: '#00D4FF',
         diamondReward: '1+/Q',
         perfectBonus: null
     }
