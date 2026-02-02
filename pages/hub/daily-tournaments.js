@@ -476,13 +476,19 @@ export default function DailyTournaments() {
                         flex-wrap: wrap;
                     }
                     .dt-header h1 {
+                        font-family: 'Orbitron', 'Rajdhani', sans-serif;
                         font-size: 28px;
                         font-weight: 700;
                         margin: 0;
-                        letter-spacing: 1px;
+                        letter-spacing: 2px;
+                        text-transform: uppercase;
+                        text-shadow: 0 0 20px rgba(0,212,255,0.3);
                     }
                     .dt-header .white { color: #fff; }
-                    .dt-header .gold { color: #00D4FF; }
+                    .dt-header .gold { 
+                        color: #00D4FF; 
+                        text-shadow: 0 0 15px rgba(0,212,255,0.6);
+                    }
                     .dt-header .subtitle {
                         font-size: 14px;
                         color: rgba(255,255,255,0.5);
@@ -502,23 +508,29 @@ export default function DailyTournaments() {
                     }
                     .day-tab {
                         padding: 10px 16px;
-                        background: rgba(255,255,255,0.05);
-                        border: 1px solid rgba(255,255,255,0.1);
+                        background: linear-gradient(180deg, rgba(61, 79, 95, 0.2) 0%, rgba(26, 35, 50, 0.4) 100%);
+                        border: 1px solid var(--metal-highlight);
                         border-radius: 8px;
                         color: rgba(255,255,255,0.7);
                         font-size: 14px;
-                        font-weight: 500;
+                        font-weight: 600;
+                        font-family: 'Rajdhani', sans-serif;
                         cursor: pointer;
                         transition: all 0.2s;
                         white-space: nowrap;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
                     }
                     .day-tab:hover {
-                        background: rgba(255,255,255,0.1);
+                        background: linear-gradient(180deg, rgba(61, 79, 95, 0.4) 0%, rgba(26, 35, 50, 0.6) 100%);
+                        border-color: var(--neon-cyan);
+                        box-shadow: 0 0 10px rgba(0, 212, 255, 0.2);
                     }
                     .day-tab.active {
                         background: linear-gradient(135deg, #00D4FF, #0099CC);
-                        border-color: transparent;
+                        border-color: #00D4FF;
                         color: #000;
+                        box-shadow: 0 0 15px rgba(0, 212, 255, 0.5), 0 0 30px rgba(0, 212, 255, 0.2);
                     }
                     .day-full { display: none; }
                     @media (min-width: 768px) {

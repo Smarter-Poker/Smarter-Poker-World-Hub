@@ -145,29 +145,33 @@ export default function TriviaModePage() {
     async function loadQuestions(mode, count) {
         const today = getTodayCST();
 
-        // For daily mode, get today's question
+        // For daily mode, get today's 10 questions (deterministic by date)
         if (mode === 'daily') {
+            // First try to get pre-assigned daily questions
             const { data } = await supabase
                 .from('trivia_questions')
                 .select('*')
                 .eq('daily_date', today)
                 .order('order_index')
-                .limit(1);
+                .limit(10);
 
-            if (data && data.length > 0) {
+            if (data && data.length >= 10) {
                 return data;
             }
 
-            // Fallback to random question
-            const { data: fallback } = await supabase
+            // Fallback: get all questions and use date-seeded shuffle
+            const { data: allQuestions } = await supabase
                 .from('trivia_questions')
-                .select('*')
-                .limit(1);
+                .select('*');
 
-            return fallback || getFallbackQuestions(1);
+            if (allQuestions && allQuestions.length > 0) {
+                return seededShuffle(allQuestions, today).slice(0, count);
+            }
+
+            return getFallbackQuestions(count);
         }
 
-        // For category modes
+        // For category modes - use date-seeded shuffle for daily consistency
         const categories = CATEGORY_MAP[mode];
         let query = supabase.from('trivia_questions').select('*');
 
@@ -175,14 +179,38 @@ export default function TriviaModePage() {
             query = query.in('category', categories);
         }
 
-        const { data } = await query.limit(50);
+        const { data } = await query;
 
         if (!data || data.length === 0) {
             return getFallbackQuestions(count);
         }
 
-        // Shuffle and return requested count
-        return shuffleArray(data).slice(0, count);
+        // Use date-seeded shuffle for daily-consistent question selection
+        return seededShuffle(data, today).slice(0, count);
+    }
+
+    // Date-seeded shuffle for consistent daily questions
+    function seededShuffle(array, dateString) {
+        const arr = [...array];
+        // Create a simple hash from the date string
+        let seed = 0;
+        for (let i = 0; i < dateString.length; i++) {
+            seed = ((seed << 5) - seed) + dateString.charCodeAt(i);
+            seed = seed & seed; // Convert to 32-bit integer
+        }
+
+        // Seeded random function
+        const seededRandom = () => {
+            seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+            return seed / 0x7fffffff;
+        };
+
+        // Fisher-Yates shuffle with seeded random
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(seededRandom() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
     }
 
     async function loadLeaderboard() {

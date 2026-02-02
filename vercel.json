@@ -133,6 +133,10 @@
     {
       "path": "/api/cron/daily-challenges",
       "schedule": "5 0 * * *"
+    },
+    {
+      "path": "/api/cron/memory-matrix-daily-challenge",
+      "schedule": "0 6 * * *"
     }
   ]
 }

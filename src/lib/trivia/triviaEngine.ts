@@ -37,8 +37,8 @@ export const TRIVIA_MODES = {
     daily: {
         id: 'daily',
         name: 'Daily Trivia',
-        description: '1 Question • Once Per Day',
-        questionsCount: 1,
+        description: '10 Questions • Fresh Daily',
+        questionsCount: 10,
         timeLimit: null,
         diamondCost: 0,
         diamondReward: 0,
@@ -80,8 +80,8 @@ export const TRIVIA_MODES = {
     },
     arcade: {
         id: 'arcade',
-        name: 'Diamond Arcade',
-        description: 'High-speed trivia for Diamond rewards',
+        name: 'Quick Stakes',
+        description: 'Fast-paced trivia with Diamond entry',
         questionsCount: 10,
         timeLimit: 60,
         diamondCost: 10,

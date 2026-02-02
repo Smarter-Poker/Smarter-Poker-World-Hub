@@ -35,15 +35,6 @@ const MODE_CARDS = [
         icon: GraduationCap,
         color: '#9D4EDD',
         glowColor: '#9D4EDD'
-    },
-    {
-        id: 'arcade',
-        name: 'Diamond Arcade',
-        description: 'High-speed trivia for Diamond rewards',
-        icon: Gem,
-        color: '#00D4FF',
-        glowColor: '#00D4FF',
-        diamondCost: 10
     }
 ];
 
@@ -85,9 +76,9 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
                     />
                     <div className="daily-content">
                         <h2>DAILY TRIVIA</h2>
-                        <p className="daily-info">1 Question • Once Per Day</p>
+                        <p className="daily-info">10 Questions • Fresh Every Day</p>
                         <ul className="daily-benefits">
-                            <li>• Answer correctly to earn Diamonds</li>
+                            <li>• New questions every day at midnight CST</li>
                             <li>• Build your knowledge streak</li>
                         </ul>
                         {currentStreak > 0 && (
@@ -189,6 +180,56 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
                         );
                     })}
                 </div>
+
+                {/* Daily Refresh Notice */}
+                <div className="daily-refresh-notice">
+                    <Flame size={14} />
+                    <span>All trivia questions refresh daily at midnight CST</span>
+                </div>
+            </div>
+
+            {/* Quick Stakes Section - Separate from Trivia */}
+            <div className="quick-stakes-section">
+                <div className="qs-header">
+                    <span className="qs-title">QUICK STAKES</span>
+                    <span className="qs-subtitle">Risk diamonds for rewards</span>
+                </div>
+                <MetalFrame
+                    padding="24px 20px"
+                    showBolts={true}
+                    showNeonStrips={true}
+                    className="qs-card"
+                >
+                    <div
+                        className="qs-card__inner"
+                        onClick={() => userDiamonds >= 10 && startMode('arcade')}
+                        style={{ cursor: userDiamonds >= 10 ? 'pointer' : 'not-allowed', opacity: userDiamonds >= 10 ? 1 : 0.6 }}
+                    >
+                        <PortholeIcon
+                            icon={Gem}
+                            size={60}
+                            glowColor="#00D4FF"
+                            animated={userDiamonds >= 10}
+                        />
+                        <div className="qs-content">
+                            <h3 className="qs-name">Quick Stakes</h3>
+                            <p className="qs-description">10 questions in 60 seconds. Answer fast, win big.</p>
+                            <div className="qs-entry">Entry: 10 <Gem size={14} /></div>
+                        </div>
+                        <HexButton
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (userDiamonds >= 10) startMode('arcade');
+                            }}
+                            disabled={userDiamonds < 10}
+                            variant={userDiamonds >= 10 ? 'primary' : 'secondary'}
+                            size="md"
+                            icon={userDiamonds >= 10 ? <ChevronRight size={14} /> : <Lock size={14} />}
+                        >
+                            {userDiamonds >= 10 ? 'PLAY' : 'LOCKED'}
+                        </HexButton>
+                    </div>
+                </MetalFrame>
             </div>
 
             <style jsx>{`
@@ -396,6 +437,92 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
 
                 .mode-card--locked {
                     filter: grayscale(50%);
+                }
+
+                /* Daily Refresh Notice */
+                .daily-refresh-notice {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                    margin-top: 20px;
+                    padding: 12px 16px;
+                    background: rgba(255, 135, 0, 0.1);
+                    border: 1px solid rgba(255, 135, 0, 0.3);
+                    border-radius: 8px;
+                    color: #FF8700;
+                    font-size: 13px;
+                    font-weight: 500;
+                }
+
+                /* Quick Stakes Section */
+                .quick-stakes-section {
+                    margin-top: 32px;
+                }
+
+                .qs-header {
+                    display: flex;
+                    align-items: baseline;
+                    gap: 12px;
+                    margin-bottom: 16px;
+                }
+
+                .qs-title {
+                    font-family: 'Orbitron', sans-serif;
+                    font-size: 18px;
+                    font-weight: 600;
+                    color: #00D4FF;
+                    letter-spacing: 0.1em;
+                    text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+                }
+
+                .qs-subtitle {
+                    font-size: 12px;
+                    color: rgba(255, 255, 255, 0.5);
+                    text-transform: uppercase;
+                    letter-spacing: 0.1em;
+                }
+
+                .qs-card__inner {
+                    display: flex;
+                    align-items: center;
+                    gap: 20px;
+                    width: 100%;
+                }
+
+                .qs-content {
+                    flex: 1;
+                }
+
+                .qs-name {
+                    font-family: 'Orbitron', sans-serif;
+                    font-size: 18px;
+                    font-weight: 700;
+                    color: #00D4FF;
+                    margin: 0 0 6px 0;
+                    text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+                }
+
+                .qs-description {
+                    font-size: 13px;
+                    color: rgba(255, 255, 255, 0.6);
+                    margin: 0 0 8px 0;
+                }
+
+                .qs-entry {
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
+                    font-size: 14px;
+                    color: #00D4FF;
+                    font-weight: 600;
+                }
+
+                @media (max-width: 600px) {
+                    .qs-card__inner {
+                        flex-direction: column;
+                        text-align: center;
+                    }
                 }
             `}</style>
         </div>

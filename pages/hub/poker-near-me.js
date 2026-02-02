@@ -2545,26 +2545,35 @@ export default function PokerNearMePage() {
                     }
                     .quick-btn {
                         flex: 1;
-                        padding: 7px 10px;
+                        padding: 8px 12px;
                         border-radius: 6px;
                         font-size: 12px;
                         font-weight: 600;
+                        font-family: 'Rajdhani', sans-serif;
                         cursor: pointer;
                         border: none;
                         transition: all 0.2s;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
                     }
                     .checkin-btn {
-                        background: rgba(34,197,94,0.15);
+                        background: linear-gradient(180deg, rgba(34,197,94,0.2) 0%, rgba(34,197,94,0.1) 100%);
                         color: #4ade80;
-                        border: 1px solid rgba(34,197,94,0.3);
+                        border: 1px solid rgba(34,197,94,0.4);
                     }
-                    .checkin-btn:hover { background: rgba(34,197,94,0.25); }
+                    .checkin-btn:hover { 
+                        background: linear-gradient(180deg, rgba(34,197,94,0.35) 0%, rgba(34,197,94,0.2) 100%);
+                        box-shadow: 0 0 12px rgba(34,197,94,0.4);
+                    }
                     .review-btn {
-                        background: rgba(59,130,246,0.15);
-                        color: #60a5fa;
-                        border: 1px solid rgba(59,130,246,0.3);
+                        background: linear-gradient(180deg, rgba(0,212,255,0.2) 0%, rgba(0,212,255,0.1) 100%);
+                        color: #00D4FF;
+                        border: 1px solid rgba(0,212,255,0.4);
                     }
-                    .review-btn:hover { background: rgba(59,130,246,0.25); }
+                    .review-btn:hover { 
+                        background: linear-gradient(180deg, rgba(0,212,255,0.35) 0%, rgba(0,212,255,0.2) 100%);
+                        box-shadow: 0 0 12px var(--neon-cyan-glow);
+                    }
 
                     /* Load More */
                     .load-more {
