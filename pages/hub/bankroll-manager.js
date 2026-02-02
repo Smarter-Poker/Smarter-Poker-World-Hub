@@ -42,11 +42,13 @@ import BankrollGoals from '../../src/components/bankroll/BankrollGoals';
 import LocationAnalytics from '../../src/components/bankroll/LocationAnalytics';
 import WeeklySummary from '../../src/components/bankroll/WeeklySummary';
 import BankrollProjection from '../../src/components/bankroll/BankrollProjection';
+import PlayerNotes from '../../src/components/bankroll/PlayerNotes';
 
 const SIDEBAR_SECTIONS = [
   { id: 'dashboard', label: 'Dashboard', icon: '◎' },
   { id: 'log-session', label: 'Log Session', icon: '' },
   { id: 'trips', label: 'Trips & Expenses', icon: '✈' },
+  { id: 'players', label: 'Player Notes', icon: '🎯' },
   { id: 'leaks', label: 'Leaks', icon: '⚠' },
   { id: 'reports', label: 'Reports', icon: '' },
   { id: 'settings', label: 'Settings', icon: '⚙' },
@@ -458,6 +460,7 @@ export default function BankrollManagerPage() {
               <h1 style={styles.pageTitle}>
                 {activeSection === 'dashboard' && 'Bankroll Manager'}
                 {activeSection === 'trips' && 'Trips & Expenses'}
+                {activeSection === 'players' && 'Player Notes'}
                 {activeSection === 'leaks' && 'Leak Analysis'}
                 {activeSection === 'reports' && 'Reports'}
                 {activeSection === 'settings' && 'Settings'}
@@ -639,6 +642,11 @@ export default function BankrollManagerPage() {
                   </div>
                 )}
               </div>
+            )}
+
+            {/* Player Notes View */}
+            {activeSection === 'players' && (
+              <PlayerNotes userId={userId} />
             )}
 
             {/* Reports View */}

@@ -232,6 +232,51 @@ export default function Cashier() {
             setShowCashOutModal(false);
             setCashOutAmount('');
             loadData();
+
+            // ═══════════════════════════════════════════════════════════════════════════
+            // 🔔 NOTIFY AGENT: Send message and push notification on cash-out
+            // ═══════════════════════════════════════════════════════════════════════════
+            if (membership?.agent_id) {
+                try {
+                    // Get user profile for name
+                    const { data: userProfile } = await supabase
+                        .from('profiles')
+                        .select('username, alias')
+                        .eq('id', user.id)
+                        .single();
+                    const displayName = userProfile?.alias || userProfile?.username || 'A player';
+
+                    // 1. Create/get conversation and send in-app message
+                    const { data: convId } = await supabase.rpc('fn_get_or_create_conversation', {
+                        user1_id: user.id,
+                        user2_id: membership.agent_id,
+                    });
+                    if (convId) {
+                        await supabase.rpc('fn_send_message', {
+                            p_conversation_id: convId,
+                            p_sender_id: user.id,
+                            p_content: `🏧 Cash-Out Request: I cashed out ${amount.toLocaleString()} chips → ${diamondsReturned}💎`,
+                        });
+                    }
+
+                    // 2. Send push notification to agent
+                    await fetch('/api/notifications/send', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            title: '🏧 Cash-Out Request',
+                            message: `${displayName} cashed out ${amount.toLocaleString()} chips`,
+                            url: `/hub/club-arena/messages?club=${clubIdParam}`,
+                            externalUserIds: [membership.agent_id],
+                        }),
+                    });
+
+                    console.log('[Cashier] Agent notified of cash-out');
+                } catch (notifyError) {
+                    console.warn('[Cashier] Failed to notify agent:', notifyError);
+                    // Don't fail the cash-out if notification fails
+                }
+            }
         } catch (e) {
             console.error('[Cashier] Cash-out error:', e);
             showToast('Cash-out failed. Try again.', 'error');

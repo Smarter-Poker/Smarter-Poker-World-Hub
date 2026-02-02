@@ -265,7 +265,6 @@ function PromoSection({ onPlayFeatured }) {
                     whileTap={{ scale: 0.95 }}
                 >
                     ▶ PLAY NOW
-                    <span style={promoStyles.xpBadge}>×2.5 XP</span>
                 </motion.button>
             </div>
         </motion.div>
@@ -1039,14 +1038,14 @@ export default function TrainingPage() {
                                 onClick={() => router.push('/hub/training/leaderboard')}
                             >
                                 <span style={gamificationNavStyles.icon}>🏆</span>
-                                <span style={gamificationNavStyles.label}>Leaderboard</span>
+                                <span style={gamificationNavStyles.label}>Rankings</span>
                             </div>
                             <div
                                 style={gamificationNavStyles.navButton}
                                 onClick={() => router.push('/hub/training/achievements')}
                             >
                                 <span style={gamificationNavStyles.icon}>🏅</span>
-                                <span style={gamificationNavStyles.label}>Achievements</span>
+                                <span style={gamificationNavStyles.label}>Badges</span>
                             </div>
                             <div
                                 style={gamificationNavStyles.navButton}
@@ -1057,10 +1056,17 @@ export default function TrainingPage() {
                             </div>
                             <div
                                 style={gamificationNavStyles.navButton}
+                                onClick={() => router.push('/hub/training/challenges')}
+                            >
+                                <span style={gamificationNavStyles.icon}>🎯</span>
+                                <span style={gamificationNavStyles.label}>Goals</span>
+                            </div>
+                            <div
+                                style={gamificationNavStyles.navButton}
                                 onClick={() => router.push('/hub/training/jarvis')}
                             >
                                 <span style={gamificationNavStyles.icon}>🧠</span>
-                                <span style={gamificationNavStyles.label}>Jarvis</span>
+                                <span style={gamificationNavStyles.label}>Coach</span>
                             </div>
                         </div>
 
@@ -1070,27 +1076,6 @@ export default function TrainingPage() {
                                 userId={userId}
                                 onBonusClaimed={(amount) => {
                                     toast.success(`💎 +${amount} daily bonus claimed!`);
-                                }}
-                            />
-                        )}
-
-                        {/* 🎯 Weekly/Monthly Challenges Widget */}
-                        {userId && activeFilter === 'ALL' && (
-                            <ChallengesWidget
-                                userId={userId}
-                                onChallengeClaimed={(claimed) => {
-                                    toast.success(`💎 +${claimed.diamondsAwarded} diamonds claimed!`);
-                                }}
-                            />
-                        )}
-
-                        {/* 🤖 Jarvis Recommendations Widget */}
-                        {userId && activeFilter === 'ALL' && (
-                            <JarvisRecommendations
-                                userId={userId}
-                                onGameClick={(game) => {
-                                    const fullGame = TRAINING_LIBRARY.find(g => g.id === game.id);
-                                    if (fullGame) handleGameClick(fullGame);
                                 }}
                             />
                         )}

@@ -17,3 +17,4 @@ export { default as BankrollGoals } from './BankrollGoals';
 export { default as LocationAnalytics } from './LocationAnalytics';
 export { default as WeeklySummary } from './WeeklySummary';
 export { default as BankrollProjection } from './BankrollProjection';
+export { default as PlayerNotes } from './PlayerNotes';

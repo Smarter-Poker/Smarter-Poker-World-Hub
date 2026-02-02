@@ -322,6 +322,7 @@ export default function ClubMessages() {
     const [club, setClub] = useState(null);
     const [clubMembers, setClubMembers] = useState([]);
     const [clubMemberIds, setClubMemberIds] = useState(new Set());
+    const [currentUserMembership, setCurrentUserMembership] = useState(null);
     const [conversations, setConversations] = useState([]);
     const [activeConversation, setActiveConversation] = useState(null);
     const [messages, setMessages] = useState([]);
@@ -423,6 +424,45 @@ export default function ClubMessages() {
         }
     }, [user, clubMemberIds]);
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // 🔒 MESSAGING HIERARCHY PERMISSION CHECKER
+    // Hard Laws:
+    // - Union Owner/Admins can message anyone
+    // - Club Owners can message all their players
+    // - Agents can ONLY message their downlines (assigned players)
+    // - Players can ONLY message their agent or club admins
+    // ═══════════════════════════════════════════════════════════════════════
+    function canMessageUser(targetMember) {
+        if (!currentUserMembership || !targetMember) return false;
+        if (targetMember.user_id === user?.id) return false; // Can't message yourself
+
+        const senderRole = currentUserMembership.role;
+        const targetRole = targetMember.role;
+
+        // Union owners/admins can message anyone
+        if (club?.is_union && ['owner', 'admin'].includes(senderRole)) return true;
+
+        // Club owners can message all players
+        if (senderRole === 'owner') return true;
+
+        // Admins can message all players
+        if (senderRole === 'admin') return true;
+
+        // Agents can only message their downlines (players assigned to them)
+        if (senderRole === 'agent') {
+            return targetMember.agent_id === currentUserMembership.user_id;
+        }
+
+        // Players can only message their agent or admins/owners
+        if (senderRole === 'player') {
+            const isMyAgent = currentUserMembership.agent_id === targetMember.user_id;
+            const isAdminOrOwner = ['admin', 'owner'].includes(targetRole);
+            return isMyAgent || isAdminOrOwner;
+        }
+
+        return false;
+    }
+
     async function loadClubData() {
         try {
             const { data: clubData } = await supabase.from('clubs').select('*').eq('club_id', clubIdParam).single();
@@ -434,6 +474,12 @@ export default function ClubMessages() {
 
                 const memberIds = new Set((members || []).map(m => m.user_id));
                 setClubMemberIds(memberIds);
+
+                // Set current user's membership for permission checking
+                if (user?.id) {
+                    const myMembership = (members || []).find(m => m.user_id === user.id);
+                    setCurrentUserMembership(myMembership || null);
+                }
             }
         } catch (e) {
             console.error('[ClubMessages] loadClubData error:', e);
@@ -466,7 +512,7 @@ export default function ClubMessages() {
         }
     }
 
-    // Search club members
+    // Search club members - FILTERED BY MESSAGING HIERARCHY
     useEffect(() => {
         if (!searchQuery.trim()) {
             setSearchResults([]);
@@ -475,10 +521,11 @@ export default function ClubMessages() {
         const query = searchQuery.toLowerCase();
         const results = clubMembers
             .filter(m => m.user_id !== user?.id)
+            .filter(m => canMessageUser(m)) // 🔒 HIERARCHY: Only show allowed recipients
             .filter(m => m.profiles?.username?.toLowerCase().includes(query) || m.profiles?.alias?.toLowerCase().includes(query))
             .slice(0, 5);
         setSearchResults(results);
-    }, [searchQuery, clubMembers, user]);
+    }, [searchQuery, clubMembers, user, currentUserMembership, club]);
 
     // Scroll to bottom on new messages
     useEffect(() => {
@@ -659,6 +706,19 @@ export default function ClubMessages() {
     // Start new conversation
     const startConversation = async (member) => {
         if (!user || !member.profiles) return;
+
+        // 🔒 HIERARCHY CHECK: Verify permission before creating conversation
+        if (!canMessageUser(member)) {
+            let errorMsg = 'You cannot message this user.';
+            if (currentUserMembership?.role === 'player') {
+                errorMsg = 'You can only message your agent or club admins.';
+            } else if (currentUserMembership?.role === 'agent') {
+                errorMsg = 'You can only message players assigned to you.';
+            }
+            setToast({ type: 'error', message: errorMsg });
+            return;
+        }
+
         setSearchQuery('');
 
         const existing = conversations.find(c => c.otherUser?.id === member.profiles.id);
