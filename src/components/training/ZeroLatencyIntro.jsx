@@ -194,8 +194,8 @@ export default function ZeroLatencyIntro({ isVisible, game, onComplete, onLevelR
                                     <span style={styles.statLabel}>To Pass</span>
                                 </div>
                                 <div style={styles.statBox}>
-                                    <span style={{ ...styles.statValue, color: '#00D4FF' }}>💎 {game?.diamondReward || 10}</span>
-                                    <span style={styles.statLabel}>Reward</span>
+                                    <span style={{ ...styles.statValue, color: '#00D4FF', fontSize: 18 }}>Up to 💎10</span>
+                                    <span style={styles.statLabel}>Perfect Bonus</span>
                                 </div>
                             </div>
 
@@ -216,7 +216,7 @@ export default function ZeroLatencyIntro({ isVisible, game, onComplete, onLevelR
 
                             {/* Tip */}
                             <p style={styles.tipText}>
-                                {level1Data ? 'Answer Quickly For Bonus Diamonds' : 'Loading first scenario...'}
+                                {level1Data ? 'Answer Fast + Perfect Score = Diamond Bonus' : 'Loading first scenario...'}
                             </p>
                         </motion.div>
                     )}
