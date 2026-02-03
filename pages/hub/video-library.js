@@ -1481,29 +1481,58 @@ export default function VideoLibraryPage() {
                     {/* Jarvis Insights button */}
                     <button
                         onClick={() => setShowAiPanel(!showAiPanel)}
+                        className="jarvis-button"
                         style={{
                             position: 'absolute',
                             top: 16,
                             right: 80,
-                            height: 48,
-                            padding: '0 20px',
-                            background: showAiPanel ? 'linear-gradient(135deg, #00D4FF 0%, #7B2CBF 100%)' : 'rgba(255,255,255,0.2)',
-                            border: showAiPanel ? '2px solid #00D4FF' : 'none',
-                            borderRadius: 24,
+                            height: 46,
+                            padding: '0 18px',
+                            background: showAiPanel
+                                ? 'linear-gradient(135deg, #00D4FF 0%, #0099CC 50%, #7B2CBF 100%)'
+                                : 'linear-gradient(135deg, rgba(0,212,255,0.25) 0%, rgba(123,44,191,0.25) 100%)',
+                            border: '1px solid rgba(0,212,255,0.5)',
+                            borderRadius: 23,
                             color: 'white',
-                            fontSize: 14,
+                            fontSize: 13,
                             fontWeight: 600,
                             cursor: 'pointer',
                             zIndex: 1001,
-                            backdropFilter: 'blur(10px)',
+                            backdropFilter: 'blur(12px)',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: 8,
-                            transition: 'all 0.3s ease',
+                            gap: 10,
+                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                            boxShadow: showAiPanel
+                                ? '0 0 20px rgba(0,212,255,0.4), 0 4px 15px rgba(0,0,0,0.3)'
+                                : '0 4px 15px rgba(0,0,0,0.3)',
+                            letterSpacing: '0.3px',
                         }}
                     >
-                        <img src="/images/jarvis-avatar.png" alt="Jarvis" style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover' }} />
-                        {aiAnalysisLoading ? 'Loading...' : 'Jarvis Insights'}
+                        <div style={{
+                            width: 26,
+                            height: 26,
+                            borderRadius: '50%',
+                            background: 'linear-gradient(135deg, rgba(0,212,255,0.3) 0%, rgba(123,44,191,0.3) 100%)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                        }}>
+                            <img src="/images/jarvis-avatar.png" alt="Jarvis" style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover' }} />
+                        </div>
+                        {aiAnalysisLoading ? (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <span style={{
+                                    width: 6,
+                                    height: 6,
+                                    borderRadius: '50%',
+                                    background: '#00D4FF',
+                                    animation: 'pulse 1s infinite'
+                                }} />
+                                Analyzing...
+                            </span>
+                        ) : 'Jarvis Insights'}
                     </button>
 
                     {/* Fullscreen YouTube embed with IFrame API for time tracking */}
@@ -1579,11 +1608,13 @@ export default function VideoLibraryPage() {
                             position: 'absolute',
                             /* Desktop: Side panel from right */
                             /* Mobile: Bottom sheet from bottom */
-                            background: 'linear-gradient(180deg, rgba(10,15,30,0.98) 0%, rgba(15,20,40,0.98) 100%)',
-                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                            background: 'linear-gradient(180deg, rgba(8,12,24,0.97) 0%, rgba(12,18,32,0.98) 50%, rgba(8,12,24,0.99) 100%)',
+                            backdropFilter: 'blur(20px)',
+                            WebkitBackdropFilter: 'blur(20px)',
+                            transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
                             zIndex: 1002,
                             overflowY: 'auto',
-                            boxShadow: '-10px 0 40px rgba(0, 0, 0, 0.5)',
+                            boxShadow: '-10px 0 50px rgba(0, 0, 0, 0.6), inset 0 0 100px rgba(0, 212, 255, 0.03)',
                         }}
                     >
                         {/* Drag Handle (Mobile Only) */}
@@ -1677,8 +1708,55 @@ export default function VideoLibraryPage() {
 
                             {aiAnalysisLoading ? (
                                 <div style={{ textAlign: 'center', padding: 40 }}>
-                                    <div style={{ fontSize: 32, marginBottom: 16 }}>⏳</div>
-                                    <p style={{ color: 'rgba(255,255,255,0.7)' }}>Preparing insights...</p>
+                                    {/* Animated Jarvis avatar */}
+                                    <div style={{
+                                        width: 64,
+                                        height: 64,
+                                        margin: '0 auto 20px',
+                                        borderRadius: '50%',
+                                        background: 'linear-gradient(135deg, rgba(0,212,255,0.2) 0%, rgba(0,212,255,0.05) 100%)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        animation: 'pulse 2s ease-in-out infinite',
+                                    }}>
+                                        <img
+                                            src="/images/jarvis-avatar.png"
+                                            alt="Jarvis"
+                                            style={{
+                                                width: 48,
+                                                height: 48,
+                                                borderRadius: '50%',
+                                                objectFit: 'cover'
+                                            }}
+                                        />
+                                    </div>
+                                    <p style={{
+                                        color: '#00D4FF',
+                                        fontSize: 14,
+                                        fontWeight: 600,
+                                        marginBottom: 8
+                                    }}>Analyzing video...</p>
+                                    <p style={{
+                                        color: 'rgba(255,255,255,0.5)',
+                                        fontSize: 12
+                                    }}>Preparing strategic insights</p>
+                                    {/* Shimmer loading bars */}
+                                    <div style={{ marginTop: 24 }}>
+                                        {[1, 0.8, 0.6].map((w, i) => (
+                                            <div key={i} style={{
+                                                height: 12,
+                                                width: `${w * 100}%`,
+                                                background: 'linear-gradient(90deg, rgba(255,255,255,0.05) 0%, rgba(0,212,255,0.15) 50%, rgba(255,255,255,0.05) 100%)',
+                                                backgroundSize: '200% 100%',
+                                                animation: 'shimmer 1.5s infinite',
+                                                borderRadius: 6,
+                                                marginBottom: 8,
+                                                marginLeft: 'auto',
+                                                marginRight: 'auto',
+                                            }} />
+                                        ))}
+                                    </div>
                                 </div>
                             ) : aiAnalysis ? (
                                 <>
@@ -1768,18 +1846,41 @@ export default function VideoLibraryPage() {
                                     ) : (
                                         /* Waiting for next insight */
                                         <div style={{
-                                            padding: '24px',
-                                            background: 'rgba(255,255,255,0.03)',
-                                            borderRadius: 12,
-                                            border: '1px dashed rgba(255,255,255,0.15)',
+                                            padding: '28px',
+                                            background: 'linear-gradient(135deg, rgba(0,212,255,0.08) 0%, rgba(0,212,255,0.02) 100%)',
+                                            borderRadius: 16,
+                                            border: '1px solid rgba(0,212,255,0.15)',
                                             textAlign: 'center',
                                             marginBottom: 20,
                                         }}>
-                                            <div style={{ fontSize: 28, marginBottom: 12, opacity: 0.6 }}>👀</div>
-                                            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, margin: 0 }}>
-                                                Watching for key moments...
+                                            <div style={{
+                                                width: 56,
+                                                height: 56,
+                                                margin: '0 auto 16px',
+                                                borderRadius: '50%',
+                                                background: 'linear-gradient(135deg, rgba(0,212,255,0.15) 0%, rgba(0,212,255,0.05) 100%)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                animation: 'float 3s ease-in-out infinite',
+                                            }}>
+                                                <span style={{ fontSize: 24 }}>🎯</span>
+                                            </div>
+                                            <p style={{
+                                                color: '#00D4FF',
+                                                fontSize: 14,
+                                                fontWeight: 600,
+                                                margin: 0,
+                                                marginBottom: 6
+                                            }}>
+                                                Watching for key moments
                                             </p>
-                                            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, margin: '8px 0 0 0' }}>
+                                            <p style={{
+                                                color: 'rgba(255,255,255,0.5)',
+                                                fontSize: 12,
+                                                margin: 0,
+                                                lineHeight: 1.5
+                                            }}>
                                                 Insights will appear at important timestamps
                                             </p>
                                         </div>
@@ -1997,11 +2098,11 @@ export default function VideoLibraryPage() {
                 @keyframes slideIn {
                     from {
                         opacity: 0;
-                        transform: translateY(10px);
+                        transform: translateY(20px) scale(0.98);
                     }
                     to {
                         opacity: 1;
-                        transform: translateY(0);
+                        transform: translateY(0) scale(1);
                     }
                 }
 
@@ -2009,6 +2110,77 @@ export default function VideoLibraryPage() {
                 @keyframes pulse {
                     0%, 100% { opacity: 1; }
                     50% { opacity: 0.7; }
+                }
+
+                /* Glow pulse for Jarvis branding */
+                @keyframes glowPulse {
+                    0%, 100% { 
+                        box-shadow: 0 0 20px rgba(0, 212, 255, 0.3),
+                                    0 0 40px rgba(0, 212, 255, 0.1);
+                    }
+                    50% { 
+                        box-shadow: 0 0 30px rgba(0, 212, 255, 0.5),
+                                    0 0 60px rgba(0, 212, 255, 0.2);
+                    }
+                }
+
+                /* Shimmer loading effect */
+                @keyframes shimmer {
+                    0% { background-position: -200% 0; }
+                    100% { background-position: 200% 0; }
+                }
+
+                /* Float animation for waiting state */
+                @keyframes float {
+                    0%, 100% { transform: translateY(0px); }
+                    50% { transform: translateY(-8px); }
+                }
+
+                /* Subtle border glow for active insight */
+                .jarvis-panel {
+                    animation: glowPulse 4s ease-in-out infinite;
+                }
+
+                .jarvis-insight-active {
+                    animation: slideIn 0.4s ease forwards;
+                }
+
+                /* Smooth scroll behavior */
+                .jarvis-panel-content {
+                    scroll-behavior: smooth;
+                }
+                .jarvis-panel-content::-webkit-scrollbar {
+                    width: 4px;
+                }
+                .jarvis-panel-content::-webkit-scrollbar-track {
+                    background: rgba(255,255,255,0.05);
+                    border-radius: 2px;
+                }
+                .jarvis-panel-content::-webkit-scrollbar-thumb {
+                    background: rgba(0, 212, 255, 0.3);
+                    border-radius: 2px;
+                }
+                .jarvis-panel-content::-webkit-scrollbar-thumb:hover {
+                    background: rgba(0, 212, 255, 0.5);
+                }
+
+                /* Jarvis button hover effect */
+                .jarvis-button:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 0 25px rgba(0,212,255,0.5), 0 6px 20px rgba(0,0,0,0.4) !important;
+                }
+                .jarvis-button:active {
+                    transform: translateY(0);
+                }
+
+                /* Timeline item hover */
+                .jarvis-panel-content > div:hover {
+                    opacity: 1 !important;
+                }
+
+                /* Close button hover */
+                .jarvis-panel button:hover {
+                    background: rgba(255,255,255,0.2) !important;
                 }
             `}</style>
         </PageTransition>
