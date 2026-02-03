@@ -13,6 +13,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { calculateDiamonds, TRIVIA_MODES, getCategoryName } from '../../../src/lib/trivia/triviaEngine';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 import { Zap, SkipForward, Shield, Clock, CheckCircle, XCircle, ArrowRight, Trophy, Gem } from 'lucide-react';
+import GTOScenarioDisplay from './GTOScenarioDisplay';
 
 // Strategy mode configuration
 const STRATEGY_MODES = {
@@ -45,6 +46,57 @@ const STRATEGY_MODES = {
         icon: '🧠'
     }
 };
+
+// Helper functions for GTO analysis generation
+function generateGTOApproach(question) {
+    const category = question?.category || '';
+    const correctAnswer = question?.options?.[question?.correct_index] || '';
+
+    const approaches = {
+        'gto_theory': `Solver-based strategy involves a balanced range construction. ${correctAnswer.includes('bet') || correctAnswer.includes('raise') ? 'By taking aggressive action here, we build the pot while protecting our equity.' : 'This line optimizes our expected value against a balanced opponent strategy.'}`,
+        'mtt_situations': `In tournament play, ICM pressure and stack dynamics dictate optimal frequencies. ${correctAnswer.includes('fold') ? 'Folding here preserves tournament equity by avoiding marginal situations.' : 'This aggressive line maximizes fold equity while maintaining tournament life.'}`,
+        'cash_game_situations': `Deep stack play requires careful consideration of implied odds and equity realization. ${correctAnswer.includes('call') ? 'Calling preserves stack-to-pot ratio advantages for future streets.' : 'This sizing exploits our range advantage on this texture.'}`,
+        'icm_chip_ev': `ICM calculations show significant risk premium in this spot. The chip EV vs $EV differential requires adjusting our standard frequencies to account for pay jump implications.`
+    };
+
+    return approaches[category] || 'This action maximizes expected value given the game tree and opponent tendencies.';
+}
+
+function generateEVAnalysis(question) {
+    const difficulty = question?.difficulty || 'medium';
+    const evValues = { easy: 0.85, medium: 1.25, hard: 1.75 };
+
+    return {
+        value: evValues[difficulty] || 1.25,
+        description: `This action yields an expected value of +${evValues[difficulty] || 1.25} big blinds, significantly higher than alternate lines. Optimal play captures maximum value while maintaining range balance.`
+    };
+}
+
+function generateAlternateLines(question) {
+    if (!question?.options) return [];
+
+    const correctIdx = question.correct_index;
+    const altLines = [];
+
+    question.options.forEach((option, idx) => {
+        if (idx !== correctIdx && altLines.length < 2) {
+            const action = option.split(' ')[0]?.toUpperCase() || option.toUpperCase();
+            const frequency = idx === 0 ? 15 : idx === 1 ? 10 : 5;
+
+            altLines.push({
+                action,
+                frequency,
+                description: action === 'FOLD'
+                    ? 'Against extremely tight opponents to avoid negative EV spots'
+                    : action === 'CALL'
+                        ? 'Balanced with drawing hands to collaborate with bluffing frequencies'
+                        : 'Mixed strategy implementation for range protection'
+            });
+        }
+    });
+
+    return altLines;
+}
 
 export default function StrategyTrivia({ mode }) {
     const router = useRouter();
@@ -507,11 +559,18 @@ export default function StrategyTrivia({ mode }) {
                                     </div>
                                 )}
 
-                                {/* Explanation */}
-                                {showResult && currentQuestion.explanation && (
-                                    <div className="explanation">
-                                        <strong>Explanation:</strong> {currentQuestion.explanation}
-                                    </div>
+                                {/* GTO Scenario Display */}
+                                {showResult && (
+                                    <GTOScenarioDisplay
+                                        action={currentQuestion.options[currentQuestion.correct_index]?.split(' ')[0]?.toUpperCase() || 'OPTIMAL'}
+                                        confidence={currentQuestion.difficulty === 'hard' ? 85 : currentQuestion.difficulty === 'medium' ? 78 : 92}
+                                        explanation={currentQuestion.explanation}
+                                        gtoApproach={generateGTOApproach(currentQuestion)}
+                                        evAnalysis={generateEVAnalysis(currentQuestion)}
+                                        alternateLines={generateAlternateLines(currentQuestion)}
+                                        isCorrectAnswer={selectedAnswer === currentQuestion.correct_index}
+                                        showDetails={true}
+                                    />
                                 )}
 
                                 {/* Next Button */}

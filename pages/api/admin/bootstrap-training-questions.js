@@ -221,7 +221,14 @@ async function generateChartQuestion(grok, game, gameConfig, level, index) {
         ? ['UTG', 'UTG+1', 'MP', 'MP+1', 'HJ', 'CO', 'BTN', 'SB', 'BB']
         : ['BTN', 'SB', 'BB'];
     const tourneyStages = ['Early', 'Middle', 'Bubble', 'ITM', 'Final Table', 'Heads-Up'];
-    const handExamples = ['K9o', '55', 'QTs', 'A2s', 'JTo', '87s', 'K5s', 'A9o', '66', 'Q8s', 'T9o', 'KJo'];
+
+    // 25 unique hands for rotation (no repeats per game)
+    const handRotation = [
+        'K9o', '55', 'QTs', 'A2s', 'JTo', '87s', 'K5s', 'A9o', '66', 'Q8s',
+        'T9o', 'KJo', 'A4s', '88', 'J8s', 'K6o', 'QJo', '44', 'T8s', 'A7o',
+        '77', 'K8s', 'Q9o', '65s', '33'
+    ];
+    const mandatoryHand = handRotation[index % 25];
 
     const prompt = `You are an ICM poker expert. Generate a UNIQUE push/fold question #${index + 1} for "${game.name}".
 
@@ -236,16 +243,16 @@ GAME SPECIFICATION:
 VARIETY SEED: ${varietySeed}
 AVAILABLE POSITIONS: ${positions.join(', ')}
 TOURNAMENT STAGES: ${tourneyStages.join(', ')}
-HAND VARIETY: ${handExamples.slice(0, 6).join(', ')}, etc.
+
+MANDATORY: You MUST use this exact hand for hero: ${mandatoryHand}
 
 CRITICAL REQUIREMENTS FOR UNIQUE SCENARIOS:
 1. Generate a UNIQUE short-stack scenario (stack between 3-18bb)
 2. Use VARIED positions (not always BTN)
-3. Use VARIED hands (avoid always using premium hands)
-4. Use DIFFERENT tournament stages
-5. Include realistic blind levels
-6. The scenario MUST test: ${game.focus}
-7. Provide detailed Nash chart reasoning in explanation
+3. Use DIFFERENT tournament stages
+4. Include realistic blind levels
+5. The scenario MUST test: ${game.focus}
+6. Provide detailed Nash chart reasoning in explanation
 
 Generate ONLY valid JSON (no markdown):
 {
@@ -255,7 +262,7 @@ Generate ONLY valid JSON (no markdown):
   "scenario": {
     "heroPosition": "[GENERATE: pick from ${positions.slice(0, 5).join('/')}]",
     "heroStack": [GENERATE: number between 3-18],
-    "heroHand": "[GENERATE: unique hand from broad range]",
+    "heroHand": "${mandatoryHand}",
     "gameType": "${playerCount}-Max Tournament",
     "pot": [GENERATE: realistic pot considering antes/blinds],
     "action": "[GENERATE: varied like 'Folded to you', '2 limpers behind', 'UTG raised 2.5x']",
@@ -404,6 +411,14 @@ async function generateGTOQuestion(grok, game, gameConfig, level, index) {
 
     const varietySeed = `Q${index + 1}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
 
+    // 25 unique hands - one for each question (no repeats)
+    const handRotation = [
+        'T9s', '76s', 'QJo', 'A5s', 'K8o', '55', 'J9s', 'KTo', 'A3o', '98s',
+        '66', 'Q9o', 'K7s', 'AJo', '87o', '44', 'JTs', 'Q8s', 'K4s', 'T8s',
+        '77', 'A9o', 'KQo', '65s', '33'
+    ];
+    const mandatoryHand = handRotation[index % 25];
+
     const prompt = `You are a GTO poker solver expert. Generate a UNIQUE training question for "${game.name}" (Question #${index + 1}).
 
 GAME SPECIFICATION:
@@ -414,6 +429,8 @@ GAME SPECIFICATION:
 
 VARIETY SEED: ${varietySeed}
 
+MANDATORY: You MUST use this exact hand for hero: ${mandatoryHand}
+
 Generate ONLY valid JSON (no markdown):
 {
   "id": "${game.id}_L${level}_Q${index + 1}_GROK_${Date.now()}",
@@ -423,7 +440,7 @@ Generate ONLY valid JSON (no markdown):
   "scenario": {
     "heroPosition": "[pick from: ${positions.slice(0, 4).join(', ')}]",
     "heroStack": ${stackDepth.replace(/bb/i, '')},
-    "heroHand": "[unique 2-card hand like ${['T9s', '76s', 'QJo', 'A5s', 'K8o', '55'][index % 6]}]",
+    "heroHand": "${mandatoryHand}",
     "gameType": "${format}",
     "board": "[unique 3-5 cards]",
     "pot": [realistic pot],

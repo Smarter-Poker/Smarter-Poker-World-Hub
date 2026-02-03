@@ -648,6 +648,18 @@ export default function MemoryGameClient({
 
                         {!isCorrect && (
                             <div className="border-t border-slate-700 pt-4">
+                                {/* GTO Panel Image from Supabase */}
+                                {gameState.chartData?.position && (
+                                    <div className="mb-4">
+                                        <img
+                                            src={`https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/gto-panels/panels/gto_${gameState.chartData.position.toLowerCase()}_${gameState.currentHand.correctAction.toLowerCase()}_100bb.png`}
+                                            alt={`GTO Analysis: ${gameState.currentHand.correctAction}`}
+                                            className="w-full max-w-lg mx-auto rounded-xl shadow-2xl border border-cyan-500/30"
+                                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                        />
+                                    </div>
+                                )}
+
                                 <div className="mb-4">
                                     <div className="text-sm text-slate-400 mb-2">✓ Correct GTO Line:</div>
                                     <div className="text-2xl font-bold text-emerald-400">
@@ -737,7 +749,7 @@ export default function MemoryGameClient({
                             <div className="flex justify-between pt-2">
                                 <span className="text-slate-400">Diamonds Earned</span>
                                 <span className="font-bold text-yellow-400">
-                                    <img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/> +{displayDiamonds}
+                                    <img src="/images/diamond.png" alt="Diamond" style={{ width: 20, height: 20, display: "inline-block", verticalAlign: "middle" }} /> +{displayDiamonds}
                                     {backendRewards === null && <span className="text-xs ml-2 text-slate-500">(processing...)</span>}
                                 </span>
                             </div>
