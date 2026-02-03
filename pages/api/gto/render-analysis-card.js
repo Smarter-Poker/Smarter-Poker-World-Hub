@@ -66,7 +66,7 @@ export default async function handler(req) {
         } = body;
 
         // Generate cache key based on content
-        const cacheKey = generateCacheKey({
+        const cacheKey = await generateCacheKey({
             action, frequency, explanation, gtoApproach,
             evValue, evDescription, alternateLines,
         });
@@ -369,10 +369,9 @@ function Section({ title, icon, children }) {
 /**
  * Generate cache key from content
  */
-function generateCacheKey(data) {
-    const hash = crypto.createHash('sha256');
-    hash.update(JSON.stringify(data));
-    return `gto-panel-${hash.digest('hex').substring(0, 16)}`;
+async function generateCacheKey(data) {
+    const hash = await hashString(JSON.stringify(data));
+    return `gto-panel-${hash.substring(0, 16)}`;
 }
 
 /**
