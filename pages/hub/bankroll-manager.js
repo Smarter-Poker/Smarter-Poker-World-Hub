@@ -347,14 +347,12 @@ export default function BankrollManagerPage() {
         <title>Bankroll Manager — Smarter.Poker</title>
         <meta name="description" content="Professional bankroll tracking and financial truth engine" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
         <style>{`
           .bankroll-page { width: 100%; max-width: 100%; margin: 0 auto; overflow-x: hidden; }
-          
-          
-          
-          
-          
+          @keyframes metalGlow { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+          @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+          @keyframes scanLine { 0% { top: 0; } 100% { top: 100%; } }
         `}</style>
       </Head>
 
@@ -862,46 +860,24 @@ export default function BankrollManagerPage() {
 
             {/* Pro Tools View - Gated for non-VIP */}
             {activeSection === 'pro' && (
-              <div style={styles.activitySection}>
-                <h2 style={styles.sectionTitle}>Pro Tools</h2>
+              <div style={styles.proToolsContainer}>
+                {/* Pro Tools Header */}
+                <div style={styles.proToolsHeader}>
+                  <div style={styles.proToolsLed} />
+                  <h2 style={styles.proToolsTitle}>
+                    <span style={{ color: '#00D4FF' }}>💎</span> PRO TOOLS
+                  </h2>
+                  <p style={styles.proToolsSubtitle}>Premium bankroll features for serious players</p>
+                </div>
+
                 <BankrollProGate userId={userId}>
-                  {/* Pro Features - Only visible after unlock or for VIP */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-
-                    {/* Receipt Scanner */}
-                    <div style={styles.proToolSection}>
-                      <h3 style={styles.proToolTitle}>📸 Receipt Scanner</h3>
-                      <p style={styles.proToolDesc}>Scan receipts with OCR for automatic expense tracking</p>
-                      <ReceiptScanner userId={userId} onScanComplete={loadData} />
-                    </div>
-
-                    {/* Tax Reports */}
-                    <div style={styles.proToolSection}>
-                      <h3 style={styles.proToolTitle}>📊 Tax Report Generator</h3>
-                      <p style={styles.proToolDesc}>Generate IRS-ready reports with W2-G tracking</p>
-                      <TaxReportPanel userId={userId} />
-                    </div>
-
-                    {/* Staking Tracker */}
-                    <div style={styles.proToolSection}>
-                      <h3 style={styles.proToolTitle}>👥 Staking & Backers</h3>
-                      <p style={styles.proToolDesc}>Track backer relationships, splits, and makeup</p>
-                      <StakingTracker userId={userId} />
-                    </div>
-
-                    {/* Series Tracker */}
-                    <div style={styles.proToolSection}>
-                      <h3 style={styles.proToolTitle}>🏆 Tournament Series</h3>
-                      <p style={styles.proToolDesc}>Track WSOP, WPT, and other series ROI</p>
-                      <SeriesTracker userId={userId} />
-                    </div>
-
-                    {/* Hand Review Links */}
-                    <div style={styles.proToolSection}>
-                      <h3 style={styles.proToolTitle}>🧠 AI Hand Review</h3>
-                      <p style={styles.proToolDesc}>Link analyzed hands to sessions</p>
-                      <SessionHandReview userId={userId} />
-                    </div>
+                  {/* Pro Features Grid - Only visible after unlock or for VIP */}
+                  <div style={styles.proToolsGrid}>
+                    <ReceiptScanner userId={userId} onScanComplete={loadData} />
+                    <TaxReportPanel userId={userId} />
+                    <StakingTracker userId={userId} />
+                    <SeriesTracker userId={userId} />
+                    <SessionHandReview userId={userId} />
                   </div>
                 </BankrollProGate>
               </div>
@@ -1423,22 +1399,50 @@ const styles = {
     cursor: 'pointer',
     transition: 'all 0.2s ease',
   },
-  // Pro Tools styles
-  proToolSection: {
-    padding: 20,
-    background: 'rgba(255, 255, 255, 0.02)',
-    border: '1px solid rgba(255, 255, 255, 0.06)',
-    borderRadius: 12,
+  // Pro Tools styles - Futuristic Metal UI
+  proToolsContainer: {
+    position: 'relative',
+    padding: 0,
   },
-  proToolTitle: {
-    fontSize: 16,
-    fontWeight: 600,
+  proToolsHeader: {
+    position: 'relative',
+    padding: '24px 20px 16px',
+    background: 'linear-gradient(180deg, rgba(0,20,40,0.8) 0%, transparent 100%)',
+    borderBottom: '1px solid rgba(0,212,255,0.2)',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  proToolsLed: {
+    position: 'absolute',
+    top: 0,
+    left: '20%',
+    right: '20%',
+    height: 2,
+    background: '#00D4FF',
+    boxShadow: '0 0 10px rgba(0,212,255,0.6), 0 0 20px rgba(0,212,255,0.3)',
+  },
+  proToolsTitle: {
+    fontFamily: "'Orbitron', sans-serif",
+    fontSize: 20,
+    fontWeight: 700,
+    letterSpacing: '0.15em',
     color: '#fff',
     margin: '0 0 6px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
   },
-  proToolDesc: {
+  proToolsSubtitle: {
+    fontFamily: "'Rajdhani', sans-serif",
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.5)',
-    margin: '0 0 16px',
+    color: 'rgba(255,255,255,0.5)',
+    letterSpacing: '0.1em',
+    margin: 0,
+  },
+  proToolsGrid: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 20,
   },
 };

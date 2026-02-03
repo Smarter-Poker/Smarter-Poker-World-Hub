@@ -14,6 +14,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/router';
+import { TRAINING_CONFIG } from '../../config/trainingConfig';
 
 export default function GameIntroSplash({ isVisible, game, onComplete }) {
     const router = useRouter();
@@ -182,16 +183,16 @@ export default function GameIntroSplash({ isVisible, game, onComplete }) {
                             {/* Game Stats */}
                             <div style={styles.gameStatsRow}>
                                 <div style={styles.statBox}>
-                                    <span style={styles.statValue}>{game?.hands || 20}</span>
+                                    <span style={styles.statValue}>{game?.hands || TRAINING_CONFIG.questionsPerLevel}</span>
                                     <span style={styles.statLabel}>Hands</span>
                                 </div>
                                 <div style={styles.statBox}>
-                                    <span style={styles.statValue}>{game?.passThreshold || 85}%</span>
+                                    <span style={styles.statValue}>{game?.passThreshold || TRAINING_CONFIG.passThresholds[1]}%</span>
                                     <span style={styles.statLabel}>To Pass</span>
                                 </div>
                                 <div style={styles.statBox}>
-                                    <span style={{ ...styles.statValue, color: '#FFD700' }}>{game?.xpReward || 100}</span>
-                                    <span style={styles.statLabel}>XP Reward</span>
+                                    <span style={{ ...styles.statValue, color: '#00D4FF' }}>💎 {game?.diamondReward || 10}</span>
+                                    <span style={styles.statLabel}>Reward</span>
                                 </div>
                             </div>
 
@@ -207,7 +208,7 @@ export default function GameIntroSplash({ isVisible, game, onComplete }) {
 
                             {/* Tip */}
                             <p style={styles.tipText}>
-                                Answer Quickly For Bonus XP
+                                Answer Quickly For Bonus Diamonds
                             </p>
                         </motion.div>
                     )}
