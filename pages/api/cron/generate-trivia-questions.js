@@ -283,7 +283,6 @@ Return ONLY a valid JSON array:
                 correct_index: q.correct_index,
                 explanation: q.explanation || '',
                 subcategory: subcategory,
-                source: 'grok-generated',
                 created_at: new Date().toISOString(),
                 last_used_at: null // For 60-day tracking
             }));

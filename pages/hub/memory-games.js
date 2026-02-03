@@ -2212,7 +2212,7 @@ export default function MemoryGamesPage() {
         startGame(currentLevel);
     };
 
-    // Fetch Jarvis explanation for a hand
+    // Fetch Jarvis explanation for a hand (with GTO panel image)
     const fetchJarvisExplanation = async (hand, correctAction, userAction) => {
         setExplainModal({
             show: true,
@@ -2220,28 +2220,46 @@ export default function MemoryGamesPage() {
             correctAction,
             userAction,
             explanation: null,
+            panelImageUrl: null,
             loading: true
         });
 
         try {
-            const response = await fetch('/api/gto/explain-hand', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    hand,
-                    position: currentScenario?.position,
-                    stackDepth: currentScenario?.stackDepth,
-                    correctAction,
-                    userAction,
-                    scenario: currentScenario
-                })
-            });
+            // Fetch both explanation AND GTO panel image in parallel
+            const [explainResponse, panelResponse] = await Promise.all([
+                fetch('/api/gto/explain-hand', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        hand,
+                        position: currentScenario?.position,
+                        stackDepth: currentScenario?.stackDepth,
+                        correctAction,
+                        userAction,
+                        scenario: currentScenario
+                    })
+                }),
+                fetch('/api/gto/render-analysis-card', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: correctAction,
+                        frequency: 100,
+                        explanation: `${correctAction.toUpperCase()} with ${hand} is the correct play in this spot.`,
+                        gtoApproach: currentScenario?.tip || 'Follow solver-approved strategies.',
+                        evAnalysis: '+EV',
+                        alternateLines: []
+                    })
+                }).catch(() => null) // Fallback if panel generation fails
+            ]);
 
-            const result = await response.json();
+            const explainResult = await explainResponse.json();
+            const panelResult = panelResponse ? await panelResponse.json().catch(() => null) : null;
 
             setExplainModal(prev => ({
                 ...prev,
-                explanation: result.explanation || 'Unable to generate explanation.',
+                explanation: explainResult.explanation || 'Unable to generate explanation.',
+                panelImageUrl: panelResult?.imageUrl || null,
                 loading: false
             }));
         } catch (error) {
@@ -2249,6 +2267,7 @@ export default function MemoryGamesPage() {
             setExplainModal(prev => ({
                 ...prev,
                 explanation: 'Failed to get explanation. Please try again.',
+                panelImageUrl: null,
                 loading: false
             }));
         }
@@ -4136,82 +4155,215 @@ export default function MemoryGamesPage() {
                             )}
 
 
-                            {/* Jarvis Explain Modal */}
+                            {/* Jarvis GTO Panel Modal - Futuristic Metal Design */}
                             {explainModal.show && (
                                 <div style={{
                                     position: 'fixed',
                                     top: 0, left: 0, right: 0, bottom: 0,
-                                    background: 'rgba(0, 0, 0, 0.85)',
+                                    background: 'rgba(0, 0, 0, 0.92)',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     zIndex: 9999,
-                                    padding: 20
+                                    padding: 16,
+                                    backdropFilter: 'blur(8px)'
                                 }}>
                                     <div style={{
-                                        background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
-                                        border: '1px solid rgba(139, 92, 246, 0.3)',
-                                        borderRadius: 16,
-                                        padding: 24,
-                                        maxWidth: 480,
+                                        maxWidth: 440,
                                         width: '100%',
-                                        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)'
+                                        position: 'relative'
                                     }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                                <span style={{ fontSize: 28, fontFamily: 'Orbitron', fontWeight: 'bold', color: '#A78BFA' }}>J</span>
-                                                <span style={{ fontFamily: 'Orbitron', fontSize: 18, color: '#A78BFA' }}>Jarvis GTO Coach</span>
+                                        {/* Close Button */}
+                                        <button
+                                            onClick={() => setExplainModal(prev => ({ ...prev, show: false }))}
+                                            style={{
+                                                position: 'absolute',
+                                                top: -12,
+                                                right: -12,
+                                                background: 'linear-gradient(135deg, #1a1a2e, #0a0a12)',
+                                                border: '2px solid rgba(0, 212, 255, 0.5)',
+                                                borderRadius: '50%',
+                                                width: 36,
+                                                height: 36,
+                                                color: '#00D4FF',
+                                                cursor: 'pointer',
+                                                fontSize: 16,
+                                                fontWeight: 'bold',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                boxShadow: '0 4px 20px rgba(0, 212, 255, 0.3)',
+                                                zIndex: 10
+                                            }}
+                                        >
+                                            ✕
+                                        </button>
+
+                                        {explainModal.loading ? (
+                                            /* Loading State - Futuristic */
+                                            <div style={{
+                                                background: 'linear-gradient(180deg, #0d1b2a, #1b263b)',
+                                                border: '2px solid rgba(0, 212, 255, 0.4)',
+                                                borderRadius: 20,
+                                                padding: 48,
+                                                textAlign: 'center',
+                                                boxShadow: '0 0 60px rgba(0, 212, 255, 0.15), inset 0 0 30px rgba(0, 0, 0, 0.5)'
+                                            }}>
+                                                <div style={{
+                                                    width: 80,
+                                                    height: 80,
+                                                    borderRadius: '50%',
+                                                    border: '4px solid rgba(0, 212, 255, 0.2)',
+                                                    borderTop: '4px solid #00D4FF',
+                                                    animation: 'spin 1s linear infinite',
+                                                    margin: '0 auto 24px'
+                                                }} />
+                                                <div style={{
+                                                    fontFamily: 'Orbitron, sans-serif',
+                                                    fontSize: 18,
+                                                    color: '#00D4FF',
+                                                    marginBottom: 8,
+                                                    textShadow: '0 0 20px rgba(0, 212, 255, 0.5)'
+                                                }}>
+                                                    JARVIS ANALYZING
+                                                </div>
+                                                <div style={{
+                                                    fontSize: 13,
+                                                    color: 'rgba(255, 255, 255, 0.5)'
+                                                }}>
+                                                    Generating strategic intelligence...
+                                                </div>
                                             </div>
-                                            <button
-                                                onClick={() => setExplainModal(prev => ({ ...prev, show: false }))}
+                                        ) : explainModal.panelImageUrl ? (
+                                            /* GTO Panel Image - The New Template */
+                                            <img
+                                                src={explainModal.panelImageUrl}
+                                                alt="GTO Analysis Panel"
                                                 style={{
-                                                    background: 'rgba(255, 255, 255, 0.1)',
-                                                    border: 'none',
-                                                    borderRadius: 8,
-                                                    padding: '8px 12px',
-                                                    color: '#fff',
-                                                    cursor: 'pointer'
+                                                    width: '100%',
+                                                    borderRadius: 16,
+                                                    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(0, 212, 255, 0.15)'
                                                 }}
-                                            >
-                                                ✕
-                                            </button>
-                                        </div>
-
-                                        <div style={{
-                                            background: 'rgba(0, 0, 0, 0.3)',
-                                            borderRadius: 12,
-                                            padding: 16,
-                                            marginBottom: 16
-                                        }}>
-                                            <div style={{ fontFamily: 'Orbitron', fontSize: 24, color: '#fff', marginBottom: 8 }}>
-                                                {explainModal.hand}
-                                            </div>
-                                            <div style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.6)' }}>
-                                                You chose: <span style={{ color: '#EF4444', fontWeight: 600 }}>{explainModal.userAction?.toUpperCase()}</span>
-                                                {' → '}
-                                                Correct: <span style={{ color: '#10B981', fontWeight: 600 }}>{explainModal.correctAction?.toUpperCase()}</span>
-                                            </div>
-                                        </div>
-
-                                        <div style={{
-                                            background: 'rgba(139, 92, 246, 0.1)',
-                                            border: '1px solid rgba(139, 92, 246, 0.2)',
-                                            borderRadius: 12,
-                                            padding: 16,
-                                            minHeight: 80
-                                        }}>
-                                            {explainModal.loading ? (
-                                                <div style={{ textAlign: 'center', color: 'rgba(255, 255, 255, 0.6)' }}>
-                                                    <div style={{ marginBottom: 8 }}>...</div>
-                                                    Jarvis is analyzing...
+                                            />
+                                        ) : (
+                                            /* Fallback to text if no panel image */
+                                            <div style={{
+                                                background: 'linear-gradient(180deg, #0d1b2a, #1b263b)',
+                                                border: '2px solid rgba(0, 212, 255, 0.4)',
+                                                borderRadius: 20,
+                                                padding: 24,
+                                                boxShadow: '0 0 60px rgba(0, 212, 255, 0.15), inset 0 0 30px rgba(0, 0, 0, 0.5)'
+                                            }}>
+                                                {/* Header */}
+                                                <div style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'space-between',
+                                                    marginBottom: 16,
+                                                    paddingBottom: 16,
+                                                    borderBottom: '1px solid rgba(0, 212, 255, 0.2)'
+                                                }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                                        <div style={{
+                                                            width: 48,
+                                                            height: 48,
+                                                            borderRadius: '50%',
+                                                            background: 'linear-gradient(135deg, #1a3a52, #0d2233)',
+                                                            border: '2px solid rgba(0, 212, 255, 0.5)',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            fontSize: 20,
+                                                            color: '#00D4FF'
+                                                        }}>
+                                                            J
+                                                        </div>
+                                                        <span style={{ fontFamily: 'Orbitron', fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>JARVIS</span>
+                                                    </div>
+                                                    <div style={{
+                                                        padding: '8px 20px',
+                                                        background: `linear-gradient(135deg, ${explainModal.correctAction === 'raise' ? '#00ff88' :
+                                                            explainModal.correctAction === 'call' ? '#FFD700' :
+                                                                explainModal.correctAction === 'fold' ? '#EF4444' :
+                                                                    '#00D4FF'
+                                                            }22, transparent)`,
+                                                        border: `2px solid ${explainModal.correctAction === 'raise' ? '#00ff88' :
+                                                            explainModal.correctAction === 'call' ? '#FFD700' :
+                                                                explainModal.correctAction === 'fold' ? '#EF4444' :
+                                                                    '#00D4FF'
+                                                            }`,
+                                                        borderRadius: 8,
+                                                        fontFamily: 'Orbitron',
+                                                        fontSize: 18,
+                                                        fontWeight: 'bold',
+                                                        color: explainModal.correctAction === 'raise' ? '#00ff88' :
+                                                            explainModal.correctAction === 'call' ? '#FFD700' :
+                                                                explainModal.correctAction === 'fold' ? '#EF4444' :
+                                                                    '#00D4FF',
+                                                        textShadow: '0 0 10px currentColor'
+                                                    }}>
+                                                        {explainModal.correctAction?.toUpperCase()}
+                                                    </div>
                                                 </div>
-                                            ) : (
-                                                <div style={{ color: 'rgba(255, 255, 255, 0.9)', lineHeight: 1.6 }}>
-                                                    {explainModal.explanation}
+
+                                                {/* Hand Info */}
+                                                <div style={{
+                                                    background: 'rgba(0, 0, 0, 0.4)',
+                                                    borderRadius: 12,
+                                                    padding: 16,
+                                                    marginBottom: 16,
+                                                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                                                }}>
+                                                    <div style={{
+                                                        fontFamily: 'Orbitron',
+                                                        fontSize: 28,
+                                                        color: '#fff',
+                                                        marginBottom: 8,
+                                                        textShadow: '0 0 20px rgba(255, 255, 255, 0.3)'
+                                                    }}>
+                                                        {explainModal.hand}
+                                                    </div>
+                                                    <div style={{ fontSize: 13, color: 'rgba(255, 255, 255, 0.5)' }}>
+                                                        You chose: <span style={{ color: '#EF4444' }}>{explainModal.userAction?.toUpperCase()}</span>
+                                                        {' → '}
+                                                        Optimal: <span style={{ color: '#00ff88' }}>{explainModal.correctAction?.toUpperCase()}</span>
+                                                    </div>
                                                 </div>
-                                            )}
-                                        </div>
+
+                                                {/* Explanation Section */}
+                                                <div style={{
+                                                    background: 'rgba(0, 0, 0, 0.3)',
+                                                    borderRadius: 12,
+                                                    padding: 16,
+                                                    border: '1px solid rgba(0, 212, 255, 0.2)'
+                                                }}>
+                                                    <div style={{
+                                                        fontSize: 11,
+                                                        color: '#00D4FF',
+                                                        fontWeight: 600,
+                                                        marginBottom: 8,
+                                                        textTransform: 'uppercase',
+                                                        letterSpacing: 1
+                                                    }}>
+                                                        ⓘ GTO Explanation
+                                                    </div>
+                                                    <div style={{
+                                                        color: 'rgba(255, 255, 255, 0.85)',
+                                                        lineHeight: 1.7,
+                                                        fontSize: 14
+                                                    }}>
+                                                        {explainModal.explanation}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
+                                    <style>{`
+                                        @keyframes spin {
+                                            0% { transform: rotate(0deg); }
+                                            100% { transform: rotate(360deg); }
+                                        }
+                                    `}</style>
                                 </div>
                             )}
                         </>

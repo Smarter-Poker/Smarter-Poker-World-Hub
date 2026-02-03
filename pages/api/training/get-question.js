@@ -82,6 +82,12 @@ export default async function handler(req, res) {
             console.log('[Training] 📊 Using CHART engine for push/fold training');
             question = await generateQuestionFromChart(gameId, level, game, stackDepth);
 
+            // Fallback to Grok for ICM/push-fold questions if no chart data
+            if (!question) {
+                console.log('[Training] ⚠️ No chart data, generating push/fold question with Grok');
+                question = await generateChartQuestionWithGrok(gameId, level, game, gameConfig);
+            }
+
         } else {
             // PIO ENGINE: GTO Solver Data (Default)
             console.log('[Training] 📊 Using PIO engine - querying solver data...');
@@ -502,6 +508,87 @@ async function generateQuestionFromChart(gameId, level, game, stackDepth) {
 }
 
 /**
+ * CHART ENGINE GROK FALLBACK: Generate push/fold question when no chart data exists
+ * Specifically for: mtt-001 (Push/Fold Mastery), mtt-016 (Chip & Chair), cash-010 (Short Stack Rat)
+ */
+async function generateChartQuestionWithGrok(gameId, level, game, gameConfig) {
+    try {
+        const grok = getGrokClient();
+
+        const gameName = game?.name || 'Push/Fold Training';
+        const stackDepth = gameConfig?.stackDepth || '10-15bb';
+        const playerCount = gameConfig?.players || 9;
+        const format = gameConfig?.format || '9-Max Tournament';
+
+        console.log(`[Training] 🎯 Generating CHART/Push-Fold question with Grok for ${gameName}`);
+
+        const pushFoldPrompt = `You are an ICM poker expert specializing in push/fold and short-stack strategy. Generate a PUSH/FOLD training question for "${gameName}".
+
+CRITICAL: This is about SHORT-STACK ICM DECISION MAKING:
+- Stack sizes: ${stackDepth} (very short stacks!)
+- Format: ${format} (${playerCount} players)
+- Decisions are binary: PUSH ALL-IN or FOLD
+- Use Nash equilibrium and ICM pressure considerations
+- Include realistic tournament spots (bubble, final table, etc.)
+
+Generate a realistic SHORT-STACK scenario where the hero must decide: PUSH or FOLD.
+
+Generate in this EXACT JSON format (no markdown, no code blocks):
+{
+  "id": "grok_chart_${gameId}_${Date.now()}",
+  "type": "CHART",
+  "question": "Push or Fold?",
+  "scenario": {
+    "heroPosition": "BTN",
+    "heroStack": 12,
+    "gameType": "${format}",
+    "heroHand": "A5s",
+    "board": "",
+    "pot": 2.5,
+    "villainPosition": "BB",
+    "villainStack": 18,
+    "action": "Folded to you",
+    "tournamentStage": "Bubble",
+    "blindLevel": "500/1000 with 100 ante"
+  },
+  "options": [
+    {"id": "push", "text": "Push All-In"},
+    {"id": "fold", "text": "Fold"}
+  ],
+  "correctAnswer": "push",
+  "explanation": "With ${stackDepth}, A5s is a mandatory push from the button according to Nash charts. Your fold equity combined with hand equity makes this +EV even if called."
+}
+
+IMPORTANT: 
+- Use realistic stack sizes between 1-20 big blinds
+- Hero hand should be a decision point (not obvious like AA or 72o)
+- Include ICM context when appropriate (bubble, pay jumps, etc.)
+- Difficulty: ${level}/10`;
+
+        const response = await grok.chat.completions.create({
+            model: 'grok-3',
+            messages: [{ role: 'user', content: pushFoldPrompt }],
+            temperature: 0.85,
+            max_tokens: 700,
+        });
+
+        const content = response.choices[0]?.message?.content || '';
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+
+        if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            console.log(`[Training] ✅ Grok generated CHART question:`, parsed.question);
+            return parsed;
+        }
+    } catch (error) {
+        console.error('[Training] ❌ Grok chart question failed:', error.message);
+    }
+
+    // Return hardcoded chart fallback
+    return getHardcodedQuestion('CHART', level, 'tournament');
+}
+
+/**
  * Build options from solver template frequencies
  */
 function buildPIOOptions(template) {
@@ -630,7 +717,9 @@ async function getScenarioQuestion(gameId, level, seenIds) {
 
 /**
  * Grok AI Fallback: Generate question when database is exhausted
- * PIO ENGINE IS THE SOURCE OF TRUTH - Grok generates GTO-accurate questions
+ * Routes to different prompts based on engine type:
+ * - SCENARIO: Psychology/Mental Game questions (no GTO math)
+ * - PIO/CHART: GTO solver-based poker questions
  */
 async function generateQuestionWithGrok(gameId, engineType, level, gameType, game, gameConfig) {
     try {
@@ -638,38 +727,132 @@ async function generateQuestionWithGrok(gameId, engineType, level, gameType, gam
 
         const gameName = game?.name || 'Training Game';
         const gameCategory = game?.category || 'CASH';
+        const gameFocus = game?.focus || 'poker training';
 
-        // Map game type to readable format
-        const gameTypeDisplay = gameType === 'tournament' ? 'Tournament (MTT)'
-            : gameType === 'sng' ? 'Spin & Go (SNG)'
-                : '6-Max Cash Game';
+        // ═══════════════════════════════════════════════════════════════════
+        // SCENARIO ENGINE: Psychology/Mental Game Questions
+        // ═══════════════════════════════════════════════════════════════════
+        if (engineType === 'SCENARIO' || gameCategory === 'PSYCHOLOGY') {
+            console.log('[Training] 🧠 Generating PSYCHOLOGY/MENTAL GAME question with Grok');
 
-        const prompt = `You are a GTO poker solver expert. Generate a realistic poker training question for "${gameName}" (${gameCategory}) at difficulty level ${level}/10.
+            const psychologyPrompt = `You are an elite poker mental game coach. Generate a PSYCHOLOGY / MENTAL GAME training question for "${gameName}" focusing on: ${gameFocus}.
+
+CRITICAL: This is NOT about GTO strategy or poker math. This is about:
+- Emotional control and tilt management
+- Decision-making under pressure
+- Mindset and psychological resilience
+- Focus, discipline, and mental stamina
+- Handling variance and bad beats
+- Table presence and composure
+
+Game Context:
+- Training Game: ${gameName}
+- Focus Area: ${gameFocus}
+- Difficulty: ${level}/10 (1=beginner, 10=master)
+
+Generate a realistic poker MENTAL GAME scenario. The question should test the player's psychological response, NOT their GTO knowledge.
+
+Generate in this EXACT JSON format (no markdown, no code blocks):
+{
+  "id": "grok_${gameId}_${Date.now()}",
+  "type": "SCENARIO",
+  "question": "How would you handle this situation?",
+  "scenario": {
+    "title": "${gameName}",
+    "context": "Describe a realistic poker scenario that tests mental game...",
+    "isPsychology": true
+  },
+  "options": [
+    {"id": "a", "text": "First option (typically impulsive/tilted response)"},
+    {"id": "b", "text": "Second option (optimal mental game response)"},
+    {"id": "c", "text": "Third option (passive/avoidant response)"},
+    {"id": "d", "text": "Fourth option (aggressive overreaction)"}
+  ],
+  "correctAnswer": "b",
+  "explanation": "The optimal response is [b] because... (explain the psychology)"
+}
+
+EXAMPLES OF GOOD PSYCHOLOGY QUESTIONS:
+- "You just lost a huge pot with AA vs 72o all-in preflop. What do you do next?"
+- "An opponent is deliberately tanking on every decision. How do you maintain focus?"
+- "You're on a 10 buy-in downswing over 3 sessions. What's your approach?"
+- "A recreational player berated you in chat after a bad beat. How do you respond?"
+- "You've been card dead for 2 hours in a tournament. How do you stay sharp?"
+
+Make the scenario realistic and the options psychologically distinct.`;
+
+            const response = await grok.chat.completions.create({
+                model: 'grok-3',
+                messages: [{ role: 'user', content: psychologyPrompt }],
+                temperature: 0.9, // Higher creativity for varied scenarios
+                max_tokens: 800,
+            });
+
+            const content = response.choices[0]?.message?.content || '';
+            const jsonMatch = content.match(/\{[\s\S]*\}/);
+
+            if (jsonMatch) {
+                const parsed = JSON.parse(jsonMatch[0]);
+                // Ensure isPsychology flag is set
+                if (parsed.scenario) {
+                    parsed.scenario.isPsychology = true;
+                }
+                console.log(`[Training] ✅ Grok generated PSYCHOLOGY question:`, parsed.question);
+                return parsed;
+            }
+
+            // Psychology fallback
+            return getHardcodedQuestion('SCENARIO', level, gameType);
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // PIO/CHART ENGINE: GTO Solver-Based Questions  
+        // ═══════════════════════════════════════════════════════════════════
+
+        // Get player count and format from game config
+        const playerCount = gameConfig?.players || 6;
+        const gameFormat = gameConfig?.format || '6-Max Cash';
+        const stackDepth = gameConfig?.stackDepth || '100bb';
+
+        // Map game type to readable format with accurate player count
+        const gameTypeDisplay = gameType === 'tournament'
+            ? `${playerCount === 9 ? '9-Max' : playerCount === 3 ? '3-Max' : playerCount === 2 ? 'Heads-Up' : '6-Max'} Tournament (MTT)`
+            : gameType === 'sng'
+                ? `${playerCount === 2 ? 'Heads-Up' : '3-Max'} Spin & Go`
+                : `${playerCount === 2 ? 'Heads-Up' : '6-Max'} Cash Game`;
+
+        console.log(`[Training] 📊 Generating GTO question for ${gameTypeDisplay} (${playerCount}p)`);
+
+        const gtoPrompt = `You are a GTO poker solver expert. Generate a realistic poker training question for "${gameName}" at difficulty level ${level}/10.
 
 CRITICAL REQUIREMENTS:
+- Game Format: ${gameFormat} (${playerCount} players)
+- Stack Depth: ${stackDepth}
 - Game Type: ${gameTypeDisplay}
-- Use REAL poker scenarios that would appear in ${gameTypeDisplay} games
+${playerCount === 2 ? '- This is HEADS-UP: Only 2 players (BTN/SB vs BB)' : ''}
+${playerCount === 3 ? '- This is 3-MAX: Only 3 players (BTN, SB, BB)' : ''}
+${playerCount === 9 ? '- This is 9-MAX: Full ring with UTG, MP, HJ, CO, BTN, SB, BB' : ''}
 - ${gameType === 'tournament' ? 'Include ICM considerations and stack depths in BB' : ''}
-- ${gameType === 'cash' ? 'Use 100BB effective stacks and focus on postflop play' : ''}
-- ${gameType === 'sng' ? 'Use hyper-turbo stack depths (10-25BB) and 3-max dynamics' : ''}
+- ${gameType === 'cash' ? 'Focus on postflop play and pot geometry' : ''}
+- ${gameType === 'sng' ? 'Use hyper-turbo stack depths and aggression' : ''}
 - Provide GTO-accurate solver-style answers
 - Include specific stack depths, positions, and board textures
-- Explain WHY the GTO play is optimal (equity, range advantage, ICM, etc.)
+- Explain WHY the GTO play is optimal
 
 Game Context:
 - Game: ${gameName}
-- Category: ${gameCategory}
-- Game Type: ${gameTypeDisplay}
-- Difficulty: ${level}/10 (1=beginner, 10=expert)
-- Engine: ${engineType}
+- Format: ${gameFormat}
+- Players: ${playerCount}
+- Stack: ${stackDepth}
+- Difficulty: ${level}/10
 
-Generate a question in this EXACT JSON format (no markdown, no code blocks):
+Generate in this EXACT JSON format (no markdown, no code blocks):
 {
   "id": "grok_${gameId}_${Date.now()}",
-  "type": "${engineType}",
+  "type": "PIO",
   "question": "What is the GTO play in this spot?",
   "scenario": {
-    "heroPosition": "BTN",
+    "heroPosition": "${playerCount === 2 ? 'SB' : 'BTN'}",
     "heroStack": ${gameType === 'tournament' ? '25' : gameType === 'sng' ? '15' : '100'},
     "gameType": "${gameTypeDisplay}",
     "heroHand": "AhKs",
@@ -677,34 +860,33 @@ Generate a question in this EXACT JSON format (no markdown, no code blocks):
     "pot": ${gameType === 'tournament' ? '8' : gameType === 'sng' ? '5' : '12'},
     "villainPosition": "BB",
     "villainStack": ${gameType === 'tournament' ? '22' : gameType === 'sng' ? '12' : '100'},
-    "action": "Villain bets ${gameType === 'tournament' ? '5bb' : gameType === 'sng' ? '3bb' : '8bb'}"
+    "action": "Villain checks"
   },
   "options": [
-    {"id": "a", "text": "Fold"},
-    {"id": "b", "text": "Call"},
-    {"id": "c", "text": "Raise to 24bb"},
-    {"id": "d", "text": "All-In"}
+    {"id": "a", "text": "Check"},
+    {"id": "b", "text": "Bet small (33%)"},
+    {"id": "c", "text": "Bet medium (66%)"},
+    {"id": "d", "text": "Bet large (100%+)"}
   ],
-  "correctAnswer": "c",
-  "explanation": "Raising is optimal because: (1) You have strong equity with AK high + backdoor flush, (2) Villain's range is capped on this dry board, (3) You have position and can apply maximum pressure${gameType === 'tournament' ? ', (4) ICM pressure makes villain fold more often' : ''}, (4) Solver shows this as a 65% raise frequency spot."
+  "correctAnswer": "b",
+  "explanation": "Betting 33% is optimal because: (1) We have range advantage on this dry board, (2) Small sizing extracts value from weaker hands while keeping villain's range wide, (3) Solver shows high c-bet frequency with this sizing."
 }
 
-IMPORTANT: Make the scenario realistic for ${gameTypeDisplay}. Use proper GTO reasoning in the explanation.`;
+IMPORTANT: Make the scenario realistic for ${gameFormat}. ${playerCount === 2 ? 'Remember this is HEADS-UP with only BTN/SB and BB.' : ''}`;
 
         const response = await grok.chat.completions.create({
             model: 'grok-3',
-            messages: [{ role: 'user', content: prompt }],
-            temperature: 0.8, // Higher temp for more variety
+            messages: [{ role: 'user', content: gtoPrompt }],
+            temperature: 0.8,
             max_tokens: 800,
         });
 
         const content = response.choices[0]?.message?.content || '';
-
-        // Try to extract JSON from response
         const jsonMatch = content.match(/\{[\s\S]*\}/);
+
         if (jsonMatch) {
             const parsed = JSON.parse(jsonMatch[0]);
-            console.log(`[Training] ✅ Grok generated ${gameTypeDisplay} question:`, parsed.question);
+            console.log(`[Training] ✅ Grok generated ${gameTypeDisplay} GTO question:`, parsed.question);
             return parsed;
         }
     } catch (error) {
