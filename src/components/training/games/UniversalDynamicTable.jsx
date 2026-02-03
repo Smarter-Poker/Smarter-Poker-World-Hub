@@ -403,18 +403,29 @@ export default function UniversalDynamicTable({
                         const stackSize = isHero ? heroStack : generateVillainStack(index);
 
                         return (
-                            <div
+                            <motion.div
                                 key={seat.id}
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: index * 0.05, duration: 0.3 }}
                                 style={{
                                     ...styles.seat,
                                     left: `${seat.x}%`,
                                     top: `${seat.y}%`,
                                 }}
                             >
-                                {/* Avatar */}
-                                <img
+                                {/* Avatar with hero pulse */}
+                                <motion.img
                                     src={AVATARS[index % AVATARS.length]}
                                     alt={isHero ? 'Hero' : `Player ${index}`}
+                                    animate={isHero ? {
+                                        boxShadow: [
+                                            '0 0 15px rgba(0, 212, 255, 0.6)',
+                                            '0 0 25px rgba(0, 212, 255, 0.9)',
+                                            '0 0 15px rgba(0, 212, 255, 0.6)',
+                                        ]
+                                    } : {}}
+                                    transition={isHero ? { repeat: Infinity, duration: 2 } : {}}
                                     style={{
                                         ...styles.avatar,
                                         border: isHero ? '3px solid #00d4ff' : '3px solid #4a4a5a',
@@ -424,9 +435,16 @@ export default function UniversalDynamicTable({
                                     }}
                                 />
 
-                                {/* Dealer Button */}
+                                {/* Dealer Button with subtle pulse */}
                                 {isButton && (
-                                    <div style={styles.dealerButton}>D</div>
+                                    <motion.div
+                                        initial={{ scale: 0 }}
+                                        animate={{ scale: 1 }}
+                                        transition={{ type: 'spring', delay: 0.3 }}
+                                        style={styles.dealerButton}
+                                    >
+                                        D
+                                    </motion.div>
                                 )}
 
                                 {/* Badge + Hero Cards */}
@@ -448,29 +466,33 @@ export default function UniversalDynamicTable({
                                     {/* Hero Cards - Only show for hero */}
                                     {isHero && (
                                         <div style={styles.heroCardsInline}>
-                                            <img
+                                            <motion.img
                                                 src={getCardPath(heroCards[0])}
                                                 alt={heroCards[0]}
+                                                initial={{ y: 50, opacity: 0, rotateZ: -30 }}
+                                                animate={{ y: 0, opacity: 1, rotateZ: -12 }}
+                                                transition={{ delay: 0.1, duration: 0.4, type: 'spring' }}
                                                 style={{
                                                     ...styles.card,
-                                                    transform: 'rotate(-12deg)',
                                                     transformOrigin: 'bottom center',
                                                 }}
                                             />
-                                            <img
+                                            <motion.img
                                                 src={getCardPath(heroCards[1])}
                                                 alt={heroCards[1]}
+                                                initial={{ y: 50, opacity: 0, rotateZ: 30 }}
+                                                animate={{ y: 0, opacity: 1, rotateZ: 8 }}
+                                                transition={{ delay: 0.2, duration: 0.4, type: 'spring' }}
                                                 style={{
                                                     ...styles.card,
-                                                    transform: 'rotate(8deg)',
-                                                    transformOrigin: 'bottom center',
                                                     marginLeft: -20,
+                                                    transformOrigin: 'bottom center',
                                                 }}
                                             />
                                         </div>
                                     )}
                                 </div>
-                            </div>
+                            </motion.div>
                         );
                     })}
                 </div>
@@ -492,27 +514,44 @@ export default function UniversalDynamicTable({
                     </div>
                 )}
 
-                {/* POT DISPLAY */}
+                {/* POT DISPLAY with chip icon */}
                 {pot > 0 && (
-                    <div style={styles.pot}>
-                        POT: {pot} BB
-                    </div>
+                    <motion.div
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        style={styles.pot}
+                    >
+                        <span style={styles.chipIcon}>🪙</span>
+                        <span>POT: {pot} BB</span>
+                    </motion.div>
                 )}
 
-                {/* VILLAIN ACTION INDICATOR */}
+                {/* VILLAIN ACTION SPEECH BUBBLE */}
                 {villainAction && (
-                    <div style={styles.villainAction}>
-                        {villainPosition}: {villainAction}
-                    </div>
+                    <motion.div
+                        initial={{ x: -30, opacity: 0, scale: 0.9 }}
+                        animate={{ x: 0, opacity: 1, scale: 1 }}
+                        transition={{ type: 'spring', damping: 15 }}
+                        style={styles.villainActionBubble}
+                    >
+                        <div style={styles.villainActionHeader}>{villainPosition}</div>
+                        <div style={styles.villainActionText}>{villainAction}</div>
+                        <div style={styles.speechTail} />
+                    </motion.div>
                 )}
 
                 {/* STREET INDICATOR */}
-                <div style={styles.streetIndicator}>
-                    {boardCards.length === 0 && 'Preflop'}
-                    {boardCards.length === 3 && 'Flop'}
-                    {boardCards.length === 4 && 'Turn'}
-                    {boardCards.length === 5 && 'River'}
-                </div>
+                <motion.div
+                    key={boardCards.length}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 0.8, y: 0 }}
+                    style={styles.streetIndicator}
+                >
+                    {boardCards.length === 0 && '● PREFLOP'}
+                    {boardCards.length === 3 && '● FLOP'}
+                    {boardCards.length === 4 && '● TURN'}
+                    {boardCards.length === 5 && '● RIVER'}
+                </motion.div>
             </div>
 
             {/* TIMER & COUNTER ROW */}
@@ -535,6 +574,20 @@ export default function UniversalDynamicTable({
                     Question {questionNumber} of {totalQuestions}
                 </div>
             </div>
+
+            {/* YOUR TURN INDICATOR */}
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                style={styles.yourTurnIndicator}
+            >
+                <motion.span
+                    animate={{ opacity: [0.7, 1, 0.7] }}
+                    transition={{ repeat: Infinity, duration: 1.5 }}
+                >
+                    ▶ YOUR TURN — What's the best action?
+                </motion.span>
+            </motion.div>
 
             {/* 2x2 ANSWER GRID */}
             <div style={styles.answersGrid}>
@@ -792,20 +845,62 @@ const styles = {
         fontFamily: "'Orbitron', 'Courier New', monospace",
         textShadow: '0 0 10px rgba(251, 191, 36, 0.6)',
         zIndex: 3,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+        background: 'linear-gradient(135deg, rgba(30, 30, 40, 0.9), rgba(20, 20, 30, 0.9))',
+        padding: '8px 16px',
+        borderRadius: 12,
+        border: '1px solid rgba(251, 191, 36, 0.4)',
+        boxShadow: '0 4px 15px rgba(0,0,0,0.3), 0 0 15px rgba(251, 191, 36, 0.2)',
     },
 
-    villainAction: {
+    chipIcon: {
+        fontSize: 18,
+    },
+
+    // Speech bubble for villain action
+    villainActionBubble: {
         position: 'absolute',
-        top: '22%',
+        top: '15%',
         left: '50%',
         transform: 'translateX(-50%)',
-        background: 'rgba(239, 68, 68, 0.9)',
+        background: 'linear-gradient(135deg, #ef4444, #dc2626)',
         color: '#fff',
-        padding: '6px 14px',
-        borderRadius: 8,
-        fontSize: 13,
+        padding: '10px 18px',
+        borderRadius: 16,
+        fontSize: 14,
         fontWeight: 'bold',
-        zIndex: 3,
+        zIndex: 10,
+        boxShadow: '0 4px 20px rgba(239, 68, 68, 0.5)',
+        textAlign: 'center',
+        minWidth: 120,
+    },
+
+    villainActionHeader: {
+        fontSize: 11,
+        opacity: 0.85,
+        marginBottom: 4,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+    },
+
+    villainActionText: {
+        fontSize: 15,
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
+    },
+
+    speechTail: {
+        position: 'absolute',
+        bottom: -8,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: 0,
+        height: 0,
+        borderLeft: '10px solid transparent',
+        borderRight: '10px solid transparent',
+        borderTop: '10px solid #dc2626',
     },
 
     streetIndicator: {
@@ -814,9 +909,10 @@ const styles = {
         left: '50%',
         transform: 'translate(-50%, -50%)',
         color: '#64748b',
-        fontSize: 14,
+        fontSize: 12,
         fontWeight: 'bold',
-        opacity: 0.6,
+        letterSpacing: 2,
+        textTransform: 'uppercase',
         zIndex: 2,
     },
 
@@ -856,6 +952,19 @@ const styles = {
         border: '1px solid #00d4ff',
         boxShadow: '0 0 12px rgba(0, 212, 255, 0.3)',
         textShadow: '0 0 6px rgba(0, 212, 255, 0.6)',
+    },
+
+    yourTurnIndicator: {
+        textAlign: 'center',
+        padding: '12px 20px',
+        color: '#00d4ff',
+        fontSize: 14,
+        fontWeight: 'bold',
+        fontFamily: "'Orbitron', 'Courier New', monospace",
+        letterSpacing: 1,
+        textTransform: 'uppercase',
+        textShadow: '0 0 10px rgba(0, 212, 255, 0.6)',
+        flexShrink: 0,
     },
 
     answersGrid: {
@@ -934,5 +1043,21 @@ const styles = {
         fontSize: 15,
         lineHeight: 1.6,
         color: '#e2e8f0',
+        textAlign: 'center',
+    },
+
+    xpReward: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#22c55e',
+        marginBottom: 12,
+        textShadow: '0 0 10px rgba(34, 197, 94, 0.6)',
+    },
+
+    continueHint: {
+        marginTop: 20,
+        fontSize: 13,
+        color: '#64748b',
+        textAlign: 'center',
     },
 };

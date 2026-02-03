@@ -1,50 +1,52 @@
 /**
- * SESSION HAND REVIEW COMPONENT
- * Link analyzed hands from Training Hub to bankroll sessions
+ * SESSION HAND REVIEW COMPONENT (Pro Tools Version)
+ * Display recent analyzed hands and allow linking to bankroll sessions
  */
 
 import { useState, useEffect } from 'react';
-import { Brain, Link2, ExternalLink, ChevronDown, ChevronUp, Search } from 'lucide-react';
+import { Brain, Link2, ExternalLink, ChevronDown, ChevronUp, Search, Calendar } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
-export default function SessionHandReview({ sessionId, userId }) {
-    const [linkedHands, setLinkedHands] = useState([]);
-    const [availableHands, setAvailableHands] = useState([]);
-    const [isExpanded, setIsExpanded] = useState(false);
+export default function SessionHandReview({ userId }) {
+    const [recentHands, setRecentHands] = useState([]);
+    const [recentSessions, setRecentSessions] = useState([]);
+    const [selectedSession, setSelectedSession] = useState(null);
     const [isLinking, setIsLinking] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        if (userId && sessionId) {
+        if (userId) {
             loadData();
         }
-    }, [userId, sessionId]);
+    }, [userId]);
 
     const loadData = async () => {
         setIsLoading(true);
 
-        // Fetch hands linked to this session
-        const { data: linked } = await supabase
-            .from('session_hands')
-            .select('*, training_hand_history(*)')
-            .eq('session_id', sessionId);
-
-        setLinkedHands(linked || []);
-
-        // Fetch available hands for linking (from Training Hub)
+        // Fetch recent training hands
         const { data: hands } = await supabase
             .from('training_hand_history')
             .select('id, hand_id, created_at, position, action, result, notes')
             .eq('user_id', userId)
             .order('created_at', { ascending: false })
-            .limit(50);
+            .limit(20);
 
-        setAvailableHands(hands || []);
+        setRecentHands(hands || []);
+
+        // Fetch recent bankroll sessions for linking
+        const { data: sessions } = await supabase
+            .from('bankroll_ledger')
+            .select('id, entry_date, venue_name, location, gross_in, gross_out')
+            .eq('user_id', userId)
+            .order('entry_date', { ascending: false })
+            .limit(10);
+
+        setRecentSessions(sessions || []);
         setIsLoading(false);
     };
 
-    const linkHand = async (handId) => {
+    const linkHandToSession = async (handId, sessionId) => {
         setIsLinking(true);
 
         try {
@@ -55,7 +57,9 @@ export default function SessionHandReview({ sessionId, userId }) {
                     hand_id: handId,
                 });
 
-            loadData();
+            // Visual feedback
+            alert('Hand linked to session!');
+            setSelectedSession(null);
         } catch (err) {
             console.error('Link error:', err);
         } finally {
@@ -63,16 +67,7 @@ export default function SessionHandReview({ sessionId, userId }) {
         }
     };
 
-    const unlinkHand = async (linkId) => {
-        await supabase
-            .from('session_hands')
-            .delete()
-            .eq('id', linkId);
-
-        loadData();
-    };
-
-    const filteredHands = availableHands.filter(h => {
+    const filteredHands = recentHands.filter(h => {
         if (!searchQuery) return true;
         const query = searchQuery.toLowerCase();
         return (
@@ -82,111 +77,125 @@ export default function SessionHandReview({ sessionId, userId }) {
         );
     });
 
-    // Already linked hand IDs
-    const linkedHandIds = new Set(linkedHands.map(l => l.hand_id));
+    if (isLoading) {
+        return (
+            <div style={styles.loadingState}>
+                <Brain size={24} style={{ color: 'rgba(255,255,255,0.2)' }} />
+                <p>Loading hands...</p>
+            </div>
+        );
+    }
 
     return (
         <div style={styles.container}>
-            <button
-                onClick={() => setIsExpanded(!isExpanded)}
-                style={styles.header}
-            >
+            <div style={styles.header}>
                 <div style={styles.titleRow}>
-                    <Brain size={16} style={{ color: '#a855f7' }} />
-                    <span style={styles.title}>Hand Review</span>
-                    <span style={styles.count}>({linkedHands.length})</span>
+                    <Brain size={18} style={{ color: '#a855f7' }} />
+                    <h3 style={styles.title}>AI Hand Review</h3>
                 </div>
-                {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-            </button>
+                <span style={styles.count}>{recentHands.length} hands</span>
+            </div>
 
-            {isExpanded && (
-                <div style={styles.content}>
-                    {/* Linked Hands */}
-                    {linkedHands.length > 0 && (
-                        <div style={styles.linkedSection}>
-                            <h4 style={styles.sectionTitle}>Linked Hands</h4>
-                            {linkedHands.map(link => (
-                                <div key={link.id} style={styles.handCard}>
-                                    <div style={styles.handInfo}>
-                                        <span style={styles.handId}>
-                                            {link.training_hand_history?.hand_id || 'Hand'}
-                                        </span>
-                                        <span style={styles.handMeta}>
-                                            {link.training_hand_history?.position} • {link.training_hand_history?.action}
-                                        </span>
-                                    </div>
-                                    <div style={styles.handActions}>
-                                        <button
-                                            onClick={() => window.open(`/hub/training/hand/${link.hand_id}`, '_blank')}
-                                            style={styles.viewBtn}
-                                        >
-                                            <ExternalLink size={12} />
-                                        </button>
-                                        <button onClick={() => unlinkHand(link.id)} style={styles.unlinkBtn}>
-                                            ✕
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+            {/* Search */}
+            <div style={styles.searchBox}>
+                <Search size={14} style={{ color: 'rgba(255,255,255,0.4)' }} />
+                <input
+                    type="text"
+                    placeholder="Search hands..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    style={styles.searchInput}
+                />
+            </div>
 
-                    {/* Link New Hand */}
-                    <div style={styles.linkSection}>
-                        <h4 style={styles.sectionTitle}>Link Hand from Training</h4>
-
-                        <div style={styles.searchBox}>
-                            <Search size={14} style={{ color: 'rgba(255,255,255,0.4)' }} />
-                            <input
-                                type="text"
-                                placeholder="Search hands..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                style={styles.searchInput}
-                            />
-                        </div>
-
-                        <div style={styles.handList}>
-                            {filteredHands.slice(0, 10).map(hand => (
-                                <div
-                                    key={hand.id}
-                                    style={{
-                                        ...styles.availableHand,
-                                        opacity: linkedHandIds.has(hand.id) ? 0.4 : 1,
-                                    }}
+            {/* Recent Hands List */}
+            <div style={styles.handList}>
+                {filteredHands.length === 0 ? (
+                    <div style={styles.emptyState}>
+                        <Brain size={28} style={{ color: 'rgba(255,255,255,0.2)' }} />
+                        <p>No analyzed hands yet</p>
+                        <span style={styles.emptyHint}>
+                            Analyze hands in the Training Hub to see them here
+                        </span>
+                    </div>
+                ) : (
+                    filteredHands.map(hand => (
+                        <div key={hand.id} style={styles.handCard}>
+                            <div style={styles.handInfo}>
+                                <span style={styles.handId}>
+                                    {hand.hand_id || `Hand ${hand.id.slice(0, 8)}`}
+                                </span>
+                                <span style={styles.handMeta}>
+                                    {hand.position && `${hand.position} • `}
+                                    {hand.action && `${hand.action} • `}
+                                    {new Date(hand.created_at).toLocaleDateString()}
+                                </span>
+                                {hand.notes && (
+                                    <span style={styles.handNotes}>
+                                        {hand.notes.length > 60 ? hand.notes.slice(0, 60) + '...' : hand.notes}
+                                    </span>
+                                )}
+                            </div>
+                            <div style={styles.handActions}>
+                                <button
+                                    onClick={() => window.open(`/hub/training/hand/${hand.id}`, '_blank')}
+                                    style={styles.viewBtn}
+                                    title="View in Training Hub"
                                 >
-                                    <div style={styles.handInfo}>
-                                        <span style={styles.handId}>{hand.hand_id || `Hand ${hand.id.slice(0, 8)}`}</span>
-                                        <span style={styles.handMeta}>
-                                            {hand.position} • {hand.action} • {new Date(hand.created_at).toLocaleDateString()}
-                                        </span>
-                                        {hand.notes && (
-                                            <span style={styles.handNotes}>{hand.notes.slice(0, 60)}...</span>
-                                        )}
-                                    </div>
-                                    <button
-                                        onClick={() => linkHand(hand.id)}
-                                        disabled={linkedHandIds.has(hand.id) || isLinking}
-                                        style={{
-                                            ...styles.linkBtn,
-                                            opacity: linkedHandIds.has(hand.id) ? 0.4 : 1,
-                                        }}
-                                    >
-                                        <Link2 size={12} />
-                                        {linkedHandIds.has(hand.id) ? 'Linked' : 'Link'}
-                                    </button>
-                                </div>
-                            ))}
+                                    <ExternalLink size={12} />
+                                </button>
+                                <button
+                                    onClick={() => setSelectedSession(selectedSession === hand.id ? null : hand.id)}
+                                    style={styles.linkBtn}
+                                    title="Link to Session"
+                                >
+                                    <Link2 size={12} />
+                                    Link
+                                </button>
+                            </div>
 
-                            {filteredHands.length === 0 && (
-                                <div style={styles.noHands}>
-                                    No hands found. Analyze hands in Training Hub first.
+                            {/* Session Selector Dropdown */}
+                            {selectedSession === hand.id && (
+                                <div style={styles.sessionDropdown}>
+                                    <div style={styles.dropdownHeader}>Link to Session:</div>
+                                    {recentSessions.length === 0 ? (
+                                        <div style={styles.dropdownEmpty}>
+                                            No sessions found. Log a session first.
+                                        </div>
+                                    ) : (
+                                        recentSessions.map(session => {
+                                            const net = (session.gross_out || 0) - (session.gross_in || 0);
+                                            return (
+                                                <button
+                                                    key={session.id}
+                                                    onClick={() => linkHandToSession(hand.id, session.id)}
+                                                    disabled={isLinking}
+                                                    style={styles.sessionOption}
+                                                >
+                                                    <div style={styles.sessionInfo}>
+                                                        <Calendar size={12} />
+                                                        <span>{new Date(session.entry_date).toLocaleDateString()}</span>
+                                                        <span style={styles.sessionVenue}>
+                                                            {session.venue_name || session.location || 'Unknown'}
+                                                        </span>
+                                                    </div>
+                                                    <span style={{
+                                                        color: net >= 0 ? '#22c55e' : '#ef4444',
+                                                        fontWeight: 600,
+                                                        fontSize: 11
+                                                    }}>
+                                                        {net >= 0 ? '+' : ''}${net.toLocaleString()}
+                                                    </span>
+                                                </button>
+                                            );
+                                        })
+                                    )}
                                 </div>
                             )}
                         </div>
-                    </div>
-                </div>
-            )}
+                    ))
+                )}
+            </div>
         </div>
     );
 }
@@ -195,19 +204,14 @@ const styles = {
     container: {
         background: 'rgba(168, 85, 247, 0.05)',
         border: '1px solid rgba(168, 85, 247, 0.2)',
-        borderRadius: 10,
-        overflow: 'hidden',
+        borderRadius: 12,
+        padding: 16,
     },
     header: {
-        width: '100%',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 12,
-        background: 'transparent',
-        border: 'none',
-        color: '#fff',
-        cursor: 'pointer',
+        marginBottom: 12,
     },
     titleRow: {
         display: 'flex',
@@ -215,87 +219,29 @@ const styles = {
         gap: 8,
     },
     title: {
-        fontSize: 13,
+        fontSize: 15,
         fontWeight: 600,
+        color: '#fff',
+        margin: 0,
     },
     count: {
         color: 'rgba(255,255,255,0.4)',
         fontSize: 11,
     },
-    content: {
-        padding: '0 12px 12px',
-    },
-    linkedSection: {
-        marginBottom: 16,
-    },
-    sectionTitle: {
-        fontSize: 10,
-        fontWeight: 600,
-        color: 'rgba(255,255,255,0.5)',
-        textTransform: 'uppercase',
-        marginBottom: 8,
-    },
-    handCard: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: 10,
-        background: 'rgba(255,255,255,0.03)',
-        borderRadius: 8,
-        marginBottom: 6,
-    },
-    handInfo: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 2,
-    },
-    handId: {
-        fontSize: 12,
-        fontWeight: 600,
-        color: '#fff',
-    },
-    handMeta: {
-        fontSize: 10,
-        color: 'rgba(255,255,255,0.5)',
-    },
-    handNotes: {
-        fontSize: 10,
+    loadingState: {
+        textAlign: 'center',
+        padding: 32,
         color: 'rgba(255,255,255,0.4)',
-        fontStyle: 'italic',
-    },
-    handActions: {
-        display: 'flex',
-        gap: 6,
-    },
-    viewBtn: {
-        padding: 6,
-        background: 'rgba(168, 85, 247, 0.1)',
-        border: '1px solid rgba(168, 85, 247, 0.3)',
-        borderRadius: 4,
-        color: '#a855f7',
-        cursor: 'pointer',
-    },
-    unlinkBtn: {
-        padding: '6px 8px',
-        background: 'rgba(239, 68, 68, 0.1)',
-        border: '1px solid rgba(239, 68, 68, 0.2)',
-        borderRadius: 4,
-        color: '#ef4444',
-        fontSize: 10,
-        cursor: 'pointer',
-    },
-    linkSection: {
-        paddingTop: 12,
-        borderTop: '1px solid rgba(255,255,255,0.06)',
+        fontSize: 12,
     },
     searchBox: {
         display: 'flex',
         alignItems: 'center',
         gap: 8,
-        padding: 8,
+        padding: 10,
         background: 'rgba(255,255,255,0.03)',
-        borderRadius: 6,
-        marginBottom: 10,
+        borderRadius: 8,
+        marginBottom: 12,
     },
     searchInput: {
         flex: 1,
@@ -308,22 +254,53 @@ const styles = {
     handList: {
         display: 'flex',
         flexDirection: 'column',
-        gap: 6,
-        maxHeight: 200,
+        gap: 8,
+        maxHeight: 400,
         overflowY: 'auto',
     },
-    availableHand: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: 10,
-        background: 'rgba(255,255,255,0.02)',
-        borderRadius: 8,
+    emptyState: {
+        textAlign: 'center',
+        padding: 32,
+        color: 'rgba(255,255,255,0.4)',
     },
-    linkBtn: {
+    emptyHint: {
+        display: 'block',
+        fontSize: 11,
+        marginTop: 4,
+        color: 'rgba(255,255,255,0.3)',
+    },
+    handCard: {
+        padding: 12,
+        background: 'rgba(255,255,255,0.02)',
+        borderRadius: 10,
+        border: '1px solid rgba(255,255,255,0.05)',
+    },
+    handInfo: {
         display: 'flex',
-        alignItems: 'center',
-        gap: 4,
+        flexDirection: 'column',
+        gap: 3,
+        marginBottom: 10,
+    },
+    handId: {
+        fontSize: 13,
+        fontWeight: 600,
+        color: '#fff',
+    },
+    handMeta: {
+        fontSize: 10,
+        color: 'rgba(255,255,255,0.5)',
+    },
+    handNotes: {
+        fontSize: 10,
+        color: 'rgba(255,255,255,0.4)',
+        fontStyle: 'italic',
+        marginTop: 2,
+    },
+    handActions: {
+        display: 'flex',
+        gap: 8,
+    },
+    viewBtn: {
         padding: '6px 10px',
         background: 'rgba(168, 85, 247, 0.1)',
         border: '1px solid rgba(168, 85, 247, 0.3)',
@@ -331,11 +308,62 @@ const styles = {
         color: '#a855f7',
         fontSize: 10,
         cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 4,
     },
-    noHands: {
-        textAlign: 'center',
-        padding: 20,
-        color: 'rgba(255,255,255,0.4)',
+    linkBtn: {
+        padding: '6px 10px',
+        background: 'rgba(0,212,255,0.1)',
+        border: '1px solid rgba(0,212,255,0.3)',
+        borderRadius: 6,
+        color: '#00D4FF',
+        fontSize: 10,
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 4,
+    },
+    sessionDropdown: {
+        marginTop: 10,
+        padding: 10,
+        background: 'rgba(0,0,0,0.3)',
+        borderRadius: 8,
+        border: '1px solid rgba(255,255,255,0.1)',
+    },
+    dropdownHeader: {
+        fontSize: 10,
+        fontWeight: 600,
+        color: 'rgba(255,255,255,0.5)',
+        marginBottom: 8,
+    },
+    dropdownEmpty: {
         fontSize: 11,
+        color: 'rgba(255,255,255,0.4)',
+        textAlign: 'center',
+        padding: 12,
+    },
+    sessionOption: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        width: '100%',
+        padding: 10,
+        background: 'rgba(255,255,255,0.03)',
+        border: 'none',
+        borderRadius: 6,
+        cursor: 'pointer',
+        marginBottom: 4,
+    },
+    sessionInfo: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+        fontSize: 11,
+        color: 'rgba(255,255,255,0.7)',
+    },
+    sessionVenue: {
+        color: 'rgba(255,255,255,0.5)',
+        marginLeft: 4,
     },
 };

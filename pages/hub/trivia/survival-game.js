@@ -282,16 +282,23 @@ export default function SurvivalGamePage() {
                 }
             }
 
-            // Get questions with appropriate difficulty
+            // Get questions with appropriate difficulty based on level
             let query = supabase
                 .from('trivia_questions')
                 .select('*');
 
-            // Filter by difficulty for higher levels
-            if (config.difficulty === 'hard') {
-                query = query.in('difficulty', ['hard', 'medium']);
+            // Strict difficulty filtering for proper level progression
+            // Levels 1-2 (easy): Only easy questions
+            // Levels 3-5 (medium): Primarily medium, some easy fallback
+            // Levels 6-10 (hard): Only hard questions
+            if (config.difficulty === 'easy') {
+                query = query.eq('difficulty', 'easy');
             } else if (config.difficulty === 'medium') {
+                // Medium levels: prioritize medium, allow easy as fallback
                 query = query.in('difficulty', ['medium', 'easy']);
+            } else if (config.difficulty === 'hard') {
+                // Hard levels: only hard questions for maximum challenge
+                query = query.eq('difficulty', 'hard');
             }
 
             // Fetch more questions to allow for exclusion filtering
