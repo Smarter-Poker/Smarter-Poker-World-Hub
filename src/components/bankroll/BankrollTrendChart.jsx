@@ -107,7 +107,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false }) 
         return (
             <div style={styles.container}>
                 <div style={styles.header}>
-                    <h3 style={styles.title}>📈 Bankroll Trend</h3>
+                    <h3 style={styles.title}>Bankroll Trend</h3>
                 </div>
                 <div style={styles.loadingContainer}>
                     <div style={styles.skeleton} />
@@ -120,7 +120,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false }) 
         <div style={styles.container}>
             <div style={styles.header}>
                 <div style={styles.titleRow}>
-                    <h3 style={styles.title}>📈 Bankroll Trend</h3>
+                    <h3 style={styles.title}>Bankroll Trend</h3>
                     <div style={styles.currentValue}>
                         <span style={{ color: isPositive ? '#22c55e' : '#ef4444' }}>
                             {formatValue(stats.current)}
@@ -145,7 +145,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false }) 
 
             {chartData.length === 0 ? (
                 <div style={styles.emptyState}>
-                    <span style={styles.emptyIcon}>📊</span>
+                    <span style={styles.emptyIcon}></span>
                     <span>No data for this period</span>
                     <span style={styles.emptyHint}>Log sessions to see your trend</span>
                 </div>

@@ -327,7 +327,7 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
 
                     {/* Tendencies */}
                     <div style={styles.formGroup}>
-                        <label style={styles.label}>📊 Tendencies</label>
+                        <label style={styles.label}>Tendencies</label>
                         <textarea
                             value={formData.tendencies}
                             onChange={e => setFormData({ ...formData, tendencies: e.target.value })}

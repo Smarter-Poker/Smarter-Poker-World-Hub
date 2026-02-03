@@ -131,7 +131,7 @@ export default function WeeklySummary({
                     >
                         {/* Header */}
                         <div style={styles.header}>
-                            <span style={styles.emoji}>📊</span>
+                            <span style={styles.emoji}></span>
                             <h2 style={styles.title}>Weekly Recap</h2>
                             <span style={styles.dateRange}>
                                 {weeklyData.dateRange.start} - {weeklyData.dateRange.end}

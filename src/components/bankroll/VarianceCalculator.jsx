@@ -93,7 +93,7 @@ export default function VarianceCalculator({ userId }) {
     if (!stats) {
         return (
             <div style={styles.empty}>
-                <span style={{ fontSize: 24, marginBottom: 8 }}>📊</span>
+                <span style={{ fontSize: 24, marginBottom: 8 }}></span>
                 <p style={{ margin: 0, fontSize: 12 }}>Need 2+ sessions for variance analysis</p>
             </div>
         );
@@ -101,7 +101,7 @@ export default function VarianceCalculator({ userId }) {
 
     return (
         <div style={styles.container}>
-            <h3 style={styles.title}>📈 Variance Analysis</h3>
+            <h3 style={styles.title}>Variance Analysis</h3>
 
             <div style={styles.grid}>
                 <div style={styles.statBox}>

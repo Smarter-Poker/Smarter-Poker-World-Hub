@@ -175,7 +175,7 @@ export default function LedgerTimeline({ entries, isLoading }) {
   if (!entries || entries.length === 0) {
     return (
       <div style={styles.emptyState}>
-        <div style={styles.emptyIcon}>📊</div>
+        <div style={styles.emptyIcon}></div>
         <p style={styles.emptyTitle}>No entries yet</p>
         <p style={styles.emptyText}>
           Start logging sessions to track your bankroll

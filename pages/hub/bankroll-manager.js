@@ -633,14 +633,14 @@ export default function BankrollManagerPage() {
                 <h2 style={styles.sectionTitle}>Leak Analysis</h2>
                 {!leakAnalysis || leakAnalysis.topLeaks?.length === 0 ? (
                   <div style={{ padding: '40px 20px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.5 }}>✅</div>
+                    <div style={{ marginBottom: 16, opacity: 0.5, fontSize: 18, color: '#22c55e', fontWeight: 600 }}>All Clear</div>
                     <p style={{ fontSize: 16, fontWeight: 600, color: '#22c55e', margin: '0 0 8px' }}>No Leaks Detected</p>
                     <p style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.5)', margin: 0 }}>Keep logging sessions to build your analysis history</p>
                   </div>
                 ) : (
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, padding: 16, background: leakAnalysis.leakRisk === 'HIGH' ? 'rgba(239, 68, 68, 0.1)' : leakAnalysis.leakRisk === 'MEDIUM' ? 'rgba(234, 179, 8, 0.1)' : 'rgba(34, 197, 94, 0.1)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)' }}>
-                      <span style={{ fontSize: 32 }}>{leakAnalysis.leakRisk === 'HIGH' ? '🚨' : leakAnalysis.leakRisk === 'MEDIUM' ? '⚠️' : '✅'}</span>
+                      <span style={{ fontSize: 18, fontWeight: 700, color: leakAnalysis.leakRisk === 'HIGH' ? '#ef4444' : leakAnalysis.leakRisk === 'MEDIUM' ? '#eab308' : '#22c55e' }}>{leakAnalysis.leakRisk === 'HIGH' ? 'Alert' : leakAnalysis.leakRisk === 'MEDIUM' ? 'Warning' : 'OK'}</span>
                       <div>
                         <div style={{ fontSize: 18, fontWeight: 700, color: leakAnalysis.leakRisk === 'HIGH' ? '#ef4444' : leakAnalysis.leakRisk === 'MEDIUM' ? '#eab308' : '#22c55e' }}>{leakAnalysis.leakRisk} RISK</div>
                         <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>Total Leak Amount: ${leakAnalysis.totalLeakAmount?.toLocaleString() || 0}</div>
@@ -787,7 +787,7 @@ export default function BankrollManagerPage() {
                     }}
                     style={styles.reportActionBtn}
                   >
-                    <span style={{ fontSize: 24 }}>📄</span>
+                    <span style={{ fontSize: 14, color: '#65676b' }}>JSON</span>
                     <div style={{ flex: 1, textAlign: 'left' }}>
                       <div style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>Export to JSON</div>
                       <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
@@ -821,7 +821,7 @@ export default function BankrollManagerPage() {
                     }}
                     style={styles.reportActionBtn}
                   >
-                    <span style={{ fontSize: 24 }}>📑</span>
+                    <span style={{ fontSize: 14, color: '#65676b' }}>PDF</span>
                     <div style={{ flex: 1, textAlign: 'left' }}>
                       <div style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>Export to PDF</div>
                       <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>

@@ -865,23 +865,25 @@ const styles = {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        marginBottom: 8,
+        marginBottom: 12,
     },
 
     gameTitle: {
-        fontSize: 16,
+        fontSize: 20,  // Larger, more prominent
         fontWeight: 'bold',
         color: '#00d4ff',
         fontFamily: "'Orbitron', 'Courier New', monospace",
         textTransform: 'uppercase',
-        letterSpacing: 2,
+        letterSpacing: 3,
+        textShadow: '0 0 20px rgba(0, 212, 255, 0.8), 0 0 40px rgba(0, 212, 255, 0.4)',
     },
 
     gameBrand: {
-        fontSize: 11,
-        color: 'rgba(255,255,255,0.5)',
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.65)',
         fontFamily: "'Inter', sans-serif",
-        marginTop: 2,
+        marginTop: 4,
+        fontWeight: '500',
     },
 
     questionText: {
@@ -958,12 +960,13 @@ const styles = {
     },
 
     avatar: {
-        width: 40,  // Smaller to fit on felt
-        height: 40,
+        width: 50,  // Premium size
+        height: 50,
         borderRadius: '50%',
         objectFit: 'cover',
         background: 'linear-gradient(135deg, #2d2d3a, #1a1a24)',
-        border: '2px solid #555',
+        border: '3px solid #666',
+        boxShadow: '0 4px 15px rgba(0,0,0,0.5), 0 0 20px rgba(0, 212, 255, 0.15)',
     },
 
     dealerButton: {
@@ -987,17 +990,18 @@ const styles = {
     },
 
     badge: {
-        padding: '4px 8px',  // More compact
-        borderRadius: 4,
-        fontSize: 9,         // Smaller
+        padding: '6px 12px',  // More readable
+        borderRadius: 6,
+        fontSize: 11,         // Larger for readability
         fontWeight: 'bold',
         color: '#00d4ff',
         fontFamily: "'Orbitron', 'Courier New', monospace",
         textAlign: 'center',
         whiteSpace: 'nowrap',
-        border: '1px solid #555',
-        boxShadow: '0 0 8px rgba(0, 212, 255, 0.2), 0 2px 4px rgba(0,0,0,0.4)',
-        textShadow: '0 0 4px rgba(0, 212, 255, 0.5)',
+        background: 'linear-gradient(180deg, rgba(40, 40, 60, 0.95), rgba(20, 20, 35, 0.95))',
+        border: '2px solid rgba(0, 212, 255, 0.4)',
+        boxShadow: '0 0 15px rgba(0, 212, 255, 0.3), 0 4px 8px rgba(0,0,0,0.5)',
+        textShadow: '0 0 8px rgba(0, 212, 255, 0.7)',
     },
 
     badgeLabel: {
@@ -1021,15 +1025,16 @@ const styles = {
         display: 'flex',
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 4,
+        marginTop: 8,
+        gap: 4,
     },
 
     card: {
-        width: 38,
-        height: 54,
-        borderRadius: 4,
-        boxShadow: '0 4px 12px rgba(0,0,0,0.6)',
-        border: '1px solid rgba(255,255,255,0.2)',
+        width: 48,      // Larger for visibility
+        height: 68,
+        borderRadius: 5,
+        boxShadow: '0 6px 20px rgba(0,0,0,0.7), 0 0 25px rgba(255, 215, 0, 0.2)',
+        border: '2px solid rgba(255,255,255,0.3)',
     },
 
     boardCards: {
@@ -1043,10 +1048,11 @@ const styles = {
     },
 
     boardCard: {
-        width: 48,
-        height: 68,
-        borderRadius: 4,
-        boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+        width: 56,      // Larger board cards
+        height: 80,
+        borderRadius: 6,
+        boxShadow: '0 6px 20px rgba(0,0,0,0.6), 0 0 15px rgba(255,255,255,0.1)',
+        border: '1px solid rgba(255,255,255,0.15)',
     },
 
     pot: {
@@ -1238,14 +1244,16 @@ const styles = {
         fontFamily: "'Orbitron', 'Courier New', monospace",
         textTransform: 'uppercase',
         letterSpacing: '1px',
-        background: 'linear-gradient(180deg, #4a4a5a 0%, #2d2d3a 40%, #1a1a24 100%)',
-        border: '2px solid #555',
-        borderRadius: 10,
+        background: 'linear-gradient(180deg, #5a5a70 0%, #3d3d52 30%, #2a2a3d 60%, #1a1a28 100%)',
+        border: '2px solid rgba(0, 212, 255, 0.5)',
+        borderRadius: 12,
         color: '#00d4ff',
         cursor: 'pointer',
-        transition: 'all 0.2s',
-        boxShadow: '0 0 15px rgba(0, 212, 255, 0.2), inset 0 2px 4px rgba(255,255,255,0.08)',
-        textShadow: '0 0 8px rgba(0, 212, 255, 0.6)',
+        transition: 'all 0.2s ease-out',
+        boxShadow: '0 0 20px rgba(0, 212, 255, 0.25), 0 4px 15px rgba(0,0,0,0.4), inset 0 1px 2px rgba(255,255,255,0.1)',
+        textShadow: '0 0 10px rgba(0, 212, 255, 0.8)',
+        position: 'relative',
+        overflow: 'hidden',
     },
 
     correctButton: {

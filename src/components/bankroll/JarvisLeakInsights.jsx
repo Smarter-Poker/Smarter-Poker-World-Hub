@@ -6,10 +6,11 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// Clean Facebook-style risk configuration (no emojis)
 const RISK_CONFIG = {
-    low: { color: '#22c55e', icon: '✓', label: 'Low Risk', bg: 'rgba(34,197,94,0.15)' },
-    medium: { color: '#f59e0b', icon: '⚠', label: 'Moderate', bg: 'rgba(245,158,11,0.15)' },
-    high: { color: '#ef4444', icon: '🚨', label: 'High Risk', bg: 'rgba(239,68,68,0.15)' },
+    low: { color: '#22c55e', icon: '', label: 'Low Risk', bg: 'rgba(34,197,94,0.15)' },
+    medium: { color: '#f59e0b', icon: '', label: 'Moderate', bg: 'rgba(245,158,11,0.15)' },
+    high: { color: '#ef4444', icon: '', label: 'High Risk', bg: 'rgba(239,68,68,0.15)' },
     unknown: { color: '#888', icon: '?', label: 'Unknown', bg: 'rgba(136,136,136,0.15)' },
 };
 
@@ -60,7 +61,7 @@ export default function JarvisLeakInsights({ userId, onRefresh }) {
         return (
             <div style={styles.container}>
                 <div style={styles.signInPrompt}>
-                    <span style={styles.jarvisIcon}>🧠</span>
+                    <img src="/images/jarvis-avatar.png" alt="Jarvis" style={{ width: 24, height: 24, borderRadius: '50%' }} />
                     <span>Sign in for AI-powered insights</span>
                 </div>
             </div>
@@ -73,7 +74,7 @@ export default function JarvisLeakInsights({ userId, onRefresh }) {
         <div style={styles.container}>
             <div style={styles.header}>
                 <div style={styles.titleRow}>
-                    <span style={styles.jarvisIcon}>🧠</span>
+                    <img src="/images/jarvis-avatar.png" alt="Jarvis" style={{ width: 24, height: 24, borderRadius: '50%' }} />
                     <h4 style={styles.title}>Jarvis Insights</h4>
                 </div>
                 <button
@@ -92,14 +93,14 @@ export default function JarvisLeakInsights({ userId, onRefresh }) {
                         transition={{ duration: 1.5, repeat: Infinity }}
                         style={styles.analyzingText}
                     >
-                        🧠 Analyzing your data...
+                        Analyzing your data...
                     </motion.div>
                 </div>
             )}
 
             {error && !insights && (
                 <div style={styles.errorState}>
-                    <span>⚠️ {error}</span>
+                    <span>{error}</span>
                     <button onClick={fetchInsights} style={styles.retryBtn}>
                         Try Again
                     </button>
@@ -126,7 +127,7 @@ export default function JarvisLeakInsights({ userId, onRefresh }) {
                     {/* Patterns */}
                     {insights.patterns?.length > 0 && (
                         <div style={styles.section}>
-                            <div style={styles.sectionTitle}>📊 Patterns</div>
+                            <div style={styles.sectionTitle}>Patterns</div>
                             <ul style={styles.list}>
                                 {insights.patterns.map((pattern, idx) => (
                                     <li key={idx} style={styles.listItem}>
@@ -140,7 +141,7 @@ export default function JarvisLeakInsights({ userId, onRefresh }) {
                     {/* Recommendations */}
                     {insights.recommendations?.length > 0 && (
                         <div style={styles.section}>
-                            <div style={styles.sectionTitle}>💡 Recommendations</div>
+                            <div style={styles.sectionTitle}>Recommendations</div>
                             <ul style={styles.list}>
                                 {insights.recommendations.map((rec, idx) => (
                                     <motion.li
@@ -171,7 +172,7 @@ export default function JarvisLeakInsights({ userId, onRefresh }) {
             {!isLoading && !error && !insights && (
                 <div style={styles.emptyState}>
                     <button onClick={fetchInsights} style={styles.analyzeBtn}>
-                        🧠 Run Analysis
+                        Run Analysis
                     </button>
                     <span style={styles.emptyHint}>Get AI-powered insights on your bankroll</span>
                 </div>

@@ -63,7 +63,7 @@ export default function BankrollProjection({ userId, currentBankroll = 0, onClos
                 onClick={e => e.stopPropagation()}
             >
                 <div style={styles.header}>
-                    <span style={styles.emoji}>📈</span>
+                    <span style={styles.emoji}></span>
                     <h2 style={styles.title}>Bankroll Projection</h2>
                     <button onClick={onClose} style={styles.closeBtn}>×</button>
                 </div>

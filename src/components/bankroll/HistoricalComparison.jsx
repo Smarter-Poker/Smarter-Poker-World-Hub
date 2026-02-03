@@ -99,7 +99,7 @@ export default function HistoricalComparison({ userId }) {
     return (
         <div style={styles.container}>
             <div style={styles.header}>
-                <h3 style={styles.title}>📊 Historical Comparison</h3>
+                <h3 style={styles.title}>Historical Comparison</h3>
                 <div style={styles.periodToggle}>
                     <button
                         onClick={() => setPeriod('month')}
