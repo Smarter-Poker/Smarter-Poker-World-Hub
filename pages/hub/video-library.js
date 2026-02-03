@@ -413,6 +413,7 @@ export default function VideoLibraryPage() {
     // Jarvis Insights state - Timestamp-synced contextual commentary
     const [aiAnalysis, setAiAnalysis] = useState(null); // Current video AI analysis
     const [aiAnalysisLoading, setAiAnalysisLoading] = useState(false);
+    const [aiAnalysisSource, setAiAnalysisSource] = useState(null); // 'cache' or 'generated'
     const [showAiPanel, setShowAiPanel] = useState(false); // Toggle AI panel visibility
     const [bottomSheetExpanded, setBottomSheetExpanded] = useState(false); // Mobile bottom sheet expanded state
     const [currentVideoTime, setCurrentVideoTime] = useState(0); // Current playback position in seconds
@@ -469,8 +470,9 @@ export default function VideoLibraryPage() {
                 setWatchLater(new Set(data.map(v => v.video_id)));
             }).catch(err => console.error('Error loading watch later:', err));
 
-            // Load watched videos (60+ second threshold)
-            getWatchedVideos(userId, 60).then(watchedSet => {
+            // Load watched videos (30+ second threshold - lowered for better feedback)
+            getWatchedVideos(userId, 30).then(watchedSet => {
+                console.log('[VideoLibrary] Loaded watched videos:', watchedSet.size, 'videos');
                 setWatchedVideos(watchedSet);
             }).catch(err => console.error('Error loading watched videos:', err));
 
@@ -554,29 +556,48 @@ export default function VideoLibraryPage() {
         }
     }, [userId, watchLater]);
 
-    // Handle opening a video - start timer and fetch AI analysis
+    // Handle opening a video - start timer (Jarvis is now on-demand)
     const handleOpenVideo = useCallback(async (video) => {
         watchStartTimeRef.current = Date.now();
         currentWatchingVideoRef.current = video;
         setSelectedVideo(video);
         setShowAiPanel(false);
+        setAiAnalysis(null); // Reset for new video
+        setAiAnalysisSource(null);
+    }, []);
 
-        // Fetch Jarvis Insights for this video
+    // Handle Jarvis button click - fetch analysis ON DEMAND only
+    const handleJarvisClick = useCallback(async () => {
+        if (!selectedVideo) return;
+
+        // Toggle panel
+        if (showAiPanel) {
+            setShowAiPanel(false);
+            return;
+        }
+
+        setShowAiPanel(true);
+
+        // Only fetch if we don't already have analysis for this video
+        if (aiAnalysis) return;
+
         setAiAnalysisLoading(true);
         try {
             const response = await fetch(
-                `/api/video/analyze?videoId=${video.videoId}&title=${encodeURIComponent(video.title)}`
+                `/api/video/analyze?videoId=${selectedVideo.videoId}&title=${encodeURIComponent(selectedVideo.title)}`
             );
             const data = await response.json();
             if (data.success && data.analysis) {
                 setAiAnalysis(data.analysis);
+                setAiAnalysisSource(data.source || 'generated');
+                console.log('[Jarvis] Analysis loaded -', data.source === 'cache' ? 'FROM CACHE (saved for all users)' : 'GENERATED & SAVED for future users');
             }
         } catch (err) {
             console.error('Failed to fetch AI analysis:', err);
         } finally {
             setAiAnalysisLoading(false);
         }
-    }, []);
+    }, [selectedVideo, showAiPanel, aiAnalysis]);
 
     // Handle closing a video - save watch duration
     const handleCloseVideo = useCallback(async () => {
@@ -620,9 +641,10 @@ export default function VideoLibraryPage() {
                         totalWatchTimeSeconds: prev.totalWatchTimeSeconds + watchedSeconds
                     } : prev);
 
-                    // If user watched 60+ seconds, add to watched set for immediate UI update
+                    // If user watched 30+ seconds, add to watched set for immediate UI update
                     const totalWatched = (watchProgress.get(video.id)?.watchedSeconds || 0) + watchedSeconds;
-                    if (totalWatched >= 60) {
+                    if (totalWatched >= 30) {
+                        console.log('[VideoLibrary] Marking as watched:', video.id, 'total:', totalWatched, 's');
                         setWatchedVideos(prev => new Set(prev).add(video.id));
                     }
                 } catch (err) {
@@ -1478,9 +1500,9 @@ export default function VideoLibraryPage() {
                         }}
                     >×</button>
 
-                    {/* Jarvis Insights button */}
+                    {/* Jarvis Insights button - ON DEMAND analysis */}
                     <button
-                        onClick={() => setShowAiPanel(!showAiPanel)}
+                        onClick={handleJarvisClick}
                         className="jarvis-button"
                         style={{
                             position: 'absolute',
@@ -1530,7 +1552,19 @@ export default function VideoLibraryPage() {
                                     background: '#00D4FF',
                                     animation: 'pulse 1s infinite'
                                 }} />
-                                Analyzing...
+                                Loading...
+                            </span>
+                        ) : aiAnalysis && aiAnalysisSource === 'cache' ? (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                Jarvis Insights
+                                <span style={{
+                                    fontSize: 9,
+                                    background: 'rgba(0,200,83,0.3)',
+                                    color: '#00C853',
+                                    padding: '2px 6px',
+                                    borderRadius: 4,
+                                    fontWeight: 600
+                                }}>CACHED</span>
                             </span>
                         ) : 'Jarvis Insights'}
                     </button>
@@ -2180,19 +2214,20 @@ export default function VideoLibraryPage() {
                     opacity: 1 !important;
                 }
 
-                /* Jarvis Panel - Full Overlay (Desktop & Mobile) */
+                /* Jarvis Panel - Upper Right Corner Overlay (NOT full screen) */
                 .jarvis-panel {
-                    top: 0 !important;
-                    right: 0 !important;
-                    bottom: 0 !important;
-                    left: 0 !important;
-                    width: 100% !important;
-                    height: 100% !important;
-                    border-radius: 0 !important;
-                    padding: 20px !important;
+                    top: 70px !important;
+                    right: 16px !important;
+                    bottom: auto !important;
+                    left: auto !important;
+                    width: 380px !important;
+                    max-height: 60vh !important;
+                    border-radius: 16px !important;
+                    padding: 16px !important;
                     display: ${showAiPanel ? 'flex' : 'none'} !important;
                     flex-direction: column !important;
                     overflow-y: auto !important;
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 20px rgba(0,212,255,0.2) !important;
                 }
                 
                 .jarvis-drag-handle {
@@ -2324,9 +2359,15 @@ export default function VideoLibraryPage() {
                     color: #00d4ff !important;
                 }
 
-                /* Mobile border adjustment */
+                /* Mobile - Bottom right corner overlay */
                 @media (max-width: 768px) {
                     .jarvis-panel {
+                        top: auto !important;
+                        bottom: 16px !important;
+                        right: 8px !important;
+                        left: 8px !important;
+                        width: auto !important;
+                        max-height: 45vh !important;
                         border-left: none !important;
                         border-top: 3px solid #00d4ff !important;
                     }

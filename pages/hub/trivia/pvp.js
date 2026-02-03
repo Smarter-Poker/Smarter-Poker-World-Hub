@@ -24,6 +24,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MetalFrame from '../../../src/components/ui/MetalFrame';
 import HexButton from '../../../src/components/ui/HexButton';
 import { Swords, Trophy, Gem, Users, Clock, CheckCircle, XCircle, Zap } from 'lucide-react';
+import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 
 const STAKE_OPTIONS = [10, 25, 50, 100];
 
@@ -483,7 +484,7 @@ export default function PvPPage() {
 
                             {/* Question */}
                             <MetalFrame padding="24px" showBolts={false}>
-                                <h2 className="question-text">{currentQuestion.question}</h2>
+                                <h2 className="question-text">{toTitleCase(currentQuestion.question)}</h2>
 
                                 <div className="options">
                                     {currentQuestion.options.map((option, idx) => {
@@ -506,7 +507,7 @@ export default function PvPPage() {
                                                 disabled={showResult}
                                             >
                                                 <span className="option-letter">{String.fromCharCode(65 + idx)}</span>
-                                                <span className="option-text">{option}</span>
+                                                <span className="option-text">{toTitleCase(option)}</span>
                                                 {showResult && idx === currentQuestion.correct_index && (
                                                     <CheckCircle size={20} className="result-icon" />
                                                 )}

@@ -14,6 +14,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MetalFrame from '../../../src/components/ui/MetalFrame';
 import HexButton from '../../../src/components/ui/HexButton';
 import { Shuffle, Trophy, BookOpen, GraduationCap, Gem, CheckCircle, XCircle, ArrowRight } from 'lucide-react';
+import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 
 const CATEGORIES = [
     { id: 'poker_history', name: 'History', icon: Trophy, color: '#FFD700', dbCategories: ['poker_history', 'famous_hands', 'player_profiles', 'tournament_facts'] },
@@ -423,7 +424,7 @@ export default function MixedModePage() {
 
                             {/* Question */}
                             <MetalFrame padding="24px" showBolts={false}>
-                                <h2 className="question-text">{currentQuestion.question}</h2>
+                                <h2 className="question-text">{toTitleCase(currentQuestion.question)}</h2>
 
                                 <div className="options">
                                     {currentQuestion.options.map((option, idx) => {
@@ -446,7 +447,7 @@ export default function MixedModePage() {
                                                 disabled={showResult}
                                             >
                                                 <span className="option-letter">{String.fromCharCode(65 + idx)}</span>
-                                                <span className="option-text">{option}</span>
+                                                <span className="option-text">{toTitleCase(option)}</span>
                                                 {showResult && idx === currentQuestion.correct_index && (
                                                     <CheckCircle size={20} className="result-icon" />
                                                 )}

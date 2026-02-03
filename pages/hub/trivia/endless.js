@@ -13,6 +13,7 @@ import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 
 export default function EndlessModePage() {
     const router = useRouter();
@@ -861,7 +862,7 @@ export default function EndlessModePage() {
                                     </div>
 
                                     <h2 style={{ fontSize: '20px', fontWeight: 600, color: 'white', lineHeight: 1.4, margin: '0 0 24px 0' }}>
-                                        {currentQuestion.question}
+                                        {toTitleCase(currentQuestion.question)}
                                     </h2>
 
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -916,7 +917,7 @@ export default function EndlessModePage() {
                                                     }}>
                                                         {isEliminated ? '✗' : String.fromCharCode(65 + index)}
                                                     </span>
-                                                    <span style={{ flex: 1 }}>{option}</span>
+                                                    <span style={{ flex: 1 }}>{toTitleCase(option)}</span>
                                                 </button>
                                             );
                                         })}

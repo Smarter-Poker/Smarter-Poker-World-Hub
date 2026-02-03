@@ -13,6 +13,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MetalFrame from '../../../src/components/ui/MetalFrame';
 import HexButton from '../../../src/components/ui/HexButton';
 import { Trophy, Calendar, Clock, Gem, Users, CheckCircle, XCircle, Medal, Award } from 'lucide-react';
+import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 
 export default function TournamentsPage() {
     const router = useRouter();
@@ -438,7 +439,7 @@ export default function TournamentsPage() {
                             </div>
 
                             <MetalFrame padding="24px" showBolts={false}>
-                                <h2 className="question-text">{currentQuestion.question}</h2>
+                                <h2 className="question-text">{toTitleCase(currentQuestion.question)}</h2>
 
                                 <div className="options">
                                     {currentQuestion.options.map((option, idx) => {
@@ -459,7 +460,7 @@ export default function TournamentsPage() {
                                                 disabled={showResult}
                                             >
                                                 <span className="option-letter">{String.fromCharCode(65 + idx)}</span>
-                                                <span className="option-text">{option}</span>
+                                                <span className="option-text">{toTitleCase(option)}</span>
                                                 {showResult && idx === currentQuestion.correct_index && (
                                                     <CheckCircle size={20} className="correct-icon" />
                                                 )}

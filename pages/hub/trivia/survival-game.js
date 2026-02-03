@@ -18,6 +18,7 @@ import { getAuthUser } from '../../../src/lib/authUtils';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { calculateDiamonds } from '../../../src/lib/trivia/triviaEngine';
+import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 
 // Level configuration: 10 levels, starting at 85%, +2% per level
 const LEVEL_CONFIG = [
@@ -1063,7 +1064,7 @@ export default function SurvivalGamePage() {
                                     </div>
 
                                     <h2 style={{ fontSize: '20px', fontWeight: 600, color: 'white', lineHeight: 1.4, margin: '0 0 24px 0' }}>
-                                        {currentQuestion.question}
+                                        {toTitleCase(currentQuestion.question)}
                                     </h2>
 
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -1121,7 +1122,7 @@ export default function SurvivalGamePage() {
                                                     }}>
                                                         {isEliminated ? '✗' : String.fromCharCode(65 + index)}
                                                     </span>
-                                                    <span style={{ flex: 1 }}>{option}</span>
+                                                    <span style={{ flex: 1 }}>{toTitleCase(option)}</span>
                                                 </button>
                                             );
                                         })}
