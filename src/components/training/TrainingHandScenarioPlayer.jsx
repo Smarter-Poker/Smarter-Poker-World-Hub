@@ -255,7 +255,7 @@ const styles = {
         flexDirection: 'column',
         height: '100%',
         minHeight: '100vh',
-        background: 'linear-gradient(180deg, #0d0d14 0%, #1a1a24 100%)',
+        background: `linear-gradient(180deg, #18191a 0%, #242526 100%)`,
         fontFamily: "'Inter', -apple-system, sans-serif",
         position: 'relative',
         overflow: 'hidden',
@@ -284,16 +284,16 @@ const styles = {
     controlBtn: {
         width: 36,
         height: 36,
-        background: '#2a2a3d',
-        border: '1px solid #444',
+        background: '#3a3b3c',
+        border: '1px solid #4e4f50',
         borderRadius: 6,
-        color: '#00d4ff',
+        color: '#2374e1',
         fontSize: 16,
         cursor: 'pointer',
     },
 
     stepCounter: {
-        color: '#888',
+        color: '#b0b3b8',
         fontSize: 12,
         fontFamily: 'monospace',
         marginLeft: 8,
@@ -311,14 +311,14 @@ const styles = {
     spinner: {
         width: 40,
         height: 40,
-        border: '3px solid #2a2a3d',
-        borderTopColor: '#00d4ff',
+        border: '3px solid #3a3b3c',
+        borderTopColor: '#2374e1',
         borderRadius: '50%',
         animation: 'spin 1s linear infinite',
     },
 
     loadingText: {
-        color: '#888',
+        color: '#b0b3b8',
         fontSize: 14,
     },
 
@@ -340,13 +340,13 @@ const styles = {
     errorTitle: {
         fontSize: 20,
         fontWeight: 'bold',
-        color: '#ef4444',
+        color: '#f02849',
         marginBottom: 8,
     },
 
     errorMessage: {
         fontSize: 14,
-        color: '#888',
+        color: '#b0b3b8',
         maxWidth: 300,
     },
 
@@ -366,7 +366,7 @@ const styles = {
         left: 0,
         right: 0,
         bottom: 0,
-        background: 'rgba(0, 0, 0, 0.8)',
+        background: 'rgba(0, 0, 0, 0.85)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -374,7 +374,7 @@ const styles = {
     },
 
     feedbackCard: {
-        background: 'linear-gradient(180deg, #2a2a3d, #1a1a28)',
+        background: 'linear-gradient(180deg, #3a3b3c, #242526)',
         borderRadius: 16,
         padding: 32,
         textAlign: 'center',
@@ -391,13 +391,13 @@ const styles = {
     feedbackTitle: {
         fontSize: 24,
         fontWeight: 'bold',
-        fontFamily: "'Orbitron', monospace",
+        fontFamily: "'Inter', sans-serif",
         marginBottom: 16,
     },
 
     explanationText: {
         fontSize: 14,
-        color: '#ccc',
+        color: '#e4e6eb',
         lineHeight: 1.5,
         marginBottom: 20,
     },
@@ -406,8 +406,8 @@ const styles = {
         padding: '12px 32px',
         fontSize: 14,
         fontWeight: 'bold',
-        fontFamily: "'Orbitron', monospace",
-        background: 'linear-gradient(180deg, #00d4ff, #0099cc)',
+        fontFamily: "'Inter', sans-serif",
+        background: '#2374e1',
         border: 'none',
         borderRadius: 8,
         color: '#fff',

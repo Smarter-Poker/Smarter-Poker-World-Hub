@@ -1,8 +1,12 @@
 /**
- * 🎯 Poker Table Scene — SVG + HTML Top-Down Table
+ * 🎮 Poker Table Scene — Golden Template Design
  * ═══════════════════════════════════════════════════════════════════
- * Renders a dynamic poker table with 2-9 seats using SVG + HTML.
- * NO CANVAS. All elements are DOM nodes.
+ * Renders the Golden Template poker table with:
+ * - Racetrack shape with double gold rails
+ * - Dark felt (Facebook Dark palette)
+ * - 3D layered depth effect
+ * - Premium pot display
+ * - Community cards
  * ═══════════════════════════════════════════════════════════════════
  */
 
@@ -10,30 +14,38 @@ import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import SceneSeat from './SceneSeat';
 import SceneCards from './SceneCards';
+import { FACEBOOK_DARK } from '../../../hooks/useTrainingTheme';
 
-// Calculate seat positions around an ellipse
-function calculateSeatPositions(seatCount, width, height) {
-    const positions = [];
-    const centerX = width / 2;
-    const centerY = height / 2;
-    const radiusX = width * 0.38;
-    const radiusY = height * 0.35;
+// =============================================================================
+// SEAT POSITIONS (Golden Template layout - 9-max with hero at bottom)
+// Positions are % of container
+// =============================================================================
 
-    // Start from bottom center and go clockwise
-    // Seat 0 (Hero) at bottom center
-    for (let i = 0; i < seatCount; i++) {
-        // Angle: start at -90° (bottom) and go clockwise
-        const angle = (-90 + (i * 360 / seatCount)) * (Math.PI / 180);
-        positions.push({
-            seatId: i,
-            x: centerX + radiusX * Math.cos(angle),
-            y: centerY + radiusY * Math.sin(angle),
-            angle: angle * (180 / Math.PI) + 90, // For label rotation
-        });
-    }
+const SEAT_CONFIGS = {
+    6: [
+        { id: 0, x: 50, y: 88, isHero: true, label: 'HERO' },      // Bottom center
+        { id: 1, x: 12, y: 65, label: 'SB' },                       // Left lower
+        { id: 2, x: 12, y: 35, label: 'BB' },                       // Left upper
+        { id: 3, x: 50, y: 8, label: 'UTG' },                       // Top center
+        { id: 4, x: 88, y: 35, label: 'MP' },                       // Right upper
+        { id: 5, x: 88, y: 65, label: 'CO' },                       // Right lower
+    ],
+    9: [
+        { id: 0, x: 50, y: 92, isHero: true, label: 'HERO' },       // Bottom center
+        { id: 1, x: 14, y: 78, label: 'SB' },                        // Bottom left
+        { id: 2, x: 6, y: 52, label: 'BB' },                         // Left mid-lower
+        { id: 3, x: 8, y: 28, label: 'UTG' },                        // Left mid-upper
+        { id: 4, x: 28, y: 6, label: 'UTG+1' },                      // Top left
+        { id: 5, x: 72, y: 6, label: 'MP' },                         // Top right
+        { id: 6, x: 92, y: 28, label: 'MP+1' },                      // Right mid-upper
+        { id: 7, x: 94, y: 52, label: 'CO' },                        // Right mid-lower
+        { id: 8, x: 86, y: 78, label: 'BTN' },                       // Bottom right
+    ],
+};
 
-    return positions;
-}
+// =============================================================================
+// MAIN COMPONENT
+// =============================================================================
 
 export default function PokerTableScene({
     seatCount = 6,
@@ -41,8 +53,7 @@ export default function PokerTableScene({
     currentState = {},
     heroCards = null,
     onSeatClick = null,
-    width = 400,
-    height = 320,
+    gameTitle = 'GTO Training',
     debugMode = false,
 }) {
     const {
@@ -52,138 +63,114 @@ export default function PokerTableScene({
         activePlayerSeatId = null,
         lastAction = null,
         stacksAfter = [],
+        dealerSeatId = 0,
     } = currentState;
 
-    // Calculate seat positions
-    const seatPositions = useMemo(
-        () => calculateSeatPositions(seatCount, width, height),
-        [seatCount, width, height]
-    );
+    // Get seat configuration
+    const seatConfig = SEAT_CONFIGS[seatCount] || SEAT_CONFIGS[6];
 
     // Merge seat data with positions
-    const seatsWithPositions = useMemo(() => {
-        return seatPositions.map((pos, i) => {
+    const seatsWithData = useMemo(() => {
+        return seatConfig.map((config, i) => {
             const seatData = seats[i] || {};
-            const stackInfo = stacksAfter.find(s => s.seatId === i);
+            const stackInfo = stacksAfter.find(s => s.seatId === config.id);
             return {
-                ...pos,
+                ...config,
                 ...seatData,
+                position: seatData.position || config.label,
                 currentStackBB: stackInfo?.stackBB ?? seatData.startingStackBB ?? 100,
-                isActive: activePlayerSeatId === i,
+                isActive: activePlayerSeatId === config.id,
+                isDealer: dealerSeatId === config.id,
+                isFolded: seatData.isFolded || false,
             };
         });
-    }, [seatPositions, seats, stacksAfter, activePlayerSeatId]);
-
-    // Find hero seat
-    const heroSeat = seatsWithPositions.find(s => s.isHero);
+    }, [seatConfig, seats, stacksAfter, activePlayerSeatId, dealerSeatId]);
 
     return (
         <div style={styles.container}>
-            {/* SVG Table Background */}
-            <svg
-                width={width}
-                height={height}
-                viewBox={`0 0 ${width} ${height}`}
-                style={styles.svg}
-            >
-                {/* Outer table border */}
-                <ellipse
-                    cx={width / 2}
-                    cy={height / 2}
-                    rx={width * 0.46}
-                    ry={height * 0.44}
-                    fill="none"
-                    stroke="#b8860b"
-                    strokeWidth={8}
-                    style={{ filter: 'drop-shadow(0 0 10px rgba(184, 134, 11, 0.5))' }}
-                />
+            {/* ═══════════════════════════════════════════════════════════════
+                GOLDEN TEMPLATE TABLE - Layered 3D Racetrack Design
+            ═══════════════════════════════════════════════════════════════ */}
 
-                {/* Felt */}
-                <ellipse
-                    cx={width / 2}
-                    cy={height / 2}
-                    rx={width * 0.42}
-                    ry={height * 0.38}
-                    fill="url(#feltGradient)"
-                />
+            {/* OUTER DARK FRAME - 3D raised effect */}
+            <div style={styles.outerFrame}>
+                {/* OUTER GOLD RAIL */}
+                <div style={styles.outerGoldRail}>
+                    {/* BLACK GAP */}
+                    <div style={styles.blackGap}>
+                        {/* INNER GOLD RAIL */}
+                        <div style={styles.innerGoldRail}>
+                            {/* THIN DARK EDGE */}
+                            <div style={styles.darkEdge}>
+                                {/* INNER GLOW LINE */}
+                                <div style={styles.glowLine}>
+                                    {/* FELT */}
+                                    <div style={styles.felt}>
+                                        {/* POT Display (center top) */}
+                                        <div style={styles.potContainer}>
+                                            <motion.div
+                                                style={styles.pot}
+                                                key={potBB}
+                                                initial={{ scale: 0.9, opacity: 0 }}
+                                                animate={{ scale: 1, opacity: 1 }}
+                                            >
+                                                <div style={styles.chipIcon} />
+                                                <span style={styles.potText}>
+                                                    POT {potBB.toFixed(1)}
+                                                </span>
+                                            </motion.div>
+                                        </div>
 
-                {/* Gradient definitions */}
-                <defs>
-                    <radialGradient id="feltGradient" cx="50%" cy="40%" r="60%">
-                        <stop offset="0%" stopColor="#1a4d2e" />
-                        <stop offset="100%" stopColor="#0d2818" />
-                    </radialGradient>
+                                        {/* Game Title (center) */}
+                                        <div style={styles.gameTitle}>
+                                            <div style={styles.gameTitleText}>
+                                                {gameTitle}
+                                            </div>
+                                            <div style={styles.brandText}>
+                                                Smarter.Poker
+                                            </div>
+                                        </div>
 
-                    {/* Active player glow */}
-                    <filter id="activeGlow" x="-50%" y="-50%" width="200%" height="200%">
-                        <feGaussianBlur stdDeviation="4" result="blur" />
-                        <feMerge>
-                            <feMergeNode in="blur" />
-                            <feMergeNode in="SourceGraphic" />
-                        </feMerge>
-                    </filter>
-                </defs>
-            </svg>
+                                        {/* Community Cards (center, below title) */}
+                                        {board.length > 0 && (
+                                            <div style={styles.boardContainer}>
+                                                <SceneCards
+                                                    cards={board}
+                                                    size="large"
+                                                    showFlip={true}
+                                                />
+                                            </div>
+                                        )}
 
-            {/* HTML Overlays */}
-            <div style={styles.overlays}>
-                {/* Pot Display */}
-                <div style={styles.potContainer}>
-                    <motion.div
-                        style={styles.pot}
-                        key={potBB}
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{ duration: 0.3 }}
-                    >
-                        <span style={styles.chipIcon}>🪙</span>
-                        <span style={styles.potText}>POT: {potBB.toFixed(1)} BB</span>
-                    </motion.div>
-                </div>
-
-                {/* Street Indicator */}
-                <div style={styles.streetIndicator}>
-                    {street.toUpperCase()}
-                </div>
-
-                {/* Board Cards */}
-                {board.length > 0 && (
-                    <div style={styles.boardContainer}>
-                        <SceneCards cards={board} size="large" />
-                    </div>
-                )}
-
-                {/* Seats */}
-                {seatsWithPositions.map((seat) => (
-                    <SceneSeat
-                        key={seat.seatId}
-                        seat={seat}
-                        heroCards={seat.isHero ? heroCards : null}
-                        isActive={seat.isActive}
-                        lastAction={seat.isActive ? lastAction : null}
-                        onClick={onSeatClick}
-                        debugMode={debugMode}
-                    />
-                ))}
-
-                {/* Action Bubble for last action */}
-                {lastAction && lastAction.action && (
-                    <motion.div
-                        style={{
-                            ...styles.actionBubble,
-                            left: '50%',
-                            top: '18%',
-                        }}
-                        initial={{ y: 10, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        transition={{ duration: 0.3 }}
-                    >
-                        <div style={styles.actionText}>
-                            {formatAction(lastAction)}
+                                        {/* Street Badge */}
+                                        {street !== 'preflop' && (
+                                            <div style={styles.streetBadge}>
+                                                {street.toUpperCase()}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </motion.div>
-                )}
+                    </div>
+                </div>
             </div>
+
+            {/* ═══════════════════════════════════════════════════════════════
+                SEATS - Positioned around table (extending OUTSIDE)
+            ═══════════════════════════════════════════════════════════════ */}
+            {seatsWithData.map((seat) => (
+                <SceneSeat
+                    key={seat.id}
+                    seat={seat}
+                    heroCards={seat.isHero ? heroCards : null}
+                    isActive={seat.isActive}
+                    isDealer={seat.isDealer}
+                    lastAction={seat.isActive ? lastAction : null}
+                    onClick={onSeatClick}
+                    debugMode={debugMode}
+                />
+            ))}
 
             {/* Debug Overlay */}
             {debugMode && (
@@ -198,44 +185,109 @@ export default function PokerTableScene({
     );
 }
 
-function formatAction(action) {
-    if (!action) return '';
-    const { action: act, amount } = action;
-    if (amount && amount > 0) {
-        return `${act.toUpperCase()} ${amount}BB`;
-    }
-    return act.toUpperCase();
-}
+// =============================================================================
+// STYLES — Golden Template Design with Facebook Dark
+// =============================================================================
 
 const styles = {
     container: {
         position: 'relative',
         width: '100%',
-        maxWidth: 420,
+        maxWidth: 500,
         aspectRatio: '5 / 4',
         margin: '0 auto',
     },
 
-    svg: {
+    // Outer dark frame with 3D effect
+    outerFrame: {
         position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
+        top: '12%',
+        left: '8%',
+        right: '8%',
+        bottom: '12%',
+        borderRadius: '50% / 38%',
+        background: `linear-gradient(180deg, ${FACEBOOK_DARK.mid} 0%, ${FACEBOOK_DARK.base} 50%, ${FACEBOOK_DARK.darkest} 100%)`,
+        boxShadow: `
+            0 25px 80px rgba(0,0,0,0.95),
+            0 8px 30px rgba(0,0,0,0.8),
+            inset 0 -8px 20px rgba(0,0,0,0.6),
+            inset 0 8px 20px rgba(50,50,50,0.2)
+        `,
     },
 
-    overlays: {
+    // Outer gold rail
+    outerGoldRail: {
         position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        pointerEvents: 'none',
+        inset: 12,
+        borderRadius: '50% / 37%',
+        background: 'linear-gradient(180deg, #f0d050 0%, #d4a000 25%, #a07800 60%, #705000 100%)',
+        boxShadow: `
+            inset 0 3px 6px rgba(255,255,180,0.5),
+            inset 0 -3px 6px rgba(0,0,0,0.5)
+        `,
     },
 
+    // Black gap between rails
+    blackGap: {
+        position: 'absolute',
+        inset: 10,
+        borderRadius: '50% / 36%',
+        background: `linear-gradient(180deg, ${FACEBOOK_DARK.base} 0%, ${FACEBOOK_DARK.darkest} 100%)`,
+    },
+
+    // Inner gold rail
+    innerGoldRail: {
+        position: 'absolute',
+        inset: 8,
+        borderRadius: '50% / 35%',
+        background: 'linear-gradient(180deg, #ffe070 0%, #e8b810 25%, #b08000 60%, #785500 100%)',
+        boxShadow: `
+            inset 0 3px 6px rgba(255,255,180,0.6),
+            inset 0 -3px 6px rgba(0,0,0,0.5)
+        `,
+    },
+
+    // Thin dark edge
+    darkEdge: {
+        position: 'absolute',
+        inset: 6,
+        borderRadius: '50% / 34%',
+        background: `linear-gradient(180deg, ${FACEBOOK_DARK.base} 0%, ${FACEBOOK_DARK.darkest} 100%)`,
+    },
+
+    // Inner glow line
+    glowLine: {
+        position: 'absolute',
+        inset: 4,
+        borderRadius: '50% / 33%',
+        border: '3px solid rgba(180,140,50,0.35)',
+        background: 'transparent',
+    },
+
+    // Felt with radial gradient
+    felt: {
+        position: 'absolute',
+        inset: 0,
+        borderRadius: '50% / 33%',
+        background: `radial-gradient(
+            ellipse at 50% 35%,
+            ${FACEBOOK_DARK.mid} 0%,
+            ${FACEBOOK_DARK.base} 25%,
+            ${FACEBOOK_DARK.darkest} 50%,
+            #0d0d0d 75%,
+            #080808 100%
+        )`,
+        boxShadow: `
+            inset 0 0 120px rgba(0,0,0,0.9),
+            inset 0 0 60px rgba(0,0,0,0.7),
+            inset 0 -20px 40px rgba(0,0,0,0.5)
+        `,
+    },
+
+    // Pot container
     potContainer: {
         position: 'absolute',
-        top: '25%',
+        top: '18%',
         left: '50%',
         transform: 'translateX(-50%)',
         zIndex: 5,
@@ -244,69 +296,82 @@ const styles = {
     pot: {
         display: 'flex',
         alignItems: 'center',
-        gap: 8,
-        background: 'linear-gradient(180deg, rgba(40, 40, 55, 0.95), rgba(20, 20, 30, 0.95))',
-        padding: '8px 16px',
-        borderRadius: 20,
-        border: '2px solid rgba(251, 191, 36, 0.5)',
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5), 0 0 15px rgba(251, 191, 36, 0.2)',
+        gap: 6,
+        background: `rgba(25,25,25,0.95)`,
+        borderRadius: 14,
+        padding: '5px 12px',
+        border: `1px solid ${FACEBOOK_DARK.highlight}`,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
     },
 
     chipIcon: {
-        fontSize: 18,
+        width: 16,
+        height: 16,
+        borderRadius: '50%',
+        background: `linear-gradient(180deg, ${FACEBOOK_DARK.highlight} 0%, ${FACEBOOK_DARK.mid} 100%)`,
+        border: `2px solid ${FACEBOOK_DARK.light}`,
+        boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.1)',
     },
 
     potText: {
-        color: '#fbbf24',
-        fontSize: 15,
+        color: FACEBOOK_DARK.textPrimary,
+        fontSize: 12,
         fontWeight: 'bold',
-        fontFamily: "'Orbitron', monospace",
-        textShadow: '0 0 10px rgba(251, 191, 36, 0.6)',
+        letterSpacing: 0.5,
+        fontFamily: "'Inter', sans-serif",
     },
 
-    streetIndicator: {
+    gameTitle: {
         position: 'absolute',
         top: '50%',
         left: '50%',
         transform: 'translate(-50%, -50%)',
-        color: 'rgba(255,255,255,0.3)',
+        textAlign: 'center',
+    },
+
+    gameTitleText: {
+        fontSize: 20,
+        fontFamily: 'Georgia, serif',
+        fontStyle: 'italic',
+        color: FACEBOOK_DARK.light,
+        letterSpacing: 2,
+        textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+    },
+
+    brandText: {
         fontSize: 12,
-        fontWeight: 'bold',
-        letterSpacing: 3,
-        fontFamily: "'Orbitron', monospace",
+        color: FACEBOOK_DARK.gold,
+        marginTop: 4,
+        textShadow: `0 0 10px ${FACEBOOK_DARK.goldGlow}`,
     },
 
     boardContainer: {
         position: 'absolute',
-        top: '42%',
+        top: '68%',
         left: '50%',
-        transform: 'translate(-50%, -50%)',
-        zIndex: 4,
-    },
-
-    actionBubble: {
-        position: 'absolute',
         transform: 'translateX(-50%)',
-        background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-        padding: '10px 20px',
-        borderRadius: 16,
-        boxShadow: '0 4px 20px rgba(239, 68, 68, 0.5)',
+        display: 'flex',
+        gap: 4,
         zIndex: 10,
     },
 
-    actionText: {
-        color: '#fff',
-        fontSize: 14,
+    streetBadge: {
+        position: 'absolute',
+        bottom: '15%',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        color: FACEBOOK_DARK.textMuted,
+        fontSize: 10,
         fontWeight: 'bold',
-        fontFamily: "'Orbitron', monospace",
-        textAlign: 'center',
+        letterSpacing: 2,
+        textTransform: 'uppercase',
     },
 
     debugOverlay: {
         position: 'absolute',
         bottom: 4,
         right: 4,
-        background: 'rgba(0,0,0,0.8)',
+        background: 'rgba(0,0,0,0.9)',
         color: '#0f0',
         fontSize: 10,
         fontFamily: 'monospace',

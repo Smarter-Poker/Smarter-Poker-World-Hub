@@ -1,183 +1,297 @@
 /**
- * 🎯 Scene Seat — Individual Player Seat Component
+ * 🎮 Scene Seat — Golden Template Avatar System
  * ═══════════════════════════════════════════════════════════════════
- * Renders a single seat with avatar, stack, position badge, and cards.
+ * Renders player seats with:
+ * - Large illustrated avatars (extending OUTSIDE table)
+ * - Gold name badges below avatars
+ * - Action tags (PokerBros colors)
+ * - Dealer button
+ * - Facebook Dark palette
  * ═══════════════════════════════════════════════════════════════════
  */
 
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import SceneCards from './SceneCards';
+import { ACTION_COLORS, FACEBOOK_DARK } from '../../../hooks/useTrainingTheme';
+
+// =============================================================================
+// AVATAR IMAGES (illustrated characters)
+// =============================================================================
+
+const AVATAR_IMAGES = {
+    hero: '/avatars/table/free_fox.png',
+    0: '/avatars/table/free_fox.png',
+    1: '/avatars/table/vip_viking_warrior.png',
+    2: '/avatars/table/free_wizard.png',
+    3: '/avatars/table/free_ninja.png',
+    4: '/avatars/table/vip_wolf.png',
+    5: '/avatars/table/vip_spartan.png',
+    6: '/avatars/table/vip_pharaoh.png',
+    7: '/avatars/table/free_cowboy.png',
+    8: '/avatars/table/free_pirate.png',
+};
+
+// =============================================================================
+// ACTION TAG COMPONENT (PokerBros style)
+// =============================================================================
+
+function ActionTag({ action, amount }) {
+    if (!action) return null;
+
+    const actionKey = action.toLowerCase().replace('-', '_');
+    const colorConfig = ACTION_COLORS[actionKey] || ACTION_COLORS.fold;
+
+    // Format label with amount if applicable
+    let label = colorConfig.label;
+    if (amount && amount > 0 && ['bet', 'raise', 'call'].includes(actionKey)) {
+        label = `${colorConfig.label} ${amount}BB`;
+    }
+
+    return (
+        <motion.div
+            initial={{ scale: 0, opacity: 0, y: 10 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0, opacity: 0, y: -10 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+            style={{
+                position: 'absolute',
+                top: -32,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                backgroundColor: colorConfig.bg,
+                color: colorConfig.text,
+                padding: '5px 12px',
+                borderRadius: 14,
+                fontSize: 11,
+                fontWeight: 'bold',
+                fontFamily: "'Inter', sans-serif",
+                whiteSpace: 'nowrap',
+                boxShadow: `0 2px 10px rgba(0,0,0,0.4), 0 0 15px ${colorConfig.bg}50`,
+                zIndex: 100,
+            }}
+        >
+            {label}
+        </motion.div>
+    );
+}
+
+// =============================================================================
+// MAIN COMPONENT
+// =============================================================================
 
 export default function SceneSeat({
-    seat,
+    seat = {},
     heroCards = null,
     isActive = false,
+    isDealer = false,
     lastAction = null,
     onClick = null,
     debugMode = false,
 }) {
     const {
-        seatId,
-        x,
-        y,
-        position,
-        playerName,
-        isHero,
+        id: seatId = 0,
+        x = 50,
+        y = 50,
+        isHero = false,
+        position = 'V',
         currentStackBB = 100,
+        isFolded = false,
     } = seat;
 
-    // Offset from center for seat placement
-    const seatWidth = 70;
-    const seatHeight = isHero ? 100 : 70;
+    const avatarSize = isHero ? 90 : 75;
+    const avatarImage = AVATAR_IMAGES[seatId] || AVATAR_IMAGES[0];
 
     return (
         <motion.div
             style={{
-                ...styles.seat,
-                left: x,
-                top: y,
-                transform: 'translate(-50%, -50%)',
-                width: seatWidth,
-                height: seatHeight,
+                ...styles.seatContainer,
+                left: `${x}%`,
+                top: `${y}%`,
+                zIndex: isHero ? 100 : 50,
             }}
-            animate={{
-                boxShadow: isActive
-                    ? '0 0 20px rgba(0, 212, 255, 0.8), 0 0 40px rgba(0, 212, 255, 0.4)'
-                    : 'none',
-            }}
-            transition={{ duration: 0.3 }}
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.3, delay: seatId * 0.05 }}
             onClick={() => onClick?.(seatId)}
         >
-            {/* Avatar Container */}
-            <div style={{
-                ...styles.avatarContainer,
-                borderColor: isHero ? '#00d4ff' : isActive ? '#fbbf24' : '#555',
-            }}>
-                {/* Avatar placeholder - using position initial */}
-                <div style={styles.avatar}>
-                    {isHero ? '👤' : (position?.[0] || 'V')}
-                </div>
-
-                {/* Active glow ring */}
-                {isActive && (
-                    <motion.div
-                        style={styles.activeRing}
-                        animate={{ opacity: [0.5, 1, 0.5] }}
-                        transition={{ duration: 1.5, repeat: Infinity }}
+            {/* Action Tag (above avatar) */}
+            <AnimatePresence>
+                {lastAction && (
+                    <ActionTag
+                        action={lastAction.action || lastAction}
+                        amount={lastAction.amountBB || lastAction.amount}
                     />
                 )}
-            </div>
+            </AnimatePresence>
 
-            {/* Position Badge */}
-            <div style={{
-                ...styles.badge,
-                background: isHero
-                    ? 'linear-gradient(180deg, #00d4ff, #0099cc)'
-                    : 'linear-gradient(180deg, #4a4a5a, #2d2d3a)',
-            }}>
-                {isHero ? 'HERO' : position}
-            </div>
+            {/* Avatar Container */}
+            <motion.div
+                style={{
+                    ...styles.avatarContainer,
+                    width: avatarSize,
+                    height: avatarSize * 1.2,
+                }}
+                animate={isActive ? {
+                    boxShadow: [
+                        `0 0 0 3px ${FACEBOOK_DARK.primary}`,
+                        `0 0 20px 5px ${FACEBOOK_DARK.primaryGlow}`,
+                        `0 0 0 3px ${FACEBOOK_DARK.primary}`,
+                    ]
+                } : {}}
+                transition={{ duration: 1.5, repeat: Infinity }}
+            >
+                <img
+                    src={avatarImage}
+                    alt={position}
+                    style={{
+                        ...styles.avatarImage,
+                        filter: isFolded ? 'grayscale(100%) brightness(0.5)' : 'none',
+                    }}
+                    onError={(e) => {
+                        e.target.src = '/avatars/default.png';
+                    }}
+                />
+            </motion.div>
 
-            {/* Stack */}
-            <div style={styles.stack}>
-                {currentStackBB.toFixed(0)} BB
-            </div>
+            {/* Gold Name Badge (below avatar) */}
+            <motion.div
+                style={styles.nameBadge}
+                initial={{ y: 10, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.3, delay: 0.1 }}
+            >
+                <div style={styles.playerName}>
+                    {isHero ? 'HERO' : position}
+                </div>
+                <div style={styles.stackAmount}>
+                    {currentStackBB.toFixed(0)} BB
+                </div>
+            </motion.div>
 
-            {/* Hero Cards (only for hero seat) */}
+            {/* Dealer Button */}
+            {isDealer && (
+                <motion.div
+                    style={styles.dealerButton}
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                >
+                    D
+                </motion.div>
+            )}
+
+            {/* Hero Cards (displayed next to hero seat) */}
             {isHero && heroCards && heroCards.length > 0 && (
-                <div style={styles.heroCards}>
-                    <SceneCards cards={heroCards} size="small" />
+                <div style={styles.heroCardsContainer}>
+                    <SceneCards cards={heroCards} size="medium" />
                 </div>
             )}
 
-            {/* Debug info */}
+            {/* Debug Label */}
             {debugMode && (
                 <div style={styles.debugLabel}>
-                    S{seatId}
+                    S{seatId} | {x},{y}
                 </div>
             )}
         </motion.div>
     );
 }
 
+// =============================================================================
+// STYLES — Golden Template with Facebook Dark
+// =============================================================================
+
 const styles = {
-    seat: {
+    seatContainer: {
         position: 'absolute',
+        transform: 'translate(-50%, -50%)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: 4,
-        pointerEvents: 'auto',
         cursor: 'pointer',
-        zIndex: 10,
     },
 
     avatarContainer: {
         position: 'relative',
-        width: 44,
-        height: 44,
-        borderRadius: '50%',
-        border: '3px solid #555',
-        overflow: 'hidden',
-        background: 'linear-gradient(135deg, #2d2d3a, #1a1a24)',
-        boxShadow: '0 4px 15px rgba(0,0,0,0.5)',
+        borderRadius: 8,
+        overflow: 'visible',
     },
 
-    avatar: {
+    avatarImage: {
         width: '100%',
         height: '100%',
+        objectFit: 'contain',
+        transition: 'filter 0.3s ease',
+    },
+
+    nameBadge: {
+        background: 'linear-gradient(180deg, #f0c040 0%, #c4960a 100%)',
+        border: '2px solid #8b6914',
+        borderRadius: 6,
+        padding: '3px 14px',
+        marginTop: -8,
+        minWidth: 70,
+        textAlign: 'center',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+    },
+
+    playerName: {
+        fontSize: 10,
+        fontWeight: 'bold',
+        color: '#000',
+        textShadow: '0 1px 0 rgba(255,255,255,0.3)',
+        whiteSpace: 'nowrap',
+        fontFamily: "'Inter', sans-serif",
+    },
+
+    stackAmount: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: '#1a1a00',
+        fontFamily: "'Inter', sans-serif",
+    },
+
+    dealerButton: {
+        position: 'absolute',
+        bottom: 45,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: 26,
+        height: 26,
+        borderRadius: '50%',
+        background: '#ffffff',
+        border: `2px solid ${FACEBOOK_DARK.mid}`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontSize: 20,
-        color: '#888',
+        fontSize: 13,
+        fontWeight: 'bold',
+        color: '#000',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+        zIndex: 200,
     },
 
-    activeRing: {
+    heroCardsContainer: {
         position: 'absolute',
-        top: -4,
-        left: -4,
-        right: -4,
-        bottom: -4,
-        borderRadius: '50%',
-        border: '2px solid #00d4ff',
-        pointerEvents: 'none',
-    },
-
-    badge: {
-        padding: '3px 8px',
-        borderRadius: 4,
-        fontSize: 10,
-        fontWeight: 'bold',
-        fontFamily: "'Orbitron', monospace",
-        color: '#fff',
-        textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-        boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
-    },
-
-    stack: {
-        fontSize: 10,
-        fontWeight: 'bold',
-        fontFamily: "'Orbitron', monospace",
-        color: '#fbbf24',
-        textShadow: '0 0 6px rgba(251, 191, 36, 0.5)',
-    },
-
-    heroCards: {
-        marginTop: 4,
+        bottom: -60,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        display: 'flex',
+        gap: -10,
+        zIndex: 150,
     },
 
     debugLabel: {
         position: 'absolute',
-        top: -12,
+        top: -40,
         left: '50%',
         transform: 'translateX(-50%)',
         fontSize: 8,
         color: '#0f0',
         fontFamily: 'monospace',
-        background: 'rgba(0,0,0,0.8)',
-        padding: '1px 4px',
-        borderRadius: 2,
+        background: 'rgba(0,0,0,0.9)',
+        padding: '2px 6px',
+        borderRadius: 3,
+        zIndex: 200,
     },
 };

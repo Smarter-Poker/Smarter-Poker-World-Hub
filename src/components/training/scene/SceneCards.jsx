@@ -9,12 +9,12 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Card suits with colors
+// Card suits with colors (Standard 2-color deck - matches Club Arena/Golden Template)
 const SUIT_MAP = {
-    'h': { symbol: '♥', color: '#ef4444' },
-    's': { symbol: '♠', color: '#1a1a2e' },
-    'd': { symbol: '♦', color: '#3b82f6' },
-    'c': { symbol: '♣', color: '#22c55e' },
+    'h': { symbol: '♥', color: '#cc0000' },  // Hearts - Red
+    's': { symbol: '♠', color: '#1a1a2e' },  // Spades - Black
+    'd': { symbol: '♦', color: '#cc0000' },  // Diamonds - Red
+    'c': { symbol: '♣', color: '#1a1a2e' },  // Clubs - Black
 };
 
 // Parse card string like "Ah" or "Kd"

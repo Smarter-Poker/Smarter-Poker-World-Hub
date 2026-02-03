@@ -1,13 +1,14 @@
 /**
- * 🎯 Answer Grid — 2×2 Choice Buttons
+ * 🎯 Answer Grid — Facebook Dark Theme
  * ═══════════════════════════════════════════════════════════════════
- * Exactly 4 answer choices in a 2×2 grid with metallic styling.
- * States: idle, hover, selected, correct, incorrect
+ * 2×2 grid of answer choices with Facebook Dark styling.
+ * States: idle, hover, selected, correct, incorrect, dimmed
  * ═══════════════════════════════════════════════════════════════════
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
+import { FACEBOOK_DARK } from '../../../hooks/useTrainingTheme';
 
 export default function AnswerGrid({
     answers = [],
@@ -36,23 +37,36 @@ export default function AnswerGrid({
         return 'dimmed';
     };
 
+    const getButtonStyle = (state) => {
+        const base = styles.button;
+        switch (state) {
+            case 'selected':
+                return { ...base, ...styles.selected };
+            case 'correct':
+                return { ...base, ...styles.correct };
+            case 'incorrect':
+                return { ...base, ...styles.incorrect };
+            case 'dimmed':
+                return { ...base, ...styles.dimmed };
+            default:
+                return { ...base, ...styles.idle };
+        }
+    };
+
     return (
         <div style={styles.container}>
             <div style={styles.grid}>
                 {paddedAnswers.map((answer, index) => {
                     const state = getButtonState(answer);
-                    const buttonStyle = {
-                        ...styles.button,
-                        ...styles[state],
-                    };
+                    const buttonStyle = getButtonStyle(state);
 
                     return (
                         <motion.button
                             key={answer.id ?? index}
                             style={buttonStyle}
                             onClick={() => !disabled && onSelect?.(answer)}
-                            disabled={disabled || !answer.label}
-                            whileHover={!disabled ? { scale: 1.02 } : {}}
+                            disabled={disabled || !answer.label || answer.label === '-'}
+                            whileHover={!disabled ? { scale: 1.02, y: -2 } : {}}
                             whileTap={!disabled ? { scale: 0.98 } : {}}
                             initial={{ opacity: 0, y: 10 }}
                             animate={{
@@ -72,10 +86,10 @@ export default function AnswerGrid({
 
                             {/* Correct/Incorrect indicator */}
                             {showFeedback && state === 'correct' && (
-                                <span style={styles.indicator}>✓</span>
+                                <span style={{ ...styles.indicator, color: FACEBOOK_DARK.success }}>✓</span>
                             )}
                             {showFeedback && state === 'incorrect' && (
-                                <span style={styles.indicator}>✗</span>
+                                <span style={{ ...styles.indicator, color: FACEBOOK_DARK.danger }}>✗</span>
                             )}
                         </motion.button>
                     );
@@ -89,7 +103,7 @@ const styles = {
     container: {
         width: '100%',
         padding: '12px 16px 20px',
-        background: 'linear-gradient(180deg, #1a1a24 0%, #0d0d14 100%)',
+        background: `linear-gradient(180deg, ${FACEBOOK_DARK.base} 0%, ${FACEBOOK_DARK.darkest} 100%)`,
     },
 
     grid: {
@@ -100,13 +114,13 @@ const styles = {
     },
 
     button: {
-        padding: '18px 16px',
+        padding: '16px 14px',
         fontSize: 14,
         fontWeight: 'bold',
-        fontFamily: "'Orbitron', 'Courier New', monospace",
+        fontFamily: "'Inter', -apple-system, sans-serif",
         textTransform: 'uppercase',
-        letterSpacing: 1,
-        borderRadius: 12,
+        letterSpacing: 0.5,
+        borderRadius: 10,
         cursor: 'pointer',
         transition: 'all 0.15s ease-out',
         position: 'relative',
@@ -115,53 +129,48 @@ const styles = {
         alignItems: 'center',
         justifyContent: 'center',
         gap: 4,
-        minHeight: 60,
+        minHeight: 55,
     },
 
-    // Button states
+    // Button states - Facebook Dark
     idle: {
-        background: 'linear-gradient(180deg, #5a5a70 0%, #3d3d52 30%, #2a2a3d 60%, #1a1a28 100%)',
-        border: '2px solid rgba(0, 212, 255, 0.4)',
-        color: '#00d4ff',
-        boxShadow: '0 0 15px rgba(0, 212, 255, 0.2), 0 4px 15px rgba(0,0,0,0.4), inset 0 1px 2px rgba(255,255,255,0.1)',
-        textShadow: '0 0 10px rgba(0, 212, 255, 0.7)',
+        background: `linear-gradient(180deg, ${FACEBOOK_DARK.mid} 0%, ${FACEBOOK_DARK.base} 100%)`,
+        border: `2px solid ${FACEBOOK_DARK.highlight}`,
+        color: FACEBOOK_DARK.primary,
+        boxShadow: `0 2px 8px rgba(0,0,0,0.3)`,
     },
 
     selected: {
-        background: 'linear-gradient(180deg, #3a5a70 0%, #2a4a5d 50%, #1a3a4a 100%)',
-        border: '2px solid #00d4ff',
-        color: '#00d4ff',
-        boxShadow: '0 0 25px rgba(0, 212, 255, 0.5), 0 4px 15px rgba(0,0,0,0.4)',
-        textShadow: '0 0 15px rgba(0, 212, 255, 1)',
+        background: `linear-gradient(180deg, ${FACEBOOK_DARK.primaryDim} 0%, ${FACEBOOK_DARK.base} 100%)`,
+        border: `2px solid ${FACEBOOK_DARK.primary}`,
+        color: FACEBOOK_DARK.primary,
+        boxShadow: `0 0 20px ${FACEBOOK_DARK.primaryGlow}, 0 2px 8px rgba(0,0,0,0.3)`,
     },
 
     correct: {
-        background: 'linear-gradient(180deg, #1a5a3a 0%, #0d4028 50%, #0a3020 100%)',
-        border: '2px solid #22c55e',
-        color: '#22c55e',
-        boxShadow: '0 0 25px rgba(34, 197, 94, 0.5), 0 4px 15px rgba(0,0,0,0.4)',
-        textShadow: '0 0 12px rgba(34, 197, 94, 0.8)',
+        background: `linear-gradient(180deg, rgba(49, 162, 76, 0.2) 0%, ${FACEBOOK_DARK.base} 100%)`,
+        border: `2px solid ${FACEBOOK_DARK.success}`,
+        color: FACEBOOK_DARK.success,
+        boxShadow: `0 0 20px ${FACEBOOK_DARK.successGlow}, 0 2px 8px rgba(0,0,0,0.3)`,
     },
 
     incorrect: {
-        background: 'linear-gradient(180deg, #5a2a2a 0%, #4a1a1a 50%, #301515 100%)',
-        border: '2px solid #ef4444',
-        color: '#ef4444',
-        boxShadow: '0 0 25px rgba(239, 68, 68, 0.5), 0 4px 15px rgba(0,0,0,0.4)',
-        textShadow: '0 0 12px rgba(239, 68, 68, 0.8)',
+        background: `linear-gradient(180deg, rgba(240, 40, 73, 0.2) 0%, ${FACEBOOK_DARK.base} 100%)`,
+        border: `2px solid ${FACEBOOK_DARK.danger}`,
+        color: FACEBOOK_DARK.danger,
+        boxShadow: `0 0 20px ${FACEBOOK_DARK.dangerGlow}, 0 2px 8px rgba(0,0,0,0.3)`,
     },
 
     dimmed: {
-        background: 'linear-gradient(180deg, #3a3a4a 0%, #2a2a3a 50%, #1a1a24 100%)',
-        border: '2px solid #444',
-        color: '#666',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-        textShadow: 'none',
+        background: FACEBOOK_DARK.base,
+        border: `2px solid ${FACEBOOK_DARK.mid}`,
+        color: FACEBOOK_DARK.textMuted,
+        boxShadow: 'none',
         cursor: 'default',
     },
 
     label: {
-        fontSize: 14,
+        fontSize: 13,
     },
 
     frequency: {

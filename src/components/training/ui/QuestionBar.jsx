@@ -1,12 +1,14 @@
 /**
- * 🎯 Question Bar — Fixed Top Header
+ * 🎯 Question Bar — Facebook Dark Theme
  * ═══════════════════════════════════════════════════════════════════
- * Displays the training question in a metallic sci-fi header strip.
+ * Fixed header displaying the training question.
+ * Uses Facebook Dark color palette.
  * ═══════════════════════════════════════════════════════════════════
  */
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import { FACEBOOK_DARK } from '../../../hooks/useTrainingTheme';
 
 export default function QuestionBar({
     title = null,
@@ -27,7 +29,6 @@ export default function QuestionBar({
             {title && (
                 <div style={styles.titleRow}>
                     <h2 style={styles.title}>{title}</h2>
-                    <span style={styles.brand}>Smarter Poker</span>
                 </div>
             )}
 
@@ -39,14 +40,14 @@ export default function QuestionBar({
             {/* Subtext */}
             {subtext && (
                 <div style={styles.subtext}>
-                    ▶ {subtext}
+                    {subtext}
                 </div>
             )}
 
             {/* Streak Badge (if active) */}
             {streak >= 2 && (
                 <div style={styles.streakBadge}>
-                    🔥 {streak}
+                    ★ {streak}
                 </div>
             )}
 
@@ -64,9 +65,9 @@ const styles = {
     container: {
         width: '100%',
         padding: '16px 20px',
-        background: 'linear-gradient(180deg, #3a3a4a 0%, #1a1a24 100%)',
-        borderBottom: '3px solid #00d4ff',
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.4), 0 0 20px rgba(0, 212, 255, 0.2)',
+        background: `linear-gradient(180deg, ${FACEBOOK_DARK.mid} 0%, ${FACEBOOK_DARK.base} 100%)`,
+        borderBottom: `3px solid ${FACEBOOK_DARK.primary}`,
+        boxShadow: `0 4px 20px rgba(0, 0, 0, 0.4), 0 0 20px ${FACEBOOK_DARK.primaryDim}`,
         position: 'relative',
     },
 
@@ -74,45 +75,36 @@ const styles = {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        marginBottom: 12,
+        marginBottom: 10,
     },
 
     title: {
         margin: 0,
-        fontSize: 20,
+        fontSize: 18,
         fontWeight: 'bold',
-        color: '#00d4ff',
-        fontFamily: "'Orbitron', 'Courier New', monospace",
+        color: FACEBOOK_DARK.primary,
+        fontFamily: "'Inter', -apple-system, sans-serif",
         textTransform: 'uppercase',
-        letterSpacing: 3,
-        textShadow: '0 0 20px rgba(0, 212, 255, 0.8), 0 0 40px rgba(0, 212, 255, 0.4)',
-    },
-
-    brand: {
-        fontSize: 12,
-        color: 'rgba(255,255,255,0.6)',
-        fontFamily: "'Inter', sans-serif",
-        marginTop: 4,
+        letterSpacing: 2,
     },
 
     questionText: {
-        color: '#ffffff',
-        fontSize: 20,
+        color: FACEBOOK_DARK.textPrimary,
+        fontSize: 18,
         fontWeight: 'bold',
-        fontFamily: "'Orbitron', 'Courier New', monospace",
+        fontFamily: "'Inter', -apple-system, sans-serif",
         lineHeight: 1.4,
         textAlign: 'center',
-        textShadow: '0 0 10px rgba(255, 255, 255, 0.5)',
     },
 
     subtext: {
-        marginTop: 8,
-        color: '#00d4ff',
-        fontSize: 13,
-        fontWeight: 'bold',
-        fontFamily: "'Orbitron', monospace",
+        marginTop: 6,
+        color: FACEBOOK_DARK.primary,
+        fontSize: 12,
+        fontWeight: '600',
+        fontFamily: "'Inter', sans-serif",
         textAlign: 'center',
-        letterSpacing: 1,
+        letterSpacing: 0.5,
         textTransform: 'uppercase',
     },
 
@@ -120,27 +112,27 @@ const styles = {
         position: 'absolute',
         top: 12,
         right: 16,
-        background: 'linear-gradient(135deg, rgba(251, 146, 60, 0.3), rgba(251, 146, 60, 0.15))',
-        padding: '6px 12px',
+        background: `${FACEBOOK_DARK.goldGlow}`,
+        padding: '5px 12px',
         borderRadius: 16,
-        border: '1px solid rgba(251, 146, 60, 0.5)',
-        color: '#fbbf24',
+        border: `1px solid ${FACEBOOK_DARK.gold}`,
+        color: FACEBOOK_DARK.gold,
         fontSize: 12,
         fontWeight: 'bold',
-        fontFamily: "'Orbitron', monospace",
+        fontFamily: "'Inter', sans-serif",
     },
 
     questionCounter: {
         position: 'absolute',
         bottom: 8,
         right: 16,
-        color: '#00d4ff',
+        color: FACEBOOK_DARK.primary,
         fontSize: 11,
         fontWeight: 'bold',
-        fontFamily: "'Orbitron', monospace",
-        background: 'linear-gradient(180deg, #3a3a4a, #1a1a24)',
+        fontFamily: "'Inter', sans-serif",
+        background: FACEBOOK_DARK.darkest,
         padding: '4px 10px',
         borderRadius: 6,
-        border: '1px solid rgba(0, 212, 255, 0.3)',
+        border: `1px solid ${FACEBOOK_DARK.primaryDim}`,
     },
 };

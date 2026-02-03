@@ -360,9 +360,21 @@ export default function MemoryGameClient({
         const randomHand = availableHands[Math.floor(Math.random() * availableHands.length)];
         const handData = chartGrid[randomHand];
 
+        // Derive correct action from push/fold format or action string
+        let correctAction = 'Fold';
+        if (handData.action) {
+            // Standard format: { action: "Raise" }
+            correctAction = handData.action;
+        } else if (handData.push === 1 || handData.push > 0.5) {
+            // Push/fold format: { push: 1, fold: 0 }
+            correctAction = 'Raise';
+        } else if (handData.call === 1 || handData.call > 0.5) {
+            correctAction = 'Call';
+        }
+
         const hand: Hand = {
             hand: randomHand,
-            correctAction: handData.action,
+            correctAction,
             alternateLines: handData.alternates || [],
             explanation: handData.explanation || 'GTO optimal play based on range construction.',
         };
@@ -649,16 +661,27 @@ export default function MemoryGameClient({
                         {!isCorrect && (
                             <div className="border-t border-slate-700 pt-4">
                                 {/* GTO Panel Image from Supabase */}
-                                {gameState.chartData?.position && (
-                                    <div className="mb-4">
-                                        <img
-                                            src={`https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/gto-panels/panels/gto_${gameState.chartData.position.toLowerCase()}_${gameState.currentHand.correctAction.toLowerCase()}_100bb.png`}
-                                            alt={`GTO Analysis: ${gameState.currentHand.correctAction}`}
-                                            className="w-full max-w-lg mx-auto rounded-xl shadow-2xl border border-cyan-500/30"
-                                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                                        />
-                                    </div>
-                                )}
+                                {(() => {
+                                    // Use hero_position from chart data (BTN, SB, UTG, etc.)
+                                    const position = (gameState.chartData?.hero_position || gameState.chartData?.position || 'utg').toLowerCase();
+                                    // Map action to panel filename format (raise is most common for push scenarios)
+                                    const action = gameState.currentHand.correctAction?.toLowerCase() || 'raise';
+                                    const panelUrl = `https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/gto-panels/panels/gto_${position}_${action}_100bb.png`;
+                                    console.log('[GTO Panel] Loading:', panelUrl, 'Position:', position, 'Action:', action);
+                                    return (
+                                        <div className="mb-4">
+                                            <img
+                                                src={panelUrl}
+                                                alt={`GTO Analysis: ${gameState.currentHand.correctAction}`}
+                                                className="w-full max-w-lg mx-auto rounded-xl shadow-2xl border border-cyan-500/30"
+                                                onError={(e) => {
+                                                    console.log('[GTO Panel] Not found:', panelUrl);
+                                                    (e.target as HTMLImageElement).style.display = 'none';
+                                                }}
+                                            />
+                                        </div>
+                                    );
+                                })()}
 
                                 <div className="mb-4">
                                     <div className="text-sm text-slate-400 mb-2">✓ Correct GTO Line:</div>
