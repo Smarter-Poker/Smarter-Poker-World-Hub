@@ -41,6 +41,22 @@ const ACTION_COLORS = {
     'ALL-IN': '#ff00ff',
 };
 
+// Font loading for @vercel/og
+async function loadFonts() {
+    const interBold = await fetch(
+        'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuGKYAZ9hiJ-Ek-_EeA.woff2'
+    ).then((res) => res.arrayBuffer());
+
+    const interRegular = await fetch(
+        'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuAGYAZ9hiJ-Ek-_EeA.woff2'
+    ).then((res) => res.arrayBuffer());
+
+    return [
+        { name: 'Inter', data: interBold, style: 'normal', weight: 700 },
+        { name: 'Inter', data: interRegular, style: 'normal', weight: 400 },
+    ];
+}
+
 export const config = {
     runtime: 'edge',
 };
@@ -84,6 +100,9 @@ export default async function handler(req) {
             });
         }
 
+        // Load fonts for proper text rendering
+        const fonts = await loadFonts();
+
         // Generate the image using @vercel/og
         const imageResponse = new ImageResponse(
             generateGTOPanel({
@@ -98,6 +117,7 @@ export default async function handler(req) {
             {
                 width: 800,
                 height: 900,
+                fonts,
             }
         );
 
