@@ -356,10 +356,21 @@ function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, DiamondEngine, userI
 
                     {/* Feedback */}
                     {gameState === 'revealed' && (
-                        <div style={{ fontSize: 18, fontWeight: 700, color: userAnswer === currentHand.correctAction ? '#00ff88' : '#ff4444', marginBottom: 16 }}>
-                            {userAnswer === currentHand.correctAction
-                                ? ` Correct! +${100 + (streak - 1) * 10}`
-                                : `✗ Wrong! Should ${currentHand.correctAction.toUpperCase()}`}
+                        <div style={{ marginBottom: 16 }}>
+                            <div style={{ fontSize: 18, fontWeight: 700, color: userAnswer === currentHand.correctAction ? '#00ff88' : '#ff4444', marginBottom: 12 }}>
+                                {userAnswer === currentHand.correctAction
+                                    ? ` Correct! +${100 + (streak - 1) * 10}`
+                                    : `✗ Wrong! Should ${currentHand.correctAction.toUpperCase()}`}
+                            </div>
+                            {/* GTO Panel Image for wrong answers */}
+                            {userAnswer !== currentHand.correctAction && (
+                                <img
+                                    src={`https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/gto-panels/panels/gto_utg_${currentHand.correctAction}_100bb.png`}
+                                    alt="GTO Analysis"
+                                    style={{ maxWidth: '100%', borderRadius: 12, border: '2px solid rgba(0,212,255,0.3)', marginTop: 8 }}
+                                    onError={(e) => { e.target.style.display = 'none'; }}
+                                />
+                            )}
                         </div>
                     )}
 
@@ -648,10 +659,21 @@ function PressureCookerGame({ level = 1, onExit, onScoreUpdate, DiamondEngine, u
 
                     {/* Feedback */}
                     {gameState === 'revealed' && (
-                        <div style={{ fontSize: 18, fontWeight: 700, color: userAnswer === currentHand.correctAction ? '#00ff88' : '#ff4444', marginBottom: 16 }}>
-                            {userAnswer === currentHand.correctAction
-                                ? ` +${100 + (streak - 1) * 20} (+3s)`
-                                : `✗ ${currentHand.correctAction.toUpperCase()} (-5s)`}
+                        <div style={{ marginBottom: 16 }}>
+                            <div style={{ fontSize: 18, fontWeight: 700, color: userAnswer === currentHand.correctAction ? '#00ff88' : '#ff4444', marginBottom: 12 }}>
+                                {userAnswer === currentHand.correctAction
+                                    ? ` +${100 + (streak - 1) * 20} (+3s)`
+                                    : `✗ ${currentHand.correctAction.toUpperCase()} (-5s)`}
+                            </div>
+                            {/* GTO Panel Image for wrong answers */}
+                            {userAnswer !== currentHand.correctAction && (
+                                <img
+                                    src={`https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/gto-panels/panels/gto_utg_${currentHand.correctAction}_100bb.png`}
+                                    alt="GTO Analysis"
+                                    style={{ maxWidth: '100%', borderRadius: 12, border: '2px solid rgba(0,212,255,0.3)', marginTop: 8 }}
+                                    onError={(e) => { e.target.style.display = 'none'; }}
+                                />
+                            )}
                         </div>
                     )}
 
