@@ -23,10 +23,11 @@ const CATEGORIES = [
     // NEW STRATEGY CATEGORIES
     { id: 'mtt_situations', name: 'MTT', icon: Target, color: '#f97316', dbCategories: ['mtt_situations'] },
     { id: 'cash_game_situations', name: 'Cash', icon: Banknote, color: '#22c55e', dbCategories: ['cash_game_situations'] },
-    { id: 'icm_chip_ev', name: 'ICM', icon: Calculator, color: '#06b6d4', dbCategories: ['icm_chip_ev'] }
+    { id: 'icm_chip_ev', name: 'ICM', icon: Calculator, color: '#06b6d4', dbCategories: ['icm_chip_ev'] },
+    { id: 'gto_scenarios', name: 'GTO', icon: Brain, color: '#a855f7', dbCategories: ['gto_scenarios'] }
 ];
 
-const QUESTIONS_PER_SESSION = 18; // 3 per category, 6 categories
+const QUESTIONS_PER_SESSION = 21; // 3 per category, 7 categories
 
 export default function MixedModePage() {
     const router = useRouter();
@@ -46,7 +47,8 @@ export default function MixedModePage() {
         gto_theory: { answered: 0, correct: 0 },
         mtt_situations: { answered: 0, correct: 0 },
         cash_game_situations: { answered: 0, correct: 0 },
-        icm_chip_ev: { answered: 0, correct: 0 }
+        icm_chip_ev: { answered: 0, correct: 0 },
+        gto_scenarios: { answered: 0, correct: 0 }
     });
 
     // Cumulative mastery from database
