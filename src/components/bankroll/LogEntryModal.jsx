@@ -829,7 +829,7 @@ const styles = {
   submitButton: {
     flex: 2,
     padding: 14,
-    background: 'linear-gradient(135deg, #00D4FF, #0099cc)',
+    background: 'linear-gradient(135deg, #2374e1, #1a5fc9)',
     border: 'none',
     borderRadius: 8,
     color: '#fff',

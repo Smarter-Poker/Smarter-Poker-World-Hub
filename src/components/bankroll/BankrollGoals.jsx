@@ -110,7 +110,6 @@ export default function BankrollGoals({ userId, currentBankroll = 0, periodPL = 
         return (
             <div style={styles.container}>
                 <div style={styles.signInPrompt}>
-                    <span>🎯</span>
                     <span>Sign in to set goals</span>
                 </div>
             </div>
@@ -123,7 +122,6 @@ export default function BankrollGoals({ userId, currentBankroll = 0, periodPL = 
         <div style={styles.container}>
             <div style={styles.header}>
                 <div style={styles.titleRow}>
-                    <span style={styles.icon}>🎯</span>
                     <h4 style={styles.title}>Goals</h4>
                 </div>
                 {!showAddGoal && !activeGoal && (
@@ -213,7 +211,7 @@ export default function BankrollGoals({ userId, currentBankroll = 0, periodPL = 
                                     ...styles.progressFill,
                                     background: calculateProgress(activeGoal) >= 100
                                         ? 'linear-gradient(90deg, #22c55e, #16a34a)'
-                                        : 'linear-gradient(90deg, #00D4FF, #0099cc)',
+                                        : 'linear-gradient(90deg, #2374e1, #1a5fc9)',
                                 }}
                             />
                         </div>
@@ -237,7 +235,7 @@ export default function BankrollGoals({ userId, currentBankroll = 0, periodPL = 
                     {/* Milestone Check */}
                     {calculateProgress(activeGoal) >= 100 && (
                         <div style={styles.milestone}>
-                            🎉 Goal achieved!
+                            Goal achieved!
                         </div>
                     )}
                 </div>
@@ -282,7 +280,7 @@ const styles = {
         margin: 0,
         fontSize: 14,
         fontWeight: 600,
-        color: '#00D4FF',
+        color: '#2374e1',
     },
     addBtn: {
         width: 28,
@@ -293,7 +291,7 @@ const styles = {
         background: 'rgba(0,212,255,0.2)',
         border: '1px solid rgba(0,212,255,0.4)',
         borderRadius: 6,
-        color: '#00D4FF',
+        color: '#2374e1',
         fontSize: 18,
         cursor: 'pointer',
     },
@@ -344,8 +342,8 @@ const styles = {
     },
     periodBtnActive: {
         background: 'rgba(0,212,255,0.2)',
-        borderColor: '#00D4FF',
-        color: '#00D4FF',
+        borderColor: '#2374e1',
+        color: '#2374e1',
     },
     formActions: {
         display: 'flex',
@@ -363,7 +361,7 @@ const styles = {
     saveBtn: {
         flex: 1,
         padding: '10px',
-        background: 'linear-gradient(135deg, #00D4FF, #0099cc)',
+        background: 'linear-gradient(135deg, #2374e1, #1a5fc9)',
         border: 'none',
         borderRadius: 8,
         color: '#fff',
@@ -458,7 +456,7 @@ const styles = {
         background: 'rgba(0,212,255,0.1)',
         border: '1px solid rgba(0,212,255,0.3)',
         borderRadius: 6,
-        color: '#00D4FF',
+        color: '#2374e1',
         fontSize: 12,
         cursor: 'pointer',
     },

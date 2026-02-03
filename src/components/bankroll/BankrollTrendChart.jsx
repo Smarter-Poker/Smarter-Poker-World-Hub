@@ -277,7 +277,7 @@ const styles = {
     timeBtnActive: {
         background: 'rgba(0,212,255,0.15)',
         borderColor: 'rgba(0,212,255,0.3)',
-        color: '#00d4ff',
+        color: '#2374e1',
     },
     chartContainer: {
         margin: '0 -8px',

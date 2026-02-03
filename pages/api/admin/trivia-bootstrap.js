@@ -90,6 +90,63 @@ const CATEGORIES = [
             'Exploitative adjustments',
             'ICM and tournament theory'
         ]
+    },
+    // NEW STRATEGY CATEGORIES - Added Feb 2026
+    {
+        id: 'mtt_situations',
+        name: 'MTT Situations',
+        topics: [
+            'Bubble play and ICM pressure',
+            'Short stack strategy (10-15 BB)',
+            'Medium stack strategy (25-40 BB)',
+            'Big stack bullying',
+            'Final table dynamics',
+            'Pay jump considerations',
+            'Blind defense in tournaments',
+            'Satellite tournament strategy'
+        ]
+    },
+    {
+        id: 'cash_game_situations',
+        name: 'Cash Game Situations',
+        topics: [
+            'Deep stack postflop play (200+ BB)',
+            'Set mining and implied odds',
+            'Float and probe betting',
+            'Stack-to-pot ratio decisions',
+            '3-bet pots strategy',
+            'Multi-way pot navigation',
+            'Exploiting recreational players',
+            'Live vs online adjustments'
+        ]
+    },
+    {
+        id: 'icm_chip_ev',
+        name: 'ICM & Chip EV',
+        topics: [
+            'Risk premium calculations',
+            'Bubble factor adjustments',
+            'Nash equilibrium push/fold',
+            'Final table ICM spots',
+            'Satellite ICM strategy',
+            'Chip EV vs dollar EV differences',
+            'Deal-making and ICM chops',
+            'Short stack ICM decisions'
+        ]
+    },
+    {
+        id: 'gto_scenarios',
+        name: 'GTO Scenarios',
+        topics: [
+            'Minimum defense frequency applications',
+            'Polarized vs linear betting',
+            'Solver-based river decisions',
+            'Optimal 3-bet and 4-bet frequencies',
+            'Board texture and c-betting',
+            'Blocker effects in bluffing',
+            'Node locking and exploitation',
+            'Mixed strategy applications'
+        ]
     }
 ];
 

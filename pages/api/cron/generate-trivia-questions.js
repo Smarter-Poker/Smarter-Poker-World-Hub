@@ -105,6 +105,71 @@ const CATEGORIES = [
             'Exploitative vs GTO play',
             'Solver concepts'
         ]
+    },
+    // NEW STRATEGY CATEGORIES - Added Feb 2026
+    {
+        id: 'mtt_situations',
+        name: 'MTT Situations',
+        subcategories: [
+            'Bubble play and ICM pressure',
+            'Short stack strategy (10-15 BB)',
+            'Medium stack strategy (25-40 BB)',
+            'Big stack bullying',
+            'Final table dynamics',
+            'Pay jump considerations',
+            'Blind defense in tournaments',
+            'Late registration strategy',
+            'Multi-table dynamics',
+            'Satellite tournament strategy'
+        ]
+    },
+    {
+        id: 'cash_game_situations',
+        name: 'Cash Game Situations',
+        subcategories: [
+            'Deep stack postflop play (200+ BB)',
+            'Set mining and implied odds',
+            'Float and probe betting',
+            'Stack-to-pot ratio decisions',
+            '3-bet pots strategy',
+            'Multi-way pot navigation',
+            'Table selection and game selection',
+            'Session management',
+            'Exploiting recreational players',
+            'Live vs online adjustments'
+        ]
+    },
+    {
+        id: 'icm_chip_ev',
+        name: 'ICM & Chip EV',
+        subcategories: [
+            'Risk premium calculations',
+            'Bubble factor adjustments',
+            'Nash equilibrium push/fold',
+            'Final table ICM spots',
+            'Satellite ICM strategy',
+            'Chip EV vs $EV differences',
+            'Deal-making and ICM chops',
+            'Big blind ante ICM effects',
+            'Short stack ICM decisions',
+            'Chip leader ICM advantages'
+        ]
+    },
+    {
+        id: 'gto_scenarios',
+        name: 'GTO Scenarios',
+        subcategories: [
+            'Minimum defense frequency applications',
+            'Polarized vs linear betting',
+            'Solver-based river decisions',
+            'Optimal 3-bet/4-bet frequencies',
+            'Board texture and c-betting',
+            'Multi-street planning',
+            'Blocker effects in bluffing',
+            'Node locking and exploitation',
+            'Mixed strategy applications',
+            'GTO vs exploitative balance'
+        ]
     }
 ];
 

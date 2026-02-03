@@ -1836,10 +1836,11 @@ export default function VideoLibraryPage() {
                         )}
                     </div>
 
-                    {/* Jarvis Insights Bottom Sheet / Side Panel (Responsive) - Futuristic Metal UI */}
+                    {/* Jarvis Insights Bottom Sheet / Side Panel (Responsive) - Futuristic Metal UI */}                    {/* OLD PANEL - HIDDEN (replaced by caption overlay below) */}
                     <div
                         className="jarvis-panel"
                         style={{
+                            display: 'none', /* HIDDEN - replaced by caption overlay */
                             position: 'absolute',
                             /* Desktop: Side panel from right */
                             /* Mobile: Bottom sheet from bottom */

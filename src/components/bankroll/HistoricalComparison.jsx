@@ -205,7 +205,7 @@ const styles = {
     },
     periodBtnActive: {
         background: 'rgba(0, 212, 255, 0.2)',
-        color: '#00D4FF',
+        color: '#2374e1',
     },
     comparisonGrid: {
         display: 'flex',

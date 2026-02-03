@@ -160,7 +160,7 @@ const styles = {
     timerDisplay: {
         fontSize: 32,
         fontWeight: 700,
-        color: '#00D4FF',
+        color: '#2374e1',
         fontFamily: 'monospace',
         marginBottom: 4,
     },
@@ -187,7 +187,7 @@ const styles = {
     logBtn: {
         flex: 1,
         padding: '10px 12px',
-        background: 'linear-gradient(135deg, #00D4FF, #0099cc)',
+        background: 'linear-gradient(135deg, #2374e1, #1a5fc9)',
         border: 'none',
         borderRadius: 8,
         color: '#fff',
@@ -205,7 +205,7 @@ const styles = {
         background: 'rgba(0, 212, 255, 0.1)',
         border: '1px solid rgba(0, 212, 255, 0.3)',
         borderRadius: 8,
-        color: '#00D4FF',
+        color: '#2374e1',
         fontSize: 13,
         fontWeight: 600,
         cursor: 'pointer',

@@ -162,7 +162,7 @@ export default function BankrollProGate({ userId, children }) {
                     </button>
 
                     <p style={styles.balanceNote}>
-                        BALANCE: <strong style={{ color: METAL.cyan }}>{diamonds}</strong> 💎
+                        BALANCE: <strong style={{ color: METAL.cyan }}>{diamonds}</strong> diamonds
                     </p>
                 </div>
 
@@ -215,7 +215,7 @@ export default function BankrollProGate({ userId, children }) {
                                         color: diamonds >= BANKROLL_PRO_DAY_COST ? METAL.success : METAL.danger,
                                         fontSize: 20
                                     }}>
-                                        {diamonds} 💎
+                                        {diamonds} diamonds
                                     </strong>
                                 </div>
 

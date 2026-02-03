@@ -42,7 +42,7 @@ function RuleItem({ rule, onToggle }) {
       <span
         style={{
           ...styles.ruleIndicator,
-          color: rule.is_strict ? '#ef4444' : '#00D4FF',
+          color: rule.is_strict ? '#ef4444' : '#2374e1',
         }}
       >
         {rule.is_strict ? '●' : '○'}
@@ -163,7 +163,7 @@ export default function BankrollRulesCard({ userId }) {
           <button
             onClick={handleAddRule}
             disabled={saving || !newRuleValue}
-            style={{ width: '100%', padding: '8px 12px', background: '#00D4FF', border: 'none', borderRadius: 6, color: '#000', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: saving || !newRuleValue ? 0.5 : 1 }}
+            style={{ width: '100%', padding: '8px 12px', background: '#2374e1', border: 'none', borderRadius: 6, color: '#000', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: saving || !newRuleValue ? 0.5 : 1 }}
           >
             {saving ? 'Saving...' : 'Save Rule'}
           </button>
@@ -177,7 +177,7 @@ export default function BankrollRulesCard({ userId }) {
       </div>
       <div style={styles.legend}>
         <span style={styles.legendItem}>
-          <span style={{ color: '#00D4FF' }}>○</span> Advisory
+          <span style={{ color: '#2374e1' }}>○</span> Advisory
         </span>
         <span style={styles.legendItem}>
           <span style={{ color: '#ef4444' }}>●</span> Strict

@@ -140,21 +140,44 @@ function renderInlineCards(text) {
 }
 
 // Parse hero position from string to seat index
+// Account for different table sizes having different position mappings
 function getHeroSeatIndex(heroPosition, playerCount) {
-    const positionMap = {
-        'BTN': 0, 'BUTTON': 0,
-        'SB': 1, 'SMALL BLIND': 1,
-        'BB': 2, 'BIG BLIND': 2,
-        'UTG': 3,
-        'UTG+1': 4,
-        'MP': 5, 'MIDDLE': 5,
-        'MP+1': 6,
-        'HJ': 7, 'HIJACK': 7,
-        'CO': 8, 'CUTOFF': 8,
+    const normalized = (heroPosition || 'BTN').toUpperCase().trim();
+
+    // Position mappings for different table sizes
+    const positionMaps = {
+        9: {
+            'BTN': 0, 'BUTTON': 0,
+            'SB': 1, 'SMALL BLIND': 1,
+            'BB': 2, 'BIG BLIND': 2,
+            'UTG': 3,
+            'UTG+1': 4,
+            'MP': 5, 'MIDDLE': 5,
+            'MP+1': 6,
+            'HJ': 7, 'HIJACK': 7,
+            'CO': 8, 'CUTOFF': 8,
+        },
+        6: {
+            'BTN': 0, 'BUTTON': 0,
+            'SB': 1, 'SMALL BLIND': 1,
+            'BB': 2, 'BIG BLIND': 2,
+            'UTG': 3,
+            'HJ': 4, 'HIJACK': 4, 'MP': 4, 'MIDDLE': 4,
+            'CO': 5, 'CUTOFF': 5,
+        },
+        3: {
+            'BTN': 0, 'BUTTON': 0,
+            'SB': 1, 'SMALL BLIND': 1,
+            'BB': 2, 'BIG BLIND': 2,
+        },
+        2: {
+            'BTN': 0, 'BUTTON': 0, 'BTN/SB': 0,
+            'BB': 1, 'BIG BLIND': 1,
+        }
     };
 
-    const normalized = (heroPosition || 'BTN').toUpperCase().trim();
-    return positionMap[normalized] ?? 0;
+    const map = positionMaps[playerCount] || positionMaps[6];
+    return map[normalized] ?? 0;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -935,11 +958,12 @@ const styles = {
     },
 
     avatar: {
-        width: 50,
-        height: 50,
+        width: 40,  // Smaller to fit on felt
+        height: 40,
         borderRadius: '50%',
         objectFit: 'cover',
         background: 'linear-gradient(135deg, #2d2d3a, #1a1a24)',
+        border: '2px solid #555',
     },
 
     dealerButton: {
@@ -963,16 +987,16 @@ const styles = {
     },
 
     badge: {
-        padding: '6px 12px',
-        borderRadius: 6,
-        fontSize: 11,
+        padding: '4px 8px',  // More compact
+        borderRadius: 4,
+        fontSize: 9,         // Smaller
         fontWeight: 'bold',
         color: '#00d4ff',
         fontFamily: "'Orbitron', 'Courier New', monospace",
         textAlign: 'center',
         whiteSpace: 'nowrap',
         border: '1px solid #555',
-        boxShadow: '0 0 8px rgba(0, 212, 255, 0.2), 0 3px 6px rgba(0,0,0,0.4)',
+        boxShadow: '0 0 8px rgba(0, 212, 255, 0.2), 0 2px 4px rgba(0,0,0,0.4)',
         textShadow: '0 0 4px rgba(0, 212, 255, 0.5)',
     },
 
@@ -988,22 +1012,24 @@ const styles = {
 
     heroRow: {
         display: 'flex',
-        flexDirection: 'row',
+        flexDirection: 'column',  // Changed to column - cards BELOW badge
         alignItems: 'center',
-        gap: 8,
+        gap: 4,
     },
 
     heroCardsInline: {
         display: 'flex',
         flexDirection: 'row',
         alignItems: 'center',
+        marginTop: 4,
     },
 
     card: {
-        width: 44,
-        height: 62,
+        width: 38,
+        height: 54,
         borderRadius: 4,
-        boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.6)',
+        border: '1px solid rgba(255,255,255,0.2)',
     },
 
     boardCards: {

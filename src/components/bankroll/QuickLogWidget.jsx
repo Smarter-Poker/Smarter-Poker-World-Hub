@@ -195,7 +195,7 @@ const styles = {
         margin: 0,
         fontSize: 14,
         fontWeight: 600,
-        color: '#00d4ff',
+        color: '#2374e1',
     },
     fullLogBtn: {
         padding: '4px 8px',
@@ -277,7 +277,7 @@ const styles = {
     },
     submitBtn: {
         padding: '10px 20px',
-        background: 'linear-gradient(135deg, #00d4ff, #0099cc)',
+        background: 'linear-gradient(135deg, #2374e1, #1a5fc9)',
         border: 'none',
         borderRadius: 8,
         color: '#fff',

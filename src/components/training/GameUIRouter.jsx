@@ -66,6 +66,8 @@ const PSYCHOLOGY_GAMES = [
 
 export default function GameUIRouter({
     gameId,
+    gameName,
+    streak,
     question,
     level,
     questionNumber,
@@ -107,6 +109,8 @@ export default function GameUIRouter({
             feedbackResult={feedbackResult}
             explanation={explanation}
             gameType={gameType}
+            gameTitle={gameName}
+            streak={streak || 0}
         />
     );
 }

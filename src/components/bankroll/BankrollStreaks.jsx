@@ -259,7 +259,7 @@ const styles = {
     },
     diamondReward: {
         fontSize: 10,
-        color: '#00d4ff',
+        color: '#2374e1',
     },
     lockedSection: {
         marginTop: 12,

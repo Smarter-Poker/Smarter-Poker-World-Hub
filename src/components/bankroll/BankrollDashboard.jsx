@@ -437,7 +437,7 @@ const styles = {
   },
   logButton: {
     padding: '10px 24px',
-    background: 'linear-gradient(135deg, #00D4FF, #0099cc)',
+    background: 'linear-gradient(135deg, #2374e1, #1a5fc9)',
     border: 'none',
     borderRadius: 8,
     color: '#fff',
@@ -532,8 +532,8 @@ const styles = {
     transition: 'all 0.2s ease',
   },
   filterTabActive: {
-    background: '#00D4FF',
-    borderColor: '#00D4FF',
+    background: '#2374e1',
+    borderColor: '#2374e1',
     color: '#000',
     fontWeight: 600,
   },
@@ -546,7 +546,7 @@ const styles = {
     cursor: 'pointer',
   },
   checkbox: {
-    accentColor: '#00D4FF',
+    accentColor: '#2374e1',
   },
   tripSection: {
     marginTop: 24,
@@ -602,7 +602,7 @@ const styles = {
     alignItems: 'center',
     width: '100%',
     padding: '14px 18px',
-    background: 'linear-gradient(135deg, #00D4FF, #0099cc)',
+    background: 'linear-gradient(135deg, #2374e1, #1a5fc9)',
     border: 'none',
     borderRadius: 10,
     color: '#fff',

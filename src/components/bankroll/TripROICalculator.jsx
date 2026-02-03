@@ -241,7 +241,7 @@ const styles = {
         background: 'rgba(0, 212, 255, 0.1)',
         border: '1px solid rgba(0, 212, 255, 0.3)',
         borderRadius: 6,
-        color: '#00D4FF',
+        color: '#2374e1',
         fontSize: 11,
         cursor: 'pointer',
     },

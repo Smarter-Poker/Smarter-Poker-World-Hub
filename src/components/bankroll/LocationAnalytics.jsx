@@ -192,7 +192,7 @@ const styles = {
         margin: 0,
         fontSize: 14,
         fontWeight: 600,
-        color: '#00D4FF',
+        color: '#2374e1',
     },
     sortToggle: {
         display: 'flex',
@@ -210,7 +210,7 @@ const styles = {
     sortBtnActive: {
         background: 'rgba(0,212,255,0.2)',
         borderColor: 'rgba(0,212,255,0.4)',
-        color: '#00D4FF',
+        color: '#2374e1',
     },
     loading: {
         padding: 20,

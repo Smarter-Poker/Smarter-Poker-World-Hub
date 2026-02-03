@@ -242,6 +242,8 @@ export default function GodModeArena({
                 ) : currentQuestion ? (
                     <GameUIRouter
                         gameId={gameId}
+                        gameName={gameName}
+                        streak={streak}
                         question={currentQuestion}
                         level={currentLevel}
                         questionNumber={questionNumber}
@@ -285,6 +287,8 @@ export default function GodModeArena({
                 ) : currentQuestion ? (
                     <GameUIRouter
                         gameId={gameId}
+                        gameName={gameName}
+                        streak={streak}
                         question={currentQuestion}
                         level={currentLevel}
                         questionNumber={questionNumber}

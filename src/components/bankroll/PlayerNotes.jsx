@@ -48,7 +48,7 @@ export default function PlayerNotes({ userId }) {
             case 'reg': return '#eab308';
             case 'shark': return '#ef4444';
             case 'unknown': return '#666';
-            default: return '#00D4FF';
+            default: return '#2374e1';
         }
     }
 
@@ -375,7 +375,7 @@ const styles = {
     },
     addBtn: {
         padding: '10px 16px',
-        background: 'linear-gradient(135deg, #00D4FF, #0099cc)',
+        background: 'linear-gradient(135deg, #2374e1, #1a5fc9)',
         border: 'none',
         borderRadius: 8,
         color: '#fff',
@@ -445,7 +445,7 @@ const styles = {
     avatarPlaceholder: {
         fontSize: 20,
         fontWeight: 700,
-        color: '#00D4FF',
+        color: '#2374e1',
     },
     playerInfo: {
         flex: 1,
@@ -614,7 +614,7 @@ const styles = {
     saveBtn: {
         flex: 1,
         padding: '12px 16px',
-        background: 'linear-gradient(135deg, #00D4FF, #0099cc)',
+        background: 'linear-gradient(135deg, #2374e1, #1a5fc9)',
         border: 'none',
         borderRadius: 8,
         color: '#fff',

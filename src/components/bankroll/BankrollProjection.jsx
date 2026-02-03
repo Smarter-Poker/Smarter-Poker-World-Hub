@@ -157,7 +157,7 @@ export default function BankrollProjection({ userId, currentBankroll = 0, onClos
                                 </div>
                                 <div style={styles.rangeLabel}>
                                     <span style={styles.rangeLabelTitle}>Best Case</span>
-                                    <span style={{ color: '#00D4FF' }}>
+                                    <span style={{ color: '#2374e1' }}>
                                         ${projection.projection.bestCase.toLocaleString()}
                                     </span>
                                 </div>
@@ -311,7 +311,7 @@ const styles = {
     inputValue: {
         fontSize: 20,
         fontWeight: 600,
-        color: '#00D4FF',
+        color: '#2374e1',
     },
     periodOptions: {
         display: 'flex',
@@ -328,8 +328,8 @@ const styles = {
     },
     periodBtnActive: {
         background: 'rgba(0,212,255,0.2)',
-        borderColor: '#00D4FF',
-        color: '#00D4FF',
+        borderColor: '#2374e1',
+        color: '#2374e1',
     },
     error: {
         padding: 12,
@@ -343,7 +343,7 @@ const styles = {
     runBtn: {
         width: '100%',
         padding: 16,
-        background: 'linear-gradient(135deg, #00D4FF, #0099cc)',
+        background: 'linear-gradient(135deg, #2374e1, #1a5fc9)',
         border: 'none',
         borderRadius: 10,
         color: '#fff',
@@ -360,7 +360,7 @@ const styles = {
     timeframe: {
         fontSize: 14,
         fontWeight: 600,
-        color: '#00D4FF',
+        color: '#2374e1',
     },
     simCount: {
         fontSize: 11,
@@ -371,7 +371,7 @@ const styles = {
     },
     rangeBar: {
         height: 12,
-        background: 'linear-gradient(90deg, #ef4444, #fbbf24, #22c55e, #00D4FF)',
+        background: 'linear-gradient(90deg, #ef4444, #fbbf24, #22c55e, #2374e1)',
         borderRadius: 6,
         marginBottom: 12,
     },

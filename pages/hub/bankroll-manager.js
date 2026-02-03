@@ -57,15 +57,16 @@ import StakingTracker from '../../src/components/bankroll/StakingTracker';
 import SeriesTracker from '../../src/components/bankroll/SeriesTracker';
 import SessionHandReview from '../../src/components/bankroll/SessionHandReview';
 
+// Clean Facebook-style navigation (no emojis)
 const SIDEBAR_SECTIONS = [
-  { id: 'dashboard', label: 'Dashboard', icon: '◎' },
+  { id: 'dashboard', label: 'Dashboard', icon: '' },
   { id: 'log-session', label: 'Log Session', icon: '' },
-  { id: 'trips', label: 'Trips & Expenses', icon: '✈' },
-  { id: 'players', label: 'Player Notes', icon: '🎯' },
-  { id: 'leaks', label: 'Leaks', icon: '⚠' },
+  { id: 'trips', label: 'Trips & Expenses', icon: '' },
+  { id: 'players', label: 'Player Notes', icon: '' },
+  { id: 'leaks', label: 'Leaks', icon: '' },
   { id: 'reports', label: 'Reports', icon: '' },
-  { id: 'pro', label: 'Pro Tools', icon: '💎' },
-  { id: 'settings', label: 'Settings', icon: '⚙' },
+  { id: 'pro', label: 'Pro Tools', icon: '' },
+  { id: 'settings', label: 'Settings', icon: '' },
 ];
 
 const CATEGORY_FILTERS = [
@@ -477,7 +478,7 @@ export default function BankrollManagerPage() {
                 {activeSection === 'players' && 'Player Notes'}
                 {activeSection === 'leaks' && 'Leak Analysis'}
                 {activeSection === 'reports' && 'Reports'}
-                {activeSection === 'pro' && 'Pro Tools 💎'}
+                {activeSection === 'pro' && 'Pro Tools'}
                 {activeSection === 'settings' && 'Settings'}
               </h1>
               <div style={styles.headerActions}>
@@ -714,7 +715,7 @@ export default function BankrollManagerPage() {
                     onClick={() => setShowProjection(true)}
                     style={styles.reportActionBtn}
                   >
-                    <span style={{ fontSize: 24 }}>📈</span>
+                    <span style={{ fontSize: 14, color: '#65676b' }}>Projection</span>
                     <div style={{ flex: 1, textAlign: 'left' }}>
                       <div style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>Run Projection</div>
                       <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
@@ -841,11 +842,11 @@ export default function BankrollManagerPage() {
                   <h3 style={{ fontSize: 14, fontWeight: 600, color: '#fff', margin: '0 0 16px' }}>Preferences</h3>
                   <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                     <span style={{ fontSize: 14, color: '#fff' }}>Auto-save sessions</span>
-                    <input type="checkbox" checked={preferences.autoSave} onChange={(e) => updatePreference('autoSave', e.target.checked)} style={{ accentColor: '#00D4FF' }} />
+                    <input type="checkbox" checked={preferences.autoSave} onChange={(e) => updatePreference('autoSave', e.target.checked)} style={{ accentColor: '#2374e1' }} />
                   </label>
                   <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0' }}>
                     <span style={{ fontSize: 14, color: '#fff' }}>Notifications</span>
-                    <input type="checkbox" checked={preferences.notifications} onChange={(e) => updatePreference('notifications', e.target.checked)} style={{ accentColor: '#00D4FF' }} />
+                    <input type="checkbox" checked={preferences.notifications} onChange={(e) => updatePreference('notifications', e.target.checked)} style={{ accentColor: '#2374e1' }} />
                   </label>
                 </div>
                 <button
@@ -865,7 +866,7 @@ export default function BankrollManagerPage() {
                 <div style={styles.proToolsHeader}>
                   <div style={styles.proToolsLed} />
                   <h2 style={styles.proToolsTitle}>
-                    <span style={{ color: '#00D4FF' }}>💎</span> PRO TOOLS
+                    PRO TOOLS
                   </h2>
                   <p style={styles.proToolsSubtitle}>Premium bankroll features for serious players</p>
                 </div>
@@ -978,7 +979,7 @@ export default function BankrollManagerPage() {
                 }}
                 onClick={(e) => e.stopPropagation()}
               >
-                <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
+                <div style={{ marginBottom: 16, color: '#65676b', fontSize: 32 }}>Sign In</div>
                 <h2 style={{ fontSize: 20, fontWeight: 700, color: '#fff', margin: '0 0 12px' }}>Sign In Required</h2>
                 <p style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.6)', margin: '0 0 24px' }}>
                   Please sign in to log your poker sessions and track your bankroll.
@@ -987,7 +988,7 @@ export default function BankrollManagerPage() {
                   onClick={() => router.push('/login?redirect=/hub/bankroll-manager')}
                   style={{
                     padding: '14px 32px',
-                    background: 'linear-gradient(135deg, #00D4FF, #0099cc)',
+                    background: 'linear-gradient(135deg, #2374e1, #1a5fc9)',
                     border: 'none',
                     borderRadius: 10,
                     color: '#fff',
@@ -1043,7 +1044,7 @@ export default function BankrollManagerPage() {
 const styles = {
   container: {
     minHeight: '100vh',
-    background: '#0a1628',
+    background: '#18191a',  // Facebook dark background
     fontFamily: 'Inter, -apple-system, sans-serif',
     position: 'relative',
   },
@@ -1157,8 +1158,8 @@ const styles = {
     transition: 'all 0.2s ease',
   },
   sidebarItemActive: {
-    background: 'rgba(0, 212, 255, 0.1)',
-    color: '#00D4FF',
+    background: 'rgba(35, 116, 225, 0.15)',  // Facebook blue
+    color: '#2374e1',
   },
   sidebarIcon: {
     fontSize: 16,
@@ -1191,7 +1192,7 @@ const styles = {
   },
   logButton: {
     padding: '10px 24px',
-    background: 'linear-gradient(135deg, #00D4FF, #0099cc)',
+    background: '#2374e1',  // Facebook blue - clean, sleek
     border: 'none',
     borderRadius: 8,
     color: '#fff',
@@ -1286,8 +1287,8 @@ const styles = {
     transition: 'all 0.2s ease',
   },
   filterTabActive: {
-    background: '#00D4FF',
-    borderColor: '#00D4FF',
+    background: '#2374e1',
+    borderColor: '#2374e1',
     color: '#000',
     fontWeight: 600,
   },
@@ -1300,7 +1301,7 @@ const styles = {
     cursor: 'pointer',
   },
   checkbox: {
-    accentColor: '#00D4FF',
+    accentColor: '#2374e1',
   },
   tripSection: {
     marginTop: 24,
@@ -1356,7 +1357,7 @@ const styles = {
     alignItems: 'center',
     width: '100%',
     padding: '14px 18px',
-    background: 'linear-gradient(135deg, #00D4FF, #0099cc)',
+    background: 'linear-gradient(135deg, #2374e1, #1a5fc9)',
     border: 'none',
     borderRadius: 10,
     color: '#fff',
@@ -1418,7 +1419,7 @@ const styles = {
     left: '20%',
     right: '20%',
     height: 2,
-    background: '#00D4FF',
+    background: '#2374e1',
     boxShadow: '0 0 10px rgba(0,212,255,0.6), 0 0 20px rgba(0,212,255,0.3)',
   },
   proToolsTitle: {
