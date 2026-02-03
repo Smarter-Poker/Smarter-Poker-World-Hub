@@ -21,7 +21,12 @@ const CATEGORIES = [
     { id: 'player_profiles', name: 'Player Profiles' },
     { id: 'tournament_facts', name: 'Tournament Facts' },
     { id: 'rule_knowledge', name: 'Rules & Etiquette' },
-    { id: 'gto_theory', name: 'GTO Theory' }
+    { id: 'gto_theory', name: 'GTO Theory' },
+    // New Strategy Categories - Feb 2026
+    { id: 'mtt_situations', name: 'MTT Situations' },
+    { id: 'cash_game_situations', name: 'Cash Game Situations' },
+    { id: 'icm_chip_ev', name: 'ICM & Chip EV' },
+    { id: 'gto_scenarios', name: 'GTO Scenarios' }
 ];
 
 const TARGET_PER_CATEGORY = 3000;

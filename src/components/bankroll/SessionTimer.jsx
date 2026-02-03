@@ -97,7 +97,6 @@ export default function SessionTimer({ onSessionEnd, onOpenLog }) {
     return (
         <div style={styles.container}>
             <div style={styles.header}>
-                <span style={styles.icon}>⏱️</span>
                 <span style={styles.title}>Session Timer</span>
             </div>
 
