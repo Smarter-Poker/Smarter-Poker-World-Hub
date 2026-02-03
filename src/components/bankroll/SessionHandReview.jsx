@@ -95,7 +95,7 @@ export default function SessionHandReview({ userId }) {
             {/* Header */}
             <div style={styles.header}>
                 <div style={styles.headerTitle}>
-                    <Brain size={16} style={{ color: METAL.purple }} />
+                    <img src="/images/jarvis-avatar.png" alt="Jarvis" style={{ width: 20, height: 20, borderRadius: '50%' }} />
                     <span>AI HAND REVIEW</span>
                 </div>
                 <a
@@ -124,9 +124,11 @@ export default function SessionHandReview({ userId }) {
             <div style={styles.handsList}>
                 {filteredHands.length === 0 ? (
                     <div style={styles.emptyState}>
-                        <Brain size={32} style={{ color: 'rgba(255,255,255,0.2)' }} />
-                        <p>NO ANALYZED HANDS</p>
-                        <p style={styles.emptyHint}>Complete hand analysis in Training Hub to see hands here</p>
+                        <div style={styles.emptyIconContainer}>
+                            <img src="/images/jarvis-avatar.png" alt="Jarvis" style={{ width: 36, height: 36, borderRadius: '50%' }} />
+                        </div>
+                        <p style={styles.emptyTitle}>NO ANALYZED HANDS</p>
+                        <p style={styles.emptyHintText}>Complete hand analysis in Training Hub to see hands here</p>
                     </div>
                 ) : (
                     filteredHands.map(hand => (
@@ -337,17 +339,35 @@ const styles = {
         overflowY: 'auto',
     },
     emptyState: {
-        padding: 32,
+        padding: 40,
         textAlign: 'center',
-        fontFamily: "'Rajdhani', sans-serif",
-        fontSize: 12,
-        color: 'rgba(255,255,255,0.4)',
-        letterSpacing: '0.1em',
     },
-    emptyHint: {
-        fontSize: 10,
-        color: 'rgba(255,255,255,0.3)',
-        marginTop: 4,
+    emptyIconContainer: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: 56,
+        height: 56,
+        margin: '0 auto 16px',
+        background: 'rgba(168,85,247,0.15)',
+        border: `1px dashed ${METAL.purple}`,
+        borderRadius: '50%',
+        animation: 'float 3s ease-in-out infinite',
+    },
+    emptyTitle: {
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 13,
+        fontWeight: 600,
+        color: 'rgba(255,255,255,0.5)',
+        textTransform: 'uppercase',
+        letterSpacing: '0.1em',
+        margin: '0 0 6px',
+    },
+    emptyHintText: {
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 11,
+        color: 'rgba(255,255,255,0.35)',
+        margin: 0,
     },
     handCard: {
         padding: 14,

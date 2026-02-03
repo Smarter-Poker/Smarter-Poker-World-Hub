@@ -1,67 +1,73 @@
 /**
- * BANKROLL METAL UI STYLES
- * Futuristic Metal design system for Bankroll Pro Tools
- * Based on the official Smarter.Poker Metal UI standards v2026
+ * BANKROLL STYLES
+ * Facebook Dark theme for Bankroll Manager
+ * Clean, sleek, professional styling
  */
 
-// Metal Color Palette
+// Facebook Dark Color Palette
 export const METAL = {
-    // Core backgrounds
-    darkest: '#0a0a15',    // Absolute depth
-    base: '#0d1117',       // Standard surface
-    mid: '#1a2332',        // Layer elevation
-    highlight: '#3d4f5f',  // Machined edges
-    light: '#4a5a6a',      // Rivets & accents
+    // Core backgrounds (Facebook dark)
+    darkest: '#18191a',    // Deepest background
+    base: '#242526',       // Standard surface
+    mid: '#3a3b3c',        // Elevated surfaces
+    highlight: '#4e4f50',  // Borders and dividers
+    light: '#65676b',      // Secondary text
 
-    // Neon accents
-    cyan: '#00D4FF',
-    cyanGlow: 'rgba(0, 212, 255, 0.6)',
-    cyanDim: 'rgba(0, 212, 255, 0.15)',
+    // Facebook blue accent
+    primary: '#2374e1',    // Facebook blue
+    primaryGlow: 'rgba(35, 116, 225, 0.4)',
+    primaryDim: 'rgba(35, 116, 225, 0.15)',
+
+    // Keep cyan for backwards compat but make it FB blue
+    cyan: '#2374e1',
+    cyanGlow: 'rgba(35, 116, 225, 0.4)',
+    cyanDim: 'rgba(35, 116, 225, 0.15)',
 
     // Status colors
-    success: '#22c55e',
-    successGlow: 'rgba(34, 197, 94, 0.4)',
-    warning: '#f59e0b',
-    warningGlow: 'rgba(245, 158, 11, 0.4)',
-    danger: '#ef4444',
-    dangerGlow: 'rgba(239, 68, 68, 0.4)',
+    success: '#31a24c',    // Facebook green
+    successGlow: 'rgba(49, 162, 76, 0.4)',
+    warning: '#f7b928',    // Facebook warning
+    warningGlow: 'rgba(247, 185, 40, 0.4)',
+    danger: '#f02849',     // Facebook red
+    dangerGlow: 'rgba(240, 40, 73, 0.4)',
 
-    // Premium
-    gold: '#f59e0b',
-    goldGlow: 'rgba(245, 158, 11, 0.5)',
-    purple: '#a855f7',
-    purpleGlow: 'rgba(168, 85, 247, 0.4)',
+    // Premium accents
+    gold: '#f7b928',
+    goldGlow: 'rgba(247, 185, 40, 0.4)',
+    purple: '#9b59b6',
+    purpleGlow: 'rgba(155, 89, 182, 0.4)',
+
+    // Text colors
+    textPrimary: '#e4e6eb',
+    textSecondary: '#b0b3b8',
+    textMuted: '#8a8d91',
 };
 
-// Gradient presets
+// Gradient presets (Facebook style - subtle, clean)
 export const GRADIENTS = {
-    metalSurface: 'linear-gradient(180deg, #3d4f5f 0%, #1a2332 50%, #0d1117 100%)',
-    metalButton: 'linear-gradient(180deg, #2a3a4a 0%, #1a2a3a 100%)',
-    cyanAction: 'linear-gradient(135deg, #00D4FF 0%, #0099CC 100%)',
-    goldPremium: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-    purplePro: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
-    darkPanel: 'linear-gradient(180deg, rgba(0,20,40,0.9), rgba(0,10,20,0.95))',
+    metalSurface: 'linear-gradient(180deg, #3a3b3c 0%, #242526 100%)',
+    metalButton: 'linear-gradient(180deg, #3a3b3c 0%, #2d2e2f 100%)',
+    cyanAction: 'linear-gradient(135deg, #2374e1 0%, #1a5fc9 100%)',
+    goldPremium: 'linear-gradient(135deg, #f7b928 0%, #d9a520 100%)',
+    purplePro: 'linear-gradient(135deg, #9b59b6 0%, #7c4a99 100%)',
+    darkPanel: 'linear-gradient(180deg, #242526 0%, #18191a 100%)',
+    // Facebook button styles
+    fbButton: 'linear-gradient(180deg, #3a3b3c 0%, #333435 100%)',
+    fbPrimary: '#2374e1',
 };
 
-// Glow / shadow presets (5-layer neon stack)
+// Shadow presets (clean, subtle - no neon glow)
 export const GLOWS = {
-    cyan: `
-        0 0 2px #ffffff,
-        0 0 4px #00D4FF,
-        0 0 10px rgba(0, 212, 255, 0.6),
-        0 0 20px rgba(0, 212, 255, 0.4),
-        0 0 40px rgba(0, 212, 255, 0.2)
-    `,
-    cyanSubtle: '0 0 10px rgba(0, 212, 255, 0.3), 0 0 20px rgba(0, 212, 255, 0.15)',
-    gold: `
-        0 0 2px #ffffff,
-        0 0 4px #f59e0b,
-        0 0 10px rgba(245, 158, 11, 0.6),
-        0 0 20px rgba(245, 158, 11, 0.4)
-    `,
-    success: '0 0 8px rgba(34, 197, 94, 0.5), 0 0 16px rgba(34, 197, 94, 0.25)',
-    danger: '0 0 8px rgba(239, 68, 68, 0.5), 0 0 16px rgba(239, 68, 68, 0.25)',
+    cyan: '0 1px 2px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(35, 116, 225, 0.15)',
+    cyanSubtle: '0 1px 2px rgba(0, 0, 0, 0.1)',
+    gold: '0 1px 2px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(247, 185, 40, 0.15)',
+    success: '0 1px 2px rgba(0, 0, 0, 0.2)',
+    danger: '0 1px 2px rgba(0, 0, 0, 0.2)',
+    // Facebook-style subtle shadows
+    card: '0 1px 2px rgba(0, 0, 0, 0.2)',
+    elevated: '0 2px 12px rgba(0, 0, 0, 0.25)',
 };
+
 
 // Animations (CSS keyframes as strings)
 export const ANIMATIONS = `
@@ -92,6 +98,32 @@ export const ANIMATIONS = `
     @keyframes boltRotate {
         from { transform: rotate(0deg); }
         to { transform: rotate(90deg); }
+    }
+    @keyframes glowPulse {
+        0%, 100% { box-shadow: 0 0 10px rgba(0, 212, 255, 0.3), 0 0 20px rgba(0, 212, 255, 0.1); }
+        50% { box-shadow: 0 0 20px rgba(0, 212, 255, 0.6), 0 0 40px rgba(0, 212, 255, 0.3); }
+    }
+    @keyframes buttonPop {
+        0% { transform: scale(1); }
+        50% { transform: scale(0.97); }
+        100% { transform: scale(1); }
+    }
+    @keyframes successFlash {
+        0% { background-color: rgba(34, 197, 94, 0); }
+        50% { background-color: rgba(34, 197, 94, 0.3); }
+        100% { background-color: rgba(34, 197, 94, 0); }
+    }
+    @keyframes borderGlow {
+        0%, 100% { border-color: rgba(0, 212, 255, 0.3); }
+        50% { border-color: rgba(0, 212, 255, 0.8); }
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateX(-20px); }
+        to { opacity: 1; transform: translateX(0); }
     }
 `;
 
@@ -271,6 +303,7 @@ export const metalStyles = {
         justifyContent: 'center',
         zIndex: 1000,
         padding: 16,
+        animation: 'fadeIn 0.2s ease-out',
     },
 
     // Modal container
@@ -283,10 +316,121 @@ export const metalStyles = {
         padding: 28,
         position: 'relative',
         boxShadow: `0 0 40px rgba(0,0,0,0.6), ${GLOWS.cyanSubtle}`,
+        animation: 'fadeIn 0.3s ease-out',
+    },
+
+    // Empty state styling
+    emptyState: {
+        textAlign: 'center',
+        padding: '32px 16px',
+        color: 'rgba(255,255,255,0.4)',
+    },
+    emptyIcon: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: 56,
+        height: 56,
+        margin: '0 auto 16px',
+        background: METAL.cyanDim,
+        border: `1px dashed ${METAL.cyan}`,
+        borderRadius: '50%',
+        color: METAL.cyan,
+        opacity: 0.6,
+        animation: 'float 3s ease-in-out infinite',
+    },
+    emptyTitle: {
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 14,
+        fontWeight: 600,
+        color: 'rgba(255,255,255,0.5)',
+        textTransform: 'uppercase',
+        letterSpacing: '0.1em',
+        margin: '0 0 8px',
+    },
+    emptyHint: {
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.35)',
+        margin: 0,
+    },
+
+    // Loading shimmer effect
+    shimmerContainer: {
+        background: `linear-gradient(90deg, ${METAL.base} 0%, ${METAL.mid} 50%, ${METAL.base} 100%)`,
+        backgroundSize: '200% 100%',
+        animation: 'shimmer 2s infinite linear',
+        borderRadius: 8,
+    },
+
+    // Interactive card with hover state (use with className + CSS)
+    interactiveCard: {
+        background: GRADIENTS.darkPanel,
+        border: `1px solid ${METAL.mid}`,
+        borderRadius: 12,
+        padding: 16,
+        cursor: 'pointer',
+        transition: 'border-color 0.2s, box-shadow 0.2s, transform 0.2s',
+    },
+
+    // Action button with glow pulse 
+    glowButton: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        padding: '12px 24px',
+        background: GRADIENTS.cyanAction,
+        border: 'none',
+        borderRadius: 8,
+        color: '#000',
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 13,
+        fontWeight: 700,
+        textTransform: 'uppercase',
+        letterSpacing: '0.05em',
+        cursor: 'pointer',
+        boxShadow: GLOWS.cyanSubtle,
+        transition: 'transform 0.15s, box-shadow 0.2s',
+    },
+
+    // Floating badge
+    floatingBadge: {
+        position: 'absolute',
+        top: -8,
+        right: -8,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 4,
+        padding: '4px 10px',
+        background: METAL.gold,
+        borderRadius: 20,
+        fontSize: 10,
+        fontWeight: 700,
+        color: '#000',
+        boxShadow: GLOWS.gold,
+        animation: 'float 2s ease-in-out infinite',
     },
 };
 
 // Helper function to merge styles
 export const mergeStyles = (...styles) => Object.assign({}, ...styles);
 
-export default { METAL, GRADIENTS, GLOWS, ANIMATIONS, metalStyles, mergeStyles };
+// Hover effect helper (for use with onMouseEnter/onMouseLeave)
+export const hoverEffects = {
+    cardHover: {
+        borderColor: METAL.cyan,
+        boxShadow: GLOWS.cyanSubtle,
+        transform: 'translateY(-2px)',
+    },
+    buttonHover: {
+        transform: 'scale(1.02)',
+        boxShadow: GLOWS.cyan,
+    },
+    glowHover: {
+        animation: 'glowPulse 1.5s ease-in-out infinite',
+    },
+};
+
+export default { METAL, GRADIENTS, GLOWS, ANIMATIONS, metalStyles, mergeStyles, hoverEffects };
+

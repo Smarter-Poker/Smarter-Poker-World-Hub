@@ -1329,6 +1329,25 @@ export default function VideoLibraryPage() {
                                         <span>✓</span> Watched
                                     </div>
                                 )}
+                                {/* Jarvis AI Available badge - show on all videos */}
+                                <div style={{
+                                    position: 'absolute',
+                                    top: 8,
+                                    right: 8,
+                                    background: 'linear-gradient(135deg, rgba(0,212,255,0.9) 0%, rgba(123,44,191,0.9) 100%)',
+                                    padding: '4px 8px',
+                                    borderRadius: 8,
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                    color: 'white',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 3,
+                                    boxShadow: '0 2px 8px rgba(0,212,255,0.3)',
+                                }}>
+                                    <img src="/images/jarvis-avatar.png" alt="" style={{ width: 12, height: 12, borderRadius: '50%' }} />
+                                    AI
+                                </div>
                                 {/* Progress bar */}
                                 {getProgressPercent(video.id, video.duration) > 0 && (
                                     <div style={{
@@ -1572,9 +1591,9 @@ export default function VideoLibraryPage() {
                     {/* Fullscreen YouTube embed with IFrame API for time tracking */}
                     <div style={{
                         flex: 1,
-                        width: showAiPanel ? 'calc(100% - 380px)' : '100%',
+                        width: '100%',
                         height: '100%',
-                        transition: 'width 0.3s ease',
+                        position: 'relative',
                     }}>
                         <iframe
                             id="youtube-player"
@@ -1633,6 +1652,188 @@ export default function VideoLibraryPage() {
                                 border: 'none',
                             }}
                         />
+
+                        {/* Jarvis Caption-Style Insight Overlay - appears at bottom like subtitles */}
+                        {showAiPanel && activeInsight && (
+                            <div style={{
+                                position: 'absolute',
+                                bottom: 60,
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                maxWidth: '90%',
+                                width: 'auto',
+                                minWidth: 300,
+                                background: 'rgba(0, 0, 0, 0.85)',
+                                backdropFilter: 'blur(10px)',
+                                borderRadius: 12,
+                                padding: '12px 16px',
+                                paddingRight: 40,
+                                color: 'white',
+                                zIndex: 1005,
+                                animation: 'fadeInUp 0.3s ease',
+                                boxShadow: '0 4px 20px rgba(0,0,0,0.5), 0 0 1px rgba(0,212,255,0.5)',
+                                border: '1px solid rgba(0,212,255,0.3)',
+                            }}>
+                                {/* Dismiss X button */}
+                                <button
+                                    onClick={() => setActiveInsight(null)}
+                                    style={{
+                                        position: 'absolute',
+                                        top: 8,
+                                        right: 8,
+                                        width: 24,
+                                        height: 24,
+                                        background: 'rgba(255,255,255,0.1)',
+                                        border: 'none',
+                                        borderRadius: '50%',
+                                        color: 'rgba(255,255,255,0.7)',
+                                        fontSize: 14,
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}
+                                >×</button>
+
+                                {/* Jarvis icon + insight content */}
+                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                                    <img
+                                        src="/images/jarvis-avatar.png"
+                                        alt="Jarvis"
+                                        style={{
+                                            width: 32,
+                                            height: 32,
+                                            borderRadius: '50%',
+                                            border: '2px solid rgba(0,212,255,0.5)',
+                                            flexShrink: 0,
+                                        }}
+                                    />
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        {/* Timestamp + Type */}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                            <span style={{
+                                                color: '#00D4FF',
+                                                fontSize: 11,
+                                                fontWeight: 700,
+                                                background: 'rgba(0,212,255,0.2)',
+                                                padding: '2px 6px',
+                                                borderRadius: 4,
+                                            }}>{activeInsight.timestamp}</span>
+                                            <span style={{
+                                                color: 'rgba(255,255,255,0.5)',
+                                                fontSize: 10,
+                                                textTransform: 'uppercase',
+                                            }}>
+                                                {activeInsight.type === 'keyHand' ? 'Key Hand' : 'Chapter'}
+                                            </span>
+                                        </div>
+                                        {/* Title */}
+                                        <p style={{
+                                            color: 'white',
+                                            fontSize: 14,
+                                            fontWeight: 600,
+                                            margin: 0,
+                                            marginBottom: activeInsight.analysis ? 6 : 0,
+                                        }}>
+                                            {activeInsight.title}
+                                        </p>
+                                        {/* Analysis/Description */}
+                                        {activeInsight.analysis && (
+                                            <p style={{
+                                                color: 'rgba(255,255,255,0.8)',
+                                                fontSize: 12,
+                                                margin: 0,
+                                                lineHeight: 1.4,
+                                            }}>
+                                                {activeInsight.analysis}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Loading indicator when fetching analysis */}
+                        {showAiPanel && aiAnalysisLoading && (
+                            <div style={{
+                                position: 'absolute',
+                                bottom: 60,
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                background: 'rgba(0, 0, 0, 0.85)',
+                                backdropFilter: 'blur(10px)',
+                                borderRadius: 12,
+                                padding: '16px 24px',
+                                color: 'white',
+                                zIndex: 1005,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 12,
+                                boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+                            }}>
+                                <img
+                                    src="/images/jarvis-avatar.png"
+                                    alt="Jarvis"
+                                    style={{
+                                        width: 32,
+                                        height: 32,
+                                        borderRadius: '50%',
+                                        animation: 'pulse 1s infinite',
+                                    }}
+                                />
+                                <span style={{ fontSize: 13 }}>Jarvis analyzing video...</span>
+                            </div>
+                        )}
+
+                        {/* Initial prompt when panel opens but no active insight yet */}
+                        {showAiPanel && aiAnalysis && !activeInsight && !aiAnalysisLoading && (
+                            <div style={{
+                                position: 'absolute',
+                                bottom: 60,
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                background: 'rgba(0, 0, 0, 0.85)',
+                                backdropFilter: 'blur(10px)',
+                                borderRadius: 12,
+                                padding: '12px 20px',
+                                paddingRight: 40,
+                                color: 'white',
+                                zIndex: 1005,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 12,
+                                boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+                                border: '1px solid rgba(0,212,255,0.2)',
+                            }}>
+                                <button
+                                    onClick={() => setShowAiPanel(false)}
+                                    style={{
+                                        position: 'absolute',
+                                        top: 8,
+                                        right: 8,
+                                        width: 24,
+                                        height: 24,
+                                        background: 'rgba(255,255,255,0.1)',
+                                        border: 'none',
+                                        borderRadius: '50%',
+                                        color: 'rgba(255,255,255,0.7)',
+                                        fontSize: 14,
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}
+                                >×</button>
+                                <img
+                                    src="/images/jarvis-avatar.png"
+                                    alt="Jarvis"
+                                    style={{ width: 28, height: 28, borderRadius: '50%' }}
+                                />
+                                <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)' }}>
+                                    Insights will appear at key moments...
+                                </span>
+                            </div>
+                        )}
                     </div>
 
                     {/* Jarvis Insights Bottom Sheet / Side Panel (Responsive) - Futuristic Metal UI */}
@@ -2213,21 +2414,21 @@ export default function VideoLibraryPage() {
                 div:hover .play-btn {
                     opacity: 1 !important;
                 }
-
-                /* Jarvis Panel - Upper Right Corner Overlay (NOT full screen) */
+                /* Jarvis Panel - HIDDEN (replaced by caption overlay) */
                 .jarvis-panel {
-                    top: 70px !important;
-                    right: 16px !important;
-                    bottom: auto !important;
-                    left: auto !important;
-                    width: 380px !important;
-                    max-height: 60vh !important;
-                    border-radius: 16px !important;
-                    padding: 16px !important;
-                    display: ${showAiPanel ? 'flex' : 'none'} !important;
-                    flex-direction: column !important;
-                    overflow-y: auto !important;
-                    box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 20px rgba(0,212,255,0.2) !important;
+                    display: none !important;
+                }
+                
+                /* Caption-style animation */
+                @keyframes fadeInUp {
+                    from {
+                        opacity: 0;
+                        transform: translateX(-50%) translateY(20px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateX(-50%) translateY(0);
+                    }
                 }
                 
                 .jarvis-drag-handle {

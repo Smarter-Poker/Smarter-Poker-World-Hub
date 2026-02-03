@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { Zap, Trophy, BookOpen, GraduationCap, Gem, Lock, ChevronRight, Flame, Heart, Skull, Infinity, Shuffle, Swords, Calendar } from 'lucide-react';
+import { Zap, Trophy, BookOpen, GraduationCap, Gem, Lock, ChevronRight, Flame, Heart, Skull, Infinity, Shuffle, Swords, Calendar, Target, Banknote, Calculator, Brain } from 'lucide-react';
 import MetalFrame from '../ui/MetalFrame';
 import HexButton from '../ui/HexButton';
 import PortholeIcon from '../ui/PortholeIcon';
@@ -91,6 +91,47 @@ const MODE_CARDS = [
         glowColor: '#FFD700',
         diamondReward: 'Prize pool',
         perfectBonus: null
+    },
+    // NEW STRATEGY MODES
+    {
+        id: 'mtt',
+        name: 'MTT Scenarios',
+        description: 'Multi-table tournament situations and decisions',
+        icon: Target,
+        color: '#f97316',
+        glowColor: '#f97316',
+        diamondReward: 5,
+        perfectBonus: 10
+    },
+    {
+        id: 'cash',
+        name: 'Cash Game',
+        description: 'Deep stack scenarios, implied odds, table dynamics',
+        icon: Banknote,
+        color: '#22c55e',
+        glowColor: '#22c55e',
+        diamondReward: 5,
+        perfectBonus: 10
+    },
+    {
+        id: 'icm',
+        name: 'ICM & Chip EV',
+        description: 'Tournament equity, chip value vs $EV decisions',
+        icon: Calculator,
+        color: '#06b6d4',
+        glowColor: '#06b6d4',
+        diamondReward: 5,
+        perfectBonus: 10
+    },
+    {
+        id: 'gto',
+        name: 'GTO Master',
+        description: 'Solver-based scenarios combining MTT, Cash, and ICM',
+        icon: Brain,
+        color: '#a855f7',
+        glowColor: '#a855f7',
+        diamondReward: 8,
+        perfectBonus: 15
     }
 ];
 
@@ -124,6 +165,11 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
         }
         if (modeId === 'tournaments') {
             router.push('/hub/trivia/tournaments');
+            return;
+        }
+        // New strategy modes
+        if (['mtt', 'cash', 'icm', 'gto'].includes(modeId)) {
+            router.push(`/hub/trivia/${modeId}`);
             return;
         }
         router.push(`/hub/trivia/${modeId}`);

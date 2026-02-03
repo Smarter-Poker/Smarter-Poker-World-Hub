@@ -13,16 +13,20 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MetalFrame from '../../../src/components/ui/MetalFrame';
 import HexButton from '../../../src/components/ui/HexButton';
-import { Shuffle, Trophy, BookOpen, GraduationCap, Gem, CheckCircle, XCircle, ArrowRight } from 'lucide-react';
+import { Shuffle, Trophy, BookOpen, GraduationCap, Gem, CheckCircle, XCircle, ArrowRight, Target, Banknote, Calculator, Brain } from 'lucide-react';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 
 const CATEGORIES = [
     { id: 'poker_history', name: 'History', icon: Trophy, color: '#FFD700', dbCategories: ['poker_history', 'famous_hands', 'player_profiles', 'tournament_facts'] },
     { id: 'rule_knowledge', name: 'Rules', icon: BookOpen, color: '#4a90d9', dbCategories: ['rule_knowledge'] },
-    { id: 'gto_theory', name: 'Pro', icon: GraduationCap, color: '#9D4EDD', dbCategories: ['gto_theory'] }
+    { id: 'gto_theory', name: 'Pro', icon: GraduationCap, color: '#9D4EDD', dbCategories: ['gto_theory'] },
+    // NEW STRATEGY CATEGORIES
+    { id: 'mtt_situations', name: 'MTT', icon: Target, color: '#f97316', dbCategories: ['mtt_situations'] },
+    { id: 'cash_game_situations', name: 'Cash', icon: Banknote, color: '#22c55e', dbCategories: ['cash_game_situations'] },
+    { id: 'icm_chip_ev', name: 'ICM', icon: Calculator, color: '#06b6d4', dbCategories: ['icm_chip_ev'] }
 ];
 
-const QUESTIONS_PER_SESSION = 15; // 5 per category, 3 rotations
+const QUESTIONS_PER_SESSION = 18; // 3 per category, 6 categories
 
 export default function MixedModePage() {
     const router = useRouter();
@@ -39,7 +43,10 @@ export default function MixedModePage() {
     const [categoryStats, setCategoryStats] = useState({
         poker_history: { answered: 0, correct: 0 },
         rule_knowledge: { answered: 0, correct: 0 },
-        gto_theory: { answered: 0, correct: 0 }
+        gto_theory: { answered: 0, correct: 0 },
+        mtt_situations: { answered: 0, correct: 0 },
+        cash_game_situations: { answered: 0, correct: 0 },
+        icm_chip_ev: { answered: 0, correct: 0 }
     });
 
     // Cumulative mastery from database

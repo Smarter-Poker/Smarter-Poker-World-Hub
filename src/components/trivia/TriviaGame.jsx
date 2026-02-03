@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, ChevronRight, ChevronDown, ChevronUp, CheckCircle, XCircle, Zap } from 'lucide-react';
 import HintButtons, { applyHint } from './HintButtons';
+import { toTitleCase } from '../../lib/trivia/titleCase';
 
 export default function TriviaGame({
     questions,
@@ -200,7 +201,7 @@ export default function TriviaGame({
                     </div>
 
                     {/* Question Text */}
-                    <h2 className="question-text">{currentQuestion.question}</h2>
+                    <h2 className="question-text">{toTitleCase(currentQuestion.question)}</h2>
 
                     {/* Answer Options */}
                     <div className="options">
@@ -230,7 +231,7 @@ export default function TriviaGame({
                                     <span className="option-letter">
                                         {String.fromCharCode(65 + index)}
                                     </span>
-                                    <span className="option-text">{isEliminated ? '---' : option}</span>
+                                    <span className="option-text">{isEliminated ? '---' : toTitleCase(option)}</span>
                                     {selectedAnswer !== null && index === currentQuestion.correct_index && (
                                         <CheckCircle size={20} className="result-icon correct" />
                                     )}

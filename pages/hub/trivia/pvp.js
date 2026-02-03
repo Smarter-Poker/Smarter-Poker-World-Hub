@@ -56,6 +56,10 @@ export default function PvPPage() {
     const matchSubscription = useRef(null);
     const searchTimeout = useRef(null);
 
+    // Bot battle state
+    const [isBotMatch, setIsBotMatch] = useState(false);
+    const botAnswersRef = useRef([]);
+
     useEffect(() => {
         loadUserData();
 
@@ -176,13 +180,95 @@ export default function PvPPage() {
         if (matchData) {
             handleMatchFound(matchData);
         } else {
-            // Set timeout for no match found
+            // Set timeout for bot match after 30 seconds
             searchTimeout.current = setTimeout(() => {
                 if (gameState === 'searching') {
-                    handleNoMatchFound();
+                    handleBotMatch(stake);
                 }
-            }, 60000); // 60 second timeout
+            }, 30000); // 30 second timeout then bot match
         }
+    }
+
+    // Bot Match - Select random AI horse as opponent
+    async function handleBotMatch(stake) {
+        if (queueSubscription.current) {
+            supabase.removeChannel(queueSubscription.current);
+        }
+
+        // Get random AI horse from profiles
+        const { data: horses } = await supabase
+            .from('profiles')
+            .select('id, username, avatar_url')
+            .eq('is_horse', true)
+            .limit(50);
+
+        let botOpponent;
+        if (horses && horses.length > 0) {
+            const randomHorse = horses[Math.floor(Math.random() * horses.length)];
+            // Generate realistic W/L record based on stake
+            const baseWins = Math.floor(Math.random() * 50) + 20;
+            const baseLosses = Math.floor(Math.random() * 30) + 10;
+            botOpponent = {
+                id: randomHorse.id,
+                username: randomHorse.username,
+                avatar_url: randomHorse.avatar_url,
+                wins: baseWins,
+                losses: baseLosses,
+                isBot: true
+            };
+        } else {
+            // Fallback bot if no horses found
+            botOpponent = {
+                id: 'bot-fallback',
+                username: 'SharkyBot',
+                avatar_url: null,
+                wins: 42,
+                losses: 18,
+                isBot: true
+            };
+        }
+
+        // Load questions for bot match
+        const { data: questions } = await supabase
+            .from('trivia_questions')
+            .select('*')
+            .limit(50);
+
+        let matchQuestions = [];
+        if (questions && questions.length >= 5) {
+            matchQuestions = questions.sort(() => Math.random() - 0.5).slice(0, 5);
+        }
+
+        // Pre-calculate bot answers based on stake-dependent accuracy
+        // Higher stakes = smarter bot (60-85% accuracy)
+        const botAccuracy = 0.60 + (Math.min(stake, 100) / 100) * 0.25;
+        const botAnswers = matchQuestions.map(q => {
+            if (Math.random() < botAccuracy) {
+                return q.correct_index; // Correct answer
+            } else {
+                // Random wrong answer
+                const wrongIndices = [0, 1, 2, 3].filter(i => i !== q.correct_index);
+                return wrongIndices[Math.floor(Math.random() * wrongIndices.length)];
+            }
+        });
+        botAnswersRef.current = botAnswers;
+
+        setIsBotMatch(true);
+        setOpponent(botOpponent);
+        setQuestions(matchQuestions);
+        setMatchId(`bot-match-${Date.now()}`);
+        setIsPlayer1(true);
+
+        // Start battle after short delay
+        setTimeout(() => {
+            setGameState('battle');
+            setCurrentQuestionIndex(0);
+            setPlayerScore(0);
+            setSelectedAnswer(null);
+            setShowResult(false);
+            setTimeLeft(15);
+            setIsTimerRunning(true);
+        }, 2000);
     }
 
     function handleMatchFound(matchData) {
@@ -214,7 +300,8 @@ export default function PvPPage() {
     }
 
     async function handleNoMatchFound() {
-        // Refund stake
+        // This is now only called if bot match also fails
+        // Refund stake as fallback
         await supabase
             .from('profiles')
             .update({ diamonds: userDiamonds + stakeAmount })
@@ -223,7 +310,7 @@ export default function PvPPage() {
 
         await leaveMatchmakingQueue(userId);
         setGameState('lobby');
-        alert('No opponent found. Try again later!');
+        alert('Unable to start match. Please try again!');
     }
 
     function handleCancelSearch() {
@@ -297,9 +384,85 @@ export default function PvPPage() {
         setIsTimerRunning(false);
         setGameState('waiting');
 
-        // Submit our score
         const finalScore = playerScore + (selectedAnswer === questions[currentQuestionIndex]?.correct_index ? 1 : 0);
+
+        // Handle bot match differently
+        if (isBotMatch) {
+            await finishBotBattle(finalScore);
+            return;
+        }
+
+        // Submit our score for real match
         await submitMatchScore(matchId, userId, finalScore, isPlayer1);
+    }
+
+    // Complete bot battle - calculate result and award winnings
+    async function finishBotBattle(playerFinalScore) {
+        // Calculate bot score from pre-generated answers
+        const botScore = botAnswersRef.current.reduce((score, answer, idx) => {
+            return score + (answer === questions[idx]?.correct_index ? 1 : 0);
+        }, 0);
+
+        const won = playerFinalScore > botScore;
+        const tied = playerFinalScore === botScore;
+
+        // Calculate winnings
+        const rakeAmount = Math.floor(stakeAmount * 0.1);
+        let winnings = 0;
+
+        if (won) {
+            winnings = (stakeAmount * 2) - rakeAmount;
+            // Award winnings to player
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('diamonds')
+                .eq('id', userId)
+                .single();
+
+            if (profile) {
+                await supabase
+                    .from('profiles')
+                    .update({ diamonds: (profile.diamonds || 0) + winnings })
+                    .eq('id', userId);
+                setUserDiamonds((profile.diamonds || 0) + winnings);
+            }
+        } else if (tied) {
+            // Refund stake on tie
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('diamonds')
+                .eq('id', userId)
+                .single();
+
+            if (profile) {
+                await supabase
+                    .from('profiles')
+                    .update({ diamonds: (profile.diamonds || 0) + stakeAmount })
+                    .eq('id', userId);
+                setUserDiamonds((profile.diamonds || 0) + stakeAmount);
+            }
+            winnings = stakeAmount; // Show refund amount
+        }
+
+        // Update stats
+        if (won) {
+            setStats(prev => ({ ...prev, wins: prev.wins + 1 }));
+        } else if (!tied) {
+            setStats(prev => ({ ...prev, losses: prev.losses + 1 }));
+        }
+
+        setOpponentScore(botScore);
+        setResult({
+            won,
+            tied,
+            playerScore: playerFinalScore,
+            opponentScore: botScore,
+            winnings: won ? winnings : (tied ? stakeAmount : 0),
+            opponent,
+            isBotMatch: true
+        });
+
+        setGameState('result');
     }
 
     async function handleBattleComplete(match) {
@@ -355,6 +518,8 @@ export default function PvPPage() {
         setQuestions([]);
         setPlayerScore(0);
         setOpponentScore(null);
+        setIsBotMatch(false);
+        botAnswersRef.current = [];
     }
 
     const currentQuestion = questions[currentQuestionIndex];

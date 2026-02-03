@@ -10,10 +10,11 @@ import { supabase } from '../../lib/supabase';
 import { formatCurrency } from '../../lib/bankroll/currencyUtils';
 import { METAL, GRADIENTS, GLOWS, ANIMATIONS } from './metalStyles';
 
+// No emoji icons - use labels only for clean Facebook-style UI
 const EXPENSE_ICONS = {
-    buy_in: '🎰', hotel: '🏨', flights: '✈️', rental_car: '🚗',
-    gas: '⛽', meals: '🍔', transport: '🚕', tips: '💵',
-    tournament: '🏆', other: '📦'
+    buy_in: '', hotel: '', flights: '', rental_car: '',
+    gas: '', meals: '', transport: '', tips: '',
+    tournament: '', other: ''
 };
 
 const EXPENSE_LABELS = {

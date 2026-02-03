@@ -25,11 +25,12 @@ export default function SeriesTracker({ userId }) {
         planned_budget: 0,
     });
 
+    // Clean Facebook-style labels without emojis
     const SERIES_TYPES = {
-        wsop: { label: 'WSOP', icon: '🏆' },
-        wpt: { label: 'WPT', icon: '🎯' },
-        mspt: { label: 'MSPT', icon: '♠️' },
-        other: { label: 'OTHER', icon: '🎰' },
+        wsop: { label: 'WSOP', icon: '' },
+        wpt: { label: 'WPT', icon: '' },
+        mspt: { label: 'MSPT', icon: '' },
+        other: { label: 'OTHER', icon: '' },
     };
 
     useEffect(() => {
@@ -189,8 +190,11 @@ export default function SeriesTracker({ userId }) {
             <div style={styles.seriesList}>
                 {series.length === 0 ? (
                     <div style={styles.emptyState}>
-                        <Trophy size={32} style={{ color: 'rgba(255,255,255,0.2)' }} />
-                        <p>NO SERIES TRACKED</p>
+                        <div style={styles.emptyIconContainer}>
+                            <Trophy size={28} style={{ color: METAL.gold }} />
+                        </div>
+                        <p style={styles.emptyTitle}>NO SERIES TRACKED</p>
+                        <p style={styles.emptyHint}>Track WSOP, WPT & tournament series ROI</p>
                         <button onClick={handleAddNew} style={styles.emptyAddBtn}>
                             <Plus size={14} /> ADD SERIES
                         </button>
@@ -459,19 +463,42 @@ const styles = {
         padding: 16,
     },
     emptyState: {
-        padding: 32,
+        padding: 40,
         textAlign: 'center',
+    },
+    emptyIconContainer: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: 56,
+        height: 56,
+        margin: '0 auto 16px',
+        background: 'rgba(245,158,11,0.15)',
+        border: `1px dashed ${METAL.gold}`,
+        borderRadius: '50%',
+        animation: 'float 3s ease-in-out infinite',
+    },
+    emptyTitle: {
         fontFamily: "'Rajdhani', sans-serif",
-        fontSize: 12,
-        color: 'rgba(255,255,255,0.4)',
+        fontSize: 13,
+        fontWeight: 600,
+        color: 'rgba(255,255,255,0.5)',
+        textTransform: 'uppercase',
         letterSpacing: '0.1em',
+        margin: '0 0 6px',
+    },
+    emptyHint: {
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 11,
+        color: 'rgba(255,255,255,0.35)',
+        margin: 0,
     },
     emptyAddBtn: {
         display: 'inline-flex',
         alignItems: 'center',
         gap: 6,
-        marginTop: 16,
-        padding: '12px 20px',
+        marginTop: 20,
+        padding: '12px 24px',
         background: GRADIENTS.goldPremium,
         border: 'none',
         borderRadius: 8,
@@ -481,6 +508,8 @@ const styles = {
         letterSpacing: '0.1em',
         color: '#000',
         cursor: 'pointer',
+        boxShadow: `0 4px 15px ${METAL.goldGlow}`,
+        transition: 'transform 0.2s, box-shadow 0.2s',
     },
     seriesCard: {
         position: 'relative',

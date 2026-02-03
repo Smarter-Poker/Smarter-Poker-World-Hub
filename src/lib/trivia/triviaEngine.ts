@@ -105,12 +105,70 @@ export const TRIVIA_MODES = {
         perfectBonus: 0,
         icon: 'heart',
         color: '#ef4444'
+    },
+    // NEW GAME MODES - Strategy Categories
+    mtt: {
+        id: 'mtt',
+        name: 'MTT Scenarios',
+        description: 'Multi-table tournament situations and decisions',
+        questionsCount: 10,
+        timeLimit: null,
+        diamondCost: 0,
+        diamondReward: 5,
+        perfectBonus: 10,
+        icon: 'users',
+        color: '#f97316'
+    },
+    cash: {
+        id: 'cash',
+        name: 'Cash Game',
+        description: 'Deep stack scenarios, implied odds, table dynamics',
+        questionsCount: 10,
+        timeLimit: null,
+        diamondCost: 0,
+        diamondReward: 5,
+        perfectBonus: 10,
+        icon: 'banknote',
+        color: '#22c55e'
+    },
+    icm: {
+        id: 'icm',
+        name: 'ICM & Chip EV',
+        description: 'Tournament equity, chip value vs $EV decisions',
+        questionsCount: 10,
+        timeLimit: null,
+        diamondCost: 0,
+        diamondReward: 5,
+        perfectBonus: 10,
+        icon: 'calculator',
+        color: '#06b6d4'
+    },
+    gto: {
+        id: 'gto',
+        name: 'GTO Master',
+        description: 'Solver-based scenarios combining MTT, Cash, and ICM',
+        questionsCount: 10,
+        timeLimit: null,
+        diamondCost: 0,
+        diamondReward: 8,
+        perfectBonus: 15,
+        icon: 'brain',
+        color: '#a855f7'
     }
 } as const;
 
 export type TriviaMode = keyof typeof TRIVIA_MODES;
 
-// XP system removed - calculateXP function deleted
+// Category mappings for new modes
+export const CATEGORY_MAPPINGS = {
+    mtt: ['mtt_situations'],
+    cash: ['cash_game_situations'],
+    icm: ['icm_chip_ev'],
+    gto: ['gto_theory', 'mtt_situations', 'cash_game_situations', 'icm_chip_ev'],
+    history: ['poker_history', 'famous_hands', 'player_profiles'],
+    rules: ['rule_knowledge'],
+    pro: ['gto_theory', 'tournament_facts']
+} as const;
 
 export function calculateDiamonds(
     mode: TriviaMode,
@@ -169,6 +227,10 @@ export function getCategoryIcon(category: string): string {
         case 'player_profiles': return '👤';
         case 'tournament_facts': return '🏆';
         case 'rule_knowledge': return '📋';
+        // New categories
+        case 'mtt_situations': return '🎯';
+        case 'cash_game_situations': return '💵';
+        case 'icm_chip_ev': return '📊';
         default: return '❓';
     }
 }
@@ -181,6 +243,10 @@ export function getCategoryName(category: string): string {
         case 'player_profiles': return 'Player Profiles';
         case 'tournament_facts': return 'Tournament Facts';
         case 'rule_knowledge': return 'Rules & Etiquette';
+        // New categories
+        case 'mtt_situations': return 'MTT Scenarios';
+        case 'cash_game_situations': return 'Cash Game';
+        case 'icm_chip_ev': return 'ICM & Chip EV';
         default: return 'General';
     }
 }

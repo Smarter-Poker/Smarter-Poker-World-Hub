@@ -131,18 +131,17 @@ export default function BankrollProGate({ userId, children }) {
                     Advanced analytics, tax reports, staking tools, and AI-powered insights
                 </p>
 
-                {/* Feature Grid - Metal Cards */}
+                {/* Feature Grid - Clean Cards */}
                 <div style={styles.featureGrid}>
                     {[
-                        { icon: '📸', label: 'Receipt OCR' },
-                        { icon: '📊', label: 'Tax Reports' },
-                        { icon: '👥', label: 'Staking' },
-                        { icon: '🏆', label: 'Series ROI' },
-                        { icon: '🧠', label: 'AI Review' },
-                        { icon: '📈', label: 'Variance' },
+                        { icon: '', label: 'Receipt OCR' },
+                        { icon: '', label: 'Tax Reports' },
+                        { icon: '', label: 'Staking' },
+                        { icon: '', label: 'Series ROI' },
+                        { icon: '', label: 'AI Review' },
+                        { icon: '', label: 'Variance' },
                     ].map((feature, i) => (
                         <div key={i} style={styles.featureCard}>
-                            <span style={styles.featureIcon}>{feature.icon}</span>
                             <span style={styles.featureLabel}>{feature.label}</span>
                         </div>
                     ))}

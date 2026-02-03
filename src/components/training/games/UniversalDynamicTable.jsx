@@ -18,37 +18,38 @@ import { motion } from 'framer-motion';
 // ═══════════════════════════════════════════════════════════════════════════
 
 const SEAT_CONFIGS = {
-    // 9-Max positions (index 0-8, where 0 is typical BTN position)
+    // 9-Max positions - All seats INSIDE THE FELT OVAL
+    // The table felt spans roughly 30%-70% X and 20%-80% Y
     9: [
-        { id: 0, name: 'BTN', x: 50, y: 88 },   // Bottom center (Hero default)
-        { id: 1, name: 'SB', x: 25, y: 72 },    // Bottom-left
-        { id: 2, name: 'BB', x: 22, y: 54 },    // Mid-left
-        { id: 3, name: 'UTG', x: 22, y: 36 },   // Upper-mid-left
-        { id: 4, name: 'UTG+1', x: 30, y: 18 }, // Top-left
-        { id: 5, name: 'MP', x: 70, y: 18 },    // Top-right
-        { id: 6, name: 'MP+1', x: 78, y: 36 },  // Upper-mid-right
-        { id: 7, name: 'HJ', x: 78, y: 54 },    // Mid-right
-        { id: 8, name: 'CO', x: 75, y: 72 },    // Bottom-right
+        { id: 0, name: 'BTN', x: 50, y: 78 },   // Hero: Center bottom
+        { id: 1, name: 'SB', x: 35, y: 72 },    // Bottom-left
+        { id: 2, name: 'BB', x: 32, y: 52 },    // Mid-left
+        { id: 3, name: 'UTG', x: 35, y: 32 },   // Upper-mid-left
+        { id: 4, name: 'UTG+1', x: 42, y: 22 }, // Top-left
+        { id: 5, name: 'MP', x: 58, y: 22 },    // Top-right
+        { id: 6, name: 'MP+1', x: 65, y: 32 },  // Upper-mid-right
+        { id: 7, name: 'HJ', x: 68, y: 52 },    // Mid-right
+        { id: 8, name: 'CO', x: 65, y: 72 },    // Bottom-right
     ],
-    // 6-Max positions
+    // 6-Max positions - All inside felt
     6: [
-        { id: 0, name: 'BTN', x: 50, y: 88 },
-        { id: 1, name: 'SB', x: 20, y: 65 },
-        { id: 2, name: 'BB', x: 20, y: 35 },
-        { id: 3, name: 'UTG', x: 50, y: 15 },
-        { id: 4, name: 'HJ', x: 80, y: 35 },
-        { id: 5, name: 'CO', x: 80, y: 65 },
+        { id: 0, name: 'BTN', x: 50, y: 78 },   // Hero: Center bottom
+        { id: 1, name: 'SB', x: 35, y: 58 },    // Mid-left
+        { id: 2, name: 'BB', x: 35, y: 35 },    // Upper-left
+        { id: 3, name: 'UTG', x: 50, y: 22 },   // Top center
+        { id: 4, name: 'HJ', x: 65, y: 35 },    // Upper-right
+        { id: 5, name: 'CO', x: 65, y: 58 },    // Mid-right
     ],
-    // 3-Max (Spins)
+    // 3-Max (Spins) - Inside felt
     3: [
-        { id: 0, name: 'BTN', x: 50, y: 85 },
-        { id: 1, name: 'SB', x: 25, y: 30 },
-        { id: 2, name: 'BB', x: 75, y: 30 },
+        { id: 0, name: 'BTN', x: 50, y: 75 },   // Hero: Center bottom
+        { id: 1, name: 'SB', x: 38, y: 32 },    // Top-left
+        { id: 2, name: 'BB', x: 62, y: 32 },    // Top-right
     ],
-    // Heads-Up
+    // Heads-Up - Inside felt
     2: [
-        { id: 0, name: 'BTN/SB', x: 50, y: 85 },
-        { id: 1, name: 'BB', x: 50, y: 20 },
+        { id: 0, name: 'BTN/SB', x: 50, y: 75 }, // Hero: Center bottom
+        { id: 1, name: 'BB', x: 50, y: 25 },     // Villain: Top center
     ],
 };
 
@@ -100,6 +101,43 @@ function getCardPath(card) {
     return `/cards/${suitName}_${rank}.png`;
 }
 
+// Render miniature inline card images for question text
+function renderInlineCards(text) {
+    if (!text) return text;
+
+    // Pattern to match card notation: Ah, Ks, Td, 2c, etc.
+    const cardPattern = /\b([AKQJT2-9])([hdcs])\b/gi;
+
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+
+    // Create a fresh regex for exec
+    const regex = new RegExp(cardPattern);
+    while ((match = regex.exec(text)) !== null) {
+        // Add text before this match
+        if (match.index > lastIndex) {
+            parts.push(text.slice(lastIndex, match.index));
+        }
+
+        // Add the card image element
+        const cardNotation = match[0];
+        parts.push({
+            type: 'card',
+            notation: cardNotation,
+            path: getCardPath(cardNotation)
+        });
+
+        lastIndex = match.index + match[0].length;
+    }
+
+    // Add remaining text
+    if (lastIndex < text.length) {
+        parts.push(text.slice(lastIndex));
+    }
+
+    return parts;
+}
 
 // Parse hero position from string to seat index
 function getHeroSeatIndex(heroPosition, playerCount) {
@@ -214,6 +252,8 @@ export default function UniversalDynamicTable({
     feedbackResult,
     explanation,
     gameType = 'cash', // 'cash', 'mtt', 'sng', 'spins'
+    gameTitle = '',    // Title of the training game
+    streak = 0,        // Current streak count (only show if >= 2)
 }) {
     const [timeLeft, setTimeLeft] = React.useState(30);
     const [selectedAnswer, setSelectedAnswer] = React.useState(null);
@@ -380,9 +420,53 @@ export default function UniversalDynamicTable({
 
     return (
         <div style={styles.container}>
-            {/* QUESTION BAR - Top */}
+            {/* QUESTION BAR - Top - with Game Title and Streak */}
             <div style={styles.questionBar}>
-                <div style={styles.questionText}>{questionText}</div>
+                {/* Game Title Row */}
+                <div style={styles.titleRow}>
+                    <div style={styles.gameTitle}>{gameTitle || 'GTO Training'}</div>
+                    <div style={styles.gameBrand}>Smarter.Poker</div>
+                </div>
+
+                {/* Question Text with Inline Cards */}
+                <div style={styles.questionText}>
+                    {(() => {
+                        const parts = renderInlineCards(questionText);
+                        if (!Array.isArray(parts)) return questionText;
+                        return parts.map((part, idx) => {
+                            if (typeof part === 'string') return part;
+                            if (part.type === 'card') {
+                                return (
+                                    <img
+                                        key={idx}
+                                        src={part.path}
+                                        alt={part.notation}
+                                        style={styles.inlineCard}
+                                    />
+                                );
+                            }
+                            return null;
+                        });
+                    })()}
+                </div>
+
+                {/* Streak Indicator - Only show if streak >= 2 */}
+                {streak >= 2 && (
+                    <motion.div
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        style={styles.streakBadge}
+                    >
+                        <motion.span
+                            animate={{ y: [0, -3, 0] }}
+                            transition={{ repeat: Infinity, duration: 0.5 }}
+                            style={{ fontSize: 16 }}
+                        >
+                            🔥
+                        </motion.span>
+                        <span style={styles.streakText}>{streak} STREAK</span>
+                    </motion.div>
+                )}
             </div>
 
             {/* TABLE AREA - Center */}
@@ -594,23 +678,7 @@ export default function UniversalDynamicTable({
                     </motion.div>
                 </div>
 
-                {/* Streak indicator */}
-                <motion.div
-                    style={styles.streakIndicator}
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    key={`streak-${questionNumber}`}
-                >
-                    <motion.span
-                        animate={{ y: [-2, 2, -2] }}
-                        transition={{ repeat: Infinity, duration: 0.5 }}
-                        style={{ display: 'inline-block' }}
-                    >
-                        🔥
-                    </motion.span>
-                    <span style={styles.streakText}>STREAK</span>
-                </motion.div>
-
+                {/* Question Counter */}
                 <div style={styles.questionCounter}>
                     Q{questionNumber}/{totalQuestions}
                 </div>
@@ -630,8 +698,11 @@ export default function UniversalDynamicTable({
                 </motion.span>
             </motion.div>
 
-            {/* 2x2 ANSWER GRID */}
-            <div style={styles.answersGrid}>
+            {/* ANSWER GRID - Dynamic layout: 2x2 for 4 options, 1x2 for 2 options */}
+            <div style={{
+                ...styles.answersGrid,
+                gridTemplateRows: options.length <= 2 ? '1fr' : '1fr 1fr', // Single row for push/fold
+            }}>
                 {options.slice(0, 4).map((option, index) => {
                     const optionId = option.id || String.fromCharCode(97 + index); // a, b, c, d
                     const text = typeof option === 'string' ? option : (option.text || option.label || 'Option');
@@ -759,21 +830,68 @@ const styles = {
 
     questionBar: {
         width: '100%',
-        padding: '20px 24px',
+        padding: '16px 24px',
         background: 'linear-gradient(180deg, #3a3a4a 0%, #1a1a24 100%)',
         borderBottom: '3px solid #00d4ff',
         boxShadow: '0 0 20px rgba(0, 212, 255, 0.2), inset 0 2px 4px rgba(255,255,255,0.05)',
         flexShrink: 0,
+        position: 'relative',
+    },
+
+    titleRow: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+
+    gameTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#00d4ff',
+        fontFamily: "'Orbitron', 'Courier New', monospace",
+        textTransform: 'uppercase',
+        letterSpacing: 2,
+    },
+
+    gameBrand: {
+        fontSize: 11,
+        color: 'rgba(255,255,255,0.5)',
+        fontFamily: "'Inter', sans-serif",
+        marginTop: 2,
     },
 
     questionText: {
         color: '#ffffff',
-        fontSize: 18,
+        fontSize: 22,  // Increased from 18
         fontWeight: 'bold',
         fontFamily: "'Orbitron', 'Courier New', monospace",
         lineHeight: 1.4,
         textAlign: 'center',
-        textShadow: '0 0 8px rgba(255, 255, 255, 0.4)',
+        textShadow: '0 0 10px rgba(255, 255, 255, 0.5)',
+    },
+
+    streakBadge: {
+        position: 'absolute',
+        top: 12,
+        right: 16,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+        background: 'linear-gradient(135deg, rgba(251, 146, 60, 0.3), rgba(251, 146, 60, 0.15))',
+        padding: '6px 12px',
+        borderRadius: 16,
+        border: '1px solid rgba(251, 146, 60, 0.5)',
+    },
+
+    inlineCard: {
+        width: 28,
+        height: 38,
+        borderRadius: 3,
+        verticalAlign: 'middle',
+        marginLeft: 4,
+        marginRight: 2,
+        boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
     },
 
     tableArea: {
@@ -826,10 +944,11 @@ const styles = {
 
     dealerButton: {
         position: 'absolute',
-        top: -8,
-        right: -8,
-        width: 22,
-        height: 22,
+        top: -20,         // Above the avatar, toward table center
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: 24,
+        height: 24,
         borderRadius: '50%',
         background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
         color: '#000',
@@ -839,7 +958,8 @@ const styles = {
         alignItems: 'center',
         justifyContent: 'center',
         border: '2px solid #fff',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+        boxShadow: '0 2px 10px rgba(251, 191, 36, 0.5), 0 2px 8px rgba(0,0,0,0.4)',
+        zIndex: 10,
     },
 
     badge: {

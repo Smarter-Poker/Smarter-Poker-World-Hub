@@ -11,13 +11,14 @@ import { getOrCreateLocation, detectNearbyLocation } from '../../lib/bankroll/lo
 import { checkRuleViolations } from '../../lib/bankroll/leakDetection';
 import toast from '../../stores/toastStore';
 
+// Clean Facebook-style categories (no emojis)
 const CATEGORIES = [
-  { id: 'poker_cash', label: 'Poker Cash', icon: '♠' },
-  { id: 'poker_mtt', label: 'Tournament', icon: '🏆' },
-  { id: 'casino_table', label: 'Table Game', icon: '🎲' },
-  { id: 'slots', label: 'Slots', icon: '🎰' },
-  { id: 'sports', label: 'Sports Bet', icon: '⚽' },
-  { id: 'expense', label: 'Expense', icon: '💸' },
+  { id: 'poker_cash', label: 'Poker Cash', icon: '' },
+  { id: 'poker_mtt', label: 'Tournament', icon: '' },
+  { id: 'casino_table', label: 'Table Game', icon: '' },
+  { id: 'slots', label: 'Slots', icon: '' },
+  { id: 'sports', label: 'Sports Bet', icon: '' },
+  { id: 'expense', label: 'Expense', icon: '' },
 ];
 
 const EXPENSE_TYPES = [
@@ -533,7 +534,7 @@ export default function LogEntryModal({ userId, locations, trips, onClose, onSub
               </div>
 
               <div style={styles.formGroup}>
-                <label style={styles.label}>📝 Session Notes</label>
+                <label style={styles.label}>Session Notes</label>
                 <textarea
                   value={formData.notes}
                   onChange={(e) => handleInputChange('notes', e.target.value)}
@@ -544,7 +545,7 @@ export default function LogEntryModal({ userId, locations, trips, onClose, onSub
 
               {/* Photo/Media URL */}
               <div style={styles.formGroup}>
-                <label style={styles.label}>📷 Session Photo (URL)</label>
+                <label style={styles.label}>Session Photo (URL)</label>
                 <input
                   type="text"
                   value={formData.media_url || ''}

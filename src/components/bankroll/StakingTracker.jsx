@@ -212,8 +212,11 @@ export default function StakingTracker({ userId }) {
                 </div>
             ) : (
                 <div style={styles.emptyState}>
-                    <Users size={32} style={{ color: 'rgba(255,255,255,0.2)' }} />
-                    <p>NO ACTIVE STAKING ARRANGEMENT</p>
+                    <div style={styles.emptyIconContainer}>
+                        <Users size={28} style={{ color: METAL.cyan }} />
+                    </div>
+                    <p style={styles.emptyTitle}>NO ACTIVE STAKING ARRANGEMENT</p>
+                    <p style={styles.emptyHint}>Track backer relationships & profit splits</p>
                     <button onClick={handleAddNew} style={styles.emptyAddBtn}>
                         <Plus size={14} /> ADD BACKER
                     </button>
@@ -516,17 +519,40 @@ const styles = {
     emptyState: {
         padding: 48,
         textAlign: 'center',
+    },
+    emptyIconContainer: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: 56,
+        height: 56,
+        margin: '0 auto 16px',
+        background: METAL.cyanDim,
+        border: `1px dashed ${METAL.cyan}`,
+        borderRadius: '50%',
+        animation: 'float 3s ease-in-out infinite',
+    },
+    emptyTitle: {
         fontFamily: "'Rajdhani', sans-serif",
-        fontSize: 12,
-        color: 'rgba(255,255,255,0.4)',
+        fontSize: 13,
+        fontWeight: 600,
+        color: 'rgba(255,255,255,0.5)',
+        textTransform: 'uppercase',
         letterSpacing: '0.1em',
+        margin: '0 0 6px',
+    },
+    emptyHint: {
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 11,
+        color: 'rgba(255,255,255,0.35)',
+        margin: 0,
     },
     emptyAddBtn: {
         display: 'inline-flex',
         alignItems: 'center',
         gap: 6,
-        marginTop: 16,
-        padding: '12px 20px',
+        marginTop: 20,
+        padding: '12px 24px',
         background: GRADIENTS.cyanAction,
         border: 'none',
         borderRadius: 8,
@@ -536,6 +562,8 @@ const styles = {
         letterSpacing: '0.1em',
         color: '#000',
         cursor: 'pointer',
+        boxShadow: GLOWS.cyanSubtle,
+        transition: 'transform 0.2s, box-shadow 0.2s',
     },
     pastSection: {
         padding: 16,

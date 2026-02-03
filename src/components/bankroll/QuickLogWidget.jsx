@@ -6,12 +6,13 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// Clean Facebook-style categories (no emojis)
 const QUICK_CATEGORIES = [
-    { id: 'poker_cash', label: 'Cash Game', icon: '♠', color: '#22c55e' },
-    { id: 'poker_mtt', label: 'Tournament', icon: '🏆', color: '#f59e0b' },
-    { id: 'casino_table', label: 'Table Games', icon: '🎰', color: '#8b5cf6' },
-    { id: 'sports', label: 'Sports Bet', icon: '⚽', color: '#3b82f6' },
-    { id: 'expense', label: 'Expense', icon: '💸', color: '#ef4444' },
+    { id: 'poker_cash', label: 'Cash Game', icon: '', color: '#31a24c' },
+    { id: 'poker_mtt', label: 'Tournament', icon: '', color: '#f7b928' },
+    { id: 'casino_table', label: 'Table Games', icon: '', color: '#9b59b6' },
+    { id: 'sports', label: 'Sports Bet', icon: '', color: '#2374e1' },
+    { id: 'expense', label: 'Expense', icon: '', color: '#f02849' },
 ];
 
 export default function QuickLogWidget({ userId, onSubmit, onOpenFullModal }) {
@@ -58,8 +59,7 @@ export default function QuickLogWidget({ userId, onSubmit, onOpenFullModal }) {
         return (
             <div style={styles.container}>
                 <div style={styles.signInPrompt}>
-                    <span style={styles.lockIcon}>🔒</span>
-                    <span>Sign in to log sessions</span>
+                    <span style={styles.lockText}>Sign in to log sessions</span>
                 </div>
             </div>
         );
@@ -68,7 +68,7 @@ export default function QuickLogWidget({ userId, onSubmit, onOpenFullModal }) {
     return (
         <div style={styles.container}>
             <div style={styles.header}>
-                <h4 style={styles.title}>⚡ Quick Log</h4>
+                <h4 style={styles.title}>Quick Log</h4>
                 <button onClick={onOpenFullModal} style={styles.fullLogBtn}>
                     Full Form →
                 </button>

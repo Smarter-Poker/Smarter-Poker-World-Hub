@@ -1,0 +1,464 @@
+-- ============================================================================
+-- TRIVIA SYSTEM EXPANSION - New Strategy Categories
+-- Migration: 20260203_new_trivia_categories.sql
+-- Adds MTT Scenarios, Cash Game, ICM & Chip EV, and GTO questions
+-- ============================================================================
+
+-- Add 'is_horse' column to profiles if not exists (for PvP bot matching)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'profiles' AND column_name = 'is_horse'
+    ) THEN
+        ALTER TABLE profiles ADD COLUMN is_horse BOOLEAN DEFAULT FALSE;
+    END IF;
+END $$;
+
+-- ============================================================================
+-- MTT SCENARIOS - Multi-Table Tournament Situations (20 questions)
+-- ============================================================================
+
+INSERT INTO trivia_questions (category, difficulty, question, options, correct_index, explanation) VALUES
+
+-- Easy MTT
+('mtt_situations', 'easy', 'In a tournament, you have 15 big blinds in middle position with pocket Jacks. UTG has folded. What is typically the best action?', 
+ ARRAY['Fold and wait for a better spot', 'Open raise to 2.5x', 'Shove all-in', 'Limp and see a cheap flop'], 
+ 2, 
+ 'With 15 BB and a premium hand like JJ, shoving all-in is standard. It maximizes fold equity and prevents difficult postflop situations with a short stack.'),
+
+('mtt_situations', 'easy', 'What does "being on the bubble" mean in a tournament?',
+ ARRAY['Being the chip leader', 'Being one elimination away from the money', 'Being at the final table', 'Having pocket Aces'],
+ 1,
+ 'The bubble is the point where one more elimination means remaining players reach the money. This creates significant ICM pressure.'),
+
+('mtt_situations', 'easy', 'With 25 big blinds in the cutoff, what hands should you typically open raise with?',
+ ARRAY['Only premium pairs', 'Top 10% of hands', 'Top 25-30% of hands', 'Any two cards'],
+ 2,
+ 'With 25 BB in late position, you have enough chips to play a wide range profitably, typically 25-30% of hands, while still having fold equity.'),
+
+('mtt_situations', 'easy', 'What is the "big blind ante" format in tournaments?',
+ ARRAY['Everyone posts an extra ante', 'Only the big blind posts the combined ante', 'There are no antes', 'The button posts the ante'],
+ 1,
+ 'In big blind ante format, the big blind posts antes for the entire table (typically 1 BB), simplifying the posting action while maintaining similar pot sizes.'),
+
+-- Medium MTT
+('mtt_situations', 'medium', 'You have 20 BB on the bubble. A short stack with 5 BB shoves from UTG. You have AKo in the big blind. Should you call?',
+ ARRAY['Always call - AK is premium', 'Fold - ICM pressure is too strong', 'It depends on remaining players', 'Reraise to isolate'],
+ 2,
+ 'This is highly stack and field dependent. If there are other short stacks who might bust, you can fold. If you are one of the shorter stacks, calling becomes more attractive.'),
+
+('mtt_situations', 'medium', 'In a 9-handed tournament with antes, approximately what percentage of the pot do the antes represent?',
+ ARRAY['About 10%', 'About 25%', 'About 40%', 'About 60%'],
+ 2,
+ 'With standard 1 BB ante format, antes contribute about 9 BB to the pot along with the 1.5 BB from blinds, making antes roughly 40% of a contested pot.'),
+
+('mtt_situations', 'medium', 'What is the ideal steal percentage from the button in late tournament stages?',
+ ARRAY['20-30%', '40-50%', '55-70%', '80%+'],
+ 2,
+ 'From the button in late tournament stages, GTO strategies suggest stealing 55-70% of hands, as the dead money from blinds and antes is significant relative to stack sizes.'),
+
+('mtt_situations', 'medium', 'You have 30 BB in the small blind. Button opens 2.2x and you have 87 suited. What is the best action?',
+ ARRAY['Fold', 'Call', '3-bet to 9 BB', 'Shove all-in'],
+ 2,
+ '87 suited plays well as a 3-bet from the small blind. You have good equity when called and significant fold equity, while flatting creates a tough out-of-position spot.'),
+
+('mtt_situations', 'medium', 'When should you adjust to a "push-fold" strategy in tournaments?',
+ ARRAY['Around 10-15 big blinds', 'Around 20-25 big blinds', 'Around 30-35 big blinds', 'Only at 5 big blinds or less'],
+ 0,
+ 'Push-fold strategy becomes optimal around 10-15 BB. Below this, post-flop play becomes difficult and shoving preserves maximum fold equity.'),
+
+-- Hard MTT
+('mtt_situations', 'hard', 'You are on the final table bubble with 40 BB. The chip leader (120 BB) opens from CO. You have QQ on the BTN. Two short stacks (8 BB each) are in the blinds. Best action?',
+ ARRAY['Fold to avoid busting before final table', 'Flat call to keep pot small', '3-bet to 12 BB', 'Shove all-in'],
+ 1,
+ 'This is a complex ICM spot. The short stacks in the blinds create significant bubble pressure. Flatting keeps the pot manageable while still extracting value from QQ and avoiding a cooler scenario.'),
+
+('mtt_situations', 'hard', 'In a $10K mid-stakes MTT, you have the chip lead at 11 players (10 make the money). How should you adjust your strategy?',
+ ARRAY['Play ultra-tight to protect your lead', 'Attack medium stacks aggressively', 'Attack short stacks only', 'Play the same as always'],
+ 1,
+ 'As chip leader on the bubble, you should attack medium stacks who fear busting. Short stacks will call wider, but medium stacks face maximum ICM pressure.'),
+
+('mtt_situations', 'hard', 'What is the concept of "ICM suicide" and when might it be strategically correct?',
+ ARRAY['Never correct - always preserve ICM equity', 'When you have less than 5 BB remaining', 'When gaining chips significantly increases your chances of winning', 'When you are on the bubble'],
+ 2,
+ 'ICM suicide means taking -EV chip spots that are +EV for tournament equity. It can be correct when a double-up drastically changes your winning chances, particularly with very short stacks.'),
+
+('mtt_situations', 'hard', 'You have 18 BB in the BB facing a 2.2x open from the cutoff. Your hand is ATo. Solver recommends mixing between 3-bet jam and call. What factors should influence your decision?',
+ ARRAY['Your read on opponents tendencies', 'Only the mathematical equity', 'Your position in the payout structure', 'A and C combined'],
+ 3,
+ 'Both opponent tendencies (do they overfold to jams?) and ICM considerations (are there pay jumps or shorter stacks?) should influence whether you 3-bet jam or call with marginal hands like ATo.'),
+
+-- Additional MTT questions for variety
+('mtt_situations', 'medium', 'What is the "Independent Chip Model" (ICM) primarily used for?',
+ ARRAY['Calculating pot odds', 'Converting chip stacks to prize pool equity', 'Determining position advantage', 'Calculating implied odds'],
+ 1,
+ 'ICM converts chip stacks into expected tournament equity ($EV), accounting for the fact that chips lost hurt more than chips gained help in tournament play.'),
+
+('mtt_situations', 'hard', 'In a satellite tournament where top 10 finishers get equal prizes, you have 50 BB at 12 players remaining. Two players have 3 BB each. What is your optimal strategy?',
+ ARRAY['Play aggressively to accumulate chips', 'Fold almost everything and wait', 'Attack only the medium stacks', 'Normal play with slight tightening'],
+ 1,
+ 'In satellite format with equal prizes, chip accumulation has zero value once you are safe. With two critically short stacks and a healthy stack, folding nearly all hands is optimal.'),
+
+('mtt_situations', 'easy', 'What is the primary advantage of late position in tournament poker?',
+ ARRAY['You can see more community cards', 'You act last after the flop', 'You post smaller blinds', 'You get better cards'],
+ 1,
+ 'Acting last postflop provides crucial information about opponent actions, allowing better decision-making throughout the hand.'),
+
+('mtt_situations', 'medium', 'When facing a 3-bet with 25 BB effective stacks, which hands benefit most from 4-bet shoving?',
+ ARRAY['Only AA and KK', 'AA, KK, QQ, and AK', 'Small pocket pairs for set mining', 'Suited connectors'],
+ 1,
+ 'With 25 BB, the 4-bet shoving range typically includes premium hands (AA, KK, QQ, AK) that play well against 3-betting ranges and have strong equity when called.'),
+
+('mtt_situations', 'hard', 'You are heads-up for a tournament title. You have 60 BB and villain has 40 BB. How much more should you open raise compared to full-ring play?',
+ ARRAY['About the same', 'Slightly more (10-20% wider)', 'Significantly more (50-80% wider)', 'Open 100% of hands'],
+ 2,
+ 'Heads-up play requires dramatically wider ranges. You should open 60-80%+ of hands from the button and defend very wide from the big blind.'),
+
+('mtt_situations', 'medium', 'What is a "resteal" in tournament poker?',
+ ARRAY['Stealing back chips you lost earlier', '3-betting a suspected late position steal', 'Rebuying after busting', 'Folding and taking back your bet'],
+ 1,
+ 'A resteal is a 3-bet made specifically to attack a suspected steal attempt from late position, typically from the blinds against button or cutoff opens.');
+
+
+-- ============================================================================
+-- CASH GAME SITUATIONS - Deep Stack Play & Implied Odds (20 questions)
+-- ============================================================================
+
+INSERT INTO trivia_questions (category, difficulty, question, options, correct_index, explanation) VALUES
+
+-- Easy Cash Game
+('cash_game_situations', 'easy', 'What is the primary difference between cash game and tournament strategy?',
+ ARRAY['Cash games have blinds that increase', 'In cash games, every chip has equal value', 'Cash games have antes', 'Cash games are faster'],
+ 1,
+ 'In cash games, chips can be cashed out for their face value at any time, meaning every chip has equal worth. In tournaments, chip value decreases as you gain more (diminishing returns).'),
+
+('cash_game_situations', 'easy', 'You are 100 big blinds deep with 77 in middle position. A tight player opens 3x from UTG. What is the best action?',
+ ARRAY['Fold - the pair is too weak', 'Call for set value', '3-bet for value', 'Shove all-in'],
+ 1,
+ 'Small pocket pairs are typically calling hands against UTG opens due to implied odds. You are looking to flop a set and win a big pot, but 3-betting into a tight UTG range is unprofitable.'),
+
+('cash_game_situations', 'easy', 'What does "position" refer to in poker?',
+ ARRAY['Your seat number at the table', 'Your chip stack relative to others', 'When you act relative to other players', 'Your ranking in a tournament'],
+ 2,
+ 'Position refers to when you act in the betting order. Acting later (being in position) is advantageous as you have more information about opponents actions.'),
+
+('cash_game_situations', 'easy', 'In a cash game, what is the "rake"?',
+ ARRAY['The amount you tip the dealer', 'The fee the house takes from each pot', 'The mandatory bet before cards are dealt', 'The size of the big blind'],
+ 1,
+ 'Rake is the fee taken by the house (casino or online site) from each pot or as a time charge. It is how poker rooms make money.'),
+
+-- Medium Cash Game
+('cash_game_situations', 'medium', 'You have 200 BB with AhKh on the button. A recreational player opens 4x from UTG and gets one caller. What is your best action?',
+ ARRAY['Fold - too much action', 'Call to see a flop', '3-bet to 15 BB', '3-bet to 22 BB'],
+ 2,
+ 'AKs is a premium hand that plays well 3-betting in position. Sizing to 15 BB builds the pot while leaving room for postflop play. 22 BB would be too large and fold out worse hands.'),
+
+('cash_game_situations', 'medium', 'What is "Stack-to-Pot Ratio" (SPR) and why does it matter?',
+ ARRAY['Its a measure of how tight you should play', 'Its the ratio of remaining stacks to pot size, affecting commitment decisions', 'Its how fast the blinds increase', 'Its the ratio of your stack to the average stack'],
+ 1,
+ 'SPR = Effective Stack / Pot Size after preflop betting. Lower SPRs favor big pairs and high cards; higher SPRs favor speculative hands with implied odds.'),
+
+('cash_game_situations', 'medium', 'In a $2/$5 cash game, you have $1000 and face a $30 river bet into a $100 pot with a bluff catcher. What pot odds do you need to call?',
+ ARRAY['About 20%', 'About 23%', 'About 30%', 'About 40%'],
+ 1,
+ '$30 to call into a $130 pot = $30 / ($30 + $130) = $30 / $160 = 18.75%. You need to win about 19% of the time, which means villain needs to be bluffing roughly 23% to break even after rake.'),
+
+('cash_game_situations', 'medium', 'With 150 BB effective stacks, you 3-bet to 12 BB with pocket Queens. Villain 4-bets to 28 BB. What is the best action?',
+ ARRAY['Fold - Queens cant handle 4-bet pressure', 'Call and play postflop', '5-bet to 65 BB', 'Shove all-in'],
+ 1,
+ 'With 150 BB stacks, QQ plays best as a call. 5-betting commits you against a range that often dominates you (AA, KK), while calling keeps the pot manageable and allows you to play postflop.'),
+
+('cash_game_situations', 'medium', 'What is the "rule of 4 and 2" in poker?',
+ ARRAY['Bet 4x on the flop, 2x on the turn', 'Multiply outs by 4 on flop, 2 on turn for equity', 'Always raise 4 and call 2', 'Play only top 4% of hands early, top 2% late'],
+ 1,
+ 'The rule of 4 and 2 is a quick way to estimate equity. Multiply your outs by 4 on the flop (two cards to come) or by 2 on the turn (one card to come) for approximate percentage.'),
+
+-- Hard Cash Game
+('cash_game_situations', 'hard', 'You have 300 BB effective with AdKd on a Kh9h4d flop. You bet 2/3 pot and get raised 3x. What factors most influence whether to call or 3-bet?',
+ ARRAY['Your position only', 'The opponents perceived range and tendencies', 'Only the pot odds', 'Only your hand strength'],
+ 1,
+ 'Against this raise, understanding villains range is crucial. Some players only raise sets/two-pair here, while others include draws. Your decision depends heavily on opponent profiling and tendencies.'),
+
+('cash_game_situations', 'hard', 'In a deep-stacked 6-max game (250 BB effective), what hands play best for set-mining from the blinds?',
+ ARRAY['22-66 only', '22-99', '22-TT with good implied odds', 'Only 77-99'],
+ 2,
+ 'With deep stacks (250+ BB), calling to set mine is profitable with a wider range of pairs. You need roughly 20:1 implied odds, which deeper stacks provide against aggressive opponents who will pay off sets.'),
+
+('cash_game_situations', 'hard', 'You are playing $5/$10 with $2000 effective. You have JhTh on a Qh8h2c flop. You check, villain bets $50 into $75. What raise size best balances your range?',
+ ARRAY['Call - never raise with draws', 'Raise to $130 (2.6x)', 'Raise to $175 (3.5x)', 'Raise to $250 (5x)'],
+ 2,
+ 'With a strong draw (flush draw + gutshot = 12+ outs), check-raising is profitable. 3.5x sizing balances your value raises with draws and puts maximum pressure on one-pair hands.'),
+
+('cash_game_situations', 'hard', 'What is "reverse implied odds" and when does it significantly affect your decisions?',
+ ARRAY['When you have the nuts', 'When making your hand may result in losing a big pot to a better hand', 'When you are drawing thin', 'When you are the preflop aggressor'],
+ 1,
+ 'Reverse implied odds occur when completing your draw may cost you additional money because your opponent has a better made hand. Example: flopping a low flush when opponent may have a higher flush.'),
+
+('cash_game_situations', 'medium', 'In a 6-max game, what percentage of hands should you typically open from the button?',
+ ARRAY['About 25%', 'About 35%', 'About 45-50%', 'About 70%'],
+ 2,
+ 'On the button in 6-max cash, GTO strategies open around 45-50% of hands. This wide range is profitable due to position advantage and the relatively weak ranges of the blinds.'),
+
+('cash_game_situations', 'medium', 'What is "floating" in poker?',
+ ARRAY['Folding a weak hand', 'Calling with a weak hand intending to bluff later', 'Raising with the intention to fold to a reraise', 'Checking with a monster'],
+ 1,
+ 'Floating is calling a bet (typically on the flop) with a weak hand or draw, intending to take the pot away on a later street when opponent shows weakness.'),
+
+('cash_game_situations', 'easy', 'What does "buying in short" mean in a cash game?',
+ ARRAY['Buying chips at a discount', 'Buying in for less than the maximum', 'Leaving the table early', 'Buying in for more than the maximum'],
+ 1,
+ 'Buying in short means entering the game with fewer chips than the maximum buy-in. This affects strategy as you have less room for post-flop maneuvering.'),
+
+('cash_game_situations', 'hard', 'You are in a $2/$5 game with $1500 effective. Villain leads $400 into a $200 pot on the river with a missed draw. What is this betting pattern called and what range does it often represent?',
+ ARRAY['A value bet targeting worse hands', 'An overbet bluff representing missed draws or air', 'A blocking bet preventing a raise', 'A merge bet with medium strength'],
+ 1,
+ 'Overbetting on the river often represents polarized ranges - either nuts or bluffs. A $400 bet into $200 after leading the whole way suggests villain is either very strong or giving up with a bluff.'),
+
+('cash_game_situations', 'medium', 'When is it correct to "slow play" a big hand in cash games?',
+ ARRAY['Almost never - always fast play', 'When board is very dry and opponent is aggressive', 'When you have the immortal nuts', 'Only at micro stakes'],
+ 1,
+ 'Slow playing is appropriate on dry boards (like K72 rainbow) when opponent will bet draws themselves and calling allows them to continue putting money in.'),
+
+('cash_game_situations', 'hard', 'In Pot-Limit Omaha at $2/$5 with $2000 stacks, you have AAKKds on a K84 rainbow flop. What is the main trap in this spot?',
+ ARRAY['There is no trap - you have the nuts', 'Over-committing to top set when deeper stacked', 'Not betting enough', 'Being too passive'],
+ 1,
+ 'Top set in PLO is strong but not as dominant as in Hold em. With 400 BB effective stacks, you must be careful about over-committing on dry boards when runouts can bring wraps and straights.');
+
+
+-- ============================================================================
+-- ICM & CHIP EV - Tournament Equity Decisions (20 questions)
+-- ============================================================================
+
+INSERT INTO trivia_questions (category, difficulty, question, options, correct_index, explanation) VALUES
+
+-- Easy ICM
+('icm_chip_ev', 'easy', 'In a tournament, why are chips you can lose worth more than chips you can win?',
+ ARRAY['Because tournaments have antes', 'Due to ICM - losing chips hurts your tournament equity more than winning helps', 'Because blinds increase', 'This is not true'],
+ 1,
+ 'ICM shows that tournament equity is a function of your chip stack relative to others. The first chips you lose hurt your equity more than the equivalent gain would help.'),
+
+('icm_chip_ev', 'easy', 'What does "Chip EV" mean in tournament poker?',
+ ARRAY['Expected value of your chips in dollars', 'The mathematical expectation of chips won or lost', 'Your share of the prize pool', 'The value of antes'],
+ 1,
+ 'Chip EV is the expected value of a decision measured purely in tournament chips, ignoring payout structure. It is what would be optimal in a winner-take-all format.'),
+
+('icm_chip_ev', 'easy', 'When does ICM pressure become most significant?',
+ ARRAY['At the start of a tournament', 'During middle stages', 'Near the money bubble and final table', 'When blinds are highest'],
+ 2,
+ 'ICM pressure peaks at major "pay jumps" - the money bubble (0 to min-cash) and the final table (where each elimination means more money).'),
+
+('icm_chip_ev', 'easy', 'What is the "risk premium" in ICM terms?',
+ ARRAY['The extra chips you need to risk a call', 'The additional equity needed to justify a call compared to chip EV', 'The ante amount', 'The rebuy cost'],
+ 1,
+ 'Risk premium is the difference between chip EV and ICM EV for calling situations. ICM often requires more equity than chip EV alone would suggest.'),
+
+-- Medium ICM
+('icm_chip_ev', 'medium', 'You have 30 BB on the bubble. The chip leader (100 BB) opens. With AKo, you calculate +2 BB chip EV for shoving. What does ICM likely say?',
+ ARRAY['ICM agrees - shove is profitable', 'ICM says the shove is break-even', 'ICM says folding is better due to risk premium', 'ICM is irrelevant here'],
+ 2,
+ 'On the bubble, a +2 BB chip EV play may be -$EV due to ICM. The risk of busting before the money outweighs the chip gain, especially with a comfortable stack.'),
+
+('icm_chip_ev', 'medium', 'In a $100 tournament with 3 players left and payouts of $400/$250/$150, you have 40% of chips. What is your approximate ICM equity?',
+ ARRAY['About $320 (40% of $800)', 'About $285', 'About $340', 'About $260'],
+ 1,
+ 'ICM equity is not linear with chip count. Having 40% of chips gives you less than 40% of remaining prize pool because you cannot finish in all positions.'),
+
+('icm_chip_ev', 'medium', 'What is "ICM suicide" and when might it be strategically correct?',
+ ARRAY['Taking a -$EV spot for chip accumulation', 'Never correct under any circumstances', 'Only when you have the nuts', 'When you are the shortest stack'],
+ 0,
+ 'ICM suicide refers to ignoring ICM pressure to accumulate chips. It can be correct when very short-stacked, as doubling up dramatically increases your chances of running deeper.'),
+
+('icm_chip_ev', 'medium', 'At a final table with 6 remaining, which spot typically has the highest risk premium?',
+ ARRAY['The chip leader', 'The second-largest stack', 'The medium stacks', 'The shortest stack'],
+ 2,
+ 'Medium stacks face maximum ICM pressure. They have too much to risk for small gains but not enough to comfortably play speculative hands like the chip leader can.'),
+
+('icm_chip_ev', 'medium', 'In a $10 rebuy tournament where top 10 get seats worth $100 each, you have 20 BB at 15 remaining. How should ICM affect your play?',
+ ARRAY['Play aggressively to build a huge stack', 'Play extremely tight since all seats are equal value', 'ICM does not apply in satellite tournaments', 'Play normal poker'],
+ 1,
+ 'In satellites with equal prizes for finishers, ICM says chip accumulation beyond the threshold has zero value. Play tight and avoid marginal spots.'),
+
+-- Hard ICM
+('icm_chip_ev', 'hard', 'You are 2nd in chips at a final table of 4. Chip leader opens, and the two short stacks are in the blinds. You have JJ in the cutoff. Chip EV says call. What does ICM likely say?',
+ ARRAY['ICM also says call', 'ICM says 3-bet is better', 'ICM says fold is likely best', 'ICM calculation is not possible here'],
+ 2,
+ 'With two short stacks yet to act and a pot involving the chip leader, ICM creates significant pressure on your 2nd place stack. The two shorter stacks could bust, improving your position without risk.'),
+
+('icm_chip_ev', 'hard', 'In a $1K main event, you are on the final table bubble (10 players, 9 make it). You have exactly average chips. How much tighter should you play compared to chip EV optimal?',
+ ARRAY['About 5-10% tighter on calls', 'About 20-30% tighter on calls', 'No adjustment needed', 'About 50% tighter'],
+ 1,
+ 'At the final table bubble with average chips, ICM requires significantly tighter call ranges - roughly 20-30% fewer calls than chip EV suggests, depending on stack distribution.'),
+
+('icm_chip_ev', 'hard', 'Calculate risk premium: You have 25 chips in a 100-chip tournament. Villain shoves and you have 50% equity if you call. Is this a call based on chip EV? What about ICM?',
+ ARRAY['Chip EV: Call, ICM: Likely fold', 'Chip EV: Fold, ICM: Call', 'Both say call', 'Both say fold'],
+ 0,
+ 'Chip EV says 50% equity is always a call against a shove (you risk what you can win). But ICM shows that losing hurts more than winning helps, so 50% equity may not be enough.'),
+
+('icm_chip_ev', 'hard', 'Why does the concept of "future game" EV rarely apply in tournament poker?',
+ ARRAY['Because tournaments are single-session', 'Due to changing stack depths and ICM pressure', 'Because tournament players are worse', 'It actually does apply equally'],
+ 1,
+ 'Future game EV (potential future value from tricky plays) is diminished in tournaments because stack depths change, ICM pressure evolves, and players may bust before "future" opportunities arise.'),
+
+('icm_chip_ev', 'medium', 'What is the Nash Push/Fold equilibrium used for in tournaments?',
+ ARRAY['Determining when to min-raise', 'Finding optimal shove and call ranges based on stack depth and position', 'Calculating ICM equity', 'Setting bounty payouts'],
+ 1,
+ 'Nash Push/Fold provides mathematically optimal all-in and calling ranges based on stack size and position, assuming opponents also play optimally. Widely used for short-stack strategy.'),
+
+('icm_chip_ev', 'hard', 'At a 6-player final table, payouts are: 1st=$1M, 2nd=$600K, 3rd=$400K, 4th=$300K, 5th=$200K, 6th=$100K. You have 30% of chips. Approximately what is your ICM equity?',
+ ARRAY['$780K (30% of $2.6M)', 'About $540K', 'About $620K', 'About $450K'],
+ 2,
+ 'ICM equity calculation shows that 30% of chips in a 6-way pot gives roughly 24% of the remaining prize pool (~$620K), not the linear 30% that chip count would suggest.'),
+
+('icm_chip_ev', 'medium', 'In bounty/knockout tournaments, how does the bounty affect ICM calculations?',
+ ARRAY['Bounties have no effect on ICM', 'Bounties decrease risk premium for calling', 'Bounties increase risk premium', 'Bounties replace ICM entirely'],
+ 1,
+ 'Bounties provide immediate cash value for eliminating players, which decreases the risk premium. The potential bounty adds direct EV to calling, making wider calls profitable.'),
+
+('icm_chip_ev', 'easy', 'If you have 50% of the chips heads-up, what is your ICM equity?',
+ ARRAY['50% of the prize pool', 'More than 50% because you are the better player', 'Depends on the specific payouts', 'Always 55%'],
+ 0,
+ 'Heads-up with 50% of chips means 50% equity in the remaining prize pool. ICM simplifies to a linear calculation when only 2 players remain.'),
+
+('icm_chip_ev', 'hard', 'You are 3rd in chips (15 BB) at a 4-player final table. The short stack (5 BB) folds. Chip leader (50 BB) opens, 2nd in chips (30 BB) calls. You have TT. What does ICM suggest?',
+ ARRAY['Shove - TT is too strong to fold', 'Call and see a flop', 'Fold - let the bigger stacks clash', 'Raise small to 10 BB'],
+ 2,
+ 'With the short stack folded and two big stacks engaged, folding TT is often correct. If they go to war, you move up a pay jump without risk. Your risk premium is extremely high here.'),
+
+('icm_chip_ev', 'medium', 'What is "being priced in" in an ICM context?',
+ ARRAY['When pot odds exceed your equity', 'When the pot is so large that folding loses more EV than calling, despite ICM pressure', 'When you have a set', 'When antes are larger than blinds'],
+ 1,
+ 'Being priced in means the pot offers such good odds that folding would be more costly to your tournament equity than calling, even accounting for ICM risk premium.'),
+
+('icm_chip_ev', 'hard', 'In a bomb pot format where everyone antes, how does this affect ICM considerations on the first hand?',
+ ARRAY['No effect - ICM applies the same', 'Increases the risk premium significantly', 'Decreases risk premium since everyone contributes', 'ICM does not apply to bomb pots'],
+ 1,
+ 'Bomb pots create larger pots with more players, significantly increasing variance. This raises the ICM risk premium as busting becomes more likely relative to standard openings.');
+
+
+-- ============================================================================
+-- GTO THEORY ADDITIONS - Combined Strategy Scenarios (20 additional questions)
+-- ============================================================================
+
+INSERT INTO trivia_questions (category, difficulty, question, options, correct_index, explanation) VALUES
+
+('gto_theory', 'easy', 'What does "GTO" stand for in poker strategy?',
+ ARRAY['Game Theory Optimal', 'Good Table Odds', 'General Tournament Outline', 'Guaranteed Takedown Opportunity'],
+ 0,
+ 'GTO stands for Game Theory Optimal, referring to a strategy that cannot be exploited by any counter-strategy. It ensures at least break-even results against any opponent.'),
+
+('gto_theory', 'easy', 'In GTO poker, why do we sometimes randomize our actions?',
+ ARRAY['To confuse ourselves', 'To make our range balanced and unexploitable', 'Because we do not know what to do', 'To save time'],
+ 1,
+ 'Randomizing (mixed strategies) balances our range so opponents cannot exploit us. If we always bet strong hands, opponents would fold; always checking them allows opponents to bluff.'),
+
+('gto_theory', 'medium', 'What is the Minimum Defense Frequency (MDF) vs a half-pot bet?',
+ ARRAY['50%', '67%', '75%', '80%'],
+ 1,
+ 'MDF = 1 / (1 + bet/pot). For a half-pot bet: 1 / (1 + 0.5) = 1/1.5 = 67%. You must defend 67% of your range to prevent opponents auto-profiting with bluffs.'),
+
+('gto_theory', 'medium', 'According to GTO, what is the optimal bluff-to-value ratio on the river for a pot-sized bet?',
+ ARRAY['1:1 (50% bluffs, 50% value)', '1:2 (33% bluffs, 67% value)', '2:1 (67% bluffs, 33% value)', '1:3 (25% bluffs, 75% value)'],
+ 1,
+ 'For a pot-sized bet, villain gets 2:1 odds to call. To make villain indifferent, your range should be 1/3 bluffs and 2/3 value (1:2 ratio).'),
+
+('gto_theory', 'hard', 'In solver outputs, what does "EV" in the context of a specific action represent?',
+ ARRAY['Your total chip stack after the hand', 'The expected value gain/loss of that specific action', 'Your overall tournament equity', 'The size of the pot'],
+ 1,
+ 'EV in solver context shows the expected value (chips won/lost on average) of taking a specific action compared to alternatives. Optimal plays have the highest EV.'),
+
+('gto_theory', 'hard', 'Why do solvers often recommend small bet sizes on dry boards and large bets on wet boards?',
+ ARRAY['To confuse opponents', 'Dry boards have more nut hands; wet boards have more draws requiring protection', 'The opposite is true', 'Bet size does not matter theoretically'],
+ 1,
+ 'On dry boards, ranges are more static and small bets efficiently extract value. On wet boards, larger bets protect equity and charge draws correctly.'),
+
+('gto_theory', 'medium', 'What is "range advantage" and why does it matter?',
+ ARRAY['Having more chips than your opponent', 'Having a higher proportion of strong hands in your range', 'Being in better position', 'Having more experience'],
+ 1,
+ 'Range advantage means your range contains a higher frequency of strong hands than your opponents. This often allows you to bet more aggressively and at larger sizes.'),
+
+('gto_theory', 'hard', 'In a GTO 3-bet pot on AK2r flop, why does the preflop raiser typically check their entire range?',
+ ARRAY['They are scared of the Ace', 'The callers range connects better with this flop due to more suited Ax combos', 'It is never correct to check here', 'To trap with big hands'],
+ 1,
+ 'The cold caller has more Ax suited combinations than the 3-bettor (who 4-bets AA, KK, AK). This range disadvantage leads to checking frequency being higher for the 3-bettor.'),
+
+('gto_theory', 'medium', 'What is "polarized" vs "linear" (or "merged") range?',
+ ARRAY['Polarized has medium hands; linear has extremes', 'Polarized has nutted hands and bluffs; linear has a continuous range of value hands', 'They are the same thing', 'Polarized only applies to preflop'],
+ 1,
+ 'A polarized range contains the nuts and bluffs but no medium-strength hands. A linear or merged range includes a continuous spectrum from strong to medium-strength hands.'),
+
+('gto_theory', 'hard', 'According to GTO principles, when should you deviate toward exploitative play?',
+ ARRAY['Never - GTO is always optimal', 'When you have strong reads that opponent deviates significantly from GTO', 'Only against fish', 'Only in tournaments'],
+ 1,
+ 'GTO is optimal against unknown or balanced opponents. When you have strong reads on opponents tendencies (e.g., over-folding), exploiting those tendencies yields higher EV.'),
+
+('gto_theory', 'easy', 'What does "balanced" mean in poker strategy?',
+ ARRAY['Having equal chips to opponents', 'Playing in a way that opponents cannot exploit your patterns', 'Always betting the same amount', 'Folding and betting equally often'],
+ 1,
+ 'Balance means constructing ranges that cannot be exploited. If you are balanced, opponents cannot adjust profitably - they break even against you at best.'),
+
+('gto_theory', 'hard', 'In multi-way pots, why do GTO strategies generally recommend tighter ranges and fewer bluffs?',
+ ARRAY['Because pots are larger', 'Because the probability someone has a strong hand increases multiplicatively', 'GTO recommends more bluffs multiway', 'It depends entirely on position'],
+ 1,
+ 'With more players, the chance that someone has a strong hand increases geometrically. Bluffs succeed less often, and value hands need to be stronger.'),
+
+('gto_theory', 'medium', 'What is an "indifferent" call in game theory terms?',
+ ARRAY['A call you do not care about', 'A situation where calling and folding have equal EV due to opponents balanced betting', 'A mandatory call', 'A call you should never make'],
+ 1,
+ 'An indifferent call means your opponent has perfectly balanced bluffs and value so that calling and folding have identical EV. This is the goal of GTO betting strategies.'),
+
+('gto_theory', 'hard', 'According to solving software, what is the approximate GTO 3-bet percentage from the button vs a CO open in 100 BB cash games?',
+ ARRAY['5-8%', '10-12%', '15-18%', '22-25%'],
+ 1,
+ 'GTO 3-bet from BTN vs CO is typically 10-12% of hands. This includes value hands, speculative suited hands, and some bluff combos for balance.'),
+
+('gto_theory', 'medium', 'Why is "node locking" used in poker solvers?',
+ ARRAY['To make solvers run faster', 'To simulate how opponents deviate from GTO and find exploitative responses', 'To lock out opponent ranges', 'To prevent hacking'],
+ 1,
+ 'Node locking fixes an opponents strategy at a specific point, allowing the solver to find the optimal exploitative response to that deviation.'),
+
+('gto_theory', 'easy', 'What is a "blocker" in poker?',
+ ARRAY['A card that blocks the flop', 'A card in your hand that reduces the likelihood of opponent having certain hands', 'A bet that blocks opponents from raising', 'A defensive position'],
+ 1,
+ 'Blockers are cards you hold that make it less likely your opponent has specific hands. Example: holding an Ace reduces the combos of AA, AK your opponent can have.'),
+
+('gto_theory', 'hard', 'In the context of GTO, what is "alpha" and how is it calculated?',
+ ARRAY['The strongest hand in your range', 'Alpha = bet/(bet+pot), representing the minimum bluff success rate needed', 'Your overall winrate', 'The first action in a sequence'],
+ 1,
+ 'Alpha is the breakeven bluff frequency. For a bet B into pot P: alpha = B/(B+P). This is how often your bluff must succeed to be profitable.'),
+
+('gto_theory', 'medium', 'What does it mean when a solver shows a "mixed strategy" for a specific hand?',
+ ARRAY['The hand is worthless', 'The hand is indifferent between actions and should randomize', 'You should always fold', 'The solver is broken'],
+ 1,
+ 'A mixed strategy indicates the hand has equal EV for multiple actions. To remain balanced and unexploitable, you should randomize between these actions at specified frequencies.'),
+
+('gto_theory', 'hard', 'Why is "equity denial" a crucial concept in GTO no-limit play?',
+ ARRAY['It means denying opponents their chips', 'Preventing opponents from realizing their hands raw equity by forcing folds', 'It is not a valid concept', 'Only applies in limit poker'],
+ 1,
+ 'Equity denial means using aggression to prevent opponents from seeing additional cards. By betting, you force folds from hands that had equity to improve.'),
+
+('gto_theory', 'medium', 'According to GTO, how should your c-bet frequency change from single raised pots to 3-bet pots?',
+ ARRAY['C-bet more frequently in 3-bet pots', 'C-bet less frequently in 3-bet pots', 'C-bet frequency stays the same', 'Never c-bet in 3-bet pots'],
+ 0,
+ 'In 3-bet pots, the aggressor typically has a tighter, stronger range with more range advantage on most boards. This leads to higher c-betting frequencies than in single-raised pots.');
+
+
+-- ============================================================================
+-- Create index for new categories
+-- ============================================================================
+
+CREATE INDEX IF NOT EXISTS idx_trivia_questions_mtt ON trivia_questions(category) WHERE category = 'mtt_situations';
+CREATE INDEX IF NOT EXISTS idx_trivia_questions_cash ON trivia_questions(category) WHERE category = 'cash_game_situations';
+CREATE INDEX IF NOT EXISTS idx_trivia_questions_icm ON trivia_questions(category) WHERE category = 'icm_chip_ev';
+
+-- ============================================================================
+-- Summary
+-- ============================================================================
+-- Added:
+--   - 20 MTT Scenarios questions (easy, medium, hard)
+--   - 20 Cash Game Situations questions (easy, medium, hard)
+--   - 20 ICM & Chip EV questions (easy, medium, hard)
+--   - 20 Additional GTO Theory questions (easy, medium, hard)
+--   - is_horse column for profiles (for PvP bot matching)
+--   - Indexes for new categories
+-- Total: 80 new questions across 4 categories

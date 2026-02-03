@@ -6,15 +6,16 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
+// Clean Facebook-style achievements (no emojis)
 const ACHIEVEMENTS = [
-    { key: 'first_log', name: 'First Entry', icon: '🎯', desc: 'Log your first session', diamonds: 10 },
-    { key: 'streak_7', name: 'Week Warrior', icon: '🔥', desc: '7-day logging streak', diamonds: 50 },
-    { key: 'streak_30', name: 'Monthly Master', icon: '⚡', desc: '30-day logging streak', diamonds: 200 },
-    { key: 'streak_100', name: 'Century Club', icon: '💎', desc: '100-day logging streak', diamonds: 500 },
-    { key: 'win_streak_5', name: 'Hot Streak', icon: '🔥', desc: '5 winning sessions in a row', diamonds: 100 },
-    { key: 'sessions_50', name: 'Dedicated Player', icon: '🏅', desc: 'Log 50 sessions', diamonds: 150 },
-    { key: 'sessions_100', name: 'Pro Logger', icon: '🏆', desc: 'Log 100 sessions', diamonds: 300 },
-    { key: 'positive_month', name: 'Green Month', icon: '💰', desc: 'Finish a month profitable', diamonds: 100 },
+    { key: 'first_log', name: 'First Entry', icon: '', desc: 'Log your first session', diamonds: 10 },
+    { key: 'streak_7', name: 'Week Warrior', icon: '', desc: '7-day logging streak', diamonds: 50 },
+    { key: 'streak_30', name: 'Monthly Master', icon: '', desc: '30-day logging streak', diamonds: 200 },
+    { key: 'streak_100', name: 'Century Club', icon: '', desc: '100-day logging streak', diamonds: 500 },
+    { key: 'win_streak_5', name: 'Hot Streak', icon: '', desc: '5 winning sessions in a row', diamonds: 100 },
+    { key: 'sessions_50', name: 'Dedicated Player', icon: '', desc: 'Log 50 sessions', diamonds: 150 },
+    { key: 'sessions_100', name: 'Pro Logger', icon: '', desc: 'Log 100 sessions', diamonds: 300 },
+    { key: 'positive_month', name: 'Green Month', icon: '', desc: 'Finish a month profitable', diamonds: 100 },
 ];
 
 export default function BankrollStreaks({ userId, streakData, isLoading }) {
@@ -38,8 +39,8 @@ export default function BankrollStreaks({ userId, streakData, isLoading }) {
         if (days === 0) return "Start your streak today!";
         if (days === 1) return "Keep it up!";
         if (days < 7) return "Building momentum...";
-        if (days < 30) return "You're on fire! 🔥";
-        return "Legendary streak! 🌟";
+        if (days < 30) return "You're on fire!";
+        return "Legendary streak!";
     };
 
     if (isLoading) {
@@ -57,7 +58,7 @@ export default function BankrollStreaks({ userId, streakData, isLoading }) {
         return (
             <div style={styles.container}>
                 <div style={styles.signInPrompt}>
-                    <span>🔒 Sign in to track streaks</span>
+                    <span>Sign in to track streaks</span>
                 </div>
             </div>
         );
@@ -115,7 +116,7 @@ export default function BankrollStreaks({ userId, streakData, isLoading }) {
                     animate={{ height: 'auto', opacity: 1 }}
                     style={styles.achievementsSection}
                 >
-                    <div style={styles.sectionTitle}>🏅 Achievements</div>
+                    <div style={styles.sectionTitle}>Achievements</div>
 
                     {/* Unlocked */}
                     {unlockedAchievements.length > 0 && (
@@ -139,7 +140,7 @@ export default function BankrollStreaks({ userId, streakData, isLoading }) {
                                 <div key={ach.key} style={{ ...styles.achievement, opacity: 0.5 }}>
                                     <span style={styles.achievementIcon}>{ach.icon}</span>
                                     <span style={styles.achievementName}>{ach.name}</span>
-                                    <span style={styles.diamondReward}>💎 {ach.diamonds}</span>
+                                    <span style={styles.diamondReward}>{ach.diamonds}</span>
                                 </div>
                             ))}
                         </div>
