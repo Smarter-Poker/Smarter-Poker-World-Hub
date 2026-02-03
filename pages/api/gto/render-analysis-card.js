@@ -41,14 +41,15 @@ const ACTION_COLORS = {
     'ALL-IN': '#ff00ff',
 };
 
-// Font loading for @vercel/og
+// Font loading for @vercel/og (requires TTF format, not WOFF2)
 async function loadFonts() {
+    // Use GitHub-hosted Inter TTF files that work with Satori
     const interBold = await fetch(
-        'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuGKYAZ9hiJ-Ek-_EeA.woff2'
+        'https://github.com/rsms/inter/raw/master/docs/font-files/Inter-Bold.ttf'
     ).then((res) => res.arrayBuffer());
 
     const interRegular = await fetch(
-        'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuAGYAZ9hiJ-Ek-_EeA.woff2'
+        'https://github.com/rsms/inter/raw/master/docs/font-files/Inter-Regular.ttf'
     ).then((res) => res.arrayBuffer());
 
     return [
