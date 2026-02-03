@@ -43,18 +43,18 @@ const ACTION_COLORS = {
 
 // Font loading for @vercel/og (requires TTF format, not WOFF2)
 async function loadFonts() {
-    // Use GitHub-hosted Inter TTF files that work with Satori
-    const interBold = await fetch(
-        'https://github.com/rsms/inter/raw/master/docs/font-files/Inter-Bold.ttf'
+    // Use raw.githubusercontent.com for actual TTF files (not redirects)
+    const fontBold = await fetch(
+        'https://raw.githubusercontent.com/googlefonts/noto-fonts/main/hinted/ttf/NotoSans/NotoSans-Bold.ttf'
     ).then((res) => res.arrayBuffer());
 
-    const interRegular = await fetch(
-        'https://github.com/rsms/inter/raw/master/docs/font-files/Inter-Regular.ttf'
+    const fontRegular = await fetch(
+        'https://raw.githubusercontent.com/googlefonts/noto-fonts/main/hinted/ttf/NotoSans/NotoSans-Regular.ttf'
     ).then((res) => res.arrayBuffer());
 
     return [
-        { name: 'Inter', data: interBold, style: 'normal', weight: 700 },
-        { name: 'Inter', data: interRegular, style: 'normal', weight: 400 },
+        { name: 'Noto Sans', data: fontBold, style: 'normal', weight: 700 },
+        { name: 'Noto Sans', data: fontRegular, style: 'normal', weight: 400 },
     ];
 }
 
@@ -178,7 +178,7 @@ function generateGTOPanel({
                 height: '100%',
                 background: 'linear-gradient(180deg, #0a1628 0%, #0d1f35 50%, #0a1628 100%)',
                 padding: '15px',
-                fontFamily: 'Inter, system-ui, sans-serif',
+                fontFamily: 'Noto Sans, system-ui, sans-serif',
             }}
         >
             {/* Outer Frame */}
