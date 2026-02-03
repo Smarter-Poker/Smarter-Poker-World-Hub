@@ -81,9 +81,66 @@ export default function GTOScenarioDisplay({
     evAnalysis,
     alternateLines = [],
     isCorrectAnswer,
-    showDetails = true
+    showDetails = true,
+    // Optional: AI-generated image URL (from Grok)
+    imageUrl,
+    // Optional: Question data for AI image generation
+    question,
+    category,
+    difficulty,
+    options,
+    correctIndex,
 }) {
+    const [aiImageUrl, setAiImageUrl] = useState(imageUrl || null);
+    const [isLoadingImage, setIsLoadingImage] = useState(false);
     const actionColor = getActionColor(action);
+
+    // Optionally fetch AI-generated panel image
+    const fetchAiPanel = async () => {
+        if (aiImageUrl || isLoadingImage) return;
+
+        setIsLoadingImage(true);
+        try {
+            const response = await fetch('/api/trivia/render-gto-panel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    question,
+                    correctAnswer: options?.[correctIndex],
+                    explanation,
+                    difficulty,
+                    category,
+                    options,
+                    correctIndex,
+                }),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.imageUrl) {
+                    setAiImageUrl(data.imageUrl);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to fetch AI panel:', error);
+        } finally {
+            setIsLoadingImage(false);
+        }
+    };
+
+    // If we have an AI-generated image, display it instead of React components
+    if (aiImageUrl) {
+        return (
+            <div className={styles.aiPanelContainer}>
+                <img
+                    src={aiImageUrl}
+                    alt="GTO Analysis"
+                    className={styles.aiPanelImage}
+                    loading="lazy"
+                />
+            </div>
+        );
+    }
 
     return (
         <div className={styles.container}>
