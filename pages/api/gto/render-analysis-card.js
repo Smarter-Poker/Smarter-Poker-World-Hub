@@ -1,17 +1,16 @@
 /**
- * GTO Panel Image Renderer - Using @vercel/og
+ * GTO Panel Image Generator - Using Grok AI
  * ═══════════════════════════════════════════════════════════════════════════
- * Generates GTO analysis images using a FIXED template with dynamic text.
- * The template layout and structure NEVER change - only the text content.
- *
- * Uses @vercel/og for Vercel Edge-optimized image generation with proper fonts.
+ * Generates GTO analysis panel images using Grok AI image generation.
+ * Images are uploaded directly to Supabase storage.
+ * 
+ * The template is LOCKED - only the dynamic text fields change.
  *
  * POST /api/gto/render-analysis-card
  *
- * Returns: { imageUrl: "https://..." } - cached image in Supabase Storage
+ * Returns: { imageUrl: "https://..." } - image stored in Supabase
  */
 
-import { ImageResponse } from '@vercel/og';
 import { createClient } from '@supabase/supabase-js';
 
 // Supabase client
@@ -20,83 +19,24 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
-// Web Crypto API hash function for Edge runtime
-async function hashString(str) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(str);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-// Action colors - LOCKED
+// Action colors for prompt
 const ACTION_COLORS = {
-    'FOLD': '#ff4444',
-    'CHECK': '#888888',
-    'CALL': '#ffaa00',
-    'BET': '#00d4ff',
-    'RAISE': '#00ff88',
-    '3-BET': '#00ff88',
-    '4-BET': '#aa44ff',
-    'ALL-IN': '#ff00ff',
+    'FOLD': 'red',
+    'CHECK': 'gray',
+    'CALL': 'yellow/orange',
+    'BET': 'cyan',
+    'RAISE': 'green neon',
+    '3-BET': 'green neon',
+    '4-BET': 'purple',
+    'ALL-IN': 'magenta',
 };
 
-// Font loading for @vercel/og (requires TTF format)
-// Use Google Fonts CSS API with IE11 User-Agent to force TTF format
-async function loadFonts() {
-    try {
-        // Fetch CSS from Google Fonts with IE11 UA to get TTF links
-        const cssResponse = await fetch(
-            'https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap',
-            {
-                headers: {
-                    // IE11 User-Agent forces Google to serve TTF
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 6.3; Trident/7.0; rv:11.0) like Gecko'
-                }
-            }
-        );
-        const css = await cssResponse.text();
-
-        // Extract font URLs from CSS
-        const urlMatches = css.match(/url\(([^)]+)\)/g);
-        if (!urlMatches || urlMatches.length < 2) {
-            throw new Error('Failed to extract font URLs from Google CSS');
-        }
-
-        // Get regular (400) and bold (700) font URLs
-        const regularUrl = urlMatches[0].replace(/url\(|\)/g, '');
-        const boldUrl = urlMatches[1].replace(/url\(|\)/g, '');
-
-        const [fontRegular, fontBold] = await Promise.all([
-            fetch(regularUrl).then((res) => res.arrayBuffer()),
-            fetch(boldUrl).then((res) => res.arrayBuffer())
-        ]);
-
-        return [
-            { name: 'Inter', data: fontBold, style: 'normal', weight: 700 },
-            { name: 'Inter', data: fontRegular, style: 'normal', weight: 400 },
-        ];
-    } catch (error) {
-        console.error('[GTO-Render] Font loading error:', error);
-        // Return empty array - Satori will use default font
-        return [];
-    }
-}
-
-export const config = {
-    runtime: 'edge',
-};
-
-export default async function handler(req) {
+export default async function handler(req, res) {
     if (req.method !== 'POST') {
-        return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-            status: 405,
-            headers: { 'Content-Type': 'application/json' },
-        });
+        return res.status(405).json({ error: 'Method not allowed' });
     }
 
     try {
-        const body = await req.json();
         const {
             action = 'RAISE',
             frequency = 85,
@@ -105,10 +45,10 @@ export default async function handler(req) {
             evValue = '+1.50bb',
             evDescription = '',
             alternateLines = [],
-        } = body;
+        } = req.body;
 
-        // Generate cache key based on content
-        const cacheKey = await generateCacheKey({
+        // Generate cache key
+        const cacheKey = generateCacheKey({
             action, frequency, explanation, gtoApproach,
             evValue, evDescription, alternateLines,
         });
@@ -116,73 +56,46 @@ export default async function handler(req) {
         // Check if image already exists in storage
         const existingUrl = await checkCachedImage(cacheKey);
         if (existingUrl) {
-            return new Response(JSON.stringify({
+            return res.status(200).json({
                 success: true,
                 imageUrl: existingUrl,
                 fromCache: true,
-            }), {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
             });
         }
 
-        // Load fonts for proper text rendering
-        const fonts = await loadFonts();
+        // Generate image using Grok AI
+        const imageBuffer = await generateWithGrok({
+            action,
+            frequency,
+            explanation,
+            gtoApproach,
+            evValue,
+            evDescription,
+            alternateLines,
+        });
 
-        // Generate the image using @vercel/og
-        const imageResponse = new ImageResponse(
-            generateGTOPanel({
-                action,
-                frequency,
-                explanation,
-                gtoApproach,
-                evValue,
-                evDescription,
-                alternateLines,
-            }),
-            {
-                width: 800,
-                height: 900,
-                fonts,
-            }
-        );
+        // Upload directly to Supabase storage
+        const imageUrl = await uploadToStorage(cacheKey, imageBuffer);
 
-        // Convert to buffer for upload
-        const imageBuffer = await imageResponse.arrayBuffer();
-
-        // Upload to Supabase Storage
-        const imageUrl = await uploadToStorage(cacheKey, Buffer.from(imageBuffer));
-
-        return new Response(JSON.stringify({
+        return res.status(200).json({
             success: true,
             imageUrl,
             fromCache: false,
-        }), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
         });
 
     } catch (error) {
         console.error('[GTO-Render] Error:', error);
-        return new Response(JSON.stringify({
+        return res.status(500).json({
             success: false,
             error: error.message,
-        }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' },
         });
     }
 }
 
 /**
- * Generate the GTO Panel JSX - LOCKED LAYOUT
- * ═══════════════════════════════════════════════════════════════════════════
- * - Jarvis avatar: TOP-LEFT corner
- * - Action (RAISE/CALL/etc): CENTERED
- * - Smarter Poker Data badge: TOP-RIGHT corner
- * - 4 content sections (Explanation, GTO Approach, EV Analysis, Alternate Lines)
+ * Generate GTO panel image using Grok AI
  */
-function generateGTOPanel({
+async function generateWithGrok({
     action,
     frequency,
     explanation,
@@ -191,233 +104,82 @@ function generateGTOPanel({
     evDescription,
     alternateLines,
 }) {
-    const actionColor = ACTION_COLORS[action?.toUpperCase()] || '#00ff88';
-    const evColor = evValue?.startsWith('+') ? '#00ff88' : '#ff4444';
+    const actionColor = ACTION_COLORS[action?.toUpperCase()] || 'green neon';
+    const evColor = evValue?.startsWith('+') ? 'green' : 'red';
 
-    return (
-        <div
-            style={{
-                display: 'flex',
-                flexDirection: 'column',
-                width: '100%',
-                height: '100%',
-                background: 'linear-gradient(180deg, #0a1628 0%, #0d1f35 50%, #0a1628 100%)',
-                padding: '15px',
-                fontFamily: 'Inter, system-ui, sans-serif',
-            }}
-        >
-            {/* Outer Frame */}
-            <div
-                style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    width: '100%',
-                    height: '100%',
-                    border: '2px solid #00d4ff40',
-                    borderRadius: '16px',
-                    padding: '10px',
-                    boxShadow: '0 0 20px rgba(0, 212, 255, 0.3)',
-                }}
-            >
-                {/* HEADER - Compact with Jarvis left, Action center, Badge right */}
-                <div
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        background: 'rgba(0, 40, 60, 0.8)',
-                        borderRadius: '12px',
-                        padding: '12px 20px',
-                        marginBottom: '10px',
-                    }}
-                >
-                    {/* Jarvis Avatar - TOP LEFT */}
-                    <div
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: '50px',
-                            height: '50px',
-                            borderRadius: '50%',
-                            border: '2px solid #00d4ff',
-                            background: '#0a2030',
-                            boxShadow: '0 0 10px rgba(0, 212, 255, 0.5)',
-                        }}
-                    >
-                        <span style={{ color: '#00d4ff', fontSize: '24px', fontWeight: 'bold' }}>J</span>
-                    </div>
+    // Build the LOCKED template prompt with dynamic data
+    const prompt = `Create a poker GTO analysis panel with EXACT futuristic metal styling:
 
-                    {/* ACTION - CENTERED */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                        <div
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                padding: '8px 24px',
-                                background: `linear-gradient(180deg, ${actionColor}20 0%, ${actionColor}10 100%)`,
-                                border: `2px solid ${actionColor}`,
-                                borderRadius: '8px',
-                                boxShadow: `0 0 15px ${actionColor}60`,
-                            }}
-                        >
-                            <span
-                                style={{
-                                    color: actionColor,
-                                    fontSize: '32px',
-                                    fontWeight: 'bold',
-                                    textShadow: `0 0 10px ${actionColor}`,
-                                }}
-                            >
-                                {action?.toUpperCase() || 'RAISE'}
-                            </span>
-                        </div>
+FRAME: Dark navy/black gradient background with beveled metallic silver-gray frame. Rounded corners with cyan accent lights at bottom. Tech aesthetic like Iron Man HUD.
 
-                        {/* Frequency Badge */}
-                        <div
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                padding: '6px 16px',
-                                background: '#0a2a3a',
-                                border: `2px solid ${actionColor}`,
-                                borderRadius: '20px',
-                            }}
-                        >
-                            <span style={{ color: actionColor, fontSize: '18px', fontWeight: 'bold' }}>
-                                {frequency}%
-                            </span>
-                        </div>
-                    </div>
+HEADER SECTION:
+- TOP LEFT: Jarvis humanoid AI avatar (cyan glowing robot face in circular frame) with "JARVIS" label below
+- CENTER: Large "${action?.toUpperCase()}" text in ${actionColor} with glow effect, next to "${frequency}%" badge
+- TOP RIGHT: "Smarter Poker Data" badge in cyan
 
-                    {/* Smarter Poker Data Badge - TOP RIGHT */}
-                    <div
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            padding: '6px 16px',
-                            background: 'rgba(0, 80, 120, 0.6)',
-                            border: '1px solid #00d4ff',
-                            borderRadius: '15px',
-                        }}
-                    >
-                        <span style={{ color: '#00d4ff', fontSize: '11px', fontWeight: 'bold' }}>
-                            Smarter Poker Data
-                        </span>
-                    </div>
-                </div>
+CONTENT SECTIONS (4 metal-framed cards with dark backgrounds):
 
-                {/* CONTENT SECTIONS */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
-                    {/* EXPLANATION Section */}
-                    <Section title="EXPLANATION" icon="ℹ️">
-                        <p style={{ color: '#c0d8e8', fontSize: '13px', lineHeight: '1.5', margin: 0 }}>
-                            {explanation || 'Analysis explanation will appear here.'}
-                        </p>
-                    </Section>
+1. EXPLANATION SECTION:
+- Header: "ⓘ Explanation" with arrow icon
+- Text: "${explanation}"
+- Highlight key terms like "${action?.toUpperCase()}", "GTO action", "Expected Value (EV)" in cyan/green
 
-                    {/* GTO APPROACH Section */}
-                    <Section title="GTO APPROACH" icon="◎">
-                        <p style={{ color: '#c0d8e8', fontSize: '13px', lineHeight: '1.5', margin: 0 }}>
-                            {gtoApproach || 'GTO strategy approach will appear here.'}
-                        </p>
-                    </Section>
+2. GTO APPROACH SECTION:
+- Header: "⚙ GTO Approach" with arrow icon  
+- Text: "${gtoApproach}"
+- Highlight "balanced range" in cyan
 
-                    {/* EV ANALYSIS Section */}
-                    <Section title="EV ANALYSIS" icon="$">
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            <span
-                                style={{
-                                    color: evColor,
-                                    fontSize: '28px',
-                                    fontWeight: 'bold',
-                                    textShadow: `0 0 8px ${evColor}`,
-                                }}
-                            >
-                                {evValue || '+0.00bb'}
-                            </span>
-                            <p style={{ color: '#c0d8e8', fontSize: '12px', lineHeight: '1.4', margin: 0 }}>
-                                {evDescription || 'Expected value analysis.'}
-                            </p>
-                        </div>
-                    </Section>
+3. EV ANALYSIS SECTION:
+- Header: "$ EV Analysis" with arrow icon
+- Large "${evValue}" in ${evColor} with glow
+- Text: "${evDescription}"
+- Highlight "expected value", "+1.50 big blinds", "pot equity" in cyan/green
 
-                    {/* ALTERNATE LINES Section */}
-                    <Section title={`${alternateLines?.length || 2} ALTERNATE LINES`} icon="⑂">
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                            {(alternateLines?.length > 0 ? alternateLines : [
-                                { action: 'CALL', frequency: '10%', reason: 'Balanced with drawing hands' },
-                                { action: 'FOLD', frequency: '5%', reason: 'Against extremely tight opponents' },
-                            ]).slice(0, 2).map((line, idx) => {
-                                const lineColor = ACTION_COLORS[line.action?.toUpperCase()] || '#ffaa00';
-                                return (
-                                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                        {/* Colored dot */}
-                                        <div
-                                            style={{
-                                                width: '12px',
-                                                height: '12px',
-                                                borderRadius: '50%',
-                                                background: lineColor,
-                                                boxShadow: `0 0 6px ${lineColor}`,
-                                            }}
-                                        />
-                                        {/* Action */}
-                                        <span style={{ color: lineColor, fontSize: '14px', fontWeight: 'bold', width: '50px' }}>
-                                            {line.action?.toUpperCase() || 'CALL'}
-                                        </span>
-                                        {/* Frequency */}
-                                        <span style={{ color: '#ffaa00', fontSize: '13px', width: '100px' }}>
-                                            {line.frequencyPct || line.frequency || '10%'} frequency
-                                        </span>
-                                        {/* Reason */}
-                                        <span style={{ color: '#8899aa', fontSize: '11px', flex: 1 }}>
-                                            {line.reason || ''}
-                                        </span>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </Section>
-                </div>
-            </div>
-        </div>
-    );
-}
+4. ALTERNATE LINES SECTION:
+- Header: "Y 2 Alternate Lines" with arrow icon
+${alternateLines.map((line, i) => `- ${i === 0 ? 'Yellow' : 'Red'} dot: "${line.action?.toUpperCase()}" ${line.frequency || line.frequencyPct} frequency - "${line.reason}"`).join('\n')}
 
-/**
- * Section component for content blocks
- */
-function Section({ title, icon, children }) {
-    return (
-        <div
-            style={{
-                display: 'flex',
-                flexDirection: 'column',
-                background: 'rgba(10, 30, 50, 0.9)',
-                border: '1px solid #00d4ff30',
-                borderRadius: '10px',
-                padding: '12px 15px',
-            }}
-        >
-            {/* Section Header */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                <span style={{ fontSize: '14px' }}>{icon}</span>
-                <span style={{ color: '#00d4ff', fontSize: '14px', fontWeight: 'bold' }}>{title}</span>
-            </div>
-            {/* Section Content */}
-            {children}
-        </div>
-    );
+Style: Premium, futuristic, metal-framed UI. Like a high-tech poker solver interface. No plain/basic styling.`;
+
+    // Call Grok image generation API
+    const response = await fetch('https://api.x.ai/v1/images/generations', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${process.env.XAI_API_KEY}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            model: 'grok-2-image-1212',
+            prompt: prompt,
+            n: 1,
+            response_format: 'b64_json',
+        }),
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Grok API error: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+
+    if (!data.data || !data.data[0] || !data.data[0].b64_json) {
+        throw new Error('Invalid response from Grok API');
+    }
+
+    // Convert base64 to buffer
+    const imageBuffer = Buffer.from(data.data[0].b64_json, 'base64');
+    return imageBuffer;
 }
 
 /**
  * Generate cache key from content
  */
-async function generateCacheKey(data) {
-    const hash = await hashString(JSON.stringify(data));
-    return `gto-panel-${hash.substring(0, 16)}`;
+function generateCacheKey(data) {
+    const crypto = require('crypto');
+    const hash = crypto.createHash('sha256');
+    hash.update(JSON.stringify(data));
+    return `gto-panel-${hash.digest('hex').substring(0, 16)}`;
 }
 
 /**
@@ -425,7 +187,7 @@ async function generateCacheKey(data) {
  */
 async function checkCachedImage(cacheKey) {
     try {
-        const { data } = await supabase.storage
+        const { data } = supabase.storage
             .from('gto-panels')
             .getPublicUrl(`${cacheKey}.png`);
 

@@ -1,0 +1,507 @@
+{
+    "id": "demo-scenario-001",
+    "game_id": "cash_001",
+    "scenario_type": "pio_derived",
+    "question_text": "What is the GTO play on the turn?",
+    "question_subtext": "Choose the best action",
+    "answers": [
+        {
+            "id": 0,
+            "label": "CHECK",
+            "value": "check",
+            "isCorrect": false,
+            "frequency": 0.15
+        },
+        {
+            "id": 1,
+            "label": "BET 4BB",
+            "value": "bet_4bb",
+            "isCorrect": true,
+            "frequency": 0.55
+        },
+        {
+            "id": 2,
+            "label": "BET 8BB",
+            "value": "bet_8bb",
+            "isCorrect": false,
+            "frequency": 0.25
+        },
+        {
+            "id": 3,
+            "label": "ALL-IN",
+            "value": "all_in",
+            "isCorrect": false,
+            "frequency": 0.05
+        }
+    ],
+    "timeline_steps": [
+        {
+            "stepIndex": 0,
+            "street": "preflop",
+            "actorSeatId": 1,
+            "action": "post_sb",
+            "amountBB": 0.5,
+            "potAfterBB": 0.5,
+            "stacksAfter": [
+                {
+                    "seatId": 0,
+                    "stackBB": 100
+                },
+                {
+                    "seatId": 1,
+                    "stackBB": 99.5
+                },
+                {
+                    "seatId": 2,
+                    "stackBB": 100
+                },
+                {
+                    "seatId": 3,
+                    "stackBB": 100
+                },
+                {
+                    "seatId": 4,
+                    "stackBB": 100
+                },
+                {
+                    "seatId": 5,
+                    "stackBB": 100
+                }
+            ],
+            "board": [],
+            "durationMs": 400
+        },
+        {
+            "stepIndex": 1,
+            "street": "preflop",
+            "actorSeatId": 2,
+            "action": "post_bb",
+            "amountBB": 1,
+            "potAfterBB": 1.5,
+            "stacksAfter": [
+                {
+                    "seatId": 0,
+                    "stackBB": 100
+                },
+                {
+                    "seatId": 1,
+                    "stackBB": 99.5
+                },
+                {
+                    "seatId": 2,
+                    "stackBB": 99
+                },
+                {
+                    "seatId": 3,
+                    "stackBB": 100
+                },
+                {
+                    "seatId": 4,
+                    "stackBB": 100
+                },
+                {
+                    "seatId": 5,
+                    "stackBB": 100
+                }
+            ],
+            "board": [],
+            "durationMs": 400
+        },
+        {
+            "stepIndex": 2,
+            "street": "preflop",
+            "actorSeatId": 3,
+            "action": "fold",
+            "amountBB": null,
+            "potAfterBB": 1.5,
+            "stacksAfter": [
+                {
+                    "seatId": 0,
+                    "stackBB": 100
+                },
+                {
+                    "seatId": 1,
+                    "stackBB": 99.5
+                },
+                {
+                    "seatId": 2,
+                    "stackBB": 99
+                },
+                {
+                    "seatId": 3,
+                    "stackBB": 100
+                },
+                {
+                    "seatId": 4,
+                    "stackBB": 100
+                },
+                {
+                    "seatId": 5,
+                    "stackBB": 100
+                }
+            ],
+            "board": [],
+            "durationMs": 500
+        },
+        {
+            "stepIndex": 3,
+            "street": "preflop",
+            "actorSeatId": 4,
+            "action": "fold",
+            "amountBB": null,
+            "potAfterBB": 1.5,
+            "stacksAfter": [
+                {
+                    "seatId": 0,
+                    "stackBB": 100
+                },
+                {
+                    "seatId": 1,
+                    "stackBB": 99.5
+                },
+                {
+                    "seatId": 2,
+                    "stackBB": 99
+                },
+                {
+                    "seatId": 3,
+                    "stackBB": 100
+                },
+                {
+                    "seatId": 4,
+                    "stackBB": 100
+                },
+                {
+                    "seatId": 5,
+                    "stackBB": 100
+                }
+            ],
+            "board": [],
+            "durationMs": 500
+        },
+        {
+            "stepIndex": 4,
+            "street": "preflop",
+            "actorSeatId": 5,
+            "action": "raise",
+            "amountBB": 3,
+            "potAfterBB": 4.5,
+            "stacksAfter": [
+                {
+                    "seatId": 0,
+                    "stackBB": 100
+                },
+                {
+                    "seatId": 1,
+                    "stackBB": 99.5
+                },
+                {
+                    "seatId": 2,
+                    "stackBB": 99
+                },
+                {
+                    "seatId": 3,
+                    "stackBB": 100
+                },
+                {
+                    "seatId": 4,
+                    "stackBB": 100
+                },
+                {
+                    "seatId": 5,
+                    "stackBB": 97
+                }
+            ],
+            "board": [],
+            "durationMs": 600
+        },
+        {
+            "stepIndex": 5,
+            "street": "preflop",
+            "actorSeatId": 0,
+            "action": "call",
+            "amountBB": 3,
+            "potAfterBB": 7.5,
+            "stacksAfter": [
+                {
+                    "seatId": 0,
+                    "stackBB": 97
+                },
+                {
+                    "seatId": 1,
+                    "stackBB": 99.5
+                },
+                {
+                    "seatId": 2,
+                    "stackBB": 99
+                },
+                {
+                    "seatId": 3,
+                    "stackBB": 100
+                },
+                {
+                    "seatId": 4,
+                    "stackBB": 100
+                },
+                {
+                    "seatId": 5,
+                    "stackBB": 97
+                }
+            ],
+            "board": [],
+            "notes": "Hero calls from BTN",
+            "durationMs": 600
+        },
+        {
+            "stepIndex": 6,
+            "street": "preflop",
+            "actorSeatId": 1,
+            "action": "fold",
+            "amountBB": null,
+            "potAfterBB": 7.5,
+            "stacksAfter": [
+                {
+                    "seatId": 0,
+                    "stackBB": 97
+                },
+                {
+                    "seatId": 1,
+                    "stackBB": 99.5
+                },
+                {
+                    "seatId": 2,
+                    "stackBB": 99
+                },
+                {
+                    "seatId": 3,
+                    "stackBB": 100
+                },
+                {
+                    "seatId": 4,
+                    "stackBB": 100
+                },
+                {
+                    "seatId": 5,
+                    "stackBB": 97
+                }
+            ],
+            "board": [],
+            "durationMs": 500
+        },
+        {
+            "stepIndex": 7,
+            "street": "preflop",
+            "actorSeatId": 2,
+            "action": "fold",
+            "amountBB": null,
+            "potAfterBB": 7.5,
+            "stacksAfter": [
+                {
+                    "seatId": 0,
+                    "stackBB": 97
+                },
+                {
+                    "seatId": 1,
+                    "stackBB": 99.5
+                },
+                {
+                    "seatId": 2,
+                    "stackBB": 99
+                },
+                {
+                    "seatId": 3,
+                    "stackBB": 100
+                },
+                {
+                    "seatId": 4,
+                    "stackBB": 100
+                },
+                {
+                    "seatId": 5,
+                    "stackBB": 97
+                }
+            ],
+            "board": [],
+            "durationMs": 500
+        },
+        {
+            "stepIndex": 8,
+            "street": "flop",
+            "actorSeatId": 5,
+            "action": "bet",
+            "amountBB": 5,
+            "potAfterBB": 12.5,
+            "stacksAfter": [
+                {
+                    "seatId": 0,
+                    "stackBB": 97
+                },
+                {
+                    "seatId": 5,
+                    "stackBB": 92
+                }
+            ],
+            "board": [
+                "Ah",
+                "Kd",
+                "7c"
+            ],
+            "durationMs": 800
+        },
+        {
+            "stepIndex": 9,
+            "street": "flop",
+            "actorSeatId": 0,
+            "action": "call",
+            "amountBB": 5,
+            "potAfterBB": 17.5,
+            "stacksAfter": [
+                {
+                    "seatId": 0,
+                    "stackBB": 92
+                },
+                {
+                    "seatId": 5,
+                    "stackBB": 92
+                }
+            ],
+            "board": [
+                "Ah",
+                "Kd",
+                "7c"
+            ],
+            "notes": "Hero calls flop cbet",
+            "durationMs": 700
+        },
+        {
+            "stepIndex": 10,
+            "street": "turn",
+            "actorSeatId": 5,
+            "action": "check",
+            "amountBB": null,
+            "potAfterBB": 17.5,
+            "stacksAfter": [
+                {
+                    "seatId": 0,
+                    "stackBB": 92
+                },
+                {
+                    "seatId": 5,
+                    "stackBB": 92
+                }
+            ],
+            "board": [
+                "Ah",
+                "Kd",
+                "7c",
+                "9s"
+            ],
+            "notes": "Villain checks turn",
+            "durationMs": 600
+        },
+        {
+            "stepIndex": 11,
+            "street": "turn",
+            "actorSeatId": 0,
+            "action": "check",
+            "amountBB": null,
+            "potAfterBB": 17.5,
+            "stacksAfter": [
+                {
+                    "seatId": 0,
+                    "stackBB": 92
+                },
+                {
+                    "seatId": 5,
+                    "stackBB": 92
+                }
+            ],
+            "board": [
+                "Ah",
+                "Kd",
+                "7c",
+                "9s"
+            ],
+            "isDecisionPoint": true,
+            "notes": "Hero's decision point",
+            "durationMs": 0
+        }
+    ],
+    "seat_count": 6,
+    "seats": [
+        {
+            "seatId": 0,
+            "positionLabel": "BTN",
+            "playerName": "Hero",
+            "isHero": true,
+            "startingStackBB": 100
+        },
+        {
+            "seatId": 1,
+            "positionLabel": "SB",
+            "playerName": "V1",
+            "isHero": false,
+            "startingStackBB": 100
+        },
+        {
+            "seatId": 2,
+            "positionLabel": "BB",
+            "playerName": "V2",
+            "isHero": false,
+            "startingStackBB": 100
+        },
+        {
+            "seatId": 3,
+            "positionLabel": "UTG",
+            "playerName": "V3",
+            "isHero": false,
+            "startingStackBB": 100
+        },
+        {
+            "seatId": 4,
+            "positionLabel": "MP",
+            "playerName": "V4",
+            "isHero": false,
+            "startingStackBB": 100
+        },
+        {
+            "seatId": 5,
+            "positionLabel": "CO",
+            "playerName": "V5",
+            "isHero": false,
+            "startingStackBB": 100
+        }
+    ],
+    "blinds": {
+        "sbBB": 0.5,
+        "bbBB": 1,
+        "anteBB": 0
+    },
+    "hero_cards": [
+        "Qd",
+        "Jd"
+    ],
+    "decision_step_index": 11,
+    "explanation": "With QJd on AK79 board, betting is preferred when checked to. Your hand has showdown value but can extract thin value and deny equity. A 4BB bet (1/4 pot) is the most EV+ sizing.",
+    "gto_approach": "GTO prefers a small bet here to put pressure on villain's capped range while protecting our equity.",
+    "ev_analysis": {
+        "correctEV": 0.8,
+        "alternatives": [
+            {
+                "action": "check",
+                "ev": 0.4,
+                "frequency": 0.15
+            },
+            {
+                "action": "bet_8bb",
+                "ev": 0.6,
+                "frequency": 0.25
+            },
+            {
+                "action": "all_in",
+                "ev": -1.2,
+                "frequency": 0.05
+            }
+        ]
+    }
+}
