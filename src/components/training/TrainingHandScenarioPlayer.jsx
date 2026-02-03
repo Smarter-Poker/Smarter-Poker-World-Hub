@@ -21,8 +21,8 @@ import QuestionBar from './ui/QuestionBar';
 import AnswerGrid from './ui/AnswerGrid';
 
 // Hooks and services
-import useTrainingTimeline from '@/src/hooks/useTrainingTimeline';
-import { fetchScenario } from '@/src/services/supabaseTrainingClient';
+import useTrainingTimeline from '../../hooks/useTrainingTimeline';
+import { fetchScenario } from '../../services/supabaseTrainingClient';
 
 export default function TrainingHandScenarioPlayer({
     scenarioId = null,

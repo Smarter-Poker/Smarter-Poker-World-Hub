@@ -6,8 +6,9 @@
  * ═══════════════════════════════════════════════════════════════════
  */
 
-import { supabase } from '@/src/lib/supabase';
-import { validateScenarioSchema } from '@/src/utils/training/timelineMapper';
+import { supabase } from '../lib/supabase';
+import { validateScenarioSchema } from '../utils/training/timelineMapper';
+
 
 // In-memory cache for session
 const scenarioCache = new Map();

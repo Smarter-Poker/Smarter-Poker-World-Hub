@@ -8,7 +8,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import gsap from 'gsap';
-import { getStateAtStep } from '@/src/utils/training/timelineMapper';
+import { getStateAtStep } from '../utils/training/timelineMapper';
 
 export default function useTrainingTimeline(scenario, options = {}) {
     const {
