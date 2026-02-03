@@ -556,22 +556,63 @@ export default function UniversalDynamicTable({
 
             {/* TIMER & COUNTER ROW */}
             <div style={styles.timerCounterRow}>
+                {/* Timer with circular progress ring */}
+                <div style={styles.timerContainer}>
+                    <svg style={styles.timerRing} viewBox="0 0 60 60">
+                        {/* Background circle */}
+                        <circle
+                            cx="30"
+                            cy="30"
+                            r="26"
+                            stroke="rgba(100,100,100,0.3)"
+                            strokeWidth="4"
+                            fill="none"
+                        />
+                        {/* Progress circle */}
+                        <motion.circle
+                            cx="30"
+                            cy="30"
+                            r="26"
+                            stroke={timeLeft <= 10 ? '#ff3b3b' : '#00d4ff'}
+                            strokeWidth="4"
+                            fill="none"
+                            strokeLinecap="round"
+                            strokeDasharray={163.36} // 2 * PI * 26
+                            strokeDashoffset={163.36 * (1 - timeLeft / 30)}
+                            style={{ transform: 'rotate(-90deg)', transformOrigin: '50% 50%' }}
+                        />
+                    </svg>
+                    <motion.div
+                        style={{
+                            ...styles.timerText,
+                            color: timeLeft <= 10 ? '#ff3b3b' : '#00d4ff',
+                        }}
+                        animate={timeLeft <= 5 ? { scale: [1, 1.1, 1] } : {}}
+                        transition={{ repeat: Infinity, duration: 0.5 }}
+                    >
+                        {timeLeft}
+                    </motion.div>
+                </div>
+
+                {/* Streak indicator */}
                 <motion.div
-                    style={{
-                        ...styles.timer,
-                        color: timeLeft <= 10 ? '#ff3b3b' : '#00d4ff',
-                        borderColor: timeLeft <= 10 ? '#ff3b3b' : '#666',
-                        boxShadow: timeLeft <= 10
-                            ? '0 0 20px rgba(255, 59, 59, 0.7), inset 0 2px 4px rgba(255,255,255,0.1)'
-                            : '0 0 15px rgba(0, 212, 255, 0.3), inset 0 2px 4px rgba(255,255,255,0.1)',
-                    }}
-                    animate={timeLeft <= 5 ? { scale: [1, 1.05, 1] } : {}}
-                    transition={{ repeat: Infinity, duration: 0.5 }}
+                    style={styles.streakIndicator}
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    key={`streak-${questionNumber}`}
                 >
-                    {timeLeft}
+                    <motion.span
+                        animate={{ y: [-2, 2, -2] }}
+                        transition={{ repeat: Infinity, duration: 0.5 }}
+                        style={{ display: 'inline-block' }}
+                    >
+                        🔥
+                    </motion.span>
+                    <span style={styles.streakText}>STREAK</span>
                 </motion.div>
+
                 <div style={styles.questionCounter}>
-                    Question {questionNumber} of {totalQuestions}
+                    Q{questionNumber}/{totalQuestions}
                 </div>
             </div>
 
@@ -600,8 +641,8 @@ export default function UniversalDynamicTable({
                             onClick={() => handleAnswer(optionId)}
                             disabled={showFeedback}
                             style={getButtonStyle(option, index)}
-                            whileHover={!showFeedback ? { scale: 1.02 } : {}}
-                            whileTap={!showFeedback ? { scale: 0.98 } : {}}
+                            whileHover={!showFeedback ? { scale: 1.03, y: -2 } : {}}
+                            whileTap={!showFeedback ? { scale: 0.97 } : {}}
                         >
                             {text}
                         </motion.button>
@@ -616,6 +657,39 @@ export default function UniversalDynamicTable({
                     animate={{ opacity: 1 }}
                     style={styles.explanationOverlay}
                 >
+                    {/* Confetti for correct answers */}
+                    {feedbackResult === 'correct' && (
+                        <div style={styles.confettiContainer}>
+                            {['🎉', '⭐', '✨', '🌟', '🎊', '💫'].map((emoji, i) => (
+                                <motion.span
+                                    key={i}
+                                    initial={{
+                                        opacity: 1,
+                                        y: 0,
+                                        x: (i - 2.5) * 30,
+                                        scale: 0
+                                    }}
+                                    animate={{
+                                        opacity: 0,
+                                        y: -80 - (i * 15),
+                                        x: (i - 2.5) * 50,
+                                        scale: 1,
+                                        rotate: (i - 2.5) * 45
+                                    }}
+                                    transition={{ duration: 1, delay: i * 0.05 }}
+                                    style={{
+                                        position: 'absolute',
+                                        fontSize: 28,
+                                        top: '40%',
+                                        left: '50%',
+                                    }}
+                                >
+                                    {emoji}
+                                </motion.span>
+                            ))}
+                        </div>
+                    )}
+
                     <motion.div
                         initial={{ scale: 0.9, y: 20 }}
                         animate={{ scale: 1, y: 0 }}
@@ -623,16 +697,23 @@ export default function UniversalDynamicTable({
                             ...styles.explanationBox,
                             borderColor: feedbackResult === 'correct' ? '#22c55e' : '#ef4444',
                             boxShadow: feedbackResult === 'correct'
-                                ? '0 0 30px rgba(34, 197, 94, 0.4)'
-                                : '0 0 30px rgba(239, 68, 68, 0.4)',
+                                ? '0 0 40px rgba(34, 197, 94, 0.5), 0 0 80px rgba(34, 197, 94, 0.2)'
+                                : '0 0 40px rgba(239, 68, 68, 0.5), 0 0 80px rgba(239, 68, 68, 0.2)',
                         }}
                     >
-                        {/* Result Icon */}
+                        {/* Result Icon - Enhanced with color */}
                         <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            transition={{ delay: 0.1, type: 'spring' }}
-                            style={{ fontSize: 48, marginBottom: 10 }}
+                            initial={{ scale: 0, rotate: -180 }}
+                            animate={{ scale: 1, rotate: 0 }}
+                            transition={{ delay: 0.1, type: 'spring', stiffness: 200 }}
+                            style={{
+                                fontSize: 56,
+                                marginBottom: 12,
+                                color: feedbackResult === 'correct' ? '#22c55e' : '#ef4444',
+                                textShadow: feedbackResult === 'correct'
+                                    ? '0 0 30px rgba(34, 197, 94, 0.8)'
+                                    : '0 0 30px rgba(239, 68, 68, 0.8)',
+                            }}
                         >
                             {feedbackResult === 'correct' ? '✓' : '✗'}
                         </motion.div>
@@ -643,18 +724,6 @@ export default function UniversalDynamicTable({
                         }}>
                             {feedbackResult === 'correct' ? 'Correct!' : 'Incorrect'}
                         </div>
-
-                        {/* XP Reward for correct answers */}
-                        {feedbackResult === 'correct' && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.2 }}
-                                style={styles.xpReward}
-                            >
-                                +10 XP
-                            </motion.div>
-                        )}
 
                         <div style={styles.explanationText}>{explanation}</div>
 
@@ -941,17 +1010,56 @@ const styles = {
         textShadow: '0 0 10px rgba(255, 59, 59, 0.8)',
     },
 
+    timerContainer: {
+        position: 'relative',
+        width: 60,
+        height: 60,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+
+    timerRing: {
+        position: 'absolute',
+        width: 60,
+        height: 60,
+    },
+
+    timerText: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        fontFamily: "'Orbitron', 'Courier New', monospace",
+        textShadow: '0 0 10px currentColor',
+    },
+
+    streakIndicator: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+        background: 'linear-gradient(135deg, rgba(251, 146, 60, 0.2), rgba(251, 146, 60, 0.1))',
+        padding: '8px 14px',
+        borderRadius: 20,
+        border: '1px solid rgba(251, 146, 60, 0.4)',
+    },
+
+    streakText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: '#fbbf24',
+        fontFamily: "'Orbitron', 'Courier New', monospace",
+        letterSpacing: 1,
+    },
+
     questionCounter: {
         color: '#00d4ff',
-        fontSize: 13,
+        fontSize: 12,
         fontWeight: 'bold',
         fontFamily: "'Orbitron', 'Courier New', monospace",
         background: 'linear-gradient(180deg, #3a3a4a 0%, #1a1a24 100%)',
-        padding: '10px 18px',
-        borderRadius: 10,
-        border: '1px solid #00d4ff',
-        boxShadow: '0 0 12px rgba(0, 212, 255, 0.3)',
-        textShadow: '0 0 6px rgba(0, 212, 255, 0.6)',
+        padding: '8px 14px',
+        borderRadius: 8,
+        border: '1px solid rgba(0, 212, 255, 0.4)',
+        boxShadow: '0 0 10px rgba(0, 212, 255, 0.2)',
     },
 
     yourTurnIndicator: {
@@ -1010,13 +1118,24 @@ const styles = {
         textShadow: '0 0 10px rgba(239, 68, 68, 0.8)',
     },
 
+    confettiContainer: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        pointerEvents: 'none',
+        overflow: 'hidden',
+        zIndex: 101,
+    },
+
     explanationOverlay: {
         position: 'absolute',
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
-        background: 'rgba(0, 0, 0, 0.85)',
+        background: 'rgba(0, 0, 0, 0.88)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

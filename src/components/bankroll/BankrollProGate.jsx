@@ -1,25 +1,31 @@
 /**
  * BANKROLL PRO ACCESS GATE
- * Shows unlock prompt for non-VIP users without active day pass
+ * Premium unlock UI with Futuristic Metal design system
+ * Industrial sci-fi aesthetic with LED accents and machined metal surfaces
  */
 
 import { useState, useEffect } from 'react';
-import { Lock, Diamond, Crown, Timer, Loader2 } from 'lucide-react';
+import { Lock, Diamond, Crown, Timer, Loader2, Zap, CheckCircle } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 import {
     checkBankrollProAccess,
     purchaseBankrollProAccess,
     BANKROLL_PRO_DAY_COST
 } from '../../lib/bankroll/premiumFeatureGate';
+import { METAL, GRADIENTS, GLOWS, ANIMATIONS } from './metalStyles';
 
 export default function BankrollProGate({ userId, children }) {
     const [access, setAccess] = useState({ hasAccess: false, isVip: false, expiresAt: null, loading: true });
+    const [diamonds, setDiamonds] = useState(0);
     const [showUnlockModal, setShowUnlockModal] = useState(false);
     const [isUnlocking, setIsUnlocking] = useState(false);
+    const [unlockSuccess, setUnlockSuccess] = useState(false);
     const [error, setError] = useState(null);
 
     useEffect(() => {
         if (userId) {
             loadAccess();
+            loadDiamonds();
         } else {
             setAccess({ hasAccess: false, isVip: false, expiresAt: null, loading: false });
         }
@@ -30,6 +36,15 @@ export default function BankrollProGate({ userId, children }) {
         setAccess({ ...result, loading: false });
     };
 
+    const loadDiamonds = async () => {
+        const { data } = await supabase
+            .from('profiles')
+            .select('diamonds')
+            .eq('id', userId)
+            .single();
+        setDiamonds(data?.diamonds || 0);
+    };
+
     const handleUnlock = async () => {
         setIsUnlocking(true);
         setError(null);
@@ -37,8 +52,14 @@ export default function BankrollProGate({ userId, children }) {
         const result = await purchaseBankrollProAccess(userId);
 
         if (result.success) {
-            setAccess({ hasAccess: true, isVip: result.isVip || false, expiresAt: result.expiresAt, loading: false });
-            setShowUnlockModal(false);
+            setUnlockSuccess(true);
+            setDiamonds(result.newBalance);
+
+            setTimeout(() => {
+                setAccess({ hasAccess: true, isVip: result.isVip || false, expiresAt: result.expiresAt, loading: false });
+                setShowUnlockModal(false);
+                setUnlockSuccess(false);
+            }, 1500);
         } else {
             setError(result.error);
         }
@@ -46,265 +67,496 @@ export default function BankrollProGate({ userId, children }) {
         setIsUnlocking(false);
     };
 
-    // Loading
+    // Loading state
     if (access.loading) {
         return (
             <div style={styles.loadingContainer}>
-                <Loader2 size={24} style={{ animation: 'spin 1s linear infinite' }} />
-                <style jsx global>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+                <div style={styles.loadingSpinner}>
+                    <Loader2 size={28} />
+                </div>
+                <p style={styles.loadingText}>INITIALIZING</p>
+                <style jsx global>{ANIMATIONS}</style>
             </div>
         );
     }
 
-    // Has access - show content
+    // Has access - show content with Metal badge
     if (access.hasAccess) {
         return (
             <div style={styles.accessWrapper}>
-                {/* Access Status Badge */}
-                <div style={styles.accessBadge}>
+                {/* Metal Access Badge */}
+                <div style={{
+                    ...styles.accessBadge,
+                    ...(access.isVip ? styles.badgeGold : styles.badgeCyan),
+                }}>
                     {access.isVip ? (
-                        <><Crown size={12} style={{ color: '#f59e0b' }} /> VIP Access</>
+                        <><Crown size={12} /> VIP ACCESS</>
                     ) : (
                         <><Timer size={12} /> {formatTimeRemaining(access.expiresAt)}</>
                     )}
                 </div>
                 {children}
+                <style jsx global>{ANIMATIONS}</style>
             </div>
         );
     }
 
-    // No access - show unlock prompt (replaces the premium features section)
+    // No access - Metal unlock panel
     return (
         <>
             <div style={styles.lockedContainer}>
-                <div style={styles.lockedIcon}>
-                    <Lock size={32} />
+                {/* Background grid pattern */}
+                <div style={styles.gridBg} />
+
+                {/* LED strip top */}
+                <div style={styles.ledStripTop} />
+
+                {/* Corner bolts */}
+                <div style={{ ...styles.cornerBolt, top: 12, left: 12 }} />
+                <div style={{ ...styles.cornerBolt, top: 12, right: 12 }} />
+                <div style={{ ...styles.cornerBolt, bottom: 12, left: 12 }} />
+                <div style={{ ...styles.cornerBolt, bottom: 12, right: 12 }} />
+
+                {/* Lock Icon */}
+                <div style={styles.lockIconContainer}>
+                    <div style={styles.lockIconRing}>
+                        <Lock size={28} style={{ color: METAL.cyan }} />
+                    </div>
                 </div>
-                <h3 style={styles.lockedTitle}>Bankroll Manager Pro</h3>
+
+                <h3 style={styles.lockedTitle}>
+                    BANKROLL MANAGER <span style={styles.proText}>PRO</span>
+                </h3>
                 <p style={styles.lockedDesc}>
-                    Unlock advanced analytics, tax reports, staking tools, and AI-powered insights
+                    Advanced analytics, tax reports, staking tools, and AI-powered insights
                 </p>
 
-                <ul style={styles.featureList}>
-                    <li>📸 Receipt Scanner (OCR)</li>
-                    <li>📊 Tax Report Generator</li>
-                    <li>👥 Staking & Backer Tracking</li>
-                    <li>🏆 Tournament Series ROI</li>
-                    <li>🧠 AI Hand Review Links</li>
-                    <li>📈 Variance Calculator</li>
-                    <li>🔥 Performance Heat Maps</li>
-                </ul>
-
-                <div style={styles.pricingBox}>
-                    <div style={styles.priceRow}>
-                        <Diamond size={20} style={{ color: '#00D4FF' }} />
-                        <span style={styles.priceValue}>{BANKROLL_PRO_DAY_COST}</span>
-                        <span style={styles.priceLabel}>diamonds / 24 hours</span>
-                    </div>
-                    <button onClick={() => setShowUnlockModal(true)} style={styles.unlockBtn}>
-                        <Lock size={14} /> Unlock Pro Access
-                    </button>
+                {/* Feature Grid - Metal Cards */}
+                <div style={styles.featureGrid}>
+                    {[
+                        { icon: '📸', label: 'Receipt OCR' },
+                        { icon: '📊', label: 'Tax Reports' },
+                        { icon: '👥', label: 'Staking' },
+                        { icon: '🏆', label: 'Series ROI' },
+                        { icon: '🧠', label: 'AI Review' },
+                        { icon: '📈', label: 'Variance' },
+                    ].map((feature, i) => (
+                        <div key={i} style={styles.featureCard}>
+                            <span style={styles.featureIcon}>{feature.icon}</span>
+                            <span style={styles.featureLabel}>{feature.label}</span>
+                        </div>
+                    ))}
                 </div>
 
+                {/* Pricing Panel */}
+                <div style={styles.pricingPanel}>
+                    <div style={styles.pricingLed} />
+                    <div style={styles.priceDisplay}>
+                        <Diamond size={28} style={styles.diamondIcon} />
+                        <span style={styles.priceValue}>{BANKROLL_PRO_DAY_COST}</span>
+                        <span style={styles.priceUnit}>/ 24 HRS</span>
+                    </div>
+
+                    <button onClick={() => setShowUnlockModal(true)} style={styles.unlockBtn}>
+                        <Zap size={18} />
+                        UNLOCK PRO ACCESS
+                    </button>
+
+                    <p style={styles.balanceNote}>
+                        BALANCE: <strong style={{ color: METAL.cyan }}>{diamonds}</strong> 💎
+                    </p>
+                </div>
+
+                {/* VIP Promo */}
                 <div style={styles.vipPromo}>
-                    <Crown size={14} style={{ color: '#f59e0b' }} />
-                    <span>VIP members get <strong>unlimited free access</strong></span>
+                    <Crown size={14} style={{ color: METAL.gold }} />
+                    <span>VIP = <strong>UNLIMITED ACCESS</strong></span>
+                    <button
+                        onClick={() => window.location.href = '/hub/diamond-store#vip'}
+                        style={styles.vipLink}
+                    >
+                        UPGRADE →
+                    </button>
                 </div>
             </div>
 
             {/* Unlock Modal */}
             {showUnlockModal && (
-                <div style={styles.modalOverlay} onClick={() => setShowUnlockModal(false)}>
+                <div style={styles.modalOverlay} onClick={() => !isUnlocking && setShowUnlockModal(false)}>
                     <div style={styles.modal} onClick={e => e.stopPropagation()}>
-                        <h3 style={styles.modalTitle}>Unlock Bankroll Pro</h3>
+                        {/* Modal LED strip */}
+                        <div style={styles.modalLed} />
 
-                        <div style={styles.modalCost}>
-                            <Diamond size={24} style={{ color: '#00D4FF' }} />
-                            <span style={styles.modalCostValue}>{BANKROLL_PRO_DAY_COST}</span>
-                            <span style={styles.modalCostLabel}>diamonds for 24 hours</span>
-                        </div>
-
-                        <div style={styles.balanceRow}>
-                            Your balance: <strong>{access.diamonds || 0}</strong> 💎
-                        </div>
-
-                        {error && (
-                            <div style={styles.errorBox}>{error}</div>
-                        )}
-
-                        {(access.diamonds || 0) < BANKROLL_PRO_DAY_COST && (
-                            <div style={styles.insufficientBox}>
-                                You need {BANKROLL_PRO_DAY_COST - (access.diamonds || 0)} more diamonds.
-                                <button
-                                    onClick={() => window.location.href = '/hub/diamond-store'}
-                                    style={styles.buyDiamondsBtn}
-                                >
-                                    Get Diamonds
-                                </button>
+                        {unlockSuccess ? (
+                            <div style={styles.successState}>
+                                <CheckCircle size={56} style={styles.successIcon} />
+                                <h3 style={styles.successTitle}>PRO UNLOCKED</h3>
+                                <p style={styles.successDesc}>24-hour access activated</p>
                             </div>
+                        ) : (
+                            <>
+                                <h3 style={styles.modalTitle}>
+                                    <Diamond size={22} style={{ color: METAL.cyan }} />
+                                    UNLOCK PRO
+                                </h3>
+
+                                <div style={styles.modalCostDisplay}>
+                                    <span style={styles.modalCostValue}>{BANKROLL_PRO_DAY_COST}</span>
+                                    <span style={styles.modalCostUnit}>DIAMONDS</span>
+                                </div>
+
+                                <div style={styles.modalDuration}>
+                                    <Timer size={14} />
+                                    24-HOUR FULL ACCESS
+                                </div>
+
+                                <div style={styles.balancePanel}>
+                                    <span>YOUR BALANCE</span>
+                                    <strong style={{
+                                        color: diamonds >= BANKROLL_PRO_DAY_COST ? METAL.success : METAL.danger,
+                                        fontSize: 20
+                                    }}>
+                                        {diamonds} 💎
+                                    </strong>
+                                </div>
+
+                                {error && <div style={styles.errorBox}>{error}</div>}
+
+                                {diamonds < BANKROLL_PRO_DAY_COST && (
+                                    <div style={styles.insufficientBox}>
+                                        <span>NEED {BANKROLL_PRO_DAY_COST - diamonds} MORE</span>
+                                        <button
+                                            onClick={() => window.location.href = '/hub/diamond-store'}
+                                            style={styles.getDiamondsBtn}
+                                        >
+                                            <Diamond size={12} />
+                                            GET DIAMONDS
+                                        </button>
+                                    </div>
+                                )}
+
+                                <div style={styles.modalActions}>
+                                    <button
+                                        onClick={() => setShowUnlockModal(false)}
+                                        style={styles.cancelBtn}
+                                        disabled={isUnlocking}
+                                    >
+                                        CANCEL
+                                    </button>
+                                    <button
+                                        onClick={handleUnlock}
+                                        disabled={isUnlocking || diamonds < BANKROLL_PRO_DAY_COST}
+                                        style={{
+                                            ...styles.confirmBtn,
+                                            opacity: (isUnlocking || diamonds < BANKROLL_PRO_DAY_COST) ? 0.4 : 1,
+                                        }}
+                                    >
+                                        {isUnlocking ? (
+                                            <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> PROCESSING</>
+                                        ) : (
+                                            <><Zap size={16} /> CONFIRM</>
+                                        )}
+                                    </button>
+                                </div>
+
+                                <div style={styles.modalVipNote}>
+                                    <Crown size={12} style={{ color: METAL.gold }} />
+                                    VIP = UNLIMITED ACCESS
+                                </div>
+                            </>
                         )}
-
-                        <div style={styles.modalActions}>
-                            <button onClick={() => setShowUnlockModal(false)} style={styles.cancelBtn}>
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleUnlock}
-                                disabled={isUnlocking || (access.diamonds || 0) < BANKROLL_PRO_DAY_COST}
-                                style={{
-                                    ...styles.confirmBtn,
-                                    opacity: (isUnlocking || (access.diamonds || 0) < BANKROLL_PRO_DAY_COST) ? 0.5 : 1
-                                }}
-                            >
-                                {isUnlocking ? 'Unlocking...' : <><Diamond size={14} /> Unlock</>}
-                            </button>
-                        </div>
-
-                        <p style={styles.modalNote}>
-                            <Crown size={12} style={{ color: '#f59e0b' }} /> Go VIP for unlimited access to all premium features
-                        </p>
                     </div>
                 </div>
             )}
+
+            <style jsx global>{ANIMATIONS}</style>
         </>
     );
 }
 
 function formatTimeRemaining(expiresAt) {
-    if (!expiresAt) return 'Active';
+    if (!expiresAt) return 'ACTIVE';
     const now = new Date();
     const expires = new Date(expiresAt);
     const diffMs = expires - now;
 
-    if (diffMs <= 0) return 'Expired';
+    if (diffMs <= 0) return 'EXPIRED';
 
     const hours = Math.floor(diffMs / (1000 * 60 * 60));
     const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
 
-    if (hours > 0) return `${hours}h ${minutes}m left`;
-    return `${minutes}m left`;
+    if (hours > 0) return `${hours}H ${minutes}M`;
+    return `${minutes}M LEFT`;
 }
 
 const styles = {
+    // Loading
     loadingContainer: {
         display: 'flex',
-        justifyContent: 'center',
+        flexDirection: 'column',
         alignItems: 'center',
-        padding: 60,
+        justifyContent: 'center',
+        padding: 80,
+        background: METAL.base,
+        borderRadius: 16,
+        border: `1px solid ${METAL.mid}`,
+    },
+    loadingSpinner: {
+        animation: 'spin 1s linear infinite',
+        color: METAL.cyan,
+        marginBottom: 12,
+    },
+    loadingText: {
+        fontFamily: "'Orbitron', sans-serif",
+        fontSize: 11,
+        letterSpacing: '0.2em',
         color: 'rgba(255,255,255,0.4)',
     },
+
+    // Access wrapper
     accessWrapper: {
         position: 'relative',
     },
     accessBadge: {
         position: 'absolute',
-        top: -8,
-        right: 8,
+        top: -10,
+        right: 12,
         display: 'flex',
         alignItems: 'center',
-        gap: 4,
-        padding: '4px 10px',
-        background: 'rgba(34,197,94,0.15)',
-        border: '1px solid rgba(34,197,94,0.3)',
-        borderRadius: 20,
-        color: '#22c55e',
+        gap: 5,
+        padding: '6px 14px',
+        borderRadius: 6,
         fontSize: 10,
-        fontWeight: 600,
+        fontFamily: "'Rajdhani', sans-serif",
+        fontWeight: 700,
+        letterSpacing: '0.1em',
         zIndex: 10,
+        animation: 'float 3s ease-in-out infinite',
     },
+    badgeCyan: {
+        background: METAL.cyanDim,
+        border: `1px solid ${METAL.cyan}`,
+        color: METAL.cyan,
+        boxShadow: GLOWS.cyanSubtle,
+    },
+    badgeGold: {
+        background: 'rgba(245, 158, 11, 0.15)',
+        border: `1px solid ${METAL.gold}`,
+        color: METAL.gold,
+        boxShadow: `0 0 10px ${METAL.goldGlow}`,
+    },
+
+    // Locked container
     lockedContainer: {
+        position: 'relative',
         textAlign: 'center',
-        padding: '40px 24px',
-        background: 'linear-gradient(180deg, rgba(0,212,255,0.05), rgba(0,0,0,0.2))',
-        border: '1px solid rgba(0,212,255,0.15)',
+        padding: '48px 28px',
+        background: GRADIENTS.darkPanel,
+        border: `2px solid ${METAL.highlight}`,
         borderRadius: 16,
         margin: '20px 0',
+        overflow: 'hidden',
     },
-    lockedIcon: {
-        width: 64,
-        height: 64,
-        margin: '0 auto 16px',
+    gridBg: {
+        position: 'absolute',
+        inset: 0,
+        backgroundImage: `
+            linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px)
+        `,
+        backgroundSize: '20px 20px',
+        pointerEvents: 'none',
+    },
+    ledStripTop: {
+        position: 'absolute',
+        top: 0,
+        left: '15%',
+        right: '15%',
+        height: 3,
+        background: METAL.cyan,
+        borderRadius: '0 0 3px 3px',
+        boxShadow: GLOWS.cyan,
+    },
+    cornerBolt: {
+        position: 'absolute',
+        width: 8,
+        height: 8,
+        background: `radial-gradient(circle, ${METAL.light} 30%, ${METAL.mid} 70%)`,
+        borderRadius: '50%',
+        border: `1px solid ${METAL.highlight}`,
+        boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.2)',
+    },
+
+    // Lock icon
+    lockIconContainer: {
+        marginBottom: 24,
+    },
+    lockIconRing: {
+        width: 72,
+        height: 72,
+        margin: '0 auto',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'rgba(0,212,255,0.1)',
+        background: 'rgba(0,0,0,0.4)',
+        border: `2px solid ${METAL.cyan}`,
         borderRadius: '50%',
-        color: '#00D4FF',
+        boxShadow: `${GLOWS.cyanSubtle}, inset 0 0 20px rgba(0,212,255,0.1)`,
+        animation: 'metalGlow 3s ease-in-out infinite',
     },
+
+    // Title
     lockedTitle: {
-        fontSize: 20,
+        fontFamily: "'Orbitron', sans-serif",
+        fontSize: 22,
         fontWeight: 700,
+        letterSpacing: '0.1em',
         color: '#fff',
         margin: '0 0 8px',
     },
+    proText: {
+        background: GRADIENTS.cyanAction,
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+    },
     lockedDesc: {
+        fontFamily: "'Rajdhani', sans-serif",
         fontSize: 13,
         color: 'rgba(255,255,255,0.6)',
-        margin: '0 0 20px',
+        margin: '0 0 28px',
         maxWidth: 320,
         marginLeft: 'auto',
         marginRight: 'auto',
     },
-    featureList: {
-        listStyle: 'none',
-        padding: 0,
-        margin: '0 auto 24px',
-        maxWidth: 260,
-        textAlign: 'left',
+
+    // Feature grid
+    featureGrid: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gap: 10,
+        maxWidth: 300,
+        margin: '0 auto 28px',
+    },
+    featureCard: {
         display: 'flex',
         flexDirection: 'column',
-        gap: 8,
-        fontSize: 13,
-        color: 'rgba(255,255,255,0.8)',
+        alignItems: 'center',
+        gap: 4,
+        padding: '12px 8px',
+        background: 'rgba(0,0,0,0.3)',
+        border: `1px solid ${METAL.mid}`,
+        borderRadius: 8,
     },
-    pricingBox: {
-        padding: 20,
-        background: 'rgba(255,255,255,0.03)',
-        borderRadius: 12,
-        marginBottom: 16,
+    featureIcon: {
+        fontSize: 18,
     },
-    priceRow: {
+    featureLabel: {
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 10,
+        fontWeight: 600,
+        color: 'rgba(255,255,255,0.6)',
+        textTransform: 'uppercase',
+        letterSpacing: '0.05em',
+    },
+
+    // Pricing panel
+    pricingPanel: {
+        position: 'relative',
+        padding: 28,
+        background: 'rgba(0,20,40,0.5)',
+        border: `2px solid ${METAL.cyan}`,
+        borderRadius: 14,
+        marginBottom: 20,
+    },
+    pricingLed: {
+        position: 'absolute',
+        top: 0,
+        left: '20%',
+        right: '20%',
+        height: 2,
+        background: METAL.cyan,
+        borderRadius: '0 0 2px 2px',
+        boxShadow: GLOWS.cyanSubtle,
+    },
+    priceDisplay: {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 8,
-        marginBottom: 16,
+        gap: 10,
+        marginBottom: 20,
+    },
+    diamondIcon: {
+        color: METAL.cyan,
+        filter: `drop-shadow(0 0 8px ${METAL.cyanGlow})`,
     },
     priceValue: {
-        fontSize: 36,
-        fontWeight: 800,
-        color: '#00D4FF',
+        fontFamily: "'Orbitron', sans-serif",
+        fontSize: 48,
+        fontWeight: 900,
+        background: `linear-gradient(180deg, #ffffff 0%, ${METAL.cyan} 100%)`,
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
     },
-    priceLabel: {
-        fontSize: 13,
+    priceUnit: {
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 14,
+        fontWeight: 600,
         color: 'rgba(255,255,255,0.5)',
+        letterSpacing: '0.1em',
     },
     unlockBtn: {
         display: 'inline-flex',
         alignItems: 'center',
-        gap: 8,
-        padding: '14px 32px',
-        background: 'linear-gradient(135deg, #00D4FF, #00A3CC)',
+        gap: 10,
+        padding: '16px 40px',
+        background: GRADIENTS.cyanAction,
         border: 'none',
         borderRadius: 10,
         color: '#000',
+        fontFamily: "'Rajdhani', sans-serif",
         fontSize: 15,
         fontWeight: 700,
+        letterSpacing: '0.1em',
         cursor: 'pointer',
-        boxShadow: '0 4px 20px rgba(0,212,255,0.3)',
+        boxShadow: `0 4px 20px ${METAL.cyanGlow}`,
+        transition: 'transform 0.2s, box-shadow 0.2s',
     },
+    balanceNote: {
+        fontFamily: "'Rajdhani', sans-serif",
+        marginTop: 16,
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.5)',
+        letterSpacing: '0.1em',
+    },
+
+    // VIP promo
     vipPromo: {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         gap: 8,
+        fontFamily: "'Rajdhani', sans-serif",
         fontSize: 12,
         color: 'rgba(255,255,255,0.6)',
+        letterSpacing: '0.05em',
     },
+    vipLink: {
+        background: 'none',
+        border: 'none',
+        color: METAL.gold,
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 12,
+        fontWeight: 700,
+        letterSpacing: '0.1em',
+        cursor: 'pointer',
+    },
+
+    // Modal
     modalOverlay: {
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0,0,0,0.85)',
+        background: 'rgba(0, 0, 0, 0.95)',
+        backdropFilter: 'blur(12px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -312,85 +564,142 @@ const styles = {
         padding: 16,
     },
     modal: {
+        position: 'relative',
         width: '100%',
-        maxWidth: 360,
-        background: '#1a1a2e',
+        maxWidth: 400,
+        background: `linear-gradient(180deg, #1a2a3a 0%, ${METAL.base} 100%)`,
+        border: `2px solid ${METAL.highlight}`,
         borderRadius: 16,
-        padding: 28,
-        border: '1px solid rgba(255,255,255,0.1)',
+        padding: 32,
         textAlign: 'center',
+        boxShadow: `0 0 60px rgba(0,0,0,0.8), ${GLOWS.cyanSubtle}`,
+    },
+    modalLed: {
+        position: 'absolute',
+        top: 0,
+        left: '25%',
+        right: '25%',
+        height: 2,
+        background: METAL.cyan,
+        boxShadow: GLOWS.cyanSubtle,
+        borderRadius: '0 0 2px 2px',
     },
     modalTitle: {
-        fontSize: 20,
-        fontWeight: 700,
-        color: '#fff',
-        marginBottom: 20,
-    },
-    modalCost: {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         gap: 10,
-        marginBottom: 16,
+        fontFamily: "'Orbitron', sans-serif",
+        fontSize: 18,
+        fontWeight: 700,
+        letterSpacing: '0.1em',
+        color: '#fff',
+        marginBottom: 24,
+    },
+    modalCostDisplay: {
+        display: 'flex',
+        alignItems: 'baseline',
+        justifyContent: 'center',
+        gap: 8,
+        marginBottom: 8,
     },
     modalCostValue: {
-        fontSize: 40,
-        fontWeight: 800,
-        color: '#00D4FF',
+        fontFamily: "'Orbitron', sans-serif",
+        fontSize: 56,
+        fontWeight: 900,
+        background: `linear-gradient(180deg, #ffffff 0%, ${METAL.cyan} 100%)`,
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
     },
-    modalCostLabel: {
-        fontSize: 13,
-        color: 'rgba(255,255,255,0.5)',
-    },
-    balanceRow: {
+    modalCostUnit: {
+        fontFamily: "'Rajdhani', sans-serif",
         fontSize: 14,
-        color: 'rgba(255,255,255,0.7)',
+        fontWeight: 600,
+        color: 'rgba(255,255,255,0.5)',
+        letterSpacing: '0.1em',
+    },
+    modalDuration: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 12,
+        fontWeight: 600,
+        color: METAL.cyan,
+        letterSpacing: '0.15em',
+        marginBottom: 24,
+    },
+    balancePanel: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '14px 18px',
+        background: 'rgba(0,0,0,0.4)',
+        border: `1px solid ${METAL.mid}`,
+        borderRadius: 10,
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.6)',
+        letterSpacing: '0.1em',
         marginBottom: 16,
     },
     errorBox: {
-        padding: 12,
+        padding: 14,
         background: 'rgba(239,68,68,0.1)',
-        border: '1px solid rgba(239,68,68,0.3)',
-        borderRadius: 8,
-        color: '#ef4444',
-        fontSize: 13,
+        border: `1px solid ${METAL.danger}`,
+        borderRadius: 10,
+        color: METAL.danger,
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 12,
         marginBottom: 16,
     },
     insufficientBox: {
-        padding: 14,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12,
+        padding: 16,
         background: 'rgba(245,158,11,0.1)',
-        border: '1px solid rgba(245,158,11,0.3)',
-        borderRadius: 8,
-        color: '#f59e0b',
-        fontSize: 13,
+        border: `1px solid ${METAL.warning}`,
+        borderRadius: 10,
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 12,
+        color: METAL.warning,
+        letterSpacing: '0.1em',
         marginBottom: 16,
     },
-    buyDiamondsBtn: {
-        display: 'block',
-        width: '100%',
-        marginTop: 10,
-        padding: '8px 14px',
+    getDiamondsBtn: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        padding: '10px',
         background: 'rgba(245,158,11,0.2)',
-        border: 'none',
-        borderRadius: 6,
-        color: '#f59e0b',
+        border: `1px solid ${METAL.warning}`,
+        borderRadius: 8,
+        color: METAL.warning,
+        fontFamily: "'Rajdhani', sans-serif",
         fontSize: 12,
-        fontWeight: 600,
+        fontWeight: 700,
+        letterSpacing: '0.1em',
         cursor: 'pointer',
     },
     modalActions: {
         display: 'flex',
         gap: 12,
-        marginBottom: 16,
+        marginBottom: 20,
     },
     cancelBtn: {
         flex: 1,
-        padding: '14px 0',
-        background: 'rgba(255,255,255,0.05)',
-        border: '1px solid rgba(255,255,255,0.1)',
+        padding: '14px',
+        background: GRADIENTS.metalButton,
+        border: `1px solid ${METAL.mid}`,
         borderRadius: 10,
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 13,
+        fontWeight: 600,
         color: 'rgba(255,255,255,0.7)',
-        fontSize: 14,
+        letterSpacing: '0.1em',
         cursor: 'pointer',
     },
     confirmBtn: {
@@ -399,22 +708,51 @@ const styles = {
         alignItems: 'center',
         justifyContent: 'center',
         gap: 8,
-        padding: '14px 0',
-        background: 'linear-gradient(135deg, #00D4FF, #00A3CC)',
+        padding: '14px',
+        background: GRADIENTS.cyanAction,
         border: 'none',
         borderRadius: 10,
-        color: '#000',
-        fontSize: 14,
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 13,
         fontWeight: 700,
+        color: '#000',
+        letterSpacing: '0.1em',
         cursor: 'pointer',
     },
-    modalNote: {
+    modalVipNote: {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         gap: 6,
+        fontFamily: "'Rajdhani', sans-serif",
         fontSize: 11,
-        color: 'rgba(255,255,255,0.5)',
+        color: 'rgba(255,255,255,0.4)',
+        letterSpacing: '0.15em',
+    },
+
+    // Success state
+    successState: {
+        padding: '24px 0',
+    },
+    successIcon: {
+        color: METAL.success,
+        filter: `drop-shadow(0 0 15px ${METAL.successGlow})`,
+        marginBottom: 16,
+        animation: 'pulse 1s ease-out',
+    },
+    successTitle: {
+        fontFamily: "'Orbitron', sans-serif",
+        fontSize: 20,
+        fontWeight: 700,
+        letterSpacing: '0.15em',
+        color: METAL.success,
+        margin: '0 0 8px',
+    },
+    successDesc: {
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 13,
+        color: 'rgba(255,255,255,0.6)',
+        letterSpacing: '0.1em',
         margin: 0,
     },
 };

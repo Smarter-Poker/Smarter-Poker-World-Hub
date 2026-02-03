@@ -1601,20 +1601,30 @@ export default function VideoLibraryPage() {
                         />
                     </div>
 
-                    {/* Jarvis Insights Bottom Sheet / Side Panel (Responsive) */}
+                    {/* Jarvis Insights Bottom Sheet / Side Panel (Responsive) - Futuristic Metal UI */}
                     <div
                         className="jarvis-panel"
                         style={{
                             position: 'absolute',
                             /* Desktop: Side panel from right */
                             /* Mobile: Bottom sheet from bottom */
-                            background: 'linear-gradient(180deg, rgba(8,12,24,0.97) 0%, rgba(12,18,32,0.98) 50%, rgba(8,12,24,0.99) 100%)',
+                            /* METAL UI: Brushed steel gradient with depth */
+                            background: 'linear-gradient(180deg, #1a2332 0%, #0d1520 50%, #0a0a15 100%)',
                             backdropFilter: 'blur(20px)',
                             WebkitBackdropFilter: 'blur(20px)',
                             transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
                             zIndex: 1002,
                             overflowY: 'auto',
-                            boxShadow: '-10px 0 50px rgba(0, 0, 0, 0.6), inset 0 0 100px rgba(0, 212, 255, 0.03)',
+                            /* METAL UI: 5-layer neon glow stack */
+                            boxShadow: `
+                                -10px 0 50px rgba(0, 0, 0, 0.7),
+                                inset 0 0 80px rgba(0, 212, 255, 0.03),
+                                0 0 1px rgba(255, 255, 255, 0.8),
+                                0 0 10px rgba(0, 212, 255, 0.4),
+                                0 0 20px rgba(0, 212, 255, 0.2)
+                            `,
+                            /* METAL UI: Hard cyan border */
+                            borderLeft: '3px solid #00d4ff',
                         }}
                     >
                         {/* Drag Handle (Mobile Only) */}
@@ -1672,36 +1682,92 @@ export default function VideoLibraryPage() {
 
                         {/* Panel Content */}
                         <div className="jarvis-panel-content" style={{ padding: '0 20px 24px' }}>
-                            {/* Panel Header (Desktop) */}
-                            <div className="jarvis-desktop-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                                <div>
-                                    <h3 style={{
-                                        color: '#00D4FF',
-                                        fontSize: 18,
-                                        fontWeight: 700,
-                                        margin: 0,
+                            {/* Panel Header (Desktop) - METAL UI Style */}
+                            <div className="jarvis-desktop-header" style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                marginBottom: 16,
+                                paddingBottom: 16,
+                                borderBottom: '1px solid #2a3a4a',
+                                position: 'relative',
+                            }}>
+                                {/* LED Strip under header */}
+                                <div style={{
+                                    position: 'absolute',
+                                    bottom: 0,
+                                    left: 0,
+                                    right: 0,
+                                    height: 2,
+                                    background: 'linear-gradient(90deg, transparent 0%, #00d4ff 20%, #00d4ff 80%, transparent 100%)',
+                                    boxShadow: '0 0 10px rgba(0, 212, 255, 0.5), 0 0 20px rgba(0, 212, 255, 0.3)',
+                                }} />
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                    {/* Porthole-style avatar */}
+                                    <div style={{
+                                        width: 36,
+                                        height: 36,
+                                        borderRadius: '50%',
+                                        background: 'linear-gradient(180deg, #2a3a4a 0%, #1a2332 100%)',
+                                        border: '2px solid #00d4ff',
                                         display: 'flex',
                                         alignItems: 'center',
-                                        gap: 8,
+                                        justifyContent: 'center',
+                                        boxShadow: '0 0 10px rgba(0, 212, 255, 0.4), inset 0 2px 4px rgba(0,0,0,0.5)',
                                     }}>
-                                        <img src="/images/jarvis-avatar.png" alt="Jarvis" style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }} />
-                                        Jarvis Insights
-                                    </h3>
-                                    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, margin: 0, marginTop: 4 }}>
-                                        Live insights at key moments
-                                    </p>
+                                        <img src="/images/jarvis-avatar.png" alt="Jarvis" style={{ width: 26, height: 26, borderRadius: '50%', objectFit: 'cover' }} />
+                                    </div>
+                                    <div>
+                                        <h3 style={{
+                                            color: '#00D4FF',
+                                            fontSize: 14,
+                                            fontWeight: 700,
+                                            margin: 0,
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '2px',
+                                            textShadow: '0 0 10px rgba(0, 212, 255, 0.5)',
+                                        }}>
+                                            JARVIS INSIGHTS
+                                        </h3>
+                                        <p style={{
+                                            color: '#4a5a6a',
+                                            fontSize: 10,
+                                            margin: 0,
+                                            marginTop: 2,
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '0.5px',
+                                        }}>
+                                            LIVE ANALYSIS
+                                        </p>
+                                    </div>
                                 </div>
+                                {/* Industrial close button */}
                                 <button
                                     onClick={() => setShowAiPanel(false)}
                                     style={{
-                                        background: 'rgba(255,255,255,0.1)',
-                                        border: 'none',
-                                        borderRadius: '50%',
+                                        background: 'linear-gradient(180deg, #2a3a4a 0%, #1a2332 100%)',
+                                        border: '2px solid #4a5a6a',
+                                        borderRadius: 6,
                                         width: 32,
                                         height: 32,
-                                        color: 'white',
+                                        color: '#4a5a6a',
                                         cursor: 'pointer',
-                                        fontSize: 16,
+                                        fontSize: 18,
+                                        fontWeight: 700,
+                                        transition: 'all 0.2s ease',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.target.style.borderColor = '#00d4ff';
+                                        e.target.style.color = '#00d4ff';
+                                        e.target.style.boxShadow = '0 0 10px rgba(0, 212, 255, 0.4)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.target.style.borderColor = '#4a5a6a';
+                                        e.target.style.color = '#4a5a6a';
+                                        e.target.style.boxShadow = 'none';
                                     }}
                                 >×</button>
                             </div>
@@ -1903,52 +1969,129 @@ export default function VideoLibraryPage() {
                                                 .filter(i => i.seconds > currentVideoTime)
                                                 .slice(0, 3)
                                                 .map((insight, idx) => (
-                                                    <div key={insight.id} style={{
-                                                        padding: '10px 12px',
-                                                        background: 'rgba(255,255,255,0.03)',
-                                                        borderRadius: 8,
-                                                        marginBottom: 8,
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        gap: 12,
-                                                        opacity: 0.7,
-                                                    }}>
-                                                        <span style={{
-                                                            color: insight.type === 'keyHand' ? '#FF4444' : '#00D4FF',
-                                                            fontSize: 10,
-                                                            fontWeight: 700,
-                                                            background: 'rgba(0,0,0,0.3)',
-                                                            padding: '3px 8px',
-                                                            borderRadius: 4,
-                                                            minWidth: 40,
-                                                            textAlign: 'center',
-                                                        }}>{insight.timestamp}</span>
-                                                        <span style={{
-                                                            color: 'rgba(255,255,255,0.7)',
-                                                            fontSize: 12,
-                                                            overflow: 'hidden',
-                                                            textOverflow: 'ellipsis',
-                                                            whiteSpace: 'nowrap',
+                                                    <div
+                                                        key={insight.id}
+                                                        className="jarvis-timeline-item"
+                                                        onClick={() => {
+                                                            // Seek to this timestamp using YouTube API
+                                                            try {
+                                                                const iframe = document.getElementById('youtube-player');
+                                                                if (iframe && iframe.contentWindow) {
+                                                                    iframe.contentWindow.postMessage(JSON.stringify({
+                                                                        event: 'command',
+                                                                        func: 'seekTo',
+                                                                        args: [insight.seconds, true]
+                                                                    }), '*');
+                                                                }
+                                                            } catch (e) {
+                                                                console.log('Could not seek:', e);
+                                                            }
+                                                        }}
+                                                        style={{
+                                                            padding: '12px 14px',
+                                                            background: 'linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%)',
+                                                            borderRadius: 10,
+                                                            marginBottom: 8,
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: 12,
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.2s ease',
+                                                            border: '1px solid transparent',
                                                         }}>
-                                                            {insight.type === 'keyHand' ? '♠️' : '📺'} {insight.title}
-                                                        </span>
+                                                        <div style={{
+                                                            minWidth: 48,
+                                                            height: 28,
+                                                            background: insight.type === 'keyHand'
+                                                                ? 'linear-gradient(135deg, rgba(255,68,68,0.25) 0%, rgba(255,68,68,0.1) 100%)'
+                                                                : 'linear-gradient(135deg, rgba(0,212,255,0.25) 0%, rgba(0,212,255,0.1) 100%)',
+                                                            borderRadius: 6,
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                        }}>
+                                                            <span style={{
+                                                                color: insight.type === 'keyHand' ? '#FF4444' : '#00D4FF',
+                                                                fontSize: 11,
+                                                                fontWeight: 700,
+                                                            }}>{insight.timestamp}</span>
+                                                        </div>
+                                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                                            <span style={{
+                                                                color: 'rgba(255,255,255,0.85)',
+                                                                fontSize: 13,
+                                                                fontWeight: 500,
+                                                                display: 'block',
+                                                                overflow: 'hidden',
+                                                                textOverflow: 'ellipsis',
+                                                                whiteSpace: 'nowrap',
+                                                            }}>
+                                                                {insight.title}
+                                                            </span>
+                                                            <span style={{
+                                                                color: 'rgba(255,255,255,0.4)',
+                                                                fontSize: 10,
+                                                                textTransform: 'uppercase',
+                                                                letterSpacing: '0.5px',
+                                                            }}>
+                                                                {insight.type === 'keyHand' ? '♠️ Key Hand' : '📺 Chapter'}
+                                                            </span>
+                                                        </div>
+                                                        <div style={{
+                                                            width: 24,
+                                                            height: 24,
+                                                            borderRadius: '50%',
+                                                            background: 'rgba(255,255,255,0.08)',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                        }}>
+                                                            <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10 }}>▶</span>
+                                                        </div>
                                                     </div>
                                                 ))
                                             }
                                         </div>
                                     )}
 
-                                    {/* Summary at bottom */}
+                                    {/* Summary at bottom - METAL UI Card */}
                                     {aiAnalysis.summary && (
                                         <div style={{
                                             marginTop: 24,
                                             padding: '16px',
-                                            background: 'rgba(255, 215, 0, 0.08)',
-                                            borderRadius: 10,
-                                            borderLeft: '3px solid #FFD700',
+                                            background: 'linear-gradient(180deg, #1a2332 0%, #0d1520 100%)',
+                                            borderRadius: 8,
+                                            border: '1px solid #2a3a4a',
+                                            position: 'relative',
+                                            overflow: 'hidden',
                                         }}>
-                                            <h4 style={{ color: '#FFD700', fontSize: 12, fontWeight: 600, marginBottom: 8 }}>📋 Video Overview</h4>
-                                            <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, lineHeight: 1.6, margin: 0 }}>
+                                            {/* Gold LED strip at top */}
+                                            <div style={{
+                                                position: 'absolute',
+                                                top: 0,
+                                                left: 0,
+                                                right: 0,
+                                                height: 2,
+                                                background: 'linear-gradient(90deg, transparent 0%, #FFD700 30%, #FFD700 70%, transparent 100%)',
+                                                boxShadow: '0 0 10px rgba(255, 215, 0, 0.5)',
+                                            }} />
+                                            <h4 style={{
+                                                color: '#FFD700',
+                                                fontSize: 11,
+                                                fontWeight: 700,
+                                                marginBottom: 10,
+                                                textTransform: 'uppercase',
+                                                letterSpacing: '1.5px',
+                                                textShadow: '0 0 10px rgba(255, 215, 0, 0.4)',
+                                                margin: 0,
+                                                marginBottom: 10,
+                                            }}>VIDEO OVERVIEW</h4>
+                                            <p style={{
+                                                color: '#B0B3B8',
+                                                fontSize: 12,
+                                                lineHeight: 1.7,
+                                                margin: 0
+                                            }}>
                                                 {aiAnalysis.summary}
                                             </p>
                                         </div>
@@ -2037,61 +2180,38 @@ export default function VideoLibraryPage() {
                     opacity: 1 !important;
                 }
 
-                /* Jarvis Panel - Desktop (Side Panel) */
-                @media (min-width: 769px) {
-                    .jarvis-panel {
-                        top: 0 !important;
-                        right: ${showAiPanel ? '0' : '-400px'} !important;
-                        bottom: auto !important;
-                        left: auto !important;
-                        width: 380px !important;
-                        height: 100% !important;
-                        border-left: 2px solid rgba(0, 212, 255, 0.3) !important;
-                        border-top: none !important;
-                        border-radius: 0 !important;
-                        padding-top: 24px !important;
-                    }
-                    .jarvis-drag-handle {
-                        display: none !important;
-                    }
-                    .jarvis-desktop-header {
-                        display: flex !important;
-                    }
-                    .jarvis-collapsed-preview {
-                        display: none !important;
-                    }
+                /* Jarvis Panel - Full Overlay (Desktop & Mobile) */
+                .jarvis-panel {
+                    top: 0 !important;
+                    right: 0 !important;
+                    bottom: 0 !important;
+                    left: 0 !important;
+                    width: 100% !important;
+                    height: 100% !important;
+                    border-radius: 0 !important;
+                    padding: 20px !important;
+                    display: ${showAiPanel ? 'flex' : 'none'} !important;
+                    flex-direction: column !important;
+                    overflow-y: auto !important;
                 }
-
-                /* Jarvis Panel - Mobile (Bottom Sheet) */
-                @media (max-width: 768px) {
-                    .jarvis-panel {
-                        top: auto !important;
-                        right: 0 !important;
-                        bottom: ${showAiPanel ? '0' : '-100%'} !important;
-                        left: 0 !important;
-                        width: 100% !important;
-                        height: ${bottomSheetExpanded ? '45vh' : '80px'} !important;
-                        max-height: 50vh !important;
-                        border-top: 2px solid rgba(0, 212, 255, 0.3) !important;
-                        border-left: none !important;
-                        border-radius: 20px 20px 0 0 !important;
-                        padding-top: 0 !important;
-                        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5) !important;
-                    }
-                    .jarvis-drag-handle {
-                        display: flex !important;
-                    }
-                    .jarvis-desktop-header {
-                        display: ${bottomSheetExpanded ? 'none' : 'none'} !important;
-                    }
-                    .jarvis-collapsed-preview {
-                        display: ${bottomSheetExpanded ? 'none' : 'flex'} !important;
-                    }
-                    .jarvis-panel-content {
-                        display: ${bottomSheetExpanded ? 'block' : 'none'} !important;
-                        max-height: calc(45vh - 50px) !important;
-                        overflow-y: auto !important;
-                    }
+                
+                .jarvis-drag-handle {
+                    display: none !important;
+                }
+                
+                .jarvis-desktop-header {
+                    display: flex !important;
+                }
+                
+                .jarvis-collapsed-preview {
+                    display: none !important;
+                }
+                
+                .jarvis-panel-content {
+                    flex: 1 !important;
+                    overflow-y: auto !important;
+                    max-height: none !important;
+                    display: block !important;
                 }
 
                 /* Animation for active insight cards */
@@ -2138,30 +2258,48 @@ export default function VideoLibraryPage() {
 
                 /* Subtle border glow for active insight */
                 .jarvis-panel {
-                    animation: glowPulse 4s ease-in-out infinite;
+                    animation: metalGlow 3s ease-in-out infinite;
+                }
+
+                /* METAL UI: 3-second breathing LED glow */
+                @keyframes metalGlow {
+                    0%, 100% { 
+                        border-left-color: rgba(0, 212, 255, 0.8);
+                        box-shadow: -10px 0 50px rgba(0, 0, 0, 0.7),
+                                    0 0 10px rgba(0, 212, 255, 0.3),
+                                    0 0 20px rgba(0, 212, 255, 0.15);
+                    }
+                    50% { 
+                        border-left-color: rgba(0, 212, 255, 1);
+                        box-shadow: -10px 0 50px rgba(0, 0, 0, 0.7),
+                                    0 0 15px rgba(0, 212, 255, 0.5),
+                                    0 0 30px rgba(0, 212, 255, 0.25);
+                    }
                 }
 
                 .jarvis-insight-active {
                     animation: slideIn 0.4s ease forwards;
                 }
 
-                /* Smooth scroll behavior */
+                /* METAL UI Scrollbar */
                 .jarvis-panel-content {
                     scroll-behavior: smooth;
                 }
                 .jarvis-panel-content::-webkit-scrollbar {
-                    width: 4px;
+                    width: 6px;
                 }
                 .jarvis-panel-content::-webkit-scrollbar-track {
-                    background: rgba(255,255,255,0.05);
-                    border-radius: 2px;
+                    background: #0d1520;
+                    border-radius: 3px;
                 }
                 .jarvis-panel-content::-webkit-scrollbar-thumb {
-                    background: rgba(0, 212, 255, 0.3);
-                    border-radius: 2px;
+                    background: linear-gradient(180deg, #2a3a4a 0%, #1a2332 100%);
+                    border-radius: 3px;
+                    border: 1px solid #00d4ff;
                 }
                 .jarvis-panel-content::-webkit-scrollbar-thumb:hover {
-                    background: rgba(0, 212, 255, 0.5);
+                    background: linear-gradient(180deg, #3a4a5a 0%, #2a3a4a 100%);
+                    box-shadow: 0 0 5px rgba(0, 212, 255, 0.5);
                 }
 
                 /* Jarvis button hover effect */
@@ -2173,14 +2311,25 @@ export default function VideoLibraryPage() {
                     transform: translateY(0);
                 }
 
-                /* Timeline item hover */
-                .jarvis-panel-content > div:hover {
-                    opacity: 1 !important;
+                /* Timeline item hover - METAL UI glow effect */
+                .jarvis-timeline-item:hover {
+                    background: linear-gradient(135deg, rgba(0,212,255,0.1) 0%, rgba(0,212,255,0.02) 100%) !important;
+                    border-color: rgba(0,212,255,0.4) !important;
+                    transform: translateX(4px);
+                }
+                .jarvis-timeline-item:hover > div:last-child {
+                    background: rgba(0,212,255,0.2) !important;
+                }
+                .jarvis-timeline-item:hover > div:last-child span {
+                    color: #00d4ff !important;
                 }
 
-                /* Close button hover */
-                .jarvis-panel button:hover {
-                    background: rgba(255,255,255,0.2) !important;
+                /* Mobile border adjustment */
+                @media (max-width: 768px) {
+                    .jarvis-panel {
+                        border-left: none !important;
+                        border-top: 3px solid #00d4ff !important;
+                    }
                 }
             `}</style>
         </PageTransition>

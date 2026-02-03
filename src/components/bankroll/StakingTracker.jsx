@@ -1,510 +1,593 @@
 /**
- * STAKING TRACKER COMPONENT
- * Manage backer relationships, makeup, and split calculations
+ * STAKING TRACKER
+ * Futuristic Metal UI - Manage backer arrangements and staking sessions
  */
 
-import { useState, useEffect, useMemo } from 'react';
-import { Plus, Edit2, Trash2, Users, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Users, Plus, Edit2, Trash2, DollarSign, TrendingUp, Calendar, X, Check, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { formatCurrency } from '../../lib/bankroll/currencyUtils';
+import { METAL, GRADIENTS, GLOWS, ANIMATIONS } from './metalStyles';
 
-export default function StakingTracker({ userId, displayEUR = false }) {
+export default function StakingTracker({ userId }) {
     const [arrangements, setArrangements] = useState([]);
-    const [sessions, setSessions] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [activeArrangement, setActiveArrangement] = useState(null);
+    const [stats, setStats] = useState({ yourShare: 0, backerShare: 0, makeup: 0 });
+    const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [editingArrangement, setEditingArrangement] = useState(null);
+    const [saving, setSaving] = useState(false);
+
+    const [form, setForm] = useState({
+        backer_name: '',
+        split_player: 50,
+        split_backer: 50,
+        makeup_start: 0,
+        start_date: new Date().toISOString().split('T')[0],
+        notes: '',
+    });
 
     useEffect(() => {
-        if (userId) {
-            loadData();
-        }
+        if (userId) loadData();
     }, [userId]);
 
     const loadData = async () => {
-        setIsLoading(true);
+        setLoading(true);
 
-        // Fetch arrangements
-        const { data: arrangementData } = await supabase
+        const { data: arr } = await supabase
             .from('staking_arrangements')
             .select('*')
             .eq('user_id', userId)
             .order('created_at', { ascending: false });
 
-        setArrangements(arrangementData || []);
+        setArrangements(arr || []);
 
-        // Fetch staking sessions
-        const { data: sessionData } = await supabase
-            .from('staking_sessions')
-            .select('*, staking_arrangements(backer_name)')
-            .order('created_at', { ascending: false });
+        // Find active arrangement
+        const active = arr?.find(a => a.is_active);
+        setActiveArrangement(active || null);
 
-        setSessions(sessionData || []);
-        setIsLoading(false);
+        // Calculate stats from staking sessions
+        if (active) {
+            const { data: sessions } = await supabase
+                .from('staking_sessions')
+                .select('your_share, backer_share, makeup_change')
+                .eq('arrangement_id', active.id);
+
+            if (sessions) {
+                const yourShare = sessions.reduce((sum, s) => sum + (s.your_share || 0), 0);
+                const backerShare = sessions.reduce((sum, s) => sum + (s.backer_share || 0), 0);
+                const makeupChange = sessions.reduce((sum, s) => sum + (s.makeup_change || 0), 0);
+                setStats({
+                    yourShare,
+                    backerShare,
+                    makeup: (active.makeup_start || 0) + makeupChange
+                });
+            }
+        }
+
+        setLoading(false);
     };
 
-    const activeArrangement = useMemo(() => {
-        return arrangements.find(a => a.is_active);
-    }, [arrangements]);
-
-    const totalStats = useMemo(() => {
-        let totalPlayerShare = 0;
-        let totalBackerShare = 0;
-
-        sessions.forEach(s => {
-            totalPlayerShare += s.player_share || 0;
-            totalBackerShare += s.backer_share || 0;
+    const handleAddNew = () => {
+        setEditingArrangement(null);
+        setForm({
+            backer_name: '',
+            split_player: 50,
+            split_backer: 50,
+            makeup_start: 0,
+            start_date: new Date().toISOString().split('T')[0],
+            notes: '',
         });
-
-        return {
-            totalPlayerShare,
-            totalBackerShare,
-            sessionCount: sessions.length
-        };
-    }, [sessions]);
-
-    const handleDelete = async (id) => {
-        if (!confirm('Delete this staking arrangement?')) return;
-
-        await supabase
-            .from('staking_arrangements')
-            .delete()
-            .eq('id', id);
-
-        loadData();
-    };
-
-    const handleEdit = (arrangement) => {
-        setEditingArrangement(arrangement);
         setShowModal(true);
     };
 
+    const handleEdit = (arr) => {
+        setEditingArrangement(arr);
+        setForm({
+            backer_name: arr.backer_name || '',
+            split_player: arr.split_player || 50,
+            split_backer: arr.split_backer || 50,
+            makeup_start: arr.makeup_start || 0,
+            start_date: arr.start_date || new Date().toISOString().split('T')[0],
+            notes: arr.notes || '',
+        });
+        setShowModal(true);
+    };
+
+    const handleSave = async () => {
+        setSaving(true);
+
+        const data = {
+            user_id: userId,
+            backer_name: form.backer_name,
+            split_player: parseInt(form.split_player),
+            split_backer: parseInt(form.split_backer),
+            makeup_start: parseFloat(form.makeup_start) || 0,
+            start_date: form.start_date,
+            notes: form.notes,
+            is_active: true,
+        };
+
+        // Deactivate other arrangements
+        await supabase
+            .from('staking_arrangements')
+            .update({ is_active: false })
+            .eq('user_id', userId);
+
+        if (editingArrangement) {
+            await supabase
+                .from('staking_arrangements')
+                .update(data)
+                .eq('id', editingArrangement.id);
+        } else {
+            await supabase
+                .from('staking_arrangements')
+                .insert(data);
+        }
+
+        setSaving(false);
+        setShowModal(false);
+        loadData();
+    };
+
+    const handleDelete = async (id) => {
+        if (!confirm('Delete this arrangement?')) return;
+        await supabase.from('staking_arrangements').delete().eq('id', id);
+        loadData();
+    };
+
+    if (loading) {
+        return (
+            <div style={styles.loadingContainer}>
+                <Loader2 size={24} style={{ animation: 'spin 1s linear infinite', color: METAL.cyan }} />
+                <span>LOADING STAKING DATA...</span>
+                <style jsx global>{ANIMATIONS}</style>
+            </div>
+        );
+    }
+
     return (
         <div style={styles.container}>
+            {/* LED Strip */}
+            <div style={styles.ledStrip} />
+
+            {/* Header */}
             <div style={styles.header}>
-                <div style={styles.titleRow}>
-                    <Users size={18} style={{ color: '#00D4FF' }} />
-                    <h3 style={styles.title}>Staking Tracker</h3>
+                <div style={styles.headerTitle}>
+                    <Users size={16} style={{ color: METAL.cyan }} />
+                    <span>STAKING TRACKER</span>
                 </div>
-                <button onClick={() => { setEditingArrangement(null); setShowModal(true); }} style={styles.addBtn}>
-                    <Plus size={14} /> Add Backer
+                <button onClick={handleAddNew} style={styles.addBtn}>
+                    <Plus size={12} />
+                    ADD BACKER
                 </button>
             </div>
 
             {/* Active Arrangement */}
-            {activeArrangement && (
-                <div style={styles.activeCard}>
-                    <div style={styles.activeHeader}>
-                        <span style={styles.activeBadge}>● Active</span>
-                        <span style={styles.activeBackerName}>{activeArrangement.backer_name}</span>
+            {activeArrangement ? (
+                <div style={styles.activeSection}>
+                    <div style={styles.activeBadge}>
+                        <Users size={10} />
+                        ACTIVE
                     </div>
-                    <div style={styles.activeDetails}>
-                        <div style={styles.detailItem}>
-                            <span style={styles.detailLabel}>Split</span>
-                            <span style={styles.detailValue}>{activeArrangement.split_percentage}/{100 - activeArrangement.split_percentage}</span>
+                    <div style={styles.activeCard}>
+                        <div style={styles.backerName}>{activeArrangement.backer_name}</div>
+                        <div style={styles.splitDisplay}>
+                            <span style={styles.splitPlayer}>{activeArrangement.split_player}%</span>
+                            <span style={styles.splitDivider}>/</span>
+                            <span style={styles.splitBacker}>{activeArrangement.split_backer}%</span>
                         </div>
-                        <div style={styles.detailItem}>
-                            <span style={styles.detailLabel}>Makeup</span>
+                        <div style={styles.activeActions}>
+                            <button onClick={() => handleEdit(activeArrangement)} style={styles.editBtn}>
+                                <Edit2 size={12} /> EDIT
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Stats */}
+                    <div style={styles.statsGrid}>
+                        <div style={styles.statBox}>
+                            <span style={{ ...styles.statValue, color: METAL.success }}>
+                                ${stats.yourShare.toLocaleString()}
+                            </span>
+                            <span style={styles.statLabel}>YOUR SHARE</span>
+                        </div>
+                        <div style={styles.statBox}>
+                            <span style={{ ...styles.statValue, color: METAL.cyan }}>
+                                ${stats.backerShare.toLocaleString()}
+                            </span>
+                            <span style={styles.statLabel}>BACKER SHARE</span>
+                        </div>
+                        <div style={styles.statBox}>
                             <span style={{
-                                ...styles.detailValue,
-                                color: activeArrangement.current_makeup > 0 ? '#ef4444' : '#22c55e'
+                                ...styles.statValue,
+                                color: stats.makeup > 0 ? METAL.danger : METAL.success
                             }}>
-                                {activeArrangement.current_makeup > 0 ? '-' : ''}{formatCurrency(Math.abs(activeArrangement.current_makeup), displayEUR)}
+                                ${Math.abs(stats.makeup).toLocaleString()}
                             </span>
-                        </div>
-                        <div style={styles.detailItem}>
-                            <span style={styles.detailLabel}>Since</span>
-                            <span style={styles.detailValue}>
-                                {new Date(activeArrangement.start_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                            <span style={styles.statLabel}>
+                                {stats.makeup > 0 ? 'IN MAKEUP' : 'CLEAR'}
                             </span>
                         </div>
                     </div>
-                    <div style={styles.activeActions}>
-                        <button onClick={() => handleEdit(activeArrangement)} style={styles.editBtn}>
-                            <Edit2 size={12} /> Edit
-                        </button>
-                        <button onClick={() => handleDelete(activeArrangement.id)} style={styles.deleteBtn}>
-                            <Trash2 size={12} />
-                        </button>
-                    </div>
+                </div>
+            ) : (
+                <div style={styles.emptyState}>
+                    <Users size={32} style={{ color: 'rgba(255,255,255,0.2)' }} />
+                    <p>NO ACTIVE STAKING ARRANGEMENT</p>
+                    <button onClick={handleAddNew} style={styles.emptyAddBtn}>
+                        <Plus size={14} /> ADD BACKER
+                    </button>
                 </div>
             )}
-
-            {/* Stats Summary */}
-            <div style={styles.statsGrid}>
-                <div style={styles.statCard}>
-                    <div style={styles.statIcon}><DollarSign size={14} /></div>
-                    <div>
-                        <div style={styles.statLabel}>Your Share</div>
-                        <div style={{ ...styles.statValue, color: totalStats.totalPlayerShare >= 0 ? '#22c55e' : '#ef4444' }}>
-                            {formatCurrency(totalStats.totalPlayerShare, displayEUR)}
-                        </div>
-                    </div>
-                </div>
-                <div style={styles.statCard}>
-                    <div style={styles.statIcon}><Users size={14} /></div>
-                    <div>
-                        <div style={styles.statLabel}>Backer's Share</div>
-                        <div style={styles.statValue}>
-                            {formatCurrency(totalStats.totalBackerShare, displayEUR)}
-                        </div>
-                    </div>
-                </div>
-            </div>
 
             {/* Past Arrangements */}
             {arrangements.filter(a => !a.is_active).length > 0 && (
                 <div style={styles.pastSection}>
-                    <h4 style={styles.sectionTitle}>Past Arrangements</h4>
+                    <div style={styles.sectionHeader}>PAST ARRANGEMENTS</div>
                     {arrangements.filter(a => !a.is_active).map(arr => (
                         <div key={arr.id} style={styles.pastCard}>
-                            <div style={styles.pastInfo}>
+                            <div>
                                 <span style={styles.pastName}>{arr.backer_name}</span>
-                                <span style={styles.pastDates}>
-                                    {new Date(arr.start_date).toLocaleDateString()} - {arr.end_date ? new Date(arr.end_date).toLocaleDateString() : 'Ongoing'}
+                                <span style={styles.pastSplit}>
+                                    {arr.split_player}% / {arr.split_backer}%
                                 </span>
                             </div>
-                            <span style={styles.pastSplit}>{arr.split_percentage}/{100 - arr.split_percentage}</span>
+                            <div style={styles.pastActions}>
+                                <button onClick={() => handleEdit(arr)} style={styles.iconBtn}>
+                                    <Edit2 size={12} />
+                                </button>
+                                <button onClick={() => handleDelete(arr.id)} style={{ ...styles.iconBtn, color: METAL.danger }}>
+                                    <Trash2 size={12} />
+                                </button>
+                            </div>
                         </div>
                     ))}
                 </div>
             )}
 
-            {/* Empty State */}
-            {!isLoading && arrangements.length === 0 && (
-                <div style={styles.emptyState}>
-                    <Users size={32} style={{ color: 'rgba(255,255,255,0.2)' }} />
-                    <p>No staking arrangements yet</p>
-                    <button onClick={() => setShowModal(true)} style={styles.emptyBtn}>
-                        Add Your First Backer
-                    </button>
+            {/* Modal */}
+            {showModal && (
+                <div style={styles.modalOverlay} onClick={() => setShowModal(false)}>
+                    <div style={styles.modal} onClick={e => e.stopPropagation()}>
+                        <div style={styles.modalLed} />
+                        <h3 style={styles.modalTitle}>
+                            {editingArrangement ? 'EDIT ARRANGEMENT' : 'NEW ARRANGEMENT'}
+                        </h3>
+
+                        <div style={styles.formGroup}>
+                            <label style={styles.formLabel}>BACKER NAME</label>
+                            <input
+                                value={form.backer_name}
+                                onChange={e => setForm({ ...form, backer_name: e.target.value })}
+                                placeholder="Enter backer name..."
+                                style={styles.formInput}
+                            />
+                        </div>
+
+                        <div style={styles.formRow}>
+                            <div style={styles.formGroup}>
+                                <label style={styles.formLabel}>YOUR SPLIT %</label>
+                                <input
+                                    type="number"
+                                    value={form.split_player}
+                                    onChange={e => setForm({
+                                        ...form,
+                                        split_player: e.target.value,
+                                        split_backer: 100 - parseInt(e.target.value || 0)
+                                    })}
+                                    style={styles.formInput}
+                                />
+                            </div>
+                            <div style={styles.formGroup}>
+                                <label style={styles.formLabel}>BACKER SPLIT %</label>
+                                <input
+                                    type="number"
+                                    value={form.split_backer}
+                                    onChange={e => setForm({
+                                        ...form,
+                                        split_backer: e.target.value,
+                                        split_player: 100 - parseInt(e.target.value || 0)
+                                    })}
+                                    style={styles.formInput}
+                                />
+                            </div>
+                        </div>
+
+                        <div style={styles.formRow}>
+                            <div style={styles.formGroup}>
+                                <label style={styles.formLabel}>STARTING MAKEUP</label>
+                                <input
+                                    type="number"
+                                    value={form.makeup_start}
+                                    onChange={e => setForm({ ...form, makeup_start: e.target.value })}
+                                    placeholder="0"
+                                    style={styles.formInput}
+                                />
+                            </div>
+                            <div style={styles.formGroup}>
+                                <label style={styles.formLabel}>START DATE</label>
+                                <input
+                                    type="date"
+                                    value={form.start_date}
+                                    onChange={e => setForm({ ...form, start_date: e.target.value })}
+                                    style={styles.formInput}
+                                />
+                            </div>
+                        </div>
+
+                        <div style={styles.formGroup}>
+                            <label style={styles.formLabel}>NOTES</label>
+                            <textarea
+                                value={form.notes}
+                                onChange={e => setForm({ ...form, notes: e.target.value })}
+                                placeholder="Optional notes..."
+                                rows={2}
+                                style={{ ...styles.formInput, resize: 'none' }}
+                            />
+                        </div>
+
+                        <div style={styles.modalActions}>
+                            <button onClick={() => setShowModal(false)} style={styles.cancelBtn}>
+                                CANCEL
+                            </button>
+                            <button
+                                onClick={handleSave}
+                                disabled={saving || !form.backer_name}
+                                style={{
+                                    ...styles.saveBtn,
+                                    opacity: (saving || !form.backer_name) ? 0.5 : 1
+                                }}
+                            >
+                                {saving ? (
+                                    <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> SAVING...</>
+                                ) : (
+                                    <><Check size={14} /> SAVE</>
+                                )}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
 
-            {/* Modal */}
-            {showModal && (
-                <StakingModal
-                    arrangement={editingArrangement}
-                    userId={userId}
-                    onClose={() => setShowModal(false)}
-                    onSave={() => { setShowModal(false); loadData(); }}
-                />
-            )}
-        </div>
-    );
-}
-
-function StakingModal({ arrangement, userId, onClose, onSave }) {
-    const [form, setForm] = useState({
-        backer_name: arrangement?.backer_name || '',
-        backer_email: arrangement?.backer_email || '',
-        split_percentage: arrangement?.split_percentage || 50,
-        markup_percentage: arrangement?.markup_percentage || 0,
-        starting_makeup: arrangement?.starting_makeup || 0,
-        current_makeup: arrangement?.current_makeup || 0,
-        start_date: arrangement?.start_date || new Date().toISOString().split('T')[0],
-        notes: arrangement?.notes || '',
-        is_active: arrangement?.is_active ?? true,
-    });
-    const [isSaving, setIsSaving] = useState(false);
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setIsSaving(true);
-
-        try {
-            if (arrangement?.id) {
-                await supabase
-                    .from('staking_arrangements')
-                    .update({ ...form, updated_at: new Date().toISOString() })
-                    .eq('id', arrangement.id);
-            } else {
-                await supabase
-                    .from('staking_arrangements')
-                    .insert({ ...form, user_id: userId });
-            }
-            onSave();
-        } catch (err) {
-            console.error('Save error:', err);
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
-    return (
-        <div style={modalStyles.overlay} onClick={onClose}>
-            <div style={modalStyles.modal} onClick={e => e.stopPropagation()}>
-                <h3 style={modalStyles.title}>{arrangement ? 'Edit' : 'Add'} Staking Arrangement</h3>
-
-                <form onSubmit={handleSubmit}>
-                    <div style={modalStyles.field}>
-                        <label style={modalStyles.label}>Backer Name *</label>
-                        <input
-                            type="text"
-                            value={form.backer_name}
-                            onChange={e => setForm({ ...form, backer_name: e.target.value })}
-                            style={modalStyles.input}
-                            required
-                        />
-                    </div>
-
-                    <div style={modalStyles.row}>
-                        <div style={modalStyles.field}>
-                            <label style={modalStyles.label}>Your Split %</label>
-                            <input
-                                type="number"
-                                value={form.split_percentage}
-                                onChange={e => setForm({ ...form, split_percentage: Number(e.target.value) })}
-                                style={modalStyles.input}
-                                min={0}
-                                max={100}
-                            />
-                        </div>
-                        <div style={modalStyles.field}>
-                            <label style={modalStyles.label}>Markup %</label>
-                            <input
-                                type="number"
-                                value={form.markup_percentage}
-                                onChange={e => setForm({ ...form, markup_percentage: Number(e.target.value) })}
-                                style={modalStyles.input}
-                                min={0}
-                            />
-                        </div>
-                    </div>
-
-                    <div style={modalStyles.row}>
-                        <div style={modalStyles.field}>
-                            <label style={modalStyles.label}>Starting Makeup</label>
-                            <input
-                                type="number"
-                                value={form.starting_makeup}
-                                onChange={e => setForm({ ...form, starting_makeup: Number(e.target.value), current_makeup: Number(e.target.value) })}
-                                style={modalStyles.input}
-                            />
-                        </div>
-                        <div style={modalStyles.field}>
-                            <label style={modalStyles.label}>Start Date</label>
-                            <input
-                                type="date"
-                                value={form.start_date}
-                                onChange={e => setForm({ ...form, start_date: e.target.value })}
-                                style={modalStyles.input}
-                            />
-                        </div>
-                    </div>
-
-                    <div style={modalStyles.field}>
-                        <label style={modalStyles.label}>Notes</label>
-                        <textarea
-                            value={form.notes}
-                            onChange={e => setForm({ ...form, notes: e.target.value })}
-                            style={{ ...modalStyles.input, minHeight: 60 }}
-                        />
-                    </div>
-
-                    <div style={modalStyles.actions}>
-                        <button type="button" onClick={onClose} style={modalStyles.cancelBtn}>Cancel</button>
-                        <button type="submit" disabled={isSaving} style={modalStyles.saveBtn}>
-                            {isSaving ? 'Saving...' : 'Save'}
-                        </button>
-                    </div>
-                </form>
-            </div>
+            <style jsx global>{ANIMATIONS}</style>
         </div>
     );
 }
 
 const styles = {
     container: {
-        background: 'rgba(255,255,255,0.02)',
-        border: '1px solid rgba(255,255,255,0.06)',
+        position: 'relative',
+        background: GRADIENTS.darkPanel,
+        border: `1px solid ${METAL.mid}`,
         borderRadius: 12,
-        padding: 16,
+        overflow: 'hidden',
+    },
+    ledStrip: {
+        position: 'absolute',
+        top: 0,
+        left: '10%',
+        right: '10%',
+        height: 2,
+        background: METAL.cyan,
+        boxShadow: GLOWS.cyanSubtle,
+    },
+    loadingContainer: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 12,
+        padding: 48,
+        background: GRADIENTS.darkPanel,
+        border: `1px solid ${METAL.mid}`,
+        borderRadius: 12,
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 11,
+        color: 'rgba(255,255,255,0.5)',
+        letterSpacing: '0.15em',
     },
     header: {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 16,
+        padding: '14px 16px',
+        borderBottom: `1px solid ${METAL.mid}`,
     },
-    titleRow: {
+    headerTitle: {
         display: 'flex',
         alignItems: 'center',
         gap: 8,
-    },
-    title: {
-        fontSize: 15,
-        fontWeight: 600,
+        fontFamily: "'Orbitron', sans-serif",
+        fontSize: 12,
+        fontWeight: 700,
+        letterSpacing: '0.15em',
         color: '#fff',
-        margin: 0,
     },
     addBtn: {
         display: 'flex',
         alignItems: 'center',
-        gap: 4,
-        padding: '6px 12px',
-        background: 'rgba(0,212,255,0.1)',
-        border: '1px solid rgba(0,212,255,0.3)',
+        gap: 6,
+        padding: '8px 14px',
+        background: METAL.cyanDim,
+        border: `1px solid ${METAL.cyan}`,
         borderRadius: 6,
-        color: '#00D4FF',
-        fontSize: 11,
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 10,
+        fontWeight: 700,
+        letterSpacing: '0.1em',
+        color: METAL.cyan,
         cursor: 'pointer',
     },
-    activeCard: {
-        background: 'linear-gradient(135deg, rgba(0,212,255,0.1), rgba(0,100,150,0.05))',
-        border: '1px solid rgba(0,212,255,0.2)',
-        borderRadius: 10,
-        padding: 14,
-        marginBottom: 12,
-    },
-    activeHeader: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        marginBottom: 10,
+    activeSection: {
+        padding: 16,
     },
     activeBadge: {
-        color: '#22c55e',
-        fontSize: 10,
-    },
-    activeBackerName: {
-        fontSize: 14,
-        fontWeight: 600,
-        color: '#fff',
-    },
-    activeDetails: {
-        display: 'flex',
-        gap: 16,
-        marginBottom: 10,
-    },
-    detailItem: {
-        display: 'flex',
-        flexDirection: 'column',
-    },
-    detailLabel: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 4,
+        padding: '4px 10px',
+        background: 'rgba(34,197,94,0.15)',
+        border: `1px solid ${METAL.success}`,
+        borderRadius: 4,
+        fontFamily: "'Rajdhani', sans-serif",
         fontSize: 9,
-        color: 'rgba(255,255,255,0.5)',
+        fontWeight: 700,
+        letterSpacing: '0.15em',
+        color: METAL.success,
+        marginBottom: 12,
     },
-    detailValue: {
-        fontSize: 13,
-        fontWeight: 600,
+    activeCard: {
+        padding: 16,
+        background: 'rgba(0,0,0,0.3)',
+        border: `2px solid ${METAL.cyan}`,
+        borderRadius: 10,
+        textAlign: 'center',
+        marginBottom: 16,
+    },
+    backerName: {
+        fontFamily: "'Orbitron', sans-serif",
+        fontSize: 18,
+        fontWeight: 700,
         color: '#fff',
+        marginBottom: 8,
+    },
+    splitDisplay: {
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 24,
+        fontWeight: 700,
+        marginBottom: 12,
+    },
+    splitPlayer: {
+        color: METAL.success,
+    },
+    splitDivider: {
+        color: 'rgba(255,255,255,0.3)',
+        margin: '0 6px',
+    },
+    splitBacker: {
+        color: METAL.cyan,
     },
     activeActions: {
         display: 'flex',
+        justifyContent: 'center',
         gap: 8,
     },
     editBtn: {
         display: 'flex',
         alignItems: 'center',
-        gap: 4,
-        padding: '4px 10px',
-        background: 'rgba(255,255,255,0.05)',
-        border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: 4,
+        gap: 6,
+        padding: '8px 16px',
+        background: GRADIENTS.metalButton,
+        border: `1px solid ${METAL.mid}`,
+        borderRadius: 6,
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 11,
+        fontWeight: 600,
+        letterSpacing: '0.1em',
         color: 'rgba(255,255,255,0.7)',
-        fontSize: 10,
-        cursor: 'pointer',
-    },
-    deleteBtn: {
-        padding: '4px 8px',
-        background: 'rgba(239,68,68,0.1)',
-        border: '1px solid rgba(239,68,68,0.3)',
-        borderRadius: 4,
-        color: '#ef4444',
         cursor: 'pointer',
     },
     statsGrid: {
         display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
+        gridTemplateColumns: 'repeat(3, 1fr)',
         gap: 10,
-        marginBottom: 16,
     },
-    statCard: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
+    statBox: {
         padding: 12,
-        background: 'rgba(255,255,255,0.03)',
+        background: 'rgba(0,0,0,0.2)',
+        border: `1px solid ${METAL.mid}`,
         borderRadius: 8,
-    },
-    statIcon: {
-        width: 28,
-        height: 28,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'rgba(0,212,255,0.1)',
-        borderRadius: 6,
-        color: '#00D4FF',
-    },
-    statLabel: {
-        fontSize: 9,
-        color: 'rgba(255,255,255,0.5)',
+        textAlign: 'center',
     },
     statValue: {
-        fontSize: 14,
+        display: 'block',
+        fontFamily: "'Orbitron', sans-serif",
+        fontSize: 16,
         fontWeight: 700,
-        color: '#fff',
+    },
+    statLabel: {
+        display: 'block',
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 9,
+        fontWeight: 600,
+        color: 'rgba(255,255,255,0.4)',
+        letterSpacing: '0.1em',
+        marginTop: 4,
+    },
+    emptyState: {
+        padding: 48,
+        textAlign: 'center',
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.4)',
+        letterSpacing: '0.1em',
+    },
+    emptyAddBtn: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        marginTop: 16,
+        padding: '12px 20px',
+        background: GRADIENTS.cyanAction,
+        border: 'none',
+        borderRadius: 8,
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 12,
+        fontWeight: 700,
+        letterSpacing: '0.1em',
+        color: '#000',
+        cursor: 'pointer',
     },
     pastSection: {
-        marginTop: 12,
+        padding: 16,
+        borderTop: `1px solid ${METAL.mid}`,
     },
-    sectionTitle: {
-        fontSize: 11,
-        fontWeight: 600,
-        color: 'rgba(255,255,255,0.5)',
-        textTransform: 'uppercase',
-        marginBottom: 8,
+    sectionHeader: {
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 10,
+        fontWeight: 700,
+        color: 'rgba(255,255,255,0.4)',
+        letterSpacing: '0.15em',
+        marginBottom: 12,
     },
     pastCard: {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 10,
-        background: 'rgba(255,255,255,0.02)',
-        borderRadius: 6,
-        marginBottom: 6,
-    },
-    pastInfo: {
-        display: 'flex',
-        flexDirection: 'column',
+        padding: '10px 14px',
+        background: 'rgba(0,0,0,0.2)',
+        border: `1px solid ${METAL.mid}`,
+        borderRadius: 8,
+        marginBottom: 8,
     },
     pastName: {
-        fontSize: 12,
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 13,
+        fontWeight: 600,
         color: '#fff',
-    },
-    pastDates: {
-        fontSize: 10,
-        color: 'rgba(255,255,255,0.4)',
+        marginRight: 8,
     },
     pastSplit: {
+        fontFamily: "'Rajdhani', sans-serif",
         fontSize: 11,
-        color: 'rgba(255,255,255,0.6)',
-    },
-    emptyState: {
-        textAlign: 'center',
-        padding: 24,
         color: 'rgba(255,255,255,0.4)',
-        fontSize: 12,
     },
-    emptyBtn: {
-        marginTop: 12,
-        padding: '8px 16px',
-        background: 'rgba(0,212,255,0.1)',
-        border: '1px solid rgba(0,212,255,0.3)',
-        borderRadius: 6,
-        color: '#00D4FF',
-        fontSize: 12,
+    pastActions: {
+        display: 'flex',
+        gap: 6,
+    },
+    iconBtn: {
+        padding: 6,
+        background: 'rgba(255,255,255,0.05)',
+        border: `1px solid ${METAL.mid}`,
+        borderRadius: 4,
+        color: 'rgba(255,255,255,0.5)',
         cursor: 'pointer',
     },
-};
-
-const modalStyles = {
-    overlay: {
+    modalOverlay: {
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0,0,0,0.8)',
+        background: 'rgba(0,0,0,0.92)',
+        backdropFilter: 'blur(10px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -512,64 +595,93 @@ const modalStyles = {
         padding: 16,
     },
     modal: {
+        position: 'relative',
         width: '100%',
-        maxWidth: 400,
-        background: '#1a1a2e',
-        borderRadius: 12,
-        padding: 20,
-        border: '1px solid rgba(255,255,255,0.1)',
+        maxWidth: 420,
+        background: `linear-gradient(180deg, #1a2a3a 0%, ${METAL.base} 100%)`,
+        border: `2px solid ${METAL.highlight}`,
+        borderRadius: 16,
+        padding: 24,
     },
-    title: {
-        fontSize: 16,
-        fontWeight: 600,
+    modalLed: {
+        position: 'absolute',
+        top: 0,
+        left: '20%',
+        right: '20%',
+        height: 2,
+        background: METAL.cyan,
+        boxShadow: GLOWS.cyanSubtle,
+    },
+    modalTitle: {
+        fontFamily: "'Orbitron', sans-serif",
+        fontSize: 14,
+        fontWeight: 700,
+        letterSpacing: '0.15em',
         color: '#fff',
-        marginBottom: 16,
+        marginBottom: 20,
+        textAlign: 'center',
     },
-    field: {
-        marginBottom: 12,
+    formGroup: {
+        marginBottom: 14,
     },
-    row: {
+    formLabel: {
+        display: 'block',
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 10,
+        fontWeight: 600,
+        color: 'rgba(255,255,255,0.5)',
+        letterSpacing: '0.15em',
+        marginBottom: 6,
+    },
+    formInput: {
+        width: '100%',
+        padding: '12px 14px',
+        background: METAL.darkest,
+        border: `1px solid ${METAL.mid}`,
+        borderRadius: 8,
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 14,
+        color: '#fff',
+        boxSizing: 'border-box',
+    },
+    formRow: {
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: 12,
+    },
+    modalActions: {
         display: 'flex',
         gap: 12,
-        marginBottom: 12,
-    },
-    label: {
-        display: 'block',
-        fontSize: 10,
-        color: 'rgba(255,255,255,0.6)',
-        marginBottom: 4,
-    },
-    input: {
-        width: '100%',
-        padding: '8px 10px',
-        background: 'rgba(255,255,255,0.05)',
-        border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: 6,
-        color: '#fff',
-        fontSize: 13,
-    },
-    actions: {
-        display: 'flex',
-        gap: 10,
-        marginTop: 16,
+        marginTop: 20,
     },
     cancelBtn: {
         flex: 1,
-        padding: '10px 0',
-        background: 'rgba(255,255,255,0.05)',
-        border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: 8,
-        color: 'rgba(255,255,255,0.7)',
+        padding: 14,
+        background: GRADIENTS.metalButton,
+        border: `1px solid ${METAL.mid}`,
+        borderRadius: 10,
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 12,
+        fontWeight: 600,
+        color: 'rgba(255,255,255,0.6)',
+        letterSpacing: '0.1em',
         cursor: 'pointer',
     },
     saveBtn: {
         flex: 1,
-        padding: '10px 0',
-        background: 'linear-gradient(135deg, #00D4FF, #00A3CC)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        padding: 14,
+        background: GRADIENTS.cyanAction,
         border: 'none',
-        borderRadius: 8,
+        borderRadius: 10,
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 12,
+        fontWeight: 700,
         color: '#000',
-        fontWeight: 600,
+        letterSpacing: '0.1em',
         cursor: 'pointer',
     },
 };
