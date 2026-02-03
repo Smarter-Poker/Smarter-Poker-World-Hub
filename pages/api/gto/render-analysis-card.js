@@ -41,21 +41,46 @@ const ACTION_COLORS = {
     'ALL-IN': '#ff00ff',
 };
 
-// Font loading for @vercel/og (requires TTF format, not WOFF2)
+// Font loading for @vercel/og (requires TTF format)
+// Use Google Fonts CSS API with IE11 User-Agent to force TTF format
 async function loadFonts() {
-    // Use raw.githubusercontent.com for actual TTF files (not redirects)
-    const fontBold = await fetch(
-        'https://raw.githubusercontent.com/googlefonts/noto-fonts/main/hinted/ttf/NotoSans/NotoSans-Bold.ttf'
-    ).then((res) => res.arrayBuffer());
+    try {
+        // Fetch CSS from Google Fonts with IE11 UA to get TTF links
+        const cssResponse = await fetch(
+            'https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap',
+            {
+                headers: {
+                    // IE11 User-Agent forces Google to serve TTF
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 6.3; Trident/7.0; rv:11.0) like Gecko'
+                }
+            }
+        );
+        const css = await cssResponse.text();
 
-    const fontRegular = await fetch(
-        'https://raw.githubusercontent.com/googlefonts/noto-fonts/main/hinted/ttf/NotoSans/NotoSans-Regular.ttf'
-    ).then((res) => res.arrayBuffer());
+        // Extract font URLs from CSS
+        const urlMatches = css.match(/url\(([^)]+)\)/g);
+        if (!urlMatches || urlMatches.length < 2) {
+            throw new Error('Failed to extract font URLs from Google CSS');
+        }
 
-    return [
-        { name: 'Noto Sans', data: fontBold, style: 'normal', weight: 700 },
-        { name: 'Noto Sans', data: fontRegular, style: 'normal', weight: 400 },
-    ];
+        // Get regular (400) and bold (700) font URLs
+        const regularUrl = urlMatches[0].replace(/url\(|\)/g, '');
+        const boldUrl = urlMatches[1].replace(/url\(|\)/g, '');
+
+        const [fontRegular, fontBold] = await Promise.all([
+            fetch(regularUrl).then((res) => res.arrayBuffer()),
+            fetch(boldUrl).then((res) => res.arrayBuffer())
+        ]);
+
+        return [
+            { name: 'Inter', data: fontBold, style: 'normal', weight: 700 },
+            { name: 'Inter', data: fontRegular, style: 'normal', weight: 400 },
+        ];
+    } catch (error) {
+        console.error('[GTO-Render] Font loading error:', error);
+        // Return empty array - Satori will use default font
+        return [];
+    }
 }
 
 export const config = {
@@ -178,7 +203,7 @@ function generateGTOPanel({
                 height: '100%',
                 background: 'linear-gradient(180deg, #0a1628 0%, #0d1f35 50%, #0a1628 100%)',
                 padding: '15px',
-                fontFamily: 'Noto Sans, system-ui, sans-serif',
+                fontFamily: 'Inter, system-ui, sans-serif',
             }}
         >
             {/* Outer Frame */}
