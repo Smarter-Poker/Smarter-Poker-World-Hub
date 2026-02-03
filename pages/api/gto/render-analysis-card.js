@@ -35,14 +35,15 @@ const TEMPLATE = {
         sectionBg: 'rgba(10, 25, 45, 0.9)',
     },
 
-    // Header section (compact - 15% of height)
+    // Header section (compact - 15% of height) - LOCKED LAYOUT
+    // Jarvis TOP-LEFT corner, Action CENTERED, Badge TOP-RIGHT corner
     header: {
         y: 20,
         height: 80,
-        avatar: { x: 30, y: 25, size: 60 },
-        action: { x: 120, y: 45, fontSize: 36, font: 'bold' },
-        frequency: { x: 280, y: 45, fontSize: 20 },
-        badge: { x: 600, y: 35, fontSize: 14 },
+        avatar: { x: 25, y: 20, size: 50 },  // TOP-LEFT corner
+        action: { x: 400, y: 50, fontSize: 36, font: 'bold' },  // CENTERED
+        frequency: { x: 520, y: 50, fontSize: 20 },  // Next to action
+        badge: { x: 620, y: 25, fontSize: 12 },  // TOP-RIGHT corner
     },
 
     // Content sections (85% of height)
