@@ -587,7 +587,7 @@ export const MENU_CONFIGS = {
         menuItems: [
             createMenuItem.section('Avatar Options'),
             createMenuItem.navigation('My Avatars', '/hub/avatars'),
-            createMenuItem.navigation('Create New', '/hub/avatars-complete'),
+            createMenuItem.navigation('Create New', '/hub/avatars'),
             createMenuItem.divider(),
             createMenuItem.section('Quick Navigation'),
             createMenuItem.navigation('Profile', '/hub/profile'),

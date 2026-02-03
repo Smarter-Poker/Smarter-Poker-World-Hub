@@ -979,15 +979,26 @@ function PatternRecognitionGame({ level = 1, onExit, onScoreUpdate, DiamondEngin
 
                     {/* Feedback */}
                     {gameState === 'revealed' && (
-                        <div style={{
-                            fontSize: 18,
-                            fontWeight: 700,
-                            color: userAnswer === currentPattern.correctAnswer ? '#00ff88' : '#ff4444',
-                            marginBottom: 16
-                        }}>
-                            {userAnswer === currentPattern.correctAnswer
-                                ? ` Correct! This is a ${currentPattern.correctAnswer.toUpperCase()} range`
-                                : `✗ Wrong! This is a ${currentPattern.correctAnswer.toUpperCase()} range`}
+                        <div style={{ marginBottom: 16 }}>
+                            <div style={{
+                                fontSize: 18,
+                                fontWeight: 700,
+                                color: userAnswer === currentPattern.correctAnswer ? '#00ff88' : '#ff4444',
+                                marginBottom: 12
+                            }}>
+                                {userAnswer === currentPattern.correctAnswer
+                                    ? ` Correct! This is a ${currentPattern.correctAnswer.toUpperCase()} range`
+                                    : `✗ Wrong! This is a ${currentPattern.correctAnswer.toUpperCase()} range`}
+                            </div>
+                            {/* GTO Panel Image for wrong answers */}
+                            {userAnswer !== currentPattern.correctAnswer && (
+                                <img
+                                    src={`https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/gto-panels/panels/gto_utg_${currentPattern.correctAnswer}_100bb.png`}
+                                    alt="GTO Analysis"
+                                    style={{ maxWidth: '100%', borderRadius: 12, border: '2px solid rgba(0,212,255,0.3)', marginTop: 8 }}
+                                    onError={(e) => { e.target.style.display = 'none'; }}
+                                />
+                            )}
                         </div>
                     )}
 
@@ -1319,8 +1330,19 @@ function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, DiamondEngine, us
 
                     {/* Feedback */}
                     {gameState === 'revealed' && (
-                        <div style={{ marginTop: 30, fontSize: 18, fontWeight: 700, color: diff <= 5 ? '#00ff88' : diff <= 15 ? '#ffaa00' : '#ff4444' }}>
-                            {diff === 0 ? 'PERFECT!' : diff <= 5 ? 'EXCELLENT!' : diff <= 15 ? 'CLOSE!' : 'WAY OFF!'}
+                        <div style={{ marginTop: 30, marginBottom: 16 }}>
+                            <div style={{ fontSize: 18, fontWeight: 700, color: diff <= 5 ? '#00ff88' : diff <= 15 ? '#ffaa00' : '#ff4444', marginBottom: 12 }}>
+                                {diff === 0 ? 'PERFECT!' : diff <= 5 ? 'EXCELLENT!' : diff <= 15 ? 'CLOSE!' : 'WAY OFF!'}
+                            </div>
+                            {/* GTO Panel Image for significantly wrong answers */}
+                            {diff > 15 && (
+                                <img
+                                    src={`https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/gto-panels/panels/gto_utg_${targetAction}_100bb.png`}
+                                    alt="GTO Analysis"
+                                    style={{ maxWidth: '100%', borderRadius: 12, border: '2px solid rgba(0,212,255,0.3)', marginTop: 8 }}
+                                    onError={(e) => { e.target.style.display = 'none'; }}
+                                />
+                            )}
                         </div>
                     )}
 
@@ -2915,7 +2937,7 @@ export default function MemoryGamesPage() {
                                     Mix Mixed
                                 </button>
                                 <button
-                                    onClick={() => router.push('/hub/memory-campaign')}
+                                    onClick={() => router.push('/hub/memory-games')}
                                     style={{
                                         ...styles.gameModeTab,
                                         background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 140, 0, 0.2))',

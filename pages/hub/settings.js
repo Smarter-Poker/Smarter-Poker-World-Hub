@@ -646,7 +646,7 @@ export default function SettingsPage() {
                                                                     fontSize: 10,
                                                                     color: '#000',
                                                                 }}>
-                                                                    
+
                                                                 </div>
                                                             )}
                                                         </>
@@ -686,10 +686,10 @@ export default function SettingsPage() {
                                                 transition: 'all 0.3s ease',
                                             }}
                                         >
-                                             Create Custom Avatar
+                                            Create Custom Avatar
                                         </button>
                                         <button
-                                            onClick={() => router.push('/hub/avatars-complete')}
+                                            onClick={() => router.push('/hub/avatars')}
                                             style={{
                                                 flex: 1,
                                                 padding: '14px 20px',

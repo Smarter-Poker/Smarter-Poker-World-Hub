@@ -15,7 +15,7 @@ const ROUTE_TO_WORLD = {
     '/hub/diamond-arcade': 'diamond-arcade',
     '/hub/personal-assistant': 'personal-assistant',
     '/hub/memory-games': 'memory-games',
-    '/hub/memory-campaign': 'memory-games',
+    // memory-campaign removed - use memory-games
     '/hub/bankroll-manager': 'bankroll-manager',
     '/hub/poker-near-me': 'poker-near-me',
     '/hub/diamond-store': 'marketplace',
