@@ -26,12 +26,13 @@ const GAME_TYPE_MAP = {
     'cash-016': '6max', 'cash-017': '6max', 'cash-018': '6max',
     'cash-019': '6max', 'cash-020': '6max',
 
-    // MTT Games (9-Max)
+    // MTT Games (9-Max default, with exceptions)
     'mtt-001': 'mtt', 'mtt-002': 'mtt', 'mtt-003': 'mtt',
     'mtt-004': 'mtt', 'mtt-005': 'mtt', 'mtt-006': 'mtt',
     'mtt-007': 'mtt', 'mtt-008': 'mtt', 'mtt-009': 'mtt',
     'mtt-010': 'mtt', 'mtt-011': 'mtt', 'mtt-012': 'mtt',
-    'mtt-013': 'mtt', 'mtt-014': 'mtt', 'mtt-015': 'mtt',
+    'mtt-013': 'mtt', 'mtt-014': 'mtt',
+    'mtt-015': 'heads-up', // Heads Up Duel (2-max)
     'mtt-016': 'mtt', 'mtt-017': 'mtt', 'mtt-018': 'mtt',
     'mtt-019': 'mtt', 'mtt-020': 'mtt',
 
@@ -44,10 +45,11 @@ const GAME_TYPE_MAP = {
     'spins-016': 'spins', 'spins-017': 'spins', 'spins-018': 'spins',
     'spins-019': 'spins', 'spins-020': 'spins',
 
-    // Advanced Games (6-Max default)
+    // Advanced Games (6-Max default, with exceptions)
     'adv-001': '6max', 'adv-002': '6max', 'adv-003': '6max',
     'adv-004': '6max', 'adv-005': '6max', 'adv-006': '6max',
-    'adv-007': '6max', 'adv-008': '6max', 'adv-009': '6max',
+    'adv-007': 'heads-up', // Indifference Theory (2-max)
+    'adv-008': '6max', 'adv-009': '6max',
     'adv-010': '6max', 'adv-011': '6max', 'adv-012': '6max',
     'adv-013': '6max', 'adv-014': '6max', 'adv-015': '6max',
     'adv-016': '6max', 'adv-017': '6max', 'adv-018': '6max',

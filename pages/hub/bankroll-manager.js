@@ -49,6 +49,13 @@ import SessionTimer from '../../src/components/bankroll/SessionTimer';
 import HistoricalComparison from '../../src/components/bankroll/HistoricalComparison';
 import VarianceCalculator from '../../src/components/bankroll/VarianceCalculator';
 import BankrollHeatMap from '../../src/components/bankroll/BankrollHeatMap';
+// Phase 5 Pro Components
+import BankrollProGate from '../../src/components/bankroll/BankrollProGate';
+import ReceiptScanner from '../../src/components/bankroll/ReceiptScanner';
+import TaxReportPanel from '../../src/components/bankroll/TaxReportPanel';
+import StakingTracker from '../../src/components/bankroll/StakingTracker';
+import SeriesTracker from '../../src/components/bankroll/SeriesTracker';
+import SessionHandReview from '../../src/components/bankroll/SessionHandReview';
 
 const SIDEBAR_SECTIONS = [
   { id: 'dashboard', label: 'Dashboard', icon: '◎' },
@@ -57,6 +64,7 @@ const SIDEBAR_SECTIONS = [
   { id: 'players', label: 'Player Notes', icon: '🎯' },
   { id: 'leaks', label: 'Leaks', icon: '⚠' },
   { id: 'reports', label: 'Reports', icon: '' },
+  { id: 'pro', label: 'Pro Tools', icon: '💎' },
   { id: 'settings', label: 'Settings', icon: '⚙' },
 ];
 
@@ -471,6 +479,7 @@ export default function BankrollManagerPage() {
                 {activeSection === 'players' && 'Player Notes'}
                 {activeSection === 'leaks' && 'Leak Analysis'}
                 {activeSection === 'reports' && 'Reports'}
+                {activeSection === 'pro' && 'Pro Tools 💎'}
                 {activeSection === 'settings' && 'Settings'}
               </h1>
               <div style={styles.headerActions}>
@@ -848,6 +857,53 @@ export default function BankrollManagerPage() {
                   Export Data
                   <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
                 </button>
+              </div>
+            )}
+
+            {/* Pro Tools View - Gated for non-VIP */}
+            {activeSection === 'pro' && (
+              <div style={styles.activitySection}>
+                <h2 style={styles.sectionTitle}>Pro Tools</h2>
+                <BankrollProGate userId={userId}>
+                  {/* Pro Features - Only visible after unlock or for VIP */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+                    {/* Receipt Scanner */}
+                    <div style={styles.proToolSection}>
+                      <h3 style={styles.proToolTitle}>📸 Receipt Scanner</h3>
+                      <p style={styles.proToolDesc}>Scan receipts with OCR for automatic expense tracking</p>
+                      <ReceiptScanner userId={userId} onScanComplete={loadData} />
+                    </div>
+
+                    {/* Tax Reports */}
+                    <div style={styles.proToolSection}>
+                      <h3 style={styles.proToolTitle}>📊 Tax Report Generator</h3>
+                      <p style={styles.proToolDesc}>Generate IRS-ready reports with W2-G tracking</p>
+                      <TaxReportPanel userId={userId} />
+                    </div>
+
+                    {/* Staking Tracker */}
+                    <div style={styles.proToolSection}>
+                      <h3 style={styles.proToolTitle}>👥 Staking & Backers</h3>
+                      <p style={styles.proToolDesc}>Track backer relationships, splits, and makeup</p>
+                      <StakingTracker userId={userId} />
+                    </div>
+
+                    {/* Series Tracker */}
+                    <div style={styles.proToolSection}>
+                      <h3 style={styles.proToolTitle}>🏆 Tournament Series</h3>
+                      <p style={styles.proToolDesc}>Track WSOP, WPT, and other series ROI</p>
+                      <SeriesTracker userId={userId} />
+                    </div>
+
+                    {/* Hand Review Links */}
+                    <div style={styles.proToolSection}>
+                      <h3 style={styles.proToolTitle}>🧠 AI Hand Review</h3>
+                      <p style={styles.proToolDesc}>Link analyzed hands to sessions</p>
+                      <SessionHandReview userId={userId} />
+                    </div>
+                  </div>
+                </BankrollProGate>
               </div>
             )}
           </main>
@@ -1366,5 +1422,23 @@ const styles = {
     borderRadius: 12,
     cursor: 'pointer',
     transition: 'all 0.2s ease',
+  },
+  // Pro Tools styles
+  proToolSection: {
+    padding: 20,
+    background: 'rgba(255, 255, 255, 0.02)',
+    border: '1px solid rgba(255, 255, 255, 0.06)',
+    borderRadius: 12,
+  },
+  proToolTitle: {
+    fontSize: 16,
+    fontWeight: 600,
+    color: '#fff',
+    margin: '0 0 6px',
+  },
+  proToolDesc: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.5)',
+    margin: '0 0 16px',
   },
 };

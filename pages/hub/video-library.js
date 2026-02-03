@@ -410,7 +410,7 @@ export default function VideoLibraryPage() {
     const [watchStats, setWatchStats] = useState(null); // User's watch statistics
     const [showStats, setShowStats] = useState(false); // Stats modal visibility
 
-    // Jarvis AI Analysis state - Timestamp-synced contextual commentary
+    // Jarvis Insights state - Timestamp-synced contextual commentary
     const [aiAnalysis, setAiAnalysis] = useState(null); // Current video AI analysis
     const [aiAnalysisLoading, setAiAnalysisLoading] = useState(false);
     const [showAiPanel, setShowAiPanel] = useState(false); // Toggle AI panel visibility
@@ -561,7 +561,7 @@ export default function VideoLibraryPage() {
         setSelectedVideo(video);
         setShowAiPanel(false);
 
-        // Fetch Jarvis AI analysis for this video
+        // Fetch Jarvis Insights for this video
         setAiAnalysisLoading(true);
         try {
             const response = await fetch(
@@ -1478,7 +1478,7 @@ export default function VideoLibraryPage() {
                         }}
                     >×</button>
 
-                    {/* Jarvis AI Analysis button */}
+                    {/* Jarvis Insights button */}
                     <button
                         onClick={() => setShowAiPanel(!showAiPanel)}
                         style={{
@@ -1503,7 +1503,7 @@ export default function VideoLibraryPage() {
                         }}
                     >
                         <img src="/images/jarvis-avatar.png" alt="Jarvis" style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover' }} />
-                        {aiAnalysisLoading ? 'Loading...' : 'Jarvis AI'}
+                        {aiAnalysisLoading ? 'Loading...' : 'Jarvis Insights'}
                     </button>
 
                     {/* Fullscreen YouTube embed with IFrame API for time tracking */}
@@ -1572,7 +1572,7 @@ export default function VideoLibraryPage() {
                         />
                     </div>
 
-                    {/* Jarvis AI Bottom Sheet / Side Panel (Responsive) */}
+                    {/* Jarvis Insights Bottom Sheet / Side Panel (Responsive) */}
                     <div
                         className="jarvis-panel"
                         style={{
@@ -1616,7 +1616,7 @@ export default function VideoLibraryPage() {
                             }}>
                                 <img src="/images/jarvis-avatar.png" alt="Jarvis" style={{ width: 28, height: 28, borderRadius: '50%' }} />
                                 <div style={{ flex: 1 }}>
-                                    <span style={{ color: '#00D4FF', fontSize: 13, fontWeight: 600 }}>Jarvis Commentary</span>
+                                    <span style={{ color: '#00D4FF', fontSize: 13, fontWeight: 600 }}>Jarvis Insights</span>
                                     {activeInsight && (
                                         <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                             {activeInsight.title}
@@ -1654,7 +1654,7 @@ export default function VideoLibraryPage() {
                                         gap: 8,
                                     }}>
                                         <img src="/images/jarvis-avatar.png" alt="Jarvis" style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }} />
-                                        Jarvis Commentary
+                                        Jarvis Insights
                                     </h3>
                                     <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, margin: 0, marginTop: 4 }}>
                                         Live insights at key moments
@@ -1969,8 +1969,8 @@ export default function VideoLibraryPage() {
                         bottom: ${showAiPanel ? '0' : '-100%'} !important;
                         left: 0 !important;
                         width: 100% !important;
-                        height: ${bottomSheetExpanded ? '70vh' : '100px'} !important;
-                        max-height: 80vh !important;
+                        height: ${bottomSheetExpanded ? '45vh' : '80px'} !important;
+                        max-height: 50vh !important;
                         border-top: 2px solid rgba(0, 212, 255, 0.3) !important;
                         border-left: none !important;
                         border-radius: 20px 20px 0 0 !important;
@@ -1988,7 +1988,7 @@ export default function VideoLibraryPage() {
                     }
                     .jarvis-panel-content {
                         display: ${bottomSheetExpanded ? 'block' : 'none'} !important;
-                        max-height: calc(70vh - 60px) !important;
+                        max-height: calc(45vh - 50px) !important;
                         overflow-y: auto !important;
                     }
                 }

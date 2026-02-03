@@ -1,0 +1,134 @@
+/**
+ * BANKROLL MANAGER PRO ACCESS GATE
+ * VIP = Free unlimited access
+ * Non-VIP = 25 diamonds for full day access to all features
+ */
+
+import { supabase } from '../../lib/supabase';
+
+// Flat fee for 24-hour access to ALL premium features
+export const BANKROLL_PRO_DAY_COST = 25;
+
+/**
+ * Check if user has access to Bankroll Manager Pro features
+ * VIP users always have access, non-VIP check for active day pass
+ */
+export async function checkBankrollProAccess(userId) {
+    if (!userId) return { hasAccess: false, isVip: false, expiresAt: null };
+
+    // Check VIP status first
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_vip, diamonds')
+        .eq('id', userId)
+        .single();
+
+    if (profile?.is_vip) {
+        return { hasAccess: true, isVip: true, expiresAt: null, diamonds: profile.diamonds };
+    }
+
+    // Check for active day pass
+    const now = new Date().toISOString();
+    const { data: access } = await supabase
+        .from('premium_feature_access')
+        .select('expires_at')
+        .eq('user_id', userId)
+        .eq('feature_key', 'bankroll_pro')
+        .gt('expires_at', now)
+        .order('expires_at', { ascending: false })
+        .limit(1)
+        .single();
+
+    if (access) {
+        return {
+            hasAccess: true,
+            isVip: false,
+            expiresAt: new Date(access.expires_at),
+            diamonds: profile?.diamonds || 0
+        };
+    }
+
+    return {
+        hasAccess: false,
+        isVip: false,
+        expiresAt: null,
+        diamonds: profile?.diamonds || 0
+    };
+}
+
+/**
+ * Purchase 24-hour Bankroll Pro access for 25 diamonds
+ */
+export async function purchaseBankrollProAccess(userId) {
+    const cost = BANKROLL_PRO_DAY_COST;
+
+    // Get current balance
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('diamonds, is_vip')
+        .eq('id', userId)
+        .single();
+
+    // VIP users don't need to purchase
+    if (profile?.is_vip) {
+        return { success: true, isVip: true };
+    }
+
+    const currentBalance = profile?.diamonds || 0;
+    if (currentBalance < cost) {
+        return {
+            success: false,
+            error: 'Insufficient diamonds',
+            required: cost,
+            balance: currentBalance
+        };
+    }
+
+    // Calculate expiry (24 hours from now)
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 24);
+
+    // Deduct diamonds
+    const { error: deductError } = await supabase
+        .from('profiles')
+        .update({ diamonds: currentBalance - cost })
+        .eq('id', userId);
+
+    if (deductError) {
+        return { success: false, error: 'Failed to deduct diamonds' };
+    }
+
+    // Log transaction
+    await supabase.from('diamond_transactions').insert({
+        user_id: userId,
+        amount: -cost,
+        transaction_type: 'feature_unlock',
+        description: 'Bankroll Manager Pro - 24 Hour Access',
+        metadata: { feature_key: 'bankroll_pro' }
+    });
+
+    // Grant access
+    const { error: accessError } = await supabase
+        .from('premium_feature_access')
+        .insert({
+            user_id: userId,
+            feature_key: 'bankroll_pro',
+            expires_at: expiresAt.toISOString(),
+            diamonds_spent: cost
+        });
+
+    if (accessError) {
+        // Refund on failure
+        await supabase
+            .from('profiles')
+            .update({ diamonds: currentBalance })
+            .eq('id', userId);
+        return { success: false, error: 'Failed to grant access' };
+    }
+
+    return {
+        success: true,
+        expiresAt,
+        newBalance: currentBalance - cost
+    };
+}

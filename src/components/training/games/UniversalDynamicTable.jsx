@@ -120,6 +120,88 @@ function getHeroSeatIndex(heroPosition, playerCount) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// LOADING SKELETON — Shown while question is being fetched
+// ═══════════════════════════════════════════════════════════════════════════
+
+function LoadingSkeleton() {
+    return (
+        <div style={loadingStyles.container}>
+            <div style={loadingStyles.questionBar}>
+                <div style={loadingStyles.pulse} />
+            </div>
+            <div style={loadingStyles.tableArea}>
+                <img
+                    src="/images/training/table-vertical-stadium-transparent.png"
+                    alt="Loading..."
+                    style={loadingStyles.tableImage}
+                />
+                <div style={loadingStyles.loadingText}>Loading Question...</div>
+            </div>
+            <div style={loadingStyles.buttonsArea}>
+                {[1, 2, 3, 4].map(i => (
+                    <div key={i} style={loadingStyles.buttonSkeleton} />
+                ))}
+            </div>
+        </div>
+    );
+}
+
+const loadingStyles = {
+    container: {
+        width: '100%',
+        height: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        background: 'linear-gradient(180deg, #0a0a12 0%, #1a1a2e 100%)',
+    },
+    questionBar: {
+        height: 60,
+        background: 'rgba(255,255,255,0.05)',
+        margin: 16,
+        borderRadius: 12,
+        overflow: 'hidden',
+    },
+    pulse: {
+        width: '100%',
+        height: '100%',
+        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)',
+        animation: 'pulse 1.5s infinite',
+    },
+    tableArea: {
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+    },
+    tableImage: {
+        opacity: 0.3,
+        height: '60%',
+        objectFit: 'contain',
+    },
+    loadingText: {
+        position: 'absolute',
+        color: '#00d4ff',
+        fontSize: 18,
+        fontWeight: 'bold',
+        fontFamily: "'Orbitron', sans-serif",
+        animation: 'pulse 1.5s infinite',
+    },
+    buttonsArea: {
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: 12,
+        padding: 16,
+    },
+    buttonSkeleton: {
+        height: 56,
+        background: 'rgba(255,255,255,0.05)',
+        borderRadius: 10,
+    },
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -134,6 +216,14 @@ export default function UniversalDynamicTable({
     gameType = 'cash', // 'cash', 'mtt', 'sng', 'spins'
 }) {
     const [timeLeft, setTimeLeft] = React.useState(30);
+    const [selectedAnswer, setSelectedAnswer] = React.useState(null);
+
+    // ════════════════════════════════════════════════════════════════════════
+    // LOADING STATE — Show skeleton while question is being fetched
+    // ════════════════════════════════════════════════════════════════════════
+    if (!question) {
+        return <LoadingSkeleton />;
+    }
 
     // ═══════════════════════════════════════════════════════════════════════
     // DYNAMIC DATA EXTRACTION FROM QUESTION
@@ -251,26 +341,35 @@ export default function UniversalDynamicTable({
         return () => clearInterval(timer);
     }, [showFeedback, questionNumber]);
 
-    // Reset timer on new question
+    // Reset timer AND selectedAnswer on new question
     React.useEffect(() => {
         setTimeLeft(30);
+        setSelectedAnswer(null);
     }, [questionNumber]);
 
     const handleAnswer = (answerId) => {
         if (showFeedback) return;
+        setSelectedAnswer(answerId); // Track which answer was selected
         onAnswer(answerId);
     };
 
-    const getButtonStyle = (option) => {
+    const getButtonStyle = (option, index) => {
         const baseStyle = { ...styles.answerButton };
         if (showFeedback) {
-            const optionId = option.id || option;
-            if (optionId === correctAnswer || optionId?.toLowerCase() === correctAnswer?.toLowerCase()) {
+            const optionId = option.id || String.fromCharCode(97 + index); // a, b, c, d
+            const isCorrect = optionId === correctAnswer || optionId?.toLowerCase() === correctAnswer?.toLowerCase();
+            const isSelected = optionId === selectedAnswer || optionId?.toLowerCase() === selectedAnswer?.toLowerCase();
+
+            // Always show correct answer in green
+            if (isCorrect) {
                 return { ...baseStyle, ...styles.correctButton };
             }
-            if (feedbackResult === 'incorrect') {
+            // Only show selected wrong answer in red (not all wrong answers)
+            if (isSelected && feedbackResult === 'incorrect') {
                 return { ...baseStyle, ...styles.incorrectButton };
             }
+            // Dim unselected wrong answers
+            return { ...baseStyle, opacity: 0.5 };
         }
         return baseStyle;
     };
@@ -418,7 +517,20 @@ export default function UniversalDynamicTable({
 
             {/* TIMER & COUNTER ROW */}
             <div style={styles.timerCounterRow}>
-                <div style={styles.timer}>{timeLeft}</div>
+                <motion.div
+                    style={{
+                        ...styles.timer,
+                        color: timeLeft <= 10 ? '#ff3b3b' : '#00d4ff',
+                        borderColor: timeLeft <= 10 ? '#ff3b3b' : '#666',
+                        boxShadow: timeLeft <= 10
+                            ? '0 0 20px rgba(255, 59, 59, 0.7), inset 0 2px 4px rgba(255,255,255,0.1)'
+                            : '0 0 15px rgba(0, 212, 255, 0.3), inset 0 2px 4px rgba(255,255,255,0.1)',
+                    }}
+                    animate={timeLeft <= 5 ? { scale: [1, 1.05, 1] } : {}}
+                    transition={{ repeat: Infinity, duration: 0.5 }}
+                >
+                    {timeLeft}
+                </motion.div>
                 <div style={styles.questionCounter}>
                     Question {questionNumber} of {totalQuestions}
                 </div>
@@ -434,7 +546,7 @@ export default function UniversalDynamicTable({
                             key={optionId}
                             onClick={() => handleAnswer(optionId)}
                             disabled={showFeedback}
-                            style={getButtonStyle(option)}
+                            style={getButtonStyle(option, index)}
                             whileHover={!showFeedback ? { scale: 1.02 } : {}}
                             whileTap={!showFeedback ? { scale: 0.98 } : {}}
                         >
@@ -451,15 +563,57 @@ export default function UniversalDynamicTable({
                     animate={{ opacity: 1 }}
                     style={styles.explanationOverlay}
                 >
-                    <div style={styles.explanationBox}>
+                    <motion.div
+                        initial={{ scale: 0.9, y: 20 }}
+                        animate={{ scale: 1, y: 0 }}
+                        style={{
+                            ...styles.explanationBox,
+                            borderColor: feedbackResult === 'correct' ? '#22c55e' : '#ef4444',
+                            boxShadow: feedbackResult === 'correct'
+                                ? '0 0 30px rgba(34, 197, 94, 0.4)'
+                                : '0 0 30px rgba(239, 68, 68, 0.4)',
+                        }}
+                    >
+                        {/* Result Icon */}
+                        <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ delay: 0.1, type: 'spring' }}
+                            style={{ fontSize: 48, marginBottom: 10 }}
+                        >
+                            {feedbackResult === 'correct' ? '✓' : '✗'}
+                        </motion.div>
+
                         <div style={{
                             ...styles.explanationTitle,
                             color: feedbackResult === 'correct' ? '#22c55e' : '#ef4444',
                         }}>
-                            {feedbackResult === 'correct' ? '✓ Correct!' : '✗ Incorrect'}
+                            {feedbackResult === 'correct' ? 'Correct!' : 'Incorrect'}
                         </div>
+
+                        {/* XP Reward for correct answers */}
+                        {feedbackResult === 'correct' && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.2 }}
+                                style={styles.xpReward}
+                            >
+                                +10 XP
+                            </motion.div>
+                        )}
+
                         <div style={styles.explanationText}>{explanation}</div>
-                    </div>
+
+                        {/* Continue Indicator */}
+                        <motion.div
+                            animate={{ opacity: [0.5, 1, 0.5] }}
+                            transition={{ repeat: Infinity, duration: 1.5 }}
+                            style={styles.continueHint}
+                        >
+                            Continuing in 2s...
+                        </motion.div>
+                    </motion.div>
                 </motion.div>
             )}
         </div>

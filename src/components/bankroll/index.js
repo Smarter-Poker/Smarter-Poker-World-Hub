@@ -32,3 +32,5 @@ export { default as TaxReportPanel } from './TaxReportPanel';
 export { default as StakingTracker } from './StakingTracker';
 export { default as SeriesTracker } from './SeriesTracker';
 export { default as SessionHandReview } from './SessionHandReview';
+export { default as BankrollProGate } from './BankrollProGate';
+
