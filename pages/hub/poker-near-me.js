@@ -217,9 +217,11 @@ function GeofenceAlertBanner({ venue, onCheckin, onReview, onDismiss }) {
 }
 
 // ---- Leaflet Map Component (client-side only) ----------------------------
-function VenueMap({ venues, userLocation }) {
+function VenueMap({ venues, userLocation, selectedCity }) {
     const mapContainerRef = useRef(null);
     const mapInstanceRef = useRef(null);
+    const clusterGroupRef = useRef(null);
+    const circlesGroupRef = useRef(null);
     const userMarkerRef = useRef(null);
     const [mapReady, setMapReady] = useState(false);
 
@@ -374,10 +376,12 @@ function VenueMap({ venues, userLocation }) {
         });
 
         map.addLayer(clusterGroup);
+        clusterGroupRef.current = clusterGroup;
 
         // Show / hide geofence circles based on zoom
         const circlesGroup = L.layerGroup();
         circlesGroup.addTo(map);
+        circlesGroupRef.current = circlesGroup;
 
         function updateCircles() {
             circlesGroup.clearLayers();
