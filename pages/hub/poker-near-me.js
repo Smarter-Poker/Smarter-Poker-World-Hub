@@ -26,7 +26,7 @@ const PAGE_SIZE_LIVE = 30;
 const LIVE_REFRESH_MS = 120000; // 2 minutes
 const SEARCH_DEBOUNCE_MS = 400;
 const SEARCH_HISTORY_MAX = 8;
-const GPS_SEARCH_RADIUS_KM = 500;
+const GPS_SEARCH_RADIUS_KM = 40; // 25 miles ≈ 40.23 km
 const GEOFENCE_ALERT_TIMEOUT_MS = 30000;
 const TOTAL_VENUES = 483;
 
@@ -528,6 +528,15 @@ export default function PokerNearMePage() {
     const [promotionVenueIds, setPromotionVenueIds] = useState(new Set());
     const [seriesViewMode, setSeriesViewMode] = useState('grid'); // 'grid' or 'calendar'
 
+    // Map view filters (for enhanced map-first experience)
+    const [mapFilters, setMapFilters] = useState({
+        cashGames: false,
+        tournaments: false,
+        openNow: false,
+        lowStakes: false,
+        topRated: false
+    });
+
     // Load all venues for the map (from static JSON) on mount
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -726,6 +735,7 @@ export default function PokerNearMePage() {
             (pos) => {
                 setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
                 setGpsLoading(false);
+                setActiveTab('map'); // Auto-switch to map view
             },
             () => {
                 alert('Unable to get your location. Please enable location services.');
@@ -948,6 +958,7 @@ export default function PokerNearMePage() {
     const handleCityClick = (city) => {
         setSelectedCity(city);
         setUserLocation(null);
+        setActiveTab('map'); // Auto-switch to map view
     };
 
     const clearFilters = () => {
@@ -1030,11 +1041,102 @@ export default function PokerNearMePage() {
     };
 
     const renderMap = () => {
+        // Filter venues based on map filters
+        let filteredVenues = allVenuesForMap;
+        if (mapFilters.cashGames) {
+            filteredVenues = filteredVenues.filter(v => v.games_offered && v.games_offered.length > 0);
+        }
+        if (mapFilters.tournaments) {
+            filteredVenues = filteredVenues.filter(v => v.has_tournaments);
+        }
+        if (mapFilters.lowStakes) {
+            filteredVenues = filteredVenues.filter(v => v.stakes_cash && v.stakes_cash.some(s => {
+                const match = s.match(/\$?(\d+)/);
+                return match && parseInt(match[1]) <= 2;
+            }));
+        }
+        if (mapFilters.topRated) {
+            filteredVenues = filteredVenues.filter(v => (v.trust_score || 0) >= 4.0);
+        }
+
+        // Calculate stats
+        const roomCount = filteredVenues.length;
+        const activeTables = liveGames.reduce((sum, g) => sum + (g.tables_running || 1), 0);
+        const tournamentsToday = dailyTournaments.length;
+
         return (
-            <VenueMap
-                venues={allVenuesForMap}
-                userLocation={userLocation}
-            />
+            <div className="map-first-container">
+                {/* Stats Header */}
+                <div className="map-header">
+                    <div className="map-header-left">
+                        <h2 className="map-title">Poker Rooms Near You</h2>
+                        <p className="map-stats">
+                            {roomCount} rooms • {activeTables} active tables • {tournamentsToday} tournaments today
+                        </p>
+                    </div>
+                    <button
+                        className="map-view-toggle"
+                        onClick={() => setActiveTab('venues')}
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
+                            <rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
+                        </svg>
+                        List View
+                    </button>
+                </div>
+
+                {/* Filter Chips */}
+                <div className="map-filters">
+                    <button
+                        className={'map-filter-chip' + (mapFilters.cashGames ? ' active' : '')}
+                        onClick={() => setMapFilters(prev => ({ ...prev, cashGames: !prev.cashGames }))}
+                    >
+                        <span className="chip-dot cash"></span>
+                        Cash Games
+                    </button>
+                    <button
+                        className={'map-filter-chip' + (mapFilters.tournaments ? ' active' : '')}
+                        onClick={() => setMapFilters(prev => ({ ...prev, tournaments: !prev.tournaments }))}
+                    >
+                        <span className="chip-dot tournament"></span>
+                        Tournaments
+                    </button>
+                    <button
+                        className={'map-filter-chip' + (mapFilters.openNow ? ' active' : '')}
+                        onClick={() => setMapFilters(prev => ({ ...prev, openNow: !prev.openNow }))}
+                    >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                        </svg>
+                        Open Now
+                    </button>
+                    <button
+                        className={'map-filter-chip' + (mapFilters.lowStakes ? ' active' : '')}
+                        onClick={() => setMapFilters(prev => ({ ...prev, lowStakes: !prev.lowStakes }))}
+                    >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+                        </svg>
+                        Low Stakes
+                    </button>
+                    <button
+                        className={'map-filter-chip' + (mapFilters.topRated ? ' active' : '')}
+                        onClick={() => setMapFilters(prev => ({ ...prev, topRated: !prev.topRated }))}
+                    >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="#f59e0b" stroke="#f59e0b" strokeWidth="2">
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                        </svg>
+                        Top Rated
+                    </button>
+                </div>
+
+                {/* Map Component */}
+                <VenueMap
+                    venues={filteredVenues}
+                    userLocation={userLocation}
+                />
+            </div>
         );
     };
 
@@ -1532,7 +1634,7 @@ export default function PokerNearMePage() {
                                     <div className="search-history-dropdown">
                                         <div className="search-history-header">
                                             <span>Recent Searches</span>
-                                            <button type="button" onClick={() => { setSearchHistory([]); localStorage.removeItem('sp-search-history'); if (userId) clearSearchHistoryFromDb(userId).catch(() => {}); setShowSearchHistory(false); }}>Clear</button>
+                                            <button type="button" onClick={() => { setSearchHistory([]); localStorage.removeItem('sp-search-history'); if (userId) clearSearchHistoryFromDb(userId).catch(() => { }); setShowSearchHistory(false); }}>Clear</button>
                                         </div>
                                         {searchHistory.map((item, i) => (
                                             <button key={i} type="button" className="search-history-item"

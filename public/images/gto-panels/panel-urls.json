@@ -30,6 +30,26 @@
     "path": "panels/gto_hj_raise_100bb.png"
   },
   {
+    "filename": "gto_hj_raise_200bb.png",
+    "url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/gto-panels/panels/gto_hj_raise_200bb.png",
+    "path": "panels/gto_hj_raise_200bb.png"
+  },
+  {
+    "filename": "gto_hj_raise_20bb.png",
+    "url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/gto-panels/panels/gto_hj_raise_20bb.png",
+    "path": "panels/gto_hj_raise_20bb.png"
+  },
+  {
+    "filename": "gto_hj_raise_30bb.png",
+    "url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/gto-panels/panels/gto_hj_raise_30bb.png",
+    "path": "panels/gto_hj_raise_30bb.png"
+  },
+  {
+    "filename": "gto_hj_raise_50bb.png",
+    "url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/gto-panels/panels/gto_hj_raise_50bb.png",
+    "path": "panels/gto_hj_raise_50bb.png"
+  },
+  {
     "filename": "gto_l1-utg-99_1770123346475.png",
     "url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/gto-panels/panels/gto_l1-utg-99_1770123346475.png",
     "path": "panels/gto_l1-utg-99_1770123346475.png"
@@ -95,9 +115,34 @@
     "path": "panels/gto_l1_utg_100bb_kk_1770122604136.png"
   },
   {
+    "filename": "gto_lj_raise_100bb.png",
+    "url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/gto-panels/panels/gto_lj_raise_100bb.png",
+    "path": "panels/gto_lj_raise_100bb.png"
+  },
+  {
     "filename": "gto_mp_raise_100bb.png",
     "url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/gto-panels/panels/gto_mp_raise_100bb.png",
     "path": "panels/gto_mp_raise_100bb.png"
+  },
+  {
+    "filename": "gto_mp_raise_200bb.png",
+    "url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/gto-panels/panels/gto_mp_raise_200bb.png",
+    "path": "panels/gto_mp_raise_200bb.png"
+  },
+  {
+    "filename": "gto_mp_raise_20bb.png",
+    "url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/gto-panels/panels/gto_mp_raise_20bb.png",
+    "path": "panels/gto_mp_raise_20bb.png"
+  },
+  {
+    "filename": "gto_mp_raise_30bb.png",
+    "url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/gto-panels/panels/gto_mp_raise_30bb.png",
+    "path": "panels/gto_mp_raise_30bb.png"
+  },
+  {
+    "filename": "gto_mp_raise_50bb.png",
+    "url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/gto-panels/panels/gto_mp_raise_50bb.png",
+    "path": "panels/gto_mp_raise_50bb.png"
   },
   {
     "filename": "gto_panel_3bet_vs_raise_1770121605728.png",
@@ -305,6 +350,16 @@
     "path": "panels/gto_suited_connector_btn_1770122917942.png"
   },
   {
+    "filename": "gto_utg+1_raise_100bb.png",
+    "url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/gto-panels/panels/gto_utg+1_raise_100bb.png",
+    "path": "panels/gto_utg+1_raise_100bb.png"
+  },
+  {
+    "filename": "gto_utg+1_raise_50bb.png",
+    "url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/gto-panels/panels/gto_utg+1_raise_50bb.png",
+    "path": "panels/gto_utg+1_raise_50bb.png"
+  },
+  {
     "filename": "gto_utg_fold_100bb.png",
     "url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/gto-panels/panels/gto_utg_fold_100bb.png",
     "path": "panels/gto_utg_fold_100bb.png"
@@ -313,5 +368,25 @@
     "filename": "gto_utg_raise_100bb.png",
     "url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/gto-panels/panels/gto_utg_raise_100bb.png",
     "path": "panels/gto_utg_raise_100bb.png"
+  },
+  {
+    "filename": "gto_utg_raise_200bb.png",
+    "url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/gto-panels/panels/gto_utg_raise_200bb.png",
+    "path": "panels/gto_utg_raise_200bb.png"
+  },
+  {
+    "filename": "gto_utg_raise_20bb.png",
+    "url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/gto-panels/panels/gto_utg_raise_20bb.png",
+    "path": "panels/gto_utg_raise_20bb.png"
+  },
+  {
+    "filename": "gto_utg_raise_30bb.png",
+    "url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/gto-panels/panels/gto_utg_raise_30bb.png",
+    "path": "panels/gto_utg_raise_30bb.png"
+  },
+  {
+    "filename": "gto_utg_raise_50bb.png",
+    "url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/gto-panels/panels/gto_utg_raise_50bb.png",
+    "path": "panels/gto_utg_raise_50bb.png"
   }
 ]

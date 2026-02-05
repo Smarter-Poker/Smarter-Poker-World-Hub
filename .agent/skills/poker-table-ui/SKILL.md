@@ -1,139 +1,105 @@
 ---
-name: Poker Table UI
-description: Build pixel-perfect poker table interfaces following the Golden Template standard
+name: Poker Table UI - Golden Smarter Table Law
+description: MANDATORY - The GoldenTemplateTable is the ONLY authorized poker table UI. No exceptions.
 ---
 
-# Poker Table UI Skill
+# 🔒 GOLDEN SMARTER TABLE LAW (LOCKED)
 
-## 🏆 GOLDEN STANDARD — MANDATORY FOR ALL POKER TABLES
+## ABSOLUTE UNCHANGEABLE RULE
 
-**EVERY poker table in Smarter.Poker MUST look IDENTICAL to this reference. NO EXCEPTIONS.**
+**The `GoldenTemplateTable.jsx` component is the ONE AND ONLY authorized poker table UI for ALL training pages, scenario players, and poker table displays.**
 
-![Golden Table Reference](file:///Users/smarter.poker/Documents/hub-vanguard/.agent/skills/poker-table-ui/golden-table-reference.png)
-
----
-
-## 🎯 Core Requirements
-
-### 1. Table Shape: STADIUM/RACETRACK (NOT Ellipse)
-```css
-borderRadius: 9999  /* Creates pill/stadium shape with rounded ends and straight sides */
-```
-
-### 2. Layer Structure (Outside → Inside)
-```
-┌─ OUTER DARK FRAME (gradient: #1a1a1a → #0a0a0a)
-│  └─ OUTER GOLD RAIL (gradient: #d4a000 → #8b6914)
-│     └─ BLACK GAP (#0a0a0a)
-│        └─ INNER GOLD RAIL (thinner, same gradient)
-│           └─ DARK EDGE (#080808)
-│              └─ THIN GOLD INNER LINE (subtle glow)
-│                 └─ FELT with WHITE EDGE GLOW
-```
-
-### 3. Felt Surface — WHITE EDGE GLOW
-**CRITICAL**: The felt has a distinctive WHITE/LIGHT GLOW around the inner edge that fades to dark center.
-```css
-background: `radial-gradient(
-  ellipse at 50% 50%,
-  #0a0a0a 0%,           /* Dark center */
-  #0a0a0a 40%,          /* Dark mid */
-  #2a2a2a 70%,          /* Lighter edge */
-  #4a4a4a 85%,          /* Glow edge */
-  #303030 100%          /* Outer edge */
-)`,
-boxShadow: 'inset 0 0 60px 20px rgba(255,255,255,0.08)'  /* White glow */
-```
-
-### 4. Background: SOLID BLACK
-```css
-background: '#080810'  /* Pure black, no gradients on page background */
-```
-
-### 5. Gold Rail Colors
-- **Bright**: #d4a000, #f0c040
-- **Dark**: #8b6914, #6b4f0a
-- **Use gradients** for 3D depth effect
+**Location:** `src/components/poker/GoldenTemplateTable.jsx`
 
 ---
 
-## 📐 CSS Implementation
+## ⛔ PROHIBITED ACTIONS
 
-### Stadium Shape
+1. **NEVER** create new poker table components from scratch
+2. **NEVER** use SceneSeat, SceneCards, or other custom scene components for table layouts
+3. **NEVER** implement alternative poker table designs
+4. **NEVER** modify card positions without loading the Golden Template first
+5. **NEVER** build training table UIs without importing GoldenTemplateTable
+
+---
+
+## ✅ MANDATORY BEFORE ANY TABLE WORK
+
+Before editing ANY poker table or training page:
+
+1. **VERIFY** the GoldenTemplateTable is imported and used
+2. **LOAD** the page and confirm it matches the Golden Template design
+3. **ONLY THEN** make adjustments to the GoldenTemplateTable.jsx itself
+
+---
+
+## GOLDEN TEMPLATE FEATURES (CANONICAL DESIGN)
+
+The Golden Template includes these LOCKED features:
+
+### Visual Elements
+- **Large illustrated avatars** (Wolf, Ninja, Wizard, Spartan, Pharaoh, Viking, Pirate, Cowboy, Fox)
+- **Racetrack table shape** with layered gold rails
+- **Dark felt** with subtle gradient
+- **Gold name badges** with player names and stack sizes
+- **POT display** at top of felt
+
+### Card Positions
+- **Community cards** — Center of felt when dealt
+- **Hero cards** — Bottom of table, attached to Hero position
+- **Game title** — Center of felt when no community cards
+
+### UI Elements
+- **Action buttons** at bottom (Fold, Check, Call, Raise, All-In)
+- **Timer** — Red square, bottom left
+- **Question counter** — Bottom right
+
+---
+
+## CORRECT USAGE PATTERN
+
 ```jsx
-borderRadius: 9999,  // NOT '50%' which creates ellipse
+// ✅ CORRECT — Always use GoldenTemplateTable
+import GoldenTemplateTable from '@/components/poker/GoldenTemplateTable';
+
+export default function MyTrainingPage() {
+    return (
+        <GoldenTemplateTable
+            players={players}
+            heroCards={heroCards}
+            communityCards={board}
+            pot={potBB}
+            dealerPosition={dealerSeatId}
+            gameTitle="ICM Fundamentals"
+            timer={15}
+            questionNumber={1}
+            totalQuestions={20}
+        />
+    );
+}
 ```
 
-### Gold Rail Gradient
 ```jsx
-background: 'linear-gradient(180deg, #d4a000 0%, #8b6914 50%, #6b4f0a 100%)',
-boxShadow: 'inset 0 2px 3px rgba(255,220,100,0.4)',
-```
-
-### Felt with White Edge Glow
-```jsx
-background: `radial-gradient(
-  ellipse at 50% 50%,
-  #080808 0%,
-  #0c0c0c 30%,
-  #151515 60%,
-  #252525 80%,
-  #1a1a1a 100%
-)`,
-boxShadow: 'inset 0 0 80px 30px rgba(255,255,255,0.06)',
+// ❌ WRONG — Never create custom table components
+import SceneSeat from './SceneSeat';  // PROHIBITED
+import SceneCards from './SceneCards';  // PROHIBITED
+// Building custom table layout... // PROHIBITED
 ```
 
 ---
 
-## 🎴 Card Standards
+## IMPROVEMENTS GO HERE
 
-### Optimal Card Image Size
-- **Dimensions**: 150 × 210 pixels (2x for retina)
-- **Format**: WebP preferred, PNG acceptable
-- **Aspect Ratio**: 5:7 (standard playing card)
+All poker table improvements MUST be made directly to:
 
-### Display Size on Table
-- **Hero cards**: 50-55px wide
-- **Community cards**: 48-52px wide
-- **Opponent cards (if shown)**: 40-45px wide
+**`src/components/poker/GoldenTemplateTable.jsx`**
 
-### Card Rendering
-```jsx
-objectFit: 'contain',  // NEVER 'cover' (causes cropping)
-imageRendering: 'high-quality',
-```
+DO NOT create alternative implementations. DO NOT build from scratch.
 
 ---
 
-## 👤 Player Positions (9-max)
+## ENFORCEMENT
 
-Avatars positioned OUTSIDE the table perimeter:
-- **Hero**: Bottom center
-- **Villain 1**: Bottom left
-- **Villain 2**: Left lower
-- **Villain 3**: Left upper  
-- **Villain 4**: Top left
-- **Villain 5**: Top right
-- **Villain 6**: Right upper
-- **Villain 7**: Right lower
-- **Villain 8**: Bottom right
+This skill is **LOCKED** and **UNCHANGEABLE**. Any agent must follow this law before touching any poker table UI code.
 
-### Avatar Size
-- **Hero**: 70-80px
-- **Villains**: 55-65px
-
-### Player Badge
-Single gold box with:
-- Name (9-10px, bold)
-- BB count (11-12px, bold)
-- Gradient background matching gold rails
-
----
-
-## 🚫 DO NOT
-
-- Use `borderRadius: '50%'` (creates ellipse, not stadium)
-- Use `objectFit: 'cover'` on cards (crops image)
-- Use colored backgrounds (must be solid black)
-- Deviate from the gold rail colors
-- Skip the white edge glow on felt
+**Violation of this law = Invalid work product**

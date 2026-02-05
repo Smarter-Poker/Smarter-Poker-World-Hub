@@ -794,6 +794,20 @@ export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine, 
                             {currentStreet.options[selectedOption]?.correct ? '✅ Correct!' : '❌ Not Optimal'}
                         </div>
                         <p style={styles.explanationText}>{currentStreet.explanation}</p>
+
+                        {/* GTO Panel Image */}
+                        <div style={styles.gtoPanelContainer}>
+                            <img
+                                src={`https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/gto-panels/panels/gto_panel_${currentSpot.id.replace('spot-', 'l')}_scenario_${currentStreetIndex}_1770118428644.png`}
+                                alt="GTO Analysis Panel"
+                                style={styles.gtoPanelImage}
+                                onError={(e) => {
+                                    // Fallback to generic panel if specific one not found
+                                    e.target.style.display = 'none';
+                                }}
+                            />
+                        </div>
+
                         <button onClick={handleNext} style={styles.nextButton}>
                             {currentStreetIndex < currentSpot.streets.length - 1
                                 ? 'Next Street →'
@@ -1097,5 +1111,16 @@ const styles = {
         fontWeight: 600,
         color: '#fff',
         cursor: 'pointer',
+    },
+    gtoPanelContainer: {
+        marginTop: 16,
+        marginBottom: 20,
+        textAlign: 'center',
+    },
+    gtoPanelImage: {
+        maxWidth: '100%',
+        borderRadius: 12,
+        boxShadow: '0 4px 20px rgba(0, 212, 255, 0.3)',
+        border: '1px solid rgba(0, 212, 255, 0.2)',
     },
 };

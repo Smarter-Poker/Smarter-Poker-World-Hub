@@ -210,6 +210,35 @@ const SCENARIOS = [
         gtoApproach: 'Solver Folds J2o Even From BTN. This Hand Is Too Weak To Open Profitably.',
         ev: '-0.25BB'
     },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Position-Based Panels for Memory Games (All Stack Depths)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    // UTG at various stack depths
+    { id: 'utg-raise-50bb', hand: 'QQ', position: 'UTG', action: 'raise', freq: 100, stackBb: 50, explanation: 'UTG Opening Range At 50BB. Tighter Than 100BB Due To Stack-To-Pot Ratio. Focus On Premium Hands Only.', gtoApproach: 'Short stack UTG opens tighter. Solver uses QQ+ and AKs primarily.', ev: '+1.85BB' },
+    { id: 'utg-raise-200bb', hand: 'TT', position: 'UTG', action: 'raise', freq: 100, stackBb: 200, explanation: 'UTG Opening Range At 200BB Deep. Wider Than 100BB With More Suited Connectors For Implied Odds.', gtoApproach: 'Deep stack UTG can add speculative hands for set mining and playability.', ev: '+1.95BB' },
+    { id: 'utg-raise-20bb', hand: 'AKo', position: 'UTG', action: 'raise', freq: 100, stackBb: 20, explanation: 'UTG Push Range At 20BB. Very Tight - Only Premium Hands. AK Is A Clear Shove.', gtoApproach: 'At 20BB, UTG uses push/fold strategy. AK dominates calling ranges.', ev: '+2.25BB' },
+    { id: 'utg-raise-30bb', hand: 'JJ', position: 'UTG', action: 'raise', freq: 100, stackBb: 30, explanation: 'UTG Opening Range At 30BB. Slightly Tighter Than 100BB. Focus On High Card Strength.', gtoApproach: 'At 30BB, solver opens JJ+ and broadways. Less room for speculation.', ev: '+1.75BB' },
+
+    // MP at various stack depths
+    { id: 'mp-raise-50bb', hand: 'AQs', position: 'MP', action: 'raise', freq: 100, stackBb: 50, explanation: 'MP Opening Range At 50BB. Slightly Wider Than UTG But Still Conservative.', gtoApproach: 'MP at 50BB opens pairs and strong broadways. AQs is standard.', ev: '+1.45BB' },
+    { id: 'mp-raise-200bb', hand: '88', position: 'MP', action: 'raise', freq: 100, stackBb: 200, explanation: 'MP Opening Range At 200BB Deep. Wide Range Including More Suited Hands.', gtoApproach: 'Deep stack MP opens small pairs for set value and implied odds.', ev: '+1.25BB' },
+    { id: 'mp-raise-20bb', hand: 'KK', position: 'MP', action: 'raise', freq: 100, stackBb: 20, explanation: 'MP Push Range At 20BB. Premium Hands Only. KK Is An Easy Jam.', gtoApproach: 'At 20BB, MP uses push/fold. KK has max EV as a shove.', ev: '+2.65BB' },
+    { id: 'mp-raise-30bb', hand: 'AKs', position: 'MP', action: 'raise', freq: 100, stackBb: 30, explanation: 'MP Opening Range At 30BB. AKs Is Premium With Flush And Straight Potential.', gtoApproach: 'At 30BB, MP opens strong. AKs is a top-tier open.', ev: '+1.85BB' },
+
+    // HJ at various stack depths
+    { id: 'hj-raise-50bb', hand: 'AJs', position: 'HJ', action: 'raise', freq: 100, stackBb: 50, explanation: 'HJ Opening Range At 50BB. Wider Than MP With More Suited Broadways.', gtoApproach: 'HJ at 50BB opens most suited broadways. AJs is standard.', ev: '+1.35BB' },
+    { id: 'hj-raise-200bb', hand: '55', position: 'HJ', action: 'raise', freq: 100, stackBb: 200, explanation: 'HJ Opening Range At 200BB Deep. Very Wide With All Pairs And Suited Connectors.', gtoApproach: 'Deep HJ opens small pairs for implied odds. 55 is profitable.', ev: '+0.95BB' },
+    { id: 'hj-raise-20bb', hand: 'QQ', position: 'HJ', action: 'raise', freq: 100, stackBb: 20, explanation: 'HJ Push Range At 20BB. QQ Is A Premium That Jams For Value.', gtoApproach: 'At 20BB, HJ shoves premium pairs. QQ dominates calling ranges.', ev: '+2.45BB' },
+    { id: 'hj-raise-30bb', hand: 'TT', position: 'HJ', action: 'raise', freq: 100, stackBb: 30, explanation: 'HJ Opening Range At 30BB. Wider Than Early Position.', gtoApproach: 'At 30BB, HJ opens more speculative. TT is a value open.', ev: '+1.55BB' },
+
+    // LJ (Lojack) position
+    { id: 'lj-raise-100bb', hand: 'KQs', position: 'LJ', action: 'raise', freq: 100, stackBb: 100, explanation: 'LJ Opening Range At 100BB. Similar To HJ But Slightly Tighter.', gtoApproach: 'LJ opens suited broadways and pairs. KQs is standard.', ev: '+1.15BB' },
+
+    // UTG+1 position
+    { id: 'utg1-raise-100bb', hand: 'AQo', position: 'UTG+1', action: 'raise', freq: 100, stackBb: 100, explanation: 'UTG+1 Opening Range At 100BB. Slightly Wider Than UTG.', gtoApproach: 'UTG+1 opens broadways and pairs. AQo is standard.', ev: '+1.25BB' },
+    { id: 'utg1-raise-50bb', hand: 'JJ', position: 'UTG+1', action: 'raise', freq: 100, stackBb: 50, explanation: 'UTG+1 Opening Range At 50BB. Tighter Due To Stack Depth.', gtoApproach: 'At 50BB, UTG+1 focuses on premium. JJ is an easy open.', ev: '+1.65BB' },
 ];
 
 // Title case converter with poker capitalization
@@ -378,8 +407,9 @@ async function generatePanel(scenario, index, total) {
             throw new Error('No image data in response');
         }
 
-        // Save image
-        const filename = `gto_${scenario.id}_${Date.now()}.png`;
+        // Save image - CRITICAL: filename must match memory-games.js URL pattern
+        // Format: gto_{position}_{action}_{stackBb}bb.png (all lowercase)
+        const filename = `gto_${scenario.position.toLowerCase()}_${scenario.action.toLowerCase()}_${scenario.stackBb}bb.png`;
         const filepath = path.join(OUTPUT_DIR, filename);
         fs.writeFileSync(filepath, Buffer.from(b64Image, 'base64'));
 

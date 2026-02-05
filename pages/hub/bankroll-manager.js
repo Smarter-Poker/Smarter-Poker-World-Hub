@@ -36,7 +36,7 @@ import LeakAlertPanel from '../../src/components/bankroll/LeakAlertPanel';
 import BankrollRulesCard from '../../src/components/bankroll/BankrollRulesCard';
 import BankrollTrendChart from '../../src/components/bankroll/BankrollTrendChart';
 import QuickLogWidget from '../../src/components/bankroll/QuickLogWidget';
-import BankrollStreaks from '../../src/components/bankroll/BankrollStreaks';
+// BankrollStreaks removed
 import JarvisLeakInsights from '../../src/components/bankroll/JarvisLeakInsights';
 // Phase 2 Components
 import BankrollGoals from '../../src/components/bankroll/BankrollGoals';
@@ -897,8 +897,7 @@ export default function BankrollManagerPage() {
             {/* Jarvis AI Insights */}
             <JarvisLeakInsights userId={userId} onRefresh={loadData} />
 
-            {/* Streaks & Gamification */}
-            <BankrollStreaks userId={userId} isLoading={isLoading} />
+
 
             {/* Goals */}
             <BankrollGoals

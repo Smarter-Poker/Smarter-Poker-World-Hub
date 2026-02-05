@@ -33,8 +33,11 @@ export default function SceneCards({
 }) {
     const dimensions = CARD_SIZES[size] || CARD_SIZES.medium;
 
+    // Gap based on card size
+    const gap = size === 'small' ? 4 : size === 'medium' ? 6 : 8;
+
     return (
-        <div style={{ display: 'flex', gap: size === 'small' ? 4 : 6 }}>
+        <div style={{ display: 'flex', gap }}>
             <AnimatePresence>
                 {cards.map((cardStr, i) => {
                     const card = parseCard(cardStr);
@@ -95,9 +98,10 @@ export default function SceneCards({
 }
 
 const CARD_SIZES = {
-    small: { width: 36, height: 52, fontSize: 12 },
-    medium: { width: 48, height: 68, fontSize: 14 },
-    large: { width: 56, height: 80, fontSize: 16 },
+    small: { width: 32, height: 46, fontSize: 11 },
+    medium: { width: 42, height: 60, fontSize: 13 },
+    large: { width: 48, height: 68, fontSize: 14 },     // Board cards - fit 5 in table
+    xlarge: { width: 64, height: 92, fontSize: 18 },    // Hero cards - largest
 };
 
 const styles = {

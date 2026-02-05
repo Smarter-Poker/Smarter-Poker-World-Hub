@@ -40,12 +40,34 @@ const SPORTS = ['nfl', 'nba', 'mlb', 'nhl', 'soccer', 'mma', 'golf', 'tennis', '
 const BET_TYPES = ['moneyline', 'spread', 'over_under', 'parlay', 'prop', 'live'];
 const EMOTIONAL_TAGS = ['neutral', 'confident', 'tilted', 'exhausted', 'rushed', 'revenge'];
 
+// Standard casino cash game stakes
+const STANDARD_STAKES = [
+  '1/2',
+  '1/3',
+  '2/3',
+  '2/5',
+  '5/5',
+  '5/10',
+  '10/20',
+  '10/25',
+  '25/50',
+  '50/100',
+  '100/200',
+];
+
+const CUSTOM_STAKES_KEY = 'bankroll_custom_stakes';
+
 export default function LogEntryModal({ userId, locations, trips, onClose, onSubmit }) {
   const [step, setStep] = useState('category'); // 'category' | 'details'
   const [category, setCategory] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [ruleWarnings, setRuleWarnings] = useState([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Stakes selector state
+  const [customStakes, setCustomStakes] = useState([]);
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [customStakeInput, setCustomStakeInput] = useState('');
 
   // Form state
   const [formData, setFormData] = useState({
@@ -111,6 +133,43 @@ export default function LogEntryModal({ userId, locations, trips, onClose, onSub
     }
   }, [userId]);
 
+  // Load custom stakes from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(CUSTOM_STAKES_KEY);
+      if (stored) {
+        setCustomStakes(JSON.parse(stored));
+      }
+    } catch (e) {
+      console.error('Failed to load custom stakes:', e);
+    }
+  }, []);
+
+  // Fetch last-used stake on mount
+  useEffect(() => {
+    async function fetchLastStake() {
+      if (!userId) return;
+      try {
+        const { data } = await supabase
+          .from('bankroll_ledger')
+          .select('stakes')
+          .eq('user_id', userId)
+          .eq('category', 'poker_cash')
+          .not('stakes', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (data?.stakes) {
+          setFormData((prev) => ({ ...prev, stakes: data.stakes }));
+        }
+      } catch (e) {
+        // No previous entries - that's fine
+      }
+    }
+    fetchLastStake();
+  }, [userId]);
+
   const handleCategorySelect = (cat) => {
     setCategory(cat);
     setStep('details');
@@ -118,6 +177,31 @@ export default function LogEntryModal({ userId, locations, trips, onClose, onSub
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  // Handle stake pill selection
+  const handleStakeSelect = (stake) => {
+    setFormData((prev) => ({ ...prev, stakes: stake }));
+    setShowCustomInput(false);
+  };
+
+  // Add custom stake
+  const handleAddCustomStake = () => {
+    const stake = customStakeInput.trim();
+    if (!stake) return;
+
+    // Add to custom stakes if not already in standard or custom list
+    const allStakes = [...STANDARD_STAKES, ...customStakes];
+    if (!allStakes.includes(stake)) {
+      const newCustom = [...customStakes, stake];
+      setCustomStakes(newCustom);
+      localStorage.setItem(CUSTOM_STAKES_KEY, JSON.stringify(newCustom));
+    }
+
+    // Select it
+    setFormData((prev) => ({ ...prev, stakes: stake }));
+    setCustomStakeInput('');
+    setShowCustomInput(false);
   };
 
   const calculateNetResult = () => {
@@ -285,17 +369,77 @@ export default function LogEntryModal({ userId, locations, trips, onClose, onSub
 
         {/* Category-specific fields */}
         {category === 'poker_cash' && (
-          <div style={styles.amountRow}>
+          <>
+            {/* Stakes Selector */}
             <div style={styles.formGroup}>
               <label style={styles.label}>Stakes</label>
-              <input
-                type="text"
-                value={formData.stakes}
-                onChange={(e) => handleInputChange('stakes', e.target.value)}
-                placeholder="e.g., 2/5 NL"
-                style={styles.input}
-              />
+              <div style={styles.stakesScrollContainer}>
+                <div style={styles.stakesScrollInner}>
+                  {/* Standard Stakes */}
+                  {STANDARD_STAKES.map((stake) => (
+                    <button
+                      key={stake}
+                      type="button"
+                      onClick={() => handleStakeSelect(stake)}
+                      style={{
+                        ...styles.stakePill,
+                        ...(formData.stakes === stake ? styles.stakePillSelected : {}),
+                      }}
+                    >
+                      {stake}
+                    </button>
+                  ))}
+
+                  {/* Custom Stakes */}
+                  {customStakes.map((stake) => (
+                    <button
+                      key={`custom-${stake}`}
+                      type="button"
+                      onClick={() => handleStakeSelect(stake)}
+                      style={{
+                        ...styles.stakePill,
+                        ...styles.stakePillCustom,
+                        ...(formData.stakes === stake ? styles.stakePillSelected : {}),
+                      }}
+                    >
+                      {stake}
+                    </button>
+                  ))}
+
+                  {/* Add Custom Button */}
+                  {!showCustomInput ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowCustomInput(true)}
+                      style={styles.addCustomBtn}
+                    >
+                      + Custom
+                    </button>
+                  ) : (
+                    <div style={styles.customInputContainer}>
+                      <input
+                        type="text"
+                        value={customStakeInput}
+                        onChange={(e) => setCustomStakeInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddCustomStake())}
+                        placeholder="e.g., 3/6"
+                        style={styles.customStakeInput}
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddCustomStake}
+                        style={styles.customAddConfirm}
+                      >
+                        ✓
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
+
+            {/* Game Type */}
             <div style={styles.formGroup}>
               <label style={styles.label}>Game Type</label>
               <select
@@ -309,7 +453,7 @@ export default function LogEntryModal({ userId, locations, trips, onClose, onSub
                 <option value="other">Other</option>
               </select>
             </div>
-          </div>
+          </>
         )}
 
         {category === 'poker_mtt' && (
@@ -836,5 +980,85 @@ const styles = {
     fontSize: 14,
     fontWeight: 600,
     cursor: 'pointer',
+  },
+  // Stakes Selector Styles
+  stakesScrollContainer: {
+    overflowX: 'auto',
+    overflowY: 'hidden',
+    marginLeft: -4,
+    marginRight: -4,
+    paddingBottom: 4,
+    msOverflowStyle: 'none',
+    scrollbarWidth: 'none',
+  },
+  stakesScrollInner: {
+    display: 'flex',
+    gap: 8,
+    paddingLeft: 4,
+    paddingRight: 4,
+    minWidth: 'max-content',
+  },
+  stakePill: {
+    padding: '10px 16px',
+    background: '#3a3b3c',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: 20,
+    color: '#e4e6eb',
+    fontSize: 14,
+    fontWeight: 500,
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+    transition: 'all 0.15s ease',
+    flexShrink: 0,
+  },
+  stakePillSelected: {
+    background: '#2374e1',
+    borderColor: '#2374e1',
+    color: '#fff',
+  },
+  stakePillCustom: {
+    background: '#2d2d2e',
+    borderStyle: 'dashed',
+  },
+  addCustomBtn: {
+    padding: '10px 16px',
+    background: 'transparent',
+    border: '1px dashed rgba(255, 255, 255, 0.25)',
+    borderRadius: 20,
+    color: '#65676b',
+    fontSize: 14,
+    fontWeight: 500,
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+    flexShrink: 0,
+  },
+  customInputContainer: {
+    display: 'flex',
+    gap: 6,
+    alignItems: 'center',
+    flexShrink: 0,
+  },
+  customStakeInput: {
+    padding: '8px 12px',
+    width: 80,
+    background: 'rgba(0, 0, 0, 0.3)',
+    border: '1px solid rgba(255, 255, 255, 0.2)',
+    borderRadius: 20,
+    color: '#fff',
+    fontSize: 14,
+    outline: 'none',
+  },
+  customAddConfirm: {
+    width: 32,
+    height: 32,
+    borderRadius: '50%',
+    background: '#2374e1',
+    border: 'none',
+    color: '#fff',
+    fontSize: 16,
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 };

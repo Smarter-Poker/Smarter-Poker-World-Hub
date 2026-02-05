@@ -234,47 +234,49 @@ export class PIOQueryService {
             'cash-025': { id: 'cash-025', sourceOfTruth: 'PioSOLVER', pioGameType: 'postflop_complete', pioStackDepth: 100 }, // Cash King
 
             // ═══════════════════════════════════════════════════════════════
-            // MTT GAMES (25) - Use turn/river_mtt_icm for tournament training
+            // MTT GAMES (25) - Use mtt_6max_icm/mtt_9max_icm/mtt_6max_chipev for tournament training
+            // FIXED: Now using actual database game_types (was river_mtt_icm/turn_mtt_icm with only 100-200 records)
             // ═══════════════════════════════════════════════════════════════
             'mtt-001': { id: 'mtt-001', sourceOfTruth: 'ICMIZER', pioStackDepth: 10 }, // Push/Fold (CHART)
-            'mtt-002': { id: 'mtt-002', sourceOfTruth: 'PioSOLVER', pioGameType: 'river_mtt_icm', pioStackDepth: 20 }, // ICM Pressure
-            'mtt-003': { id: 'mtt-003', sourceOfTruth: 'PioSOLVER', pioGameType: 'river_mtt_icm', pioStackDepth: 40 }, // Bubble Play
-            'mtt-004': { id: 'mtt-004', sourceOfTruth: 'PioSOLVER', pioGameType: 'turn_mtt_icm', pioStackDepth: 60 }, // Final Table
-            'mtt-005': { id: 'mtt-005', sourceOfTruth: 'PioSOLVER', pioGameType: 'river_mtt_icm', pioStackDepth: 40 }, // PKO Game
-            'mtt-006': { id: 'mtt-006', sourceOfTruth: 'PioSOLVER', pioGameType: 'river_mtt_icm', pioStackDepth: 20 }, // Satellite
-            'mtt-007': { id: 'mtt-007', sourceOfTruth: 'PioSOLVER', pioGameType: 'turn_mtt_icm', pioStackDepth: 100 }, // Deep Stack MTT
-            'mtt-008': { id: 'mtt-008', sourceOfTruth: 'PioSOLVER', pioGameType: 'river_mtt_icm', pioStackDepth: 10 }, // Short Stack
-            'mtt-009': { id: 'mtt-009', sourceOfTruth: 'PioSOLVER', pioGameType: 'river_mtt_icm', pioStackDepth: 20 }, // Resteal
-            'mtt-010': { id: 'mtt-010', sourceOfTruth: 'PioSOLVER', pioGameType: 'turn_mtt_icm', pioStackDepth: 40 }, // Ante Play
-            'mtt-011': { id: 'mtt-011', sourceOfTruth: 'PioSOLVER', pioGameType: 'river_mtt_icm', pioStackDepth: 60 }, // Pay Jump
-            'mtt-012': { id: 'mtt-012', sourceOfTruth: 'PioSOLVER', pioGameType: 'turn_mtt_icm', pioStackDepth: 80 }, // Big Blind Defense
-            'mtt-013': { id: 'mtt-013', sourceOfTruth: 'PioSOLVER', pioGameType: 'river_mtt_icm', pioStackDepth: 40 }, // Chipleader
-            'mtt-014': { id: 'mtt-014', sourceOfTruth: 'PioSOLVER', pioGameType: 'turn_mtt_icm', pioStackDepth: 20 }, // 3-Max Blitz
-            'mtt-015': { id: 'mtt-015', sourceOfTruth: 'PioSOLVER', pioGameType: 'turn_mtt_icm', pioStackDepth: 40 }, // Heads Up Duel
+            'mtt-002': { id: 'mtt-002', sourceOfTruth: 'PioSOLVER', pioGameType: 'mtt_6max_icm', pioStackDepth: 20 }, // ICM Pressure
+            'mtt-003': { id: 'mtt-003', sourceOfTruth: 'PioSOLVER', pioGameType: 'mtt_6max_icm', pioStackDepth: 40 }, // Bubble Play
+            'mtt-004': { id: 'mtt-004', sourceOfTruth: 'PioSOLVER', pioGameType: 'mtt_9max_icm', pioStackDepth: 60 }, // Final Table
+            'mtt-005': { id: 'mtt-005', sourceOfTruth: 'PioSOLVER', pioGameType: 'mtt_6max_icm', pioStackDepth: 40 }, // PKO Game
+            'mtt-006': { id: 'mtt-006', sourceOfTruth: 'PioSOLVER', pioGameType: 'mtt_6max_icm', pioStackDepth: 20 }, // Satellite
+            'mtt-007': { id: 'mtt-007', sourceOfTruth: 'PioSOLVER', pioGameType: 'mtt_9max_chipev', pioStackDepth: 100 }, // Deep Stack MTT
+            'mtt-008': { id: 'mtt-008', sourceOfTruth: 'PioSOLVER', pioGameType: 'mtt_6max_chipev', pioStackDepth: 10 }, // Short Stack
+            'mtt-009': { id: 'mtt-009', sourceOfTruth: 'PioSOLVER', pioGameType: 'mtt_6max_chipev', pioStackDepth: 20 }, // Resteal
+            'mtt-010': { id: 'mtt-010', sourceOfTruth: 'PioSOLVER', pioGameType: 'mtt_9max_chipev', pioStackDepth: 40 }, // Ante Play
+            'mtt-011': { id: 'mtt-011', sourceOfTruth: 'PioSOLVER', pioGameType: 'mtt_9max_icm', pioStackDepth: 60 }, // Pay Jump
+            'mtt-012': { id: 'mtt-012', sourceOfTruth: 'PioSOLVER', pioGameType: 'mtt_9max_chipev', pioStackDepth: 80 }, // Big Blind Defense
+            'mtt-013': { id: 'mtt-013', sourceOfTruth: 'PioSOLVER', pioGameType: 'mtt_6max_icm', pioStackDepth: 40 }, // Chipleader
+            'mtt-014': { id: 'mtt-014', sourceOfTruth: 'PioSOLVER', pioGameType: 'mtt_3max_chipev', pioStackDepth: 20 }, // 3-Max Blitz
+            'mtt-015': { id: 'mtt-015', sourceOfTruth: 'PioSOLVER', pioGameType: 'mtt_hu_chipev', pioStackDepth: 40 }, // Heads Up Duel
             'mtt-016': { id: 'mtt-016', sourceOfTruth: 'ICMIZER', pioStackDepth: 10 }, // Chip & Chair (CHART)
-            'mtt-017': { id: 'mtt-017', sourceOfTruth: 'PioSOLVER', pioGameType: 'turn_mtt_icm', pioStackDepth: 20 }, // BB Defense
-            'mtt-018': { id: 'mtt-018', sourceOfTruth: 'PioSOLVER', pioGameType: 'turn_mtt_icm', pioStackDepth: 40 }, // BTN Warfare
-            'mtt-019': { id: 'mtt-019', sourceOfTruth: 'PioSOLVER', pioGameType: 'river_mtt_icm', pioStackDepth: 60 }, // Middle Stack
-            'mtt-020': { id: 'mtt-020', sourceOfTruth: 'PioSOLVER', pioGameType: 'river_mtt_icm', pioStackDepth: 80 }, // Late Reg
-            'mtt-021': { id: 'mtt-021', sourceOfTruth: 'PioSOLVER', pioGameType: 'turn_mtt_icm', pioStackDepth: 100 }, // All-In EV
-            'mtt-022': { id: 'mtt-022', sourceOfTruth: 'PioSOLVER', pioGameType: 'river_mtt_icm', pioStackDepth: 40 }, // Multi-Entry
-            'mtt-023': { id: 'mtt-023', sourceOfTruth: 'PioSOLVER', pioGameType: 'turn_mtt_icm', pioStackDepth: 60 }, // Day 2 Play
-            'mtt-024': { id: 'mtt-024', sourceOfTruth: 'PioSOLVER', pioGameType: 'river_mtt_icm', pioStackDepth: 80 }, // Triple Barrel
-            'mtt-025': { id: 'mtt-025', sourceOfTruth: 'PioSOLVER', pioGameType: 'turn_mtt_icm', pioStackDepth: 100 }, // MTT Champion
+            'mtt-017': { id: 'mtt-017', sourceOfTruth: 'PioSOLVER', pioGameType: 'mtt_9max_chipev', pioStackDepth: 20 }, // BB Defense
+            'mtt-018': { id: 'mtt-018', sourceOfTruth: 'PioSOLVER', pioGameType: 'mtt_6max_chipev', pioStackDepth: 40 }, // BTN Warfare
+            'mtt-019': { id: 'mtt-019', sourceOfTruth: 'PioSOLVER', pioGameType: 'mtt_9max_icm', pioStackDepth: 60 }, // Middle Stack
+            'mtt-020': { id: 'mtt-020', sourceOfTruth: 'PioSOLVER', pioGameType: 'mtt_9max_chipev', pioStackDepth: 80 }, // Late Reg
+            'mtt-021': { id: 'mtt-021', sourceOfTruth: 'PioSOLVER', pioGameType: 'mtt_6max_chipev', pioStackDepth: 100 }, // All-In EV
+            'mtt-022': { id: 'mtt-022', sourceOfTruth: 'PioSOLVER', pioGameType: 'mtt_6max_icm', pioStackDepth: 40 }, // Multi-Entry
+            'mtt-023': { id: 'mtt-023', sourceOfTruth: 'PioSOLVER', pioGameType: 'mtt_9max_icm', pioStackDepth: 60 }, // Day 2 Play
+            'mtt-024': { id: 'mtt-024', sourceOfTruth: 'PioSOLVER', pioGameType: 'mtt_9max_chipev', pioStackDepth: 80 }, // Triple Barrel
+            'mtt-025': { id: 'mtt-025', sourceOfTruth: 'PioSOLVER', pioGameType: 'mtt_6max_chipev', pioStackDepth: 100 }, // MTT Champion
 
             // ═══════════════════════════════════════════════════════════════
-            // SPINS (10) - Use turn_spin for Spin & Go training
+            // SPINS (10) - Use spin_3max_chipev/spin_3max_icm/spin_hu_chipev for Spin & Go training
+            // FIXED: Now using actual database game_types (was turn_spin with only 52 records)
             // ═══════════════════════════════════════════════════════════════
-            'spins-001': { id: 'spins-001', sourceOfTruth: 'PioSOLVER', pioGameType: 'turn_spin', pioStackDepth: 20 }, // Standard Play
-            'spins-002': { id: 'spins-002', sourceOfTruth: 'PioSOLVER', pioGameType: 'turn_spin', pioStackDepth: 20 }, // Jackpot Tactics
-            'spins-003': { id: 'spins-003', sourceOfTruth: 'PioSOLVER', pioGameType: 'turn_spin', pioStackDepth: 20 }, // Button Limp
-            'spins-004': { id: 'spins-004', sourceOfTruth: 'PioSOLVER', pioGameType: 'turn_spin', pioStackDepth: 10 }, // SNG Endgame
-            'spins-005': { id: 'spins-005', sourceOfTruth: 'PioSOLVER', pioGameType: 'turn_spin', pioStackDepth: 40 }, // Phase Shifting
-            'spins-006': { id: 'spins-006', sourceOfTruth: 'PioSOLVER', pioGameType: 'turn_spin', pioStackDepth: 20 }, // Limp Trap
-            'spins-007': { id: 'spins-007', sourceOfTruth: 'PioSOLVER', pioGameType: 'turn_spin', pioStackDepth: 10 }, // All-In Spots
-            'spins-008': { id: 'spins-008', sourceOfTruth: 'PioSOLVER', pioGameType: 'turn_spin', pioStackDepth: 20 }, // Stop & Go
-            'spins-009': { id: 'spins-009', sourceOfTruth: 'PioSOLVER', pioGameType: 'turn_spin', pioStackDepth: 40 }, // Multiplier Hunt
-            'spins-010': { id: 'spins-010', sourceOfTruth: 'PioSOLVER', pioGameType: 'turn_spin', pioStackDepth: 60 }, // Spin Master
+            'spins-001': { id: 'spins-001', sourceOfTruth: 'PioSOLVER', pioGameType: 'spin_3max_chipev', pioStackDepth: 20 }, // Standard Play
+            'spins-002': { id: 'spins-002', sourceOfTruth: 'PioSOLVER', pioGameType: 'spin_3max_icm', pioStackDepth: 20 }, // Jackpot Tactics
+            'spins-003': { id: 'spins-003', sourceOfTruth: 'PioSOLVER', pioGameType: 'spin_3max_chipev', pioStackDepth: 20 }, // Button Limp
+            'spins-004': { id: 'spins-004', sourceOfTruth: 'PioSOLVER', pioGameType: 'spin_hu_chipev', pioStackDepth: 10 }, // SNG Endgame
+            'spins-005': { id: 'spins-005', sourceOfTruth: 'PioSOLVER', pioGameType: 'spin_3max_chipev', pioStackDepth: 25 }, // Phase Shifting
+            'spins-006': { id: 'spins-006', sourceOfTruth: 'PioSOLVER', pioGameType: 'spin_3max_icm', pioStackDepth: 20 }, // Limp Trap
+            'spins-007': { id: 'spins-007', sourceOfTruth: 'PioSOLVER', pioGameType: 'spin_hu_icm', pioStackDepth: 10 }, // All-In Spots
+            'spins-008': { id: 'spins-008', sourceOfTruth: 'PioSOLVER', pioGameType: 'spin_hu_chipev', pioStackDepth: 20 }, // Stop & Go
+            'spins-009': { id: 'spins-009', sourceOfTruth: 'PioSOLVER', pioGameType: 'spin_3max_icm', pioStackDepth: 25 }, // Multiplier Hunt
+            'spins-010': { id: 'spins-010', sourceOfTruth: 'PioSOLVER', pioGameType: 'spin_3max_chipev', pioStackDepth: 25 }, // Spin Master
 
             // ═══════════════════════════════════════════════════════════════
             // PSYCHOLOGY (20) - Use SCENARIO engine (Grok AI)
