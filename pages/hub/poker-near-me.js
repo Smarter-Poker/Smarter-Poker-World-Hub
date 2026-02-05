@@ -228,7 +228,7 @@ function VenueMap({ venues, userLocation }) {
         if (typeof window === 'undefined') return;
 
         const check = () => {
-            if (window.L && window.L.markerClusterGroup) {
+            if (window.L && window.L.MarkerClusterGroup) {
                 setMapReady(true);
             } else {
                 setTimeout(check, 200);
@@ -3134,6 +3134,513 @@ export default function PokerNearMePage() {
                     .leaflet-container {
                         background: #0f172a !important;
                         font-family: 'Inter', -apple-system, sans-serif;
+                    }
+
+                    /* Map-First UI Styles - Enhanced Desktop Layout (must be global) */
+                    .map-desktop-layout {
+                        display: grid !important;
+                        grid-template-columns: 1fr 320px !important;
+                        gap: 0;
+                        min-height: calc(100vh - 200px);
+                    }
+                    .map-main-section {
+                        display: flex !important;
+                        flex-direction: column;
+                        background: rgba(15, 23, 42, 0.6);
+                        overflow-y: auto;
+                    }
+                    .map-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: 16px 20px;
+                        background: rgba(15, 23, 42, 0.9);
+                        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                    }
+                    .map-header-left {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 4px;
+                    }
+                    .map-header-right {
+                        display: flex;
+                        gap: 8px;
+                    }
+                    .map-title {
+                        font-family: 'Orbitron', sans-serif;
+                        font-size: 18px;
+                        font-weight: 600;
+                        color: #fff;
+                        margin: 0;
+                        letter-spacing: 1px;
+                    }
+                    .map-stats {
+                        font-family: 'Rajdhani', sans-serif;
+                        font-size: 13px;
+                        color: rgba(255, 255, 255, 0.5);
+                        margin: 0;
+                    }
+                    .map-view-toggle {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        padding: 8px 14px;
+                        background: rgba(255, 255, 255, 0.05);
+                        border: 1px solid rgba(255, 255, 255, 0.15);
+                        border-radius: 8px;
+                        color: rgba(255, 255, 255, 0.6);
+                        font-size: 12px;
+                        font-weight: 500;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+                    .map-view-toggle:hover {
+                        background: rgba(255, 255, 255, 0.1);
+                    }
+                    .map-view-toggle.active {
+                        background: rgba(0, 212, 255, 0.15);
+                        border-color: rgba(0, 212, 255, 0.4);
+                        color: #00D4FF;
+                    }
+                    .map-filters {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 8px;
+                        padding: 12px 20px;
+                        background: rgba(10, 15, 30, 0.95);
+                        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+                    }
+                    .map-filter-chip {
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                        padding: 8px 14px;
+                        background: rgba(255, 255, 255, 0.05);
+                        border: 1px solid rgba(255, 255, 255, 0.12);
+                        border-radius: 20px;
+                        color: rgba(255, 255, 255, 0.7);
+                        font-size: 12px;
+                        font-weight: 500;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+                    .map-filter-chip:hover {
+                        background: rgba(255, 255, 255, 0.1);
+                        border-color: rgba(255, 255, 255, 0.2);
+                    }
+                    .map-filter-chip.active {
+                        background: rgba(0, 212, 255, 0.2);
+                        border-color: rgba(0, 212, 255, 0.5);
+                        color: #00D4FF;
+                    }
+                    .chip-dot {
+                        width: 8px;
+                        height: 8px;
+                        border-radius: 50%;
+                    }
+                    .chip-dot.cash {
+                        background: #22c55e;
+                        box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
+                    }
+                    .chip-dot.tournament {
+                        background: #f59e0b;
+                        box-shadow: 0 0 6px rgba(245, 158, 11, 0.5);
+                    }
+                    .map-container {
+                        flex: 1;
+                        min-height: 400px;
+                    }
+
+                    /* Room List Below Map */
+                    .rooms-list-section {
+                        padding: 20px;
+                        background: rgba(15, 23, 42, 0.8);
+                        border-top: 1px solid rgba(255, 255, 255, 0.1);
+                    }
+                    .rooms-list-title {
+                        font-family: 'Orbitron', sans-serif;
+                        font-size: 14px;
+                        font-weight: 600;
+                        color: #fff;
+                        margin: 0 0 16px;
+                        letter-spacing: 0.5px;
+                    }
+                    .rooms-list {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 12px;
+                    }
+                    .room-list-item {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: 16px;
+                        background: rgba(255, 255, 255, 0.03);
+                        border: 1px solid rgba(255, 255, 255, 0.08);
+                        border-radius: 12px;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+                    .room-list-item:hover {
+                        background: rgba(255, 255, 255, 0.06);
+                        border-color: rgba(255, 255, 255, 0.15);
+                    }
+                    .room-list-item.selected {
+                        background: rgba(0, 212, 255, 0.1);
+                        border-color: rgba(0, 212, 255, 0.3);
+                    }
+                    .room-list-item-main {
+                        flex: 1;
+                    }
+                    .room-list-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        margin-bottom: 4px;
+                    }
+                    .room-list-name {
+                        font-size: 15px;
+                        font-weight: 600;
+                        color: #fff;
+                        margin: 0;
+                    }
+                    .room-list-hours {
+                        font-size: 12px;
+                        color: rgba(255, 255, 255, 0.5);
+                    }
+                    .room-list-location {
+                        font-size: 12px;
+                        color: rgba(255, 255, 255, 0.5);
+                        margin: 0 0 8px;
+                    }
+                    .room-list-distance {
+                        color: #00D4FF;
+                    }
+                    .room-list-stakes {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 6px;
+                        margin-bottom: 8px;
+                    }
+                    .stake-badge {
+                        padding: 4px 8px;
+                        background: rgba(0, 212, 255, 0.15);
+                        border: 1px solid rgba(0, 212, 255, 0.3);
+                        border-radius: 6px;
+                        font-size: 11px;
+                        font-weight: 600;
+                        color: #00D4FF;
+                    }
+                    .room-list-meta {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        font-size: 12px;
+                        color: rgba(255, 255, 255, 0.5);
+                    }
+                    .room-meta-item {
+                        display: flex;
+                        align-items: center;
+                        gap: 4px;
+                    }
+                    .room-list-btn {
+                        padding: 10px 16px;
+                        background: rgba(0, 212, 255, 0.15);
+                        border: 1px solid rgba(0, 212, 255, 0.4);
+                        border-radius: 8px;
+                        color: #00D4FF;
+                        font-size: 12px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        white-space: nowrap;
+                    }
+                    .room-list-btn:hover {
+                        background: rgba(0, 212, 255, 0.25);
+                    }
+
+                    /* Sidebar */
+                    .map-sidebar {
+                        display: flex !important;
+                        flex-direction: column;
+                        gap: 16px;
+                        padding: 16px;
+                        background: rgba(10, 15, 30, 0.95);
+                        border-left: 1px solid rgba(255, 255, 255, 0.1);
+                        overflow-y: auto;
+                        max-height: calc(100vh - 200px);
+                    }
+                    .sidebar-filters {
+                        background: rgba(255, 255, 255, 0.03);
+                        border: 1px solid rgba(255, 255, 255, 0.08);
+                        border-radius: 12px;
+                        padding: 16px;
+                    }
+                    .sidebar-title {
+                        font-family: 'Orbitron', sans-serif;
+                        font-size: 14px;
+                        font-weight: 600;
+                        color: #fff;
+                        margin: 0 0 16px;
+                    }
+                    .sidebar-filter-group {
+                        margin-bottom: 16px;
+                    }
+                    .sidebar-label {
+                        display: block;
+                        font-size: 12px;
+                        font-weight: 500;
+                        color: rgba(255, 255, 255, 0.6);
+                        margin-bottom: 8px;
+                    }
+                    .sidebar-chips {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 6px;
+                    }
+                    .sidebar-chip {
+                        padding: 6px 12px;
+                        background: rgba(255, 255, 255, 0.05);
+                        border: 1px solid rgba(255, 255, 255, 0.12);
+                        border-radius: 6px;
+                        color: rgba(255, 255, 255, 0.6);
+                        font-size: 11px;
+                        font-weight: 500;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+                    .sidebar-chip:hover {
+                        background: rgba(255, 255, 255, 0.1);
+                    }
+                    .sidebar-chip.active {
+                        background: rgba(0, 212, 255, 0.2);
+                        border-color: rgba(0, 212, 255, 0.5);
+                        color: #00D4FF;
+                    }
+                    .sidebar-range {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                    }
+                    .sidebar-range input {
+                        flex: 1;
+                        padding: 8px 10px;
+                        background: rgba(0, 0, 0, 0.3);
+                        border: 1px solid rgba(255, 255, 255, 0.12);
+                        border-radius: 6px;
+                        color: #fff;
+                        font-size: 12px;
+                        outline: none;
+                    }
+                    .sidebar-range input:focus {
+                        border-color: rgba(0, 212, 255, 0.5);
+                    }
+                    .sidebar-range span {
+                        color: rgba(255, 255, 255, 0.4);
+                    }
+                    .sidebar-checkboxes {
+                        display: grid;
+                        grid-template-columns: 1fr 1fr;
+                        gap: 8px;
+                    }
+                    .sidebar-checkbox {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        font-size: 12px;
+                        color: rgba(255, 255, 255, 0.7);
+                        cursor: pointer;
+                    }
+                    .sidebar-checkbox input {
+                        accent-color: #00D4FF;
+                    }
+                    .sidebar-apply-btn {
+                        width: 100%;
+                        padding: 12px;
+                        background: rgba(0, 212, 255, 0.2);
+                        border: 1px solid rgba(0, 212, 255, 0.4);
+                        border-radius: 8px;
+                        color: #00D4FF;
+                        font-size: 13px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+                    .sidebar-apply-btn:hover {
+                        background: rgba(0, 212, 255, 0.3);
+                    }
+
+                    /* Room Detail Panel */
+                    .room-detail-panel {
+                        background: rgba(255, 255, 255, 0.03);
+                        border: 1px solid rgba(255, 255, 255, 0.08);
+                        border-radius: 12px;
+                        overflow: hidden;
+                    }
+                    .room-detail-header {
+                        position: relative;
+                    }
+                    .room-detail-image {
+                        width: 100%;
+                        height: 120px;
+                        background-size: cover;
+                        background-position: center;
+                        background-color: #1e3a5f;
+                    }
+                    .room-detail-rating {
+                        position: absolute;
+                        top: 10px;
+                        right: 10px;
+                        display: flex;
+                        align-items: center;
+                        gap: 4px;
+                        padding: 6px 10px;
+                        background: rgba(0, 0, 0, 0.7);
+                        border-radius: 6px;
+                        backdrop-filter: blur(8px);
+                    }
+                    .rating-score {
+                        font-size: 14px;
+                        font-weight: 700;
+                        color: #fff;
+                    }
+                    .room-detail-info {
+                        padding: 12px 16px;
+                        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+                    }
+                    .room-detail-name {
+                        font-size: 16px;
+                        font-weight: 600;
+                        color: #fff;
+                        margin: 0 0 4px;
+                    }
+                    .room-detail-location {
+                        font-size: 12px;
+                        color: rgba(255, 255, 255, 0.5);
+                        margin: 0;
+                    }
+                    .room-detail-section {
+                        padding: 12px 16px;
+                        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+                    }
+                    .room-detail-section-title {
+                        font-size: 12px;
+                        font-weight: 600;
+                        color: rgba(255, 255, 255, 0.6);
+                        margin: 0 0 10px;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                    }
+                    .room-detail-games {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 8px;
+                    }
+                    .room-game-row {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                    }
+                    .room-game-stake {
+                        font-size: 13px;
+                        font-weight: 600;
+                        color: #00D4FF;
+                    }
+                    .room-game-info {
+                        font-size: 12px;
+                        color: rgba(255, 255, 255, 0.5);
+                    }
+                    .room-detail-tournaments {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 8px;
+                    }
+                    .room-tournament-row {
+                        display: grid;
+                        grid-template-columns: 1fr auto auto;
+                        gap: 8px;
+                        align-items: center;
+                    }
+                    .tournament-buyin {
+                        font-size: 12px;
+                        font-weight: 600;
+                        color: #fff;
+                    }
+                    .tournament-time {
+                        font-size: 11px;
+                        color: rgba(255, 255, 255, 0.5);
+                    }
+                    .tournament-gtd {
+                        font-size: 11px;
+                        font-weight: 600;
+                        color: #22c55e;
+                    }
+                    .room-detail-view-btn {
+                        width: calc(100% - 32px);
+                        margin: 12px 16px 16px;
+                        padding: 12px;
+                        background: linear-gradient(135deg, #00D4FF, #0099CC);
+                        border: none;
+                        border-radius: 8px;
+                        color: #000;
+                        font-size: 13px;
+                        font-weight: 700;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+                    .room-detail-view-btn:hover {
+                        transform: translateY(-1px);
+                        box-shadow: 0 4px 12px rgba(0, 212, 255, 0.4);
+                    }
+
+                    /* Mobile Responsive for Map Layout */
+                    @media (max-width: 900px) {
+                        .map-desktop-layout {
+                            grid-template-columns: 1fr !important;
+                        }
+                        .map-sidebar {
+                            border-left: none;
+                            border-top: 1px solid rgba(255, 255, 255, 0.1);
+                            max-height: none;
+                        }
+                    }
+                    @media (max-width: 640px) {
+                        .map-header {
+                            flex-direction: column;
+                            align-items: flex-start;
+                            gap: 12px;
+                            padding: 12px 16px;
+                        }
+                        .map-header-right {
+                            width: 100%;
+                        }
+                        .map-view-toggle {
+                            flex: 1;
+                            justify-content: center;
+                        }
+                        .map-filters {
+                            padding: 10px 16px;
+                            gap: 6px;
+                        }
+                        .map-filter-chip {
+                            padding: 6px 10px;
+                            font-size: 11px;
+                        }
+                        .rooms-list-section {
+                            padding: 16px;
+                        }
+                        .room-list-item {
+                            flex-direction: column;
+                            align-items: flex-start;
+                            gap: 12px;
+                        }
+                        .room-list-btn {
+                            width: 100%;
+                            text-align: center;
+                        }
+                        .sidebar-checkboxes {
+                            grid-template-columns: 1fr;
+                        }
                     }
                 `}</style>
             </div>
