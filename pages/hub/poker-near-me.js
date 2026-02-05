@@ -223,18 +223,64 @@ function VenueMap({ venues, userLocation }) {
     const userMarkerRef = useRef(null);
     const [mapReady, setMapReady] = useState(false);
 
-    // Wait for Leaflet scripts to be available
+    // Dynamically load Leaflet scripts to ensure proper order
     useEffect(() => {
         if (typeof window === 'undefined') return;
 
-        const check = () => {
-            if (window.L && window.L.MarkerClusterGroup) {
-                setMapReady(true);
-            } else {
-                setTimeout(check, 200);
+        // Check if already loaded
+        if (window.L && window.L.markerClusterGroup) {
+            setMapReady(true);
+            return;
+        }
+
+        const loadScript = (src) => {
+            return new Promise((resolve, reject) => {
+                // Check if script already exists
+                const existing = document.querySelector(`script[src="${src}"]`);
+                if (existing) {
+                    existing.addEventListener('load', resolve);
+                    if (existing.dataset.loaded === 'true') resolve();
+                    return;
+                }
+
+                const script = document.createElement('script');
+                script.src = src;
+                script.async = false;
+                script.onload = () => {
+                    script.dataset.loaded = 'true';
+                    resolve();
+                };
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        };
+
+        const loadLeaflet = async () => {
+            try {
+                // Load Leaflet first
+                await loadScript('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js');
+
+                // Wait a tick for Leaflet to initialize
+                await new Promise(r => setTimeout(r, 100));
+
+                // Then load MarkerCluster
+                await loadScript('https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js');
+
+                // Wait for markerClusterGroup to be available
+                const checkReady = () => {
+                    if (window.L && window.L.markerClusterGroup) {
+                        setMapReady(true);
+                    } else {
+                        setTimeout(checkReady, 100);
+                    }
+                };
+                checkReady();
+            } catch (err) {
+                console.error('Failed to load Leaflet scripts:', err);
             }
         };
-        check();
+
+        loadLeaflet();
     }, []);
 
     // Initialize map once Leaflet is ready
@@ -536,6 +582,21 @@ export default function PokerNearMePage() {
         lowStakes: false,
         topRated: false
     });
+
+    // Sidebar filters (for right panel)
+    const [sidebarFilters, setSidebarFilters] = useState({
+        gameType: 'all',
+        stakes: 'all',
+        minBuyin: '',
+        maxBuyin: '',
+        hasFood: false,
+        hasHotel: false,
+        hasParking: false,
+        is24Hours: false
+    });
+
+    // Selected room for detail panel
+    const [selectedRoom, setSelectedRoom] = useState(null);
 
     // Load all venues for the map (from static JSON) on mount
     useEffect(() => {
@@ -1059,83 +1120,312 @@ export default function PokerNearMePage() {
             filteredVenues = filteredVenues.filter(v => (v.trust_score || 0) >= 4.0);
         }
 
+        // Apply sidebar filters
+        if (sidebarFilters.gameType === 'cash') {
+            filteredVenues = filteredVenues.filter(v => v.games_offered && v.games_offered.length > 0);
+        } else if (sidebarFilters.gameType === 'mtt') {
+            filteredVenues = filteredVenues.filter(v => v.has_tournaments);
+        }
+
+        if (sidebarFilters.stakes === '$1/25') {
+            filteredVenues = filteredVenues.filter(v => v.stakes_cash && v.stakes_cash.some(s => s.includes('1/')));
+        } else if (sidebarFilters.stakes === '$2/5') {
+            filteredVenues = filteredVenues.filter(v => v.stakes_cash && v.stakes_cash.some(s => s.includes('2/5')));
+        } else if (sidebarFilters.stakes === '$5/10+') {
+            filteredVenues = filteredVenues.filter(v => v.stakes_cash && v.stakes_cash.some(s => {
+                const match = s.match(/\$?(\d+)/);
+                return match && parseInt(match[1]) >= 5;
+            }));
+        }
+
+        // Sort by distance if user location available
+        if (userLocation) {
+            filteredVenues = [...filteredVenues].sort((a, b) => (a.distance_mi || 999) - (b.distance_mi || 999));
+        }
+
+        // Get closest 10 rooms for the list
+        const closestRooms = filteredVenues.slice(0, 10);
+
         // Calculate stats
         const roomCount = filteredVenues.length;
         const activeTables = liveGames.reduce((sum, g) => sum + (g.tables_running || 1), 0);
         const tournamentsToday = dailyTournaments.length;
 
         return (
-            <div className="map-first-container">
-                {/* Stats Header */}
-                <div className="map-header">
-                    <div className="map-header-left">
-                        <h2 className="map-title">Poker Rooms Near You</h2>
-                        <p className="map-stats">
-                            {roomCount} rooms • {activeTables} active tables • {tournamentsToday} tournaments today
-                        </p>
+            <div className="map-desktop-layout">
+                {/* LEFT COLUMN: Map Section */}
+                <div className="map-main-section">
+                    {/* Header with stats and view toggle */}
+                    <div className="map-header">
+                        <div className="map-header-left">
+                            <h2 className="map-title">Poker Rooms Near You</h2>
+                            <p className="map-stats">
+                                {roomCount} rooms • {activeTables} active tables • {tournamentsToday} tournaments today
+                            </p>
+                        </div>
+                        <div className="map-header-right">
+                            <button className="map-view-toggle active">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <circle cx="12" cy="10" r="3" /><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 10-16 0c0 3 2.7 7 8 11.7z" />
+                                </svg>
+                                Map View
+                            </button>
+                            <button
+                                className="map-view-toggle"
+                                onClick={() => setActiveTab('venues')}
+                            >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
+                                    <rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
+                                </svg>
+                                List View
+                            </button>
+                        </div>
                     </div>
-                    <button
-                        className="map-view-toggle"
-                        onClick={() => setActiveTab('venues')}
-                    >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
-                            <rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
-                        </svg>
-                        List View
-                    </button>
+
+                    {/* Filter Chips */}
+                    <div className="map-filters">
+                        <button
+                            className={'map-filter-chip' + (mapFilters.cashGames ? ' active' : '')}
+                            onClick={() => setMapFilters(prev => ({ ...prev, cashGames: !prev.cashGames }))}
+                        >
+                            <span className="chip-dot cash"></span>
+                            Cash Games
+                        </button>
+                        <button
+                            className={'map-filter-chip' + (mapFilters.tournaments ? ' active' : '')}
+                            onClick={() => setMapFilters(prev => ({ ...prev, tournaments: !prev.tournaments }))}
+                        >
+                            <span className="chip-dot tournament"></span>
+                            Tournaments
+                        </button>
+                        <button
+                            className={'map-filter-chip' + (mapFilters.openNow ? ' active' : '')}
+                            onClick={() => setMapFilters(prev => ({ ...prev, openNow: !prev.openNow }))}
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                            </svg>
+                            Open Now
+                        </button>
+                        <button
+                            className={'map-filter-chip' + (mapFilters.lowStakes ? ' active' : '')}
+                            onClick={() => setMapFilters(prev => ({ ...prev, lowStakes: !prev.lowStakes }))}
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+                            </svg>
+                            Low Stakes
+                        </button>
+                        <button
+                            className={'map-filter-chip' + (mapFilters.topRated ? ' active' : '')}
+                            onClick={() => setMapFilters(prev => ({ ...prev, topRated: !prev.topRated }))}
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="#f59e0b" stroke="#f59e0b" strokeWidth="2">
+                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                            </svg>
+                            Top Rated
+                        </button>
+                    </div>
+
+                    {/* Map Component */}
+                    <div className="map-container">
+                        <VenueMap
+                            venues={filteredVenues}
+                            userLocation={userLocation}
+                        />
+                    </div>
+
+                    {/* Room List Below Map */}
+                    <div className="rooms-list-section">
+                        <h3 className="rooms-list-title">Closest Poker Rooms</h3>
+                        <div className="rooms-list">
+                            {closestRooms.map((venue, idx) => (
+                                <div
+                                    key={venue.id || idx}
+                                    className={'room-list-item' + (selectedRoom?.id === venue.id ? ' selected' : '')}
+                                    onClick={() => setSelectedRoom(venue)}
+                                >
+                                    <div className="room-list-item-main">
+                                        <div className="room-list-header">
+                                            <h4 className="room-list-name">{venue.name}</h4>
+                                            <span className="room-list-hours">
+                                                {venue.is_24_hours ? '24hrs' : venue.hours || '—'}
+                                            </span>
+                                        </div>
+                                        <p className="room-list-location">
+                                            {venue.city}, {venue.state}
+                                            {venue.distance_mi && <span className="room-list-distance"> • {venue.distance_mi.toFixed(1)} mi</span>}
+                                        </p>
+                                        <div className="room-list-stakes">
+                                            {(venue.stakes_cash || []).slice(0, 3).map((stake, si) => (
+                                                <span key={si} className="stake-badge">{stake}</span>
+                                            ))}
+                                        </div>
+                                        <div className="room-list-meta">
+                                            {venue.games_offered && <span className="room-meta-item"><span className="chip-dot cash"></span> Cash</span>}
+                                            {venue.has_tournaments && <span className="room-meta-item">• {venue.tournament_count || '—'} Tournaments</span>}
+                                        </div>
+                                    </div>
+                                    <button
+                                        className="room-list-btn"
+                                        onClick={(e) => { e.stopPropagation(); router.push('/hub/venues/' + venue.id); }}
+                                    >
+                                        View Room
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
 
-                {/* Filter Chips */}
-                <div className="map-filters">
-                    <button
-                        className={'map-filter-chip' + (mapFilters.cashGames ? ' active' : '')}
-                        onClick={() => setMapFilters(prev => ({ ...prev, cashGames: !prev.cashGames }))}
-                    >
-                        <span className="chip-dot cash"></span>
-                        Cash Games
-                    </button>
-                    <button
-                        className={'map-filter-chip' + (mapFilters.tournaments ? ' active' : '')}
-                        onClick={() => setMapFilters(prev => ({ ...prev, tournaments: !prev.tournaments }))}
-                    >
-                        <span className="chip-dot tournament"></span>
-                        Tournaments
-                    </button>
-                    <button
-                        className={'map-filter-chip' + (mapFilters.openNow ? ' active' : '')}
-                        onClick={() => setMapFilters(prev => ({ ...prev, openNow: !prev.openNow }))}
-                    >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-                        </svg>
-                        Open Now
-                    </button>
-                    <button
-                        className={'map-filter-chip' + (mapFilters.lowStakes ? ' active' : '')}
-                        onClick={() => setMapFilters(prev => ({ ...prev, lowStakes: !prev.lowStakes }))}
-                    >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
-                        </svg>
-                        Low Stakes
-                    </button>
-                    <button
-                        className={'map-filter-chip' + (mapFilters.topRated ? ' active' : '')}
-                        onClick={() => setMapFilters(prev => ({ ...prev, topRated: !prev.topRated }))}
-                    >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="#f59e0b" stroke="#f59e0b" strokeWidth="2">
-                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                        </svg>
-                        Top Rated
-                    </button>
-                </div>
+                {/* RIGHT COLUMN: Sidebar Filters + Room Detail */}
+                <div className="map-sidebar">
+                    {/* Sidebar Filters */}
+                    <div className="sidebar-filters">
+                        <h3 className="sidebar-title">Filters</h3>
 
-                {/* Map Component */}
-                <VenueMap
-                    venues={filteredVenues}
-                    userLocation={userLocation}
-                />
+                        <div className="sidebar-filter-group">
+                            <label className="sidebar-label">Game Type</label>
+                            <div className="sidebar-chips">
+                                {['all', 'cash', 'mtt', 'mixed'].map(type => (
+                                    <button
+                                        key={type}
+                                        className={'sidebar-chip' + (sidebarFilters.gameType === type ? ' active' : '')}
+                                        onClick={() => setSidebarFilters(prev => ({ ...prev, gameType: type }))}
+                                    >
+                                        {type === 'all' ? 'All' : type === 'mtt' ? 'MTT' : type.charAt(0).toUpperCase() + type.slice(1)}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="sidebar-filter-group">
+                            <label className="sidebar-label">Stakes</label>
+                            <div className="sidebar-chips">
+                                {['all', '$1/25', '$2/5', '$5/10+'].map(stake => (
+                                    <button
+                                        key={stake}
+                                        className={'sidebar-chip' + (sidebarFilters.stakes === stake ? ' active' : '')}
+                                        onClick={() => setSidebarFilters(prev => ({ ...prev, stakes: stake }))}
+                                    >
+                                        {stake === 'all' ? 'All' : stake}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="sidebar-filter-group">
+                            <label className="sidebar-label">Buy-in Range</label>
+                            <div className="sidebar-range">
+                                <input
+                                    type="number"
+                                    placeholder="Min"
+                                    value={sidebarFilters.minBuyin}
+                                    onChange={(e) => setSidebarFilters(prev => ({ ...prev, minBuyin: e.target.value }))}
+                                />
+                                <span>—</span>
+                                <input
+                                    type="number"
+                                    placeholder="Max"
+                                    value={sidebarFilters.maxBuyin}
+                                    onChange={(e) => setSidebarFilters(prev => ({ ...prev, maxBuyin: e.target.value }))}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="sidebar-filter-group">
+                            <label className="sidebar-label">Amenities</label>
+                            <div className="sidebar-checkboxes">
+                                <label className="sidebar-checkbox">
+                                    <input
+                                        type="checkbox"
+                                        checked={sidebarFilters.hasFood}
+                                        onChange={(e) => setSidebarFilters(prev => ({ ...prev, hasFood: e.target.checked }))}
+                                    />
+                                    Food
+                                </label>
+                                <label className="sidebar-checkbox">
+                                    <input
+                                        type="checkbox"
+                                        checked={sidebarFilters.hasHotel}
+                                        onChange={(e) => setSidebarFilters(prev => ({ ...prev, hasHotel: e.target.checked }))}
+                                    />
+                                    Hotel
+                                </label>
+                                <label className="sidebar-checkbox">
+                                    <input
+                                        type="checkbox"
+                                        checked={sidebarFilters.hasParking}
+                                        onChange={(e) => setSidebarFilters(prev => ({ ...prev, hasParking: e.target.checked }))}
+                                    />
+                                    Parking
+                                </label>
+                                <label className="sidebar-checkbox">
+                                    <input
+                                        type="checkbox"
+                                        checked={sidebarFilters.is24Hours}
+                                        onChange={(e) => setSidebarFilters(prev => ({ ...prev, is24Hours: e.target.checked }))}
+                                    />
+                                    24/7
+                                </label>
+                            </div>
+                        </div>
+
+                        <button className="sidebar-apply-btn">Apply Filters</button>
+                    </div>
+
+                    {/* Room Detail Panel (shown when a room is selected) */}
+                    {selectedRoom && (
+                        <div className="room-detail-panel">
+                            <div className="room-detail-header">
+                                <div
+                                    className="room-detail-image"
+                                    style={{ backgroundImage: selectedRoom.image_url ? `url(${selectedRoom.image_url})` : 'linear-gradient(135deg, #1e3a5f, #0f172a)' }}
+                                />
+                                <div className="room-detail-rating">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="#f59e0b" stroke="#f59e0b" strokeWidth="2">
+                                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                                    </svg>
+                                    <span className="rating-score">{selectedRoom.trust_score || '—'}</span>
+                                </div>
+                            </div>
+                            <div className="room-detail-info">
+                                <h3 className="room-detail-name">{selectedRoom.name}</h3>
+                                <p className="room-detail-location">{selectedRoom.city}, {selectedRoom.state}</p>
+                            </div>
+                            <div className="room-detail-section">
+                                <h4 className="room-detail-section-title">Live Games</h4>
+                                <div className="room-detail-games">
+                                    {(selectedRoom.games_offered || ['No live games']).slice(0, 3).map((game, gi) => (
+                                        <div key={gi} className="room-game-row">
+                                            <span className="room-game-stake">{game}</span>
+                                            <span className="room-game-info">Running</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="room-detail-section">
+                                <h4 className="room-detail-section-title">Upcoming Tournaments</h4>
+                                <div className="room-detail-tournaments">
+                                    {dailyTournaments.filter(t => t.venue_id === selectedRoom.id).slice(0, 3).map((t, ti) => (
+                                        <div key={ti} className="room-tournament-row">
+                                            <span className="tournament-buyin">${t.buyin || '??'}</span>
+                                            <span className="tournament-time">{t.time || 'TBD'}</span>
+                                            <span className="tournament-gtd">{t.guarantee ? `$${t.guarantee} GTD` : ''}</span>
+                                        </div>
+                                    )) || <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>No tournaments today</p>}
+                                </div>
+                            </div>
+                            <button
+                                className="room-detail-view-btn"
+                                onClick={() => router.push('/hub/venues/' + selectedRoom.id)}
+                            >
+                                View Full Details
+                            </button>
+                        </div>
+                    )}
+                </div>
             </div>
         );
     };
@@ -1585,9 +1875,7 @@ export default function PokerNearMePage() {
                 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
                 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
                 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
-                {/* Leaflet JS */}
-                <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
-                <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" defer></script>
+                {/* Leaflet JS loaded dynamically in VenueMap component */}
             </Head>
 
             <div className="pnm-page">

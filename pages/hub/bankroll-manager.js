@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../src/lib/supabase';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import PageTransition from '../../src/components/transitions/PageTransition';
-import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import ThreePillHeader from '../../src/components/ui/ThreePillHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getBankrollPreferences, updateBankrollPreferences } from '../../src/services/bankrollPreferences';
@@ -359,7 +359,7 @@ export default function BankrollManagerPage() {
 
       <div className="bankroll-page" style={styles.container}>
         <div style={styles.bgGrid} />
-        <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
+        <ThreePillHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
 
         {/* Hamburger Menu */}
         <HamburgerMenu
@@ -967,22 +967,23 @@ export default function BankrollManagerPage() {
 const styles = {
   container: {
     minHeight: '100vh',
-    background: '#18191a',  // Facebook dark background
+    background: '#000',
     fontFamily: 'Inter, -apple-system, sans-serif',
     position: 'relative',
   },
+  // HUD Frame background
   bgGrid: {
     position: 'fixed',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundImage: `
-      linear-gradient(rgba(136, 136, 136, 0.02) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(136, 136, 136, 0.02) 1px, transparent 1px)
-    `,
-    backgroundSize: '60px 60px',
+    backgroundImage: 'url(/images/hud-frames/bankroll-frame.jpg)',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
     pointerEvents: 'none',
+    zIndex: 0,
   },
   topBar: {
     display: 'flex',
@@ -1057,12 +1058,14 @@ const styles = {
   },
   mainLayout: {
     display: 'flex',
-    minHeight: 'calc(100vh - 140px)',
+    minHeight: 'calc(100vh - 70px)',
+    position: 'relative',
+    zIndex: 1,
   },
   sidebar: {
-    width: 160,
-    padding: '20px 12px',
-    borderRight: '1px solid rgba(255, 255, 255, 0.08)',
+    width: 140,
+    padding: '80px 8px 20px 15px',
+    background: 'transparent',
   },
   sidebarItem: {
     display: 'flex',
@@ -1091,9 +1094,10 @@ const styles = {
   },
   mainContent: {
     flex: 1,
-    padding: '20px 24px',
+    padding: '20px 20px 20px 10px',
     minWidth: 0,
     overflowY: 'auto',
+    background: 'transparent',
   },
   contentHeader: {
     display: 'flex',
@@ -1127,14 +1131,13 @@ const styles = {
   statsGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(4, 1fr)',
-    gap: 12,
-    marginBottom: 24,
+    gap: 10,
+    marginBottom: 16,
   },
   statCard: {
-    background: 'rgba(255, 255, 255, 0.03)',
-    border: '1px solid rgba(255, 255, 255, 0.08)',
-    borderRadius: 12,
-    padding: '16px 18px',
+    background: 'transparent',
+    border: 'none',
+    padding: '12px 14px',
   },
   statTitle: {
     display: 'block',
@@ -1175,10 +1178,9 @@ const styles = {
     fontSize: 10,
   },
   activitySection: {
-    background: 'rgba(255, 255, 255, 0.02)',
-    border: '1px solid rgba(255, 255, 255, 0.06)',
-    borderRadius: 12,
-    padding: 20,
+    background: 'transparent',
+    border: 'none',
+    padding: '16px 0',
   },
   sectionTitle: {
     fontSize: 16,
@@ -1269,9 +1271,9 @@ const styles = {
     color: 'rgba(255, 255, 255, 0.3)',
   },
   assistantPanel: {
-    width: 220,
-    padding: '20px 16px',
-    borderLeft: '1px solid rgba(255, 255, 255, 0.08)',
+    width: 180,
+    padding: '80px 12px 20px 8px',
+    background: 'transparent',
     overflowY: 'auto',
   },
   logTodayButton: {
