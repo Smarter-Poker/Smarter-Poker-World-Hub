@@ -26,7 +26,7 @@ const PAGE_SIZE_LIVE = 30;
 const LIVE_REFRESH_MS = 120000; // 2 minutes
 const SEARCH_DEBOUNCE_MS = 400;
 const SEARCH_HISTORY_MAX = 8;
-const GPS_SEARCH_RADIUS_KM = 40; // 25 miles ≈ 40.23 km
+const GPS_SEARCH_RADIUS_KM = 500;
 const GEOFENCE_ALERT_TIMEOUT_MS = 30000;
 const TOTAL_VENUES = 483;
 
@@ -158,7 +158,7 @@ function GeofenceAlertBanner({ venue, onCheckin, onReview, onDismiss }) {
                 margin: '0 auto',
                 background: 'rgba(15, 23, 42, 0.95)',
                 backdropFilter: 'blur(16px)',
-                border: '1px solid rgba(0, 212, 255, 0.4)',
+                border: '1px solid rgba(212, 168, 83, 0.4)',
                 borderRadius: 14,
                 padding: '16px 20px',
                 display: 'flex',
@@ -170,18 +170,18 @@ function GeofenceAlertBanner({ venue, onCheckin, onReview, onDismiss }) {
                 {/* Venue icon */}
                 <div style={{
                     width: 44, height: 44, borderRadius: 10,
-                    background: 'rgba(0,212,255,0.15)',
-                    border: '1px solid rgba(0,212,255,0.3)',
+                    background: 'rgba(212,168,83,0.15)',
+                    border: '1px solid rgba(212,168,83,0.3)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 }}>
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2">
                         <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
                         <circle cx="12" cy="10" r="3" />
                     </svg>
                 </div>
 
                 <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: '#00D4FF', marginBottom: 2 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: '#d4a853', marginBottom: 2 }}>
                         You are near a poker venue!
                     </div>
                     <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -192,7 +192,7 @@ function GeofenceAlertBanner({ venue, onCheckin, onReview, onDismiss }) {
                 <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                     <button onClick={onCheckin} style={{
                         padding: '8px 14px', borderRadius: 8,
-                        background: 'linear-gradient(135deg, #00D4FF, #0099CC)',
+                        background: 'linear-gradient(135deg, #d4a853, #b8860b)',
                         border: 'none', color: '#000', fontSize: 13, fontWeight: 600, cursor: 'pointer',
                     }}>Check In</button>
                     <button onClick={onReview} style={{
@@ -217,72 +217,24 @@ function GeofenceAlertBanner({ venue, onCheckin, onReview, onDismiss }) {
 }
 
 // ---- Leaflet Map Component (client-side only) ----------------------------
-function VenueMap({ venues, userLocation, selectedCity }) {
+function VenueMap({ venues, userLocation }) {
     const mapContainerRef = useRef(null);
     const mapInstanceRef = useRef(null);
-    const clusterGroupRef = useRef(null);
-    const circlesGroupRef = useRef(null);
     const userMarkerRef = useRef(null);
     const [mapReady, setMapReady] = useState(false);
 
-    // Dynamically load Leaflet scripts to ensure proper order
+    // Wait for Leaflet scripts to be available
     useEffect(() => {
         if (typeof window === 'undefined') return;
 
-        // Check if already loaded
-        if (window.L && window.L.markerClusterGroup) {
-            setMapReady(true);
-            return;
-        }
-
-        const loadScript = (src) => {
-            return new Promise((resolve, reject) => {
-                // Check if script already exists
-                const existing = document.querySelector(`script[src="${src}"]`);
-                if (existing) {
-                    existing.addEventListener('load', resolve);
-                    if (existing.dataset.loaded === 'true') resolve();
-                    return;
-                }
-
-                const script = document.createElement('script');
-                script.src = src;
-                script.async = false;
-                script.onload = () => {
-                    script.dataset.loaded = 'true';
-                    resolve();
-                };
-                script.onerror = reject;
-                document.head.appendChild(script);
-            });
-        };
-
-        const loadLeaflet = async () => {
-            try {
-                // Load Leaflet first
-                await loadScript('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js');
-
-                // Wait a tick for Leaflet to initialize
-                await new Promise(r => setTimeout(r, 100));
-
-                // Then load MarkerCluster
-                await loadScript('https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js');
-
-                // Wait for markerClusterGroup to be available
-                const checkReady = () => {
-                    if (window.L && window.L.markerClusterGroup) {
-                        setMapReady(true);
-                    } else {
-                        setTimeout(checkReady, 100);
-                    }
-                };
-                checkReady();
-            } catch (err) {
-                console.error('Failed to load Leaflet scripts:', err);
+        const check = () => {
+            if (window.L && window.L.markerClusterGroup) {
+                setMapReady(true);
+            } else {
+                setTimeout(check, 200);
             }
         };
-
-        loadLeaflet();
+        check();
     }, []);
 
     // Initialize map once Leaflet is ready
@@ -314,7 +266,7 @@ function VenueMap({ venues, userLocation, selectedCity }) {
         // Add venue markers
         const goldIcon = L.divIcon({
             className: 'venue-map-marker',
-            html: '<div style="width:14px;height:14px;border-radius:50%;background:#00D4FF;border:2px solid #fff;box-shadow:0 0 8px rgba(0,212,255,0.6);"></div>',
+            html: '<div style="width:14px;height:14px;border-radius:50%;background:#d4a853;border:2px solid #fff;box-shadow:0 0 8px rgba(212,168,83,0.6);"></div>',
             iconSize: [18, 18],
             iconAnchor: [9, 9],
             popupAnchor: [0, -12],
@@ -328,7 +280,7 @@ function VenueMap({ venues, userLocation, selectedCity }) {
                 if (count > 50) size = 48;
                 else if (count > 20) size = 42;
                 return L.divIcon({
-                    html: '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;background:rgba(0,212,255,0.85);border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#000;box-shadow:0 2px 10px rgba(0,0,0,0.4);">' + count + '</div>',
+                    html: '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;background:rgba(212,168,83,0.85);border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#000;box-shadow:0 2px 10px rgba(0,0,0,0.4);">' + count + '</div>',
                     className: 'venue-cluster-icon',
                     iconSize: [size, size],
                 });
@@ -349,7 +301,7 @@ function VenueMap({ venues, userLocation, selectedCity }) {
                 '</div>' +
                 '<div style="font-size:12px;color:' + trust.color + ';font-weight:600;margin-bottom:8px;">Trust: ' + trust.label + ' (' + (venue.trust_score || '-') + '/5)</div>' +
                 '<div style="display:flex;gap:6px;">' +
-                '<a href="/hub/venues/' + venue.id + '" style="padding:6px 12px;border-radius:6px;background:#00D4FF;color:#000;text-decoration:none;font-size:12px;font-weight:600;">View Details</a>' +
+                '<a href="/hub/venues/' + venue.id + '" style="padding:6px 12px;border-radius:6px;background:#d4a853;color:#000;text-decoration:none;font-size:12px;font-weight:600;">View Details</a>' +
                 '<a href="/hub/venues/' + venue.id + '?action=checkin" style="padding:6px 12px;border-radius:6px;background:#1e40af;color:#fff;text-decoration:none;font-size:12px;font-weight:600;">Check In</a>' +
                 '<a href="/hub/venues/' + venue.id + '?action=review" style="padding:6px 12px;border-radius:6px;background:#374151;color:#fff;text-decoration:none;font-size:12px;font-weight:600;">Review</a>' +
                 '</div>' +
@@ -362,10 +314,10 @@ function VenueMap({ venues, userLocation, selectedCity }) {
             const radius = getGeofenceRadius(venue.venue_type);
             const circle = L.circle([venue.latitude, venue.longitude], {
                 radius: radius,
-                color: '#00D4FF',
+                color: '#d4a853',
                 weight: 1,
                 opacity: 0.35,
-                fillColor: '#00D4FF',
+                fillColor: '#d4a853',
                 fillOpacity: 0.08,
             });
 
@@ -376,12 +328,10 @@ function VenueMap({ venues, userLocation, selectedCity }) {
         });
 
         map.addLayer(clusterGroup);
-        clusterGroupRef.current = clusterGroup;
 
         // Show / hide geofence circles based on zoom
         const circlesGroup = L.layerGroup();
         circlesGroup.addTo(map);
-        circlesGroupRef.current = circlesGroup;
 
         function updateCircles() {
             circlesGroup.clearLayers();
@@ -451,7 +401,7 @@ function VenueMap({ venues, userLocation, selectedCity }) {
                 }}>
                     <div style={{
                         width: 40, height: 40, border: '3px solid rgba(255,255,255,0.1)',
-                        borderTopColor: '#00D4FF', borderRadius: '50%',
+                        borderTopColor: '#d4a853', borderRadius: '50%',
                         animation: 'spin 1s linear infinite',
                     }} />
                     <span>Loading map...</span>
@@ -577,30 +527,6 @@ export default function PokerNearMePage() {
     const searchDebounceRef = useRef(null);
     const [promotionVenueIds, setPromotionVenueIds] = useState(new Set());
     const [seriesViewMode, setSeriesViewMode] = useState('grid'); // 'grid' or 'calendar'
-
-    // Map view filters (for enhanced map-first experience)
-    const [mapFilters, setMapFilters] = useState({
-        cashGames: false,
-        tournaments: false,
-        openNow: false,
-        lowStakes: false,
-        topRated: false
-    });
-
-    // Sidebar filters (for right panel)
-    const [sidebarFilters, setSidebarFilters] = useState({
-        gameType: 'all',
-        stakes: 'all',
-        minBuyin: '',
-        maxBuyin: '',
-        hasFood: false,
-        hasHotel: false,
-        hasParking: false,
-        is24Hours: false
-    });
-
-    // Selected room for detail panel
-    const [selectedRoom, setSelectedRoom] = useState(null);
 
     // Load all venues for the map (from static JSON) on mount
     useEffect(() => {
@@ -800,7 +726,6 @@ export default function PokerNearMePage() {
             (pos) => {
                 setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
                 setGpsLoading(false);
-                setActiveTab('map'); // Auto-switch to map view
             },
             () => {
                 alert('Unable to get your location. Please enable location services.');
@@ -849,7 +774,7 @@ export default function PokerNearMePage() {
         }
     }, [preferences]);
 
-    const menuConfig = getMenuConfig('poker-near-me', user, preferences, {
+    const menuConfig = getMenuConfig('poker-near-me', null, preferences, {
         setGeofenceAlerts: (val) => updatePreference('geofenceAlerts', val),
         setLocationEnabled: (val) => updatePreference('locationEnabled', val),
         setShowNewcomerFriendly: (val) => updatePreference('showNewcomerFriendly', val)
@@ -985,13 +910,7 @@ export default function PokerNearMePage() {
         try {
             const res = await fetch('/api/poker/live-games?active=true');
             const json = await res.json();
-            // API returns { venues: { [venue_id]: [...games] } } for active=true
-            // Flatten grouped venues object into a flat array of games
-            if (json.venues && typeof json.venues === 'object') {
-                setLiveGames(Object.values(json.venues).flat());
-            } else {
-                setLiveGames(json.games || json.data || []);
-            }
+            setLiveGames(json.games || json.data || []);
         } catch (e) {
             console.error('Fetch live games error:', e);
             setLiveGames([]);
@@ -1023,7 +942,6 @@ export default function PokerNearMePage() {
     const handleCityClick = (city) => {
         setSelectedCity(city);
         setUserLocation(null);
-        setActiveTab('map'); // Auto-switch to map view
     };
 
     const clearFilters = () => {
@@ -1106,331 +1024,11 @@ export default function PokerNearMePage() {
     };
 
     const renderMap = () => {
-        // Filter venues based on map filters
-        let filteredVenues = allVenuesForMap;
-        if (mapFilters.cashGames) {
-            filteredVenues = filteredVenues.filter(v => v.games_offered && v.games_offered.length > 0);
-        }
-        if (mapFilters.tournaments) {
-            filteredVenues = filteredVenues.filter(v => v.has_tournaments);
-        }
-        if (mapFilters.lowStakes) {
-            filteredVenues = filteredVenues.filter(v => v.stakes_cash && v.stakes_cash.some(s => {
-                const match = s.match(/\$?(\d+)/);
-                return match && parseInt(match[1]) <= 2;
-            }));
-        }
-        if (mapFilters.topRated) {
-            filteredVenues = filteredVenues.filter(v => (v.trust_score || 0) >= 4.0);
-        }
-
-        // Apply sidebar filters
-        if (sidebarFilters.gameType === 'cash') {
-            filteredVenues = filteredVenues.filter(v => v.games_offered && v.games_offered.length > 0);
-        } else if (sidebarFilters.gameType === 'mtt') {
-            filteredVenues = filteredVenues.filter(v => v.has_tournaments);
-        }
-
-        if (sidebarFilters.stakes === '$1/25') {
-            filteredVenues = filteredVenues.filter(v => v.stakes_cash && v.stakes_cash.some(s => s.includes('1/')));
-        } else if (sidebarFilters.stakes === '$2/5') {
-            filteredVenues = filteredVenues.filter(v => v.stakes_cash && v.stakes_cash.some(s => s.includes('2/5')));
-        } else if (sidebarFilters.stakes === '$5/10+') {
-            filteredVenues = filteredVenues.filter(v => v.stakes_cash && v.stakes_cash.some(s => {
-                const match = s.match(/\$?(\d+)/);
-                return match && parseInt(match[1]) >= 5;
-            }));
-        }
-
-        // Sort by distance if user location available
-        if (userLocation) {
-            filteredVenues = [...filteredVenues].sort((a, b) => (a.distance_mi || 999) - (b.distance_mi || 999));
-        }
-
-        // Get closest 10 rooms for the list
-        const closestRooms = filteredVenues.slice(0, 10);
-
-        // Calculate stats
-        const roomCount = filteredVenues.length;
-        const activeTables = liveGames.reduce((sum, g) => sum + (g.tables_running || 1), 0);
-        const tournamentsToday = dailyTournaments.length;
-
         return (
-            <div className="map-desktop-layout">
-                {/* LEFT COLUMN: Map Section */}
-                <div className="map-main-section">
-                    {/* Header with stats and view toggle */}
-                    <div className="map-header">
-                        <div className="map-header-left">
-                            <h2 className="map-title">Poker Rooms Near You</h2>
-                            <p className="map-stats">
-                                {roomCount} rooms • {activeTables} active tables • {tournamentsToday} tournaments today
-                            </p>
-                        </div>
-                        <div className="map-header-right">
-                            <button className="map-view-toggle active">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <circle cx="12" cy="10" r="3" /><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 10-16 0c0 3 2.7 7 8 11.7z" />
-                                </svg>
-                                Map View
-                            </button>
-                            <button
-                                className="map-view-toggle"
-                                onClick={() => setActiveTab('venues')}
-                            >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
-                                    <rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
-                                </svg>
-                                List View
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Filter Chips */}
-                    <div className="map-filters">
-                        <button
-                            className={'map-filter-chip' + (mapFilters.cashGames ? ' active' : '')}
-                            onClick={() => setMapFilters(prev => ({ ...prev, cashGames: !prev.cashGames }))}
-                        >
-                            <span className="chip-dot cash"></span>
-                            Cash Games
-                        </button>
-                        <button
-                            className={'map-filter-chip' + (mapFilters.tournaments ? ' active' : '')}
-                            onClick={() => setMapFilters(prev => ({ ...prev, tournaments: !prev.tournaments }))}
-                        >
-                            <span className="chip-dot tournament"></span>
-                            Tournaments
-                        </button>
-                        <button
-                            className={'map-filter-chip' + (mapFilters.openNow ? ' active' : '')}
-                            onClick={() => setMapFilters(prev => ({ ...prev, openNow: !prev.openNow }))}
-                        >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-                            </svg>
-                            Open Now
-                        </button>
-                        <button
-                            className={'map-filter-chip' + (mapFilters.lowStakes ? ' active' : '')}
-                            onClick={() => setMapFilters(prev => ({ ...prev, lowStakes: !prev.lowStakes }))}
-                        >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
-                            </svg>
-                            Low Stakes
-                        </button>
-                        <button
-                            className={'map-filter-chip' + (mapFilters.topRated ? ' active' : '')}
-                            onClick={() => setMapFilters(prev => ({ ...prev, topRated: !prev.topRated }))}
-                        >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="#f59e0b" stroke="#f59e0b" strokeWidth="2">
-                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                            </svg>
-                            Top Rated
-                        </button>
-                    </div>
-
-                    {/* Map Component */}
-                    <div className="map-container">
-                        <VenueMap
-                            venues={filteredVenues}
-                            userLocation={userLocation}
-                        />
-                    </div>
-
-                    {/* Room List Below Map */}
-                    <div className="rooms-list-section">
-                        <h3 className="rooms-list-title">Closest Poker Rooms</h3>
-                        <div className="rooms-list">
-                            {closestRooms.map((venue, idx) => (
-                                <div
-                                    key={venue.id || idx}
-                                    className={'room-list-item' + (selectedRoom?.id === venue.id ? ' selected' : '')}
-                                    onClick={() => setSelectedRoom(venue)}
-                                >
-                                    <div className="room-list-item-main">
-                                        <div className="room-list-header">
-                                            <h4 className="room-list-name">{venue.name}</h4>
-                                            <span className="room-list-hours">
-                                                {venue.is_24_hours ? '24hrs' : venue.hours || '—'}
-                                            </span>
-                                        </div>
-                                        <p className="room-list-location">
-                                            {venue.city}, {venue.state}
-                                            {venue.distance_mi && <span className="room-list-distance"> • {venue.distance_mi.toFixed(1)} mi</span>}
-                                        </p>
-                                        <div className="room-list-stakes">
-                                            {(venue.stakes_cash || []).slice(0, 3).map((stake, si) => (
-                                                <span key={si} className="stake-badge">{stake}</span>
-                                            ))}
-                                        </div>
-                                        <div className="room-list-meta">
-                                            {venue.games_offered && <span className="room-meta-item"><span className="chip-dot cash"></span> Cash</span>}
-                                            {venue.has_tournaments && <span className="room-meta-item">• {venue.tournament_count || '—'} Tournaments</span>}
-                                        </div>
-                                    </div>
-                                    <button
-                                        className="room-list-btn"
-                                        onClick={(e) => { e.stopPropagation(); router.push('/hub/venues/' + venue.id); }}
-                                    >
-                                        View Room
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-
-                {/* RIGHT COLUMN: Sidebar Filters + Room Detail */}
-                <div className="map-sidebar">
-                    {/* Sidebar Filters */}
-                    <div className="sidebar-filters">
-                        <h3 className="sidebar-title">Filters</h3>
-
-                        <div className="sidebar-filter-group">
-                            <label className="sidebar-label">Game Type</label>
-                            <div className="sidebar-chips">
-                                {['all', 'cash', 'mtt', 'mixed'].map(type => (
-                                    <button
-                                        key={type}
-                                        className={'sidebar-chip' + (sidebarFilters.gameType === type ? ' active' : '')}
-                                        onClick={() => setSidebarFilters(prev => ({ ...prev, gameType: type }))}
-                                    >
-                                        {type === 'all' ? 'All' : type === 'mtt' ? 'MTT' : type.charAt(0).toUpperCase() + type.slice(1)}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="sidebar-filter-group">
-                            <label className="sidebar-label">Stakes</label>
-                            <div className="sidebar-chips">
-                                {['all', '$1/25', '$2/5', '$5/10+'].map(stake => (
-                                    <button
-                                        key={stake}
-                                        className={'sidebar-chip' + (sidebarFilters.stakes === stake ? ' active' : '')}
-                                        onClick={() => setSidebarFilters(prev => ({ ...prev, stakes: stake }))}
-                                    >
-                                        {stake === 'all' ? 'All' : stake}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="sidebar-filter-group">
-                            <label className="sidebar-label">Buy-in Range</label>
-                            <div className="sidebar-range">
-                                <input
-                                    type="number"
-                                    placeholder="Min"
-                                    value={sidebarFilters.minBuyin}
-                                    onChange={(e) => setSidebarFilters(prev => ({ ...prev, minBuyin: e.target.value }))}
-                                />
-                                <span>—</span>
-                                <input
-                                    type="number"
-                                    placeholder="Max"
-                                    value={sidebarFilters.maxBuyin}
-                                    onChange={(e) => setSidebarFilters(prev => ({ ...prev, maxBuyin: e.target.value }))}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="sidebar-filter-group">
-                            <label className="sidebar-label">Amenities</label>
-                            <div className="sidebar-checkboxes">
-                                <label className="sidebar-checkbox">
-                                    <input
-                                        type="checkbox"
-                                        checked={sidebarFilters.hasFood}
-                                        onChange={(e) => setSidebarFilters(prev => ({ ...prev, hasFood: e.target.checked }))}
-                                    />
-                                    Food
-                                </label>
-                                <label className="sidebar-checkbox">
-                                    <input
-                                        type="checkbox"
-                                        checked={sidebarFilters.hasHotel}
-                                        onChange={(e) => setSidebarFilters(prev => ({ ...prev, hasHotel: e.target.checked }))}
-                                    />
-                                    Hotel
-                                </label>
-                                <label className="sidebar-checkbox">
-                                    <input
-                                        type="checkbox"
-                                        checked={sidebarFilters.hasParking}
-                                        onChange={(e) => setSidebarFilters(prev => ({ ...prev, hasParking: e.target.checked }))}
-                                    />
-                                    Parking
-                                </label>
-                                <label className="sidebar-checkbox">
-                                    <input
-                                        type="checkbox"
-                                        checked={sidebarFilters.is24Hours}
-                                        onChange={(e) => setSidebarFilters(prev => ({ ...prev, is24Hours: e.target.checked }))}
-                                    />
-                                    24/7
-                                </label>
-                            </div>
-                        </div>
-
-                        <button className="sidebar-apply-btn">Apply Filters</button>
-                    </div>
-
-                    {/* Room Detail Panel (shown when a room is selected) */}
-                    {selectedRoom && (
-                        <div className="room-detail-panel">
-                            <div className="room-detail-header">
-                                <div
-                                    className="room-detail-image"
-                                    style={{ backgroundImage: selectedRoom.image_url ? `url(${selectedRoom.image_url})` : 'linear-gradient(135deg, #1e3a5f, #0f172a)' }}
-                                />
-                                <div className="room-detail-rating">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="#f59e0b" stroke="#f59e0b" strokeWidth="2">
-                                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                                    </svg>
-                                    <span className="rating-score">{selectedRoom.trust_score || '—'}</span>
-                                </div>
-                            </div>
-                            <div className="room-detail-info">
-                                <h3 className="room-detail-name">{selectedRoom.name}</h3>
-                                <p className="room-detail-location">{selectedRoom.city}, {selectedRoom.state}</p>
-                            </div>
-                            <div className="room-detail-section">
-                                <h4 className="room-detail-section-title">Live Games</h4>
-                                <div className="room-detail-games">
-                                    {(selectedRoom.games_offered || ['No live games']).slice(0, 3).map((game, gi) => (
-                                        <div key={gi} className="room-game-row">
-                                            <span className="room-game-stake">{game}</span>
-                                            <span className="room-game-info">Running</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                            <div className="room-detail-section">
-                                <h4 className="room-detail-section-title">Upcoming Tournaments</h4>
-                                <div className="room-detail-tournaments">
-                                    {dailyTournaments.filter(t => t.venue_id === selectedRoom.id).slice(0, 3).map((t, ti) => (
-                                        <div key={ti} className="room-tournament-row">
-                                            <span className="tournament-buyin">${t.buyin || '??'}</span>
-                                            <span className="tournament-time">{t.time || 'TBD'}</span>
-                                            <span className="tournament-gtd">{t.guarantee ? `$${t.guarantee} GTD` : ''}</span>
-                                        </div>
-                                    )) || <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>No tournaments today</p>}
-                                </div>
-                            </div>
-                            <button
-                                className="room-detail-view-btn"
-                                onClick={() => router.push('/hub/venues/' + selectedRoom.id)}
-                            >
-                                View Full Details
-                            </button>
-                        </div>
-                    )}
-                </div>
-            </div>
+            <VenueMap
+                venues={allVenuesForMap}
+                userLocation={userLocation}
+            />
         );
     };
 
@@ -1716,7 +1314,7 @@ export default function PokerNearMePage() {
                                         <span className="live-game-stakes">{game.stakes || '-'}</span>
                                         <span className="live-game-tables">{game.table_count || 1} table{(game.table_count || 1) !== 1 ? 's' : ''}</span>
                                         {game.wait_time !== null && game.wait_time !== undefined && (
-                                            <span className="live-game-wait" style={{ color: game.wait_time <= 10 ? '#22c55e' : game.wait_time <= 30 ? '#00D4FF' : '#ef4444' }}>
+                                            <span className="live-game-wait" style={{ color: game.wait_time <= 10 ? '#22c55e' : game.wait_time <= 30 ? '#d4a853' : '#ef4444' }}>
                                                 {game.wait_time === 0 ? 'No wait' : game.wait_time + ' min wait'}
                                             </span>
                                         )}
@@ -1871,15 +1469,13 @@ export default function PokerNearMePage() {
             <Head>
                 <title>Poker Near Me | Smarter.Poker</title>
                 <meta name="description" content="Find poker rooms, tours, tournament series, and daily events near you." />
-                {/* Industrial Fonts */}
-                <link rel="preconnect" href="https://fonts.googleapis.com" />
-                <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-                <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
                 {/* Leaflet CSS */}
                 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
                 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
                 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
-                {/* Leaflet JS loaded dynamically in VenueMap component */}
+                {/* Leaflet JS */}
+                <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+                <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" defer></script>
             </Head>
 
             <div className="pnm-page">
@@ -1926,7 +1522,7 @@ export default function PokerNearMePage() {
                                     <div className="search-history-dropdown">
                                         <div className="search-history-header">
                                             <span>Recent Searches</span>
-                                            <button type="button" onClick={() => { setSearchHistory([]); localStorage.removeItem('sp-search-history'); if (userId) clearSearchHistoryFromDb(userId).catch(() => { }); setShowSearchHistory(false); }}>Clear</button>
+                                            <button type="button" onClick={() => { setSearchHistory([]); localStorage.removeItem('sp-search-history'); if (userId) clearSearchHistoryFromDb(userId).catch(() => {}); setShowSearchHistory(false); }}>Clear</button>
                                         </div>
                                         {searchHistory.map((item, i) => (
                                             <button key={i} type="button" className="search-history-item"
@@ -2174,68 +1770,13 @@ export default function PokerNearMePage() {
                 )}
 
                 <style jsx>{`
-                    /* Metal UI Variables */
-                    :root {
-                        --metal-dark: #0a0a15;
-                        --metal-base: #0d1117;
-                        --metal-mid: #1a2332;
-                        --metal-highlight: #3d4f5f;
-                        --neon-cyan: #00D4FF;
-                        --neon-cyan-glow: rgba(0, 212, 255, 0.6);
-                        --metal-gradient: linear-gradient(180deg, #3d4f5f 0%, #1a2332 50%, #0d1117 100%);
-                        --glow-cyan: 0 0 10px var(--neon-cyan), 0 0 20px var(--neon-cyan-glow);
-                    }
-
                     .pnm-page {
                         min-height: 100vh;
                         position: relative;
                         color: #fff;
-                        font-family: 'Rajdhani', 'Inter', -apple-system, sans-serif;
+                        font-family: 'Inter', -apple-system, sans-serif;
                         overflow-x: hidden;
                         padding-bottom: 40px;
-                    }
-
-                    /* Metal Frame Components */
-                    .metal-frame {
-                        position: relative;
-                        background: var(--metal-gradient);
-                        border: 2px solid var(--metal-highlight);
-                        border-radius: 12px;
-                        box-shadow: 
-                            inset 0 1px 0 rgba(255,255,255,0.1),
-                            inset 0 -1px 0 rgba(0,0,0,0.3),
-                            0 4px 20px rgba(0,0,0,0.5);
-                    }
-
-                    .frame-bolt {
-                        position: absolute;
-                        width: 10px;
-                        height: 10px;
-                        background: radial-gradient(circle, #5a6a7a 30%, #3a4a5a 70%);
-                        border-radius: 50%;
-                        border: 1px solid #2a3a4a;
-                        z-index: 10;
-                        box-shadow: inset 0 1px 2px rgba(255,255,255,0.2);
-                    }
-
-                    .frame-bolt::after {
-                        content: '+';
-                        position: absolute;
-                        top: 50%;
-                        left: 50%;
-                        transform: translate(-50%, -50%);
-                        font-size: 7px;
-                        color: #1a2a3a;
-                        font-weight: bold;
-                    }
-
-                    .neon-glow {
-                        box-shadow: var(--glow-cyan);
-                    }
-
-                    @keyframes neon-pulse {
-                        0%, 100% { opacity: 1; }
-                        50% { opacity: 0.7; }
                     }
 
                     /* Space Background */
@@ -2280,26 +1821,19 @@ export default function PokerNearMePage() {
                         text-align: center;
                     }
                     .pnm-header h1 {
-                        font-family: 'Orbitron', sans-serif;
                         font-size: 32px;
                         font-weight: 700;
                         margin: 0;
-                        letter-spacing: 4px;
-                        text-transform: uppercase;
+                        letter-spacing: 2px;
                     }
-                    .pnm-header .white { color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
-                    .pnm-header .gold { 
-                        color: #00D4FF; 
-                        text-shadow: 0 0 10px var(--neon-cyan-glow), 0 0 20px var(--neon-cyan-glow);
-                    }
+                    .pnm-header .white { color: #fff; }
+                    .pnm-header .gold { color: #d4a853; }
                     .pnm-header .subtitle {
                         display: block;
-                        font-family: 'Rajdhani', sans-serif;
                         font-size: 12px;
                         color: rgba(255,255,255,0.5);
                         margin-top: 8px;
-                        letter-spacing: 4px;
-                        text-transform: uppercase;
+                        letter-spacing: 3px;
                     }
 
                     /* Search Section */
@@ -2331,7 +1865,7 @@ export default function PokerNearMePage() {
                     /* search-form input styles moved to .search-input-wrapper */
                     .search-btn {
                         padding: 14px 24px;
-                        background: linear-gradient(135deg, #00D4FF, #0099CC);
+                        background: linear-gradient(135deg, #d4a853, #b8860b);
                         border: none;
                         border-radius: 12px;
                         color: #000;
@@ -2373,9 +1907,9 @@ export default function PokerNearMePage() {
                         color: #22c55e;
                     }
                     .btn-filters.active {
-                        background: rgba(0,212,255,0.2);
-                        border-color: rgba(0,212,255,0.5);
-                        color: #00D4FF;
+                        background: rgba(212,168,83,0.2);
+                        border-color: rgba(212,168,83,0.5);
+                        color: #d4a853;
                     }
 
                     .city-chips {
@@ -2397,9 +1931,9 @@ export default function PokerNearMePage() {
                         background: rgba(255,255,255,0.1);
                     }
                     .city-chip.active {
-                        background: rgba(0,212,255,0.2);
-                        border-color: rgba(0,212,255,0.5);
-                        color: #00D4FF;
+                        background: rgba(212,168,83,0.2);
+                        border-color: rgba(212,168,83,0.5);
+                        color: #d4a853;
                     }
                     .city-chip.clear {
                         background: rgba(239,68,68,0.2);
@@ -2472,9 +2006,9 @@ export default function PokerNearMePage() {
                         cursor: pointer;
                     }
                     .chip.active {
-                        background: rgba(0,212,255,0.2);
-                        border-color: rgba(0,212,255,0.5);
-                        color: #00D4FF;
+                        background: rgba(212,168,83,0.2);
+                        border-color: rgba(212,168,83,0.5);
+                        color: #d4a853;
                     }
                     .filter-inputs {
                         display: flex;
@@ -2496,7 +2030,7 @@ export default function PokerNearMePage() {
                     .btn-apply {
                         width: 100%;
                         padding: 12px;
-                        background: linear-gradient(135deg, #00D4FF, #0099CC);
+                        background: linear-gradient(135deg, #d4a853, #b8860b);
                         border: none;
                         border-radius: 10px;
                         color: #000;
@@ -2532,9 +2066,9 @@ export default function PokerNearMePage() {
                         background: rgba(255,255,255,0.1);
                     }
                     .tab.active {
-                        background: rgba(0,212,255,0.2);
-                        border-color: rgba(0,212,255,0.5);
-                        color: #00D4FF;
+                        background: rgba(212,168,83,0.2);
+                        border-color: rgba(212,168,83,0.5);
+                        color: #d4a853;
                     }
                     .tab-icon {
                         display: flex;
@@ -2547,7 +2081,7 @@ export default function PokerNearMePage() {
                         font-size: 12px;
                     }
                     .tab.active .tab-count {
-                        background: rgba(0,212,255,0.3);
+                        background: rgba(212,168,83,0.3);
                     }
 
                     /* Main Content */
@@ -2571,7 +2105,7 @@ export default function PokerNearMePage() {
                         width: 40px;
                         height: 40px;
                         border: 3px solid rgba(255,255,255,0.1);
-                        border-top-color: #00D4FF;
+                        border-top-color: #d4a853;
                         border-radius: 50%;
                         animation: spin 1s linear infinite;
                         margin-bottom: 16px;
@@ -2580,10 +2114,10 @@ export default function PokerNearMePage() {
                     .empty-state button {
                         margin-top: 16px;
                         padding: 12px 24px;
-                        background: rgba(0,212,255,0.2);
-                        border: 1px solid rgba(0,212,255,0.4);
+                        background: rgba(212,168,83,0.2);
+                        border: 1px solid rgba(212,168,83,0.4);
                         border-radius: 8px;
-                        color: #00D4FF;
+                        color: #d4a853;
                         cursor: pointer;
                     }
 
@@ -2609,86 +2143,46 @@ export default function PokerNearMePage() {
                         }
                     }
 
-                    /* Entity Cards - Metal Frame Style (GLOBAL to apply to dynamically rendered cards) */
-                    :global(.entity-card) {
-                        position: relative;
-                        background: 
-                            linear-gradient(180deg, #3d4f5f 0%, #1a2332 50%, #0d1117 100%) !important;
-                        border: 2px solid #3d4f5f !important;
-                        border-left: 4px solid #00D4FF !important;
+                    /* Entity Cards */
+                    .entity-card {
+                        background: rgba(15, 23, 42, 0.5);
+                        border: 1px solid rgba(255,255,255,0.1);
                         border-radius: 12px;
-                        padding: 20px;
-                        padding-left: 24px;
-                        transition: all 0.3s ease;
-                        box-shadow: 
-                            inset 0 1px 0 rgba(255,255,255,0.1),
-                            inset 0 -1px 0 rgba(0,0,0,0.3),
-                            0 4px 20px rgba(0,0,0,0.5),
-                            -4px 0 15px rgba(0, 212, 255, 0.3) !important;
-                        overflow: hidden;
+                        padding: 16px;
+                        transition: all 0.2s;
                     }
-                    /* Top corner bolts */
-                    :global(.entity-card)::before,
-                    :global(.entity-card)::after {
-                        content: '+';
-                        position: absolute;
-                        width: 14px;
-                        height: 14px;
-                        background: radial-gradient(circle, #6a7a8a 20%, #4a5a6a 50%, #3a4a5a 80%);
-                        border-radius: 50%;
-                        border: 1px solid #2a3a4a;
-                        font-size: 9px;
-                        color: #1a2a3a;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        font-weight: bold;
-                        box-shadow: 
-                            inset 0 2px 3px rgba(255,255,255,0.3),
-                            inset 0 -1px 2px rgba(0,0,0,0.4),
-                            0 2px 4px rgba(0,0,0,0.4);
-                        z-index: 5;
+                    .entity-card:hover {
+                        border-color: rgba(255,255,255,0.2);
+                        background: rgba(15, 23, 42, 0.7);
                     }
-                    :global(.entity-card)::before { top: 10px; left: 12px; }
-                    :global(.entity-card)::after { top: 10px; right: 10px; }
-                    :global(.entity-card:hover) {
-                        border-color: #00D4FF !important;
-                        border-left-color: #00D4FF !important;
-                        box-shadow: 
-                            inset 0 1px 0 rgba(255,255,255,0.15),
-                            0 0 20px rgba(0, 212, 255, 0.5),
-                            0 0 40px rgba(0, 212, 255, 0.2),
-                            0 4px 25px rgba(0,0,0,0.6) !important;
-                        transform: translateY(-2px);
-                    }
-                    :global(.card-header) {
+                    .card-header {
                         display: flex;
                         justify-content: space-between;
                         align-items: flex-start;
                         margin-bottom: 10px;
                     }
-                    :global(.entity-card h4) {
+                    .entity-card h4 {
                         font-size: 16px;
                         font-weight: 600;
                         margin: 0 0 4px;
                         color: #fff;
                     }
-                    :global(.card-location) {
+                    .card-location {
                         font-size: 13px;
                         color: rgba(255,255,255,0.5);
                         margin: 0 0 10px;
                     }
-                    :global(.card-dates) {
+                    .card-dates {
                         font-size: 12px;
                         color: rgba(255,255,255,0.6);
                         margin: 0 0 10px;
                     }
-                    :global(.card-detail) {
+                    .card-detail {
                         font-size: 13px;
                         color: rgba(255,255,255,0.6);
                         margin: 8px 0;
                     }
-                    :global(.card-detail.guaranteed) {
+                    .card-detail.guaranteed {
                         color: #4ade80;
                         font-weight: 600;
                     }
@@ -2714,8 +2208,8 @@ export default function PokerNearMePage() {
                         color: #4ade80;
                     }
                     .badge.game-type {
-                        background: rgba(0,212,255,0.2);
-                        color: #00D4FF;
+                        background: rgba(212,168,83,0.2);
+                        color: #d4a853;
                     }
 
                     /* Tags */
@@ -2748,8 +2242,8 @@ export default function PokerNearMePage() {
                         color: #a78bfa;
                     }
                     .tag.buyin {
-                        background: rgba(0,212,255,0.15);
-                        color: #00D4FF;
+                        background: rgba(212,168,83,0.15);
+                        color: #d4a853;
                     }
                     .tag.gtd {
                         background: rgba(34,197,94,0.15);
@@ -2783,40 +2277,25 @@ export default function PokerNearMePage() {
                     }
                     .card-actions {
                         display: flex;
-                        gap: 10px;
+                        gap: 8px;
                     }
                     .action-btn {
-                        padding: 8px 16px;
+                        padding: 6px 12px;
                         font-size: 12px;
-                        font-weight: 600;
-                        font-family: 'Rajdhani', sans-serif;
-                        text-transform: uppercase;
-                        letter-spacing: 0.5px;
-                        color: rgba(255,255,255,0.8);
+                        font-weight: 500;
+                        color: rgba(255,255,255,0.7);
                         text-decoration: none;
-                        background: linear-gradient(180deg, rgba(61, 79, 95, 0.4) 0%, rgba(26, 35, 50, 0.6) 100%);
-                        border: 1px solid rgba(255,255,255,0.2);
-                        border-radius: 8px;
-                        transition: all 0.3s ease;
-                        cursor: pointer;
+                        border: 1px solid rgba(255,255,255,0.15);
+                        border-radius: 6px;
+                        transition: all 0.2s;
                     }
                     .action-btn:hover {
-                        background: linear-gradient(180deg, rgba(0, 212, 255, 0.15) 0%, rgba(0, 212, 255, 0.08) 100%);
-                        border-color: rgba(0, 212, 255, 0.5);
-                        color: #00D4FF;
-                        box-shadow: 0 0 12px rgba(0, 212, 255, 0.3);
-                        transform: translateY(-1px);
+                        background: rgba(255,255,255,0.05);
                     }
                     .action-btn.primary {
-                        background: linear-gradient(135deg, rgba(0, 212, 255, 0.25) 0%, rgba(0, 153, 204, 0.15) 100%);
-                        border: 1px solid rgba(0, 212, 255, 0.5);
-                        color: #00D4FF;
-                        box-shadow: 0 0 8px rgba(0, 212, 255, 0.2);
-                    }
-                    .action-btn.primary:hover {
-                        background: linear-gradient(135deg, rgba(0, 212, 255, 0.4) 0%, rgba(0, 153, 204, 0.25) 100%);
-                        border-color: #00D4FF;
-                        box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
+                        background: rgba(212,168,83,0.15);
+                        border-color: rgba(212,168,83,0.3);
+                        color: #d4a853;
                     }
 
                     /* Tour-specific */
@@ -2838,7 +2317,7 @@ export default function PokerNearMePage() {
                     }
                     .upcoming-date {
                         font-size: 12px;
-                        color: #00D4FF;
+                        color: #d4a853;
                     }
 
                     /* Daily tournaments */
@@ -2860,9 +2339,9 @@ export default function PokerNearMePage() {
                         cursor: pointer;
                     }
                     .day-btn.active {
-                        background: rgba(0,212,255,0.2);
-                        border-color: rgba(0,212,255,0.5);
-                        color: #00D4FF;
+                        background: rgba(212,168,83,0.2);
+                        border-color: rgba(212,168,83,0.5);
+                        color: #d4a853;
                     }
                     .time-badge {
                         padding: 4px 10px;
@@ -2952,9 +2431,9 @@ export default function PokerNearMePage() {
                         letter-spacing: 0.3px;
                     }
                     .featured-badge {
-                        background: rgba(0,212,255,0.2);
-                        color: #00D4FF;
-                        border: 1px solid rgba(0,212,255,0.3);
+                        background: rgba(212,168,83,0.2);
+                        color: #d4a853;
+                        border: 1px solid rgba(212,168,83,0.3);
                     }
                     .newcomer-badge {
                         background: rgba(34,197,94,0.15);
@@ -2990,35 +2469,26 @@ export default function PokerNearMePage() {
                     }
                     .quick-btn {
                         flex: 1;
-                        padding: 8px 12px;
+                        padding: 7px 10px;
                         border-radius: 6px;
                         font-size: 12px;
                         font-weight: 600;
-                        font-family: 'Rajdhani', sans-serif;
                         cursor: pointer;
                         border: none;
                         transition: all 0.2s;
-                        text-transform: uppercase;
-                        letter-spacing: 0.5px;
                     }
                     .checkin-btn {
-                        background: linear-gradient(180deg, rgba(34,197,94,0.2) 0%, rgba(34,197,94,0.1) 100%);
+                        background: rgba(34,197,94,0.15);
                         color: #4ade80;
-                        border: 1px solid rgba(34,197,94,0.4);
+                        border: 1px solid rgba(34,197,94,0.3);
                     }
-                    .checkin-btn:hover { 
-                        background: linear-gradient(180deg, rgba(34,197,94,0.35) 0%, rgba(34,197,94,0.2) 100%);
-                        box-shadow: 0 0 12px rgba(34,197,94,0.4);
-                    }
+                    .checkin-btn:hover { background: rgba(34,197,94,0.25); }
                     .review-btn {
-                        background: linear-gradient(180deg, rgba(0,212,255,0.2) 0%, rgba(0,212,255,0.1) 100%);
-                        color: #00D4FF;
-                        border: 1px solid rgba(0,212,255,0.4);
+                        background: rgba(59,130,246,0.15);
+                        color: #60a5fa;
+                        border: 1px solid rgba(59,130,246,0.3);
                     }
-                    .review-btn:hover { 
-                        background: linear-gradient(180deg, rgba(0,212,255,0.35) 0%, rgba(0,212,255,0.2) 100%);
-                        box-shadow: 0 0 12px var(--neon-cyan-glow);
-                    }
+                    .review-btn:hover { background: rgba(59,130,246,0.25); }
 
                     /* Load More */
                     .load-more {
@@ -3028,17 +2498,17 @@ export default function PokerNearMePage() {
                     }
                     .load-more-btn {
                         padding: 12px 32px;
-                        background: rgba(0,212,255,0.15);
-                        border: 1px solid rgba(0,212,255,0.3);
+                        background: rgba(212,168,83,0.15);
+                        border: 1px solid rgba(212,168,83,0.3);
                         border-radius: 10px;
-                        color: #00D4FF;
+                        color: #d4a853;
                         font-size: 14px;
                         font-weight: 500;
                         cursor: pointer;
                         transition: all 0.2s;
                     }
                     .load-more-btn:hover {
-                        background: rgba(0,212,255,0.25);
+                        background: rgba(212,168,83,0.25);
                     }
 
                     /* Live Games */
@@ -3073,7 +2543,7 @@ export default function PokerNearMePage() {
                     }
                     .live-game-type {
                         font-weight: 600;
-                        color: #00D4FF;
+                        color: #d4a853;
                         min-width: 40px;
                     }
                     .live-game-stakes {
@@ -3140,9 +2610,9 @@ export default function PokerNearMePage() {
                         transition: all 0.2s;
                     }
                     .view-btn.active {
-                        background: rgba(0,212,255,0.15);
-                        border-color: rgba(0,212,255,0.3);
-                        color: #00D4FF;
+                        background: rgba(212,168,83,0.15);
+                        border-color: rgba(212,168,83,0.3);
+                        color: #d4a853;
                     }
 
                     /* Calendar View */
@@ -3159,7 +2629,7 @@ export default function PokerNearMePage() {
                     .calendar-month-title {
                         font-size: 18px;
                         font-weight: 600;
-                        color: #00D4FF;
+                        color: #d4a853;
                         margin: 0 0 12px;
                         text-align: center;
                     }
@@ -3193,8 +2663,8 @@ export default function PokerNearMePage() {
                         border: none;
                     }
                     .cal-cell.today {
-                        border-color: rgba(0,212,255,0.4);
-                        background: rgba(0,212,255,0.08);
+                        border-color: rgba(212,168,83,0.4);
+                        background: rgba(212,168,83,0.08);
                     }
                     .cal-cell.has-events {
                         background: rgba(59,130,246,0.06);
@@ -3206,7 +2676,7 @@ export default function PokerNearMePage() {
                         margin-bottom: 2px;
                     }
                     .cal-cell.today .cal-day-num {
-                        color: #00D4FF;
+                        color: #d4a853;
                         font-weight: 700;
                     }
                     .cal-event {
@@ -3245,7 +2715,7 @@ export default function PokerNearMePage() {
                         outline: none;
                     }
                     .search-input-wrapper input:focus {
-                        border-color: rgba(0,212,255,0.5);
+                        border-color: rgba(212,168,83,0.5);
                     }
                     .search-input-wrapper input::placeholder { color: rgba(255,255,255,0.4); }
                     .search-history-dropdown {
@@ -3272,7 +2742,7 @@ export default function PokerNearMePage() {
                     .search-history-header button {
                         background: none;
                         border: none;
-                        color: #00D4FF;
+                        color: #d4a853;
                         font-size: 11px;
                         cursor: pointer;
                     }
@@ -3426,513 +2896,6 @@ export default function PokerNearMePage() {
                     .leaflet-container {
                         background: #0f172a !important;
                         font-family: 'Inter', -apple-system, sans-serif;
-                    }
-
-                    /* Map-First UI Styles - Enhanced Desktop Layout (must be global) */
-                    .map-desktop-layout {
-                        display: grid !important;
-                        grid-template-columns: 1fr 320px !important;
-                        gap: 0;
-                        min-height: calc(100vh - 200px);
-                    }
-                    .map-main-section {
-                        display: flex !important;
-                        flex-direction: column;
-                        background: rgba(15, 23, 42, 0.6);
-                        overflow-y: auto;
-                    }
-                    .map-header {
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                        padding: 16px 20px;
-                        background: rgba(15, 23, 42, 0.9);
-                        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-                    }
-                    .map-header-left {
-                        display: flex;
-                        flex-direction: column;
-                        gap: 4px;
-                    }
-                    .map-header-right {
-                        display: flex;
-                        gap: 8px;
-                    }
-                    .map-title {
-                        font-family: 'Orbitron', sans-serif;
-                        font-size: 18px;
-                        font-weight: 600;
-                        color: #fff;
-                        margin: 0;
-                        letter-spacing: 1px;
-                    }
-                    .map-stats {
-                        font-family: 'Rajdhani', sans-serif;
-                        font-size: 13px;
-                        color: rgba(255, 255, 255, 0.5);
-                        margin: 0;
-                    }
-                    .map-view-toggle {
-                        display: flex;
-                        align-items: center;
-                        gap: 8px;
-                        padding: 8px 14px;
-                        background: rgba(255, 255, 255, 0.05);
-                        border: 1px solid rgba(255, 255, 255, 0.15);
-                        border-radius: 8px;
-                        color: rgba(255, 255, 255, 0.6);
-                        font-size: 12px;
-                        font-weight: 500;
-                        cursor: pointer;
-                        transition: all 0.2s;
-                    }
-                    .map-view-toggle:hover {
-                        background: rgba(255, 255, 255, 0.1);
-                    }
-                    .map-view-toggle.active {
-                        background: rgba(0, 212, 255, 0.15);
-                        border-color: rgba(0, 212, 255, 0.4);
-                        color: #00D4FF;
-                    }
-                    .map-filters {
-                        display: flex;
-                        flex-wrap: wrap;
-                        gap: 8px;
-                        padding: 12px 20px;
-                        background: rgba(10, 15, 30, 0.95);
-                        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-                    }
-                    .map-filter-chip {
-                        display: flex;
-                        align-items: center;
-                        gap: 6px;
-                        padding: 8px 14px;
-                        background: rgba(255, 255, 255, 0.05);
-                        border: 1px solid rgba(255, 255, 255, 0.12);
-                        border-radius: 20px;
-                        color: rgba(255, 255, 255, 0.7);
-                        font-size: 12px;
-                        font-weight: 500;
-                        cursor: pointer;
-                        transition: all 0.2s;
-                    }
-                    .map-filter-chip:hover {
-                        background: rgba(255, 255, 255, 0.1);
-                        border-color: rgba(255, 255, 255, 0.2);
-                    }
-                    .map-filter-chip.active {
-                        background: rgba(0, 212, 255, 0.2);
-                        border-color: rgba(0, 212, 255, 0.5);
-                        color: #00D4FF;
-                    }
-                    .chip-dot {
-                        width: 8px;
-                        height: 8px;
-                        border-radius: 50%;
-                    }
-                    .chip-dot.cash {
-                        background: #22c55e;
-                        box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
-                    }
-                    .chip-dot.tournament {
-                        background: #f59e0b;
-                        box-shadow: 0 0 6px rgba(245, 158, 11, 0.5);
-                    }
-                    .map-container {
-                        flex: 1;
-                        min-height: 400px;
-                    }
-
-                    /* Room List Below Map */
-                    .rooms-list-section {
-                        padding: 20px;
-                        background: rgba(15, 23, 42, 0.8);
-                        border-top: 1px solid rgba(255, 255, 255, 0.1);
-                    }
-                    .rooms-list-title {
-                        font-family: 'Orbitron', sans-serif;
-                        font-size: 14px;
-                        font-weight: 600;
-                        color: #fff;
-                        margin: 0 0 16px;
-                        letter-spacing: 0.5px;
-                    }
-                    .rooms-list {
-                        display: flex;
-                        flex-direction: column;
-                        gap: 12px;
-                    }
-                    .room-list-item {
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                        padding: 16px;
-                        background: rgba(255, 255, 255, 0.03);
-                        border: 1px solid rgba(255, 255, 255, 0.08);
-                        border-radius: 12px;
-                        cursor: pointer;
-                        transition: all 0.2s;
-                    }
-                    .room-list-item:hover {
-                        background: rgba(255, 255, 255, 0.06);
-                        border-color: rgba(255, 255, 255, 0.15);
-                    }
-                    .room-list-item.selected {
-                        background: rgba(0, 212, 255, 0.1);
-                        border-color: rgba(0, 212, 255, 0.3);
-                    }
-                    .room-list-item-main {
-                        flex: 1;
-                    }
-                    .room-list-header {
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                        margin-bottom: 4px;
-                    }
-                    .room-list-name {
-                        font-size: 15px;
-                        font-weight: 600;
-                        color: #fff;
-                        margin: 0;
-                    }
-                    .room-list-hours {
-                        font-size: 12px;
-                        color: rgba(255, 255, 255, 0.5);
-                    }
-                    .room-list-location {
-                        font-size: 12px;
-                        color: rgba(255, 255, 255, 0.5);
-                        margin: 0 0 8px;
-                    }
-                    .room-list-distance {
-                        color: #00D4FF;
-                    }
-                    .room-list-stakes {
-                        display: flex;
-                        flex-wrap: wrap;
-                        gap: 6px;
-                        margin-bottom: 8px;
-                    }
-                    .stake-badge {
-                        padding: 4px 8px;
-                        background: rgba(0, 212, 255, 0.15);
-                        border: 1px solid rgba(0, 212, 255, 0.3);
-                        border-radius: 6px;
-                        font-size: 11px;
-                        font-weight: 600;
-                        color: #00D4FF;
-                    }
-                    .room-list-meta {
-                        display: flex;
-                        align-items: center;
-                        gap: 8px;
-                        font-size: 12px;
-                        color: rgba(255, 255, 255, 0.5);
-                    }
-                    .room-meta-item {
-                        display: flex;
-                        align-items: center;
-                        gap: 4px;
-                    }
-                    .room-list-btn {
-                        padding: 10px 16px;
-                        background: rgba(0, 212, 255, 0.15);
-                        border: 1px solid rgba(0, 212, 255, 0.4);
-                        border-radius: 8px;
-                        color: #00D4FF;
-                        font-size: 12px;
-                        font-weight: 600;
-                        cursor: pointer;
-                        transition: all 0.2s;
-                        white-space: nowrap;
-                    }
-                    .room-list-btn:hover {
-                        background: rgba(0, 212, 255, 0.25);
-                    }
-
-                    /* Sidebar */
-                    .map-sidebar {
-                        display: flex !important;
-                        flex-direction: column;
-                        gap: 16px;
-                        padding: 16px;
-                        background: rgba(10, 15, 30, 0.95);
-                        border-left: 1px solid rgba(255, 255, 255, 0.1);
-                        overflow-y: auto;
-                        max-height: calc(100vh - 200px);
-                    }
-                    .sidebar-filters {
-                        background: rgba(255, 255, 255, 0.03);
-                        border: 1px solid rgba(255, 255, 255, 0.08);
-                        border-radius: 12px;
-                        padding: 16px;
-                    }
-                    .sidebar-title {
-                        font-family: 'Orbitron', sans-serif;
-                        font-size: 14px;
-                        font-weight: 600;
-                        color: #fff;
-                        margin: 0 0 16px;
-                    }
-                    .sidebar-filter-group {
-                        margin-bottom: 16px;
-                    }
-                    .sidebar-label {
-                        display: block;
-                        font-size: 12px;
-                        font-weight: 500;
-                        color: rgba(255, 255, 255, 0.6);
-                        margin-bottom: 8px;
-                    }
-                    .sidebar-chips {
-                        display: flex;
-                        flex-wrap: wrap;
-                        gap: 6px;
-                    }
-                    .sidebar-chip {
-                        padding: 6px 12px;
-                        background: rgba(255, 255, 255, 0.05);
-                        border: 1px solid rgba(255, 255, 255, 0.12);
-                        border-radius: 6px;
-                        color: rgba(255, 255, 255, 0.6);
-                        font-size: 11px;
-                        font-weight: 500;
-                        cursor: pointer;
-                        transition: all 0.2s;
-                    }
-                    .sidebar-chip:hover {
-                        background: rgba(255, 255, 255, 0.1);
-                    }
-                    .sidebar-chip.active {
-                        background: rgba(0, 212, 255, 0.2);
-                        border-color: rgba(0, 212, 255, 0.5);
-                        color: #00D4FF;
-                    }
-                    .sidebar-range {
-                        display: flex;
-                        align-items: center;
-                        gap: 8px;
-                    }
-                    .sidebar-range input {
-                        flex: 1;
-                        padding: 8px 10px;
-                        background: rgba(0, 0, 0, 0.3);
-                        border: 1px solid rgba(255, 255, 255, 0.12);
-                        border-radius: 6px;
-                        color: #fff;
-                        font-size: 12px;
-                        outline: none;
-                    }
-                    .sidebar-range input:focus {
-                        border-color: rgba(0, 212, 255, 0.5);
-                    }
-                    .sidebar-range span {
-                        color: rgba(255, 255, 255, 0.4);
-                    }
-                    .sidebar-checkboxes {
-                        display: grid;
-                        grid-template-columns: 1fr 1fr;
-                        gap: 8px;
-                    }
-                    .sidebar-checkbox {
-                        display: flex;
-                        align-items: center;
-                        gap: 8px;
-                        font-size: 12px;
-                        color: rgba(255, 255, 255, 0.7);
-                        cursor: pointer;
-                    }
-                    .sidebar-checkbox input {
-                        accent-color: #00D4FF;
-                    }
-                    .sidebar-apply-btn {
-                        width: 100%;
-                        padding: 12px;
-                        background: rgba(0, 212, 255, 0.2);
-                        border: 1px solid rgba(0, 212, 255, 0.4);
-                        border-radius: 8px;
-                        color: #00D4FF;
-                        font-size: 13px;
-                        font-weight: 600;
-                        cursor: pointer;
-                        transition: all 0.2s;
-                    }
-                    .sidebar-apply-btn:hover {
-                        background: rgba(0, 212, 255, 0.3);
-                    }
-
-                    /* Room Detail Panel */
-                    .room-detail-panel {
-                        background: rgba(255, 255, 255, 0.03);
-                        border: 1px solid rgba(255, 255, 255, 0.08);
-                        border-radius: 12px;
-                        overflow: hidden;
-                    }
-                    .room-detail-header {
-                        position: relative;
-                    }
-                    .room-detail-image {
-                        width: 100%;
-                        height: 120px;
-                        background-size: cover;
-                        background-position: center;
-                        background-color: #1e3a5f;
-                    }
-                    .room-detail-rating {
-                        position: absolute;
-                        top: 10px;
-                        right: 10px;
-                        display: flex;
-                        align-items: center;
-                        gap: 4px;
-                        padding: 6px 10px;
-                        background: rgba(0, 0, 0, 0.7);
-                        border-radius: 6px;
-                        backdrop-filter: blur(8px);
-                    }
-                    .rating-score {
-                        font-size: 14px;
-                        font-weight: 700;
-                        color: #fff;
-                    }
-                    .room-detail-info {
-                        padding: 12px 16px;
-                        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-                    }
-                    .room-detail-name {
-                        font-size: 16px;
-                        font-weight: 600;
-                        color: #fff;
-                        margin: 0 0 4px;
-                    }
-                    .room-detail-location {
-                        font-size: 12px;
-                        color: rgba(255, 255, 255, 0.5);
-                        margin: 0;
-                    }
-                    .room-detail-section {
-                        padding: 12px 16px;
-                        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-                    }
-                    .room-detail-section-title {
-                        font-size: 12px;
-                        font-weight: 600;
-                        color: rgba(255, 255, 255, 0.6);
-                        margin: 0 0 10px;
-                        text-transform: uppercase;
-                        letter-spacing: 0.5px;
-                    }
-                    .room-detail-games {
-                        display: flex;
-                        flex-direction: column;
-                        gap: 8px;
-                    }
-                    .room-game-row {
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                    }
-                    .room-game-stake {
-                        font-size: 13px;
-                        font-weight: 600;
-                        color: #00D4FF;
-                    }
-                    .room-game-info {
-                        font-size: 12px;
-                        color: rgba(255, 255, 255, 0.5);
-                    }
-                    .room-detail-tournaments {
-                        display: flex;
-                        flex-direction: column;
-                        gap: 8px;
-                    }
-                    .room-tournament-row {
-                        display: grid;
-                        grid-template-columns: 1fr auto auto;
-                        gap: 8px;
-                        align-items: center;
-                    }
-                    .tournament-buyin {
-                        font-size: 12px;
-                        font-weight: 600;
-                        color: #fff;
-                    }
-                    .tournament-time {
-                        font-size: 11px;
-                        color: rgba(255, 255, 255, 0.5);
-                    }
-                    .tournament-gtd {
-                        font-size: 11px;
-                        font-weight: 600;
-                        color: #22c55e;
-                    }
-                    .room-detail-view-btn {
-                        width: calc(100% - 32px);
-                        margin: 12px 16px 16px;
-                        padding: 12px;
-                        background: linear-gradient(135deg, #00D4FF, #0099CC);
-                        border: none;
-                        border-radius: 8px;
-                        color: #000;
-                        font-size: 13px;
-                        font-weight: 700;
-                        cursor: pointer;
-                        transition: all 0.2s;
-                    }
-                    .room-detail-view-btn:hover {
-                        transform: translateY(-1px);
-                        box-shadow: 0 4px 12px rgba(0, 212, 255, 0.4);
-                    }
-
-                    /* Mobile Responsive for Map Layout */
-                    @media (max-width: 900px) {
-                        .map-desktop-layout {
-                            grid-template-columns: 1fr !important;
-                        }
-                        .map-sidebar {
-                            border-left: none;
-                            border-top: 1px solid rgba(255, 255, 255, 0.1);
-                            max-height: none;
-                        }
-                    }
-                    @media (max-width: 640px) {
-                        .map-header {
-                            flex-direction: column;
-                            align-items: flex-start;
-                            gap: 12px;
-                            padding: 12px 16px;
-                        }
-                        .map-header-right {
-                            width: 100%;
-                        }
-                        .map-view-toggle {
-                            flex: 1;
-                            justify-content: center;
-                        }
-                        .map-filters {
-                            padding: 10px 16px;
-                            gap: 6px;
-                        }
-                        .map-filter-chip {
-                            padding: 6px 10px;
-                            font-size: 11px;
-                        }
-                        .rooms-list-section {
-                            padding: 16px;
-                        }
-                        .room-list-item {
-                            flex-direction: column;
-                            align-items: flex-start;
-                            gap: 12px;
-                        }
-                        .room-list-btn {
-                            width: 100%;
-                            text-align: center;
-                        }
-                        .sidebar-checkboxes {
-                            grid-template-columns: 1fr;
-                        }
                     }
                 `}</style>
             </div>
