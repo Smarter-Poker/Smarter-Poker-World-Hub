@@ -29,31 +29,48 @@ export function AvatarProvider({ children }) {
     const [initializing, setInitializing] = useState(true);
 
     // Fetch VIP status directly from database (not cached session)
+    // 🛡️ BULLETPROOF: Uses AbortController to prevent unhandled AbortError rejections
     async function fetchVipStatus(userId) {
         if (!userId) {
             setIsVip(false);
             return;
         }
+        
+        // Create AbortController for proper timeout handling
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        
         try {
-            // Set a 5 second timeout for the RPC call
-            const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('VIP status check timeout')), 5000)
-            );
-
-            const rpcPromise = supabase.rpc('get_user_vip_status', { p_user_id: userId });
-
-            const { data, error } = await Promise.race([rpcPromise, timeoutPromise]);
-
-            if (!error && data !== null) {
-                setIsVip(data === true);
+            // Use native fetch with AbortController instead of supabase.rpc
+            // This prevents the "AbortError: signal is aborted without reason" Sentry error
+            const response = await fetch('/api/vip/check-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId }),
+                signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (response.ok) {
+                const { is_vip } = await response.json();
+                setIsVip(is_vip === true);
             } else {
-                // 🛡️ BULLETPROOF: Fallback to localStorage instead of getUser()
+                // 🛡️ BULLETPROOF: Fallback to localStorage
                 const localUser = getAuthUser();
                 setIsVip(localUser?.user_metadata?.is_vip || false);
             }
         } catch (err) {
-            console.error('Error fetching VIP status:', err);
-            // 🛡️ BULLETPROOF: Fallback to localStorage on any error
+            clearTimeout(timeoutId);
+            
+            // 🛡️ BULLETPROOF: Silently handle AbortError (expected on timeout/unmount)
+            if (err.name === 'AbortError') {
+                console.warn('[AvatarContext] VIP check aborted (timeout or unmount)');
+            } else {
+                console.error('Error fetching VIP status:', err);
+            }
+            
+            // Fallback to localStorage on any error
             try {
                 const localUser = getAuthUser();
                 setIsVip(localUser?.user_metadata?.is_vip || false);

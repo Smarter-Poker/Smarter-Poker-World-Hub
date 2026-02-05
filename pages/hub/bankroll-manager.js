@@ -84,22 +84,85 @@ const TIME_FILTERS = ['Last 7 Days', 'Last 30 Days', 'Last 90 Days', 'This Year'
 function StatCard({ title, value, change, suffix, isRisk, isLoading }) {
   const getRiskColor = (risk) => {
     if (risk === 'HIGH') return '#ef4444';
-    if (risk === 'MEDIUM') return '#eab308';
+    if (risk === 'MEDIUM') return '#f59e0b';
     return '#22c55e';
   };
 
+  // Circular gauge for Leak Risk
+  const getGaugePercent = (risk) => {
+    if (risk === 'HIGH') return 85;
+    if (risk === 'MEDIUM') return 50;
+    return 20;
+  };
+
+  const [isHovered, setIsHovered] = useState(false);
+
+  // Render circular gauge for risk metric
+  if (isRisk && !isLoading) {
+    const riskColor = getRiskColor(value);
+    const percent = getGaugePercent(value);
+    const circumference = 2 * Math.PI * 32;
+    const strokeDashoffset = circumference - (percent / 100) * circumference;
+
+    return (
+      <div
+        style={{
+          ...styles.statCard,
+          ...(isHovered ? styles.statCardHover : {}),
+        }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        <span style={styles.statTitle}>{title}</span>
+        <div style={styles.gaugeContainer}>
+          <svg width="80" height="80" viewBox="0 0 80 80">
+            {/* Background arc */}
+            <circle
+              cx="40" cy="40" r="32"
+              fill="none"
+              stroke="rgba(255,255,255,0.08)"
+              strokeWidth="6"
+            />
+            {/* Colored arc */}
+            <circle
+              cx="40" cy="40" r="32"
+              fill="none"
+              stroke={riskColor}
+              strokeWidth="6"
+              strokeLinecap="round"
+              strokeDasharray={circumference}
+              strokeDashoffset={strokeDashoffset}
+              transform="rotate(-90 40 40)"
+              style={{
+                transition: 'stroke-dashoffset 0.5s ease',
+                filter: `drop-shadow(0 0 6px ${riskColor})`,
+              }}
+            />
+          </svg>
+          <div style={styles.gaugeLabel}>
+            <span style={{ color: riskColor, fontWeight: 700 }}>{value}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div style={styles.statCard}>
+    <div
+      style={{
+        ...styles.statCard,
+        ...(isHovered ? styles.statCardHover : {}),
+      }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       <span style={styles.statTitle}>{title}</span>
       {isLoading ? (
         <div style={styles.statLoading}>—</div>
       ) : (
         <div style={styles.statValue}>
-          <span style={{ color: isRisk ? getRiskColor(value) : '#fff' }}>
-            {value}
-          </span>
-          {isRisk && value === 'HIGH' && <span style={styles.riskDot}>●</span>}
-          {change !== undefined && change !== null && !isRisk && (
+          <span style={{ color: '#e2e8f0' }}>{value}</span>
+          {change !== undefined && change !== null && (
             <span
               style={{
                 ...styles.statChange,
@@ -359,6 +422,7 @@ export default function BankrollManagerPage() {
 
       <div className="bankroll-page" style={styles.container}>
         <div style={styles.bgGrid} />
+        <div style={styles.vignette} />
         <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
 
         {/* Hamburger Menu */}
@@ -1041,9 +1105,10 @@ export default function BankrollManagerPage() {
 }
 
 const styles = {
+  // === Z-LAYER 0: BACKGROUND ENVIRONMENT ===
   container: {
     minHeight: '100vh',
-    background: '#18191a',  // Facebook dark background
+    background: 'radial-gradient(ellipse at 50% 30%, #141a24 0%, #0a0e14 50%, #050709 100%)',
     fontFamily: 'Inter, -apple-system, sans-serif',
     position: 'relative',
   },
@@ -1054,91 +1119,118 @@ const styles = {
     right: 0,
     bottom: 0,
     backgroundImage: `
-      linear-gradient(rgba(136, 136, 136, 0.02) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(136, 136, 136, 0.02) 1px, transparent 1px)
+      linear-gradient(rgba(60, 100, 150, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(60, 100, 150, 0.03) 1px, transparent 1px)
     `,
-    backgroundSize: '60px 60px',
+    backgroundSize: '40px 40px',
     pointerEvents: 'none',
+  },
+  // Vignette overlay
+  vignette: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.4) 100%)',
+    pointerEvents: 'none',
+    zIndex: 0,
   },
   topBar: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '8px 16px',
-    borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+    padding: '10px 20px',
+    background: 'linear-gradient(180deg, rgba(30, 37, 48, 0.9) 0%, rgba(20, 26, 34, 0.8) 100%)',
+    borderBottom: '1px solid rgba(60, 80, 120, 0.25)',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+    position: 'relative',
+    zIndex: 10,
   },
   topBarLeft: {
     display: 'flex',
-    gap: 8,
+    gap: 10,
   },
   topBarRight: {
     display: 'flex',
     alignItems: 'center',
-    gap: 12,
+    gap: 14,
   },
   dropdownContainer: {
     position: 'relative',
   },
   dropdownButton: {
     padding: '8px 16px',
-    background: 'rgba(255, 255, 255, 0.05)',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
+    background: 'linear-gradient(180deg, #2a3342 0%, #1e252f 100%)',
+    border: '1px solid rgba(60, 80, 120, 0.3)',
+    borderTop: '1px solid rgba(100, 140, 200, 0.15)',
     borderRadius: 6,
-    color: '#fff',
+    color: '#e2e8f0',
     fontSize: 13,
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     gap: 8,
+    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 2px 4px rgba(0, 0, 0, 0.2)',
+    transition: 'transform 0.1s ease',
   },
   dropdownArrow: {
     fontSize: 10,
-    opacity: 0.6,
+    opacity: 0.5,
   },
   dropdownMenu: {
     position: 'absolute',
     top: '100%',
     left: 0,
-    marginTop: 4,
-    background: '#1a2a44',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
+    marginTop: 6,
+    background: 'linear-gradient(180deg, #1e2530 0%, #151a22 100%)',
+    border: '1px solid rgba(60, 80, 120, 0.3)',
     borderRadius: 8,
-    padding: 4,
-    minWidth: 150,
+    padding: 6,
+    minWidth: 160,
     zIndex: 100,
     maxHeight: 300,
     overflowY: 'auto',
+    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5)',
   },
   dropdownItem: {
     display: 'block',
     width: '100%',
-    padding: '10px 12px',
+    padding: '10px 14px',
     background: 'transparent',
     border: 'none',
-    borderRadius: 4,
-    color: '#fff',
+    borderRadius: 6,
+    color: '#94a3b8',
     fontSize: 13,
     cursor: 'pointer',
     textAlign: 'left',
+    transition: 'all 0.15s ease',
   },
   searchButton: {
-    width: 36,
-    height: 36,
-    borderRadius: '50%',
-    background: 'rgba(255, 255, 255, 0.05)',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    color: '#fff',
+    width: 38,
+    height: 38,
+    borderRadius: 8,
+    background: 'linear-gradient(180deg, #2a3342 0%, #1e252f 100%)',
+    border: '1px solid rgba(60, 80, 120, 0.3)',
+    color: '#94a3b8',
     fontSize: 16,
     cursor: 'pointer',
+    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.04)',
+    transition: 'transform 0.1s ease, color 0.15s ease',
   },
   mainLayout: {
     display: 'flex',
     minHeight: 'calc(100vh - 140px)',
+    position: 'relative',
+    zIndex: 1,
   },
+  // === SIDEBAR: COMMAND NAVIGATION ===
   sidebar: {
-    width: 160,
-    padding: '20px 12px',
-    borderRight: '1px solid rgba(255, 255, 255, 0.08)',
+    width: 170,
+    padding: '24px 14px',
+    background: 'linear-gradient(180deg, rgba(26, 31, 42, 0.6) 0%, rgba(20, 26, 34, 0.4) 100%)',
+    borderRight: '1px solid rgba(60, 80, 120, 0.2)',
+    backdropFilter: 'blur(8px)',
   },
   sidebarItem: {
     display: 'flex',
@@ -1147,18 +1239,21 @@ const styles = {
     width: '100%',
     padding: '12px 14px',
     background: 'transparent',
-    border: 'none',
+    border: '1px solid transparent',
     borderRadius: 8,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: '#64748b',
     fontSize: 13,
+    fontWeight: 500,
     cursor: 'pointer',
     marginBottom: 4,
     textAlign: 'left',
-    transition: 'all 0.2s ease',
+    transition: 'all 0.15s ease',
   },
   sidebarItemActive: {
-    background: 'rgba(35, 116, 225, 0.15)',  // Facebook blue
-    color: '#2374e1',
+    background: 'linear-gradient(180deg, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.08) 100%)',
+    border: '1px solid rgba(59, 130, 246, 0.3)',
+    color: '#3b82f6',
+    boxShadow: 'inset 0 0 12px rgba(59, 130, 246, 0.1), 0 0 8px rgba(59, 130, 246, 0.1)',
   },
   sidebarIcon: {
     fontSize: 16,
@@ -1167,7 +1262,7 @@ const styles = {
   },
   mainContent: {
     flex: 1,
-    padding: '20px 24px',
+    padding: '24px 28px',
     minWidth: 0,
     overflowY: 'auto',
   },
@@ -1175,162 +1270,144 @@ const styles = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
   },
   pageTitle: {
     fontFamily: 'Inter, sans-serif',
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 700,
-    color: '#fff',
+    color: '#e2e8f0',
+    letterSpacing: '-0.01em',
     margin: 0,
+    textShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
   },
   headerActions: {
     display: 'flex',
     alignItems: 'center',
-    gap: 12,
+    gap: 14,
   },
+  // === Z-LAYER 2: INTERACTIVE ELEMENTS ===
   logButton: {
-    padding: '10px 24px',
-    background: '#2374e1',  // Facebook blue - clean, sleek
-    border: 'none',
+    padding: '12px 28px',
+    background: 'linear-gradient(180deg, #3b82f6 0%, #2563eb 100%)',
+    border: '1px solid rgba(59, 130, 246, 0.5)',
+    borderTop: '1px solid rgba(147, 197, 253, 0.3)',
     borderRadius: 8,
     color: '#fff',
     fontSize: 14,
     fontWeight: 600,
     cursor: 'pointer',
-    boxShadow: '0 4px 15px rgba(0, 212, 255, 0.3)',
+    boxShadow: `
+      inset 0 1px 0 rgba(255, 255, 255, 0.15),
+      0 4px 12px rgba(59, 130, 246, 0.4),
+      0 2px 4px rgba(0, 0, 0, 0.2)
+    `,
+    transition: 'transform 0.1s ease, box-shadow 0.1s ease',
   },
   statsGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(4, 1fr)',
-    gap: 12,
+    gap: 16,
     marginBottom: 24,
   },
-  statCard: {
-    background: 'rgba(255, 255, 255, 0.03)',
-    border: '1px solid rgba(255, 255, 255, 0.08)',
-    borderRadius: 12,
-    padding: '16px 18px',
-  },
-  statTitle: {
-    display: 'block',
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
-    marginBottom: 8,
-  },
-  statValue: {
-    display: 'flex',
-    alignItems: 'baseline',
-    gap: 8,
-    fontSize: 24,
-    fontWeight: 700,
-    color: '#fff',
-  },
-  statLoading: {
-    fontSize: 24,
-    fontWeight: 700,
-    color: 'rgba(255, 255, 255, 0.3)',
-  },
-  statChange: {
-    fontSize: 14,
-    fontWeight: 500,
-    display: 'flex',
-    alignItems: 'center',
-    gap: 4,
-  },
-  statSuffix: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
-    fontWeight: 400,
-  },
-  riskDot: {
-    color: '#ef4444',
-    fontSize: 12,
-  },
+  // (statCard styles already defined above)
   downArrow: {
     fontSize: 10,
   },
+  // === ACTIVITY SECTION: TIMELINE CONSOLE ===
   activitySection: {
-    background: 'rgba(255, 255, 255, 0.02)',
-    border: '1px solid rgba(255, 255, 255, 0.06)',
-    borderRadius: 12,
-    padding: 20,
+    background: 'linear-gradient(180deg, #1a1f2a 0%, #141820 100%)',
+    border: '1px solid rgba(60, 80, 120, 0.25)',
+    borderTop: '1px solid rgba(100, 140, 200, 0.15)',
+    borderRadius: 10,
+    padding: 24,
+    boxShadow: `
+      inset 0 1px 0 rgba(255, 255, 255, 0.03),
+      0 4px 16px rgba(0, 0, 0, 0.35)
+    `,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 600,
-    color: '#fff',
-    marginBottom: 16,
+    color: '#e2e8f0',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    marginBottom: 18,
   },
   filterTabs: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 18,
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 10,
   },
   filterTabsLeft: {
     display: 'flex',
-    gap: 4,
+    gap: 6,
     flexWrap: 'wrap',
   },
   filterTab: {
     padding: '8px 14px',
-    background: 'transparent',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
+    background: 'rgba(30, 37, 48, 0.6)',
+    border: '1px solid rgba(60, 80, 120, 0.25)',
     borderRadius: 6,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: '#64748b',
     fontSize: 12,
+    fontWeight: 500,
     cursor: 'pointer',
-    transition: 'all 0.2s ease',
+    transition: 'all 0.15s ease, transform 0.1s ease',
   },
   filterTabActive: {
-    background: '#2374e1',
-    borderColor: '#2374e1',
-    color: '#000',
+    background: 'linear-gradient(180deg, #3b82f6 0%, #2563eb 100%)',
+    borderColor: 'rgba(59, 130, 246, 0.5)',
+    color: '#fff',
     fontWeight: 600,
+    boxShadow: '0 0 10px rgba(59, 130, 246, 0.3)',
   },
   expenseToggle: {
     display: 'flex',
     alignItems: 'center',
     gap: 8,
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: '#64748b',
     cursor: 'pointer',
   },
   checkbox: {
-    accentColor: '#2374e1',
+    accentColor: '#3b82f6',
   },
   tripSection: {
-    marginTop: 24,
+    marginTop: 28,
   },
   tripTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: 600,
-    color: '#fff',
-    marginBottom: 12,
+    color: '#94a3b8',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    marginBottom: 14,
   },
   tripCard: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '14px 16px',
-    background: 'rgba(255, 255, 255, 0.03)',
-    border: '1px solid rgba(255, 255, 255, 0.06)',
-    borderRadius: 10,
+    padding: '16px 18px',
+    background: 'linear-gradient(180deg, #1e2530 0%, #181c24 100%)',
+    border: '1px solid rgba(60, 80, 120, 0.2)',
+    borderRadius: 8,
     cursor: 'pointer',
-    marginBottom: 8,
+    marginBottom: 10,
+    transition: 'transform 0.15s ease, border-color 0.15s ease',
   },
   tripInfo: {
     display: 'flex',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
   tripName: {
     fontSize: 14,
     fontWeight: 500,
-    color: '#fff',
+    color: '#e2e8f0',
   },
   tripNet: {
     fontSize: 14,
@@ -1338,16 +1415,18 @@ const styles = {
   },
   tripExpenses: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: '#64748b',
   },
   tripArrow: {
-    fontSize: 20,
-    color: 'rgba(255, 255, 255, 0.3)',
+    fontSize: 18,
+    color: '#475569',
   },
+  // === ASSISTANT PANEL: AI COMPANION MODULE ===
   assistantPanel: {
-    width: 220,
-    padding: '20px 16px',
-    borderLeft: '1px solid rgba(255, 255, 255, 0.08)',
+    width: 240,
+    padding: '24px 18px',
+    background: 'linear-gradient(180deg, rgba(26, 31, 42, 0.8) 0%, rgba(20, 26, 34, 0.6) 100%)',
+    borderLeft: '1px solid rgba(60, 80, 120, 0.2)',
     overflowY: 'auto',
   },
   logTodayButton: {
