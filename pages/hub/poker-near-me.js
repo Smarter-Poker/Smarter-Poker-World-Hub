@@ -528,6 +528,30 @@ export default function PokerNearMePage() {
     const [promotionVenueIds, setPromotionVenueIds] = useState(new Set());
     const [seriesViewMode, setSeriesViewMode] = useState('grid'); // 'grid' or 'calendar'
 
+    // Map view filters (for enhanced map-first experience)
+    const [mapFilters, setMapFilters] = useState({
+        cashGames: false,
+        tournaments: false,
+        openNow: false,
+        lowStakes: false,
+        topRated: false
+    });
+
+    // Sidebar filters (for right panel)
+    const [sidebarFilters, setSidebarFilters] = useState({
+        gameType: 'all',
+        stakes: 'all',
+        minBuyin: '',
+        maxBuyin: '',
+        hasFood: false,
+        hasHotel: false,
+        hasParking: false,
+        is24Hours: false
+    });
+
+    // Selected room for detail panel
+    const [selectedRoom, setSelectedRoom] = useState(null);
+
     // Load all venues for the map (from static JSON) on mount
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -1024,11 +1048,209 @@ export default function PokerNearMePage() {
     };
 
     const renderMap = () => {
+        // Filter venues based on map filters
+        let filteredVenues = allVenuesForMap;
+        if (mapFilters.cashGames) {
+            filteredVenues = filteredVenues.filter(v => v.games_offered && v.games_offered.length > 0);
+        }
+        if (mapFilters.tournaments) {
+            filteredVenues = filteredVenues.filter(v => v.has_tournaments);
+        }
+        if (mapFilters.lowStakes) {
+            filteredVenues = filteredVenues.filter(v => v.stakes_cash && v.stakes_cash.some(s => {
+                const match = s.match(/\$?(\d+)/);
+                return match && parseInt(match[1]) <= 2;
+            }));
+        }
+        if (mapFilters.topRated) {
+            filteredVenues = filteredVenues.filter(v => (v.trust_score || 0) >= 4.0);
+        }
+
+        // Apply sidebar filters
+        if (sidebarFilters.gameType === 'cash') {
+            filteredVenues = filteredVenues.filter(v => v.games_offered && v.games_offered.length > 0);
+        } else if (sidebarFilters.gameType === 'mtt') {
+            filteredVenues = filteredVenues.filter(v => v.has_tournaments);
+        }
+
+        if (sidebarFilters.stakes === '$1/25') {
+            filteredVenues = filteredVenues.filter(v => v.stakes_cash && v.stakes_cash.some(s => s.includes('1/2') || s.includes('1/3')));
+        } else if (sidebarFilters.stakes === '$2/5') {
+            filteredVenues = filteredVenues.filter(v => v.stakes_cash && v.stakes_cash.some(s => s.includes('2/5')));
+        } else if (sidebarFilters.stakes === '$5/10+') {
+            filteredVenues = filteredVenues.filter(v => v.stakes_cash && v.stakes_cash.some(s => s.includes('5/10') || s.includes('10/20') || s.includes('25/50')));
+        }
+
+        const toggleMapFilter = (key) => {
+            setMapFilters(prev => ({ ...prev, [key]: !prev[key] }));
+        };
+
         return (
-            <VenueMap
-                venues={allVenuesForMap}
-                userLocation={userLocation}
-            />
+            <div className="map-desktop-layout">
+                {/* LEFT COLUMN: Map Section */}
+                <div className="map-main-section">
+                    {/* Header Row */}
+                    <div className="map-header-row">
+                        <h2 className="map-title">Poker Rooms Near You</h2>
+                        <span className="map-stats">{filteredVenues.length} rooms • 0 active tables • 100 tournaments today</span>
+                    </div>
+
+                    {/* Quick Filter Chips */}
+                    <div className="map-filter-chips">
+                        <button className={'filter-chip' + (mapFilters.cashGames ? ' active' : '')} onClick={() => toggleMapFilter('cashGames')}>
+                            <span className="chip-dot cash"></span> Cash Games
+                        </button>
+                        <button className={'filter-chip' + (mapFilters.tournaments ? ' active' : '')} onClick={() => toggleMapFilter('tournaments')}>
+                            <span className="chip-dot mtt"></span> Tournaments
+                        </button>
+                        <button className={'filter-chip' + (mapFilters.openNow ? ' active' : '')} onClick={() => toggleMapFilter('openNow')}>
+                            <span className="chip-dot live"></span> Open Now
+                        </button>
+                        <button className={'filter-chip' + (mapFilters.lowStakes ? ' active' : '')} onClick={() => toggleMapFilter('lowStakes')}>
+                            <span className="chip-dot stakes"></span> Low Stakes
+                        </button>
+                        <button className={'filter-chip' + (mapFilters.topRated ? ' active' : '')} onClick={() => toggleMapFilter('topRated')}>
+                            <span className="chip-dot rated"></span> Top Rated
+                        </button>
+                    </div>
+
+                    {/* Map Container */}
+                    <VenueMap
+                        venues={filteredVenues}
+                        userLocation={userLocation}
+                    />
+
+                    {/* Room List Below Map */}
+                    <div className="map-room-list">
+                        <h3 className="room-list-title">Closest Poker Rooms</h3>
+                        <div className="room-list-grid">
+                            {filteredVenues.slice(0, 6).map((venue, i) => (
+                                <div key={venue.id || i} className="room-list-card" onClick={() => setSelectedRoom(venue)}>
+                                    <div className="room-card-header">
+                                        <span className="room-name">{venue.name}</span>
+                                        <span className="room-hours">{venue.is_24_hours ? '24/7' : venue.hours_of_operation || '—'}</span>
+                                    </div>
+                                    <div className="room-card-location">{venue.city}, {venue.state}</div>
+                                    <div className="room-card-tags">
+                                        <span className="room-tag">• — Tournaments</span>
+                                    </div>
+                                    <button className="room-view-btn" onClick={(e) => { e.stopPropagation(); router.push(`/hub/venues/${venue.id}`); }}>View Room</button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* RIGHT COLUMN: Sidebar Filters + Room Detail */}
+                <div className="map-sidebar">
+                    <div className="sidebar-filters">
+                        <h3 className="sidebar-title">Filters</h3>
+
+                        {/* Game Type */}
+                        <div className="sidebar-filter-group">
+                            <label className="sidebar-label">Game Type</label>
+                            <div className="sidebar-chips">
+                                {['all', 'Cash', 'MTT', 'Mixed'].map(type => (
+                                    <button
+                                        key={type}
+                                        className={'sidebar-chip' + (sidebarFilters.gameType === type.toLowerCase() ? ' active' : '')}
+                                        onClick={() => setSidebarFilters(p => ({ ...p, gameType: type.toLowerCase() }))}
+                                    >{type === 'all' ? 'All' : type}</button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Stakes */}
+                        <div className="sidebar-filter-group">
+                            <label className="sidebar-label">Stakes</label>
+                            <div className="sidebar-chips">
+                                {['all', '$1/25', '$2/5', '$5/10+'].map(stake => (
+                                    <button
+                                        key={stake}
+                                        className={'sidebar-chip' + (sidebarFilters.stakes === stake ? ' active' : '')}
+                                        onClick={() => setSidebarFilters(p => ({ ...p, stakes: stake }))}
+                                    >{stake === 'all' ? 'All' : stake}</button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Buy-in Range */}
+                        <div className="sidebar-filter-group">
+                            <label className="sidebar-label">Buy-in Range</label>
+                            <div className="sidebar-range-inputs">
+                                <input
+                                    type="number"
+                                    placeholder="Min"
+                                    className="sidebar-input"
+                                    value={sidebarFilters.minBuyin}
+                                    onChange={e => setSidebarFilters(p => ({ ...p, minBuyin: e.target.value }))}
+                                />
+                                <span className="range-divider">—</span>
+                                <input
+                                    type="number"
+                                    placeholder="Max"
+                                    className="sidebar-input"
+                                    value={sidebarFilters.maxBuyin}
+                                    onChange={e => setSidebarFilters(p => ({ ...p, maxBuyin: e.target.value }))}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Amenities */}
+                        <div className="sidebar-filter-group">
+                            <label className="sidebar-label">Amenities</label>
+                            <div className="sidebar-checkboxes">
+                                <label className="sidebar-checkbox">
+                                    <input
+                                        type="checkbox"
+                                        checked={sidebarFilters.hasFood}
+                                        onChange={e => setSidebarFilters(p => ({ ...p, hasFood: e.target.checked }))}
+                                    />
+                                    <span>Food</span>
+                                </label>
+                                <label className="sidebar-checkbox">
+                                    <input
+                                        type="checkbox"
+                                        checked={sidebarFilters.hasHotel}
+                                        onChange={e => setSidebarFilters(p => ({ ...p, hasHotel: e.target.checked }))}
+                                    />
+                                    <span>Hotel</span>
+                                </label>
+                                <label className="sidebar-checkbox">
+                                    <input
+                                        type="checkbox"
+                                        checked={sidebarFilters.hasParking}
+                                        onChange={e => setSidebarFilters(p => ({ ...p, hasParking: e.target.checked }))}
+                                    />
+                                    <span>Parking</span>
+                                </label>
+                                <label className="sidebar-checkbox">
+                                    <input
+                                        type="checkbox"
+                                        checked={sidebarFilters.is24Hours}
+                                        onChange={e => setSidebarFilters(p => ({ ...p, is24Hours: e.target.checked }))}
+                                    />
+                                    <span>24/7</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <button className="sidebar-apply-btn">Apply Filters</button>
+                    </div>
+
+                    {/* Room Detail Panel */}
+                    {selectedRoom && (
+                        <div className="room-detail-panel">
+                            <div className="detail-header">
+                                <h3>{selectedRoom.name}</h3>
+                                <button className="detail-close" onClick={() => setSelectedRoom(null)}>×</button>
+                            </div>
+                            <p className="detail-location">{selectedRoom.city}, {selectedRoom.state}</p>
+                            <button className="detail-view-btn" onClick={() => router.push(`/hub/venues/${selectedRoom.id}`)}>View Full Details</button>
+                        </div>
+                    )}
+                </div>
+            </div>
         );
     };
 
@@ -1522,7 +1744,7 @@ export default function PokerNearMePage() {
                                     <div className="search-history-dropdown">
                                         <div className="search-history-header">
                                             <span>Recent Searches</span>
-                                            <button type="button" onClick={() => { setSearchHistory([]); localStorage.removeItem('sp-search-history'); if (userId) clearSearchHistoryFromDb(userId).catch(() => {}); setShowSearchHistory(false); }}>Clear</button>
+                                            <button type="button" onClick={() => { setSearchHistory([]); localStorage.removeItem('sp-search-history'); if (userId) clearSearchHistoryFromDb(userId).catch(() => { }); setShowSearchHistory(false); }}>Clear</button>
                                         </div>
                                         {searchHistory.map((item, i) => (
                                             <button key={i} type="button" className="search-history-item"
@@ -2896,6 +3118,305 @@ export default function PokerNearMePage() {
                     .leaflet-container {
                         background: #0f172a !important;
                         font-family: 'Inter', -apple-system, sans-serif;
+                    }
+
+                    /* Two-Column Map Layout */
+                    .map-desktop-layout {
+                        display: grid;
+                        grid-template-columns: 1fr 320px;
+                        gap: 24px;
+                        width: 100%;
+                    }
+                    @media (max-width: 1024px) {
+                        .map-desktop-layout {
+                            grid-template-columns: 1fr;
+                        }
+                        .map-sidebar {
+                            display: none;
+                        }
+                    }
+
+                    .map-main-section {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 16px;
+                    }
+
+                    .map-header-row {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        flex-wrap: wrap;
+                        gap: 8px;
+                    }
+                    .map-title {
+                        font-size: 22px;
+                        font-weight: 700;
+                        color: #fff;
+                        margin: 0;
+                    }
+                    .map-stats {
+                        font-size: 13px;
+                        color: rgba(255,255,255,0.5);
+                    }
+
+                    /* Filter Chips */
+                    .map-filter-chips {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 8px;
+                    }
+                    .filter-chip {
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                        padding: 8px 14px;
+                        border-radius: 20px;
+                        background: rgba(255,255,255,0.06);
+                        border: 1px solid rgba(255,255,255,0.1);
+                        font-size: 13px;
+                        color: rgba(255,255,255,0.7);
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+                    .filter-chip:hover {
+                        background: rgba(255,255,255,0.1);
+                        border-color: rgba(255,255,255,0.2);
+                    }
+                    .filter-chip.active {
+                        background: rgba(212,168,83,0.2);
+                        border-color: rgba(212,168,83,0.5);
+                        color: #d4a853;
+                    }
+                    .chip-dot {
+                        width: 8px;
+                        height: 8px;
+                        border-radius: 50%;
+                    }
+                    .chip-dot.cash { background: #22c55e; }
+                    .chip-dot.mtt { background: #3b82f6; }
+                    .chip-dot.live { background: #ef4444; }
+                    .chip-dot.stakes { background: #f59e0b; }
+                    .chip-dot.rated { background: #d4a853; }
+
+                    /* Room List Below Map */
+                    .map-room-list {
+                        margin-top: 20px;
+                    }
+                    .room-list-title {
+                        font-size: 18px;
+                        font-weight: 600;
+                        color: #fff;
+                        margin: 0 0 12px 0;
+                    }
+                    .room-list-grid {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+                        gap: 12px;
+                    }
+                    .room-list-card {
+                        background: rgba(255,255,255,0.04);
+                        border: 1px solid rgba(255,255,255,0.08);
+                        border-radius: 12px;
+                        padding: 16px;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+                    .room-list-card:hover {
+                        background: rgba(255,255,255,0.08);
+                        border-color: rgba(212,168,83,0.3);
+                    }
+                    .room-card-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        margin-bottom: 6px;
+                    }
+                    .room-name {
+                        font-size: 15px;
+                        font-weight: 600;
+                        color: #fff;
+                    }
+                    .room-hours {
+                        font-size: 11px;
+                        color: #22c55e;
+                        font-weight: 500;
+                    }
+                    .room-card-location {
+                        font-size: 13px;
+                        color: rgba(255,255,255,0.5);
+                        margin-bottom: 8px;
+                    }
+                    .room-card-tags {
+                        margin-bottom: 12px;
+                    }
+                    .room-tag {
+                        font-size: 12px;
+                        color: rgba(255,255,255,0.4);
+                    }
+                    .room-view-btn {
+                        width: 100%;
+                        padding: 8px 12px;
+                        border-radius: 8px;
+                        background: rgba(212,168,83,0.2);
+                        border: 1px solid rgba(212,168,83,0.4);
+                        color: #d4a853;
+                        font-size: 13px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+                    .room-view-btn:hover {
+                        background: rgba(212,168,83,0.3);
+                    }
+
+                    /* Sidebar Styles */
+                    .map-sidebar {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 16px;
+                    }
+                    .sidebar-filters {
+                        background: rgba(255,255,255,0.04);
+                        border: 1px solid rgba(255,255,255,0.08);
+                        border-radius: 12px;
+                        padding: 20px;
+                    }
+                    .sidebar-title {
+                        font-size: 16px;
+                        font-weight: 600;
+                        color: #fff;
+                        margin: 0 0 16px 0;
+                    }
+                    .sidebar-filter-group {
+                        margin-bottom: 16px;
+                    }
+                    .sidebar-label {
+                        display: block;
+                        font-size: 12px;
+                        font-weight: 500;
+                        color: rgba(255,255,255,0.5);
+                        margin-bottom: 8px;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                    }
+                    .sidebar-chips {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 6px;
+                    }
+                    .sidebar-chip {
+                        padding: 6px 12px;
+                        border-radius: 6px;
+                        background: rgba(255,255,255,0.06);
+                        border: 1px solid rgba(255,255,255,0.1);
+                        font-size: 12px;
+                        color: rgba(255,255,255,0.7);
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+                    .sidebar-chip:hover {
+                        background: rgba(255,255,255,0.1);
+                    }
+                    .sidebar-chip.active {
+                        background: rgba(212,168,83,0.2);
+                        border-color: rgba(212,168,83,0.5);
+                        color: #d4a853;
+                    }
+                    .sidebar-range-inputs {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                    }
+                    .sidebar-input {
+                        flex: 1;
+                        padding: 8px 10px;
+                        border-radius: 6px;
+                        background: rgba(255,255,255,0.06);
+                        border: 1px solid rgba(255,255,255,0.1);
+                        font-size: 13px;
+                        color: #fff;
+                    }
+                    .sidebar-input::placeholder {
+                        color: rgba(255,255,255,0.3);
+                    }
+                    .range-divider {
+                        color: rgba(255,255,255,0.3);
+                    }
+                    .sidebar-checkboxes {
+                        display: grid;
+                        grid-template-columns: 1fr 1fr;
+                        gap: 8px;
+                    }
+                    .sidebar-checkbox {
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                        font-size: 13px;
+                        color: rgba(255,255,255,0.7);
+                        cursor: pointer;
+                    }
+                    .sidebar-checkbox input {
+                        accent-color: #d4a853;
+                    }
+                    .sidebar-apply-btn {
+                        width: 100%;
+                        padding: 12px;
+                        border-radius: 8px;
+                        background: linear-gradient(135deg, #d4a853, #b8860b);
+                        border: none;
+                        font-size: 14px;
+                        font-weight: 600;
+                        color: #000;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        margin-top: 8px;
+                    }
+                    .sidebar-apply-btn:hover {
+                        filter: brightness(1.1);
+                    }
+
+                    /* Room Detail Panel */
+                    .room-detail-panel {
+                        background: rgba(255,255,255,0.04);
+                        border: 1px solid rgba(255,255,255,0.08);
+                        border-radius: 12px;
+                        padding: 20px;
+                    }
+                    .detail-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        margin-bottom: 8px;
+                    }
+                    .detail-header h3 {
+                        font-size: 16px;
+                        font-weight: 600;
+                        color: #fff;
+                        margin: 0;
+                    }
+                    .detail-close {
+                        background: none;
+                        border: none;
+                        font-size: 20px;
+                        color: rgba(255,255,255,0.5);
+                        cursor: pointer;
+                    }
+                    .detail-location {
+                        font-size: 13px;
+                        color: rgba(255,255,255,0.5);
+                        margin: 0 0 12px 0;
+                    }
+                    .detail-view-btn {
+                        width: 100%;
+                        padding: 10px;
+                        border-radius: 8px;
+                        background: rgba(212,168,83,0.2);
+                        border: 1px solid rgba(212,168,83,0.4);
+                        color: #d4a853;
+                        font-size: 13px;
+                        font-weight: 600;
+                        cursor: pointer;
                     }
                 `}</style>
             </div>

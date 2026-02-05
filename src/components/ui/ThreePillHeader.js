@@ -1,20 +1,21 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * 3-PILL HEADER COMPONENT — Image-Based Skin with Dynamic Overlays
+ * 3-PILL HEADER COMPONENT — User's Exact Image with Dynamic Overlays
  * ═══════════════════════════════════════════════════════════════════════════
  * 
- * Uses the exact user-provided header image as background skin
- * with absolutely positioned interactive elements overlaid on each pill:
+ * Uses the user's exact "Global Header v1.png" image as the header skin
+ * with absolutely positioned interactive elements on each pill:
  * 
- * - Pill 1 (Left): Hamburger Menu + Hub/Back Arrow
- * - Pill 2 (Center): "Smarter.Poker" + Diamond Wallet
- * - Pill 3 (Right): Profile + Message + Notification + Settings + Help Icons
+ * - Pill 1 (Left ~5%-22%): Hamburger Menu + Hub/Back Arrow
+ * - Pill 2 (Center ~28%-72%): "Smarter.Poker" + Diamond Wallet  
+ * - Pill 3 (Right ~78%-95%): Profile + Message + Notification + Settings + Help
+ * 
+ * Image: 1536×200px cropped header bar from user's 1536×1024 original
  */
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import PushNotificationBell from '../notifications/PushNotificationBell';
 import { useLiveHelp } from '../../world/components/Geeves';
 
 // Format numbers compactly: 1.1k, 10.1k, 100.1k, 1.1M
@@ -45,7 +46,6 @@ export default function ThreePillHeader({
 
         const loadUser = async () => {
             try {
-                // Read user from localStorage (bulletproof approach)
                 let authUser = null;
                 if (typeof window !== 'undefined') {
                     try {
@@ -73,7 +73,6 @@ export default function ThreePillHeader({
                 if (authUser) {
                     setUser(authUser);
 
-                    // Fetch profile and stats
                     const response = await fetch('/api/user/get-header-stats', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -117,60 +116,57 @@ export default function ThreePillHeader({
     return (
         <>
             <style jsx global>{`
-                /* HEADER CONTAINER - Image-based skin */
+                /* HEADER CONTAINER - Uses user's exact image */
                 .three-pill-header {
                     position: sticky;
                     top: 0;
                     z-index: 100;
                     width: 100%;
                     height: 70px;
-                    background: url('/images/three-pill-header-skin.png') center/cover no-repeat;
+                    background: url('/images/three-pill-header-bar.png') center/cover no-repeat;
+                    background-color: #0a1628;
+                }
+
+                /* OVERLAY CONTAINER - positions interactive elements over the image */
+                .header-overlay {
+                    position: relative;
+                    width: 100%;
+                    height: 100%;
                     display: flex;
                     align-items: center;
                     padding: 0;
                 }
 
-                /* OVERLAY CONTAINER - positions interactive elements over the image */
-                .header-overlay {
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    padding: 12px 16px;
-                }
-
-                /* PILL ZONES - clickable areas positioned over image pills */
+                /* PILL ZONES - positioned exactly over image pills */
                 .pill-zone {
+                    position: absolute;
+                    top: 50%;
+                    transform: translateY(-50%);
                     display: flex;
                     align-items: center;
+                    justify-content: center;
                     gap: 8px;
-                    height: 100%;
+                    height: 50px;
                 }
 
-                /* LEFT PILL ZONE (Nav) - ~18% width */
+                /* LEFT PILL: 5% to 22% (17% width) */
                 .pill-zone-left {
-                    flex: 0 0 18%;
-                    justify-content: center;
-                    padding-left: 8px;
+                    left: 5%;
+                    width: 17%;
                 }
 
-                /* CENTER PILL ZONE (Brand + Wallet) - ~50% width */
+                /* CENTER PILL: 28% to 72% (44% width) */
                 .pill-zone-center {
-                    flex: 0 0 50%;
-                    justify-content: center;
-                    gap: 12px;
+                    left: 28%;
+                    width: 44%;
+                    gap: 16px;
                 }
 
-                /* RIGHT PILL ZONE (Icons) - ~30% width */
+                /* RIGHT PILL: 78% to 95% (17% width) */
                 .pill-zone-right {
-                    flex: 0 0 30%;
-                    justify-content: center;
-                    gap: 6px;
-                    padding-right: 8px;
+                    left: 78%;
+                    width: 17%;
+                    gap: 4px;
                 }
 
                 /* HAMBURGER BUTTON */
@@ -193,10 +189,10 @@ export default function ThreePillHeader({
 
                 /* NAV BUTTON (Back/Hub) */
                 .nav-btn-pill {
-                    background: rgba(0, 136, 255, 0.15);
-                    border: 1px solid rgba(0, 180, 255, 0.3);
+                    background: rgba(0, 136, 255, 0.12);
+                    border: 1px solid rgba(0, 180, 255, 0.25);
                     border-radius: 6px;
-                    padding: 6px 10px;
+                    padding: 5px 10px;
                     display: flex;
                     align-items: center;
                     gap: 4px;
@@ -209,14 +205,14 @@ export default function ThreePillHeader({
                 }
 
                 .nav-btn-pill:hover {
-                    background: rgba(0, 180, 255, 0.25);
+                    background: rgba(0, 180, 255, 0.2);
                     box-shadow: 0 0 8px rgba(0, 180, 255, 0.3);
                 }
 
                 /* BRAND TEXT */
                 .brand-text-pill {
                     color: white;
-                    font-size: 15px;
+                    font-size: 16px;
                     font-weight: 700;
                     letter-spacing: 0.5px;
                     white-space: nowrap;
@@ -228,10 +224,10 @@ export default function ThreePillHeader({
                     display: flex;
                     align-items: center;
                     gap: 6px;
-                    background: rgba(0, 212, 255, 0.12);
-                    border: 1px solid rgba(0, 212, 255, 0.4);
-                    padding: 5px 10px;
-                    border-radius: 16px;
+                    background: rgba(0, 212, 255, 0.1);
+                    border: 1px solid rgba(0, 212, 255, 0.35);
+                    padding: 5px 12px;
+                    border-radius: 18px;
                     text-decoration: none;
                     color: white;
                     font-weight: 700;
@@ -241,26 +237,26 @@ export default function ThreePillHeader({
 
                 .diamond-wallet-pill:hover {
                     box-shadow: 0 0 12px rgba(0, 212, 255, 0.4);
-                    border-color: rgba(0, 212, 255, 0.7);
+                    border-color: rgba(0, 212, 255, 0.6);
                 }
 
                 .diamond-plus {
-                    width: 16px;
-                    height: 16px;
+                    width: 18px;
+                    height: 18px;
                     border-radius: 50%;
-                    background: rgba(0, 212, 255, 0.35);
+                    background: rgba(0, 212, 255, 0.3);
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    font-size: 11px;
+                    font-size: 12px;
                     font-weight: 700;
                     color: white;
                 }
 
                 /* ICON BUTTONS */
                 .icon-btn-pill {
-                    width: 30px;
-                    height: 30px;
+                    width: 28px;
+                    height: 28px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
@@ -287,15 +283,15 @@ export default function ThreePillHeader({
 
                 /* PROFILE ORB */
                 .profile-orb-pill {
-                    width: 30px;
-                    height: 30px;
+                    width: 28px;
+                    height: 28px;
                     border-radius: 50%;
                     border: 2px solid rgba(0, 245, 255, 0.4);
-                    box-shadow: 0 0 8px rgba(0, 245, 255, 0.25);
+                    box-shadow: 0 0 6px rgba(0, 245, 255, 0.2);
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    font-size: 12px;
+                    font-size: 11px;
                     background-size: cover;
                     background-position: center;
                     cursor: pointer;
@@ -304,14 +300,14 @@ export default function ThreePillHeader({
 
                 .profile-orb-pill:hover {
                     border-color: rgba(0, 245, 255, 0.7);
-                    box-shadow: 0 0 12px rgba(0, 245, 255, 0.5);
+                    box-shadow: 0 0 10px rgba(0, 245, 255, 0.4);
                 }
 
                 /* BADGE */
                 .pill-badge {
                     position: absolute;
-                    top: -3px;
-                    right: -3px;
+                    top: -2px;
+                    right: -2px;
                     background: #e41e3f;
                     color: white;
                     border-radius: 8px;
@@ -326,11 +322,7 @@ export default function ThreePillHeader({
                 /* MOBILE RESPONSIVE */
                 @media (max-width: 600px) {
                     .three-pill-header {
-                        height: 60px;
-                    }
-
-                    .header-overlay {
-                        padding: 8px 10px;
+                        height: 55px;
                     }
 
                     .brand-text-pill {
@@ -338,40 +330,43 @@ export default function ThreePillHeader({
                     }
 
                     .pill-zone-left {
-                        flex: 0 0 20%;
+                        left: 3%;
+                        width: 20%;
                     }
 
                     .pill-zone-center {
-                        flex: 0 0 35%;
+                        left: 26%;
+                        width: 38%;
                     }
 
                     .pill-zone-right {
-                        flex: 0 0 42%;
+                        left: 67%;
+                        width: 30%;
                     }
 
                     .icon-btn-pill {
-                        width: 26px;
-                        height: 26px;
+                        width: 24px;
+                        height: 24px;
                     }
 
                     .icon-btn-pill svg {
-                        width: 20px;
-                        height: 20px;
+                        width: 18px;
+                        height: 18px;
                     }
 
                     .profile-orb-pill {
-                        width: 26px;
-                        height: 26px;
+                        width: 24px;
+                        height: 24px;
                     }
 
                     .nav-btn-pill {
-                        padding: 5px 8px;
+                        padding: 4px 8px;
                         font-size: 11px;
                     }
 
                     .diamond-wallet-pill {
                         padding: 4px 8px;
-                        font-size: 12px;
+                        font-size: 11px;
                     }
                 }
             `}</style>
@@ -437,7 +432,7 @@ export default function ThreePillHeader({
 
                         {/* Messages */}
                         <Link href="/hub/messenger" className="icon-btn-pill">
-                            <svg width="22" height="22" viewBox="0 0 24 24">
+                            <svg width="20" height="20" viewBox="0 0 24 24">
                                 <path d="M12 2C6.36 2 2 6.13 2 11.7c0 2.91 1.19 5.44 3.14 7.17.16.13.26.35.27.57l.05 1.78c.04.57.61.94 1.13.71l1.98-.87c.17-.07.36-.09.53-.05.86.23 1.81.36 2.9.36 5.64 0 10-4.13 10-9.7C22 6.13 17.64 2 12 2zm6.07 7.56l-2.96 4.69c-.47.75-1.48.93-2.18.38l-2.35-1.76a.75.75 0 00-.9 0l-3.17 2.41c-.42.32-.98-.18-.7-.63l2.96-4.69c.47-.75 1.48-.93 2.18-.38l2.35 1.76c.27.2.65.2.9 0l3.17-2.41c.42-.32.98.18.7.63z" />
                             </svg>
                             {unreadMessages > 0 && (
@@ -447,7 +442,7 @@ export default function ThreePillHeader({
 
                         {/* Notifications */}
                         <Link href="/hub/notifications" className="icon-btn-pill">
-                            <svg width="22" height="22" viewBox="0 0 24 24">
+                            <svg width="20" height="20" viewBox="0 0 24 24">
                                 <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" />
                             </svg>
                             {notificationCount > 0 && (
@@ -457,7 +452,7 @@ export default function ThreePillHeader({
 
                         {/* Settings */}
                         <Link href="/hub/settings" className="icon-btn-pill">
-                            <svg width="22" height="22" viewBox="0 0 24 24">
+                            <svg width="20" height="20" viewBox="0 0 24 24">
                                 <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
                             </svg>
                         </Link>
@@ -468,7 +463,7 @@ export default function ThreePillHeader({
                             className="icon-btn-pill"
                             aria-label="Live Help"
                         >
-                            <svg width="22" height="22" viewBox="0 0 24 24">
+                            <svg width="20" height="20" viewBox="0 0 24 24">
                                 <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.85)" strokeWidth="2" fill="none" />
                                 <text x="12" y="17" textAnchor="middle" fontSize="14" fontWeight="bold" fill="rgba(255,255,255,0.85)">?</text>
                             </svg>
