@@ -175,16 +175,14 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
             <style jsx>{`
                 .news-box {
                     position: relative;
-                    background: #1a1c1e;
-                    border: 16px solid transparent;
-                    border-image: url('/images/news-icons/card-frame.png') 80 80 80 80 fill stretch;
-                    border-radius: 0;
+                    background: linear-gradient(145deg, #2a2d35 0%, #1a1c1e 100%);
+                    border-radius: 16px;
                     overflow: hidden;
                     cursor: pointer;
                     transition: all 0.2s ease;
                     display: flex;
                     flex-direction: column;
-                    height: 360px;
+                    height: 340px;
                 }
 
                 .news-box:hover {
@@ -253,12 +251,10 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                 .box-image {
                     position: relative;
                     width: 100%;
-                    margin: 0;
-                    flex: 1;
-                    min-height: 0;
+                    height: 240px;
                     overflow: hidden;
                     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-                    border-radius: 10px;
+                    border-radius: 12px 12px 0 0;
                 }
 
                 .box-image img {
@@ -323,7 +319,7 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                     max-height: 60px !important;
                     min-height: 60px !important;
                     flex-shrink: 0;
-                    background: transparent;
+                    background: #1a1c1e;
                     overflow: hidden;
                     border-radius: 6px;
                 }
@@ -421,21 +417,14 @@ function VideoCard({ video, onClick }) {
             <style jsx>{`
                 .video-card {
                     position: relative;
-                    background: #1a1c1e;
+                    background: linear-gradient(145deg, #2a2d35 0%, #1a1c1e 100%);
                     border-radius: 16px;
                     overflow: hidden;
                     cursor: pointer;
                     transition: all 0.3s;
-                }
-                
-                /* Chrome frame overlay */
-                .video-card::after {
-                    content: '';
-                    position: absolute;
-                    inset: -4px;
-                    background: url('/images/news-icons/card-frame.png') center / 100% 100% no-repeat;
-                    pointer-events: none;
-                    z-index: 20;
+                    height: 280px;
+                    display: flex;
+                    flex-direction: column;
                 }
 
                 .video-card:hover {
@@ -445,8 +434,10 @@ function VideoCard({ video, onClick }) {
 
                 .video-thumbnail {
                     position: relative;
-                    aspect-ratio: 16/9;
+                    width: 100%;
+                    height: 180px;
                     overflow: hidden;
+                    border-radius: 12px 12px 0 0;
                 }
 
                 .video-thumbnail img {
@@ -1296,10 +1287,6 @@ export default function NewsHub() {
                 {/* Header Bar */}
                 <header className="header">
                     <div className="header-left">
-                        <div className="logo">
-                            <Newspaper className="logo-icon" size={22} />
-                            <span>Poker News</span>
-                        </div>
 
                         {/* Section Tabs - Custom Image Buttons */}
                         <div className="section-tabs">
@@ -1416,7 +1403,7 @@ export default function NewsHub() {
                                 {/* News Grid - 6 Source-Specific Boxes */}
                                 <section className="news-section">
                                     <h2 className="section-title">
-                                        <Flame size={18} /> Today's Top Stories
+                                        Today's Top Stories
                                     </h2>
 
                                     {filteredNews.length === 0 && searchQuery ? (
@@ -2072,6 +2059,10 @@ export default function NewsHub() {
                         display: grid;
                         grid-template-columns: repeat(2, 1fr);
                         gap: 16px;
+                        padding: 20px;
+                        border: 12px solid transparent;
+                        border-image: url('/images/news-icons/section-frame.png') 40 40 40 40 fill stretch;
+                        border-radius: 0;
                     }
 
                     /* Force ALL boxes to same size */
@@ -2333,6 +2324,10 @@ export default function NewsHub() {
                         display: grid;
                         grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
                         gap: 16px;
+                        padding: 20px;
+                        border: 12px solid transparent;
+                        border-image: url('/images/news-icons/section-frame.png') 40 40 40 40 fill stretch;
+                        border-radius: 0;
                     }
 
                     .see-all-videos {

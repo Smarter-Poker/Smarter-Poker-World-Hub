@@ -178,46 +178,34 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
     return (
         <div className="trivia-lobby">
 
-            {/* Daily Trivia Hero Card */}
-            <MetalFrame
-                padding="28px 32px"
-                showBolts={true}
-                showNeonStrips={true}
-                className="daily-hero"
+            {/* Daily Trivia Hero Card - Image Based */}
+            <div
+                className="daily-trivia-banner"
+                onClick={() => !dailyCompleted && startMode('daily')}
+                style={{ cursor: dailyCompleted ? 'default' : 'pointer' }}
             >
-                <div className="daily-hero__layout">
-                    <PortholeIcon
-                        icon={Zap}
-                        size={80}
-                        glowColor="#00D4FF"
-                        animated={!dailyCompleted}
-                    />
-                    <div className="daily-content">
-                        <h2>DAILY TRIVIA</h2>
-                        <p className="daily-info">10 Questions • Fresh Every Day</p>
-                        <ul className="daily-benefits">
-                            <li>• New questions every day at midnight CST</li>
-                            <li>• Build your knowledge streak</li>
-                        </ul>
-                        {currentStreak > 0 && (
-                            <StreakBadge
-                                streakDays={currentStreak}
-                                size="md"
-                                showProgress={true}
-                                showMultiplier={true}
-                            />
-                        )}
+                <img
+                    src="/images/trivia/daily-trivia-header.png"
+                    alt="Daily Trivia - 10 Questions Fresh Every Day"
+                    className="daily-trivia-banner__image"
+                />
+                {/* Clickable button overlay positioned over the START DAILY TRIVIA button */}
+                <button
+                    className="daily-trivia-banner__button"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (!dailyCompleted) startMode('daily');
+                    }}
+                    disabled={dailyCompleted}
+                    aria-label={dailyCompleted ? 'Daily Trivia Completed' : 'Start Daily Trivia'}
+                />
+                {dailyCompleted && (
+                    <div className="daily-trivia-banner__completed">
+                        <span>✓ COMPLETED</span>
                     </div>
-                    <HexButton
-                        onClick={() => startMode('daily')}
-                        disabled={dailyCompleted}
-                        variant={dailyCompleted ? 'secondary' : 'primary'}
-                        size="lg"
-                    >
-                        {dailyCompleted ? 'COMPLETED' : 'START DAILY TRIVIA'}
-                    </HexButton>
-                </div>
-            </MetalFrame>
+                )}
+            </div>
+
 
             {/* Mode Cards Section */}
             <div className="modes-section">
@@ -346,64 +334,72 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
                 }
 
 
-
-                /* Daily Hero Card */
-                .daily-hero {
-                    margin-bottom: 32px;
+                /* Daily Trivia Banner - Image Based */
+                .daily-trivia-banner {
+                    position: relative;
+                    width: 100%;
+                    margin-bottom: 24px;
+                    border-radius: 8px;
+                    overflow: hidden;
+                    transition: transform 0.2s ease, box-shadow 0.2s ease;
                 }
 
-                .daily-hero__layout {
+                .daily-trivia-banner:hover {
+                    transform: scale(1.01);
+                    box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+                }
+
+                .daily-trivia-banner__image {
+                    width: 100%;
+                    height: auto;
+                    display: block;
+                }
+
+                .daily-trivia-banner__button {
+                    position: absolute;
+                    top: 25%;
+                    right: 3%;
+                    width: 28%;
+                    height: 50%;
+                    background: transparent;
+                    border: none;
+                    cursor: pointer;
+                    z-index: 2;
+                    transition: background 0.2s ease;
+                }
+
+                .daily-trivia-banner__button:hover:not(:disabled) {
+                    background: rgba(0, 212, 255, 0.1);
+                    border-radius: 8px;
+                }
+
+                .daily-trivia-banner__button:disabled {
+                    cursor: default;
+                }
+
+                .daily-trivia-banner__completed {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0, 0, 0, 0.6);
                     display: flex;
                     align-items: center;
-                    gap: 24px;
+                    justify-content: center;
+                    z-index: 3;
                 }
 
-                .daily-content {
-                    flex: 1;
-                }
-
-                .daily-content h2 {
+                .daily-trivia-banner__completed span {
                     font-family: 'Orbitron', sans-serif;
-                    font-size: 24px;
+                    font-size: 28px;
                     font-weight: 700;
-                    color: #ffffff;
-                    margin: 0 0 4px 0;
+                    color: #22c55e;
+                    text-shadow: 0 0 20px rgba(34, 197, 94, 0.8);
                     letter-spacing: 0.1em;
-                    text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
                 }
 
-                .daily-info {
-                    font-size: 14px;
-                    color: rgba(255, 255, 255, 0.7);
-                    margin: 0 0 12px 0;
-                }
 
-                .daily-benefits {
-                    list-style: none;
-                    padding: 0;
-                    margin: 0;
-                }
-
-                .daily-benefits li {
-                    font-size: 13px;
-                    color: rgba(255, 255, 255, 0.6);
-                    margin-bottom: 4px;
-                }
-
-                .streak-badge {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 6px;
-                    margin-top: 12px;
-                    padding: 6px 12px;
-                    background: rgba(255, 135, 0, 0.2);
-                    border: 1px solid rgba(255, 135, 0, 0.4);
-                    border-radius: 4px;
-                    color: #FF8700;
-                    font-size: 13px;
-                    font-weight: 600;
-                    text-shadow: 0 0 10px rgba(255, 135, 0, 0.5);
-                }
 
                 /* Modes Section */
                 .modes-section {
