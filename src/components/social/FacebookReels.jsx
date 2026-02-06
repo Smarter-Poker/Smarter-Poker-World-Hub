@@ -60,6 +60,10 @@ export const ReelCard = ({
             {/* Gradient Overlay */}
             <div className="reel-gradient" />
 
+            {/* Play Button Overlay - Visible when NOT playing */}
+            {reel.videoUrl && !isPlaying && (
+                <div className="reel-play-btn">▶</div>
+            )}
 
             {/* User Info */}
             <div className="reel-user">
@@ -147,8 +151,11 @@ export const ReelCard = ({
                     left: 50%;
                     transform: translate(-50%, -50%);
                     font-size: 48px;
-                    opacity: 0.9;
+                    color: white;
+                    opacity: 0.8;
                     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+                    z-index: 5;
+                    pointer-events: none;
                 }
 
                 .reel-user {
@@ -294,6 +301,7 @@ export const ReelsCarousel = ({ reels = [], onViewAll }) => {
                         <div key={i} className="reel-preview">
                             <div className="reel-thumb">
                                 <img src={reel.thumbnail} alt="" />
+                                <div className="reel-play-indicator">▶</div>
                                 <div className="reel-overlay">
                                     <span className="view-count">{reel.viewCount} views</span>
                                 </div>
@@ -411,6 +419,25 @@ export const ReelsCarousel = ({ reels = [], onViewAll }) => {
                     object-fit: cover;
                 }
 
+                .reel-play-indicator {
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    width: 40px;
+                    height: 40px;
+                    background: rgba(0, 0, 0, 0.4);
+                    border: 2px solid rgba(255, 255, 255, 0.8);
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: white;
+                    font-size: 18px;
+                    z-index: 5;
+                    pointer-events: none;
+                }
+
                 .reel-overlay {
                     position: absolute;
                     inset: 0;
@@ -422,6 +449,7 @@ export const ReelsCarousel = ({ reels = [], onViewAll }) => {
                     gap: 8px;
                     opacity: 0;
                     transition: opacity 0.2s;
+                    z-index: 6;
                 }
 
                 .reel-preview:hover .reel-overlay {
@@ -468,3 +496,4 @@ export default {
     ReelCard,
     ReelsCarousel
 };
+

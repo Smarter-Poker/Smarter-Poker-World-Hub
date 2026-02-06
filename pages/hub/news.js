@@ -1737,7 +1737,7 @@ export default function NewsHub() {
                         box-sizing: border-box;
                     }
 
-                    /* Header */
+                    /* Header Structure */
                     .header {
                         position: sticky;
                         top: 0;
@@ -1745,21 +1745,22 @@ export default function NewsHub() {
                         display: flex;
                         align-items: center;
                         justify-content: space-between;
-                        padding: 12px 24px;
+                        padding: 0 24px; /* ZERO vertical padding */
                         background: #242526;
-                        border-bottom: 1px solid #3E4042;
+                        border-bottom: 2px solid #3E4042;
+                        gap: 0; /* No gap between elements */
+                        height: 160px; /* Explicit height to match icons */
+                        overflow: visible; /* Ensure nothing is clipped */
                     }
 
                     .header-left {
                         display: flex;
                         align-items: center;
-                        gap: 24px;
-                    }
-
-                    .header-right {
-                        display: flex;
-                        align-items: center;
-                        gap: 12px;
+                        gap: 10px;
+                        flex: 1;
+                        height: 100%;
+                        min-width: 0;
+                        overflow: hidden;
                     }
 
                     .logo {
@@ -1780,11 +1781,12 @@ export default function NewsHub() {
 
                     .section-tabs {
                         display: flex;
-                        gap: 15px;
+                        gap: 5px; /* Minimal gap between icons */
                         width: 100%;
+                        height: 100%;
                         align-items: center;
-                        justify-content: space-around; /* Spread evenly but closer than space-between */
-                        overflow-x: auto; /* Scroll if window too small for 135px icons */
+                        justify-content: space-between;
+                        overflow-x: auto;
                         padding-bottom: 0;
                     }
 
@@ -1815,13 +1817,16 @@ export default function NewsHub() {
 
                     /* Custom Image Tab Buttons */
                     .section-tab-img, .refresh-btn-img {
-                        flex: 0 0 auto; /* DO NOT SHRINK. Keep them huge. */
-                        height: 135px; 
-                        min-width: 120px; /* Prevent width collapse -> Force Scroll */
+                        flex: 0 0 auto;
+                        height: 100%; /* Fill the 160px header */
+                        min-width: 120px;
+                        padding: 0; /* Remove any internal padding */
+                        margin: 0;
                         display: flex;
                         align-items: center;
                         justify-content: center;
-                        transition: transform 0.2s ease;
+                        background: transparent !important; /* Ensure no background color adds visual padding */
+                        border: none !important;
                     }
 
                     /*
@@ -1833,10 +1838,12 @@ export default function NewsHub() {
                        We let the image drive the width.
                     */
                     .section-tab-img img, .refresh-btn-img img {
-                        height: 135px; /* FORCE Height */
-                        min-height: 135px; /* Really FORCE Height */
-                        width: auto;  /* Maintain aspect ratio */
+                        height: 100%; /* Fill the 160px container */
+                        width: auto;
+                        max-height: 160px; /* Force Max Size */
+                        min-height: 160px; /* Force Min Size */
                         object-fit: contain;
+                        display: block;
                     }
 
                     /* Specific styling for Latest Videos removed to ensure uniform size */

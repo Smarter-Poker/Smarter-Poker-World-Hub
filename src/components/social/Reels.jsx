@@ -34,6 +34,7 @@ export function ReelsViewer({ onClose }) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [loading, setLoading] = useState(true);
     const [muted, setMuted] = useState(true);
+    const [paused, setPaused] = useState(false);
     const [liked, setLiked] = useState({});
     const videoRef = useRef(null);
     const containerRef = useRef(null);
@@ -41,6 +42,11 @@ export function ReelsViewer({ onClose }) {
     useEffect(() => {
         loadReels();
     }, []);
+
+    // Reset paused state when changing reels
+    useEffect(() => {
+        setPaused(false);
+    }, [currentIndex]);
 
     const loadReels = async () => {
         setLoading(true);
@@ -73,6 +79,18 @@ export function ReelsViewer({ onClose }) {
     const goPrev = () => {
         if (currentIndex > 0) {
             setCurrentIndex(prev => prev - 1);
+        }
+    };
+
+    const togglePlay = () => {
+        if (videoRef.current) {
+            if (videoRef.current.paused) {
+                videoRef.current.play();
+                setPaused(false);
+            } else {
+                videoRef.current.pause();
+                setPaused(true);
+            }
         }
     };
 
@@ -176,7 +194,9 @@ export function ReelsViewer({ onClose }) {
                 height: '100vh',
                 position: 'relative',
                 background: '#000',
-            }}>
+            }}
+                onClick={togglePlay}
+            >
                 {/* Video */}
                 <video
                     ref={videoRef}
@@ -191,14 +211,37 @@ export function ReelsViewer({ onClose }) {
                         height: '100%',
                         objectFit: 'cover',
                     }}
-                    onClick={() => setMuted(prev => !prev)}
                 />
+
+                {/* Play Button Overlay */}
+                {paused && (
+                    <div style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        width: 80,
+                        height: 80,
+                        borderRadius: '50%',
+                        background: 'rgba(0,0,0,0.4)',
+                        border: '2px solid rgba(255,255,255,0.8)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        fontSize: 40,
+                        zIndex: 20,
+                        pointerEvents: 'none',
+                    }}>
+                        ▶
+                    </div>
+                )}
 
                 {/* Author info overlay */}
                 <div style={{
                     position: 'absolute', bottom: 80, left: 16, right: 80,
                     zIndex: 10,
-                }}>
+                }} onClick={(e) => e.stopPropagation()}>
                     <Link href={`/hub/user/${currentReel?.profiles?.username}`} style={{
                         display: 'flex', alignItems: 'center', gap: 12,
                         textDecoration: 'none', marginBottom: 12,
@@ -232,7 +275,7 @@ export function ReelsViewer({ onClose }) {
                     position: 'absolute', bottom: 100, right: 16,
                     display: 'flex', flexDirection: 'column', gap: 20,
                     zIndex: 10,
-                }}>
+                }} onClick={(e) => e.stopPropagation()}>
                     {/* Like */}
                     <button
                         onClick={handleLike}
