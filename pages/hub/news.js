@@ -1359,18 +1359,7 @@ export default function NewsHub() {
                             </button>
 
                             {/* Refresh Button */}
-                            <button
-                                className="refresh-btn-img"
-                                onClick={refreshData}
-                                disabled={isRefreshing}
-                                title="Refresh news"
-                            >
-                                <img
-                                    src="/images/btn-refresh.png"
-                                    alt="Refresh"
-                                    className={isRefreshing ? 'spinning' : ''}
-                                />
-                            </button>
+                            {/* Refresh Button REMOVED */}\n                            {/* Theme Toggle REMOVED per user request */}
 
                             {/* Theme Toggle REMOVED per user request */}
                         </div>
@@ -1751,7 +1740,7 @@ export default function NewsHub() {
                         background: #18191A;
                         border-bottom: 1px solid #3E4042;
                         gap: 0;
-                        height: auto; /* Auto height based on content */
+                        height: 94px; /* Match 85px icons + padding */
                         overflow: visible;
                     }
 
@@ -1760,7 +1749,7 @@ export default function NewsHub() {
                         align-items: center;
                         gap: 0; /* Zero gap */
                         justify-content: center;
-                        height: 70px;
+                        height: 85px;
                         overflow: visible;
                     }
 
@@ -1831,7 +1820,7 @@ export default function NewsHub() {
                     }
 
                     .section-tab-img img, .refresh-btn-img img {
-                        height: 45px; /* Mobile-fit icons */
+                        height: 85px; /* Mobile-fit 4 icons */
                         width: auto;
                         object-fit: contain;
                         display: block;
@@ -2101,6 +2090,15 @@ export default function NewsHub() {
                     @media (max-width: 768px) {
                         .news-grid {
                             grid-template-columns: 1fr;
+                        }
+                        /* Reset forced heights for mobile scaling */
+                        .news-grid > *,
+                        .news-grid .news-box,
+                        .news-grid .mspt-box {
+                            height: auto !important;
+                            min-height: auto !important;
+                            max-height: none !important;
+                            aspect-ratio: auto;
                         }
                     }
 
