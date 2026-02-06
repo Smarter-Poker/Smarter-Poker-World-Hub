@@ -195,10 +195,10 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                     right: 0;
                     bottom: 0;
                     border-radius: 16px;
-                    border: 4px solid rgba(200, 210, 230, 0.8);
+                    border: 5px solid rgba(180, 195, 220, 0.9);
                     box-shadow: 
-                        inset 0 0 10px rgba(180, 195, 220, 0.5),
-                        0 0 15px rgba(180, 195, 220, 0.4);
+                        inset 0 0 15px 3px rgba(180, 195, 220, 0.6),
+                        0 0 20px rgba(180, 195, 220, 0.5);
                     pointer-events: none;
                     z-index: 100;
                 }
@@ -456,10 +456,10 @@ function VideoCard({ video, onClick }) {
                     right: 0;
                     bottom: 0;
                     border-radius: 16px;
-                    border: 4px solid rgba(200, 210, 230, 0.8);
+                    border: 5px solid rgba(180, 195, 220, 0.9);
                     box-shadow: 
-                        inset 0 0 10px rgba(180, 195, 220, 0.5),
-                        0 0 15px rgba(180, 195, 220, 0.4);
+                        inset 0 0 15px 3px rgba(180, 195, 220, 0.6),
+                        0 0 20px rgba(180, 195, 220, 0.5);
                     pointer-events: none;
                     z-index: 100;
                 }
@@ -630,10 +630,10 @@ function ReelCard({ reel, onClick, openExternal }) {
                     right: 0;
                     bottom: 0;
                     border-radius: 12px;
-                    border: 4px solid rgba(200, 210, 230, 0.8);
+                    border: 5px solid rgba(180, 195, 220, 0.9);
                     box-shadow: 
-                        inset 0 0 10px rgba(180, 195, 220, 0.5),
-                        0 0 15px rgba(180, 195, 220, 0.4);
+                        inset 0 0 15px 3px rgba(180, 195, 220, 0.6),
+                        0 0 20px rgba(180, 195, 220, 0.5);
                     pointer-events: none;
                     z-index: 100;
                 }
