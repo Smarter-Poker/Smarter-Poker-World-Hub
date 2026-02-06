@@ -1780,10 +1780,12 @@ export default function NewsHub() {
 
                     .section-tabs {
                         display: flex;
-                        gap: 10px; 
+                        gap: 15px;
                         width: 100%;
                         align-items: center;
-                        justify-content: space-between; /* Spread evenly */
+                        justify-content: space-around; /* Spread evenly but closer than space-between */
+                        overflow-x: auto; /* Scroll if window too small for 135px icons */
+                        padding-bottom: 0;
                     }
 
                     .section-tab {
@@ -1813,16 +1815,15 @@ export default function NewsHub() {
 
                     /* Custom Image Tab Buttons */
                     .section-tab-img, .refresh-btn-img {
-                        flex: 0 1 auto; /* Allow shrinking */
-                        min-width: 40px; /* Prevent total oblivion */
-                        height: 135px; /* Target Large Height */
-                        width: auto; /* Let width follow aspect ratio */
+                        flex: 0 0 auto; /* DO NOT SHRINK. Keep them huge. */
+                        height: 135px;
                         display: flex;
                         align-items: center;
+                        justify-content: center;
                         transition: transform 0.2s ease;
                     }
 
-                    /* 
+                    /*
                        TRICK: To allow proportional geometric scaling without fixed width:
                        We set height on the container, and image takes height 100%.
                        But flexbox usually shrinks width.
@@ -1831,9 +1832,9 @@ export default function NewsHub() {
                        We let the image drive the width.
                     */
                     .section-tab-img img, .refresh-btn-img img {
-                        height: 100%; /* Fill the container height */
+                        height: 135px; /* FORCE Height */
+                        min-height: 135px; /* Really FORCE Height */
                         width: auto;  /* Maintain aspect ratio */
-                        max-height: 135px;
                         object-fit: contain;
                     }
 
