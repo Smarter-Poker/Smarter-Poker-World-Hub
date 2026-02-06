@@ -1331,6 +1331,14 @@ export default function NewsHub() {
 
                         {/* Section Tabs - Custom Image Buttons */}
                         <div className="section-tabs">
+                            {/* Today's Top Stories - Moved to Header */}
+                            <button
+                                className="section-tab-img"
+                                style={{ cursor: 'default' }} /* It's a title/label now? Or clickable? User said "move into same bar". Usually titles aren't buttons but these are section tabs. I'll make it a non-clickable image or a button that scrolls to top? I'll treat it as a label for now or just an image in a div if not interactive. But keeping structure consistent. */
+                            >
+                                <img src="/images/btn-todays-top-stories.png" alt="Today's Top Stories" />
+                            </button>
+
                             <button
                                 className={`section-tab-img ${activeSection === 'news' ? 'active' : ''}`}
                                 onClick={() => setActiveSection('news')}
@@ -1350,7 +1358,7 @@ export default function NewsHub() {
                                 <img src="/images/btn-reels.png" alt="Reels" />
                             </button>
 
-                            {/* Refresh Button - Moved to Group */}
+                            {/* Refresh Button */}
                             <button
                                 className="refresh-btn-img"
                                 onClick={refreshData}
@@ -1364,7 +1372,7 @@ export default function NewsHub() {
                                 />
                             </button>
 
-                            {/* Theme Toggle - Moved to Group */}
+                            {/* Theme Toggle */}
                             <button
                                 className="theme-toggle-img"
                                 onClick={() => setDarkMode(!darkMode)}
@@ -1443,9 +1451,10 @@ export default function NewsHub() {
                             <>
                                 {/* News Grid - 6 Source-Specific Boxes */}
                                 <section className="news-section">
-                                    <h2 className="section-title">
-                                        <img src="/images/btn-todays-top-stories.png" alt="Today's Top Stories" className="section-title-img" />
-                                    </h2>
+                                    {/* Section Title - Removed Icon from here */}
+                                    <div className="section-title">
+                                        {/* Icon moved to header */}
+                                    </div>
 
                                     {filteredNews.length === 0 && searchQuery ? (
                                         <div className="no-results">
@@ -1840,12 +1849,12 @@ export default function NewsHub() {
 
                     .section-tab-img:hover img {
                         filter: brightness(1.15);
-                        transform: scale(1.05);
+                        /* Removing scale to ensure uniform size */
                     }
 
                     .section-tab-img.active img {
                         filter: brightness(1.2) drop-shadow(0 0 6px rgba(0, 212, 255, 0.5));
-                        transform: scale(1.08);
+                        /* Removing scale to ensure uniform size */
                     }
 
                     /* Custom Image Refresh Button */
@@ -1882,7 +1891,7 @@ export default function NewsHub() {
                     /* Custom Image Theme Toggle */
                     .theme-toggle-img {
                         padding: 0;
-                        background: transparent;
+                        background: transparent; /* Ensure transparent */
                         border: none;
                         cursor: pointer;
                         transition: all 0.3s ease;
@@ -1898,8 +1907,9 @@ export default function NewsHub() {
                     }
 
                     .theme-toggle-img:hover img {
-                        filter: brightness(1.2);
-                        transform: rotate(15deg);
+                         filter: brightness(1.2);
+                         /* Removing rotate to keep things simple/uniform if desired, but user didn't explicitly ban it. I'll keep rotate for fun but remove scale if present. Rotate doesn't change size. */
+                         transform: rotate(15deg);
                     }
 
 
@@ -2074,11 +2084,7 @@ export default function NewsHub() {
                         color: #fff;
                     }
 
-                    .section-title-img {
-                        height: 180px;
-                        width: auto;
-                        display: block;
-                    }
+
 
 
                     .section-title :global(svg) {

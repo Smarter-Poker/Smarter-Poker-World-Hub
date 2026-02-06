@@ -12,6 +12,41 @@ import PortholeIcon from '../ui/PortholeIcon';
 import StreakBadge from './StreakBadge';
 
 const MODE_CARDS = [
+    // TOP ROW - Strategy Modes (MTT, Cash, GTO)
+    {
+        id: 'mtt',
+        name: 'MTT Scenarios',
+        description: 'Multi-table tournament situations and decisions',
+        icon: Target,
+        color: '#f97316',
+        glowColor: '#f97316',
+        diamondReward: 5,
+        perfectBonus: 10,
+        image: '/images/trivia/mtt-scenarios.png'
+    },
+    {
+        id: 'cash',
+        name: 'Cash Game',
+        description: 'Deep stack scenarios, implied odds, table dynamics',
+        icon: Banknote,
+        color: '#22c55e',
+        glowColor: '#22c55e',
+        diamondReward: 5,
+        perfectBonus: 10,
+        image: '/images/trivia/cash-game.png'
+    },
+    {
+        id: 'icm',
+        name: 'ICM & Chip EV',
+        description: 'Tournament equity, chip value vs $EV decisions',
+        icon: Calculator,
+        color: '#06b6d4',
+        glowColor: '#06b6d4',
+        diamondReward: 5,
+        perfectBonus: 10,
+        image: '/images/trivia/icm-chip-ev.png'
+    },
+    // ROW 2 - Core Trivia
     {
         id: 'history',
         name: 'Poker History',
@@ -45,6 +80,7 @@ const MODE_CARDS = [
         perfectBonus: 10,
         image: '/images/trivia/pro-knowledge.png'
     },
+    // ROW 3 - Challenge Modes
     {
         id: 'survival',
         name: 'Survival Mode',
@@ -78,6 +114,7 @@ const MODE_CARDS = [
         perfectBonus: null,
         image: '/images/trivia/mixed-mode.png'
     },
+    // ROW 4 - Competitive
     {
         id: 'pvp',
         name: '1v1 Battle',
@@ -86,7 +123,8 @@ const MODE_CARDS = [
         color: '#ef4444',
         glowColor: '#ef4444',
         diamondReward: '2x stake',
-        perfectBonus: null
+        perfectBonus: null,
+        image: '/images/trivia/pvp-battle.png'
     },
     {
         id: 'tournaments',
@@ -99,39 +137,6 @@ const MODE_CARDS = [
         perfectBonus: null,
         image: '/images/trivia/tournaments.png'
     },
-    // NEW STRATEGY MODES
-    {
-        id: 'mtt',
-        name: 'MTT Scenarios',
-        description: 'Multi-table tournament situations and decisions',
-        icon: Target,
-        color: '#f97316',
-        glowColor: '#f97316',
-        diamondReward: 5,
-        perfectBonus: 10,
-        image: '/images/trivia/mtt-scenarios.png'
-    },
-    {
-        id: 'cash',
-        name: 'Cash Game',
-        description: 'Deep stack scenarios, implied odds, table dynamics',
-        icon: Banknote,
-        color: '#22c55e',
-        glowColor: '#22c55e',
-        diamondReward: 5,
-        perfectBonus: 10
-    },
-    {
-        id: 'icm',
-        name: 'ICM & Chip EV',
-        description: 'Tournament equity, chip value vs $EV decisions',
-        icon: Calculator,
-        color: '#06b6d4',
-        glowColor: '#06b6d4',
-        diamondReward: 5,
-        perfectBonus: 10,
-        image: '/images/trivia/icm-chip-ev.png'
-    },
     {
         id: 'gto',
         name: 'GTO Master',
@@ -143,6 +148,7 @@ const MODE_CARDS = [
         perfectBonus: 15
     }
 ];
+
 
 export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, currentStreak = 0 }) {
     const router = useRouter();
