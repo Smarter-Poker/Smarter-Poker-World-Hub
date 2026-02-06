@@ -36,6 +36,7 @@ import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getNewsPreferences, updateNewsPreferences } from '../../src/services/newsPreferences';
 import { getNewsBookmarks, addNewsBookmark, removeNewsBookmark } from '../../src/services/newsBookmarks';
+import { PokerStoriesRow } from '../../src/components/social/PokerStoriesRow';
 
 // Fallback data
 const FALLBACK_NEWS = [
@@ -1330,10 +1331,10 @@ export default function NewsHub() {
                     <div className="header-left">
                         {/* Section Tabs - Custom Image Buttons */}
                         <div className="section-tabs">
-                            {/* Today's Top Stories - Moved to Header */}
+                            {/* Today's Top Stories - Clickable Tab */}
                             <button
-                                className="section-tab-img"
-                                style={{ cursor: 'default' }}
+                                className={`section-tab-img ${activeSection === 'stories' ? 'active' : ''}`}
+                                onClick={() => setActiveSection('stories')}
                             >
                                 <img src="/images/btn-todays-top-stories.png" alt="Today's Top Stories" />
                             </button>
@@ -1439,6 +1440,18 @@ export default function NewsHub() {
                 <div className="layout">
                     {/* Left Column - News Boxes */}
                     <main className="main-content">
+                        {/* Stories Section */}
+                        {activeSection === 'stories' && (
+                            <section className="stories-section" style={{ padding: '10px 0 20px 0' }}>
+                                <PokerStoriesRow
+                                    stories={[]}
+                                    currentUser={{ avatar_url: avatarUrl, full_name: 'User' }}
+                                    onStoryClick={(story) => console.log('Story clicked:', story)}
+                                    onAddStory={() => console.log('Add story clicked')}
+                                />
+                            </section>
+                        )}
+
                         {activeSection === 'news' ? (
                             <>
                                 {/* News Grid - 6 Source-Specific Boxes */}
@@ -1756,11 +1769,11 @@ export default function NewsHub() {
                     .header-left {
                         display: flex;
                         align-items: center;
-                        gap: 10px;
+                        gap: 5px;
                         flex: 1;
-                        height: 100%;
                         min-width: 0;
-                        overflow: hidden;
+                        overflow-x: auto; /* Allow horizontal scrolling for icons */
+                        overflow-y: visible;
                     }
 
                     .logo {
@@ -1781,13 +1794,12 @@ export default function NewsHub() {
 
                     .section-tabs {
                         display: flex;
-                        gap: 5px; /* Minimal gap between icons */
-                        width: 100%;
-                        height: 100%;
+                        gap: 5px;
                         align-items: center;
-                        justify-content: space-between;
+                        justify-content: flex-start; /* Pack left, scroll right if needed */
                         overflow-x: auto;
-                        padding-bottom: 0;
+                        padding: 0;
+                        flex-shrink: 0;
                     }
 
                     .section-tab {
