@@ -260,29 +260,45 @@ export const FBPostCard = ({
                         {/* Support both array and single item */}
                         {post.mediaUrls?.length > 0 ? (
                             <div className={`media-grid media-count-${Math.min(post.mediaUrls.length, 4)}`}>
-                                {post.mediaUrls.slice(0, 4).map((media, idx) => (
-                                    <div key={idx} className="media-item">
-                                        {(typeof media === 'string' ? media : media.type)?.startsWith('video') ? (
-                                            <video
-                                                src={typeof media === 'string' ? media : media.url}
-                                                controls
-                                                poster={media.thumbnail}
-                                                preload="metadata"
-                                            />
-                                        ) : (
-                                            <img
-                                                src={typeof media === 'string' ? media : media.url}
-                                                alt={`Media ${idx + 1}`}
-                                                loading="lazy"
-                                            />
-                                        )}
-                                        {idx === 3 && post.mediaUrls.length > 4 && (
-                                            <div className="more-media-overlay">
-                                                +{post.mediaUrls.length - 4}
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
+                                {post.mediaUrls.slice(0, 4).map((media, idx) => {
+                                    const mediaUrl = typeof media === 'string' ? media : media.url;
+                                    const mediaType = typeof media === 'string' ? media : media.type;
+                                    // Detect video URLs: YouTube, Shorts, or video file extensions
+                                    const isVideo = mediaType?.startsWith('video') ||
+                                        mediaUrl?.includes('youtube.com') ||
+                                        mediaUrl?.includes('youtu.be') ||
+                                        mediaUrl?.match(/\.(mp4|webm|mov|avi)(\?|$)/i);
+
+                                    return (
+                                        <div key={idx} className="media-item">
+                                            {isVideo ? (
+                                                <>
+                                                    <img
+                                                        src={media.thumbnail || `https://img.youtube.com/vi/${mediaUrl?.match(/(?:youtube\.com\/(?:shorts\/|watch\?v=)|youtu\.be\/)([a-zA-Z0-9_-]+)/)?.[1]}/hqdefault.jpg`}
+                                                        alt={`Video ${idx + 1}`}
+                                                        loading="lazy"
+                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                    />
+                                                    {/* Play Button Overlay */}
+                                                    <div className="video-play-overlay">
+                                                        <div className="play-button">▶</div>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <img
+                                                    src={mediaUrl}
+                                                    alt={`Media ${idx + 1}`}
+                                                    loading="lazy"
+                                                />
+                                            )}
+                                            {idx === 3 && post.mediaUrls.length > 4 && (
+                                                <div className="more-media-overlay">
+                                                    +{post.mediaUrls.length - 4}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
                             </div>
                         ) : (
                             <img src={post.media} alt="Post" />
@@ -560,6 +576,37 @@ export const FBPostCard = ({
                     color: white;
                     font-size: 32px;
                     font-weight: 700;
+                }
+
+                /* Video Play Button Overlay */
+                .video-play-overlay {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    pointer-events: none;
+                }
+
+                .video-play-overlay .play-button {
+                    width: 64px;
+                    height: 64px;
+                    background: rgba(255, 255, 255, 0.9);
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 28px;
+                    color: #333;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                }
+
+                .media-item:hover .video-play-overlay .play-button {
+                    background: rgba(255, 255, 255, 1);
+                    transform: scale(1.05);
                 }
 
                 /* Reactions */
