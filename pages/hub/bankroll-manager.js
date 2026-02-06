@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../src/lib/supabase';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import PageTransition from '../../src/components/transitions/PageTransition';
-import ThreePillHeader from '../../src/components/ui/ThreePillHeader';
+import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getBankrollPreferences, updateBankrollPreferences } from '../../src/services/bankrollPreferences';
@@ -36,7 +36,7 @@ import LeakAlertPanel from '../../src/components/bankroll/LeakAlertPanel';
 import BankrollRulesCard from '../../src/components/bankroll/BankrollRulesCard';
 import BankrollTrendChart from '../../src/components/bankroll/BankrollTrendChart';
 import QuickLogWidget from '../../src/components/bankroll/QuickLogWidget';
-// BankrollStreaks removed
+import BankrollStreaks from '../../src/components/bankroll/BankrollStreaks';
 import JarvisLeakInsights from '../../src/components/bankroll/JarvisLeakInsights';
 // Phase 2 Components
 import BankrollGoals from '../../src/components/bankroll/BankrollGoals';
@@ -359,7 +359,7 @@ export default function BankrollManagerPage() {
 
       <div className="bankroll-page" style={styles.container}>
         <div style={styles.bgGrid} />
-        <ThreePillHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
+        <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
 
         {/* Hamburger Menu */}
         <HamburgerMenu
@@ -372,6 +372,82 @@ export default function BankrollManagerPage() {
           menuItems={menuConfig.menuItems}
           bottomLinks={menuConfig.bottomLinks}
         />
+
+        {/* Top Bar with Filters */}
+        <div style={styles.topBar}>
+          <div style={styles.topBarLeft}>
+            {/* Location Dropdown */}
+            <div style={styles.dropdownContainer} onClick={(e) => e.stopPropagation()}>
+              <button
+                style={styles.dropdownButton}
+                onClick={() => {
+                  setShowLocationDropdown(!showLocationDropdown);
+                  setShowTimeDropdown(false);
+                }}
+              >
+                {selectedLocationName} <span style={styles.dropdownArrow}>▼</span>
+              </button>
+              {showLocationDropdown && (
+                <div style={styles.dropdownMenu}>
+                  <button
+                    style={styles.dropdownItem}
+                    onClick={() => {
+                      setLocationFilter(null);
+                      setShowLocationDropdown(false);
+                    }}
+                  >
+                    All Locations
+                  </button>
+                  {locations.map((loc) => (
+                    <button
+                      key={loc.id}
+                      style={styles.dropdownItem}
+                      onClick={() => {
+                        setLocationFilter(loc.id);
+                        setShowLocationDropdown(false);
+                      }}
+                    >
+                      {loc.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Time Filter Dropdown */}
+            <div style={styles.dropdownContainer} onClick={(e) => e.stopPropagation()}>
+              <button
+                style={styles.dropdownButton}
+                onClick={() => {
+                  setShowTimeDropdown(!showTimeDropdown);
+                  setShowLocationDropdown(false);
+                }}
+              >
+                {timeFilter} <span style={styles.dropdownArrow}>▼</span>
+              </button>
+              {showTimeDropdown && (
+                <div style={styles.dropdownMenu}>
+                  {TIME_FILTERS.map((tf) => (
+                    <button
+                      key={tf}
+                      style={styles.dropdownItem}
+                      onClick={() => {
+                        setTimeFilter(tf);
+                        setShowTimeDropdown(false);
+                      }}
+                    >
+                      {tf}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div style={styles.topBarRight}>
+            <button style={styles.searchButton}></button>
+          </div>
+        </div>
 
         {/* Main Layout */}
         <div style={styles.mainLayout}>
@@ -821,7 +897,8 @@ export default function BankrollManagerPage() {
             {/* Jarvis AI Insights */}
             <JarvisLeakInsights userId={userId} onRefresh={loadData} />
 
-
+            {/* Streaks & Gamification */}
+            <BankrollStreaks userId={userId} isLoading={isLoading} />
 
             {/* Goals */}
             <BankrollGoals
@@ -967,23 +1044,22 @@ export default function BankrollManagerPage() {
 const styles = {
   container: {
     minHeight: '100vh',
-    background: '#000',
+    background: '#18191a',  // Facebook dark background
     fontFamily: 'Inter, -apple-system, sans-serif',
     position: 'relative',
   },
-  // HUD Frame background
   bgGrid: {
     position: 'fixed',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundImage: 'url(/images/hud-frames/bankroll-frame.jpg)',
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    backgroundRepeat: 'no-repeat',
+    backgroundImage: `
+      linear-gradient(rgba(136, 136, 136, 0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(136, 136, 136, 0.02) 1px, transparent 1px)
+    `,
+    backgroundSize: '60px 60px',
     pointerEvents: 'none',
-    zIndex: 0,
   },
   topBar: {
     display: 'flex',
@@ -1058,35 +1134,27 @@ const styles = {
   },
   mainLayout: {
     display: 'flex',
-    minHeight: 'calc(100vh - 70px)',
-    position: 'relative',
-    zIndex: 1,
+    minHeight: 'calc(100vh - 140px)',
   },
   sidebar: {
-    position: 'absolute',
-    left: 63,
-    top: 60,
-    width: 130,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 0,
-    zIndex: 2,
+    width: 160,
+    padding: '20px 12px',
+    borderRight: '1px solid rgba(255, 255, 255, 0.08)',
   },
   sidebarItem: {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
+    gap: 10,
     width: '100%',
-    height: 37,
+    padding: '12px 14px',
     background: 'transparent',
     border: 'none',
-    borderRadius: 4,
-    color: 'rgba(255, 255, 255, 0.7)',
-    fontSize: 11,
-    fontFamily: 'Inter, -apple-system, sans-serif',
+    borderRadius: 8,
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 13,
     cursor: 'pointer',
-    textAlign: 'center',
+    marginBottom: 4,
+    textAlign: 'left',
     transition: 'all 0.2s ease',
   },
   sidebarItemActive: {
@@ -1100,10 +1168,9 @@ const styles = {
   },
   mainContent: {
     flex: 1,
-    padding: '20px 20px 20px 10px',
+    padding: '20px 24px',
     minWidth: 0,
     overflowY: 'auto',
-    background: 'transparent',
   },
   contentHeader: {
     display: 'flex',
@@ -1137,13 +1204,14 @@ const styles = {
   statsGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(4, 1fr)',
-    gap: 10,
-    marginBottom: 16,
+    gap: 12,
+    marginBottom: 24,
   },
   statCard: {
-    background: 'transparent',
-    border: 'none',
-    padding: '12px 14px',
+    background: 'rgba(255, 255, 255, 0.03)',
+    border: '1px solid rgba(255, 255, 255, 0.08)',
+    borderRadius: 12,
+    padding: '16px 18px',
   },
   statTitle: {
     display: 'block',
@@ -1184,9 +1252,10 @@ const styles = {
     fontSize: 10,
   },
   activitySection: {
-    background: 'transparent',
-    border: 'none',
-    padding: '16px 0',
+    background: 'rgba(255, 255, 255, 0.02)',
+    border: '1px solid rgba(255, 255, 255, 0.06)',
+    borderRadius: 12,
+    padding: 20,
   },
   sectionTitle: {
     fontSize: 16,
@@ -1277,9 +1346,9 @@ const styles = {
     color: 'rgba(255, 255, 255, 0.3)',
   },
   assistantPanel: {
-    width: 180,
-    padding: '80px 12px 20px 8px',
-    background: 'transparent',
+    width: 220,
+    padding: '20px 16px',
+    borderLeft: '1px solid rgba(255, 255, 255, 0.08)',
     overflowY: 'auto',
   },
   logTodayButton: {
