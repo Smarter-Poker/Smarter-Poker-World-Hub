@@ -1264,25 +1264,25 @@ export default function NewsHub() {
                             <span>Poker News</span>
                         </div>
 
-                        {/* Section Tabs */}
+                        {/* Section Tabs - Custom Image Buttons */}
                         <div className="section-tabs">
                             <button
-                                className={`section-tab ${activeSection === 'news' ? 'active' : ''}`}
+                                className={`section-tab-img ${activeSection === 'news' ? 'active' : ''}`}
                                 onClick={() => setActiveSection('news')}
                             >
-                                <Newspaper size={16} /> News
+                                <img src="/images/news-icons/btn-news.png" alt="News" />
                             </button>
                             <button
-                                className={`section-tab ${activeSection === 'videos' ? 'active' : ''}`}
+                                className={`section-tab-img ${activeSection === 'videos' ? 'active' : ''}`}
                                 onClick={() => setActiveSection('videos')}
                             >
-                                <Video size={16} /> Latest Videos
+                                <img src="/images/news-icons/btn-videos.png" alt="Latest Videos" />
                             </button>
                             <button
-                                className={`section-tab ${activeSection === 'reels' ? 'active' : ''}`}
+                                className={`section-tab-img ${activeSection === 'reels' ? 'active' : ''}`}
                                 onClick={() => setActiveSection('reels')}
                             >
-                                <Film size={16} /> Reels
+                                <img src="/images/news-icons/btn-reels.png" alt="Reels" />
                             </button>
                         </div>
                     </div>
@@ -1301,23 +1301,27 @@ export default function NewsHub() {
                             )}
                         </div>
 
-                        {/* Refresh Button */}
+                        {/* Refresh Button - Custom Image */}
                         <button
-                            className="refresh-btn"
+                            className="refresh-btn-img"
                             onClick={refreshData}
                             disabled={isRefreshing}
                             title="Refresh news"
                         >
-                            <RefreshCw size={16} className={isRefreshing ? 'spinning' : ''} />
+                            <img
+                                src="/images/news-icons/btn-refresh.png"
+                                alt="Refresh"
+                                className={isRefreshing ? 'spinning' : ''}
+                            />
                         </button>
 
-                        {/* Dark Mode Toggle */}
+                        {/* Settings/Theme Toggle - Custom Image */}
                         <button
-                            className="theme-toggle"
+                            className="theme-toggle-img"
                             onClick={() => setDarkMode(!darkMode)}
                             title={darkMode ? "Light Mode" : "Dark Mode"}
                         >
-                            {darkMode ? <Sun size={16} /> : <Moon size={16} />}
+                            <img src="/images/news-icons/btn-settings.png" alt="Settings" />
                         </button>
                     </div>
                 </header>
@@ -1762,6 +1766,94 @@ export default function NewsHub() {
                         color: #fff;
                     }
 
+                    /* Custom Image Tab Buttons */
+                    .section-tab-img {
+                        padding: 0;
+                        background: transparent;
+                        border: none;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        border-radius: 0;
+                        overflow: visible;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    }
+
+                    .section-tab-img img {
+                        height: 44px;
+                        width: auto;
+                        display: block;
+                        transition: all 0.3s ease;
+                        object-fit: contain;
+                        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+                    }
+
+                    .section-tab-img:hover img {
+                        filter: brightness(1.15);
+                        transform: scale(1.05);
+                    }
+
+                    .section-tab-img.active img {
+                        filter: brightness(1.2) drop-shadow(0 0 6px rgba(0, 212, 255, 0.5));
+                        transform: scale(1.08);
+                    }
+
+                    /* Custom Image Refresh Button */
+                    .refresh-btn-img {
+                        padding: 0;
+                        background: transparent;
+                        border: none;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        border-radius: 8px;
+                        overflow: hidden;
+                    }
+
+                    .refresh-btn-img img {
+                        height: 44px;
+                        width: auto;
+                        display: block;
+                        transition: all 0.3s ease;
+                    }
+
+                    .refresh-btn-img:hover img {
+                        filter: brightness(1.2);
+                    }
+
+                    .refresh-btn-img:disabled {
+                        opacity: 0.5;
+                        cursor: not-allowed;
+                    }
+
+                    .refresh-btn-img img.spinning {
+                        animation: spin 1s linear infinite;
+                    }
+
+                    /* Custom Image Theme Toggle */
+                    .theme-toggle-img {
+                        padding: 0;
+                        background: transparent;
+                        border: none;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        border-radius: 8px;
+                        overflow: hidden;
+                    }
+
+                    .theme-toggle-img img {
+                        height: 44px;
+                        width: auto;
+                        display: block;
+                        transition: all 0.3s ease;
+                    }
+
+                    .theme-toggle-img:hover img {
+                        filter: brightness(1.2);
+                        transform: rotate(15deg);
+                    }
+
+
                     .search-box {
                         position: relative;
                         width: 200px;
@@ -2088,9 +2180,34 @@ export default function NewsHub() {
                     /* Reels & Videos Preview Sections (on News tab) */
                     .reels-preview-section,
                     .videos-preview-section {
+                        position: relative;
                         margin-top: 32px;
-                        padding-top: 24px;
-                        border-top: 1px solid rgba(255, 255, 255, 0.1);
+                        padding: 24px;
+                        border: none;
+                        border-radius: 16px;
+                        background: 
+                            linear-gradient(135deg, rgba(30, 32, 38, 0.95) 0%, rgba(20, 22, 28, 0.98) 100%);
+                        box-shadow: 
+                            inset 0 0 0 3px rgba(180, 195, 220, 0.4),
+                            inset 0 0 0 6px rgba(100, 115, 140, 0.2),
+                            0 8px 32px rgba(0, 0, 0, 0.6);
+                        border-image: url('/images/news-icons/section-frame.png') 30 round;
+                    }
+                    
+                    .reels-preview-section::before,
+                    .videos-preview-section::before {
+                        content: '';
+                        position: absolute;
+                        inset: -3px;
+                        border-radius: 18px;
+                        background: linear-gradient(135deg, 
+                            rgba(200, 210, 230, 0.5) 0%, 
+                            rgba(120, 140, 170, 0.3) 25%,
+                            rgba(80, 100, 130, 0.2) 50%,
+                            rgba(120, 140, 170, 0.3) 75%,
+                            rgba(200, 210, 230, 0.5) 100%);
+                        z-index: -1;
+                        pointer-events: none;
                     }
 
                     .section-header-row {

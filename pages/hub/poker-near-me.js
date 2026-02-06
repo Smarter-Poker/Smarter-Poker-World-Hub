@@ -223,18 +223,64 @@ function VenueMap({ venues, userLocation }) {
     const userMarkerRef = useRef(null);
     const [mapReady, setMapReady] = useState(false);
 
-    // Wait for Leaflet scripts to be available
+    // Dynamically load Leaflet scripts to ensure proper order
     useEffect(() => {
         if (typeof window === 'undefined') return;
 
-        const check = () => {
-            if (window.L && window.L.markerClusterGroup) {
-                setMapReady(true);
-            } else {
-                setTimeout(check, 200);
+        // Check if already loaded
+        if (window.L && window.L.MarkerClusterGroup) {
+            setMapReady(true);
+            return;
+        }
+
+        const loadScript = (src) => {
+            return new Promise((resolve, reject) => {
+                // Check if script already exists
+                const existing = document.querySelector(`script[src="${src}"]`);
+                if (existing) {
+                    existing.addEventListener('load', resolve);
+                    if (existing.dataset.loaded === 'true') resolve();
+                    return;
+                }
+
+                const script = document.createElement('script');
+                script.src = src;
+                script.async = false;
+                script.onload = () => {
+                    script.dataset.loaded = 'true';
+                    resolve();
+                };
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        };
+
+        const loadLeaflet = async () => {
+            try {
+                // Load Leaflet first
+                await loadScript('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js');
+
+                // Wait a tick for Leaflet to initialize
+                await new Promise(r => setTimeout(r, 100));
+
+                // Then load MarkerCluster
+                await loadScript('https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js');
+
+                // Wait for MarkerClusterGroup to be available (PascalCase)
+                const checkReady = () => {
+                    if (window.L && window.L.MarkerClusterGroup) {
+                        setMapReady(true);
+                    } else {
+                        setTimeout(checkReady, 100);
+                    }
+                };
+                checkReady();
+            } catch (err) {
+                console.error('Failed to load Leaflet scripts:', err);
             }
         };
-        check();
+
+        loadLeaflet();
     }, []);
 
     // Initialize map once Leaflet is ready
@@ -1695,9 +1741,7 @@ export default function PokerNearMePage() {
                 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
                 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
                 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
-                {/* Leaflet JS */}
-                <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
-                <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" defer></script>
+                {/* Leaflet JS - loaded dynamically in VenueMap component */}
             </Head>
 
             <div className="pnm-page">

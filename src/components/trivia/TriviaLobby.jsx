@@ -177,11 +177,6 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
 
     return (
         <div className="trivia-lobby">
-            {/* Header */}
-            <div className="lobby-header">
-                <h1>TRIVIA</h1>
-                <p className="subtitle">KNOWLEDGE • DISCIPLINE • MEMORY</p>
-            </div>
 
             {/* Daily Trivia Hero Card */}
             <MetalFrame
@@ -369,28 +364,7 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
                     font-family: 'Rajdhani', 'Orbitron', sans-serif;
                 }
 
-                .lobby-header {
-                    margin-bottom: 24px;
-                    text-align: left;
-                }
 
-                .lobby-header h1 {
-                    font-family: 'Orbitron', sans-serif;
-                    font-size: 36px;
-                    font-weight: 700;
-                    color: #ffffff;
-                    margin: 0 0 4px 0;
-                    letter-spacing: 0.15em;
-                    text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
-                }
-
-                .subtitle {
-                    font-size: 14px;
-                    color: rgba(0, 212, 255, 0.7);
-                    margin: 0;
-                    letter-spacing: 0.2em;
-                    font-weight: 500;
-                }
 
                 /* Daily Hero Card */
                 .daily-hero {
