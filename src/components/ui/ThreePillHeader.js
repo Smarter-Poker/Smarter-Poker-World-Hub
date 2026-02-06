@@ -121,15 +121,21 @@ export default function ThreePillHeader({
             <div style={{ position: 'relative', width: '100%' }}>
 
                 {/* THE ACTUAL IMAGE - not a background */}
-                <img
-                    src="/images/three-pill-header-bar.png"
-                    alt="Header"
-                    style={{
-                        width: '100%',
-                        height: 'auto',
-                        display: 'block'
-                    }}
-                />
+                <div style={{
+                    background: 'linear-gradient(180deg, #0a0e1a 0%, #0c1424 100%)',
+                    width: '100%',
+                }}>
+                    <img
+                        src="/images/futuristic-3pill-header.png"
+                        alt="Header"
+                        style={{
+                            width: '100%',
+                            height: 'auto',
+                            display: 'block',
+                            minHeight: 50,
+                        }}
+                    />
+                </div>
 
                 {/* ═══════════════════════════════════════════════════════════════
                     PILL 1: LEFT (Navigation) - Positioned over left pill
