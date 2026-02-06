@@ -57,16 +57,12 @@
   ],
   "crons": [
     {
-      "path": "/api/cron/scrape-news",
+      "path": "/api/cron/news-scraper",
       "schedule": "0 * * * *"
     },
     {
-      "path": "/api/cron/news-scraper",
-      "schedule": "30 * * * *"
-    },
-    {
-      "path": "/api/cron/scrape-poker-clips",
-      "schedule": "0 6 * * *"
+      "path": "/api/cron/pokernews-videos",
+      "schedule": "0 */6 * * *"
     },
     {
       "path": "/api/cron/scrape-sports-clips",
