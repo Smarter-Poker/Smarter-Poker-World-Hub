@@ -1830,11 +1830,11 @@ export default function NewsHub() {
                         filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
                     }
 
-                    /* Specific styling for Latest Videos to be longer */
-                    button[class*="section-tab-img"]:nth-child(2) img {
-                         height: 90px;
-                         min-width: 180px; /* Force it wider/longer */
-                         object-fit: fill;
+                    /* Specific styling for Latest Videos removed to ensure uniform size */
+                    .section-title-img {
+                        height: 240px;
+                        width: auto;
+                        display: block;
                     }
 
 
@@ -1860,7 +1860,7 @@ export default function NewsHub() {
                     }
 
                     .refresh-btn-img img {
-                        height: 44px;
+                        height: 90px;
                         width: auto;
                         display: block;
                         transition: all 0.3s ease;
@@ -2069,11 +2069,7 @@ export default function NewsHub() {
                         color: #fff;
                     }
 
-                    .section-title-img {
-                        height: 90px;
-                        width: auto;
-                        display: block;
-                    }
+
 
                     .section-title :global(svg) {
                         color: #2374E1;
