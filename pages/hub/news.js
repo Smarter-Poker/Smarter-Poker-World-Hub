@@ -1359,7 +1359,8 @@ export default function NewsHub() {
                             </button>
 
                             {/* Refresh Button */}
-                            {/* Refresh Button REMOVED */}\n                            {/* Theme Toggle REMOVED per user request */}
+                            {/* Refresh Button REMOVED */}
+                            {/* Theme Toggle REMOVED per user request */}
 
                             {/* Theme Toggle REMOVED per user request */}
                         </div>
@@ -2090,15 +2091,52 @@ export default function NewsHub() {
                     @media (max-width: 768px) {
                         .news-grid {
                             grid-template-columns: 1fr;
+                            gap: 10px !important; 
+                            padding: 0 !important; /* Full bleed container */
                         }
-                        /* Reset forced heights for mobile scaling */
-                        .news-grid > *,
-                        .news-grid .news-box,
-                        .news-grid .mspt-box {
+
+                        /* ---------------------------------------------------------
+                           SOCIAL MEDIA FORMULA (Mobile Override)
+                           Transforms "Metallic Boxes" into "Social Feed Cards"
+                           --------------------------------------------------------- */
+                        
+                        /* Unbox the container */
+                        .news-box {
                             height: auto !important;
                             min-height: auto !important;
                             max-height: none !important;
                             aspect-ratio: auto;
+                            border-radius: 0 !important; /* Flat social style */
+                            box-shadow: none !important;
+                            border-bottom: 1px solid rgba(255,255,255,0.1);
+                            margin-bottom: 0 !important;
+                            background: #1a1c1e; /* Match desired dark theme bg */
+                        }
+
+                        /* Remove the metallic chrome frame overlay */
+                        .news-box::after {
+                            display: none !important;
+                        }
+
+                        /* Full width image 16:9 */
+                        .box-image {
+                            height: auto !important; 
+                            aspect-ratio: 16/9;
+                            border-radius: 0 !important;
+                        }
+
+                        .box-image img {
+                            border-radius: 0 !important;
+                        }
+
+                        /* Adjust content padding */
+                        .box-content {
+                            padding: 12px 16px !important;
+                        }
+
+                        .box-title {
+                            font-size: 16px !important; /* Readability */
+                            line-height: 1.4 !important;
                         }
                     }
 
