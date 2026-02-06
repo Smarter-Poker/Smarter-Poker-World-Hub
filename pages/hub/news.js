@@ -1640,30 +1640,6 @@ export default function NewsHub() {
 
                     {/* Right Sidebar */}
                     <aside className="sidebar">
-                        {/* Newsletter */}
-                        <div className="widget newsletter">
-                            <h4><Mail size={14} /> Get Free Strategy</h4>
-                            {subscribed ? (
-                                <div className="subscribed">
-                                    <Check size={20} /> You're subscribed!
-                                </div>
-                            ) : (
-                                <form onSubmit={handleSubscribe}>
-                                    <input
-                                        type="email"
-                                        placeholder="Your email"
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        required
-                                    />
-                                    <button type="submit" disabled={subscribing}>
-                                        {subscribing ? <Loader size={14} className="spinner" /> : 'Subscribe'}
-                                    </button>
-                                </form>
-                            )}
-                            {subscribeError && <p className="error">{subscribeError}</p>}
-                        </div>
-
                         {/* MSPT News & Updates - Dedicated Box */}
                         <div className="widget mspt">
                             <h4><Trophy size={14} /> MSPT News & Updates</h4>
