@@ -1309,19 +1309,19 @@ export default function NewsHub() {
                                 className={`section-tab-img ${activeSection === 'news' ? 'active' : ''}`}
                                 onClick={() => setActiveSection('news')}
                             >
-                                <img src="/images/news-icons/btn-news.png" alt="News" />
+                                <img src="/images/btn-news.png" alt="News" />
                             </button>
                             <button
                                 className={`section-tab-img ${activeSection === 'videos' ? 'active' : ''}`}
                                 onClick={() => setActiveSection('videos')}
                             >
-                                <img src="/images/news-icons/btn-videos.png" alt="Latest Videos" />
+                                <img src="/images/btn-latest-videos.png" alt="Latest Videos" />
                             </button>
                             <button
                                 className={`section-tab-img ${activeSection === 'reels' ? 'active' : ''}`}
                                 onClick={() => setActiveSection('reels')}
                             >
-                                <img src="/images/news-icons/btn-reels.png" alt="Reels" />
+                                <img src="/images/btn-reels.png" alt="Reels" />
                             </button>
                         </div>
                     </div>
@@ -1348,7 +1348,7 @@ export default function NewsHub() {
                             title="Refresh news"
                         >
                             <img
-                                src="/images/news-icons/btn-refresh.png"
+                                src="/images/btn-refresh.png"
                                 alt="Refresh"
                                 className={isRefreshing ? 'spinning' : ''}
                             />
@@ -1360,7 +1360,7 @@ export default function NewsHub() {
                             onClick={() => setDarkMode(!darkMode)}
                             title={darkMode ? "Light Mode" : "Dark Mode"}
                         >
-                            <img src="/images/news-icons/btn-settings.png" alt="Settings" />
+                            <img src="/images/btn-light-dark.png" alt="Light/Dark Mode" />
                         </button>
                     </div>
                 </header>
