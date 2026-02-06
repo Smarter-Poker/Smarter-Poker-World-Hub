@@ -183,19 +183,26 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                     display: flex;
                     flex-direction: column;
                     height: 340px;
+                    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+                }
+                
+                /* Chrome frame overlay */
+                .news-box::after {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    border-radius: 16px;
+                    border: 3px solid rgba(180, 195, 220, 0.6);
                     box-shadow: 
-                        inset 0 0 0 3px rgba(180, 195, 220, 0.7),
-                        inset 0 0 0 5px rgba(100, 115, 140, 0.4),
-                        0 0 12px rgba(180, 195, 220, 0.3),
-                        0 4px 16px rgba(0, 0, 0, 0.4);
+                        inset 0 0 8px rgba(180, 195, 220, 0.4),
+                        0 0 12px rgba(180, 195, 220, 0.3);
+                    pointer-events: none;
+                    z-index: 5;
                 }
 
-                .news-box *,
-                .news-box::before,
-                .news-box::after {
-                    border: none !important;
-                    border-bottom: none !important;
-                }
 
                 .news-box:hover {
                     transform: translateY(-2px);
@@ -437,11 +444,24 @@ function VideoCard({ video, onClick }) {
                     height: 280px;
                     display: flex;
                     flex-direction: column;
+                    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+                }
+                
+                /* Chrome frame overlay for video cards */
+                .video-card::after {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    border-radius: 16px;
+                    border: 3px solid rgba(180, 195, 220, 0.6);
                     box-shadow: 
-                        inset 0 0 0 3px rgba(180, 195, 220, 0.7),
-                        inset 0 0 0 5px rgba(100, 115, 140, 0.4),
-                        0 0 12px rgba(180, 195, 220, 0.3),
-                        0 4px 16px rgba(0, 0, 0, 0.4);
+                        inset 0 0 8px rgba(180, 195, 220, 0.4),
+                        0 0 12px rgba(180, 195, 220, 0.3);
+                    pointer-events: none;
+                    z-index: 5;
                 }
 
                 .video-card:hover {
