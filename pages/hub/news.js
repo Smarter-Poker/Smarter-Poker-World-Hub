@@ -177,13 +177,21 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                     position: relative;
                     background: linear-gradient(145deg, #2a2d35 0%, #1a1c1e 100%);
                     border-radius: 16px;
-                    border: none;
+                    border: none !important;
+                    border-bottom: none !important;
                     overflow: hidden;
                     cursor: pointer;
                     transition: all 0.2s ease;
                     display: flex;
                     flex-direction: column;
                     height: 340px;
+                }
+
+                .news-box *,
+                .news-box::before,
+                .news-box::after {
+                    border: none !important;
+                    border-bottom: none !important;
                 }
 
                 .news-box:hover {
