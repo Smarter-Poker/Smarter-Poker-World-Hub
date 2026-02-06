@@ -897,27 +897,24 @@ export default function VideoLibraryPage() {
                     /* Metal Frame Styling - Futuristic Chrome Border */
                     .metal-frame {
                         position: relative;
-                        background: linear-gradient(145deg, #1a1a1a, #0d0d0d);
+                        background: #0a0a0a;
                         border-radius: 16px;
-                        overflow: hidden;
+                        overflow: visible;
                         padding: 4px;
                         box-shadow: 
-                            inset 0 1px 0 rgba(255,255,255,0.1),
-                            0 4px 20px rgba(0,0,0,0.4);
-                        border: 3px solid;
-                        border-image: linear-gradient(
-                            135deg,
-                            rgba(200, 210, 220, 0.95) 0%,
-                            rgba(140, 150, 160, 0.7) 20%,
-                            rgba(80, 90, 100, 0.5) 50%,
-                            rgba(140, 150, 160, 0.7) 80%,
-                            rgba(200, 210, 220, 0.95) 100%
-                        ) 1;
+                            0 0 0 3px rgba(160, 170, 180, 0.8),
+                            0 0 0 4px rgba(80, 90, 100, 0.6),
+                            inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+                            0 8px 32px rgba(0, 0, 0, 0.5);
                     }
                     
                     .metal-frame > * {
                         border-radius: 12px;
                         overflow: hidden;
+                    }
+                    
+                    .metal-frame > *:first-child {
+                        border-radius: 12px 12px 0 0;
                     }
                     
                     /* Metal Frame for smaller buttons */
