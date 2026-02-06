@@ -1335,19 +1335,19 @@ export default function NewsHub() {
                                 className={`section-tab-img ${activeSection === 'news' ? 'active' : ''}`}
                                 onClick={() => setActiveSection('news')}
                             >
-                                <img src="/images/btn-news.jpg" alt="News" />
+                                <img src="/images/btn-news.png" alt="News" />
                             </button>
                             <button
                                 className={`section-tab-img ${activeSection === 'videos' ? 'active' : ''}`}
                                 onClick={() => setActiveSection('videos')}
                             >
-                                <img src="/images/btn-latest-videos.jpg" alt="Latest Videos" />
+                                <img src="/images/btn-latest-videos.png" alt="Latest Videos" />
                             </button>
                             <button
                                 className={`section-tab-img ${activeSection === 'reels' ? 'active' : ''}`}
                                 onClick={() => setActiveSection('reels')}
                             >
-                                <img src="/images/btn-reels.jpg" alt="Reels" />
+                                <img src="/images/btn-reels.png" alt="Reels" />
                             </button>
                         </div>
                     </div>
@@ -1374,7 +1374,7 @@ export default function NewsHub() {
                             title="Refresh news"
                         >
                             <img
-                                src="/images/btn-refresh.jpg"
+                                src="/images/btn-refresh.png"
                                 alt="Refresh"
                                 className={isRefreshing ? 'spinning' : ''}
                             />
@@ -1386,7 +1386,7 @@ export default function NewsHub() {
                             onClick={() => setDarkMode(!darkMode)}
                             title={darkMode ? "Light Mode" : "Dark Mode"}
                         >
-                            <img src="/images/btn-light-dark.jpg" alt="Light/Dark Mode" />
+                            <img src="/images/btn-light-dark.png" alt="Light/Dark Mode" />
                         </button>
                     </div>
                 </header>

@@ -6,13 +6,13 @@
  * Uses the user's exact image as an <img> element (NOT background-image)
  * with interactive buttons absolutely positioned ON TOP of the image.
  * 
- * Layout (percentage-based for responsive positioning):
- * - Pill 1 (Left ~5%-22%): Hamburger Menu + Hub/Back Arrow
- * - Pill 2 (Center ~28%-72%): "Smarter.Poker" + Diamond Wallet  
- * - Pill 3 (Right ~78%-95%): Profile + Message + Notification + Settings + Help
+ * The header image has 3 metallic pill zones:
+ * - Left Pill (~5%-20%): Hamburger + Hub/Back
+ * - Center Pill (~25%-75%): Smarter.Poker + Diamond Wallet
+ * - Right Pill (~78%-95%): Profile + Icons
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useLiveHelp } from '../../world/components/Geeves';
@@ -25,9 +25,6 @@ const formatCompact = (num) => {
     return (num / 1000000).toFixed(1) + 'M';
 };
 
-// Fixed header height
-const HEADER_HEIGHT = 70;
-
 export default function ThreePillHeader({
     pageDepth = 1,
     onMenuClick = null
@@ -38,8 +35,17 @@ export default function ThreePillHeader({
     const [notificationCount, setNotificationCount] = useState(0);
     const [unreadMessages, setUnreadMessages] = useState(0);
     const [showFullDiamonds, setShowFullDiamonds] = useState(false);
+    const [headerHeight, setHeaderHeight] = useState(80);
+    const imgRef = useRef(null);
 
     const liveHelp = useLiveHelp();
+
+    // Measure image height when loaded
+    const handleImageLoad = () => {
+        if (imgRef.current) {
+            setHeaderHeight(imgRef.current.offsetHeight);
+        }
+    };
 
     useEffect(() => {
         let mounted = true;
@@ -113,7 +119,7 @@ export default function ThreePillHeader({
         }
     };
 
-    // Icon button style helper
+    // Shared icon button style
     const iconBtnStyle = {
         width: 44,
         height: 44,
@@ -129,50 +135,49 @@ export default function ThreePillHeader({
 
     return (
         <>
-            {/* Fixed header */}
+            {/* Fixed header container - height driven by image */}
             <header style={{
                 position: 'fixed',
                 top: 0,
                 left: 0,
                 right: 0,
-                height: HEADER_HEIGHT,
                 zIndex: 1000,
                 background: 'linear-gradient(180deg, #0a0e1a 0%, #0c1424 100%)',
             }}>
-                {/* CONTAINER - positions everything relative to the image */}
+                {/* CONTAINER - positions everything relative */}
                 <div style={{
                     position: 'relative',
                     width: '100%',
-                    height: '100%',
                 }}>
 
-                    {/* THE ACTUAL IMAGE - stretched to fill header */}
+                    {/* THE HEADER IMAGE - defines height */}
                     <img
+                        ref={imgRef}
                         src="/images/futuristic-3pill-header.png"
                         alt="Header"
+                        onLoad={handleImageLoad}
                         style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
                             width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
-                            objectPosition: 'center',
+                            height: 'auto',
+                            display: 'block',
                         }}
                     />
 
                     {/* ═══════════════════════════════════════════════════════════════
-                        PILL 1: LEFT (Navigation) - Centered in left pill zone
+                        PILL 1: LEFT - Hamburger + Hub/Back
+                        Positioned to center within left metallic pill (~5%-22%)
                         ═══════════════════════════════════════════════════════════════ */}
                     <div style={{
                         position: 'absolute',
-                        top: '50%',
-                        left: 24,
-                        transform: 'translateY(-50%)',
+                        top: 0,
+                        bottom: 0,
+                        left: 0,
+                        width: '22%',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 12,
-                        height: '100%',
+                        justifyContent: 'center',
+                        gap: 10,
+                        paddingLeft: 16,
                     }}>
                         {onMenuClick && (
                             <button
@@ -219,15 +224,18 @@ export default function ThreePillHeader({
                     </div>
 
                     {/* ═══════════════════════════════════════════════════════════════
-                        PILL 2: CENTER (Brand + Wallet) - Centered in center pill
+                        PILL 2: CENTER - Smarter.Poker + Diamond Wallet
+                        Positioned to center within the middle metallic pill
                         ═══════════════════════════════════════════════════════════════ */}
                     <div style={{
                         position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
+                        top: 0,
+                        bottom: 0,
+                        left: '22%',
+                        right: '22%',
                         display: 'flex',
                         alignItems: 'center',
+                        justifyContent: 'center',
                         gap: 20,
                     }}>
                         <span style={{
@@ -246,7 +254,7 @@ export default function ThreePillHeader({
                             gap: 8,
                             background: 'rgba(0, 212, 255, 0.12)',
                             border: '1px solid rgba(0, 212, 255, 0.4)',
-                            padding: '8px 16px',
+                            padding: '10px 18px',
                             borderRadius: 24,
                             textDecoration: 'none',
                             color: 'white',
@@ -263,8 +271,8 @@ export default function ThreePillHeader({
                                 {showFullDiamonds ? stats.diamonds.toLocaleString() : formatCompact(stats.diamonds)}
                             </span>
                             <span style={{
-                                width: 22,
-                                height: 22,
+                                width: 24,
+                                height: 24,
                                 borderRadius: '50%',
                                 background: 'rgba(0, 212, 255, 0.35)',
                                 display: 'flex',
@@ -277,16 +285,20 @@ export default function ThreePillHeader({
                     </div>
 
                     {/* ═══════════════════════════════════════════════════════════════
-                        PILL 3: RIGHT (Icons) - Centered in right pill zone
+                        PILL 3: RIGHT - Profile + Icons
+                        Positioned to center within the right metallic pill (~78%-95%)
                         ═══════════════════════════════════════════════════════════════ */}
                     <div style={{
                         position: 'absolute',
-                        top: '50%',
-                        right: 24,
-                        transform: 'translateY(-50%)',
+                        top: 0,
+                        bottom: 0,
+                        right: 0,
+                        width: '22%',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 8,
+                        justifyContent: 'center',
+                        gap: 6,
+                        paddingRight: 16,
                     }}>
                         {/* Profile */}
                         <Link href="/hub/profile" style={{ textDecoration: 'none' }}>
@@ -299,7 +311,7 @@ export default function ThreePillHeader({
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                fontSize: 18,
+                                fontSize: 20,
                                 backgroundSize: 'cover',
                                 backgroundPosition: 'center',
                                 cursor: 'pointer',
@@ -378,7 +390,7 @@ export default function ThreePillHeader({
             </header>
 
             {/* Spacer to push content below fixed header */}
-            <div style={{ height: HEADER_HEIGHT }} />
+            <div style={{ height: headerHeight }} />
         </>
     );
 }
