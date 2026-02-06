@@ -131,8 +131,8 @@ const NEWS_SOURCES = [
     {
         box: 3,
         name: 'CardPlayer',
-        type: 'scrape',
-        url: 'https://www.cardplayer.com/poker-news',
+        type: 'rss',  // Changed from 'scrape' - HTML returns 403, RSS works
+        url: 'https://www.cardplayer.com/poker-news.rss',
         baseUrl: 'https://www.cardplayer.com',
         icon: '♠️',
         category: 'news'
