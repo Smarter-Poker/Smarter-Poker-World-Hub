@@ -16,7 +16,7 @@ export function LanguageSelector({ onLanguageChange }: LanguageSelectorProps) {
 
     useEffect(() => {
         // Load saved preference or detect browser language
-        const saved = localStorage.getItem('jarvis-language') as Language;
+        const saved = localStorage.getItem('geeves-language') as Language;
         if (saved) {
             setLanguage(saved);
         } else {
@@ -38,7 +38,7 @@ export function LanguageSelector({ onLanguageChange }: LanguageSelectorProps) {
 
     const selectLanguage = (lang: Language) => {
         setLanguage(lang);
-        localStorage.setItem('jarvis-language', lang);
+        localStorage.setItem('geeves-language', lang);
         setIsOpen(false);
         onLanguageChange?.(lang);
     };
@@ -118,7 +118,7 @@ export function LanguageSelector({ onLanguageChange }: LanguageSelectorProps) {
 // Translation strings
 export const translations = {
     en: {
-        askJarvis: 'Ask Jarvis',
+        askGeeves: 'Ask Geeves',
         typeYourQuestion: 'Type Your Question...',
         helpful: 'Helpful',
         notHelpful: 'Not Helpful',
@@ -131,7 +131,7 @@ export const translations = {
         noPreviousConversations: 'No previous conversations'
     },
     es: {
-        askJarvis: 'Preguntar a Jarvis',
+        askGeeves: 'Preguntar a Geeves',
         typeYourQuestion: 'Escribe tu pregunta...',
         helpful: 'Útil',
         notHelpful: 'No útil',
@@ -144,7 +144,7 @@ export const translations = {
         noPreviousConversations: 'Sin conversaciones previas'
     },
     pt: {
-        askJarvis: 'Perguntar ao Jarvis',
+        askGeeves: 'Perguntar ao Geeves',
         typeYourQuestion: 'Digite sua pergunta...',
         helpful: 'Útil',
         notHelpful: 'Não útil',
@@ -157,7 +157,7 @@ export const translations = {
         noPreviousConversations: 'Sem conversas anteriores'
     },
     zh: {
-        askJarvis: '询问 Jarvis',
+        askGeeves: '询问 Geeves',
         typeYourQuestion: '输入您的问题...',
         helpful: '有帮助',
         notHelpful: '无帮助',
@@ -170,7 +170,7 @@ export const translations = {
         noPreviousConversations: '没有以前的对话'
     },
     fr: {
-        askJarvis: 'Demander à Jarvis',
+        askGeeves: 'Demander à Geeves',
         typeYourQuestion: 'Tapez votre question...',
         helpful: 'Utile',
         notHelpful: 'Pas utile',
@@ -183,7 +183,7 @@ export const translations = {
         noPreviousConversations: 'Aucune conversation précédente'
     },
     de: {
-        askJarvis: 'Jarvis fragen',
+        askGeeves: 'Geeves fragen',
         typeYourQuestion: 'Geben Sie Ihre Frage ein...',
         helpful: 'Hilfreich',
         notHelpful: 'Nicht hilfreich',

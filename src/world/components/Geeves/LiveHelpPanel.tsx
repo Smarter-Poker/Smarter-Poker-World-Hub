@@ -1,8 +1,8 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   ASK JARVIS PANEL — The sliding conversation interface
+   ASK GEEVES PANEL — The sliding conversation interface
    
    Features:
-   - Jarvis: Comprehensive Smarter.Poker expert
+   - Geeves: Comprehensive Smarter.Poker expert
    - Message history with human-like typing
    - Input field with send button
    - Subtle, non-intrusive design
@@ -11,7 +11,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Agent, Message } from './useLiveHelp';
 import { AGENTS } from './useLiveHelp';
-import { DynamicQuickActions } from './DynamicQuickActions';
+// DynamicQuickActions removed per user request
 import { MessageReactions } from './MessageReactions';
 import { CopyButton } from './CopyButton';
 import { VoiceInput } from './VoiceInput';
@@ -171,7 +171,7 @@ export function LiveHelpPanel({
                                     margin: 0,
                                 }}
                             >
-                                {t.askJarvis}
+                                {t.askGeeves}
                             </h3>
                             <p
                                 style={{
@@ -241,8 +241,7 @@ export function LiveHelpPanel({
                     <div ref={messagesEndRef} />
                 </div>
 
-                {/* Dynamic Quick Actions */}
-                <DynamicQuickActions onActionClick={handleQuickAction} />
+                {/* Quick Actions removed per user request */}
 
                 {/* Input */}
                 <div
@@ -403,7 +402,7 @@ function MessageBubble({ message, agent }: MessageBubbleProps) {
                 <RichMediaRenderer content={message.content} />
             </div>
 
-            {/* Reactions and Copy Button for Jarvis messages */}
+            {/* Reactions and Copy Button for Geeves messages */}
             {!isUser && (
                 <div style={{
                     display: 'flex',
