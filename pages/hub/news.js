@@ -2045,28 +2045,37 @@ export default function NewsHub() {
                         animation: spin 1s linear infinite;
                     }
 
+                    .header-left {
+                        display: flex;
+                        align-items: center;
+                        gap: 24px;
+                        flex: 1; /* Allow left side to take up space and shrink */
+                        min-width: 0; /* Crucial for nested flex shrinking */
+                        overflow: hidden; /* Prevent spill */
+                    }
+
                     .section-tabs {
                         display: flex;
-                        gap: 15px;
-                        flex: 1; /* Allow it to take up space but also shrink */
-                        min-width: 0; /* Important for flex shrinking */
-                        overflow-x: auto; /* Fallback for very small screens */
+                        gap: 15px; 
+                        flex: 1; 
+                        width: 100%;
+                        min-width: 0; 
                         align-items: center;
                     }
 
                     .section-tab-img, .refresh-btn-img, .theme-toggle-img {
                         flex: 0 1 auto; /* Allow shrinking */
-                        min-width: 0;
-                        max-width: 160px; /* Cap width */
+                        min-width: 40px; /* Don't shrink below usability */
+                        width: auto; /* Allow sizing based on content... */
+                        max-width: 160px; 
                         display: flex;
                         align-items: center;
                     }
 
                     .section-tab-img img, .refresh-btn-img img, .theme-toggle-img img {
-                        height: auto; /* Let height adjust based on width */
-                        max-height: 90px; /* Cap height at 90px */
-                        width: 100%; /* Fill container */
-                        max-width: 100%;
+                        width: 100%;       /* Fill the button width */
+                        height: auto;      /* Maintain aspect ratio */
+                        max-height: 90px;  /* Never exceed 90px height */
                         object-fit: contain;
                     }
 
