@@ -1817,7 +1817,7 @@ export default function NewsHub() {
                     /* Custom Image Tab Buttons - Bigger & Packed */
                     .section-tab-img, .refresh-btn-img {
                         flex: 0 0 auto;
-                        height: 60px; /* Fit on mobile */
+                        height: 45px; /* Mobile-fit icons */
                         width: auto;
                         min-width: 0;
                         padding: 0;
@@ -1831,7 +1831,7 @@ export default function NewsHub() {
                     }
 
                     .section-tab-img img, .refresh-btn-img img {
-                        height: 60px; /* Fixed 60px height */
+                        height: 45px; /* Mobile-fit icons */
                         width: auto;
                         object-fit: contain;
                         display: block;
