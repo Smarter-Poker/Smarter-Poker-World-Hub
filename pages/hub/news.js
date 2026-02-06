@@ -2631,7 +2631,7 @@ export default function NewsHub() {
 
                     /* MSPT Widget */
                     .mspt h4 {
-                        background: #2374E1;
+                        background: #2374E1; /* Facebook Blue */
                         margin: -16px -16px 14px -16px;
                         padding: 12px 16px;
                         border-radius: 8px 8px 0 0;
@@ -2655,7 +2655,7 @@ export default function NewsHub() {
                     }
 
                     .mspt-list li:hover {
-                        background: rgba(220, 38, 38, 0.1);
+                        background: rgba(255, 255, 255, 0.05); /* Neutral Hover */
                         margin: 0 -16px;
                         padding: 10px 16px;
                     }
@@ -2692,8 +2692,8 @@ export default function NewsHub() {
                     }
 
                     .mspt-prize {
-                        background: rgba(220, 38, 38, 0.2);
-                        color: #f87171;
+                        background: rgba(35, 116, 225, 0.15); /* Blue tint */
+                        color: #4599FF; /* Light Blue */
                         padding: 2px 6px;
                         border-radius: 4px;
                         font-weight: 600;
@@ -2706,9 +2706,9 @@ export default function NewsHub() {
                         gap: 6px;
                         margin-top: 12px;
                         padding: 10px;
-                        background: rgba(220, 38, 38, 0.15);
+                        background: rgba(35, 116, 225, 0.1);
                         border-radius: 8px;
-                        color: #f87171;
+                        color: #2374E1; /* Facebook Blue */
                         font-size: 12px;
                         font-weight: 600;
                         text-decoration: none;
@@ -2716,7 +2716,7 @@ export default function NewsHub() {
                     }
 
                     .mspt-link:hover {
-                        background: rgba(220, 38, 38, 0.25);
+                         background: rgba(35, 116, 225, 0.2);
                     }
 
                     /* Events Widget */
@@ -2760,12 +2760,12 @@ export default function NewsHub() {
                     }
 
                     .events-list .date {
-                        background: rgba(0, 212, 255, 0.1);
-                        color: #2374E1;
-                        padding: 4px 8px;
-                        border-radius: 6px;
-                        font-weight: 600;
-                        font-size: 11px;
+                         background: rgba(35, 116, 225, 0.1);
+                         color: #2374E1;
+                         padding: 4px 8px;
+                         border-radius: 6px;
+                         font-weight: 600;
+                         font-size: 11px;
                     }
 
                     .view-all {
@@ -2775,9 +2775,9 @@ export default function NewsHub() {
                         gap: 6px;
                         margin-top: 12px;
                         padding: 10px;
-                        background: rgba(34, 197, 94, 0.1);
+                        background: rgba(35, 116, 225, 0.1);
                         border-radius: 8px;
-                        color: #22c55e;
+                        color: #2374E1; /* Facebook Blue */
                         font-size: 12px;
                         font-weight: 600;
                     }
