@@ -182,7 +182,7 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                     transition: all 0.2s ease;
                     display: flex;
                     flex-direction: column;
-                    height: 360px;
+                    aspect-ratio: 671 / 453;
                     padding: 10px 12px 10px 12px;
                 }
 
@@ -253,9 +253,8 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                     position: relative;
                     width: 100%;
                     margin: 0;
-                    height: 270px !important;
-                    min-height: 260px !important;
-                    flex: 0 0 auto;
+                    flex: 1;
+                    min-height: 0;
                     overflow: hidden;
                     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
                     border-radius: 10px;
