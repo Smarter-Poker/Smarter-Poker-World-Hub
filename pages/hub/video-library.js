@@ -897,47 +897,27 @@ export default function VideoLibraryPage() {
                     /* Metal Frame Styling - Futuristic Chrome Border */
                     .metal-frame {
                         position: relative;
-                        background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+                        background: linear-gradient(145deg, #1a1a1a, #0d0d0d);
                         border-radius: 16px;
                         overflow: hidden;
-                    }
-                    
-                    .metal-frame::before {
-                        content: '';
-                        position: absolute;
-                        inset: 0;
-                        border-radius: 16px;
-                        padding: 3px;
-                        background: linear-gradient(
+                        padding: 4px;
+                        box-shadow: 
+                            inset 0 1px 0 rgba(255,255,255,0.1),
+                            0 4px 20px rgba(0,0,0,0.4);
+                        border: 3px solid;
+                        border-image: linear-gradient(
                             135deg,
-                            rgba(180, 190, 200, 0.9) 0%,
-                            rgba(120, 130, 140, 0.6) 25%,
-                            rgba(80, 90, 100, 0.4) 50%,
-                            rgba(120, 130, 140, 0.6) 75%,
-                            rgba(180, 190, 200, 0.9) 100%
-                        );
-                        -webkit-mask: 
-                            linear-gradient(#fff 0 0) content-box, 
-                            linear-gradient(#fff 0 0);
-                        -webkit-mask-composite: xor;
-                        mask-composite: exclude;
-                        pointer-events: none;
+                            rgba(200, 210, 220, 0.95) 0%,
+                            rgba(140, 150, 160, 0.7) 20%,
+                            rgba(80, 90, 100, 0.5) 50%,
+                            rgba(140, 150, 160, 0.7) 80%,
+                            rgba(200, 210, 220, 0.95) 100%
+                        ) 1;
                     }
                     
-                    .metal-frame::after {
-                        content: '';
-                        position: absolute;
-                        top: 0;
-                        left: 0;
-                        right: 0;
-                        height: 50%;
-                        border-radius: 16px 16px 0 0;
-                        background: linear-gradient(
-                            180deg,
-                            rgba(255, 255, 255, 0.08) 0%,
-                            transparent 100%
-                        );
-                        pointer-events: none;
+                    .metal-frame > * {
+                        border-radius: 12px;
+                        overflow: hidden;
                     }
                     
                     /* Metal Frame for smaller buttons */
