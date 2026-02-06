@@ -338,9 +338,9 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
                 .daily-trivia-banner {
                     position: relative;
                     width: 100%;
-                    margin-bottom: 24px;
-                    border-radius: 8px;
-                    overflow: hidden;
+                    margin-bottom: 8px;
+                    border-radius: 0;
+                    overflow: visible;
                     transition: transform 0.2s ease, box-shadow 0.2s ease;
                 }
 
