@@ -1729,6 +1729,46 @@ export default function NewsHub() {
                         padding-right: env(safe-area-inset-right, 0px);
                     }
 
+                    /* ===============================================================
+                       SOCIAL MEDIA FORMULA - Page Container (Mobile-First)
+                       Mirrors the scaling used in social-media.js for perfect mobile fit
+                       =============================================================== */
+                    @media (max-width: 768px) {
+                        .news-hub {
+                            width: 100% !important;
+                            max-width: 100vw !important;
+                            padding: 0 !important;
+                            margin: 0 !important;
+                            overflow-x: hidden !important;
+                        }
+
+                        .layout {
+                            padding: 0 !important;
+                            max-width: 100vw !important;
+                            gap: 0 !important;
+                        }
+
+                        .header {
+                            width: 100% !important;
+                            padding: 6px 0 !important;
+                        }
+
+                        .main-content {
+                            padding: 0 !important;
+                            width: 100% !important;
+                        }
+
+                        .news-section {
+                            padding: 0 !important;
+                            margin: 0 !important;
+                        }
+
+                        .section-title {
+                            padding: 12px 16px !important;
+                            margin: 0 !important;
+                        }
+                    }
+
                     /* Header Structure */
                     .header {
                         position: sticky;
@@ -2089,10 +2129,28 @@ export default function NewsHub() {
                     }
 
                     @media (max-width: 768px) {
+                        /* CRITICAL: Override global 340px height rules */
+                        .news-grid > *,
+                        .news-grid .news-box,
+                        .news-grid .mspt-box {
+                            height: auto !important;
+                            min-height: auto !important;
+                            max-height: none !important;
+                        }
+
                         .news-grid {
                             grid-template-columns: 1fr;
-                            gap: 10px !important; 
+                            gap: 0 !important; /* Social-style gapless feed */
                             padding: 0 !important; /* Full bleed container */
+                            border-radius: 0 !important;
+                            background: transparent !important;
+                            box-shadow: none !important;
+                            border: none !important;
+                        }
+
+                        /* Remove metallic border overlay */
+                        .news-grid::before {
+                            display: none !important;
                         }
 
                         /* ---------------------------------------------------------
@@ -2108,7 +2166,8 @@ export default function NewsHub() {
                             aspect-ratio: auto;
                             border-radius: 0 !important; /* Flat social style */
                             box-shadow: none !important;
-                            border-bottom: 1px solid rgba(255,255,255,0.1);
+                            border: none !important;
+                            border-bottom: 1px solid rgba(255,255,255,0.1) !important;
                             margin-bottom: 0 !important;
                             background: #1a1c1e; /* Match desired dark theme bg */
                         }
@@ -2126,6 +2185,9 @@ export default function NewsHub() {
                         }
 
                         .box-image img {
+                            width: 100% !important;
+                            height: 100% !important;
+                            object-fit: cover !important;
                             border-radius: 0 !important;
                         }
 
