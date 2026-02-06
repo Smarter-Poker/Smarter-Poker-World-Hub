@@ -1822,7 +1822,7 @@ export default function NewsHub() {
                     }
 
                     .section-tab-img img {
-                        height: 70px;
+                        height: 90px;
                         width: auto;
                         display: block;
                         transition: all 0.3s ease;
@@ -1832,10 +1832,11 @@ export default function NewsHub() {
 
                     /* Specific styling for Latest Videos to be longer */
                     button[class*="section-tab-img"]:nth-child(2) img {
-                         height: 70px;
+                         height: 90px;
                          min-width: 180px; /* Force it wider/longer */
                          object-fit: fill;
                     }
+
 
                     .section-tab-img:hover img {
                         filter: brightness(1.15);
@@ -2069,7 +2070,7 @@ export default function NewsHub() {
                     }
 
                     .section-title-img {
-                        height: 180px;
+                        height: 90px;
                         width: auto;
                         display: block;
                     }
