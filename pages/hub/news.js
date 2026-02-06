@@ -1822,7 +1822,7 @@ export default function NewsHub() {
                     }
 
                     .section-tab-img img {
-                        height: 44px;
+                        height: 70px;
                         width: auto;
                         display: block;
                         transition: all 0.3s ease;
@@ -2062,7 +2062,7 @@ export default function NewsHub() {
                     }
 
                     .section-title-img {
-                        height: 60px;
+                        height: 80px;
                         width: auto;
                         display: block;
                     }
