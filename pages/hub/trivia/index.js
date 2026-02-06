@@ -190,7 +190,7 @@ export default function TriviaHubPage() {
 
                 .content {
                     position: relative;
-                    padding: 75px 0 40px;
+                    padding: 15px 0 40px;
                 }
 
                 .loading {

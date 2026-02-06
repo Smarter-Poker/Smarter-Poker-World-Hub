@@ -175,43 +175,20 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
             <style jsx>{`
                 .news-box {
                     position: relative;
-                    background: 
-                        linear-gradient(135deg, rgba(30, 32, 38, 0.95) 0%, rgba(20, 22, 28, 0.98) 100%);
-                    border: none;
-                    border-radius: 12px;
+                    background: url('/images/news-icons/card-frame.png') center / 100% 100% no-repeat;
+                    border-radius: 0;
                     overflow: hidden;
                     cursor: pointer;
                     transition: all 0.2s ease;
                     display: flex;
                     flex-direction: column;
-                    height: 340px;
-                    box-shadow: 
-                        inset 0 0 0 2px rgba(180, 195, 220, 0.35),
-                        inset 0 0 0 4px rgba(100, 115, 140, 0.15),
-                        0 6px 24px rgba(0, 0, 0, 0.5);
-                }
-                
-                .news-box::before {
-                    content: '';
-                    position: absolute;
-                    inset: -2px;
-                    border-radius: 14px;
-                    background: linear-gradient(135deg, 
-                        rgba(200, 210, 230, 0.4) 0%, 
-                        rgba(120, 140, 170, 0.25) 25%,
-                        rgba(80, 100, 130, 0.15) 50%,
-                        rgba(120, 140, 170, 0.25) 75%,
-                        rgba(200, 210, 230, 0.4) 100%);
-                    z-index: -1;
-                    pointer-events: none;
+                    height: 360px;
+                    padding: 10px 12px 10px 12px;
                 }
 
                 .news-box:hover {
                     transform: translateY(-2px);
-                    box-shadow: 
-                        inset 0 0 0 2px rgba(35, 116, 225, 0.5),
-                        inset 0 0 0 4px rgba(35, 116, 225, 0.2),
-                        0 8px 32px rgba(35, 116, 225, 0.25);
+                    filter: brightness(1.05);
                 }
 
                 .news-box.read {
@@ -275,11 +252,13 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                 .box-image {
                     position: relative;
                     width: 100%;
-                    height: 280px !important;
-                    min-height: 280px !important;
-                    flex: 1;
+                    margin: 0;
+                    height: 270px !important;
+                    min-height: 260px !important;
+                    flex: 0 0 auto;
                     overflow: hidden;
                     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                    border-radius: 10px;
                 }
 
                 .box-image img {
@@ -334,17 +313,19 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                 }
 
                 .box-content {
-                    padding: 8px 12px;
+                    padding: 6px 8px;
+                    margin: 6px 0 0 0;
                     display: flex;
                     flex-direction: column;
                     justify-content: center;
-                    gap: 4px;
+                    gap: 2px;
                     height: 60px !important;
                     max-height: 60px !important;
                     min-height: 60px !important;
                     flex-shrink: 0;
-                    background: #242526;
+                    background: transparent;
                     overflow: hidden;
+                    border-radius: 6px;
                 }
 
                 .box-category {
@@ -440,39 +421,26 @@ function VideoCard({ video, onClick }) {
             <style jsx>{`
                 .video-card {
                     position: relative;
-                    background: 
-                        linear-gradient(135deg, rgba(30, 32, 38, 0.95) 0%, rgba(20, 22, 28, 0.98) 100%);
-                    border: none;
-                    border-radius: 12px;
+                    background: #1a1c1e;
+                    border-radius: 16px;
                     overflow: hidden;
                     cursor: pointer;
                     transition: all 0.3s;
-                    box-shadow: 
-                        inset 0 0 0 2px rgba(180, 195, 220, 0.35),
-                        inset 0 0 0 4px rgba(100, 115, 140, 0.15),
-                        0 6px 24px rgba(0, 0, 0, 0.5);
                 }
                 
-                .video-card::before {
+                /* Chrome frame overlay */
+                .video-card::after {
                     content: '';
                     position: absolute;
-                    inset: -2px;
-                    border-radius: 14px;
-                    background: linear-gradient(135deg, 
-                        rgba(200, 210, 230, 0.4) 0%, 
-                        rgba(120, 140, 170, 0.25) 25%,
-                        rgba(80, 100, 130, 0.15) 50%,
-                        rgba(120, 140, 170, 0.25) 75%,
-                        rgba(200, 210, 230, 0.4) 100%);
-                    z-index: -1;
+                    inset: -4px;
+                    background: url('/images/news-icons/card-frame.png') center / 100% 100% no-repeat;
                     pointer-events: none;
+                    z-index: 20;
                 }
 
                 .video-card:hover {
-                    box-shadow: 
-                        inset 0 0 0 2px rgba(255, 0, 0, 0.4),
-                        inset 0 0 0 4px rgba(255, 0, 0, 0.15),
-                        0 8px 32px rgba(255, 0, 0, 0.2);
+                    transform: translateY(-2px);
+                    filter: brightness(1.05);
                 }
 
                 .video-thumbnail {
