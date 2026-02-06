@@ -23,15 +23,15 @@ BEGIN
     VALUES (
         NEW.author_id,
         LEFT(NEW.content, 200), -- Truncate content for story overlay
-        -- Use first media URL from array if exists
-        CASE WHEN NEW.media_urls IS NOT NULL AND array_length(NEW.media_urls, 1) > 0 
-             THEN NEW.media_urls[1] 
+        -- Use first media URL from JSONB array if exists
+        CASE WHEN NEW.media_urls IS NOT NULL AND jsonb_array_length(NEW.media_urls) > 0 
+             THEN NEW.media_urls->>0 
              ELSE NULL 
         END,
         -- Detect media type from first URL
         CASE 
-            WHEN NEW.media_urls IS NOT NULL AND array_length(NEW.media_urls, 1) > 0 THEN
-                CASE WHEN NEW.media_urls[1] ILIKE '%.mp4' OR NEW.media_urls[1] ILIKE '%video%' 
+            WHEN NEW.media_urls IS NOT NULL AND jsonb_array_length(NEW.media_urls) > 0 THEN
+                CASE WHEN NEW.media_urls->>0 ILIKE '%.mp4' OR NEW.media_urls->>0 ILIKE '%video%' 
                      THEN 'video' 
                      ELSE 'image' 
                 END

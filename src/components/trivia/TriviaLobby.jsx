@@ -145,7 +145,8 @@ const MODE_CARDS = [
         color: '#a855f7',
         glowColor: '#a855f7',
         diamondReward: 8,
-        perfectBonus: 15
+        perfectBonus: 15,
+        image: '/images/trivia/gto-master.png'
     }
 ];
 
@@ -323,13 +324,14 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
             </div>
 
             {/* Quick Stakes Section - Image Based */}
-            <div className="quick-stakes-section">
+            <div className="quick-stakes-section" style={{ display: 'flex', justifyContent: 'center' }}>
                 <div
                     className="mode-image-card"
                     onClick={() => userDiamonds >= 10 && startMode('arcade')}
                     style={{
                         opacity: userDiamonds >= 10 ? 1 : 0.6,
-                        cursor: userDiamonds >= 10 ? 'pointer' : 'not-allowed'
+                        cursor: userDiamonds >= 10 ? 'pointer' : 'not-allowed',
+                        maxWidth: '100%'
                     }}
                 >
                     <img
