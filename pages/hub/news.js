@@ -1375,21 +1375,7 @@ export default function NewsHub() {
                             {/* Theme Toggle REMOVED per user request */}
                         </div>
                     </div>
-
-                    <div className="header-right">
-                        <div className="search-box">
-                            <Search className="search-icon" size={20} />
-                            <input
-                                type="text"
-                                placeholder="Search..."
-                                value={searchQuery}
-                                onChange={(e) => handleSearch(e.target.value)}
-                            />
-                            {searchQuery && (
-                                <button className="clear-search" onClick={() => { setSearchQuery(''); fetchNews(); }}>×</button>
-                            )}
-                        </div>
-                    </div>
+                    {/* Search bar REMOVED - now in hamburger menu */}
                 </header>
 
                 {/* Share Modal */}
@@ -1757,22 +1743,21 @@ export default function NewsHub() {
                         z-index: 100;
                         display: flex;
                         align-items: center;
-                        justify-content: space-between;
-                        padding: 4px 8px; /* Minimal padding for mobile */
+                        justify-content: center; /* Center icons */
+                        padding: 4px 8px;
                         background: #242526;
                         border-bottom: 2px solid #3E4042;
-                        gap: 4px;
-                        height: 60px; /* Mobile-optimized height */
+                        gap: 0;
+                        height: 78px; /* Match bigger icons */
                         overflow: visible;
                     }
 
                     .header-left {
                         display: flex;
                         align-items: center;
-                        gap: 2px; /* Tiny gap */
-                        flex: 1;
-                        min-width: 0;
-                        height: 52px; /* Mobile icon height */
+                        gap: 0; /* Zero gap */
+                        justify-content: center;
+                        height: 70px;
                         overflow: visible;
                     }
 
@@ -1794,12 +1779,11 @@ export default function NewsHub() {
 
                     .section-tabs {
                         display: flex;
-                        gap: 2px; /* Tiny gap for mobile */
+                        gap: 0; /* Zero gap - packed tight */
                         align-items: center;
-                        justify-content: flex-start;
+                        justify-content: center;
                         overflow: visible;
                         padding: 0;
-                        flex-shrink: 0;
                     }
 
                     .section-tab {
@@ -1827,10 +1811,10 @@ export default function NewsHub() {
                         color: #fff;
                     }
 
-                    /* Custom Image Tab Buttons - Mobile First */
+                    /* Custom Image Tab Buttons - Bigger & Packed */
                     .section-tab-img, .refresh-btn-img {
                         flex: 0 0 auto;
-                        height: 50px; /* Mobile-optimized 50px */
+                        height: 70px; /* Bigger icons */
                         width: auto;
                         min-width: 0;
                         padding: 0;
@@ -1844,7 +1828,7 @@ export default function NewsHub() {
                     }
 
                     .section-tab-img img, .refresh-btn-img img {
-                        height: 50px; /* Fixed 50px height */
+                        height: 70px; /* Fixed 70px height */
                         width: auto;
                         object-fit: contain;
                         display: block;
