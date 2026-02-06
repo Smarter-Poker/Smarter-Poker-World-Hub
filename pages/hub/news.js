@@ -2066,7 +2066,7 @@ export default function NewsHub() {
                     .section-tab-img, .refresh-btn-img, .theme-toggle-img {
                         flex: 0 1 auto; /* Allow shrinking */
                         min-width: 40px; /* Don't shrink below usability */
-                        width: auto; /* Allow sizing based on content... */
+                        width: 155px; /* Explicit width to prevent collapse */
                         max-width: 160px; 
                         display: flex;
                         align-items: center;
