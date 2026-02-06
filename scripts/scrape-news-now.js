@@ -11,13 +11,17 @@ const Parser = require('rss-parser');
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY; // Use anon key with RLS
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-const parser = new Parser();
+const parser = new Parser({
+    headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
+    }
+});
 
 const SOURCES = [
-    { name: 'PokerNews', rss: 'https://www.pokernews.com/news.rss', icon: '🃏' },
-    { name: 'CardPlayer', rss: 'https://www.cardplayer.com/poker-news/rss', icon: '♠️' },
-    { name: 'PokerListings', rss: 'https://www.pokerlistings.com/feed', icon: '🎰' },
-    { name: 'Poker.org', rss: 'https://www.poker.org/feed/', icon: '♦️' }
+    { name: 'PokerNews', rss: 'https://www.pokernews.com/rss.php', icon: '🃏' },
+    { name: 'CardPlayer', rss: 'https://www.cardplayer.com/poker-news.rss', icon: '♠️' },
+    { name: 'Poker.org', rss: 'https://www.poker.org/feed', icon: '♦️' }
 ];
 
 function categorizeArticle(title) {

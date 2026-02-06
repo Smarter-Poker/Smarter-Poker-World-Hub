@@ -1806,7 +1806,7 @@ export default function NewsHub() {
                     /* Custom Image Tab Buttons - Bigger & Packed */
                     .section-tab-img, .refresh-btn-img {
                         flex: 0 0 auto;
-                        height: 45px; /* Mobile-fit icons */
+                        height: 85px; /* Mobile-fit icons */
                         width: auto;
                         min-width: 0;
                         padding: 0;
