@@ -2013,14 +2013,7 @@ export default function NewsHub() {
                         animation: spin 1s linear infinite;
                     }
 
-                    .header-left {
-                        display: flex;
-                        align-items: center;
-                        gap: 24px;
-                        flex: 1; /* Allow left side to take up space and shrink */
-                        min-width: 0; /* Crucial for nested flex shrinking */
-                        overflow: hidden; /* Prevent spill */
-                    }
+                    /* REMOVED DUPLICATE HEADER-LEFT RULE - See lines ~1769-1777 for authoritative CSS */
 
                     /* REMOVED DUPLICATE SECTION-TABS RULES - See lines ~1782-1791 for authoritative CSS */
 
