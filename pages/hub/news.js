@@ -1817,31 +1817,24 @@ export default function NewsHub() {
 
                     /* Custom Image Tab Buttons */
                     .section-tab-img, .refresh-btn-img {
-                        flex: 0 0 auto;
-                        height: 100%; /* Fill the 160px header */
-                        min-width: 120px;
-                        padding: 0; /* Remove any internal padding */
-                        margin: 0;
+                        flex: 0 0 auto !important; /* Strictly no shrinking */
+                        height: 160px !important; 
+                        width: auto !important; /* Allow natural width expansion */
+                        min-width: 160px !important; /* Prevent collapse below square */
+                        padding: 0 !important;
+                        margin: 0 !important;
                         display: flex;
                         align-items: center;
                         justify-content: center;
-                        background: transparent !important; /* Ensure no background color adds visual padding */
+                        background: transparent !important;
                         border: none !important;
+                        cursor: pointer;
                     }
 
-                    /*
-                       TRICK: To allow proportional geometric scaling without fixed width:
-                       We set height on the container, and image takes height 100%.
-                       But flexbox usually shrinks width.
-                       So we need max-width to not be infinite? No.
-                       The issue is if width is auto, browser might not calculate correctly during shrink.
-                       We let the image drive the width.
-                    */
                     .section-tab-img img, .refresh-btn-img img {
-                        height: 100%; /* Fill the 160px container */
-                        width: auto;
-                        max-height: 160px; /* Force Max Size */
-                        min-height: 160px; /* Force Min Size */
+                        height: 100% !important; /* Fill container strictly */
+                        width: auto !important; /* Maintain aspect ratio */
+                        min-height: 160px !important;
                         object-fit: contain;
                         display: block;
                     }
@@ -2016,30 +2009,9 @@ export default function NewsHub() {
                         overflow: hidden; /* Prevent spill */
                     }
 
-                    .section-tabs {
-                        display: flex;
-                        gap: 15px; 
-                        flex: 1; 
-                        width: 100%;
-                        min-width: 0; 
-                        align-items: center;
-                    }
+                    /* REMOVED DUPLICATE SECTION-TABS RULES - See lines ~1782-1791 for authoritative CSS */
 
-                    .section-tab-img, .refresh-btn-img, .theme-toggle-img {
-                        flex: 0 1 auto; /* Allow shrinking */
-                        min-width: 40px; /* Don't shrink below usability */
-                        width: 155px; /* Explicit width to prevent collapse */
-                        max-width: 160px; 
-                        display: flex;
-                        align-items: center;
-                    }
-
-                    .section-tab-img img, .refresh-btn-img img, .theme-toggle-img img {
-                        width: 100%;       /* Fill the button width */
-                        height: auto;      /* Maintain aspect ratio */
-                        max-height: 90px;  /* Never exceed 90px height */
-                        object-fit: contain;
-                    }
+                    /* REMOVED DUPLICATE ICON RULES - See lines ~1819-1840 for authoritative icon CSS */
 
                     /* Layout */
                     .layout {
