@@ -1445,7 +1445,7 @@ export default function NewsHub() {
                             <section className="stories-section" style={{ padding: '10px 0 20px 0' }}>
                                 <PokerStoriesRow
                                     stories={[]}
-                                    currentUser={{ avatar_url: avatarUrl, full_name: 'User' }}
+                                    currentUser={{ avatar_url: user?.avatar_url, full_name: user?.full_name || 'User' }}
                                     onStoryClick={(story) => console.log('Story clicked:', story)}
                                     onAddStory={() => console.log('Add story clicked')}
                                 />
@@ -1761,9 +1761,9 @@ export default function NewsHub() {
                         padding: 0 24px; /* ZERO vertical padding */
                         background: #242526;
                         border-bottom: 2px solid #3E4042;
-                        gap: 0; /* No gap between elements */
-                        height: 160px; /* Explicit height to match icons */
-                        overflow: visible; /* Ensure nothing is clipped */
+                        gap: 10px;
+                        height: 100px; /* Match icon size */
+                        overflow: visible;
                     }
 
                     .header-left {
@@ -1829,10 +1829,10 @@ export default function NewsHub() {
 
                     /* Custom Image Tab Buttons */
                     .section-tab-img, .refresh-btn-img {
-                        flex: 0 0 auto !important; /* Strictly no shrinking */
-                        height: 160px !important; 
-                        width: auto !important; /* Allow natural width expansion */
-                        min-width: 160px !important; /* Prevent collapse below square */
+                        flex: 0 0 auto !important;
+                        height: 100px !important; /* 100px - Large but fittable */
+                        width: auto !important;
+                        min-width: 100px !important;
                         padding: 0 !important;
                         margin: 0 !important;
                         display: flex;
@@ -1844,9 +1844,9 @@ export default function NewsHub() {
                     }
 
                     .section-tab-img img, .refresh-btn-img img {
-                        height: 100% !important; /* Fill container strictly */
-                        width: auto !important; /* Maintain aspect ratio */
-                        min-height: 160px !important;
+                        height: 100% !important;
+                        width: auto !important;
+                        min-height: 100px !important;
                         object-fit: contain;
                         display: block;
                     }
