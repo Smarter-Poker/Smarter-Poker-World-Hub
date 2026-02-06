@@ -185,7 +185,7 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
                 style={{ cursor: dailyCompleted ? 'default' : 'pointer' }}
             >
                 <img
-                    src="/images/trivia/daily-trivia-header.png"
+                    src="/images/trivia/daily-trivia-header-final.png"
                     alt="Daily Trivia - 10 Questions Fresh Every Day"
                     className="daily-trivia-banner__image"
                 />

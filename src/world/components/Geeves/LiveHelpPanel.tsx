@@ -160,7 +160,18 @@ export function LiveHelpPanel({
                     }}
                 >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <JarvisAvatar isTyping={isAgentTyping} size={styles.avatarSize} />
+                        <img
+                            src="/images/geeves-avatar.png"
+                            alt="Geeves"
+                            style={{
+                                width: 48,
+                                height: 48,
+                                borderRadius: '50%',
+                                objectFit: 'cover',
+                                border: '2px solid rgba(0, 212, 255, 0.5)',
+                                boxShadow: '0 0 12px rgba(0, 212, 255, 0.3)'
+                            }}
+                        />
                         <div>
                             <h3
                                 style={{
@@ -191,9 +202,6 @@ export function LiveHelpPanel({
                             onSelect={(id) => console.log('Resume conversation:', id)}
                             onNewConversation={() => console.log('New conversation')}
                         />
-                        <LanguageSelector onLanguageChange={setLanguage} />
-                        <CompactModeToggle onModeChange={setIsCompact} />
-                        <ThemeToggle onThemeChange={setTheme} />
                         <button
                             onClick={onClose}
                             style={{
