@@ -1349,6 +1349,29 @@ export default function NewsHub() {
                             >
                                 <img src="/images/btn-reels.png" alt="Reels" />
                             </button>
+
+                            {/* Refresh Button - Moved to Group */}
+                            <button
+                                className="refresh-btn-img"
+                                onClick={refreshData}
+                                disabled={isRefreshing}
+                                title="Refresh news"
+                            >
+                                <img
+                                    src="/images/btn-refresh.png"
+                                    alt="Refresh"
+                                    className={isRefreshing ? 'spinning' : ''}
+                                />
+                            </button>
+
+                            {/* Theme Toggle - Moved to Group */}
+                            <button
+                                className="theme-toggle-img"
+                                onClick={() => setDarkMode(!darkMode)}
+                                title={darkMode ? "Light Mode" : "Dark Mode"}
+                            >
+                                <img src="/images/btn-light-dark.png" alt="Light/Dark Mode" />
+                            </button>
                         </div>
                     </div>
 
@@ -1365,29 +1388,6 @@ export default function NewsHub() {
                                 <button className="clear-search" onClick={() => { setSearchQuery(''); fetchNews(); }}>×</button>
                             )}
                         </div>
-
-                        {/* Refresh Button - Custom Image */}
-                        <button
-                            className="refresh-btn-img"
-                            onClick={refreshData}
-                            disabled={isRefreshing}
-                            title="Refresh news"
-                        >
-                            <img
-                                src="/images/btn-refresh.png"
-                                alt="Refresh"
-                                className={isRefreshing ? 'spinning' : ''}
-                            />
-                        </button>
-
-                        {/* Settings/Theme Toggle - Custom Image */}
-                        <button
-                            className="theme-toggle-img"
-                            onClick={() => setDarkMode(!darkMode)}
-                            title={darkMode ? "Light Mode" : "Dark Mode"}
-                        >
-                            <img src="/images/btn-light-dark.png" alt="Light/Dark Mode" />
-                        </button>
                     </div>
                 </header>
 
@@ -2035,12 +2035,17 @@ export default function NewsHub() {
                         animation: spin 1s linear infinite;
                     }
 
+                    .section-tabs {
+                        display: flex;
+                        gap: 15px; /* Equal spacing for 5 icons */
+                    }
+
                     /* Layout */
                     .layout {
                         display: grid;
                         grid-template-columns: 1fr 320px;
-                        gap: 24px;
-                        padding: 24px;
+                        gap: 15px;
+                        padding: 15px;
                         max-width: 1400px;
                         margin: 0 auto;
                     }
@@ -2056,7 +2061,7 @@ export default function NewsHub() {
 
                     /* News Section */
                     .news-section {
-                        margin-bottom: 32px;
+                        margin-bottom: 15px;
                     }
 
                     .section-title {
@@ -2065,10 +2070,16 @@ export default function NewsHub() {
                         gap: 10px;
                         font-size: 18px;
                         font-weight: 700;
-                        margin-bottom: 20px;
+                        margin-bottom: 15px;
                         color: #fff;
                     }
 
+                    .section-title-img {
+                        height: 180px;
+                        width: auto;
+                        display: block;
+                        margin-top: -20px;
+                    }
 
 
                     .section-title :global(svg) {
@@ -2087,7 +2098,7 @@ export default function NewsHub() {
                         display: grid;
                         grid-template-columns: repeat(2, 1fr);
                         gap: 16px;
-                        padding: 24px;
+                        padding: 15px;
                         border: none;
                         border-radius: 16px;
                         background: #1a1c1e;
