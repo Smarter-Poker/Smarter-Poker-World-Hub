@@ -1,6 +1,6 @@
 /**
  * SMARTER.POKER NEWS HUB - REDESIGNED UI
- * Build: 20260124-v2
+ * Build: 20260205-v3-metallic-icons
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * Features:
