@@ -894,10 +894,91 @@ export default function VideoLibraryPage() {
                         overflow-x: hidden;
                     }
                     
+                    /* Metal Frame Styling - Futuristic Chrome Border */
+                    .metal-frame {
+                        position: relative;
+                        background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+                        border-radius: 16px;
+                        overflow: hidden;
+                    }
                     
+                    .metal-frame::before {
+                        content: '';
+                        position: absolute;
+                        inset: 0;
+                        border-radius: 16px;
+                        padding: 3px;
+                        background: linear-gradient(
+                            135deg,
+                            rgba(180, 190, 200, 0.9) 0%,
+                            rgba(120, 130, 140, 0.6) 25%,
+                            rgba(80, 90, 100, 0.4) 50%,
+                            rgba(120, 130, 140, 0.6) 75%,
+                            rgba(180, 190, 200, 0.9) 100%
+                        );
+                        -webkit-mask: 
+                            linear-gradient(#fff 0 0) content-box, 
+                            linear-gradient(#fff 0 0);
+                        -webkit-mask-composite: xor;
+                        mask-composite: exclude;
+                        pointer-events: none;
+                    }
                     
+                    .metal-frame::after {
+                        content: '';
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        height: 50%;
+                        border-radius: 16px 16px 0 0;
+                        background: linear-gradient(
+                            180deg,
+                            rgba(255, 255, 255, 0.08) 0%,
+                            transparent 100%
+                        );
+                        pointer-events: none;
+                    }
                     
+                    /* Metal Frame for smaller buttons */
+                    .metal-frame-sm {
+                        position: relative;
+                        background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+                        border-radius: 10px;
+                        overflow: hidden;
+                    }
                     
+                    .metal-frame-sm::before {
+                        content: '';
+                        position: absolute;
+                        inset: 0;
+                        border-radius: 10px;
+                        padding: 2px;
+                        background: linear-gradient(
+                            135deg,
+                            rgba(160, 170, 180, 0.8) 0%,
+                            rgba(100, 110, 120, 0.5) 50%,
+                            rgba(160, 170, 180, 0.8) 100%
+                        );
+                        -webkit-mask: 
+                            linear-gradient(#fff 0 0) content-box, 
+                            linear-gradient(#fff 0 0);
+                        -webkit-mask-composite: xor;
+                        mask-composite: exclude;
+                        pointer-events: none;
+                    }
+                    
+                    /* Video card hover effects with metal frame */
+                    .video-card-metal {
+                        transition: transform 0.3s ease, box-shadow 0.3s ease;
+                    }
+                    
+                    .video-card-metal:hover {
+                        transform: translateY(-6px);
+                        box-shadow: 
+                            0 12px 40px rgba(0, 0, 0, 0.4),
+                            0 0 30px rgba(100, 140, 180, 0.15);
+                    }
                 `}</style>
             </Head>
 
@@ -972,8 +1053,14 @@ export default function VideoLibraryPage() {
                                 left: 14,
                                 top: '50%',
                                 transform: 'translateY(-50%)',
-                                fontSize: 18,
-                            }}>🔎</span>
+                                fontSize: 16,
+                                opacity: 0.5,
+                            }}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <circle cx="11" cy="11" r="8" />
+                                    <path d="m21 21-4.35-4.35" />
+                                </svg>
+                            </span>
                         </div>
                     </div>
 
@@ -992,14 +1079,13 @@ export default function VideoLibraryPage() {
                             <button
                                 key={type.id}
                                 onClick={() => setSelectedType(type.id)}
+                                className="metal-frame-sm"
                                 style={{
                                     padding: '14px 28px',
                                     background: selectedType === type.id
                                         ? 'linear-gradient(135deg, #FF4444, #FF6B6B)'
-                                        : 'rgba(255, 255, 255, 0.05)',
-                                    backdropFilter: 'blur(10px)',
-                                    border: `2px solid ${selectedType === type.id ? '#FF4444' : 'rgba(255, 255, 255, 0.1)'}`,
-                                    borderRadius: 16,
+                                        : 'transparent',
+                                    border: 'none',
                                     color: C.text,
                                     fontSize: 15,
                                     fontWeight: 700,
@@ -1008,9 +1094,6 @@ export default function VideoLibraryPage() {
                                     alignItems: 'center',
                                     gap: 10,
                                     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                                    boxShadow: selectedType === type.id
-                                        ? '0 8px 24px rgba(255, 68, 68, 0.3)'
-                                        : '0 2px 8px rgba(0, 0, 0, 0.2)',
                                     transform: selectedType === type.id ? 'translateY(-2px)' : 'none',
                                 }}
                                 onMouseEnter={(e) => {
@@ -1160,18 +1243,12 @@ export default function VideoLibraryPage() {
                                     <div
                                         key={item.video_id}
                                         onClick={() => handleOpenVideo(video)}
+                                        className="metal-frame video-card-metal"
                                         style={{
                                             minWidth: 240,
-                                            background: C.card,
-                                            borderRadius: 12,
-                                            overflow: 'hidden',
                                             cursor: 'pointer',
-                                            transition: 'transform 0.2s',
-                                            border: `1px solid ${C.border}`,
                                             flexShrink: 0,
                                         }}
-                                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
-                                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                                     >
                                         <div style={{ position: 'relative', aspectRatio: '16/9' }}>
                                             <img
@@ -1249,21 +1326,9 @@ export default function VideoLibraryPage() {
                         <div
                             key={video.id}
                             onClick={() => handleOpenVideo(video)}
+                            className="metal-frame video-card-metal"
                             style={{
-                                background: C.card,
-                                borderRadius: 16,
-                                overflow: 'hidden',
                                 cursor: 'pointer',
-                                transition: 'transform 0.2s, box-shadow 0.2s',
-                                border: `1px solid ${C.border}`,
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.transform = 'translateY(-4px)';
-                                e.currentTarget.style.boxShadow = '0 12px 40px rgba(255,68,68,0.15)';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.transform = 'translateY(0)';
-                                e.currentTarget.style.boxShadow = 'none';
                             }}
                         >
                             {/* Thumbnail */}
