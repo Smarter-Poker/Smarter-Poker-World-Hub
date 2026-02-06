@@ -34,3 +34,4 @@ src/content-engine/node_modules
 .agent/skills/deployment.md
 .env.production
 *.env.*
+node_modules

@@ -2062,7 +2062,7 @@ export default function NewsHub() {
                         padding: 20px;
                         background: #1a1c1e;
                         border: 12px solid transparent;
-                        border-image: url('/images/news-icons/section-frame.png') 40 40 40 40 fill stretch;
+                        border-image: url('/images/news-icons/section-frame.png') 40 40 40 40 stretch;
                         border-radius: 0;
                     }
 
@@ -2326,8 +2326,9 @@ export default function NewsHub() {
                         grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
                         gap: 16px;
                         padding: 20px;
+                        background: #1a1c1e;
                         border: 12px solid transparent;
-                        border-image: url('/images/news-icons/section-frame.png') 40 40 40 40 fill stretch;
+                        border-image: url('/images/news-icons/section-frame.png') 40 40 40 40 stretch;
                         border-radius: 0;
                     }
 
