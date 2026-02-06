@@ -1307,7 +1307,7 @@ export default function NewsHub() {
             )}
             <Head>
                 <title>News | Smarter.Poker</title>
-                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
                 <meta name="description" content="Latest poker news, tournament updates, strategy tips, and industry insights" />
             </Head>
 
@@ -1734,21 +1734,24 @@ export default function NewsHub() {
                         max-width: 100%;
                         overflow-x: hidden;
                         box-sizing: border-box;
+                        padding-top: env(safe-area-inset-top, 0px); /* Mobile notch */
+                        padding-left: env(safe-area-inset-left, 0px);
+                        padding-right: env(safe-area-inset-right, 0px);
                     }
 
                     /* Header Structure */
                     .header {
                         position: sticky;
-                        top: 0;
+                        top: 0; /* Sticks below universal header */
                         z-index: 100;
                         display: flex;
                         align-items: center;
                         justify-content: center; /* Center icons */
-                        padding: 4px 8px;
-                        background: #242526;
-                        border-bottom: 2px solid #3E4042;
+                        padding: 8px 4px; /* More padding */
+                        background: #18191A;
+                        border-bottom: 1px solid #3E4042;
                         gap: 0;
-                        height: 68px; /* Match 60px icons + padding */
+                        height: auto; /* Auto height based on content */
                         overflow: visible;
                     }
 
