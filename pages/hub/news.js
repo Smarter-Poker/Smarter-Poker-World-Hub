@@ -1780,12 +1780,10 @@ export default function NewsHub() {
 
                     .section-tabs {
                         display: flex;
-                        gap: 20px; 
+                        gap: 10px; 
                         width: 100%;
-                        justify-content: flex-start; /* Left align or center? User said "left group". I'll keep flex-start but they are huge now. */
-                        overflow-x: auto; /* Horizontal scroll if too narrow */
                         align-items: center;
-                        padding-bottom: 5px; /* Scrollbar space */
+                        justify-content: space-between; /* Spread evenly */
                     }
 
                     .section-tab {
