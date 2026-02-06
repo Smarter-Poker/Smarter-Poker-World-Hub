@@ -1794,10 +1794,10 @@ export default function NewsHub() {
 
                     .section-tabs {
                         display: flex;
-                        gap: 5px;
+                        gap: 0; /* Pack icons tightly together */
                         align-items: center;
-                        justify-content: flex-start; /* Pack left, scroll right if needed */
-                        overflow-x: auto;
+                        justify-content: flex-start;
+                        overflow-x: visible;
                         padding: 0;
                         flex-shrink: 0;
                     }
@@ -1830,9 +1830,9 @@ export default function NewsHub() {
                     /* Custom Image Tab Buttons */
                     .section-tab-img, .refresh-btn-img {
                         flex: 0 0 auto !important;
-                        height: 100px !important; /* 100px - Large but fittable */
+                        height: 100px !important;
                         width: auto !important;
-                        min-width: 100px !important;
+                        min-width: 0 !important; /* No min-width constraint */
                         padding: 0 !important;
                         margin: 0 !important;
                         display: flex;
@@ -1889,9 +1889,10 @@ export default function NewsHub() {
                         align-items: center;
                         background: #3A3B3C;
                         border-radius: 20px;
-                        padding: 8px 16px;
-                        width: 240px; /* Fixed reasonable width */
+                        padding: 6px 12px;
+                        width: 160px; /* Reduced to give icons more space */
                         transition: background-color 0.2s;
+                        flex-shrink: 0;
                     }
 
                     .search-box input {
