@@ -1758,22 +1758,22 @@ export default function NewsHub() {
                         display: flex;
                         align-items: center;
                         justify-content: space-between;
-                        padding: 0 24px; /* ZERO vertical padding */
+                        padding: 4px 8px; /* Minimal padding for mobile */
                         background: #242526;
                         border-bottom: 2px solid #3E4042;
-                        gap: 10px;
-                        height: 100px; /* Match icon size */
+                        gap: 4px;
+                        height: 60px; /* Mobile-optimized height */
                         overflow: visible;
                     }
 
                     .header-left {
                         display: flex;
                         align-items: center;
-                        gap: 0; /* No gap */
+                        gap: 2px; /* Tiny gap */
                         flex: 1;
                         min-width: 0;
-                        height: 100px; /* Match icon height */
-                        overflow: visible; /* Never clip icons */
+                        height: 52px; /* Mobile icon height */
+                        overflow: visible;
                     }
 
                     .logo {
@@ -1794,10 +1794,10 @@ export default function NewsHub() {
 
                     .section-tabs {
                         display: flex;
-                        gap: 0; /* Pack icons tightly together */
+                        gap: 2px; /* Tiny gap for mobile */
                         align-items: center;
                         justify-content: flex-start;
-                        overflow-x: visible;
+                        overflow: visible;
                         padding: 0;
                         flex-shrink: 0;
                     }
@@ -1827,26 +1827,25 @@ export default function NewsHub() {
                         color: #fff;
                     }
 
-                    /* Custom Image Tab Buttons */
+                    /* Custom Image Tab Buttons - Mobile First */
                     .section-tab-img, .refresh-btn-img {
-                        flex: 0 0 auto !important;
-                        height: 100px !important;
-                        width: auto !important;
-                        min-width: 0 !important; /* No min-width constraint */
-                        padding: 0 !important;
-                        margin: 0 !important;
+                        flex: 0 0 auto;
+                        height: 50px; /* Mobile-optimized 50px */
+                        width: auto;
+                        min-width: 0;
+                        padding: 0;
+                        margin: 0;
                         display: flex;
                         align-items: center;
                         justify-content: center;
-                        background: transparent !important;
-                        border: none !important;
+                        background: transparent;
+                        border: none;
                         cursor: pointer;
                     }
 
                     .section-tab-img img, .refresh-btn-img img {
-                        height: 100% !important;
-                        width: auto !important;
-                        min-height: 100px !important;
+                        height: 50px; /* Fixed 50px height */
+                        width: auto;
                         object-fit: contain;
                         display: block;
                     }
@@ -1883,16 +1882,17 @@ export default function NewsHub() {
                     .refresh-btn-img:disabled { opacity: 0.5; }
                     .refresh-btn-img img.spinning { animation: spin 1s linear infinite; }
                     
-                    /* Search Box */
+                    /* Search Box - Mobile Optimized */
                     .search-box {
                         display: flex;
                         align-items: center;
                         background: #3A3B3C;
-                        border-radius: 20px;
-                        padding: 6px 12px;
-                        width: 160px; /* Reduced to give icons more space */
+                        border-radius: 16px;
+                        padding: 4px 10px;
+                        width: 100px; /* Mobile-optimized */
                         transition: background-color 0.2s;
                         flex-shrink: 0;
+                        height: 32px;
                     }
 
                     .search-box input {

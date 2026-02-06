@@ -35,3 +35,6 @@ src/content-engine/node_modules
 .env.production
 *.env.*
 node_modules
+
+# Agent credentials - NEVER COMMIT
+.agent/skills/credentials/.env
