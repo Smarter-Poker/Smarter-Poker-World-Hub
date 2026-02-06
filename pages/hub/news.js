@@ -2078,7 +2078,6 @@ export default function NewsHub() {
                         height: 180px;
                         width: auto;
                         display: block;
-                        margin-top: -20px;
                     }
 
 
