@@ -1444,7 +1444,7 @@ export default function NewsHub() {
                                 {/* News Grid - 6 Source-Specific Boxes */}
                                 <section className="news-section">
                                     <h2 className="section-title">
-                                        Today's Top Stories
+                                        <img src="/images/btn-todays-top-stories.png" alt="Today's Top Stories" className="section-title-img" />
                                     </h2>
 
                                     {filteredNews.length === 0 && searchQuery ? (
@@ -2059,6 +2059,12 @@ export default function NewsHub() {
                         font-weight: 700;
                         margin-bottom: 20px;
                         color: #fff;
+                    }
+
+                    .section-title-img {
+                        height: 50px;
+                        width: auto;
+                        display: block;
                     }
 
                     .section-title :global(svg) {
