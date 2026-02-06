@@ -2047,7 +2047,27 @@ export default function NewsHub() {
 
                     .section-tabs {
                         display: flex;
-                        gap: 15px; /* Equal spacing for 5 icons */
+                        gap: 15px;
+                        flex: 1; /* Allow it to take up space but also shrink */
+                        min-width: 0; /* Important for flex shrinking */
+                        overflow-x: auto; /* Fallback for very small screens */
+                        align-items: center;
+                    }
+
+                    .section-tab-img, .refresh-btn-img, .theme-toggle-img {
+                        flex: 0 1 auto; /* Allow shrinking */
+                        min-width: 0;
+                        max-width: 160px; /* Cap width */
+                        display: flex;
+                        align-items: center;
+                    }
+
+                    .section-tab-img img, .refresh-btn-img img, .theme-toggle-img img {
+                        height: auto; /* Let height adjust based on width */
+                        max-height: 90px; /* Cap height at 90px */
+                        width: 100%; /* Fill container */
+                        max-width: 100%;
+                        object-fit: contain;
                     }
 
                     /* Layout */
@@ -2055,7 +2075,7 @@ export default function NewsHub() {
                         display: grid;
                         grid-template-columns: 1fr 320px;
                         gap: 15px;
-                        padding: 15px;
+                        padding: 10px; /* Reduced from 15px */
                         max-width: 1400px;
                         margin: 0 auto;
                     }

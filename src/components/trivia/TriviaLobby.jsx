@@ -242,9 +242,7 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
                                     onClick={() => !isLocked && startMode(mode.id)}
                                     style={{
                                         opacity: isLocked ? 0.6 : 1,
-                                        cursor: isLocked ? 'not-allowed' : 'pointer',
-                                        transform: isHovered ? 'scale(1.02)' : 'scale(1)',
-                                        transition: 'transform 0.2s ease, opacity 0.2s ease'
+                                        cursor: isLocked ? 'not-allowed' : 'pointer'
                                     }}
                                 >
                                     <img
@@ -457,8 +455,8 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
 
                 .modes-grid {
                     display: grid;
-                    grid-template-columns: repeat(4, 1fr);
-                    gap: 16px;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 12px;
                 }
 
                 @media (max-width: 900px) {
@@ -521,15 +519,17 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
                 /* Image-based Mode Cards */
                 .mode-image-card {
                     position: relative;
-                    border-radius: 12px;
-                    overflow: visible;
+                    border-radius: 8px;
+                    overflow: hidden;
+                    cursor: pointer;
                 }
 
                 .mode-image-card__img {
                     width: 100%;
                     height: auto;
                     display: block;
-                    border-radius: 12px;
+                    border-radius: 8px;
+                    pointer-events: none;
                 }
 
                 .mode-image-card__lock {
@@ -545,6 +545,7 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
 
                 .mode-image-card--locked {
                     filter: grayscale(50%);
+                    cursor: not-allowed;
                 }
 
                 /* Daily Refresh Notice */
