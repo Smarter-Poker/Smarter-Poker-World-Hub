@@ -318,19 +318,19 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                 }
 
                 .box-content {
-                    padding: 6px 8px;
+                    padding: 6px 8px 12px 8px;
                     margin: 6px 0 0 0;
                     display: flex;
                     flex-direction: column;
                     justify-content: center;
                     gap: 2px;
-                    height: 60px !important;
-                    max-height: 60px !important;
+                    height: auto !important;
                     min-height: 60px !important;
+                    flex-grow: 1;
                     flex-shrink: 0;
                     background: #1a1c1e;
                     overflow: hidden;
-                    border-radius: 6px;
+                    border-radius: 6px 6px 0 0;
                 }
 
                 .box-category {

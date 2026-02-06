@@ -1017,14 +1017,6 @@ export default function VideoLibraryPage() {
                                 menuItems={menuConfig.menuItems}
                                 bottomLinks={menuConfig.bottomLinks}
                             />
-                            <h1 style={{
-                                color: C.text,
-                                fontSize: 28,
-                                fontWeight: 700,
-                                margin: 0,
-                            }}>
-                                Video Library
-                            </h1>
                         </div>
 
                         {/* Search */}
