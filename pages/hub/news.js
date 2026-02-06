@@ -2072,12 +2072,8 @@ export default function NewsHub() {
                         padding: 24px;
                         border: none;
                         border-radius: 16px;
-                        background: 
-                            linear-gradient(135deg, rgba(30, 32, 38, 0.95) 0%, rgba(20, 22, 28, 0.98) 100%);
-                        box-shadow: 
-                            inset 0 0 0 3px rgba(180, 195, 220, 0.4),
-                            inset 0 0 0 6px rgba(100, 115, 140, 0.2),
-                            0 8px 32px rgba(0, 0, 0, 0.6);
+                        background: #1a1c1e;
+                        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
                     }
 
                     .news-grid::before {
