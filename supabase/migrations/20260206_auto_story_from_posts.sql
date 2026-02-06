@@ -3,41 +3,44 @@
 -- Migration: 20260206_auto_story_from_posts.sql
 -- ═══════════════════════════════════════════════════════════════════════════
 
--- Function: Auto-create story when a post with media is created
+-- Function: Auto-create story when a post is created
 CREATE OR REPLACE FUNCTION fn_auto_create_story_from_post()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-    -- Only create story for posts with media (image or video)
-    IF NEW.media_url IS NOT NULL AND NEW.media_url != '' THEN
-        INSERT INTO social_stories (
-            author_id, 
-            content, 
-            media_url, 
-            media_type,
-            created_at,
-            expires_at,
-            is_active
-        )
-        VALUES (
-            NEW.author_id,
-            LEFT(NEW.content, 200), -- Truncate content for story overlay
-            NEW.media_url,
-            COALESCE(NEW.media_type, 
-                CASE 
-                    WHEN NEW.media_url ILIKE '%.mp4' OR NEW.media_url ILIKE '%video%' THEN 'video'
-                    ELSE 'image'
+    -- Create story from ANY post (with or without media)
+    INSERT INTO social_stories (
+        author_id, 
+        content, 
+        media_url, 
+        media_type,
+        created_at,
+        expires_at,
+        is_active
+    )
+    VALUES (
+        NEW.author_id,
+        LEFT(NEW.content, 200), -- Truncate content for story overlay
+        -- Use first media URL from array if exists
+        CASE WHEN NEW.media_urls IS NOT NULL AND array_length(NEW.media_urls, 1) > 0 
+             THEN NEW.media_urls[1] 
+             ELSE NULL 
+        END,
+        -- Detect media type from first URL
+        CASE 
+            WHEN NEW.media_urls IS NOT NULL AND array_length(NEW.media_urls, 1) > 0 THEN
+                CASE WHEN NEW.media_urls[1] ILIKE '%.mp4' OR NEW.media_urls[1] ILIKE '%video%' 
+                     THEN 'video' 
+                     ELSE 'image' 
                 END
-            ),
-            NOW(),
-            NOW() + INTERVAL '24 hours',
-            true
-        );
-        
-        RAISE NOTICE 'Auto-created story for post % by user %', NEW.id, NEW.author_id;
-    END IF;
+            ELSE NULL
+        END,
+        NOW(),
+        NOW() + INTERVAL '24 hours',
+        true
+    );
     
     RETURN NEW;
 END;

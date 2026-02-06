@@ -1748,7 +1748,7 @@ export default function NewsHub() {
                         background: #242526;
                         border-bottom: 2px solid #3E4042;
                         gap: 0;
-                        height: 78px; /* Match bigger icons */
+                        height: 68px; /* Match 60px icons + padding */
                         overflow: visible;
                     }
 
@@ -1814,7 +1814,7 @@ export default function NewsHub() {
                     /* Custom Image Tab Buttons - Bigger & Packed */
                     .section-tab-img, .refresh-btn-img {
                         flex: 0 0 auto;
-                        height: 70px; /* Bigger icons */
+                        height: 60px; /* Fit on mobile */
                         width: auto;
                         min-width: 0;
                         padding: 0;
@@ -1828,7 +1828,7 @@ export default function NewsHub() {
                     }
 
                     .section-tab-img img, .refresh-btn-img img {
-                        height: 70px; /* Fixed 70px height */
+                        height: 60px; /* Fixed 60px height */
                         width: auto;
                         object-fit: contain;
                         display: block;
