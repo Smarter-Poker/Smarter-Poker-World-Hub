@@ -1816,7 +1816,8 @@ export default function NewsHub() {
                     /* Custom Image Tab Buttons */
                     .section-tab-img, .refresh-btn-img {
                         flex: 0 0 auto; /* DO NOT SHRINK. Keep them huge. */
-                        height: 135px;
+                        height: 135px; 
+                        min-width: 120px; /* Prevent width collapse -> Force Scroll */
                         display: flex;
                         align-items: center;
                         justify-content: center;
