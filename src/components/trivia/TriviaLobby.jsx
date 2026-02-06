@@ -20,7 +20,8 @@ const MODE_CARDS = [
         color: '#FFD700',
         glowColor: '#FFD700',
         diamondReward: 3,
-        perfectBonus: 5
+        perfectBonus: 5,
+        image: '/images/trivia/poker-history.png'
     },
     {
         id: 'rules',
@@ -30,7 +31,8 @@ const MODE_CARDS = [
         color: '#4a90d9',
         glowColor: '#4a90d9',
         diamondReward: 3,
-        perfectBonus: 5
+        perfectBonus: 5,
+        image: '/images/trivia/rules-quiz.png'
     },
     {
         id: 'pro',
@@ -40,7 +42,8 @@ const MODE_CARDS = [
         color: '#9D4EDD',
         glowColor: '#9D4EDD',
         diamondReward: 5,
-        perfectBonus: 10
+        perfectBonus: 10,
+        image: '/images/trivia/pro-knowledge.png'
     },
     {
         id: 'survival',
@@ -50,7 +53,8 @@ const MODE_CARDS = [
         color: '#ef4444',
         glowColor: '#ef4444',
         diamondReward: '10+',
-        perfectBonus: null
+        perfectBonus: null,
+        image: '/images/trivia/survival-mode.png'
     },
     {
         id: 'endless',
@@ -60,7 +64,8 @@ const MODE_CARDS = [
         color: '#8b5cf6',
         glowColor: '#8b5cf6',
         diamondReward: '1+/Q',
-        perfectBonus: null
+        perfectBonus: null,
+        image: '/images/trivia/endless-mode.png'
     },
     {
         id: 'mixed',
@@ -216,6 +221,37 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
                         const isLocked = mode.id === 'arcade' && userDiamonds < 10;
                         const isHovered = hoveredCard === mode.id;
 
+                        // Use image-based card if mode has an image
+                        if (mode.image) {
+                            return (
+                                <div
+                                    key={mode.id}
+                                    className={`mode-image-card ${isLocked ? 'mode-image-card--locked' : ''}`}
+                                    onMouseEnter={() => setHoveredCard(mode.id)}
+                                    onMouseLeave={() => setHoveredCard(null)}
+                                    onClick={() => !isLocked && startMode(mode.id)}
+                                    style={{
+                                        opacity: isLocked ? 0.6 : 1,
+                                        cursor: isLocked ? 'not-allowed' : 'pointer',
+                                        transform: isHovered ? 'scale(1.02)' : 'scale(1)',
+                                        transition: 'transform 0.2s ease, opacity 0.2s ease'
+                                    }}
+                                >
+                                    <img
+                                        src={mode.image}
+                                        alt={mode.name}
+                                        className="mode-image-card__img"
+                                    />
+                                    {isLocked && (
+                                        <div className="mode-image-card__lock">
+                                            <Lock size={32} />
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        }
+
+                        // Fallback to MetalFrame for modes without images
                         return (
                             <MetalFrame
                                 key={mode.id}
@@ -273,6 +309,7 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
                         );
                     })}
                 </div>
+
 
                 {/* Daily Refresh Notice */}
                 <div className="daily-refresh-notice">
@@ -468,6 +505,35 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
 
 
                 .mode-card--locked {
+                    filter: grayscale(50%);
+                }
+
+                /* Image-based Mode Cards */
+                .mode-image-card {
+                    position: relative;
+                    border-radius: 12px;
+                    overflow: visible;
+                }
+
+                .mode-image-card__img {
+                    width: 100%;
+                    height: auto;
+                    display: block;
+                    border-radius: 12px;
+                }
+
+                .mode-image-card__lock {
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: rgba(0, 0, 0, 0.7);
+                    border-radius: 50%;
+                    padding: 16px;
+                    color: rgba(255, 255, 255, 0.8);
+                }
+
+                .mode-image-card--locked {
                     filter: grayscale(50%);
                 }
 
