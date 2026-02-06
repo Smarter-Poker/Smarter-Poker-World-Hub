@@ -1769,11 +1769,11 @@ export default function NewsHub() {
                     .header-left {
                         display: flex;
                         align-items: center;
-                        gap: 5px;
+                        gap: 0; /* No gap */
                         flex: 1;
                         min-width: 0;
-                        overflow-x: auto; /* Allow horizontal scrolling for icons */
-                        overflow-y: visible;
+                        height: 100px; /* Match icon height */
+                        overflow: visible; /* Never clip icons */
                     }
 
                     .logo {
