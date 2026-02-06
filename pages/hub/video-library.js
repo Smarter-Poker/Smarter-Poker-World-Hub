@@ -1162,46 +1162,7 @@ export default function VideoLibraryPage() {
                     </div>
                 </div>
 
-                {/* Watch Stats Bar */}
-                {userId && watchStats && (
-                    <div style={{
-                        maxWidth: 1400,
-                        margin: '0 auto 20px',
-                        padding: '16px 24px',
-                        background: C.card,
-                        borderRadius: 16,
-                        border: `1px solid ${C.border}`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: 24,
-                        flexWrap: 'wrap',
-                    }}>
-                        <div style={{ display: 'flex', gap: 32 }}>
-                            <div>
-                                <div style={{ color: C.textSec, fontSize: 12, marginBottom: 4 }}>Total Watch Time</div>
-                                <div style={{ color: C.text, fontSize: 20, fontWeight: 700 }}>
-                                    {formatTime(watchStats.totalWatchTimeSeconds)}
-                                </div>
-                            </div>
-                            <div>
-                                <div style={{ color: C.textSec, fontSize: 12, marginBottom: 4 }}>Videos Watched</div>
-                                <div style={{ color: C.text, fontSize: 20, fontWeight: 700 }}>
-                                    {watchStats.totalVideosCompleted}
-                                </div>
-                            </div>
-                            <div>
-                                <div style={{ color: C.textSec, fontSize: 12, marginBottom: 4 }}>Avg. Watch Time</div>
-                                <div style={{ color: C.text, fontSize: 20, fontWeight: 700 }}>
-                                    {formatTime(watchStats.averageWatchTimeSeconds)}
-                                </div>
-                            </div>
-                        </div>
-                        <div style={{ color: C.textSec, fontSize: 13 }}>
-                            Your poker video journey
-                        </div>
-                    </div>
-                )}
+                {/* Watch Stats moved to hamburger menu - removed from main page */}
 
                 {/* Continue Watching / Recently Watched Section */}
                 {recentlyWatched.length > 0 && (

@@ -177,14 +177,16 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                     position: relative;
                     background: #1a1c1e;
                     border-radius: 16px;
-                    border: none !important;
-                    border-bottom: none !important;
                     overflow: hidden;
                     cursor: pointer;
                     transition: all 0.2s ease;
                     display: flex;
                     flex-direction: column;
                     height: 340px;
+                    box-shadow: 
+                        inset 0 0 0 2px rgba(180, 195, 220, 0.4),
+                        inset 0 0 0 4px rgba(100, 115, 140, 0.2),
+                        0 4px 16px rgba(0, 0, 0, 0.4);
                 }
 
                 .news-box *,
@@ -426,7 +428,7 @@ function VideoCard({ video, onClick }) {
             <style jsx>{`
                 .video-card {
                     position: relative;
-                    background: linear-gradient(145deg, #2a2d35 0%, #1a1c1e 100%);
+                    background: #1a1c1e;
                     border-radius: 16px;
                     overflow: hidden;
                     cursor: pointer;
@@ -434,6 +436,10 @@ function VideoCard({ video, onClick }) {
                     height: 280px;
                     display: flex;
                     flex-direction: column;
+                    box-shadow: 
+                        inset 0 0 0 2px rgba(180, 195, 220, 0.4),
+                        inset 0 0 0 4px rgba(100, 115, 140, 0.2),
+                        0 4px 16px rgba(0, 0, 0, 0.4);
                 }
 
                 .video-card:hover {
