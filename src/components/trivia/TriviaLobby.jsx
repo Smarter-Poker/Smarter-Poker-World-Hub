@@ -75,7 +75,8 @@ const MODE_CARDS = [
         color: '#00D4FF',
         glowColor: '#00D4FF',
         diamondReward: '1/Q',
-        perfectBonus: null
+        perfectBonus: null,
+        image: '/images/trivia/mixed-mode.png'
     },
     {
         id: 'pvp',
@@ -95,7 +96,8 @@ const MODE_CARDS = [
         color: '#FFD700',
         glowColor: '#FFD700',
         diamondReward: 'Prize pool',
-        perfectBonus: null
+        perfectBonus: null,
+        image: '/images/trivia/tournaments.png'
     },
     // NEW STRATEGY MODES
     {
@@ -106,7 +108,8 @@ const MODE_CARDS = [
         color: '#f97316',
         glowColor: '#f97316',
         diamondReward: 5,
-        perfectBonus: 10
+        perfectBonus: 10,
+        image: '/images/trivia/mtt-scenarios.png'
     },
     {
         id: 'cash',
@@ -126,7 +129,8 @@ const MODE_CARDS = [
         color: '#06b6d4',
         glowColor: '#06b6d4',
         diamondReward: 5,
-        perfectBonus: 10
+        perfectBonus: 10,
+        image: '/images/trivia/icm-chip-ev.png'
     },
     {
         id: 'gto',
