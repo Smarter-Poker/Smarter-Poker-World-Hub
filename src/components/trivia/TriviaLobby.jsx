@@ -358,7 +358,7 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
 
             <style jsx>{`
                 .trivia-lobby {
-                    padding: 20px;
+                    padding: 0 20px 20px;
                     max-width: 1000px;
                     margin: 0 auto;
                     font-family: 'Rajdhani', 'Orbitron', sans-serif;

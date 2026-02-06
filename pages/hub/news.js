@@ -175,20 +175,43 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
             <style jsx>{`
                 .news-box {
                     position: relative;
-                    background: #242526;
-                    border: 1px solid #3E4042;
-                    border-radius: 8px;
+                    background: 
+                        linear-gradient(135deg, rgba(30, 32, 38, 0.95) 0%, rgba(20, 22, 28, 0.98) 100%);
+                    border: none;
+                    border-radius: 12px;
                     overflow: hidden;
                     cursor: pointer;
                     transition: all 0.2s ease;
                     display: flex;
                     flex-direction: column;
                     height: 340px;
+                    box-shadow: 
+                        inset 0 0 0 2px rgba(180, 195, 220, 0.35),
+                        inset 0 0 0 4px rgba(100, 115, 140, 0.15),
+                        0 6px 24px rgba(0, 0, 0, 0.5);
+                }
+                
+                .news-box::before {
+                    content: '';
+                    position: absolute;
+                    inset: -2px;
+                    border-radius: 14px;
+                    background: linear-gradient(135deg, 
+                        rgba(200, 210, 230, 0.4) 0%, 
+                        rgba(120, 140, 170, 0.25) 25%,
+                        rgba(80, 100, 130, 0.15) 50%,
+                        rgba(120, 140, 170, 0.25) 75%,
+                        rgba(200, 210, 230, 0.4) 100%);
+                    z-index: -1;
+                    pointer-events: none;
                 }
 
                 .news-box:hover {
-                    background: #3A3B3C;
                     transform: translateY(-2px);
+                    box-shadow: 
+                        inset 0 0 0 2px rgba(35, 116, 225, 0.5),
+                        inset 0 0 0 4px rgba(35, 116, 225, 0.2),
+                        0 8px 32px rgba(35, 116, 225, 0.25);
                 }
 
                 .news-box.read {
@@ -416,17 +439,40 @@ function VideoCard({ video, onClick }) {
 
             <style jsx>{`
                 .video-card {
-                    background: rgba(255, 255, 255, 0.03);
-                    border: 1px solid rgba(255, 255, 255, 0.06);
+                    position: relative;
+                    background: 
+                        linear-gradient(135deg, rgba(30, 32, 38, 0.95) 0%, rgba(20, 22, 28, 0.98) 100%);
+                    border: none;
                     border-radius: 12px;
                     overflow: hidden;
                     cursor: pointer;
                     transition: all 0.3s;
+                    box-shadow: 
+                        inset 0 0 0 2px rgba(180, 195, 220, 0.35),
+                        inset 0 0 0 4px rgba(100, 115, 140, 0.15),
+                        0 6px 24px rgba(0, 0, 0, 0.5);
+                }
+                
+                .video-card::before {
+                    content: '';
+                    position: absolute;
+                    inset: -2px;
+                    border-radius: 14px;
+                    background: linear-gradient(135deg, 
+                        rgba(200, 210, 230, 0.4) 0%, 
+                        rgba(120, 140, 170, 0.25) 25%,
+                        rgba(80, 100, 130, 0.15) 50%,
+                        rgba(120, 140, 170, 0.25) 75%,
+                        rgba(200, 210, 230, 0.4) 100%);
+                    z-index: -1;
+                    pointer-events: none;
                 }
 
                 .video-card:hover {
-                    border-color: rgba(255, 0, 0, 0.3);
-                    box-shadow: 0 4px 20px rgba(255, 0, 0, 0.1);
+                    box-shadow: 
+                        inset 0 0 0 2px rgba(255, 0, 0, 0.4),
+                        inset 0 0 0 4px rgba(255, 0, 0, 0.15),
+                        0 8px 32px rgba(255, 0, 0, 0.2);
                 }
 
                 .video-thumbnail {
@@ -568,17 +614,40 @@ function ReelCard({ reel, onClick, openExternal }) {
 
             <style jsx>{`
                 .reel-card {
-                    background: rgba(255, 255, 255, 0.03);
-                    border: 1px solid rgba(255, 255, 255, 0.08);
+                    position: relative;
+                    background: 
+                        linear-gradient(135deg, rgba(30, 32, 38, 0.95) 0%, rgba(20, 22, 28, 0.98) 100%);
+                    border: none;
                     border-radius: 12px;
                     overflow: hidden;
                     cursor: pointer;
                     transition: all 0.3s;
+                    box-shadow: 
+                        inset 0 0 0 2px rgba(180, 195, 220, 0.35),
+                        inset 0 0 0 4px rgba(100, 115, 140, 0.15),
+                        0 6px 24px rgba(0, 0, 0, 0.5);
+                }
+                
+                .reel-card::before {
+                    content: '';
+                    position: absolute;
+                    inset: -2px;
+                    border-radius: 14px;
+                    background: linear-gradient(135deg, 
+                        rgba(200, 210, 230, 0.4) 0%, 
+                        rgba(120, 140, 170, 0.25) 25%,
+                        rgba(80, 100, 130, 0.15) 50%,
+                        rgba(120, 140, 170, 0.25) 75%,
+                        rgba(200, 210, 230, 0.4) 100%);
+                    z-index: -1;
+                    pointer-events: none;
                 }
 
                 .reel-card:hover {
-                    border-color: rgba(236, 72, 153, 0.4);
-                    box-shadow: 0 4px 20px rgba(236, 72, 153, 0.15);
+                    box-shadow: 
+                        inset 0 0 0 2px rgba(236, 72, 153, 0.5),
+                        inset 0 0 0 4px rgba(236, 72, 153, 0.2),
+                        0 8px 32px rgba(236, 72, 153, 0.3);
                 }
 
                 .reel-thumbnail {
@@ -2222,19 +2291,30 @@ export default function NewsHub() {
                     }
 
                     .see-all-btn {
-                        background: rgba(0, 212, 255, 0.1);
-                        border: 1px solid rgba(0, 212, 255, 0.3);
-                        border-radius: 8px;
-                        padding: 8px 16px;
-                        color: #2374E1;
+                        position: relative;
+                        background: 
+                            linear-gradient(135deg, rgba(30, 32, 38, 0.95) 0%, rgba(20, 22, 28, 0.98) 100%);
+                        border: none;
+                        border-radius: 10px;
+                        padding: 10px 18px;
+                        color: #E4E6EB;
                         font-size: 13px;
                         font-weight: 600;
                         cursor: pointer;
                         transition: all 0.2s;
+                        box-shadow: 
+                            inset 0 0 0 2px rgba(180, 195, 220, 0.35),
+                            inset 0 0 0 4px rgba(100, 115, 140, 0.15),
+                            0 4px 16px rgba(0, 0, 0, 0.4);
                     }
 
                     .see-all-btn:hover {
-                        background: rgba(0, 212, 255, 0.2);
+                        transform: translateY(-1px);
+                        box-shadow: 
+                            inset 0 0 0 2px rgba(0, 212, 255, 0.5),
+                            inset 0 0 0 4px rgba(0, 212, 255, 0.2),
+                            0 6px 24px rgba(0, 212, 255, 0.3);
+                        color: #00D4FF;
                     }
 
                     .reels-carousel {
@@ -2327,10 +2407,31 @@ export default function NewsHub() {
                     }
 
                     .widget {
-                        background: #242526;
-                        border: 1px solid #3E4042;
-                        border-radius: 8px;
+                        position: relative;
+                        background: 
+                            linear-gradient(135deg, rgba(30, 32, 38, 0.95) 0%, rgba(20, 22, 28, 0.98) 100%);
+                        border: none;
+                        border-radius: 12px;
                         padding: 16px;
+                        box-shadow: 
+                            inset 0 0 0 2px rgba(180, 195, 220, 0.35),
+                            inset 0 0 0 4px rgba(100, 115, 140, 0.15),
+                            0 6px 24px rgba(0, 0, 0, 0.5);
+                    }
+                    
+                    .widget::before {
+                        content: '';
+                        position: absolute;
+                        inset: -2px;
+                        border-radius: 14px;
+                        background: linear-gradient(135deg, 
+                            rgba(200, 210, 230, 0.4) 0%, 
+                            rgba(120, 140, 170, 0.25) 25%,
+                            rgba(80, 100, 130, 0.15) 50%,
+                            rgba(120, 140, 170, 0.25) 75%,
+                            rgba(200, 210, 230, 0.4) 100%);
+                        z-index: -1;
+                        pointer-events: none;
                     }
 
                     .widget h4 {
