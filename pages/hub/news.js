@@ -2060,9 +2060,9 @@ export default function NewsHub() {
                         grid-template-columns: repeat(2, 1fr);
                         gap: 16px;
                         padding: 20px;
-                        background: #1a1c1e;
-                        border: 12px solid transparent;
-                        border-image: url('/images/news-icons/section-frame.png') 40 40 40 40 stretch;
+                        background: #1a1c20;
+                        border: 20px solid transparent;
+                        border-image: url('/images/news-icons/section-frame.png') 50 fill stretch;
                         border-radius: 0;
                     }
 
