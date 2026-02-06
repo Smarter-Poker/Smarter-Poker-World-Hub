@@ -312,6 +312,21 @@ function VideoPostWrapper({ url, onValidVideoClick, children }) {
                 />
             ) : children}
 
+            {/* Play Button Overlay - Show for valid videos */}
+            {isVideoValid !== false && (
+                <div style={{
+                    position: 'absolute', top: '50%', left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    width: 64, height: 64, borderRadius: '50%',
+                    background: 'rgba(255, 255, 255, 0.9)',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: '#333',
+                    fontSize: 28, pointerEvents: 'none',
+                    transition: 'transform 0.15s, background 0.15s'
+                }}>▶</div>
+            )}
+
             {/* Only show overlay for invalid videos */}
             {isVideoValid === false && (
                 <>
@@ -332,7 +347,7 @@ function VideoPostWrapper({ url, onValidVideoClick, children }) {
                         padding: '4px 10px',
                         borderRadius: 4, color: 'white', fontSize: 12, fontWeight: 500
                     }}>
-                         Video unavailable
+                        Video unavailable
                     </div>
                 </>
             )}
