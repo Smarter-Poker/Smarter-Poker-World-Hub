@@ -1082,7 +1082,7 @@ export default function VideoLibraryPage() {
                         display: 'flex',
                         gap: 10,
                         overflowX: 'auto',
-                        paddingBottom: 8,
+                        padding: '8px 0',
                     }}>
                         {SOURCES.filter(source => source.id !== 'ALL').map(source => (
                             <button
