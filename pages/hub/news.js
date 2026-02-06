@@ -1325,16 +1325,15 @@ export default function NewsHub() {
                     bottomLinks={menuConfig.bottomLinks}
                 />
 
-                {/* Header Bar */}
+                {/* Floating Header */}
                 <header className="header">
                     <div className="header-left">
-
                         {/* Section Tabs - Custom Image Buttons */}
                         <div className="section-tabs">
                             {/* Today's Top Stories - Moved to Header */}
                             <button
                                 className="section-tab-img"
-                                style={{ cursor: 'default' }} /* It's a title/label now? Or clickable? User said "move into same bar". Usually titles aren't buttons but these are section tabs. I'll make it a non-clickable image or a button that scrolls to top? I'll treat it as a label for now or just an image in a div if not interactive. But keeping structure consistent. */
+                                style={{ cursor: 'default' }}
                             >
                                 <img src="/images/btn-todays-top-stories.png" alt="Today's Top Stories" />
                             </button>
@@ -1372,23 +1371,16 @@ export default function NewsHub() {
                                 />
                             </button>
 
-                            {/* Theme Toggle */}
-                            <button
-                                className="theme-toggle-img"
-                                onClick={() => setDarkMode(!darkMode)}
-                                title={darkMode ? "Light Mode" : "Dark Mode"}
-                            >
-                                <img src="/images/btn-light-dark.png" alt="Light/Dark Mode" />
-                            </button>
+                            {/* Theme Toggle REMOVED per user request */}
                         </div>
                     </div>
 
                     <div className="header-right">
                         <div className="search-box">
-                            <Search className="search-icon" size={16} />
+                            <Search className="search-icon" size={20} />
                             <input
                                 type="text"
-                                placeholder="Search news..."
+                                placeholder="Search..."
                                 value={searchQuery}
                                 onChange={(e) => handleSearch(e.target.value)}
                             />
@@ -1788,7 +1780,12 @@ export default function NewsHub() {
 
                     .section-tabs {
                         display: flex;
-                        gap: 4px;
+                        gap: 20px; 
+                        width: 100%;
+                        justify-content: flex-start; /* Left align or center? User said "left group". I'll keep flex-start but they are huge now. */
+                        overflow-x: auto; /* Horizontal scroll if too narrow */
+                        align-items: center;
+                        padding-bottom: 5px; /* Scrollbar space */
                     }
 
                     .section-tab {
@@ -1817,26 +1814,29 @@ export default function NewsHub() {
                     }
 
                     /* Custom Image Tab Buttons */
-                    .section-tab-img {
-                        padding: 0;
-                        background: transparent;
-                        border: none;
-                        cursor: pointer;
-                        transition: all 0.3s ease;
-                        border-radius: 0;
-                        overflow: visible;
+                    .section-tab-img, .refresh-btn-img {
+                        flex: 0 1 auto; /* Allow shrinking */
+                        min-width: 40px; /* Prevent total oblivion */
+                        height: 135px; /* Target Large Height */
+                        width: auto; /* Let width follow aspect ratio */
                         display: flex;
                         align-items: center;
-                        justify-content: center;
+                        transition: transform 0.2s ease;
                     }
 
-                    .section-tab-img img {
-                        height: 90px;
-                        width: auto;
-                        display: block;
-                        transition: all 0.3s ease;
+                    /* 
+                       TRICK: To allow proportional geometric scaling without fixed width:
+                       We set height on the container, and image takes height 100%.
+                       But flexbox usually shrinks width.
+                       So we need max-width to not be infinite? No.
+                       The issue is if width is auto, browser might not calculate correctly during shrink.
+                       We let the image drive the width.
+                    */
+                    .section-tab-img img, .refresh-btn-img img {
+                        height: 100%; /* Fill the container height */
+                        width: auto;  /* Maintain aspect ratio */
+                        max-height: 135px;
                         object-fit: contain;
-                        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
                     }
 
                     /* Specific styling for Latest Videos removed to ensure uniform size */
@@ -1859,86 +1859,41 @@ export default function NewsHub() {
 
                     /* Custom Image Refresh Button */
                     .refresh-btn-img {
-                        padding: 0;
-                        background: transparent;
-                        border: none;
-                        cursor: pointer;
-                        transition: all 0.3s ease;
-                        border-radius: 8px;
-                        overflow: hidden;
-                    }
-
-                    .refresh-btn-img img {
-                        height: 90px;
-                        width: auto;
-                        display: block;
-                        transition: all 0.3s ease;
+                         background: transparent;
+                         border: none;
+                         cursor: pointer;
                     }
 
                     .refresh-btn-img:hover img {
                         filter: brightness(1.2);
                     }
 
-                    .refresh-btn-img:disabled {
-                        opacity: 0.5;
-                        cursor: not-allowed;
-                    }
-
-                    .refresh-btn-img img.spinning {
-                        animation: spin 1s linear infinite;
-                    }
-
-                    /* Custom Image Theme Toggle */
-                    .theme-toggle-img {
-                        padding: 0;
-                        background: transparent; /* Ensure transparent */
-                        border: none;
-                        cursor: pointer;
-                        transition: all 0.3s ease;
-                        border-radius: 8px;
-                        overflow: hidden;
-                    }
-
-                    .theme-toggle-img img {
-                        height: 90px;
-                        width: auto;
-                        display: block;
-                        transition: all 0.3s ease;
-                    }
-
-                    .theme-toggle-img:hover img {
-                         filter: brightness(1.2);
-                         /* Removing rotate to keep things simple/uniform if desired, but user didn't explicitly ban it. I'll keep rotate for fun but remove scale if present. Rotate doesn't change size. */
-                         transform: rotate(15deg);
-                    }
-
-
+                    .refresh-btn-img:disabled { opacity: 0.5; }
+                    .refresh-btn-img img.spinning { animation: spin 1s linear infinite; }
+                    
+                    /* Search Box */
                     .search-box {
-                        position: relative;
-                        width: 200px;
+                        display: flex;
+                        align-items: center;
+                        background: #3A3B3C;
+                        border-radius: 20px;
+                        padding: 8px 16px;
+                        width: 240px; /* Fixed reasonable width */
+                        transition: background-color 0.2s;
                     }
 
                     .search-box input {
-                        width: 100%;
-                        padding: 8px 12px 8px 36px;
-                        background: #3A3B3C;
+                        background: transparent;
                         border: none;
-                        border-radius: 20px;
                         color: #E4E6EB;
-                        font-size: 13px;
+                        font-size: 16px;
+                        width: 100%;
                         outline: none;
                     }
-
-                    .search-box input:focus {
-                        border-color: #2374E1;
-                    }
-
-                    .search-box :global(.search-icon) {
-                        position: absolute;
-                        left: 10px;
-                        top: 50%;
-                        transform: translateY(-50%);
-                        color: rgba(255, 255, 255, 0.4);
+                    
+                    .search-icon {
+                        color: #B0B3B8;
+                        margin-right: 8px;
                     }
 
                     .clear-search {
