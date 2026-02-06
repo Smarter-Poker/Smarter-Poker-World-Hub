@@ -1,5 +1,5 @@
 /**
- * 📺 VIDEO LIBRARY - Full Poker Videos from Global Livestreams
+ * VIDEO LIBRARY - Full Poker Videos from Global Livestreams
  * Browse and watch complete hands from HCL, The Lodge, Triton, and more
  */
 
@@ -329,31 +329,31 @@ const SOURCES = [
     { id: 'TRITON', name: 'Triton Poker', logo: '/images/video-sources/triton.png' },
     { id: 'LATB', name: 'Live at the Bike', logo: '/images/video-sources/latb.png' },
     { id: 'TCH', name: 'TCH Live', logo: '/images/video-sources/tch.png' },
-    { id: 'POKERGO', name: 'PokerGO', logo: null, emoji: '' },
+    { id: 'POKERGO', name: 'PokerGO', logo: null },
     // Major Tours
     { id: 'WSOP', name: 'WSOP', logo: '/images/video-sources/wsop.png' },
     { id: 'WPT', name: 'WPT', logo: '/images/video-sources/wpt.png' },
     { id: 'EPT', name: 'EPT', logo: '/images/video-sources/ept.png' },
     // Top Vloggers
     { id: 'BRAD_OWEN', name: 'Brad Owen', logo: '/images/video-sources/brad_owen.png' },
-    { id: 'NEEME', name: 'Andrew Neeme', logo: null, emoji: '🎥' },
-    { id: 'RAMPAGE', name: 'Rampage Poker', logo: null, emoji: '' },
-    { id: 'MARIANO', name: 'Mariano', logo: null, emoji: '' },
-    { id: 'WOLFGANG', name: 'Wolfgang Poker', logo: null, emoji: '🐺' },
-    { id: 'JOHNNIE', name: 'JohnnieVibes', logo: null, emoji: '🎸' },
-    { id: 'BOSKI', name: 'Boski', logo: null, emoji: '🎭' },
-    { id: 'RYAN', name: 'Ryan Depaulo', logo: null, emoji: '' },
+    { id: 'NEEME', name: 'Andrew Neeme', logo: null },
+    { id: 'RAMPAGE', name: 'Rampage Poker', logo: null },
+    { id: 'MARIANO', name: 'Mariano', logo: null },
+    { id: 'WOLFGANG', name: 'Wolfgang Poker', logo: null },
+    { id: 'JOHNNIE', name: 'JohnnieVibes', logo: null },
+    { id: 'BOSKI', name: 'Boski', logo: null },
+    { id: 'RYAN', name: 'Ryan Depaulo', logo: null },
     // Training/Strategy
-    { id: 'JLITTLE', name: 'Jonathan Little', logo: null, emoji: '📚' },
-    { id: 'POLK', name: 'Doug Polk', logo: null, emoji: '👊' },
-    { id: 'BART', name: 'Bart Hanson', logo: null, emoji: '' },
-    { id: 'UPSWING', name: 'Upswing Poker', logo: null, emoji: '' },
+    { id: 'JLITTLE', name: 'Jonathan Little', logo: null },
+    { id: 'POLK', name: 'Doug Polk', logo: null },
+    { id: 'BART', name: 'Bart Hanson', logo: null },
+    { id: 'UPSWING', name: 'Upswing Poker', logo: null },
     // Celebrity Pros
-    { id: 'NEGREANU', name: 'Daniel Negreanu', logo: null, emoji: '🐐' },
-    { id: 'HELLMUTH', name: 'Phil Hellmuth', logo: null, emoji: '' },
-    { id: 'IVEY', name: 'Phil Ivey', logo: null, emoji: '' },
-    { id: 'DWAN', name: 'Tom Dwan', logo: null, emoji: 'Diamonds' },
-    { id: 'GARRETT', name: 'Garrett Adelstein', logo: null, emoji: 'Trophy' },
+    { id: 'NEGREANU', name: 'Daniel Negreanu', logo: null },
+    { id: 'HELLMUTH', name: 'Phil Hellmuth', logo: null },
+    { id: 'IVEY', name: 'Phil Ivey', logo: null },
+    { id: 'DWAN', name: 'Tom Dwan', logo: null },
+    { id: 'GARRETT', name: 'Garrett Adelstein', logo: null },
 ];
 
 const C = {
@@ -942,7 +942,7 @@ export default function VideoLibraryPage() {
                                 fontWeight: 700,
                                 margin: 0,
                             }}>
-                                📺 Video Library
+                                Video Library
                             </h1>
                         </div>
 
@@ -973,7 +973,7 @@ export default function VideoLibraryPage() {
                                 top: '50%',
                                 transform: 'translateY(-50%)',
                                 fontSize: 18,
-                            }}></span>
+                            }}>🔎</span>
                         </div>
                     </div>
 
@@ -985,9 +985,9 @@ export default function VideoLibraryPage() {
                         justifyContent: 'center',
                     }}>
                         {[
-                            { id: 'cash', name: ' Cash Games', icon: '' },
-                            { id: 'ALL', name: 'All Videos', icon: '🌍' },
-                            { id: 'tournament', name: 'Trophy Tournaments', icon: '' },
+                            { id: 'cash', name: 'Cash Games', icon: '' },
+                            { id: 'ALL', name: 'All Videos', icon: '' },
+                            { id: 'tournament', name: 'Tournaments', icon: '' },
                         ].map(type => (
                             <button
                                 key={type.id}
@@ -1080,8 +1080,7 @@ export default function VideoLibraryPage() {
                                         <img src={source.logo} alt={source.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                                     </div>
                                 )}
-                                {!source.logo && source.emoji && <span style={{ fontSize: 20 }}>{source.emoji}</span>}
-                                {source.id === 'ALL' && <span style={{ fontSize: 20 }}>🌍</span>}
+                                {source.id === 'ALL' && <span style={{ fontSize: 16, marginRight: 4, opacity: 0.7 }}>All</span>}
                                 {source.name}
                             </button>
                         ))}
@@ -1124,7 +1123,7 @@ export default function VideoLibraryPage() {
                             </div>
                         </div>
                         <div style={{ color: C.textSec, fontSize: 13 }}>
-                            📊 Your poker video journey
+                            Your poker video journey
                         </div>
                     </div>
                 )}

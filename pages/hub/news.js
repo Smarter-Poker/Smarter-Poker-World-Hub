@@ -175,7 +175,7 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
             <style jsx>{`
                 .news-box {
                     position: relative;
-                    background: linear-gradient(145deg, #2a2d35 0%, #1a1c1e 100%);
+                    background: #1a1c1e;
                     border-radius: 16px;
                     border: none !important;
                     border-bottom: none !important;
