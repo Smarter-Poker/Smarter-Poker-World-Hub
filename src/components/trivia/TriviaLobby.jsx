@@ -221,14 +221,6 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
 
             {/* Mode Cards Section */}
             <div className="modes-section">
-                <div className="modes-header">
-                    <span className="modes-title">ALL IN TRIVIA</span>
-                    <div className="modes-tabs">
-                        <span className="tab active">TRIVIA</span>
-                        <span className="tab-divider">|</span>
-                        <span className="tab">COMMENTS</span>
-                    </div>
-                </div>
 
                 <div className="modes-grid">
                     {MODE_CARDS.map((mode) => {
@@ -274,17 +266,6 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
                                     </h3>
                                     <p className="mode-description">{mode.description}</p>
 
-                                    {mode.diamondCost && (
-                                        <div className="diamond-cost" style={{ color: mode.color }}>
-                                            Entry: {mode.diamondCost} <Gem size={14} />
-                                        </div>
-                                    )}
-
-                                    {/* Diamond reward badge */}
-                                    <div className="diamond-reward-badge">
-                                        <Gem size={12} />
-                                        <span>{mode.diamondReward}{mode.perfectBonus ? ` (+${mode.perfectBonus} perfect)` : ''}</span>
-                                    </div>
 
                                     <HexButton
                                         onClick={(e) => {
@@ -429,48 +410,7 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
                     margin-top: 8px;
                 }
 
-                .modes-header {
-                    display: flex;
-                    align-items: center;
-                    gap: 16px;
-                    margin-bottom: 20px;
-                }
 
-                .modes-title {
-                    font-family: 'Orbitron', sans-serif;
-                    font-size: 18px;
-                    font-weight: 600;
-                    color: #ffffff;
-                    letter-spacing: 0.1em;
-                }
-
-                .modes-tabs {
-                    display: flex;
-                    align-items: center;
-                    gap: 12px;
-                    font-size: 12px;
-                    text-transform: uppercase;
-                    letter-spacing: 0.1em;
-                }
-
-                .tab {
-                    color: rgba(255, 255, 255, 0.4);
-                    cursor: pointer;
-                    transition: color 0.2s, text-shadow 0.2s;
-                }
-
-                .tab:hover {
-                    color: rgba(0, 212, 255, 0.8);
-                }
-
-                .tab.active {
-                    color: #00D4FF;
-                    text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
-                }
-
-                .tab-divider {
-                    color: rgba(255, 255, 255, 0.2);
-                }
 
                 .modes-grid {
                     display: grid;
@@ -529,31 +469,7 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
                     line-height: 1.4;
                 }
 
-                .diamond-cost {
-                    display: flex;
-                    align-items: center;
-                    gap: 4px;
-                    font-size: 13px;
-                    margin: 12px 0;
-                    text-shadow: 0 0 10px currentColor;
-                }
 
-                .diamond-reward-badge {
-                    display: flex;
-                    align-items: center;
-                    gap: 4px;
-                    font-size: 11px;
-                    color: #00D4FF;
-                    background: rgba(0, 212, 255, 0.1);
-                    border: 1px solid rgba(0, 212, 255, 0.3);
-                    border-radius: 4px;
-                    padding: 4px 8px;
-                    margin: 8px 0 12px 0;
-                }
-
-                .diamond-reward-badge svg {
-                    color: #00D4FF;
-                }
 
                 .mode-card--locked {
                     filter: grayscale(50%);

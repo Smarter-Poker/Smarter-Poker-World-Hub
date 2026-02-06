@@ -175,15 +175,16 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
             <style jsx>{`
                 .news-box {
                     position: relative;
-                    background: url('/images/news-icons/card-frame.png') center / 100% 100% no-repeat;
+                    background: #1a1c1e;
+                    border: 16px solid transparent;
+                    border-image: url('/images/news-icons/card-frame.png') 80 80 80 80 fill stretch;
                     border-radius: 0;
                     overflow: hidden;
                     cursor: pointer;
                     transition: all 0.2s ease;
                     display: flex;
                     flex-direction: column;
-                    aspect-ratio: 671 / 453;
-                    padding: 10px 12px 10px 12px;
+                    height: 360px;
                 }
 
                 .news-box:hover {
