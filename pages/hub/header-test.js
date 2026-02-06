@@ -7,10 +7,13 @@
 import React, { useState } from 'react';
 import ThreePillHeader from '../../src/components/ui/ThreePillHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
-import menuConfig from '../../src/config/hamburgerMenus';
+import { MENU_CONFIGS } from '../../src/config/hamburgerMenus';
 
 export default function HeaderTestPage() {
     const [menuOpen, setMenuOpen] = useState(false);
+
+    // Get menu config for hub-home
+    const menuConfig = MENU_CONFIGS['hub-home'](null, {}, {});
 
     return (
         <div style={{
