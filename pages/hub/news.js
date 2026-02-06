@@ -184,8 +184,9 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                     flex-direction: column;
                     height: 340px;
                     box-shadow: 
-                        inset 0 0 0 2px rgba(180, 195, 220, 0.4),
-                        inset 0 0 0 4px rgba(100, 115, 140, 0.2),
+                        inset 0 0 0 3px rgba(180, 195, 220, 0.7),
+                        inset 0 0 0 5px rgba(100, 115, 140, 0.4),
+                        0 0 12px rgba(180, 195, 220, 0.3),
                         0 4px 16px rgba(0, 0, 0, 0.4);
                 }
 
@@ -437,8 +438,9 @@ function VideoCard({ video, onClick }) {
                     display: flex;
                     flex-direction: column;
                     box-shadow: 
-                        inset 0 0 0 2px rgba(180, 195, 220, 0.4),
-                        inset 0 0 0 4px rgba(100, 115, 140, 0.2),
+                        inset 0 0 0 3px rgba(180, 195, 220, 0.7),
+                        inset 0 0 0 5px rgba(100, 115, 140, 0.4),
+                        0 0 12px rgba(180, 195, 220, 0.3),
                         0 4px 16px rgba(0, 0, 0, 0.4);
                 }
 

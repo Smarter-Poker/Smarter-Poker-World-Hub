@@ -970,75 +970,29 @@ export default function VideoLibraryPage() {
                     margin: '0 auto',
                     marginBottom: 24,
                 }}>
-                    <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        marginBottom: 20,
-                    }}>
-                        <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 16,
-                        }}>
-                            <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
-
-                            {/* Hamburger Menu */}
-                            <HamburgerMenu
-                                isOpen={menuOpen}
-                                onClose={() => setMenuOpen(false)}
-                                direction="left"
-                                theme="dark"
-                                user={null}
-                                showProfile={false}
-                                menuItems={menuConfig.menuItems}
-                                bottomLinks={menuConfig.bottomLinks}
-                            />
-                        </div>
-
-                        {/* Search */}
-                        <div style={{
-                            position: 'relative',
-                            width: 300,
-                        }}>
-                            <input
-                                type="text"
-                                placeholder="Search videos..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                style={{
-                                    width: '100%',
-                                    padding: '12px 16px 12px 44px',
-                                    background: C.card,
-                                    border: `1px solid ${C.border}`,
-                                    borderRadius: 12,
-                                    color: C.text,
-                                    fontSize: 15,
-                                    outline: 'none',
-                                }}
-                            />
-                            <span style={{
-                                position: 'absolute',
-                                left: 14,
-                                top: '50%',
-                                transform: 'translateY(-50%)',
-                                fontSize: 16,
-                                opacity: 0.5,
-                            }}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <circle cx="11" cy="11" r="8" />
-                                    <path d="m21 21-4.35-4.35" />
-                                </svg>
-                            </span>
-                        </div>
+                    {/* Global Header - Full Width */}
+                    <div style={{ marginBottom: 20 }}>
+                        <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
+                        <HamburgerMenu
+                            isOpen={menuOpen}
+                            onClose={() => setMenuOpen(false)}
+                            direction="left"
+                            theme="dark"
+                            user={null}
+                            showProfile={false}
+                            menuItems={menuConfig.menuItems}
+                            bottomLinks={menuConfig.bottomLinks}
+                        />
                     </div>
 
-                    {/* Type toggle - Cash Games vs Tournaments */}
+                    {/* Type toggle + Search Row */}
                     <div style={{
                         display: 'flex',
                         gap: 12,
                         marginBottom: 16,
                         justifyContent: 'center',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
                     }}>
                         {[
                             { id: 'cash', name: 'Cash Games', icon: '' },
@@ -1050,14 +1004,14 @@ export default function VideoLibraryPage() {
                                 onClick={() => setSelectedType(type.id)}
                                 className="metal-frame-sm"
                                 style={{
-                                    padding: '14px 28px',
+                                    padding: '10px 20px',
                                     background: selectedType === type.id
                                         ? 'linear-gradient(135deg, #FF4444, #FF6B6B)'
                                         : 'transparent',
                                     border: 'none',
                                     color: C.text,
-                                    fontSize: 15,
-                                    fontWeight: 700,
+                                    fontSize: 14,
+                                    fontWeight: 600,
                                     cursor: 'pointer',
                                     display: 'flex',
                                     alignItems: 'center',
@@ -1084,6 +1038,43 @@ export default function VideoLibraryPage() {
                                 {type.name}
                             </button>
                         ))}
+
+                        {/* Search Input */}
+                        <div style={{
+                            position: 'relative',
+                            width: 220,
+                            marginLeft: 12,
+                        }}>
+                            <input
+                                type="text"
+                                placeholder="Search videos..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    padding: '10px 14px 10px 38px',
+                                    background: '#0a0a0a',
+                                    border: 'none',
+                                    borderRadius: 10,
+                                    color: C.text,
+                                    fontSize: 14,
+                                    outline: 'none',
+                                    boxShadow: '0 0 0 2px rgba(160, 170, 180, 0.7), 0 0 0 3px rgba(80, 90, 100, 0.5)',
+                                }}
+                            />
+                            <span style={{
+                                position: 'absolute',
+                                left: 12,
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                opacity: 0.5,
+                            }}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <circle cx="11" cy="11" r="8" />
+                                    <path d="m21 21-4.35-4.35" />
+                                </svg>
+                            </span>
+                        </div>
                     </div>
 
                     {/* Source filter pills */}
@@ -1322,25 +1313,7 @@ export default function VideoLibraryPage() {
                                         <span>✓</span> Watched
                                     </div>
                                 )}
-                                {/* Jarvis AI Available badge - show on all videos */}
-                                <div style={{
-                                    position: 'absolute',
-                                    top: 8,
-                                    right: 8,
-                                    background: 'linear-gradient(135deg, rgba(0,212,255,0.9) 0%, rgba(123,44,191,0.9) 100%)',
-                                    padding: '4px 8px',
-                                    borderRadius: 8,
-                                    fontSize: 10,
-                                    fontWeight: 700,
-                                    color: 'white',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 3,
-                                    boxShadow: '0 2px 8px rgba(0,212,255,0.3)',
-                                }}>
-                                    <img src="/images/jarvis-avatar.png" alt="" style={{ width: 12, height: 12, borderRadius: '50%' }} />
-                                    AI
-                                </div>
+                                {/* AI badge removed per user request */}
                                 {/* Progress bar */}
                                 {getProgressPercent(video.id, video.duration) > 0 && (
                                     <div style={{
