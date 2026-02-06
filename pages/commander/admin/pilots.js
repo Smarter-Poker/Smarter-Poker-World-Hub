@@ -63,61 +63,12 @@ export default function PilotVenuesPage() {
       }
     } catch (err) {
       console.error('Failed to fetch pilots:', err);
-      // Use mock data for demo
-      setPilots(getMockPilots());
+      setPilots([]);
     } finally {
       setLoading(false);
     }
   }
 
-  function getMockPilots() {
-    return [
-      {
-        id: '1',
-        venue_name: 'The Lodge Card Club',
-        city: 'Round Rock',
-        state: 'TX',
-        pilot_start_date: '2026-01-15',
-        status: 'active',
-        uptime_percentage: 99.2,
-        support_tickets_count: 3,
-        staff_satisfaction_score: 4.5,
-        player_adoption_percentage: 62,
-        weekly_reports: [
-          { week: 1, notes: 'Smooth launch, minor UI feedback', issues: 2, resolved: 2 },
-          { week: 2, notes: 'Staff requested additional training', issues: 1, resolved: 1 },
-        ],
-      },
-      {
-        id: '2',
-        venue_name: 'Texas Card House Austin',
-        city: 'Austin',
-        state: 'TX',
-        pilot_start_date: '2026-01-20',
-        status: 'active',
-        uptime_percentage: 98.5,
-        support_tickets_count: 4,
-        staff_satisfaction_score: 4.2,
-        player_adoption_percentage: 55,
-        weekly_reports: [
-          { week: 1, notes: 'Good adoption, tournament feature popular', issues: 3, resolved: 3 },
-        ],
-      },
-      {
-        id: '3',
-        venue_name: 'Hustler Casino',
-        city: 'Los Angeles',
-        state: 'CA',
-        pilot_start_date: '2026-01-25',
-        status: 'active',
-        uptime_percentage: 99.8,
-        support_tickets_count: 2,
-        staff_satisfaction_score: 4.7,
-        player_adoption_percentage: 48,
-        weekly_reports: [],
-      },
-    ];
-  }
 
   const activePilots = pilots.filter((p) => p.status === 'active');
   const pilotsByRegion = {
@@ -503,3 +454,4 @@ function ChecklistItem({ checked, label, description }) {
     </div>
   );
 }
+

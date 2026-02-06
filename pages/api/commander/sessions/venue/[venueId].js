@@ -1,0 +1,77 @@
+/**
+ * Commander Sessions by Venue API
+ * GET /api/commander/sessions/venue/[venueId] - List active sessions at a venue
+ * Reference: Phase 2 - Session Tracking
+ */
+import { createClient } from '@supabase/supabase-js';
+import { captureException } from '../../../../../src/lib/commander/errorMonitoring';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
+
+export default async function handler(req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({
+      success: false,
+      error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' }
+    });
+  }
+
+  const { venueId } = req.query;
+
+  if (!venueId) {
+    return res.status(400).json({
+      success: false,
+      error: { code: 'VALIDATION_ERROR', message: 'venueId is required' }
+    });
+  }
+
+  try {
+    const { status = 'active', limit = 100 } = req.query;
+
+    let query = supabase
+      .from('commander_player_sessions')
+      .select(`
+        *,
+        profiles (
+          id,
+          display_name,
+          avatar_url
+        )
+      `)
+      .eq('venue_id', venueId)
+      .order('check_in_at', { ascending: false })
+      .limit(parseInt(limit));
+
+    if (status) {
+      query = query.eq('status', status);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Commander sessions by venue query error:', error);
+      return res.status(500).json({
+        success: false,
+        error: { code: 'DATABASE_ERROR', message: 'Failed to fetch sessions' }
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: { sessions: data || [] }
+    });
+  } catch (error) {
+    captureException(error, {
+      action: 'sessions_by_venue',
+      endpoint: `/api/commander/sessions/venue/${venueId}`,
+      venue_id: venueId
+    });
+    return res.status(500).json({
+      success: false,
+      error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }
+    });
+  }
+}
