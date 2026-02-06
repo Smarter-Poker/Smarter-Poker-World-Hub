@@ -195,12 +195,12 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                     right: 0;
                     bottom: 0;
                     border-radius: 16px;
-                    border: 3px solid rgba(180, 195, 220, 0.6);
+                    border: 4px solid rgba(200, 210, 230, 0.8);
                     box-shadow: 
-                        inset 0 0 8px rgba(180, 195, 220, 0.4),
-                        0 0 12px rgba(180, 195, 220, 0.3);
+                        inset 0 0 10px rgba(180, 195, 220, 0.5),
+                        0 0 15px rgba(180, 195, 220, 0.4);
                     pointer-events: none;
-                    z-index: 5;
+                    z-index: 100;
                 }
 
 
@@ -456,12 +456,12 @@ function VideoCard({ video, onClick }) {
                     right: 0;
                     bottom: 0;
                     border-radius: 16px;
-                    border: 3px solid rgba(180, 195, 220, 0.6);
+                    border: 4px solid rgba(200, 210, 230, 0.8);
                     box-shadow: 
-                        inset 0 0 8px rgba(180, 195, 220, 0.4),
-                        0 0 12px rgba(180, 195, 220, 0.3);
+                        inset 0 0 10px rgba(180, 195, 220, 0.5),
+                        0 0 15px rgba(180, 195, 220, 0.4);
                     pointer-events: none;
-                    z-index: 5;
+                    z-index: 100;
                 }
 
                 .video-card:hover {
@@ -618,32 +618,36 @@ function ReelCard({ reel, onClick, openExternal }) {
                     overflow: hidden;
                     cursor: pointer;
                     transition: all 0.3s;
-                    box-shadow: 
-                        inset 0 0 0 2px rgba(180, 195, 220, 0.35),
-                        inset 0 0 0 4px rgba(100, 115, 140, 0.15),
-                        0 6px 24px rgba(0, 0, 0, 0.5);
+                    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
                 }
                 
-                .reel-card::before {
+                /* Chrome frame overlay for reel cards */
+                .reel-card::after {
                     content: '';
                     position: absolute;
-                    inset: -2px;
-                    border-radius: 14px;
-                    background: linear-gradient(135deg, 
-                        rgba(200, 210, 230, 0.4) 0%, 
-                        rgba(120, 140, 170, 0.25) 25%,
-                        rgba(80, 100, 130, 0.15) 50%,
-                        rgba(120, 140, 170, 0.25) 75%,
-                        rgba(200, 210, 230, 0.4) 100%);
-                    z-index: -1;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    border-radius: 12px;
+                    border: 4px solid rgba(200, 210, 230, 0.8);
+                    box-shadow: 
+                        inset 0 0 10px rgba(180, 195, 220, 0.5),
+                        0 0 15px rgba(180, 195, 220, 0.4);
                     pointer-events: none;
+                    z-index: 100;
                 }
 
                 .reel-card:hover {
                     box-shadow: 
-                        inset 0 0 0 2px rgba(236, 72, 153, 0.5),
-                        inset 0 0 0 4px rgba(236, 72, 153, 0.2),
                         0 8px 32px rgba(236, 72, 153, 0.3);
+                }
+                
+                .reel-card:hover::after {
+                    border-color: rgba(236, 72, 153, 0.7);
+                    box-shadow: 
+                        inset 0 0 10px rgba(236, 72, 153, 0.4),
+                        0 0 15px rgba(236, 72, 153, 0.4);
                 }
 
                 .reel-thumbnail {
