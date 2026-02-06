@@ -1093,16 +1093,16 @@ export default function VideoLibraryPage() {
                         overflowX: 'auto',
                         paddingBottom: 8,
                     }}>
-                        {SOURCES.map(source => (
+                        {SOURCES.filter(source => source.id !== 'ALL').map(source => (
                             <button
                                 key={source.id}
                                 onClick={() => setSelectedSource(source.id)}
                                 style={{
-                                    padding: '12px 20px',
+                                    padding: '10px 18px',
                                     background: selectedSource === source.id
                                         ? 'linear-gradient(135deg, #FF4444, #FF6B6B)'
-                                        : C.card,
-                                    border: `1px solid ${selectedSource === source.id ? 'transparent' : C.border}`,
+                                        : '#0a0a0a',
+                                    border: 'none',
                                     borderRadius: 24,
                                     color: C.text,
                                     fontSize: 14,
@@ -1113,26 +1113,25 @@ export default function VideoLibraryPage() {
                                     alignItems: 'center',
                                     gap: 10,
                                     transition: 'all 0.2s',
+                                    boxShadow: selectedSource === source.id
+                                        ? '0 0 0 2px rgba(255, 68, 68, 0.6), 0 4px 16px rgba(255, 68, 68, 0.3)'
+                                        : '0 0 0 2px rgba(160, 170, 180, 0.7), 0 0 0 3px rgba(80, 90, 100, 0.5), 0 4px 12px rgba(0, 0, 0, 0.4)',
                                 }}
                             >
                                 {source.logo && (
                                     <div style={{
-                                        width: 36,
-                                        height: 36,
-                                        borderRadius: 12,
+                                        width: 32,
+                                        height: 32,
+                                        borderRadius: 10,
                                         background: 'rgba(255, 255, 255, 0.08)',
-                                        backdropFilter: 'blur(10px)',
-                                        border: '1px solid rgba(255, 255, 255, 0.1)',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        padding: 6,
-                                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                                        padding: 4,
                                     }}>
                                         <img src={source.logo} alt={source.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                                     </div>
                                 )}
-                                {source.id === 'ALL' && <span style={{ fontSize: 16, marginRight: 4, opacity: 0.7 }}>All</span>}
                                 {source.name}
                             </button>
                         ))}
