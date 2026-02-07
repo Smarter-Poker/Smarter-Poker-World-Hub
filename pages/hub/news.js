@@ -3091,13 +3091,22 @@ export default function NewsHub() {
                     ================================================================ */}
                 <style jsx global>{`
                     @media (max-width: 768px) {
+                        /* === SCROLL UNLOCK === */
+                        body, html, body.antigravity-scroll-lock {
+                            overflow-y: auto !important;
+                            height: auto !important;
+                            position: static !important;
+                        }
+
                         /* === PAGE CONTAINER === */
                         .news-hub {
                             width: 100% !important;
                             max-width: 100vw !important;
                             padding: 0 !important;
+                            padding-top: 60px !important; /* Make room for Fixed Header */
                             margin: 0 !important;
                             overflow-x: hidden !important;
+                            min-height: 100vh !important;
                         }
 
                         /* === LAYOUT === */
