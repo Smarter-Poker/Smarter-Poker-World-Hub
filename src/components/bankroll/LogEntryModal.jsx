@@ -45,7 +45,7 @@ export default function LogEntryModal({ userId, locations, trips, onClose, onSub
   const [category, setCategory] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [ruleWarnings, setRuleWarnings] = useState([]);
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  // showAdvanced removed - always show all fields
 
   // Form state
   const [formData, setFormData] = useState({
@@ -59,7 +59,7 @@ export default function LogEntryModal({ userId, locations, trips, onClose, onSub
     start_time: '',
     end_time: '',
     notes: '',
-    media_url: '',
+    // media_url removed in favor of mediaFiles array
     emotional_tag: '',
 
     // Poker
@@ -162,7 +162,7 @@ export default function LogEntryModal({ userId, locations, trips, onClose, onSub
         gross_in: parseFloat(formData.gross_in) || 0,
         gross_out: parseFloat(formData.gross_out) || 0,
         notes: formData.notes || null,
-        media_urls: formData.media_url ? [formData.media_url] : null,
+        media_urls: mediaFiles.length > 0 ? mediaFiles : null,
         emotional_tag: formData.emotional_tag || null,
       };
 
@@ -217,6 +217,64 @@ export default function LogEntryModal({ userId, locations, trips, onClose, onSub
       ))}
     </div>
   );
+
+  // Image Upload State
+  const [mediaFiles, setMediaFiles] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const handleImageUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    setUploading(true);
+    const newUploads = [];
+
+    try {
+      for (const file of files) {
+        // Validate
+        if (!file.type.startsWith('image/')) {
+          toast.error(`Skipped ${file.name} (not an image)`);
+          continue;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+          toast.error(`Skipped ${file.name} (too large, max 5MB)`);
+          continue;
+        }
+
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+        const filePath = `bankroll/${userId}/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('images')
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('images')
+          .getPublicUrl(filePath);
+
+        newUploads.push(publicUrl);
+      }
+
+      setMediaFiles(prev => [...prev, ...newUploads]);
+      toast.success(`Uploaded ${newUploads.length} images`);
+    } catch (error) {
+      console.error('Upload failed:', error);
+      toast.error('Failed to upload image');
+    } finally {
+      setUploading(false);
+      // Reset input
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  const removeImage = (index) => {
+    setMediaFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
 
   const renderDetailsForm = () => {
     const netResult = calculateNetResult();
@@ -447,126 +505,134 @@ export default function LogEntryModal({ userId, locations, trips, onClose, onSub
           )}
         </div>
 
-        {/* Advanced Fields Toggle */}
-        <button
-          type="button"
-          onClick={() => setShowAdvanced(!showAdvanced)}
-          style={styles.advancedToggle}
-        >
-          {showAdvanced ? '▼ Hide Advanced' : '▶ Show Advanced'}
-        </button>
+        {/* ALL FIELDS ALWAYS VISIBLE (No Toggle) */}
 
-        {/* Advanced Fields */}
-        <AnimatePresence>
-          {showAdvanced && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              style={{ overflow: 'hidden' }}
-            >
-              <div style={styles.amountRow}>
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Date</label>
-                  <input
-                    type="date"
-                    value={formData.entry_date}
-                    onChange={(e) => handleInputChange('entry_date', e.target.value)}
-                    style={styles.input}
-                  />
-                </div>
-                {trips.length > 0 && (
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>Trip</label>
-                    <select
-                      value={formData.trip_id}
-                      onChange={(e) => handleInputChange('trip_id', e.target.value)}
-                      style={styles.select}
-                    >
-                      <option value="">None</option>
-                      {trips.map((trip) => (
-                        <option key={trip.id} value={trip.id}>
-                          {trip.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
-
-              {!isExpense && (
-                <div style={styles.amountRow}>
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>Start Time</label>
-                    <input
-                      type="time"
-                      value={formData.start_time}
-                      onChange={(e) => handleInputChange('start_time', e.target.value)}
-                      style={styles.input}
-                    />
-                  </div>
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>End Time</label>
-                    <input
-                      type="time"
-                      value={formData.end_time}
-                      onChange={(e) => handleInputChange('end_time', e.target.value)}
-                      style={styles.input}
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Emotional State</label>
-                <select
-                  value={formData.emotional_tag}
-                  onChange={(e) => handleInputChange('emotional_tag', e.target.value)}
-                  style={styles.select}
-                >
-                  <option value="">None</option>
-                  {EMOTIONAL_TAGS.map((tag) => (
-                    <option key={tag} value={tag}>
-                      {tag.charAt(0).toUpperCase() + tag.slice(1)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Session Notes</label>
-                <textarea
-                  value={formData.notes}
-                  onChange={(e) => handleInputChange('notes', e.target.value)}
-                  placeholder="Key hands, table dynamics, reads on players, mental state, lessons learned..."
-                  style={{ ...styles.textarea, minHeight: 100 }}
-                />
-              </div>
-
-              {/* Photo/Media URL */}
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Session Photo (URL)</label>
-                <input
-                  type="text"
-                  value={formData.media_url || ''}
-                  onChange={(e) => handleInputChange('media_url', e.target.value)}
-                  placeholder="Paste image URL (optional)"
-                  style={styles.input}
-                />
-                {formData.media_url && (
-                  <div style={{ marginTop: 10, borderRadius: 8, overflow: 'hidden', maxHeight: 150 }}>
-                    <img
-                      src={formData.media_url}
-                      alt="Session"
-                      style={{ width: '100%', height: 'auto', objectFit: 'cover' }}
-                      onError={(e) => e.target.style.display = 'none'}
-                    />
-                  </div>
-                )}
-              </div>
-            </motion.div>
+        <div style={{ ...styles.amountRow, marginTop: 16 }}>
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Date</label>
+            <input
+              type="date"
+              value={formData.entry_date}
+              onChange={(e) => handleInputChange('entry_date', e.target.value)}
+              style={styles.input}
+            />
+          </div>
+          {trips.length > 0 && (
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Trip</label>
+              <select
+                value={formData.trip_id}
+                onChange={(e) => handleInputChange('trip_id', e.target.value)}
+                style={styles.select}
+              >
+                <option value="">None</option>
+                {trips.map((trip) => (
+                  <option key={trip.id} value={trip.id}>
+                    {trip.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           )}
-        </AnimatePresence>
+        </div>
+
+        {!isExpense && (
+          <div style={styles.amountRow}>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Start Time</label>
+              <input
+                type="time"
+                value={formData.start_time}
+                onChange={(e) => handleInputChange('start_time', e.target.value)}
+                style={styles.input}
+              />
+            </div>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>End Time</label>
+              <input
+                type="time"
+                value={formData.end_time}
+                onChange={(e) => handleInputChange('end_time', e.target.value)}
+                style={styles.input}
+              />
+            </div>
+          </div>
+        )}
+
+        <div style={styles.formGroup}>
+          <label style={styles.label}>Emotional State</label>
+          <select
+            value={formData.emotional_tag}
+            onChange={(e) => handleInputChange('emotional_tag', e.target.value)}
+            style={styles.select}
+          >
+            <option value="">None</option>
+            {EMOTIONAL_TAGS.map((tag) => (
+              <option key={tag} value={tag}>
+                {tag.charAt(0).toUpperCase() + tag.slice(1)}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div style={styles.formGroup}>
+          <label style={styles.label}>Session Notes</label>
+          <textarea
+            value={formData.notes}
+            onChange={(e) => handleInputChange('notes', e.target.value)}
+            placeholder="Key hands, table dynamics, reads on players, mental state, lessons learned..."
+            style={{ ...styles.textarea, minHeight: 100 }}
+          />
+        </div>
+
+        {/* IMAGE UPLOAD */}
+        <div style={styles.formGroup}>
+          <label style={styles.label}>Session Photos</label>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 10 }}>
+            {mediaFiles.map((url, index) => (
+              <div key={index} style={{ position: 'relative', width: 80, height: 80, borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.2)' }}>
+                <img src={url} alt="Session" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <button
+                  type="button"
+                  onClick={() => removeImage(index)}
+                  style={{
+                    position: 'absolute', top: 2, right: 2, background: 'rgba(0,0,0,0.6)', color: 'white',
+                    border: 'none', borderRadius: '50%', width: 20, height: 20, display: 'flex',
+                    alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 12
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              style={{
+                width: 80, height: 80, borderRadius: 8, border: '1px dashed rgba(255,255,255,0.3)',
+                background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.7)',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', fontSize: 12
+              }}
+            >
+              <span style={{ fontSize: 20, marginBottom: 4 }}>📷</span>
+              {uploading ? '...' : 'Add'}
+            </button>
+          </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleImageUpload}
+            style={{ display: 'none' }}
+          />
+        </div>
+
 
         {/* Rule Warnings */}
         {ruleWarnings.length > 0 && (
@@ -591,13 +657,13 @@ export default function LogEntryModal({ userId, locations, trips, onClose, onSub
           </button>
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || uploading}
             style={{
               ...styles.submitButton,
-              opacity: isSubmitting ? 0.6 : 1,
+              opacity: (isSubmitting || uploading) ? 0.6 : 1,
             }}
           >
-            {isSubmitting ? 'Logging...' : 'Log Entry'}
+            {isSubmitting ? 'Logging...' : uploading ? 'Uploading...' : 'Log Entry'}
           </button>
         </div>
       </form>
