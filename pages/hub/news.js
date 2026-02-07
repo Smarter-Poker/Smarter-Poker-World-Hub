@@ -1797,29 +1797,68 @@ export default function NewsHub() {
                         }
 
                         .layout {
+                            display: block !important;
                             padding: 0 !important;
                             max-width: 100vw !important;
-                            gap: 0 !important;
+                            width: 100% !important;
                         }
 
                         .header {
                             width: 100% !important;
-                            padding: 6px 0 !important;
+                            max-width: 100vw !important;
+                            padding: 4px 0 !important;
+                            overflow-x: auto !important;
+                            overflow-y: hidden !important;
+                            -webkit-overflow-scrolling: touch;
+                            height: auto !important;
+                        }
+
+                        .header-left {
+                            width: 100% !important;
+                            max-width: 100vw !important;
+                            overflow-x: auto !important;
+                            justify-content: flex-start !important;
+                            height: auto !important;
+                        }
+
+                        .section-tabs {
+                            overflow-x: auto !important;
+                            width: 100% !important;
+                            max-width: 100vw !important;
+                            justify-content: flex-start !important;
+                            -webkit-overflow-scrolling: touch;
+                        }
+
+                        .section-tab-img,
+                        .refresh-btn-img {
+                            height: 60px !important;
+                            flex-shrink: 0 !important;
+                        }
+
+                        .section-tab-img img,
+                        .refresh-btn-img img {
+                            height: 60px !important;
                         }
 
                         .main-content {
                             padding: 0 !important;
                             width: 100% !important;
+                            max-width: 100vw !important;
                         }
 
                         .news-section {
                             padding: 0 !important;
                             margin: 0 !important;
+                            width: 100% !important;
                         }
 
                         .section-title {
                             padding: 12px 16px !important;
                             margin: 0 !important;
+                        }
+
+                        .sidebar {
+                            display: none !important;
                         }
                     }
 
@@ -2193,13 +2232,15 @@ export default function NewsHub() {
                         }
 
                         .news-grid {
-                            grid-template-columns: 1fr;
-                            gap: 0 !important; /* Social-style gapless feed */
-                            padding: 0 !important; /* Full bleed container */
+                            grid-template-columns: 1fr !important;
+                            gap: 0 !important;
+                            padding: 0 !important;
                             border-radius: 0 !important;
                             background: transparent !important;
                             box-shadow: none !important;
                             border: none !important;
+                            width: 100% !important;
+                            max-width: 100vw !important;
                         }
 
                         /* Remove metallic border overlay */
