@@ -22,7 +22,7 @@ const MODE_CARDS = [
         glowColor: '#f97316',
         diamondReward: 5,
         perfectBonus: 10,
-        image: '/images/trivia/mtt-scenarios.png?v=clean8'
+        image: '/images/trivia/mtt-scenarios.png?v=clean9'
     },
     {
         id: 'cash',
@@ -33,7 +33,7 @@ const MODE_CARDS = [
         glowColor: '#22c55e',
         diamondReward: 5,
         perfectBonus: 10,
-        image: '/images/trivia/cash-game.png?v=clean8'
+        image: '/images/trivia/cash-game.png?v=clean9'
     },
     {
         id: 'icm',
@@ -44,7 +44,7 @@ const MODE_CARDS = [
         glowColor: '#06b6d4',
         diamondReward: 5,
         perfectBonus: 10,
-        image: '/images/trivia/icm-chip-ev.png?v=clean8'
+        image: '/images/trivia/icm-chip-ev.png?v=clean9'
     },
     // ROW 2 - Core Trivia
     {
@@ -56,7 +56,7 @@ const MODE_CARDS = [
         glowColor: '#FFD700',
         diamondReward: 3,
         perfectBonus: 5,
-        image: '/images/trivia/poker-history.png?v=clean8'
+        image: '/images/trivia/poker-history.png?v=clean9'
     },
     {
         id: 'rules',
@@ -67,7 +67,7 @@ const MODE_CARDS = [
         glowColor: '#4a90d9',
         diamondReward: 3,
         perfectBonus: 5,
-        image: '/images/trivia/rules-quiz.png?v=clean8'
+        image: '/images/trivia/rules-quiz.png?v=clean9'
     },
     {
         id: 'pro',
@@ -78,7 +78,7 @@ const MODE_CARDS = [
         glowColor: '#9D4EDD',
         diamondReward: 5,
         perfectBonus: 10,
-        image: '/images/trivia/pro-knowledge.png?v=clean8'
+        image: '/images/trivia/pro-knowledge.png?v=clean9'
     },
     // ROW 3 - Challenge Modes
     {
@@ -90,7 +90,7 @@ const MODE_CARDS = [
         glowColor: '#ef4444',
         diamondReward: '10+',
         perfectBonus: null,
-        image: '/images/trivia/survival-mode.png?v=clean8'
+        image: '/images/trivia/survival-mode.png?v=clean9'
     },
     {
         id: 'endless',
@@ -101,7 +101,7 @@ const MODE_CARDS = [
         glowColor: '#8b5cf6',
         diamondReward: '1+/Q',
         perfectBonus: null,
-        image: '/images/trivia/endless-mode.png?v=clean8'
+        image: '/images/trivia/endless-mode.png?v=clean9'
     },
     {
         id: 'mixed',
@@ -112,7 +112,7 @@ const MODE_CARDS = [
         glowColor: '#00D4FF',
         diamondReward: '1/Q',
         perfectBonus: null,
-        image: '/images/trivia/mixed-mode.png?v=clean8'
+        image: '/images/trivia/mixed-mode.png?v=clean9'
     },
     // ROW 4 - Competitive
     {
@@ -124,7 +124,7 @@ const MODE_CARDS = [
         glowColor: '#ef4444',
         diamondReward: '2x stake',
         perfectBonus: null,
-        image: '/images/trivia/pvp-battle.png?v=clean8'
+        image: '/images/trivia/pvp-battle.png?v=clean9'
     },
     {
         id: 'tournaments',
@@ -135,7 +135,7 @@ const MODE_CARDS = [
         glowColor: '#FFD700',
         diamondReward: 'Prize pool',
         perfectBonus: null,
-        image: '/images/trivia/tournaments.png?v=clean8'
+        image: '/images/trivia/tournaments.png?v=clean9'
     },
     {
         id: 'gto',
@@ -146,7 +146,7 @@ const MODE_CARDS = [
         glowColor: '#a855f7',
         diamondReward: 8,
         perfectBonus: 15,
-        image: '/images/trivia/gto-master.png?v=clean8'
+        image: '/images/trivia/gto-master.png?v=clean9'
     }
 ];
 
@@ -335,7 +335,7 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
                     }}
                 >
                     <img
-                        src="/images/trivia/quick-stakes.png?v=clean8"
+                        src="/images/trivia/quick-stakes.png?v=clean9"
                         alt="Quick Stakes"
                         className="mode-image-card__img"
                     />
