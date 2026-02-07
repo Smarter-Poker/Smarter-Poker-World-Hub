@@ -3126,6 +3126,10 @@ export default function NewsHub() {
                             overflow-y: hidden !important;
                             -webkit-overflow-scrolling: touch;
                             height: auto !important;
+                            top: 60px !important; /* Stick BELOW the Universal Header */
+                            background: rgba(24, 25, 26, 0.95) !important; /* Ensure opacity */
+                            backdrop-filter: blur(10px);
+                            z-index: 90 !important; /* Below UniversalHeader (1000) */
                         }
 
                         .header-left {
