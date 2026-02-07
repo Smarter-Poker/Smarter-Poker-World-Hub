@@ -3083,6 +3083,170 @@ export default function NewsHub() {
                         }
                     }
                 `}</style>
+
+                {/* ================================================================
+                    GLOBAL MOBILE OVERRIDE — Bypasses styled-jsx component scoping
+                    This is required because NewsBox, VideoCard etc. are separate 
+                    components with their own <style jsx> blocks.
+                    ================================================================ */}
+                <style jsx global>{`
+                    @media (max-width: 768px) {
+                        /* === PAGE CONTAINER === */
+                        .news-hub {
+                            width: 100% !important;
+                            max-width: 100vw !important;
+                            padding: 0 !important;
+                            margin: 0 !important;
+                            overflow-x: hidden !important;
+                        }
+
+                        /* === LAYOUT === */
+                        .layout {
+                            display: block !important;
+                            padding: 0 !important;
+                            max-width: 100vw !important;
+                            width: 100% !important;
+                        }
+
+                        /* === HEADER / TABS === */
+                        .header {
+                            width: 100% !important;
+                            max-width: 100vw !important;
+                            padding: 4px 0 !important;
+                            overflow-x: auto !important;
+                            overflow-y: hidden !important;
+                            -webkit-overflow-scrolling: touch;
+                            height: auto !important;
+                        }
+
+                        .header-left {
+                            width: 100% !important;
+                            max-width: 100vw !important;
+                            overflow-x: auto !important;
+                            justify-content: flex-start !important;
+                            height: auto !important;
+                        }
+
+                        .section-tabs {
+                            overflow-x: auto !important;
+                            width: 100% !important;
+                            max-width: 100vw !important;
+                            justify-content: flex-start !important;
+                            -webkit-overflow-scrolling: touch;
+                        }
+
+                        .section-tab-img,
+                        .refresh-btn-img {
+                            height: 60px !important;
+                            flex-shrink: 0 !important;
+                        }
+
+                        .section-tab-img img,
+                        .refresh-btn-img img {
+                            height: 60px !important;
+                        }
+
+                        /* === MAIN CONTENT === */
+                        .main-content {
+                            padding: 0 !important;
+                            width: 100% !important;
+                            max-width: 100vw !important;
+                        }
+
+                        .news-section {
+                            padding: 0 !important;
+                            margin: 0 !important;
+                            width: 100% !important;
+                        }
+
+                        .sidebar {
+                            display: none !important;
+                        }
+
+                        /* === NEWS GRID === */
+                        .news-grid {
+                            display: flex !important;
+                            flex-direction: column !important;
+                            gap: 0 !important;
+                            padding: 0 !important;
+                            border-radius: 0 !important;
+                            background: transparent !important;
+                            box-shadow: none !important;
+                            border: none !important;
+                            width: 100% !important;
+                            max-width: 100% !important;
+                        }
+
+                        .news-grid::before {
+                            display: none !important;
+                        }
+
+                        /* === NEWS BOX (Social Feed Card Style) === */
+                        .news-box {
+                            height: auto !important;
+                            min-height: auto !important;
+                            max-height: none !important;
+                            width: 100% !important;
+                            max-width: 100% !important;
+                            border-radius: 0 !important;
+                            box-shadow: none !important;
+                            border: none !important;
+                            border-bottom: 1px solid rgba(255,255,255,0.1) !important;
+                            margin: 0 !important;
+                        }
+
+                        .news-box::after {
+                            display: none !important;
+                        }
+
+                        /* === IMAGES === */
+                        .box-image {
+                            height: auto !important;
+                            aspect-ratio: 16/9;
+                            border-radius: 0 !important;
+                            width: 100% !important;
+                        }
+
+                        .box-image img {
+                            position: relative !important;
+                            width: 100% !important;
+                            height: 100% !important;
+                            object-fit: cover !important;
+                            border-radius: 0 !important;
+                        }
+
+                        .box-overlay {
+                            display: none !important;
+                        }
+
+                        /* === CONTENT === */
+                        .box-content {
+                            padding: 12px 16px !important;
+                        }
+
+                        .box-title {
+                            font-size: 15px !important;
+                            line-height: 1.4 !important;
+                            white-space: normal !important;
+                            overflow: visible !important;
+                            text-overflow: unset !important;
+                        }
+
+                        .box-meta {
+                            font-size: 12px !important;
+                        }
+
+                        /* === MSPT BOX === */
+                        .mspt-box {
+                            height: auto !important;
+                            min-height: auto !important;
+                            max-height: none !important;
+                            width: 100% !important;
+                            border-radius: 0 !important;
+                            box-shadow: none !important;
+                        }
+                    }
+                `}</style>
             </div>
         </PageTransition>
     );
