@@ -41,7 +41,7 @@ function useIsMobile() {
 
 // UI Components
 import { DiamondStat } from './components/HeaderStats';
-import { WelcomeBack } from './components/WelcomeMessage';
+// WelcomeBack removed — was showing hardcoded 'PokerPro' mock data
 import { StreakPopup } from './components/StreakPopup';
 import { SearchOrb, SearchOverlay } from './components/GlobalSearch';
 import { ProfileDropdown } from './components/ProfileDropdown';
@@ -857,10 +857,7 @@ export default function WorldHub() {
                 <div className="hud-overlay" style={{ zIndex: 10 }}>
                     {/* TOP BAR is now provided by UniversalHeader in pages/hub/index.js */}
 
-                    {/* ═══════════════════════════════════════════════════════════════
-                    WELCOME BACK — Below header, centered
-                    ═══════════════════════════════════════════════════════════════ */}
-                    <WelcomeBack />
+                    {/* WELCOME BACK REMOVED — was showing hardcoded mock username */}
 
                     {/* ═══════════════════════════════════════════════════════════════
                     STREAK POPUP — Subtle toast that appears and fades

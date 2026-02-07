@@ -407,6 +407,60 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                     align-items: center;
                     gap: 3px;
                 }
+
+                /* =============================================================
+                   SOCIAL MEDIA FORMULA - Mobile Override (INSIDE NewsBox scope)
+                   styled-jsx scoping requires these rules HERE, not in the parent
+                   ============================================================= */
+                @media (max-width: 768px) {
+                    .news-box {
+                        height: auto !important;
+                        min-height: auto !important;
+                        max-height: none !important;
+                        border-radius: 0 !important;
+                        box-shadow: none !important;
+                        border-bottom: 1px solid rgba(255,255,255,0.1);
+                        margin-bottom: 0 !important;
+                    }
+
+                    .news-box::after {
+                        display: none !important;
+                    }
+
+                    .box-image {
+                        height: auto !important;
+                        aspect-ratio: 16/9;
+                        border-radius: 0 !important;
+                    }
+
+                    .box-image img {
+                        position: relative !important;
+                        width: 100% !important;
+                        height: 100% !important;
+                        object-fit: cover !important;
+                        border-radius: 0 !important;
+                    }
+
+                    .box-content {
+                        padding: 12px 16px !important;
+                    }
+
+                    .box-title {
+                        font-size: 15px !important;
+                        line-height: 1.4 !important;
+                        white-space: normal !important;
+                        overflow: visible !important;
+                        text-overflow: unset !important;
+                    }
+
+                    .box-overlay {
+                        display: none !important;
+                    }
+
+                    .box-meta {
+                        font-size: 12px !important;
+                    }
+                }
             `}</style>
         </div>
     );
