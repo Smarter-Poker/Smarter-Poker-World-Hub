@@ -2,7 +2,8 @@
 BRAIN="/Users/smarter.poker/.gemini/antigravity/brain/cd6c7256-a33a-4751-b18b-0bca614ac742"
 TRIVIA="/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/public/images/trivia"
 
-echo "=== BATCH PROCESSING: Two-Pass Floodfill Background Removal ==="
+echo "=== BATCH PROCESSING: 3-Pass Targeted Floodfill (White, LightGrey, DarkGrey) ==="
+echo "Strategy: Attack background from edge using specific checkerboard colors."
 
 process_image() {
     NAME=$1
@@ -14,21 +15,28 @@ process_image() {
     # 1. Create base PNG
     magick "$SOURCE" $ARGS +repage "temp_${NAME}_base.png"
     
-    # 2. Border + Floodfill 1 (Top Left)
+    # 2. Pass 1: Border White -> Floodfill White
     magick "temp_${NAME}_base.png" \
-        -bordercolor white -border 1x1 \
-        -fuzz 20% -fill none -draw "color 0,0 floodfill" \
+        -bordercolor "#FFFFFF" -border 1x1 \
+        -fuzz 10% -fill none -draw "color 0,0 floodfill" \
         -shave 1x1 \
         "temp_${NAME}_step1.png"
-        
-    # 3. Floodfill 2 (Top Left again)
+
+    # 3. Pass 2: Border Light Grey (#C0C0C0) -> Floodfill Light Grey
     magick "temp_${NAME}_step1.png" \
-        -bordercolor white -border 1x1 \
-        -fuzz 20% -fill none -draw "color 0,0 floodfill" \
+        -bordercolor "#C0C0C0" -border 1x1 \
+        -fuzz 10% -fill none -draw "color 0,0 floodfill" \
+        -shave 1x1 \
+        "temp_${NAME}_step2.png"
+
+    # 4. Pass 3: Border Dark Grey (#808080) -> Floodfill Dark Grey
+    magick "temp_${NAME}_step2.png" \
+        -bordercolor "#808080" -border 1x1 \
+        -fuzz 10% -fill none -draw "color 0,0 floodfill" \
         -shave 1x1 \
         "$TRIVIA/${NAME}.png"
         
-    rm "temp_${NAME}_base.png" "temp_${NAME}_step1.png"
+    rm "temp_${NAME}_base.png" "temp_${NAME}_step1.png" "temp_${NAME}_step2.png"
 }
 
 # Batch 1
@@ -54,4 +62,4 @@ process_image "quick-stakes" "$BRAIN/media__1770349622114.jpg" "-crop 920x460+52
 # GTO Master
 process_image "gto-master" "$BRAIN/media__1770391740300.jpg" "-resize 884x884"
 
-echo "=== DONE: All images processed to PNG with transparent backgrounds ==="
+echo "=== DONE: 3-Pass Floodfill Complete ==="

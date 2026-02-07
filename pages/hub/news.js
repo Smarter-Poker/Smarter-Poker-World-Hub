@@ -1361,7 +1361,7 @@ export default function NewsHub() {
             )}
             <Head>
                 <title>News | Smarter.Poker</title>
-                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
                 <meta name="description" content="Latest poker news, tournament updates, strategy tips, and industry insights" />
             </Head>
 
@@ -1386,12 +1386,7 @@ export default function NewsHub() {
                         {/* Section Tabs - Custom Image Buttons */}
                         <div className="section-tabs">
                             {/* Today's Top Stories - Clickable Tab */}
-                            <button
-                                className={`section-tab-img ${activeSection === 'stories' ? 'active' : ''}`}
-                                onClick={() => setActiveSection('stories')}
-                            >
-                                <img src="/images/btn-todays-top-stories.png" alt="Today's Top Stories" />
-                            </button>
+
 
                             <button
                                 className={`section-tab-img ${activeSection === 'news' ? 'active' : ''}`}
@@ -1471,16 +1466,7 @@ export default function NewsHub() {
                     {/* Left Column - News Boxes */}
                     <main className="main-content">
                         {/* Stories Section */}
-                        {activeSection === 'stories' && (
-                            <section className="stories-section" style={{ padding: '10px 0 20px 0' }}>
-                                <PokerStoriesRow
-                                    stories={[]}
-                                    currentUser={{ avatar_url: user?.avatar_url, full_name: user?.full_name || 'User' }}
-                                    onStoryClick={(story) => console.log('Story clicked:', story)}
-                                    onAddStory={() => console.log('Add story clicked')}
-                                />
-                            </section>
-                        )}
+
 
                         {activeSection === 'news' ? (
                             <>
@@ -3180,12 +3166,9 @@ export default function NewsHub() {
                         .news-grid {
                             display: flex !important;
                             flex-direction: column !important;
-                            gap: 0 !important;
-                            padding: 0 !important;
-                            border-radius: 0 !important;
+                            gap: 16px !important;
+                            padding: 12px !important; /* Restore padding for frames */
                             background: transparent !important;
-                            box-shadow: none !important;
-                            border: none !important;
                             width: 100% !important;
                             max-width: 100% !important;
                         }
@@ -3194,29 +3177,57 @@ export default function NewsHub() {
                             display: none !important;
                         }
 
-                        /* === NEWS BOX (Social Feed Card Style) === */
+                        /* === NEWS BOX (Reels Style Frame) === */
                         .news-box {
-                            height: auto !important;
+                            position: relative !important;
                             min-height: auto !important;
-                            max-height: none !important;
+                            height: auto !important;
                             width: 100% !important;
-                            max-width: 100% !important;
-                            border-radius: 0 !important;
-                            box-shadow: none !important;
+                            border-radius: 12px !important;
+                            background: #1a1c1e !important;
+                            box-shadow: 0 4px 16px rgba(0,0,0,0.4) !important;
+                            margin-bottom: 0 !important;
                             border: none !important;
-                            border-bottom: 1px solid rgba(255,255,255,0.1) !important;
-                            margin: 0 !important;
+                            overflow: hidden !important;
                         }
 
+                        /* CHROME FRAME - RESTORED */
                         .news-box::after {
-                            display: none !important;
+                            content: '' !important;
+                            display: block !important;
+                            position: absolute !important;
+                            inset: 0 !important;
+                            border-radius: 12px !important;
+                            border: 4px solid rgba(180, 195, 220, 0.9) !important;
+                            box-shadow: inset 0 0 10px 2px rgba(180, 195, 220, 0.5) !important;
+                            pointer-events: none !important;
+                            z-index: 10 !important;
+                        }
+
+                        /* === REELS FIX === */
+                        .reels-carousel {
+                             display: flex !important;
+                             overflow-x: auto !important;
+                             gap: 12px !important;
+                             padding-bottom: 12px !important;
+                             scroll-snap-type: x mandatory !important;
+                             -webkit-overflow-scrolling: touch !important;
+                        }
+                        
+                        .reel-card {
+                             min-width: 160px !important;
+                             width: 160px !important;
+                             height: 284px !important;
+                             flex-shrink: 0 !important;
+                             scroll-snap-align: start !important;
+                             margin-right: 0 !important;
                         }
 
                         /* === IMAGES === */
                         .box-image {
                             height: auto !important;
                             aspect-ratio: 16/9;
-                            border-radius: 0 !important;
+                            border-radius: 12px 12px 0 0 !important;
                             width: 100% !important;
                         }
 
@@ -3225,7 +3236,7 @@ export default function NewsHub() {
                             width: 100% !important;
                             height: 100% !important;
                             object-fit: cover !important;
-                            border-radius: 0 !important;
+                            border-radius: 12px 12px 0 0 !important;
                         }
 
                         .box-overlay {
