@@ -2509,13 +2509,13 @@ export default function NewsHub() {
                         border-radius: 3px;
                     }
 
-                    .reels-carousel .reel-card {
+                    .reels-carousel :global(.reel-card) {
                         flex-shrink: 0 !important;
                         width: 160px !important;
                         max-width: 160px !important;
                     }
 
-                    .reels-carousel .reel-thumbnail {
+                    .reels-carousel :global(.reel-thumbnail) {
                         width: 100% !important;
                         height: 284px !important;
                         aspect-ratio: auto !important;
@@ -2523,7 +2523,7 @@ export default function NewsHub() {
                         position: relative !important;
                     }
 
-                    .reels-carousel .reel-thumbnail img {
+                    .reels-carousel :global(.reel-thumbnail img) {
                         position: absolute !important;
                         top: 0 !important;
                         left: 0 !important;
