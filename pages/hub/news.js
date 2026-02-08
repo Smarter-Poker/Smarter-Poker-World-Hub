@@ -2511,13 +2511,13 @@ export default function NewsHub() {
 
                     .reels-carousel :global(.reel-card) {
                         flex-shrink: 0 !important;
-                        width: 160px !important;
-                        max-width: 160px !important;
+                        width: 220px !important;
+                        max-width: 220px !important;
                     }
 
                     .reels-carousel :global(.reel-thumbnail) {
                         width: 100% !important;
-                        height: 284px !important;
+                        height: 391px !important;
                         aspect-ratio: auto !important;
                         overflow: hidden !important;
                         position: relative !important;
