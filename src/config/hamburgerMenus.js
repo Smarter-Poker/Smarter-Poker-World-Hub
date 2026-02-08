@@ -371,7 +371,7 @@ export const MENU_CONFIGS = {
             createMenuItem.section('Views'),
             createMenuItem.navigation('Dashboard', '/hub/bankroll-manager?view=dashboard'),
             createMenuItem.navigation('Log Session', '/hub/bankroll-manager?view=log-session'),
-            createMenuItem.navigation('Trips & Expenses', '/hub/bankroll-manager?view=trips'),
+            createMenuItem.navigation('Trip Tracker', '/hub/bankroll-manager?view=trips'),
             createMenuItem.navigation('Leaks Analysis', '/hub/bankroll-manager?view=leaks'),
             createMenuItem.navigation('Reports', '/hub/bankroll-manager?view=reports'),
             createMenuItem.divider(),

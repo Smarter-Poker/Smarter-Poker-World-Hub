@@ -59,12 +59,14 @@ import TaxReportPanel from '../../src/components/bankroll/TaxReportPanel';
 import StakingTracker from '../../src/components/bankroll/StakingTracker';
 import SeriesTracker from '../../src/components/bankroll/SeriesTracker';
 import SessionHandReview from '../../src/components/bankroll/SessionHandReview';
+import TripTracker from '../../src/components/bankroll/TripTracker';
+import { getActiveTrip } from '../../src/lib/bankroll/bankrollSelectors';
 
 // Clean Facebook-style navigation (no emojis)
 const SIDEBAR_SECTIONS = [
   { id: 'dashboard', label: 'Dashboard', icon: '' },
   { id: 'log-session', label: 'Log Session', icon: '' },
-  { id: 'trips', label: 'Trips & Expenses', icon: '' },
+  { id: 'trips', label: 'Trip Tracker', icon: '' },
   { id: 'players', label: 'Player Notes', icon: '' },
   { id: 'leaks', label: 'Leaks', icon: '' },
   { id: 'reports', label: 'Reports', icon: '' },
@@ -511,7 +513,7 @@ export default function BankrollManagerPage() {
             <div style={styles.contentHeader}>
               <h1 style={styles.pageTitle}>
                 {activeSection === 'dashboard' && 'Bankroll Manager'}
-                {activeSection === 'trips' && 'Trips & Expenses'}
+                {activeSection === 'trips' && 'Trip Tracker'}
                 {activeSection === 'players' && 'Player Notes'}
                 {activeSection === 'leaks' && 'Leak Analysis'}
                 {activeSection === 'reports' && 'Reports'}
@@ -634,31 +636,12 @@ export default function BankrollManagerPage() {
               </>
             )}
 
-            {/* Trips View */}
+            {/* Trip Tracker View */}
             {activeSection === 'trips' && (
-              <div style={styles.activitySection}>
-                <h2 style={styles.sectionTitle}>All Trips</h2>
-                {trips.length === 0 ? (
-                  <div style={{ padding: '40px 20px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.5 }}>✈️</div>
-                    <p style={{ fontSize: 16, fontWeight: 600, color: '#fff', margin: '0 0 8px' }}>No trips yet</p>
-                    <p style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.5)', margin: 0 }}>Create a trip to track travel expenses and poker winnings together</p>
-                  </div>
-                ) : (
-                  trips.map((trip) => (
-                    <div key={trip.id} style={styles.tripCard}>
-                      <div style={styles.tripInfo}>
-                        <span style={styles.tripName}>{trip.name}:</span>
-                        <span style={{ ...styles.tripNet, color: (trip.totalNet || 0) >= 0 ? '#22c55e' : '#ef4444' }}>
-                          {(trip.totalNet || 0) >= 0 ? '+' : '-'}${Math.abs(trip.totalNet || 0).toLocaleString()}
-                        </span>
-                        <span style={styles.tripExpenses}>Net / ${(trip.totalExpenses || 0).toLocaleString()} Expenses</span>
-                      </div>
-                      <span style={styles.tripArrow}>›</span>
-                    </div>
-                  ))
-                )}
-              </div>
+              <TripTracker
+                userId={userId}
+                onOpenLog={() => setShowLogModal(true)}
+              />
             )}
 
             {/* Leaks View */}

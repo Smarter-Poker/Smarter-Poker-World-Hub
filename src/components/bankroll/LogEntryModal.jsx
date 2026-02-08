@@ -6,7 +6,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
-import { createLedgerEntry, updateLedgerEntry } from '../../lib/bankroll/bankrollSelectors';
+import { createLedgerEntry, updateLedgerEntry, getActiveTrip } from '../../lib/bankroll/bankrollSelectors';
 import { getOrCreateLocation, detectNearbyLocation } from '../../lib/bankroll/locationMemory';
 import { checkRuleViolations } from '../../lib/bankroll/leakDetection';
 import toast from '../../stores/toastStore';
@@ -107,6 +107,7 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, onC
   };
 
   const [formData, setFormData] = useState(buildInitialFormData);
+  const [activeTrip, setActiveTrip] = useState(null);
 
   // Auto-detect location on mount
   useEffect(() => {
@@ -132,6 +133,17 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, onC
       );
     }
   }, [userId]);
+
+  // Auto-attach active trip for new entries
+  useEffect(() => {
+    if (!userId || isEditMode) return;
+    getActiveTrip(userId).then(trip => {
+      if (trip) {
+        setActiveTrip(trip);
+        setFormData(prev => ({ ...prev, trip_id: trip.id }));
+      }
+    }).catch(() => { });
+  }, [userId, isEditMode]);
 
   const handleCategorySelect = (cat) => {
     setCategory(cat);
@@ -543,6 +555,20 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, onC
               style={styles.input}
             />
           </div>
+          {/* Active Trip Banner */}
+          {activeTrip && !isEditMode && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              background: 'rgba(16, 185, 129, 0.1)',
+              border: '1px solid rgba(16, 185, 129, 0.25)',
+              borderRadius: 8, padding: '10px 14px', marginBottom: 12
+            }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px rgba(16,185,129,0.5)', flexShrink: 0 }} />
+              <span style={{ fontSize: 13, color: '#10b981', fontWeight: 500 }}>
+                📍 Adding to: <strong>{activeTrip.name}</strong>
+              </span>
+            </div>
+          )}
           {trips.length > 0 && (
             <div style={styles.formGroup}>
               <label style={styles.label}>Trip</label>
@@ -554,7 +580,7 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, onC
                 <option value="">None</option>
                 {trips.map((trip) => (
                   <option key={trip.id} value={trip.id}>
-                    {trip.name}
+                    {trip.name}{trip.status === 'active' ? ' (Active)' : ''}
                   </option>
                 ))}
               </select>

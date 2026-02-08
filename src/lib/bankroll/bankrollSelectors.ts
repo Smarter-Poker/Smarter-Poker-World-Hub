@@ -43,8 +43,11 @@ export interface Trip {
   end_date: string | null;
   purpose: string | null;
   notes: string | null;
+  status: 'active' | 'completed' | 'deleted';
   totalNet?: number;
   totalExpenses?: number;
+  entryCount?: number;
+  categoryBreakdown?: Record<string, { count: number; net: number }>;
 }
 
 export interface BankrollRule {
@@ -287,7 +290,7 @@ export async function deleteLedgerEntry(
 }
 
 /**
- * Fetch user's trips
+ * Fetch user's trips (excludes deleted)
  */
 export async function fetchTrips(userId: string): Promise<Trip[]> {
   const { data, error } = await supabase
@@ -299,6 +302,7 @@ export async function fetchTrips(userId: string): Promise<Trip[]> {
     `
     )
     .eq('user_id', userId)
+    .neq('status', 'deleted')
     .order('start_date', { ascending: false });
 
   if (error) throw error;
@@ -329,6 +333,7 @@ export async function fetchTrips(userId: string): Promise<Trip[]> {
       location_name: trip.bankroll_locations?.name || null,
       totalNet: totalNet - totalExpenses,
       totalExpenses,
+      entryCount: entries?.length || 0,
     });
   }
 
@@ -336,12 +341,68 @@ export async function fetchTrips(userId: string): Promise<Trip[]> {
 }
 
 /**
- * Create a new trip
+ * Get the user's currently active trip (only one allowed at a time)
+ */
+export async function getActiveTrip(userId: string): Promise<Trip | null> {
+  const { data, error } = await supabase
+    .from('bankroll_trips')
+    .select(`*, bankroll_locations(name)`)
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  // Get entries for running totals
+  const { data: entries } = await supabase
+    .from('bankroll_ledger')
+    .select('net_result, category')
+    .eq('user_id', userId)
+    .eq('trip_id', data.id)
+    .eq('is_revision', false);
+
+  let totalNet = 0;
+  let totalExpenses = 0;
+  const categoryBreakdown: Record<string, { count: number; net: number }> = {};
+
+  entries?.forEach((e) => {
+    const cat = e.category || 'other';
+    if (!categoryBreakdown[cat]) categoryBreakdown[cat] = { count: 0, net: 0 };
+    categoryBreakdown[cat].count++;
+    if (cat === 'expense') {
+      totalExpenses += Math.abs(e.net_result || 0);
+      categoryBreakdown[cat].net -= Math.abs(e.net_result || 0);
+    } else {
+      totalNet += e.net_result || 0;
+      categoryBreakdown[cat].net += e.net_result || 0;
+    }
+  });
+
+  return {
+    ...data,
+    location_name: data.bankroll_locations?.name || null,
+    totalNet: totalNet - totalExpenses,
+    totalExpenses,
+    entryCount: entries?.length || 0,
+    categoryBreakdown,
+  };
+}
+
+/**
+ * Create a new trip (enforces single-active-trip rule)
  */
 export async function createTrip(
   userId: string,
   trip: Partial<Trip>
 ): Promise<Trip> {
+  // Check for existing active trip
+  const existing = await getActiveTrip(userId);
+  if (existing) {
+    throw new Error('You already have an active trip. Complete or delete it before starting a new one.');
+  }
+
   const { data, error } = await supabase
     .from('bankroll_trips')
     .insert({
@@ -352,12 +413,141 @@ export async function createTrip(
       end_date: trip.end_date,
       purpose: trip.purpose,
       notes: trip.notes,
+      status: 'active',
     })
     .select()
     .single();
 
   if (error) throw error;
   return data;
+}
+
+/**
+ * Complete an active trip — sets status to 'completed' and end_date
+ */
+export async function completeTrip(userId: string, tripId: string): Promise<Trip> {
+  const { data, error } = await supabase
+    .from('bankroll_trips')
+    .update({
+      status: 'completed',
+      end_date: new Date().toISOString().split('T')[0],
+    })
+    .eq('user_id', userId)
+    .eq('id', tripId)
+    .eq('status', 'active')
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Delete an active trip — unlinks all entries and marks trip as deleted
+ */
+export async function deleteTrip(userId: string, tripId: string): Promise<void> {
+  // Unlink all entries from this trip
+  await supabase
+    .from('bankroll_ledger')
+    .update({ trip_id: null })
+    .eq('user_id', userId)
+    .eq('trip_id', tripId);
+
+  // Mark trip as deleted
+  const { error } = await supabase
+    .from('bankroll_trips')
+    .update({ status: 'deleted' })
+    .eq('user_id', userId)
+    .eq('id', tripId);
+
+  if (error) throw error;
+}
+
+/**
+ * Get detailed trip report for a completed trip
+ */
+export async function getTripReport(userId: string, tripId: string) {
+  // Get trip info
+  const { data: trip, error: tripError } = await supabase
+    .from('bankroll_trips')
+    .select(`*, bankroll_locations(name)`)
+    .eq('user_id', userId)
+    .eq('id', tripId)
+    .single();
+
+  if (tripError) throw tripError;
+
+  // Get all entries for this trip
+  const { data: entries, error: entriesError } = await supabase
+    .from('bankroll_ledger')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('trip_id', tripId)
+    .eq('is_revision', false)
+    .order('entry_date', { ascending: true });
+
+  if (entriesError) throw entriesError;
+
+  // Calculate stats
+  let totalNet = 0;
+  let totalExpenses = 0;
+  let biggestWin = 0;
+  let biggestLoss = 0;
+  let sessionCount = 0;
+  const dailyBreakdown: Record<string, number> = {};
+  const categoryBreakdown: Record<string, { count: number; net: number; grossIn: number; grossOut: number }> = {};
+
+  (entries || []).forEach((e: any) => {
+    const cat = e.category || 'other';
+    if (!categoryBreakdown[cat]) categoryBreakdown[cat] = { count: 0, net: 0, grossIn: 0, grossOut: 0 };
+    categoryBreakdown[cat].count++;
+    categoryBreakdown[cat].grossIn += e.gross_in || 0;
+    categoryBreakdown[cat].grossOut += e.gross_out || 0;
+
+    if (cat === 'expense') {
+      totalExpenses += Math.abs(e.net_result || 0);
+      categoryBreakdown[cat].net -= Math.abs(e.net_result || 0);
+    } else {
+      const net = e.net_result || 0;
+      totalNet += net;
+      categoryBreakdown[cat].net += net;
+      sessionCount++;
+      if (net > biggestWin) biggestWin = net;
+      if (net < biggestLoss) biggestLoss = net;
+    }
+
+    // Daily breakdown
+    const day = e.entry_date;
+    dailyBreakdown[day] = (dailyBreakdown[day] || 0) + (e.net_result || 0);
+  });
+
+  const winCount = (entries || []).filter((e: any) => e.category !== 'expense' && (e.net_result || 0) > 0).length;
+  const startDate = new Date(trip.start_date);
+  const endDate = trip.end_date ? new Date(trip.end_date) : new Date();
+  const durationDays = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+
+  return {
+    trip: {
+      ...trip,
+      location_name: trip.bankroll_locations?.name || null,
+    },
+    entries: entries || [],
+    stats: {
+      totalNet: totalNet - totalExpenses,
+      totalExpenses,
+      totalGrossNet: totalNet,
+      sessionCount,
+      entryCount: (entries || []).length,
+      winRate: sessionCount > 0 ? Math.round((winCount / sessionCount) * 100) : 0,
+      biggestWin,
+      biggestLoss,
+      durationDays,
+      avgPerDay: durationDays > 0 ? Math.round((totalNet - totalExpenses) / durationDays) : 0,
+      avgPerSession: sessionCount > 0 ? Math.round(totalNet / sessionCount) : 0,
+    },
+    categoryBreakdown,
+    dailyBreakdown,
+  };
 }
 
 /**
