@@ -1811,28 +1811,28 @@ export default function NewsHub() {
                         .header-left {
                             width: 100% !important;
                             max-width: 100vw !important;
-                            overflow-x: auto !important;
-                            justify-content: flex-start !important;
+                            overflow-x: hidden !important;
+                            justify-content: center !important;
                             height: auto !important;
                         }
 
                         .section-tabs {
-                            overflow-x: auto !important;
+                            overflow-x: hidden !important;
                             width: 100% !important;
                             max-width: 100vw !important;
-                            justify-content: flex-start !important;
+                            justify-content: center !important;
                             -webkit-overflow-scrolling: touch;
                         }
 
                         .section-tab-img,
                         .refresh-btn-img {
-                            height: 60px !important;
+                            height: 80px !important;
                             flex-shrink: 0 !important;
                         }
 
                         .section-tab-img img,
                         .refresh-btn-img img {
-                            height: 60px !important;
+                            height: 80px !important;
                         }
 
                         .main-content {
@@ -3137,28 +3137,28 @@ export default function NewsHub() {
                         .header-left {
                             width: 100% !important;
                             max-width: 100vw !important;
-                            overflow-x: auto !important;
-                            justify-content: flex-start !important;
+                            overflow-x: hidden !important;
+                            justify-content: center !important;
                             height: auto !important;
                         }
 
                         .section-tabs {
-                            overflow-x: auto !important;
+                            overflow-x: hidden !important;
                             width: 100% !important;
                             max-width: 100vw !important;
-                            justify-content: flex-start !important;
+                            justify-content: center !important;
                             -webkit-overflow-scrolling: touch;
                         }
 
                         .section-tab-img,
                         .refresh-btn-img {
-                            height: 60px !important;
+                            height: 80px !important;
                             flex-shrink: 0 !important;
                         }
 
                         .section-tab-img img,
                         .refresh-btn-img img {
-                            height: 60px !important;
+                            height: 80px !important;
                         }
 
                         /* === MAIN CONTENT === */
