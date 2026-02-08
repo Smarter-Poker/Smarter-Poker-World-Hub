@@ -2510,24 +2510,26 @@ export default function NewsHub() {
                     }
 
                     .reels-carousel .reel-card {
-                        flex-shrink: 0;
-                        width: 160px;
+                        flex-shrink: 0 !important;
+                        width: 160px !important;
+                        max-width: 160px !important;
                     }
 
                     .reels-carousel .reel-thumbnail {
-                        width: 100%;
-                        height: 284px;
-                        aspect-ratio: auto;
-                        overflow: hidden;
+                        width: 100% !important;
+                        height: 284px !important;
+                        aspect-ratio: auto !important;
+                        overflow: hidden !important;
+                        position: relative !important;
                     }
 
                     .reels-carousel .reel-thumbnail img {
-                        position: absolute;
-                        top: 0;
-                        left: 0;
-                        width: 100%;
-                        height: 100%;
-                        object-fit: cover;
+                        position: absolute !important;
+                        top: 0 !important;
+                        left: 0 !important;
+                        width: 100% !important;
+                        height: 100% !important;
+                        object-fit: cover !important;
                     }
 
                     .videos-carousel {

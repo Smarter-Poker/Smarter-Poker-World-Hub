@@ -328,7 +328,7 @@ export default function UniversalHeader({
                     display: flex;
                     align-items: center;
                     gap: 10px;
-                    flex: 1;
+                    flex-shrink: 1;
                     justify-content: center;
                 }
                 
@@ -451,7 +451,7 @@ export default function UniversalHeader({
                     
                     .header-center {
                         gap: 6px;
-                        flex: 1;
+                        flex-shrink: 0;
                     }
                     
                     .header-right {
