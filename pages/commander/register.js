@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { supabase } from '@/src/lib/supabase';
 
 const TIERS = {
   starter: {
@@ -139,7 +138,7 @@ export default function RegisterPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center text-3xl">♠️</div>
+            <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center text-3xl">&#9824;</div>
           </div>
           <h1 className="text-4xl font-bold text-white mb-2">Get Started with Club Commander</h1>
           <p className="text-gray-400">Set up your poker room in minutes - 14-day free trial</p>
@@ -154,7 +153,7 @@ export default function RegisterPage() {
               <div key={idx} className="flex flex-col items-center relative z-10">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${
                   step > idx + 1 ? 'bg-green-500 text-white' : step === idx + 1 ? 'bg-purple-500 text-white ring-4 ring-purple-500/30' : 'bg-gray-700 text-gray-400'
-                }`}>{step > idx + 1 ? '✓' : idx + 1}</div>
+                }`}>{step > idx + 1 ? '\u2713' : idx + 1}</div>
                 <span className={`text-xs mt-2 ${step === idx + 1 ? 'text-white' : 'text-gray-500'}`}>{label}</span>
               </div>
             ))}
@@ -162,7 +161,7 @@ export default function RegisterPage() {
         </div>
 
         <div className="max-w-2xl mx-auto bg-gray-800/50 backdrop-blur-xl rounded-2xl p-8 border border-gray-700/50">
-          {error && <div className="mb-6 p-4 bg-red-500/10 border border-red-500/50 rounded-xl text-red-400 text-sm">⚠️ {error}</div>}
+          {error && <div className="mb-6 p-4 bg-red-500/10 border border-red-500/50 rounded-xl text-red-400 text-sm">{error}</div>}
 
           {step === 1 && (
             <div className="space-y-5">
@@ -206,12 +205,12 @@ export default function RegisterPage() {
                     {tier.popular && <span className="absolute -top-3 left-4 px-3 py-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs rounded-full">Most Popular</span>}
                     <div className="flex justify-between items-start">
                       <div className="flex items-start gap-3">
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedTier === key ? 'border-purple-500 bg-purple-500' : 'border-gray-500'}`}>{selectedTier === key && <span className="text-white text-xs">✓</span>}</div>
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedTier === key ? 'border-purple-500 bg-purple-500' : 'border-gray-500'}`}>{selectedTier === key && <span className="text-white text-xs">{'\u2713'}</span>}</div>
                         <div><h3 className="text-xl font-semibold text-white">{tier.name}</h3><p className="text-gray-400 text-sm">Up to {tier.tables} tables - {tier.staff} staff - {tier.sms} SMS/mo</p></div>
                       </div>
                       <div><span className="text-3xl font-bold text-white">${tier.price}</span><span className="text-gray-400">/mo</span></div>
                     </div>
-                    <ul className="mt-4 ml-8 space-y-1">{tier.features.map((f, i) => <li key={i} className="text-sm text-gray-300"><span className="text-green-400">✓</span> {f}</li>)}</ul>
+                    <ul className="mt-4 ml-8 space-y-1">{tier.features.map((f, i) => <li key={i} className="text-sm text-gray-300">{'\u2713'} {f}</li>)}</ul>
                   </div>
                 ))}
               </div>
@@ -222,7 +221,7 @@ export default function RegisterPage() {
 
           {step === 4 && (
             <div className="text-center space-y-6">
-              <div className="w-20 h-20 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto text-4xl">✓</div>
+              <div className="w-20 h-20 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto text-4xl">{'\u2713'}</div>
               <h2 className="text-2xl font-semibold text-white">Welcome to Club Commander!</h2>
               <p className="text-gray-400">Your account has been created.</p>
               {registrationResult && <div className="bg-gray-700/50 rounded-xl p-5 text-left"><div className="flex justify-between mb-2"><span className="text-gray-400">Venue ID:</span><span className="text-white font-mono">{registrationResult.venueId}</span></div><div className="flex justify-between"><span className="text-gray-400">Plan:</span><span className="text-white">{selectedTier} (14-day trial)</span></div></div>}
