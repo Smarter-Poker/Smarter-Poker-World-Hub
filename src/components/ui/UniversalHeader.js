@@ -371,10 +371,10 @@ export default function UniversalHeader({
                     align-items: center;
                     justify-content: center;
                     gap: 4px;
-                    background: linear-gradient(135deg, rgba(0, 212, 255, 0.15) 0%, rgba(0, 100, 150, 0.2) 100%);
-                    border: 1px solid rgba(0, 212, 255, 0.4);
+                    background: transparent;
+                    border: none;
                     padding: 0 10px;
-                    border-radius: 12px;
+                    border-radius: 0;
                     text-decoration: none;
                     color: white;
                     width: 90px;
