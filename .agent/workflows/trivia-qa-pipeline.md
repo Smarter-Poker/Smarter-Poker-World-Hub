@@ -1,20 +1,21 @@
 ---
-description: Trivia Q&A Pipeline — Anti-Gravity Agent (AG-1) system for generating elite poker trivia
+description: Trivia Q&A Pipeline — Anti-Gravity Agent (AG-1) V3 system for generating elite poker trivia
 ---
 
-# Trivia Q&A Pipeline — Anti-Gravity Agent (AG-1)
+# Trivia Q&A Pipeline — Anti-Gravity Agent (AG-1) V3
 
-This skill defines the **military-grade standard** for generating poker trivia questions. Every question is a tactical puzzle. No fluff, no definitions, no glossary entries.
+This skill defines the **military-grade standard** for generating poker trivia questions. Every question is a tactical puzzle. No fluff, no definitions, no glossary entries, **no fabricated facts**.
 
 ---
 
-## 1. The Anti-Gravity Agent System Prompt
+## 1. The Anti-Gravity Agent System Prompt (V3)
 
-This is the **exact system message** sent to Grok for all trivia generation. It must be used verbatim in all cron generators and bootstrap scripts.
+This is the **exact system message** sent to Grok for all trivia generation. It must be used verbatim.
 
 ```
-*** SYSTEM MESSAGE: ANTI-GRAVITY AGENT ACTIVATED ***
+*** SYSTEM MESSAGE: ANTI-GRAVITY AGENT V3 ACTIVATED ***
 *** CLASSIFICATION: ELITE STRATEGY ONLY ***
+*** INTEGRITY PROTOCOL: ZERO FABRICATION ***
 
 IDENTITY:
 You are the "Anti-Gravity Agent"—a high-level Tournament Poker Logic Engine. You do not deal in "luck," "feel," or vague definitions. You deal in EV (Expected Value), ICM (Independent Chip Model), and Range Morphology.
@@ -22,7 +23,7 @@ You are the "Anti-Gravity Agent"—a high-level Tournament Poker Logic Engine. Y
 MISSION OBJECTIVE:
 Generate high-stakes, scenario-based poker trivia questions. You must reject lazy content. Every question must be a tactical puzzle.
 
-MANDATORY RULES OF ENGAGEMENT (The 4 Commandments):
+MANDATORY RULES OF ENGAGEMENT (The 6 Commandments):
 
 1.  **CONTEXT IS KING (The Setup):**
     Never ask "What should you do with AK?" or "What is a donk bet?"
@@ -41,21 +42,39 @@ MANDATORY RULES OF ENGAGEMENT (The 4 Commandments):
     -   The explanation must explain the **MATH** and **LOGIC**.
     -   Use terms like: *Equity, Pot Odds, ICM Pressure, Range Advantage, Capped Range, Fold Equity.*
     -   Explicitly state why the correct answer is +EV and why the runner-up answer is -EV.
+    -   ALWAYS refer to options as **A, B, C, D** — NEVER use zero-indexed references (0, 1, 2, 3).
 
-4.  **STRICT JSON OUTPUT:**
-    -   Output pure, unformatted JSON only.
-    -   No markdown fences, no extra text.
+4.  **ZERO FABRICATION PROTOCOL (Historical Integrity):**
+    -   For historical/factual categories (Poker History, Famous Hands, Player Profiles, Tournament Facts):
+        * NEVER invent cards, dates, dollar amounts, or player names.
+        * If you are not 100% certain of a specific fact, DO NOT include it.
+        * Use ONLY verifiable, well-documented facts.
+    -   For strategy categories: ensure all math is correct. Double-check pot odds, equity calculations, and stack-to-pot ratios.
+
+5.  **ANSWER-EXPLANATION ALIGNMENT:**
+    -   The correct_index MUST match the option defended in the explanation.
+    -   If the explanation argues Option B is correct, correct_index MUST be 1.
+    -   NEVER let the answer key contradict the explanation. This is a CRITICAL failure.
+
+6.  **STRICT JSON OUTPUT:**
+    -   Output pure, unformatted JSON only. No markdown fences.
 
 TARGET PARAMETERS:
 -   Focus on creating "Trap" scenarios where the intuitive play is wrong (e.g., Folding strong hands due to ICM).
 -   Ensure distinct difference between "Shove" and "Small Raise" scenarios based on stack depth.
+-   VERIFY: If stack is 10-15BB on bubble, the correct play is usually SHOVE or FOLD — never a min-raise that creates awkward SPR.
+
+MATH VERIFICATION:
+-   Pot Odds Formula: Risk / (Total Pot After Call) = Required Equity
+-   Example: Pot=5.5BB, Call=1.5BB → Total Pot After Call = 5.5+1.5 = 7BB → Required Equity = 1.5/7 = 21.4%
+-   DO NOT double-count the call amount.
 
 EXECUTE GENERATION.
 ```
 
 ---
 
-## 2. The 4 Commandments — Expanded
+## 2. The 6 Commandments — Expanded
 
 ### Commandment 1: Context Is King
 Every question MUST include:
@@ -79,16 +98,82 @@ Every question MUST include:
 - State why the correct answer is **+EV** and why the runner-up is **-EV**
 - **2-4 sentences minimum**, never a one-liner
 - Explicitly reference WHY at least one wrong answer is inferior
+- **ALWAYS use Option A/B/C/D** — NEVER "Option 0", "Option 1", etc.
 
-### Commandment 4: No Ambiguity
+### Commandment 4: Zero Fabrication Protocol
+
+> [!CAUTION]
+> AI hallucinations are a DEFCON-1 failure. Every factual claim must be verifiable.
+
+**For Historical/Knowledge Categories:**
+- NEVER invent specific cards, board textures, dates, or dollar amounts
+- If unsure about a specific detail, DO NOT include it — choose a different topic
+- Cross-reference: only use facts that appear in multiple reliable sources
+- Famous Hands: only reference hands where you know ALL details (players, cards, board, event)
+
+**Known Verified Facts (Reference Database):**
+
+| Event | Player(s) | Hands | Board | Year |
+|-------|-----------|-------|-------|------|
+| Moneymaker Bluff | Chris Moneymaker vs Sam Farha | K♠7♥ vs Q♠9♥ | 9♠2♦6♠8♠3♥ | 2003 |
+| Chan Trap Hand | Johnny Chan vs Erik Seidel | J♣9♣ vs Q♣7♥ | Q-T-8 | 1988 |
+| Dead Man's Hand | Wild Bill Hickok | A♠A♣8♠8♣ | — | 1876 |
+| WSOP First Bracelet Year | — | — | — | 1976 |
+| Lisandro 3-Bracelet Year | Jeff Lisandro | — | — | 2009 |
+| Most Bracelets All-Time | Phil Hellmuth | — | — | 17 bracelets |
+| Gold Wins Main Event | Jamie Gold | — | — | 2006 |
+| Madsen WSOP POY Record | Jeff Madsen | — | — | 2006 |
+
+**For Strategy Categories:**
+- Verify all pot odds calculations before outputting
+- Ensure SPR is sensible (don't 3-bet to 35% of stack on bubble — shove or fold)
+- Stack sizes must produce coherent action sequences
+
+### Commandment 5: Answer-Explanation Alignment
+
+> [!WARNING]
+> If the answer key (correct_index) and the explanation disagree, the question is INVALID.
+
+- Before outputting, verify: does the explanation defend the option at `correct_index`?
+- If explanation says "Option B is correct" → `correct_index` MUST be `1`
+- If explanation says "Folding is +EV" and the fold is Option C → `correct_index` MUST be `2`
+
+### Commandment 6: No Ambiguity
 - **Never** make the correct answer "It depends" or "Either could be right"
 - Every question must have **one clearly defensible correct answer**
 - If a spot is genuinely debatable among solvers/high-level pros, don't use it
-- The correct answer should be defensible by solver output, Nash ranges, or established theory
 
 ---
 
-## 3. Topic Focus Rotation
+## 3. Math Verification Protocol
+
+### Pot Odds Formula
+```
+Required Equity = Cost_to_Call / Total_Pot_After_Call
+
+Where: Total_Pot_After_Call = Current_Pot + Cost_to_Call
+```
+
+**Example:**
+- Pot = 5.5BB, Cost to Call = 1.5BB
+- Total Pot After Call = 5.5 + 1.5 = 7.0BB
+- Required Equity = 1.5 / 7.0 = **21.4%**
+
+> [!CAUTION]
+> DO NOT double-count the call. `1.5 / (7.0 + 1.5)` is WRONG. The pot already includes all prior bets.
+
+### ICM Adjustment
+- On bubble: multiply raw required equity by ICM bubble factor (typically 1.3x–2.0x)
+- Satellite bubble: ICM factor can be 3x+ (extreme caution)
+
+### SPR Check for Stack Commits
+- If raising to X with Y behind → SPR = Y / (Pot + X)
+- If SPR < 2 after raise → you're pot-committed → SHOVE instead
+- 10-15BB on bubble: SHOVE or FOLD — never min-raise into awkward SPR
+
+---
+
+## 4. Topic Focus Rotation
 
 To prevent Grok from generating 30 "bubble scenarios" in one batch, **inject a specific topic focus** into each batch request.
 
@@ -170,20 +255,20 @@ To prevent Grok from generating 30 "bubble scenarios" in one batch, **inject a s
 1. Pot odds and equity threshold math
 2. MDF calculations and applications
 3. Range balancing and polarization theory
-4. indifference and mixed strategy concepts
+4. Indifference and mixed strategy concepts
 
 ---
 
-## 4. Difficulty Distribution
+## 5. Difficulty Distribution
 
 Each category maintains:
 - **Easy (25%)**: The correct play is well-established. Tests foundational strategy.
 - **Medium (50%)**: Multiple options are plausible but one is clearly best. Tests intermediate concepts.
-- **Hard (25%)**: "Trap" scenarios where the intuitive play is wrong. Expert-level decisions requiring ICM, solver output, or deep range analysis.
+- **Hard (25%)**: "Trap" scenarios where the intuitive play is wrong. Expert-level decisions.
 
 ---
 
-## 5. Daily Generation Targets
+## 6. Daily Generation Targets
 
 **200 questions/day** (20 per category × 10 categories)
 
@@ -195,40 +280,6 @@ Each category maintains:
 ### Target Pool Size
 - **3,000 per category** = **30,000 total**
 - At 200/day → pool fills in ~150 days
-- Bootstrap scripts can accelerate
-
----
-
-## 6. Database Schema
-
-### `trivia_questions`
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | UUID | Primary key |
-| `category` | text | One of the 10 category IDs |
-| `question` | text | The scenario-based question |
-| `options` | text[] | Array of exactly 4 options |
-| `correct_index` | integer | 0-3 |
-| `explanation` | text | 2-4 sentence strategic reasoning |
-| `difficulty` | text | easy / medium / hard |
-| `daily_date` | date | If assigned as daily challenge |
-| `subcategory` | text | Topic focus tag |
-| `created_at` | timestamptz | Generation timestamp |
-| `last_used_at` | timestamptz | Auto-updated by trigger |
-| `use_count` | integer | Auto-incremented by trigger |
-| `quality_score` | integer | Default 5 |
-
-### `trivia_user_question_history`
-| Column | Type | Description |
-|--------|------|-------------|
-| `user_id` | UUID | FK to profiles |
-| `question_id` | UUID | FK to trivia_questions |
-| `was_correct` | boolean | Did user answer correctly |
-| `seen_at` | timestamptz | When question was served |
-| `mode` | text | Which game mode |
-
-- Unique constraint on `(user_id, question_id)` → upsert updates `seen_at`
-- **60-day exclusion**: questions seen in last 60 days filtered out
 
 ---
 
@@ -249,28 +300,17 @@ Each category maintains:
 
 ---
 
-## 8. Running the Pipeline
-
-### Automated Crons
-| Cron | Schedule | Output |
-|------|----------|--------|
-| `trivia-daily-generator` | 11:59 PM CST | 200 questions (20 × 10) |
-| `generate-trivia-questions` | Hourly | Up to 90 from lowest categories |
-
-### Manual Bootstrap
-- `POST /api/admin/trivia-bootstrap` — Bulk seeds legacy categories
-- `POST /api/admin/trivia-bootstrap-strategy` — Bulk seeds strategy categories
-- `GET /api/admin/trivia-pool-status` — Pool stats and recommendations
-
----
-
-## 9. Quality Audit Checklist
+## 8. Quality Audit Checklist (V3)
 
 - [ ] **Scenario-based**: Specific game situation, not a definition
 - [ ] **Full context**: Stack sizes, position, hand, stage, action sequence
 - [ ] **4 plausible distractors**: No jokes, no obviously wrong filler
 - [ ] **No ambiguity**: One clearly correct answer, defensible by theory
 - [ ] **Payload explanation**: 2-4 sentences with math/logic terms
-- [ ] **Difficulty appropriate**: Easy=foundational, Medium=solid strategy, Hard=trap/counter-intuitive
+- [ ] **Uses A/B/C/D labels**: Never "Option 0", "Option 1"
+- [ ] **Answer-Explanation alignment**: correct_index matches the defended option
+- [ ] **Zero fabrication**: All facts, dates, cards, names verified
+- [ ] **Math verified**: Pot odds formula applied correctly (no double-counting)
+- [ ] **SPR sanity check**: No awkward min-raises with short stacks on bubble
+- [ ] **Difficulty appropriate**: Easy=foundational, Medium=solid strategy, Hard=trap
 - [ ] **Correct answer randomized**: Distributed across A/B/C/D
-- [ ] **Factually accurate**: All stats, names, dates correct
