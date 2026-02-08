@@ -153,7 +153,7 @@ export default function HelpPage() {
                     gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
                     gap: 16,
                 }}>
-                    <Link href="/hub/messenger" style={{
+                    <Link href="/hub/live-help" style={{
                         textDecoration: 'none',
                         background: C.card,
                         border: `1px solid ${C.border}`,
@@ -168,7 +168,7 @@ export default function HelpPage() {
                             width: 48,
                             height: 48,
                             borderRadius: '50%',
-                            background: 'linear-gradient(135deg, #0084ff, #0066cc)',
+                            background: 'linear-gradient(135deg, #10b981, #059669)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -178,10 +178,10 @@ export default function HelpPage() {
                         </div>
                         <div>
                             <div style={{ color: C.text, fontWeight: 600, fontSize: 16, marginBottom: 4 }}>
-                                Live Chat Support
+                                Live Chat with Geeves
                             </div>
                             <div style={{ color: C.textSec, fontSize: 13 }}>
-                                Message us directly
+                                Your AI support assistant
                             </div>
                         </div>
                     </Link>

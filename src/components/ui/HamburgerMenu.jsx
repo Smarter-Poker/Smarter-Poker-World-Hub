@@ -71,7 +71,7 @@ export default function HamburgerMenu({
         cardBg: '#F0F2F5',
         hoverBg: '#F2F3F5'
     } : {
-        bg: 'linear-gradient(180deg, #0a0a1a 0%, #1a1a3a 100%)',
+        bg: 'linear-gradient(180deg, #0a1628 0%, #0d1f3c 100%)',
         text: '#FFFFFF',
         textSec: '#94a3b8',
         border: 'rgba(59, 130, 246, 0.2)',
