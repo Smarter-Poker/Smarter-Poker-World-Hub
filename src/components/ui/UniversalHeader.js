@@ -564,7 +564,7 @@ export default function UniversalHeader({
                         </span>
                         <span style={{
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 16, fontWeight: 700, color: 'white'
+                            fontSize: 32, fontWeight: 700, color: 'white'
                         }}>+</span>
                     </Link>
                 </div>
