@@ -197,9 +197,7 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                     bottom: 0;
                     border-radius: 16px;
                     border: 5px solid rgba(180, 195, 220, 0.9);
-                    box-shadow: 
-                        inset 0 0 15px 3px rgba(180, 195, 220, 0.6),
-                        0 0 20px rgba(180, 195, 220, 0.5);
+                    box-shadow: inset 0 0 15px 3px rgba(180, 195, 220, 0.6);
                     pointer-events: none;
                     z-index: 100;
                 }
@@ -521,9 +519,7 @@ function VideoCard({ video, onClick }) {
                     bottom: 0;
                     border-radius: 16px;
                     border: 5px solid rgba(180, 195, 220, 0.9);
-                    box-shadow: 
-                        inset 0 0 15px 3px rgba(180, 195, 220, 0.6),
-                        0 0 20px rgba(180, 195, 220, 0.5);
+                    box-shadow: inset 0 0 15px 3px rgba(180, 195, 220, 0.6);
                     pointer-events: none;
                     z-index: 100;
                 }
@@ -695,9 +691,7 @@ function ReelCard({ reel, onClick, openExternal }) {
                     bottom: 0;
                     border-radius: 12px;
                     border: 5px solid rgba(180, 195, 220, 0.9);
-                    box-shadow: 
-                        inset 0 0 15px 3px rgba(180, 195, 220, 0.6),
-                        0 0 20px rgba(180, 195, 220, 0.5);
+                    box-shadow: inset 0 0 15px 3px rgba(180, 195, 220, 0.6);
                     pointer-events: none;
                     z-index: 100;
                 }
@@ -1801,7 +1795,7 @@ export default function NewsHub() {
                         header.header {
                             width: 100% !important;
                             max-width: 100vw !important;
-                            padding: 4px 0 !important;
+                            padding: 5px 0 !important;
                             overflow-x: hidden !important;
                             overflow-y: hidden !important;
                             -webkit-overflow-scrolling: touch;
@@ -3125,7 +3119,7 @@ export default function NewsHub() {
                         header.header {
                             width: 100% !important;
                             max-width: 100vw !important;
-                            padding: 4px 0 !important;
+                            padding: 5px 0 !important;
                             overflow-x: hidden !important;
                             overflow-y: hidden !important;
                             -webkit-overflow-scrolling: touch;
