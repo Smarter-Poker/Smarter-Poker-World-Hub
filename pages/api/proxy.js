@@ -227,13 +227,20 @@ export default async function handler(req, res) {
 }
 
 /**
- * Rewrites all URLs in HTML to route through our proxy
- * CRITICAL: This is what keeps users within smarter.poker
+ * Rewrites HTML so users stay within smarter.poker when navigating.
+ * 
+ * KEY STRATEGY:
+ * - Navigation links (<a href>) → PROXIED (keeps user in-app)
+ * - Form actions → PROXIED
+ * - Resources (CSS, JS, images, fonts) → ABSOLUTE on original domain (loads directly)
+ * 
+ * This ensures the page renders with full styling, ads, and images
+ * while keeping all link navigation within smarter.poker.
  */
 function rewriteHtml(html, pageUrl, originUrl) {
     const proxyBase = '/api/proxy?url=';
 
-    // Helper to convert relative URLs to absolute
+    // Helper to convert relative URLs to absolute on the ORIGINAL domain
     const toAbsolute = (url) => {
         if (!url) return url;
         if (url.startsWith('data:') || url.startsWith('javascript:') || url.startsWith('#') || url.startsWith('mailto:') || url.startsWith('tel:')) {
@@ -252,7 +259,7 @@ function rewriteHtml(html, pageUrl, originUrl) {
         return url;
     };
 
-    // Helper to create proxied URL
+    // Helper to create proxied URL (only for navigation)
     const toProxied = (url) => {
         const absolute = toAbsolute(url);
         if (!absolute || absolute.startsWith('data:') || absolute.startsWith('javascript:') || absolute.startsWith('#') || absolute.startsWith('mailto:') || absolute.startsWith('tel:')) {
@@ -261,72 +268,74 @@ function rewriteHtml(html, pageUrl, originUrl) {
         return proxyBase + encodeURIComponent(absolute);
     };
 
-    // Rewrite href attributes
-    html = html.replace(/href\s*=\s*["']([^"']+)["']/gi, (match, url) => {
-        return `href="${toProxied(url)}"`;
-    });
+    // ═══════════════════════════════════════════════════════════════════
+    // STEP 1: Inject <base> tag FIRST so remaining relative URLs resolve
+    //         against the ORIGINAL domain (for CSS, JS, images, fonts)
+    // ═══════════════════════════════════════════════════════════════════
 
-    // Rewrite src attributes
-    html = html.replace(/src\s*=\s*["']([^"']+)["']/gi, (match, url) => {
-        return `src="${toProxied(url)}"`;
-    });
+    // Remove any existing base tags first
+    html = html.replace(/<base[^>]*>/gi, '');
 
-    // Rewrite srcset attributes
-    html = html.replace(/srcset\s*=\s*["']([^"']+)["']/gi, (match, srcset) => {
-        const rewritten = srcset.split(',').map(part => {
-            const trimmed = part.trim();
-            const spaceIdx = trimmed.lastIndexOf(' ');
-            if (spaceIdx > 0) {
-                const url = trimmed.substring(0, spaceIdx);
-                const descriptor = trimmed.substring(spaceIdx);
-                return toProxied(url) + descriptor;
-            }
-            return toProxied(trimmed);
-        }).join(', ');
-        return `srcset="${rewritten}"`;
-    });
-
-    // Rewrite CSS url() references
-    html = html.replace(/url\s*\(\s*["']?([^"')]+)["']?\s*\)/gi, (match, url) => {
-        if (url.startsWith('data:')) return match;
-        return `url("${toProxied(url)}")`;
-    });
-
-    // Rewrite action attributes on forms
-    html = html.replace(/action\s*=\s*["']([^"']+)["']/gi, (match, url) => {
-        return `action="${toProxied(url)}"`;
-    });
-
-    // Inject base tag for remaining relative URLs
     const baseTag = `<base href="${originUrl}/">`;
     html = html.replace(/<head([^>]*)>/i, `<head$1>${baseTag}`);
 
-    // Inject navigation interception script
+    // ═══════════════════════════════════════════════════════════════════
+    // STEP 2: Only proxy <a> navigation links (NOT resource links)
+    //         This keeps users within smarter.poker when clicking links
+    // ═══════════════════════════════════════════════════════════════════
+
+    // Proxy <a href="..."> tags only (navigation links)
+    html = html.replace(/<a(\s[^>]*?)href\s*=\s*["']([^"']+)["']([^>]*?)>/gi, (match, before, url, after) => {
+        const absolute = toAbsolute(url);
+        if (!absolute || absolute.startsWith('data:') || absolute.startsWith('javascript:') || absolute.startsWith('#') || absolute.startsWith('mailto:') || absolute.startsWith('tel:')) {
+            return match;
+        }
+        return `<a${before}href="${toProxied(url)}"${after}>`;
+    });
+
+    // Proxy form actions
+    html = html.replace(/<form(\s[^>]*?)action\s*=\s*["']([^"']+)["']([^>]*?)>/gi, (match, before, url, after) => {
+        return `<form${before}action="${toProxied(url)}"${after}>`;
+    });
+
+    // ═══════════════════════════════════════════════════════════════════
+    // STEP 3: DO NOT proxy resource URLs — let them load directly
+    //         The <base> tag ensures relative URLs resolve correctly.
+    //         CSS, JS, images, fonts all load from their original domains.
+    // ═══════════════════════════════════════════════════════════════════
+    // (No rewriting of src, srcset, link href, or css url() — base tag handles it)
+
+    // ═══════════════════════════════════════════════════════════════════
+    // STEP 4: Inject navigation interception script for dynamic links
+    // ═══════════════════════════════════════════════════════════════════
+
     const navScript = `
     <script>
     (function() {
-        // Intercept link clicks
+        // Intercept link clicks to keep navigation within smarter.poker
         document.addEventListener('click', function(e) {
-            const link = e.target.closest('a');
+            var link = e.target.closest('a');
             if (link && link.href) {
-                // Already proxied URLs are fine
+                // Already proxied
                 if (link.href.includes('/api/proxy')) return;
-                // External links should be proxied
+                // Skip anchors, mailto, tel, javascript
+                if (link.href.startsWith('#') || link.href.startsWith('mailto:') || link.href.startsWith('tel:') || link.href.startsWith('javascript:')) return;
+                // Proxy all http links
                 if (link.href.startsWith('http')) {
                     e.preventDefault();
+                    e.stopPropagation();
                     window.location.href = '/api/proxy?url=' + encodeURIComponent(link.href);
                 }
             }
         }, true);
         
-        // Log successful proxy load
         console.log('[Smarter.Poker Proxy] Page loaded successfully:', document.title);
     })();
     </script>
     `;
     html = html.replace(/<\/body>/i, navScript + '</body>');
 
-    // Add visual indicator that user is in proxy mode (non-intrusive)
+    // Small proxy badge (non-intrusive)
     const proxyIndicator = `
     <style>
     .sp-proxy-badge { 
