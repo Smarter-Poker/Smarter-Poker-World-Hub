@@ -179,6 +179,94 @@ export async function fetchLedgerEntry(
 }
 
 /**
+ * Map ledger category to bankroll segment type
+ */
+function categoryToSegment(category: string): string {
+  switch (category) {
+    case 'poker_cash':
+    case 'poker_mtt':
+      return 'poker';
+    case 'casino_table':
+    case 'slots':
+      return 'casino';
+    case 'sports':
+      return 'sports';
+    case 'expense':
+      return 'poker'; // expenses deduct from poker segment
+    default:
+      return 'poker';
+  }
+}
+
+/**
+ * Recalculate the bankroll segment balance from all ledger entries
+ * Called internally after creating/updating ledger entries
+ */
+async function recalculateSegmentBalance(userId: string, segmentType: string): Promise<void> {
+  // Determine which categories belong to this segment
+  let categories: string[] = [];
+  switch (segmentType) {
+    case 'poker':
+      categories = ['poker_cash', 'poker_mtt', 'expense'];
+      break;
+    case 'casino':
+      categories = ['casino_table', 'slots'];
+      break;
+    case 'sports':
+      categories = ['sports'];
+      break;
+    default:
+      return;
+  }
+
+  // Sum all net results for this segment from the ledger
+  const { data: entries } = await supabase
+    .from('bankroll_ledger')
+    .select('gross_in, gross_out, category')
+    .eq('user_id', userId)
+    .eq('is_revision', false)
+    .in('category', categories);
+
+  let segmentTotal = 0;
+  entries?.forEach((e: any) => {
+    if (e.category === 'expense') {
+      segmentTotal -= Math.abs(e.gross_in || 0);
+    } else {
+      segmentTotal += (e.gross_out || 0) - (e.gross_in || 0);
+    }
+  });
+
+  // Get current segment to check if it exists
+  const { data: existing } = await supabase
+    .from('bankroll_segments')
+    .select('current_balance, initial_deposit')
+    .eq('user_id', userId)
+    .eq('segment_type', segmentType)
+    .single();
+
+  if (existing) {
+    // Add initial deposit (from Adjust Bankroll modal) to the ledger-derived total
+    const totalWithDeposits = segmentTotal + (existing.initial_deposit || 0);
+    await supabase
+      .from('bankroll_segments')
+      .update({
+        current_balance: totalWithDeposits,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', userId)
+      .eq('segment_type', segmentType);
+  } else {
+    // Create new segment
+    await supabase.from('bankroll_segments').insert({
+      user_id: userId,
+      segment_type: segmentType,
+      current_balance: segmentTotal,
+      initial_deposit: 0,
+    });
+  }
+}
+
+/**
  * Create a new ledger entry
  */
 export async function createLedgerEntry(
@@ -215,6 +303,15 @@ export async function createLedgerEntry(
     .single();
 
   if (error) throw error;
+
+  // Update the bankroll segment balance
+  try {
+    const segment = categoryToSegment(entry.category || 'poker_cash');
+    await recalculateSegmentBalance(userId, segment);
+  } catch (segError) {
+    console.error('[Bankroll] Failed to update segment balance:', segError);
+  }
+
   return data;
 }
 
@@ -270,6 +367,15 @@ export async function updateLedgerEntry(
     .single();
 
   if (error) throw error;
+
+  // Update the bankroll segment balance
+  try {
+    const segment = categoryToSegment(data.category || updates.category || 'poker_cash');
+    await recalculateSegmentBalance(userId, segment);
+  } catch (segError) {
+    console.error('[Bankroll] Failed to update segment balance:', segError);
+  }
+
   return data;
 }
 
