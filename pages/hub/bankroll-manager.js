@@ -159,6 +159,7 @@ export default function BankrollManagerPage() {
   const [showProjection, setShowProjection] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showAllEntries, setShowAllEntries] = useState(false);
 
   // Hamburger menu preferences
   const [preferences, setPreferences] = useState({
@@ -228,7 +229,6 @@ export default function BankrollManagerPage() {
       const [statsData, entriesData, tripsData, locationsData, leakData] = await Promise.all([
         getBankrollStats(userId, dateRange.startDate, dateRange.endDate, locationFilter),
         fetchLedgerEntries(userId, {
-          category: categoryFilter,
           locationId: locationFilter,
           startDate: dateRange.startDate,
           endDate: dateRange.endDate,
@@ -250,7 +250,7 @@ export default function BankrollManagerPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [userId, categoryFilter, locationFilter, timeFilter]);
+  }, [userId, locationFilter, timeFilter]);
 
   useEffect(() => {
     loadData();
@@ -575,34 +575,34 @@ export default function BankrollManagerPage() {
 
                 {/* Recent Activity Section */}
                 <div style={styles.activitySection}>
-                  <h2 style={styles.sectionTitle}>
-                    {categoryFilter !== 'all'
-                      ? `${CATEGORY_LABELS[categoryFilter] || 'Filtered'} Entries`
-                      : 'Recent Activity'}
-                  </h2>
-                  {categoryFilter !== 'all' && (
-                    <button
-                      onClick={() => {
-                        setCategoryFilter('all');
-                        router.push('/hub/bankroll-manager', undefined, { shallow: true });
-                      }}
-                      style={{
-                        background: 'rgba(255,255,255,0.08)',
-                        border: '1px solid rgba(255,255,255,0.15)',
-                        borderRadius: 6,
-                        padding: '6px 14px',
-                        color: '#fff',
-                        fontSize: 12,
-                        cursor: 'pointer',
-                        marginBottom: 12,
-                      }}
-                    >
-                      ← Show All Entries
-                    </button>
-                  )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                    <h2 style={styles.sectionTitle}>Recent Activity</h2>
+                    {entries.length > 5 && (
+                      <button
+                        onClick={() => setShowAllEntries(!showAllEntries)}
+                        style={{
+                          background: 'rgba(59, 130, 246, 0.15)',
+                          border: '1px solid rgba(59, 130, 246, 0.3)',
+                          borderRadius: 6,
+                          padding: '6px 14px',
+                          color: '#3b82f6',
+                          fontSize: 13,
+                          fontWeight: 500,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {showAllEntries ? 'Show Less' : `View All (${entries.length})`}
+                      </button>
+                    )}
+                  </div>
 
-                  {/* Ledger Timeline */}
-                  <LedgerTimeline entries={entries} isLoading={isLoading} onEdit={handleEditEntry} onDelete={handleDeleteEntry} />
+                  {/* Ledger Timeline — shows last 5 or all */}
+                  <LedgerTimeline
+                    entries={showAllEntries ? entries : entries.slice(0, 5)}
+                    isLoading={isLoading}
+                    onEdit={handleEditEntry}
+                    onDelete={handleDeleteEntry}
+                  />
 
                   {/* Trip Expenses Section */}
                   {trips.length > 0 && (
