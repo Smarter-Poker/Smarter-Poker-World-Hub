@@ -417,14 +417,23 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                         height: auto !important;
                         min-height: auto !important;
                         max-height: none !important;
-                        border-radius: 0 !important;
-                        box-shadow: none !important;
-                        border-bottom: 1px solid rgba(255,255,255,0.1);
+                        border-radius: 12px !important;
+                        box-shadow: 0 4px 16px rgba(0,0,0,0.4) !important;
+                        border: none !important;
                         margin-bottom: 0 !important;
+                        overflow: hidden !important;
                     }
 
                     .news-box::after {
-                        display: none !important;
+                        content: '' !important;
+                        display: block !important;
+                        position: absolute !important;
+                        inset: 0 !important;
+                        border-radius: 12px !important;
+                        border: 4px solid rgba(180, 195, 220, 0.9) !important;
+                        box-shadow: inset 0 0 10px 2px rgba(180, 195, 220, 0.5) !important;
+                        pointer-events: none !important;
+                        z-index: 10 !important;
                     }
 
                     .box-image {
@@ -2235,27 +2244,34 @@ export default function NewsHub() {
                         }
 
                         /* ---------------------------------------------------------
-                           SOCIAL MEDIA FORMULA (Mobile Override)
-                           Transforms "Metallic Boxes" into "Social Feed Cards"
+                           RESTORED METALLIC FRAME (Mobile Override)
                            --------------------------------------------------------- */
                         
-                        /* Unbox the container */
+                        /* Restore framed card style */
                         .news-box {
                             height: auto !important;
                             min-height: auto !important;
                             max-height: none !important;
                             aspect-ratio: auto;
-                            border-radius: 0 !important; /* Flat social style */
-                            box-shadow: none !important;
+                            border-radius: 12px !important;
+                            box-shadow: 0 4px 16px rgba(0,0,0,0.4) !important;
                             border: none !important;
-                            border-bottom: 1px solid rgba(255,255,255,0.1) !important;
                             margin-bottom: 0 !important;
-                            background: #1a1c1e; /* Match desired dark theme bg */
+                            background: #1a1c1e;
+                            overflow: hidden !important;
                         }
 
-                        /* Remove the metallic chrome frame overlay */
+                        /* Restore the metallic chrome frame overlay */
                         .news-box::after {
-                            display: none !important;
+                            content: '' !important;
+                            display: block !important;
+                            position: absolute !important;
+                            inset: 0 !important;
+                            border-radius: 12px !important;
+                            border: 4px solid rgba(180, 195, 220, 0.9) !important;
+                            box-shadow: inset 0 0 10px 2px rgba(180, 195, 220, 0.5) !important;
+                            pointer-events: none !important;
+                            z-index: 10 !important;
                         }
 
                         /* Full width image 16:9 */
