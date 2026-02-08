@@ -216,49 +216,78 @@ async function checkForDuplicates(newQuestion, category) {
     return false;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ANTI-GRAVITY AGENT SYSTEM PROMPT
+// ═══════════════════════════════════════════════════════════════════════════
+
+const AG1_SYSTEM_PROMPT = `*** SYSTEM MESSAGE: ANTI-GRAVITY AGENT ACTIVATED ***
+*** CLASSIFICATION: ELITE STRATEGY ONLY ***
+
+IDENTITY:
+You are the "Anti-Gravity Agent"—a high-level Tournament Poker Logic Engine. You do not deal in "luck," "feel," or vague definitions. You deal in EV (Expected Value), ICM (Independent Chip Model), and Range Morphology.
+
+MISSION OBJECTIVE:
+Generate high-stakes, scenario-based poker trivia questions. You must reject lazy content. Every question must be a tactical puzzle.
+
+MANDATORY RULES OF ENGAGEMENT (The 4 Commandments):
+
+1.  **CONTEXT IS KING (The Setup):**
+    Never ask "What should you do with AK?" or "What is a donk bet?"
+    ALWAYS specify the environment:
+    -   **Tournament Stage:** (e.g., Bubble, Final Table, Level 1, Satellite).
+    -   **Effective Stack:** (e.g., 12BB, 35BB, 100BB deep).
+    -   **Position:** (e.g., Hero on CO, Villain on BTN).
+    -   **The Action:** (e.g., "Villain opens 2.2x, Hero 3-bets to 8BB...").
+
+2.  **THE DISTRACTOR PROTOCOL (Wrong Answers):**
+    -   The wrong options must be **PLAUSIBLE MISTAKES** (e.g., a "Nit fold" or a "Maniac shove").
+    -   Do not use joke answers (e.g., "Cry," "Flip the table," "It's all luck").
+    -   Distractors should represent common leaks players actually have.
+
+3.  **EXPLANATION IS THE PAYLOAD:**
+    -   The explanation must explain the **MATH** and **LOGIC**.
+    -   Use terms like: *Equity, Pot Odds, ICM Pressure, Range Advantage, Capped Range, Fold Equity.*
+    -   Explicitly state why the correct answer is +EV and why the runner-up answer is -EV.
+
+4.  **STRICT JSON OUTPUT:**
+    -   Output pure, unformatted JSON only. No markdown fences.
+
+TARGET PARAMETERS:
+-   Focus on creating "Trap" scenarios where the intuitive play is wrong (e.g., Folding strong hands due to ICM).
+-   Ensure distinct difference between "Shove" and "Small Raise" scenarios based on stack depth.
+
+EXECUTE GENERATION.`;
+
 /**
  * Generate a batch of questions for a specific category and subcategory
  */
 async function generateBatch(category, subcategory, difficulty, count) {
     const grok = getGrokClient();
 
-    const prompt = `Generate ${count} unique poker trivia questions for the "${category.name}" category.
+    const prompt = `Generate exactly ${count} unique poker trivia questions.
 
-Specific Focus: ${subcategory}
-Difficulty: ${difficulty}
+CATEGORY: ${category.name}
+TOPIC FOCUS: ${subcategory}
+DIFFICULTY: ${difficulty}
 
-ABSOLUTE RULES:
-1. Every question MUST present a SPECIFIC game scenario — NEVER a definition, glossary entry, or textbook concept
-2. Include specific stack sizes, positions, hand cards (with suit symbols ♠♥♦♣), and game context
-3. All 4 answer options must be plausible actions a real player might consider — no obviously wrong filler
-4. The correct answer must be defensible by established poker theory, solver output, or ICM calculations
-5. Explanations must be 2-4 sentences explaining WHY the answer is correct AND why alternatives are inferior
-6. RANDOMIZE which option (A/B/C/D) is correct — distribute evenly
-7. All facts must be verifiable and accurate
+${difficulty === 'easy' ? 'DIFFICULTY LEVEL: Clear-cut situations. The correct play is well-established.' : ''}
+${difficulty === 'medium' ? 'DIFFICULTY LEVEL: Multiple options are plausible but one is clearly best.' : ''}
+${difficulty === 'hard' ? 'DIFFICULTY LEVEL: "Trap" scenarios where the intuitive play is WRONG. Expert-level.' : ''}
 
-${difficulty === 'easy' ? 'Difficulty: Clear-cut situations most regular players would know.' : ''}
-${difficulty === 'medium' ? 'Difficulty: Requires solid strategic understanding. Multiple options are plausible but one is clearly best.' : ''}
-${difficulty === 'hard' ? 'Difficulty: Expert-level decisions requiring ICM awareness, solver knowledge, or deep reasoning.' : ''}
+CRITICAL REMINDERS:
+- Every wrong answer must be a PLAUSIBLE MISTAKE a real player would make — NO joke answers
+- Explanations must include MATH and LOGIC (equity %, pot odds, fold equity, ICM pressure)
+- RANDOMIZE which option (A/B/C/D) is correct — distribute evenly
+- Each question must be completely unique — no duplicate scenarios
 
-Return ONLY a valid JSON array (no markdown, no extra text):
-[
-    {
-        "question": "The complete scenario-based question text",
-        "options": ["Option A", "Option B", "Option C", "Option D"],
-        "correct_index": 0,
-        "explanation": "2-4 sentence strategic explanation",
-        "subcategory": "${subcategory}"
-    }
-]`;
+Return ONLY valid JSON:
+{"questions":[{"question":"...","options":["A","B","C","D"],"correct_index":0,"explanation":"...","subcategory":"${subcategory}"}]}`;
 
     try {
         const response = await grok.chat.completions.create({
             model: 'grok-3',
             messages: [
-                {
-                    role: 'system',
-                    content: `You are a world-class poker expert and trivia question writer for Smarter.Poker. You create scenario-based trivia questions for serious poker players. Focus on ${subcategory}. NEVER generate definition questions or textbook concepts — ONLY specific game scenarios with stack sizes, positions, and hands. Return valid JSON only.`
-                },
+                { role: 'system', content: AG1_SYSTEM_PROMPT },
                 { role: 'user', content: prompt }
             ],
             response_format: { type: 'json_object' },
@@ -269,26 +298,32 @@ Return ONLY a valid JSON array (no markdown, no extra text):
         const content = response.choices[0]?.message?.content;
         if (!content) throw new Error('No content in Grok response');
 
-        // Parse JSON response
         const parsed = JSON.parse(content);
         const questions = Array.isArray(parsed) ? parsed : parsed.questions || [];
 
-        // Validate and format questions
+        // Validate: reject thin explanations and invalid indices
         return questions
-            .filter(q => q.question && q.options?.length === 4 && typeof q.correct_index === 'number')
+            .filter(q =>
+                q.question &&
+                q.options?.length === 4 &&
+                typeof q.correct_index === 'number' &&
+                q.correct_index >= 0 && q.correct_index <= 3 &&
+                q.explanation &&
+                q.explanation.length > 50
+            )
             .map(q => ({
                 category: category.id,
                 difficulty: difficulty,
                 question: q.question.trim(),
                 options: q.options.map(o => o.trim()),
                 correct_index: q.correct_index,
-                explanation: q.explanation || '',
+                explanation: q.explanation.trim(),
                 subcategory: subcategory,
                 created_at: new Date().toISOString(),
-                last_used_at: null // For 60-day tracking
+                last_used_at: null
             }));
     } catch (error) {
-        console.error(`[Question Pool] Generation error for ${category.name}/${subcategory}:`, error);
+        console.error(`[AG-1 Pool] Generation error for ${category.name}/${subcategory}:`, error.message);
         return [];
     }
 }

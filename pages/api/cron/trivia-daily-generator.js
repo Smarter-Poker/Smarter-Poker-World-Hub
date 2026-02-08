@@ -1,14 +1,13 @@
 /**
- * DAILY TRIVIA QUESTION GENERATOR — Powered by Grok AI
+ * DAILY TRIVIA QUESTION GENERATOR — Anti-Gravity Agent (AG-1)
  * Runs at 11:59 PM CST daily via Vercel cron
  * Generates 20 scenario-based questions per category (200 total)
  * 
- * Question Quality Standard (from Agent Skill: trivia-qa-pipeline):
- * - Every question must be SCENARIO-BASED with specific details
- * - Include stack sizes, positions, hands, and game context
- * - 4 plausible answer options, 1 clearly correct
- * - 2-4 sentence explanations with strategic reasoning
- * - Difficulty distribution: 25% easy, 50% medium, 25% hard
+ * Quality Standard: Anti-Gravity Agent Protocol
+ * - Context Is King: stack sizes, positions, hands, stage
+ * - Distractor Protocol: plausible mistakes only, no jokes
+ * - Explanation Is The Payload: math, logic, EV reasoning
+ * - No Ambiguity: one clearly correct answer per question
  */
 
 import { getGrokClient } from '../../../src/lib/grokClient';
@@ -20,178 +19,249 @@ const supabase = createClient(
 );
 
 const QUESTIONS_PER_CATEGORY = 20;
-const BATCH_SIZE = 10; // Questions per Grok call (2 batches per category)
 
 // ═══════════════════════════════════════════════════════════════════════════
-// CATEGORY DEFINITIONS WITH SCENARIO-BASED PROMPTS
+// ANTI-GRAVITY AGENT SYSTEM PROMPT
+// ═══════════════════════════════════════════════════════════════════════════
+
+const AG1_SYSTEM_PROMPT = `*** SYSTEM MESSAGE: ANTI-GRAVITY AGENT ACTIVATED ***
+*** CLASSIFICATION: ELITE STRATEGY ONLY ***
+
+IDENTITY:
+You are the "Anti-Gravity Agent"—a high-level Tournament Poker Logic Engine. You do not deal in "luck," "feel," or vague definitions. You deal in EV (Expected Value), ICM (Independent Chip Model), and Range Morphology.
+
+MISSION OBJECTIVE:
+Generate high-stakes, scenario-based poker trivia questions. You must reject lazy content. Every question must be a tactical puzzle.
+
+MANDATORY RULES OF ENGAGEMENT (The 4 Commandments):
+
+1.  **CONTEXT IS KING (The Setup):**
+    Never ask "What should you do with AK?" or "What is a donk bet?"
+    ALWAYS specify the environment:
+    -   **Tournament Stage:** (e.g., Bubble, Final Table, Level 1, Satellite).
+    -   **Effective Stack:** (e.g., 12BB, 35BB, 100BB deep).
+    -   **Position:** (e.g., Hero on CO, Villain on BTN).
+    -   **The Action:** (e.g., "Villain opens 2.2x, Hero 3-bets to 8BB...").
+
+2.  **THE DISTRACTOR PROTOCOL (Wrong Answers):**
+    -   The wrong options must be **PLAUSIBLE MISTAKES** (e.g., a "Nit fold" or a "Maniac shove").
+    -   Do not use joke answers (e.g., "Cry," "Flip the table," "It's all luck").
+    -   Distractors should represent common leaks players actually have.
+
+3.  **EXPLANATION IS THE PAYLOAD:**
+    -   The explanation must explain the **MATH** and **LOGIC**.
+    -   Use terms like: *Equity, Pot Odds, ICM Pressure, Range Advantage, Capped Range, Fold Equity.*
+    -   Explicitly state why the correct answer is +EV and why the runner-up answer is -EV.
+
+4.  **STRICT JSON OUTPUT:**
+    -   Output pure, unformatted JSON only. No markdown fences.
+
+TARGET PARAMETERS:
+-   Focus on creating "Trap" scenarios where the intuitive play is wrong (e.g., Folding strong hands due to ICM).
+-   Ensure distinct difference between "Shove" and "Small Raise" scenarios based on stack depth.
+
+EXECUTE GENERATION.`;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CATEGORY DEFINITIONS WITH TOPIC ROTATIONS
 // ═══════════════════════════════════════════════════════════════════════════
 
 const TRIVIA_CATEGORIES = [
     {
         id: 'poker_history',
         name: 'Poker History',
+        topicFocuses: [
+            'WSOP milestone years and records',
+            'Origin and evolution of specific poker variants',
+            'Online poker boom and key moments',
+            'Landmark legislation and regulatory events'
+        ],
         prompt: `Generate poker history trivia questions about SPECIFIC historical events, records, or milestones.
 Each question must reference specific names, dates, dollar amounts, or tournament details.
-Example format: "In what year did the WSOP Main Event first exceed 1,000 entrants, and who won that year?"
 DO NOT ask vague questions like "What is the history of poker?" or "How did poker evolve?"`
     },
     {
         id: 'famous_hands',
         name: 'Famous Hands',
+        topicFocuses: [
+            'WSOP Main Event iconic hands',
+            'High Stakes Poker / Poker After Dark hands',
+            'Online poker legendary hands',
+            'World Poker Tour memorable moments'
+        ],
         prompt: `Generate trivia questions about SPECIFIC famous poker hands from television or documented play.
 Include players' names, the event name, the cards involved, and what made the hand significant.
-Example format: "In the 2003 WSOP Main Event final hand, Chris Moneymaker held 5♠4♠ against Sam Farha. What did Moneymaker flop to take down the pot?"
 DO NOT ask generic questions like "What makes a poker hand famous?"`
     },
     {
         id: 'player_profiles',
         name: 'Player Profiles',
+        topicFocuses: [
+            'WSOP bracelet records and achievements',
+            'Career earnings milestones',
+            'Cross-discipline poker accomplishments',
+            'Notable rivalries and heads-up battles'
+        ],
         prompt: `Generate trivia questions about SPECIFIC, verifiable facts about named professional poker players.
-Reference their tournament results, career earnings, playing style, bracelet count, or notable achievements.
-Example format: "Phil Ivey has won 10 WSOP bracelets. In which year did he win 3 bracelets in a single WSOP?"
+Reference tournament results, career earnings, bracelet counts, or notable achievements.
 DO NOT ask opinion-based or subjective questions.`
     },
     {
         id: 'rule_knowledge',
         name: 'Rules & Etiquette',
-        prompt: `Generate poker rules trivia questions based on SPECIFIC table scenarios.
-Present a situation that requires knowledge of official TDA, WSOP, or Robert's Rules of Poker.
-Example format: "In a $2/$5 No-Limit game, Player A bets $50. Player B throws in a single $100 chip without announcing anything. Under TDA rules, is this a call or a raise?"
-DO NOT ask questions that can be answered with basic common sense.`
+        topicFocuses: [
+            'TDA ruling scenarios',
+            'Betting rules and string bet situations',
+            'All-in and side pot calculations',
+            'Tournament clock and level structure rules'
+        ],
+        prompt: `Generate poker rules trivia based on SPECIFIC table scenarios requiring knowledge of TDA, WSOP, or Robert's Rules.
+Present a concrete situation, not a definition.
+DO NOT ask questions answerable with basic common sense.`
     },
     {
         id: 'gto_theory',
         name: 'GTO Theory',
-        prompt: `Generate GTO theory trivia questions involving SPECIFIC mathematical concepts or solver principles.
+        topicFocuses: [
+            'Pot odds and equity threshold math',
+            'MDF calculations and applications',
+            'Range balancing and polarization theory',
+            'Indifference and mixed strategy concepts'
+        ],
+        prompt: `Generate GTO theory trivia involving SPECIFIC mathematical concepts or solver principles.
 Include specific frequencies, equity thresholds, pot odds calculations, or strategic ratios.
-Example format: "According to Minimum Defense Frequency, if your opponent bets 75% pot on the river, what percentage of your range must you defend? (a) 43% (b) 57% (c) 67% (d) 75%"
-Include the actual calculation or formula in the explanation.`
+Include the actual calculation in the explanation.`
     },
     {
         id: 'tournament_facts',
         name: 'Tournament Facts',
-        prompt: `Generate trivia questions about SPECIFIC poker tournament facts — prize pools, field sizes, records, or notable occurrences.
-Example format: "The 2006 WSOP Main Event set a record with 8,773 entrants. Who won that year and what was the first-place prize?"
+        topicFocuses: [
+            'WSOP records and statistics',
+            'WPT/EPT history and champions',
+            'Online tournament milestones',
+            'High roller and super high roller records'
+        ],
+        prompt: `Generate trivia about SPECIFIC poker tournament facts — prize pools, field sizes, records, or notable occurrences.
 Every answer must be a verifiable fact. Reference specific years, numbers, and names.`
     },
     {
         id: 'mtt_situations',
         name: 'MTT Situations',
-        prompt: `Generate multi-table tournament SCENARIO questions. EVERY question MUST include:
-- Specific stack sizes in BB (e.g., "you have 22 BB")
-- Your exact position (UTG, MP, CO, BTN, SB, BB)
-- Your exact hand with suit symbols (e.g., A♠K♥)
-- Tournament context (buy-in, players left, payout info, bubble status)
-- Other relevant player stack sizes
-- A clear action question ("What should you do?")
-
-Topics to cover: bubble play, ICM pressure, short stack shoves, final table dynamics, pay jumps, satellite strategy, blind defense, ante stealing, re-entry decisions, heads-up play.
-
-Example: "You're in a $200 MTT, 45 left, 40 get paid. You hold A♠J♦ on BTN with 25 BB. A tight player opens 2.2x from MP. Two short stacks (6-8 BB) are in the blinds. What's the best play?"
-
-DO NOT generate definition questions like "What does ICM stand for?" or "What is bubble play?"`
+        topicFocuses: [
+            'Pre-flop push/fold charts (10-20 BB)',
+            'Post-flop play in 3-bet pots',
+            'ICM and pay jumps at the Final Table',
+            'Blind defense vs late position opens',
+            'Big stack bullying and chip accumulation',
+            'Satellite bubble and survival strategy',
+            'Multi-way pot navigation in tournaments',
+            'Re-entry and late registration decisions'
+        ],
+        prompt: `Generate MTT SCENARIO questions. EVERY question MUST include:
+- Specific stack sizes in BB
+- Hero's exact position (UTG, MP, CO, BTN, SB, BB)
+- Hero's exact hand with suit symbols (♠♥♦♣)
+- Tournament context (buy-in, stage, players left, payout info)
+- Other relevant player stack sizes and actions
+DO NOT generate definition questions like "What does ICM stand for?"`
     },
     {
         id: 'cash_game_situations',
         name: 'Cash Game Situations',
+        topicFocuses: [
+            'Deep stack (200+ BB) postflop decisions',
+            '3-bet pot play in position',
+            'Multi-way pot navigation',
+            'Exploiting recreational players',
+            'Float and probe betting lines',
+            'Set mining and implied odds spots',
+            'Blind defense and squeeze plays',
+            'River decision making (value vs bluff)'
+        ],
         prompt: `Generate cash game SCENARIO questions. EVERY question MUST include:
 - Specific stack sizes in BB or dollar amounts
-- Your exact position
-- Your exact hand with suit symbols
-- The game stakes (e.g., "$1/$2 No-Limit", "$2/$5 NL")
-- Board texture if postflop (e.g., "Flop: K♥ 8♦ 3♠")
-- Opponent reads or playing style when relevant
-
-Topics: deep stack play, implied odds, float betting, 3-bet pots, multi-way pots, exploiting recreational players, set mining, check-raising, live tells, bet sizing.
-
-Example: "You're playing $2/$5 NL with $1,000 effective. You open A♦K♦ to $15 from MP. A loose-passive player calls from BB. Flop: K♠ 8♥ 4♣ (Pot: $32). BB checks. What's the best sizing?"
-
+- Hero's position and opponent's position
+- Hero's exact hand with suit symbols
+- Game stakes (e.g., "$1/$2 NL", "$2/$5 NL")
+- Board texture if postflop
 DO NOT generate textbook questions like "What are implied odds?"`
     },
     {
         id: 'icm_chip_ev',
         name: 'ICM & Chip EV',
+        topicFocuses: [
+            'Bubble factor and risk premium',
+            'Final table pay jump analysis',
+            'Nash push/fold ranges',
+            'Satellite ICM survival math',
+            'Chip EV vs Dollar EV divergence',
+            'Deal-making and ICM chops',
+            'Short stack survival equity',
+            'Big stack accumulation vs ICM conservation'
+        ],
         prompt: `Generate ICM/Chip EV SCENARIO questions. EVERY question MUST include:
-- Exact stack sizes for all relevant players
+- Exact stack sizes for all relevant players in BB
 - Prize pool or payout structure details
-- Your specific hand and position
+- Hero's specific hand and position
 - Tournament stage context
-
-Topics: risk premium, bubble factor, Nash push/fold, final table ICM, satellite ICM, chip EV vs dollar EV, deal-making, survival equity.
-
-Example: "Final table, 4 left. Payouts: 1st $45K, 2nd $28K, 3rd $18K, 4th $12K. You have 20 BB in CO with A♥K♥. Chip leader (55 BB) in BB. SB folds. Should you shove, raise small, or fold?"
-
 DO NOT generate definition questions like "What is ICM?" or "Define bubble factor."`
     },
     {
         id: 'gto_scenarios',
         name: 'GTO Scenarios',
+        topicFocuses: [
+            'C-bet strategy by board texture',
+            'Minimum defense frequency applications',
+            'Polarized vs linear range construction',
+            'Blocker effects in bluffing decisions',
+            'Overbetting the river',
+            'Check-raise frequency optimization',
+            'Multi-street planning and range evolution',
+            'Node locking and exploitative adjustments'
+        ],
         prompt: `Generate GTO solver-based SCENARIO questions. EVERY question MUST include:
-- Preflop action sequence  
+- Preflop action sequence
 - Exact board texture with suit symbols
-- Your specific hand
+- Hero's specific hand
 - Stack depth and pot size
-- Positions of all players
-
-Topics: c-bet strategy by board texture, minimum defense frequency, polarized vs linear ranges, blocker effects, overbetting, river decisions, check-raise frequency, mixed strategies.
-
-Example: "You open A♦Q♣ from CO, BB calls. Flop: J♥ 8♠ 3♦ (Pot: 6.5 BB). According to solvers, should you c-bet this flop at high frequency (~75%), low frequency (~30%), or check your entire range?"
-
+- Positions of all players involved
 DO NOT ask "What is GTO?" or "Define minimum defense frequency."`
     }
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SYSTEM PROMPT — QUALITY STANDARD
+// BATCH GENERATION WITH TOPIC ROTATION
 // ═══════════════════════════════════════════════════════════════════════════
 
-const SYSTEM_PROMPT = `You are a world-class poker expert and trivia question writer for Smarter.Poker. You create scenario-based trivia questions for serious poker players.
-
-ABSOLUTE RULES:
-1. Every question MUST present a SPECIFIC game scenario — NEVER a definition, glossary entry, or textbook concept
-2. Include specific stack sizes, positions, hand cards (with suit symbols ♠♥♦♣), and game context
-3. All 4 answer options must be plausible actions a real player might consider — no obviously wrong filler
-4. The correct answer must be defensible by established poker theory, solver output, or ICM calculations
-5. Explanations must be 2-4 sentences explaining WHY the answer is correct AND why at least one wrong option is inferior
-6. RANDOMIZE which option (A/B/C/D) is correct — distribute evenly across positions, do NOT always put the correct answer in the same spot
-7. Use card suit symbols (♠♥♦♣) for all hands
-8. All facts must be verifiable and accurate — no fabricated statistics or made-up player records
-
-Return ONLY a valid JSON array (no markdown fences, no extra text):
-[
-  {
-    "question": "The complete scenario-based question text",
-    "options": ["Option A", "Option B", "Option C", "Option D"],
-    "correct_index": 0,
-    "explanation": "2-4 sentence strategic explanation",
-    "difficulty": "easy|medium|hard",
-    "subcategory": "specific topic"
-  }
-]`;
-
-// ═══════════════════════════════════════════════════════════════════════════
-// BATCH GENERATION
-// ═══════════════════════════════════════════════════════════════════════════
-
-async function generateBatch(category, difficulty, count) {
+async function generateBatch(category, difficulty, count, topicFocus) {
     const grok = getGrokClient();
 
-    const userPrompt = `Generate exactly ${count} unique poker trivia questions for the "${category.name}" category.
+    const userPrompt = `Generate exactly ${count} unique poker trivia questions.
+
+CATEGORY: ${category.name}
+TOPIC FOCUS: ${topicFocus}
+DIFFICULTY: ${difficulty}
 
 ${category.prompt}
 
-Difficulty level for this batch: ${difficulty}
-${difficulty === 'easy' ? '- Clear-cut situations. Most players with basic strategy knowledge should get these right.' : ''}
-${difficulty === 'medium' ? '- Requires solid strategic understanding. Multiple options are plausible but one is clearly best.' : ''}
-${difficulty === 'hard' ? '- Expert-level decisions requiring ICM awareness, solver knowledge, or deep strategic reasoning.' : ''}
+${difficulty === 'easy' ? 'DIFFICULTY LEVEL: Clear-cut situations. The correct play is well-established. Tests foundational strategy knowledge.' : ''}
+${difficulty === 'medium' ? 'DIFFICULTY LEVEL: Multiple options are plausible but one is clearly best. Tests intermediate strategic understanding.' : ''}
+${difficulty === 'hard' ? 'DIFFICULTY LEVEL: "Trap" scenarios where the intuitive play is WRONG. Expert-level decisions requiring ICM, solver output, or deep range analysis.' : ''}
 
-Generate exactly ${count} questions. Each must be completely unique — no duplicate scenarios or repeated concepts.`;
+CRITICAL REMINDERS:
+- Every wrong answer must be a PLAUSIBLE MISTAKE a real player would make — no joke answers
+- Explanations must include MATH and LOGIC (equity %, pot odds, fold equity, ICM pressure)
+- RANDOMIZE which option (A/B/C/D) is correct — distribute evenly
+- Each question must be completely unique — no duplicate scenarios
+
+Return ONLY a valid JSON array:
+[{"question":"...","options":["A","B","C","D"],"correct_index":0,"explanation":"...","difficulty":"${difficulty}","subcategory":"${topicFocus}"}]`;
 
     try {
         const response = await grok.chat.completions.create({
             model: 'grok-3',
             messages: [
-                { role: 'system', content: SYSTEM_PROMPT },
+                { role: 'system', content: AG1_SYSTEM_PROMPT },
                 { role: 'user', content: userPrompt }
             ],
             temperature: 0.85,
@@ -201,19 +271,18 @@ Generate exactly ${count} questions. Each must be completely unique — no dupli
         const content = response.choices[0]?.message?.content?.trim();
         if (!content) return [];
 
-        // Clean potential markdown fences
         const cleaned = content.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '').trim();
         const parsed = JSON.parse(cleaned);
         const questions = Array.isArray(parsed) ? parsed : parsed.questions || [];
 
-        // Validate and format each question
         return questions
             .filter(q =>
                 q.question &&
                 q.options?.length === 4 &&
                 typeof q.correct_index === 'number' &&
                 q.correct_index >= 0 && q.correct_index <= 3 &&
-                q.explanation
+                q.explanation &&
+                q.explanation.length > 50 // Reject thin explanations
             )
             .map(q => ({
                 category: category.id,
@@ -222,11 +291,11 @@ Generate exactly ${count} questions. Each must be completely unique — no dupli
                 correct_index: q.correct_index,
                 explanation: q.explanation.trim(),
                 difficulty: q.difficulty || difficulty,
-                subcategory: q.subcategory || null,
+                subcategory: q.subcategory || topicFocus,
                 created_at: new Date().toISOString()
             }));
     } catch (error) {
-        console.error(`[Trivia Cron] Grok error for ${category.id}/${difficulty}:`, error.message);
+        console.error(`[AG-1] Grok error for ${category.id}/${topicFocus}:`, error.message);
         return [];
     }
 }
@@ -255,7 +324,7 @@ export default async function handler(req, res) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    console.log('[Trivia Cron] Starting daily generation — 20 questions × 10 categories...');
+    console.log('[AG-1] Anti-Gravity Agent activated — 20 questions × 10 categories...');
 
     const tomorrowDate = getTomorrowCST();
     const results = {
@@ -270,19 +339,25 @@ export default async function handler(req, res) {
         const allGeneratedIds = [];
 
         for (const category of TRIVIA_CATEGORIES) {
-            console.log(`[Trivia Cron] Generating ${QUESTIONS_PER_CATEGORY} for ${category.id}...`);
+            console.log(`[AG-1] Generating ${QUESTIONS_PER_CATEGORY} for ${category.id}...`);
 
             let catGenerated = 0;
+            const focuses = category.topicFocuses;
 
-            // Generate in difficulty batches: 5 easy + 10 medium + 5 hard = 20
+            // Generate in difficulty batches with rotating topic focuses:
+            // 5 easy (2 topics) + 10 medium (3 topics) + 5 hard (2 topics) = 20
             const batches = [
-                { difficulty: 'easy', count: 5 },
-                { difficulty: 'medium', count: 10 },
-                { difficulty: 'hard', count: 5 }
+                { difficulty: 'easy', count: 3, topicFocus: focuses[0 % focuses.length] },
+                { difficulty: 'easy', count: 2, topicFocus: focuses[1 % focuses.length] },
+                { difficulty: 'medium', count: 4, topicFocus: focuses[2 % focuses.length] },
+                { difficulty: 'medium', count: 3, topicFocus: focuses[3 % focuses.length] },
+                { difficulty: 'medium', count: 3, topicFocus: focuses[4 % focuses.length] },
+                { difficulty: 'hard', count: 3, topicFocus: focuses[5 % focuses.length] },
+                { difficulty: 'hard', count: 2, topicFocus: focuses[6 % focuses.length] }
             ];
 
             for (const batch of batches) {
-                const questions = await generateBatch(category, batch.difficulty, batch.count);
+                const questions = await generateBatch(category, batch.difficulty, batch.count, batch.topicFocus);
 
                 if (questions.length > 0) {
                     const { data, error } = await supabase
@@ -291,30 +366,28 @@ export default async function handler(req, res) {
                         .select('id');
 
                     if (error) {
-                        console.error(`[Trivia Cron] DB insert error for ${category.id}/${batch.difficulty}:`, error.message);
+                        console.error(`[AG-1] DB error ${category.id}/${batch.difficulty}:`, error.message);
                         results.totalFailed += batch.count;
                     } else {
                         catGenerated += data.length;
                         allGeneratedIds.push(...data.map(d => d.id));
                     }
                 } else {
-                    console.warn(`[Trivia Cron] No questions generated for ${category.id}/${batch.difficulty}`);
                     results.totalFailed += batch.count;
                 }
 
-                // Delay between Grok calls to avoid rate limits
-                await new Promise(r => setTimeout(r, 1000));
+                // Rate limit between Grok calls
+                await new Promise(r => setTimeout(r, 800));
             }
 
             results.categorySummary[category.id] = catGenerated;
             results.totalGenerated += catGenerated;
-            console.log(`[Trivia Cron] ${category.id}: ${catGenerated}/${QUESTIONS_PER_CATEGORY} generated`);
+            console.log(`[AG-1] ${category.id}: ${catGenerated}/${QUESTIONS_PER_CATEGORY}`);
         }
 
-        // Select one random question as tomorrow's DAILY question
+        // Select daily question
         if (allGeneratedIds.length > 0) {
             const randomId = allGeneratedIds[Math.floor(Math.random() * allGeneratedIds.length)];
-
             const { error: updateError } = await supabase
                 .from('trivia_questions')
                 .update({ daily_date: tomorrowDate })
@@ -322,28 +395,23 @@ export default async function handler(req, res) {
 
             if (!updateError) {
                 results.dailySelected = { id: randomId, date: tomorrowDate };
-                console.log(`[Trivia Cron] Selected daily question: ${randomId}`);
             }
         }
 
-        console.log(`[Trivia Cron] Complete: ${results.totalGenerated} generated, ${results.totalFailed} failed`);
+        console.log(`[AG-1] Mission complete: ${results.totalGenerated} generated, ${results.totalFailed} failed`);
 
         return res.status(200).json({
             success: true,
-            message: `Generated ${results.totalGenerated} questions for ${tomorrowDate}`,
+            message: `AG-1 generated ${results.totalGenerated} questions for ${tomorrowDate}`,
             ...results
         });
 
     } catch (error) {
-        console.error('[Trivia Cron] Fatal error:', error);
-        return res.status(500).json({
-            success: false,
-            error: error.message,
-            ...results
-        });
+        console.error('[AG-1] Fatal error:', error);
+        return res.status(500).json({ success: false, error: error.message, ...results });
     }
 }
 
 export const config = {
-    maxDuration: 300 // 5 minutes — needed for 30 Grok API calls
+    maxDuration: 300 // 5 minutes for 70 Grok API calls
 };
