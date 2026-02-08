@@ -26,7 +26,10 @@ import {
   fetchBankrollRules,
   getDateRangeFilter,
   initializeUserBankroll,
+  updateLedgerEntry,
+  deleteLedgerEntry,
 } from '../../src/lib/bankroll/bankrollSelectors';
+import toast from '../../src/stores/toastStore';
 import { formatCurrency, formatCurrencyWithSign } from '../../src/lib/bankroll/currencyUtils';
 
 // Bankroll components
@@ -69,15 +72,24 @@ const SIDEBAR_SECTIONS = [
   { id: 'settings', label: 'Settings', icon: '' },
 ];
 
-const CATEGORY_FILTERS = [
-  { id: 'all', label: 'All' },
-  { id: 'poker_cash', label: 'Cash' },
-  { id: 'poker_mtt', label: 'MTT' },
-  { id: 'casino_table', label: 'Table' },
-  { id: 'slots', label: 'Slots' },
-  { id: 'sports', label: 'Sports' },
-  { id: 'expense', label: 'Expenses' },
-];
+// Map URL ?type= values to database category IDs
+const TYPE_TO_CATEGORY = {
+  cash: 'poker_cash',
+  tournament: 'poker_mtt',
+  casino: 'casino_table',
+  slots: 'slots',
+  sports: 'sports',
+  expense: 'expense',
+};
+
+const CATEGORY_LABELS = {
+  poker_cash: 'Cash Games',
+  poker_mtt: 'Tournaments',
+  casino_table: 'Casino',
+  slots: 'Slots',
+  sports: 'Sports Betting',
+  expense: 'Expenses',
+};
 
 const TIME_FILTERS = ['Last 7 Days', 'Last 30 Days', 'Last 90 Days', 'This Year', 'All Time'];
 
@@ -125,13 +137,19 @@ export default function BankrollManagerPage() {
   // UI State
   const [activeSection, setActiveSection] = useState('dashboard');
 
+  const [editEntry, setEditEntry] = useState(null);
+
   // Handle query parameters for deep linking
   useEffect(() => {
     if (router.query.view) {
       setActiveSection(router.query.view);
     }
     if (router.query.type) {
-      setCategoryFilter(router.query.type);
+      // Map URL type to DB category
+      const dbCategory = TYPE_TO_CATEGORY[router.query.type] || router.query.type;
+      setCategoryFilter(dbCategory);
+    } else {
+      setCategoryFilter('all');
     }
   }, [router.query]);
   const [showLogModal, setShowLogModal] = useState(false);
@@ -150,7 +168,6 @@ export default function BankrollManagerPage() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [locationFilter, setLocationFilter] = useState(null);
   const [timeFilter, setTimeFilter] = useState('Last 30 Days');
-  const [includeExpenses, setIncludeExpenses] = useState(false);
 
   // Dropdowns
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
@@ -212,7 +229,7 @@ export default function BankrollManagerPage() {
           locationId: locationFilter,
           startDate: dateRange.startDate,
           endDate: dateRange.endDate,
-          includeExpenses: includeExpenses || categoryFilter === 'expense',
+          includeExpenses: true,
           limit: 50,
         }),
         fetchTrips(userId),
@@ -230,7 +247,7 @@ export default function BankrollManagerPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [userId, categoryFilter, locationFilter, timeFilter, includeExpenses]);
+  }, [userId, categoryFilter, locationFilter, timeFilter]);
 
   useEffect(() => {
     loadData();
@@ -238,7 +255,24 @@ export default function BankrollManagerPage() {
 
   const handleLogSubmit = async () => {
     setShowLogModal(false);
+    setEditEntry(null);
     await loadData();
+  };
+
+  const handleEditEntry = (entry) => {
+    setEditEntry(entry);
+    setShowLogModal(true);
+  };
+
+  const handleDeleteEntry = async (entryId) => {
+    try {
+      await deleteLedgerEntry(userId, entryId);
+      toast.success('Entry deleted');
+      await loadData();
+    } catch (err) {
+      console.error('Delete failed:', err);
+      toast.error('Failed to delete entry');
+    }
   };
 
   const handleSidebarClick = (sectionId) => {
@@ -538,37 +572,34 @@ export default function BankrollManagerPage() {
 
                 {/* Recent Activity Section */}
                 <div style={styles.activitySection}>
-                  <h2 style={styles.sectionTitle}>Recent Activity</h2>
-
-                  {/* Filter Tabs */}
-                  <div style={styles.filterTabs}>
-                    <div style={styles.filterTabsLeft}>
-                      {CATEGORY_FILTERS.map((filter) => (
-                        <button
-                          key={filter.id}
-                          onClick={() => setCategoryFilter(filter.id)}
-                          style={{
-                            ...styles.filterTab,
-                            ...(categoryFilter === filter.id ? styles.filterTabActive : {}),
-                          }}
-                        >
-                          {filter.label}
-                        </button>
-                      ))}
-                    </div>
-                    <label style={styles.expenseToggle}>
-                      <input
-                        type="checkbox"
-                        checked={includeExpenses}
-                        onChange={(e) => setIncludeExpenses(e.target.checked)}
-                        style={styles.checkbox}
-                      />
-                      Include Expenses
-                    </label>
-                  </div>
+                  <h2 style={styles.sectionTitle}>
+                    {categoryFilter !== 'all'
+                      ? `${CATEGORY_LABELS[categoryFilter] || 'Filtered'} Entries`
+                      : 'Recent Activity'}
+                  </h2>
+                  {categoryFilter !== 'all' && (
+                    <button
+                      onClick={() => {
+                        setCategoryFilter('all');
+                        router.push('/hub/bankroll-manager', undefined, { shallow: true });
+                      }}
+                      style={{
+                        background: 'rgba(255,255,255,0.08)',
+                        border: '1px solid rgba(255,255,255,0.15)',
+                        borderRadius: 6,
+                        padding: '6px 14px',
+                        color: '#fff',
+                        fontSize: 12,
+                        cursor: 'pointer',
+                        marginBottom: 12,
+                      }}
+                    >
+                      ← Show All Entries
+                    </button>
+                  )}
 
                   {/* Ledger Timeline */}
-                  <LedgerTimeline entries={entries} isLoading={isLoading} />
+                  <LedgerTimeline entries={entries} isLoading={isLoading} onEdit={handleEditEntry} onDelete={handleDeleteEntry} />
 
                   {/* Trip Expenses Section */}
                   {trips.length > 0 && (
@@ -943,7 +974,8 @@ export default function BankrollManagerPage() {
               userId={userId}
               locations={locations}
               trips={trips}
-              onClose={() => setShowLogModal(false)}
+              editEntry={editEntry}
+              onClose={() => { setShowLogModal(false); setEditEntry(null); }}
               onSubmit={handleLogSubmit}
             />
           ) : (
