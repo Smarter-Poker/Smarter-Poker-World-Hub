@@ -145,16 +145,41 @@ export default function EndlessModePage() {
 
     async function loadMoreQuestions() {
         try {
+            // 60-day non-repeat: Get user's recently seen question IDs
+            let excludeIds = [];
+            if (userId) {
+                const sixtyDaysAgo = new Date();
+                sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+
+                const { data: recentHistory } = await supabase
+                    .from('trivia_user_question_history')
+                    .select('question_id')
+                    .eq('user_id', userId)
+                    .gte('seen_at', sixtyDaysAgo.toISOString());
+
+                if (recentHistory) {
+                    excludeIds = recentHistory.map(h => h.question_id);
+                }
+            }
+
             // Get ALL questions from ALL categories
             const { data, error } = await supabase
                 .from('trivia_questions')
                 .select('*')
                 .order('id', { ascending: false })
-                .limit(50);
+                .limit(200);
 
             if (!error && data) {
+                // Filter out recently seen questions
+                let available = excludeIds.length > 0
+                    ? data.filter(q => !excludeIds.includes(q.id))
+                    : data;
+
+                // Fall back to all if not enough
+                if (available.length < 20) available = data;
+
                 // Shuffle the questions
-                const shuffled = data.sort(() => Math.random() - 0.5);
+                const shuffled = available.sort(() => Math.random() - 0.5).slice(0, 50);
                 setQuestions(prev => [...prev, ...shuffled]);
             }
         } catch (e) {
@@ -465,6 +490,28 @@ export default function EndlessModePage() {
                         achieved_at: new Date().toISOString()
                     }, { onConflict: 'user_id,mode' });
                 setHighScore(streak);
+            }
+
+            // Record question history for 60-day non-repeat tracking
+            const answeredQuestions = questions.slice(0, currentIndex + 1);
+            if (answeredQuestions.length > 0) {
+                try {
+                    const historyRecords = answeredQuestions.map(q => ({
+                        user_id: userId,
+                        question_id: q.id,
+                        was_correct: true, // Endless only ends on wrong, all previous are correct
+                        seen_at: new Date().toISOString(),
+                        mode: 'endless'
+                    }));
+
+                    await supabase.from('trivia_user_question_history')
+                        .upsert(historyRecords, {
+                            onConflict: 'user_id,question_id',
+                            ignoreDuplicates: false
+                        });
+                } catch (e) {
+                    console.error('[Endless] Error recording history:', e);
+                }
             }
         } catch (e) {
             console.error('Failed to save:', e);

@@ -248,6 +248,31 @@ export default function TournamentsPage() {
             completed_at: new Date().toISOString()
         }));
 
+        // Record question history for 60-day non-repeat tracking
+        if (userId && questions && questions.length > 0) {
+            try {
+                const historyRecords = questions
+                    .filter(q => q.id) // Only record questions with valid IDs
+                    .map(q => ({
+                        user_id: userId,
+                        question_id: q.id,
+                        was_correct: true,
+                        seen_at: new Date().toISOString(),
+                        mode: 'tournament'
+                    }));
+
+                if (historyRecords.length > 0) {
+                    await supabase.from('trivia_user_question_history')
+                        .upsert(historyRecords, {
+                            onConflict: 'user_id,question_id',
+                            ignoreDuplicates: false
+                        });
+                }
+            } catch (e) {
+                console.error('[Tournaments] Error recording history:', e);
+            }
+        }
+
         await loadLeaderboard(activeTournament.id);
         setGameState('complete');
     }

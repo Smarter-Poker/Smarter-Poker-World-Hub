@@ -102,13 +102,37 @@ export default function TimeAttackPage() {
     }
 
     async function loadQuestions() {
+        // 60-day non-repeat: Get user's recently seen question IDs
+        let excludeIds = [];
+        if (userId) {
+            const sixtyDaysAgo = new Date();
+            sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+
+            const { data: recentHistory } = await supabase
+                .from('trivia_user_question_history')
+                .select('question_id')
+                .eq('user_id', userId)
+                .gte('seen_at', sixtyDaysAgo.toISOString());
+
+            if (recentHistory) {
+                excludeIds = recentHistory.map(h => h.question_id);
+            }
+        }
+
         const { data } = await supabase
             .from('trivia_questions')
             .select('*')
-            .limit(100);
+            .limit(200);
 
         if (data) {
-            const shuffled = data.sort(() => Math.random() - 0.5);
+            // Filter out recently seen questions
+            let available = excludeIds.length > 0
+                ? data.filter(q => !excludeIds.includes(q.id))
+                : data;
+
+            if (available.length < 30) available = data;
+
+            const shuffled = available.sort(() => Math.random() - 0.5);
             setQuestions(shuffled);
             return shuffled;
         }
@@ -160,6 +184,29 @@ export default function TimeAttackPage() {
                 setPersonalBest(gameResult.correctCount);
             }
             setDailyDiamondsEarned(prev => prev + gameResult.diamondsEarned);
+
+            // Record question history for 60-day non-repeat
+            const answeredCount = gameResult.correctCount + (gameResult.wrongCount || 0);
+            const answeredQuestions = questions.slice(0, answeredCount);
+            if (answeredQuestions.length > 0) {
+                try {
+                    const historyRecords = answeredQuestions.map(q => ({
+                        user_id: userId,
+                        question_id: q.id,
+                        was_correct: true,
+                        seen_at: new Date().toISOString(),
+                        mode: 'time-attack'
+                    }));
+
+                    await supabase.from('trivia_user_question_history')
+                        .upsert(historyRecords, {
+                            onConflict: 'user_id,question_id',
+                            ignoreDuplicates: false
+                        });
+                } catch (e) {
+                    console.error('[TimeAttack] Error recording history:', e);
+                }
+            }
         }
 
         loadLeaderboard();

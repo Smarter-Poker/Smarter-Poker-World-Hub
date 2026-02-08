@@ -228,15 +228,35 @@ export default function PvPPage() {
             };
         }
 
-        // Load questions for bot match
+        // Load questions for bot match with 60-day exclusion
+        let excludeIds = [];
+        if (userId) {
+            const sixtyDaysAgo = new Date();
+            sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+
+            const { data: recentHistory } = await supabase
+                .from('trivia_user_question_history')
+                .select('question_id')
+                .eq('user_id', userId)
+                .gte('seen_at', sixtyDaysAgo.toISOString());
+
+            if (recentHistory) {
+                excludeIds = recentHistory.map(h => h.question_id);
+            }
+        }
+
         const { data: questions } = await supabase
             .from('trivia_questions')
             .select('*')
-            .limit(50);
+            .limit(100);
 
         let matchQuestions = [];
         if (questions && questions.length >= 5) {
-            matchQuestions = questions.sort(() => Math.random() - 0.5).slice(0, 5);
+            let available = excludeIds.length > 0
+                ? questions.filter(q => !excludeIds.includes(q.id))
+                : questions;
+            if (available.length < 5) available = questions;
+            matchQuestions = available.sort(() => Math.random() - 0.5).slice(0, 5);
         }
 
         // Pre-calculate bot answers based on stake-dependent accuracy
@@ -462,6 +482,27 @@ export default function PvPPage() {
             isBotMatch: true
         });
 
+        // Record question history for 60-day non-repeat
+        if (userId && questions && questions.length > 0) {
+            try {
+                const historyRecords = questions.map(q => ({
+                    user_id: userId,
+                    question_id: q.id,
+                    was_correct: true,
+                    seen_at: new Date().toISOString(),
+                    mode: 'pvp'
+                }));
+
+                await supabase.from('trivia_user_question_history')
+                    .upsert(historyRecords, {
+                        onConflict: 'user_id,question_id',
+                        ignoreDuplicates: false
+                    });
+            } catch (e) {
+                console.error('[PVP] Error recording history:', e);
+            }
+        }
+
         setGameState('result');
     }
 
@@ -505,6 +546,27 @@ export default function PvPPage() {
             setStats(prev => ({ ...prev, wins: prev.wins + 1 }));
         } else if (match.winner_id && match.winner_id !== userId) {
             setStats(prev => ({ ...prev, losses: prev.losses + 1 }));
+        }
+
+        // Record question history for 60-day non-repeat
+        if (userId && questions && questions.length > 0) {
+            try {
+                const historyRecords = questions.map(q => ({
+                    user_id: userId,
+                    question_id: q.id,
+                    was_correct: true,
+                    seen_at: new Date().toISOString(),
+                    mode: 'pvp'
+                }));
+
+                await supabase.from('trivia_user_question_history')
+                    .upsert(historyRecords, {
+                        onConflict: 'user_id,question_id',
+                        ignoreDuplicates: false
+                    });
+            } catch (e) {
+                console.error('[PVP] Error recording history:', e);
+            }
         }
 
         setGameState('result');
