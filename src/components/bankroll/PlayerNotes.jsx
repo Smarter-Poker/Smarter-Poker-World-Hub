@@ -3,7 +3,7 @@
  * Track opponents with photos, bios, and gameplay notes
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 
@@ -160,6 +160,50 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
         tendencies: player?.tendencies || '',
     });
     const [isSaving, setIsSaving] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
+    const fileInputRef = useRef(null);
+
+    async function handlePhotoUpload(e) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Validate file
+        if (!file.type.startsWith('image/')) {
+            alert('Please select an image file');
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Image must be under 5MB');
+            return;
+        }
+
+        setIsUploading(true);
+        try {
+            const ext = file.name.split('.').pop();
+            const fileName = `${userId}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+
+            const { data, error } = await supabase.storage
+                .from('player-photos')
+                .upload(fileName, file, {
+                    cacheControl: '3600',
+                    upsert: false,
+                });
+
+            if (error) throw error;
+
+            const { data: urlData } = supabase.storage
+                .from('player-photos')
+                .getPublicUrl(data.path);
+
+            setFormData(prev => ({ ...prev, photo_url: urlData.publicUrl }));
+        } catch (err) {
+            console.error('[PlayerModal] Upload error:', err);
+            alert('Upload failed: ' + (err.message || 'Unknown error'));
+        }
+        setIsUploading(false);
+        // Reset file input so same file can be re-selected
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    }
 
     async function handleSave() {
         if (!formData.nickname && !formData.real_name) return;
@@ -248,16 +292,50 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
                         </div>
                     </div>
 
-                    {/* Photo URL */}
+                    {/* Photo Upload */}
                     <div style={styles.formGroup}>
-                        <label style={styles.label}>Photo URL</label>
+                        <label style={styles.label}>Player Photo</label>
                         <input
-                            type="text"
-                            value={formData.photo_url}
-                            onChange={e => setFormData({ ...formData, photo_url: e.target.value })}
-                            placeholder="https://..."
-                            style={styles.input}
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={handlePhotoUpload}
+                            style={{ display: 'none' }}
                         />
+                        {formData.photo_url ? (
+                            <div style={styles.photoPreviewRow}>
+                                <img
+                                    src={formData.photo_url}
+                                    alt="Player"
+                                    style={styles.photoPreview}
+                                />
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        style={styles.changePhotoBtn}
+                                    >
+                                        📷 Change Photo
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData({ ...formData, photo_url: '' })}
+                                        style={styles.removePhotoBtn}
+                                    >
+                                        ✕ Remove
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <button
+                                type="button"
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={isUploading}
+                                style={styles.uploadBtn}
+                            >
+                                {isUploading ? 'Uploading...' : '📷 Upload Photo'}
+                            </button>
+                        )}
                     </div>
 
                     {/* Type & Stakes */}
@@ -620,6 +698,50 @@ const styles = {
         color: '#fff',
         fontSize: 13,
         fontWeight: 600,
+        cursor: 'pointer',
+    },
+    uploadBtn: {
+        width: '100%',
+        padding: '14px 16px',
+        background: 'rgba(35, 116, 225, 0.12)',
+        border: '2px dashed rgba(35, 116, 225, 0.35)',
+        borderRadius: 10,
+        color: '#2374e1',
+        fontSize: 14,
+        fontWeight: 600,
+        cursor: 'pointer',
+        textAlign: 'center',
+    },
+    photoPreviewRow: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 14,
+    },
+    photoPreview: {
+        width: 72,
+        height: 72,
+        borderRadius: 10,
+        objectFit: 'cover',
+        border: '2px solid rgba(255,255,255,0.1)',
+    },
+    changePhotoBtn: {
+        padding: '8px 14px',
+        background: 'rgba(255,255,255,0.06)',
+        border: '1px solid rgba(255,255,255,0.12)',
+        borderRadius: 8,
+        color: '#94a3b8',
+        fontSize: 12,
+        fontWeight: 500,
+        cursor: 'pointer',
+    },
+    removePhotoBtn: {
+        padding: '8px 14px',
+        background: 'rgba(239, 68, 68, 0.1)',
+        border: '1px solid rgba(239, 68, 68, 0.2)',
+        borderRadius: 8,
+        color: '#ef4444',
+        fontSize: 12,
+        fontWeight: 500,
         cursor: 'pointer',
     },
 };

@@ -548,9 +548,11 @@ export default function BankrollManagerPage() {
                 {activeSection === 'settings' && 'Settings'}
               </h1>
               <div style={styles.headerActions}>
-                <button style={styles.logButton} onClick={handleLogClick}>
-                  + Log
-                </button>
+                {activeSection !== 'notes' && (
+                  <button style={styles.logButton} onClick={handleLogClick}>
+                    + Log
+                  </button>
+                )}
               </div>
             </div>
 
