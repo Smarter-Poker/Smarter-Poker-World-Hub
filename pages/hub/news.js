@@ -1592,7 +1592,7 @@ export default function NewsHub() {
                                         </div>
                                         {reels.length > 0 ? (
                                             <div className="reels-carousel">
-                                                {reels.slice(0, 6).map(reel => (
+                                                {reels.slice(0, 10).map(reel => (
                                                     <ReelCard key={reel.id} reel={reel} openExternal={openExternal} />
                                                 ))}
                                             </div>
