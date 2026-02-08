@@ -37,7 +37,7 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getNewsPreferences, updateNewsPreferences } from '../../src/services/newsPreferences';
 import { getNewsBookmarks, addNewsBookmark, removeNewsBookmark } from '../../src/services/newsBookmarks';
 import { PokerStoriesRow } from '../../src/components/social/PokerStoriesRow';
-
+import ArticleReaderModal from '../../src/components/social/ArticleReaderModal';
 
 // Fallback data
 const FALLBACK_NEWS = [
@@ -926,6 +926,7 @@ export default function NewsHub() {
     const [activeTab, setActiveTab] = useState('all');
 
     // Article reader state - uses server-side proxy to display articles in-app
+    const [articleReader, setArticleReader] = useState({ open: false, url: '', title: '' });
 
 
     // Handle query parameters for deep linking
@@ -1269,8 +1270,8 @@ export default function NewsHub() {
         markAsRead(article.id);
 
         if (article.source_url) {
-            // Open the FULL external page inside ExternalLinkModal iframe
-            openExternal(article.source_url, article.title || 'News Article');
+            // Open full page in-app via proxy-based ArticleReaderModal
+            setArticleReader({ open: true, url: article.source_url, title: article.title || 'News Article' });
         } else {
             router.push(`/hub/article?id=${article.id}`);
         }
@@ -3295,6 +3296,14 @@ export default function NewsHub() {
             </PageTransition>
 
 
+            {/* Article Reader Modal - Opens full external pages in-app via server-side proxy */}
+            {articleReader.open && (
+                <ArticleReaderModal
+                    url={articleReader.url}
+                    title={articleReader.title}
+                    onClose={() => setArticleReader({ open: false, url: '', title: '' })}
+                />
+            )}
         </>
     );
 }
