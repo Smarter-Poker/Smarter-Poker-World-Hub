@@ -1313,456 +1313,457 @@ export default function NewsHub() {
         .sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
 
     return (
-        <PageTransition>
-            {/*  INTRO VIDEO OVERLAY - Plays while page loads behind it */}
-            {showIntro && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    zIndex: 99999,
-                    background: '#000',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                }}>
-                    <video
-                        ref={introVideoRef}
-                        src="/videos/news-intro.mp4"
-                        autoPlay
-                        muted
-                        playsInline
-                        onPlay={handleIntroPlay}
-                        onEnded={handleIntroEnd}
-                        onError={handleIntroEnd}
-                        style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover'
-                        }}
-                    />
-                    {/* Skip button */}
-                    <button
-                        onClick={handleIntroEnd}
-                        style={{
-                            position: 'absolute',
-                            top: 20,
-                            right: 20,
-                            padding: '8px 20px',
-                            background: 'rgba(255,255,255,0.2)',
-                            backdropFilter: 'blur(10px)',
-                            border: '1px solid rgba(255,255,255,0.3)',
-                            borderRadius: 20,
-                            color: 'white',
-                            fontSize: 14,
-                            fontWeight: 500,
-                            cursor: 'pointer',
-                            zIndex: 100000
-                        }}
-                    >
-                        Skip
-                    </button>
-                </div>
-            )}
-            <Head>
-                <title>News | Smarter.Poker</title>
-                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-                <meta name="description" content="Latest poker news, tournament updates, strategy tips, and industry insights" />
-            </Head>
-
-            <div className={`news-hub ${darkMode ? '' : 'light'}`}>
-                <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
-
-                {/* Hamburger Menu */}
-                <HamburgerMenu
-                    isOpen={menuOpen}
-                    onClose={() => setMenuOpen(false)}
-                    direction="left"
-                    theme="dark"
-                    user={null}
-                    showProfile={false}
-                    menuItems={menuConfig.menuItems}
-                    bottomLinks={menuConfig.bottomLinks}
-                />
-
-                {/* Floating Header */}
-                <header className="header">
-                    <div className="header-left">
-                        {/* Section Tabs - Custom Image Buttons */}
-                        <div className="section-tabs">
-                            {/* Today's Top Stories - Clickable Tab */}
-
-
-                            <button
-                                className={`section-tab-img ${activeSection === 'news' ? 'active' : ''}`}
-                                onClick={() => setActiveSection('news')}
-                            >
-                                <img src="/images/btn-news.png" alt="News" />
-                            </button>
-                            <button
-                                className={`section-tab-img ${activeSection === 'videos' ? 'active' : ''}`}
-                                onClick={() => setActiveSection('videos')}
-                            >
-                                <img src="/images/btn-latest-videos.png" alt="Latest Videos" />
-                            </button>
-                            <button
-                                className={`section-tab-img ${activeSection === 'reels' ? 'active' : ''}`}
-                                onClick={() => setActiveSection('reels')}
-                            >
-                                <img src="/images/btn-reels.png" alt="Reels" />
-                            </button>
-
-                            {/* Refresh Button */}
-                            {/* Refresh Button REMOVED */}
-                            {/* Theme Toggle REMOVED per user request */}
-
-                            {/* Theme Toggle REMOVED per user request */}
-                        </div>
-                    </div>
-                    {/* Search bar REMOVED - now in hamburger menu */}
-                </header>
-
-                {/* Share Modal */}
-                <AnimatePresence>
-                    {shareArticle && (
-                        <motion.div
-                            className="share-modal-overlay"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setShareArticle(null)}
+        <>
+            <PageTransition>
+                {/*  INTRO VIDEO OVERLAY - Plays while page loads behind it */}
+                {showIntro && (
+                    <div style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        zIndex: 99999,
+                        background: '#000',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}>
+                        <video
+                            ref={introVideoRef}
+                            src="/videos/news-intro.mp4"
+                            autoPlay
+                            muted
+                            playsInline
+                            onPlay={handleIntroPlay}
+                            onEnded={handleIntroEnd}
+                            onError={handleIntroEnd}
+                            style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover'
+                            }}
+                        />
+                        {/* Skip button */}
+                        <button
+                            onClick={handleIntroEnd}
+                            style={{
+                                position: 'absolute',
+                                top: 20,
+                                right: 20,
+                                padding: '8px 20px',
+                                background: 'rgba(255,255,255,0.2)',
+                                backdropFilter: 'blur(10px)',
+                                border: '1px solid rgba(255,255,255,0.3)',
+                                borderRadius: 20,
+                                color: 'white',
+                                fontSize: 14,
+                                fontWeight: 500,
+                                cursor: 'pointer',
+                                zIndex: 100000
+                            }}
                         >
-                            <motion.div
-                                className="share-modal"
-                                initial={{ scale: 0.9, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                exit={{ scale: 0.9, opacity: 0 }}
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                <h3>Share Article</h3>
-                                <p>{shareArticle.title}</p>
-                                <div className="share-buttons">
-                                    <button onClick={() => { shareToTwitter(shareArticle); setShareArticle(null); }}>
-                                        <Twitter size={20} /> Twitter
-                                    </button>
-                                    <button onClick={() => { shareToFacebook(shareArticle); setShareArticle(null); }}>
-                                        <Facebook size={20} /> Facebook
-                                    </button>
-                                    <button onClick={() => { copyLink(shareArticle); setShareArticle(null); }}>
-                                        <LinkIcon size={20} /> Copy Link
-                                    </button>
-                                </div>
-                                <button className="close-modal" onClick={() => setShareArticle(null)}>×</button>
-                            </motion.div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-
-                {/* Loading State */}
-                {loading && (
-                    <div className="loading">
-                        <Loader className="spinner" size={32} />
-                        <span>Loading latest news...</span>
+                            Skip
+                        </button>
                     </div>
                 )}
+                <Head>
+                    <title>News | Smarter.Poker</title>
+                    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+                    <meta name="description" content="Latest poker news, tournament updates, strategy tips, and industry insights" />
+                </Head>
 
-                {/* Main Layout */}
-                <div className="layout">
-                    {/* Left Column - News Boxes */}
-                    <main className="main-content">
-                        {/* Stories Section */}
+                <div className={`news-hub ${darkMode ? '' : 'light'}`}>
+                    <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
+
+                    {/* Hamburger Menu */}
+                    <HamburgerMenu
+                        isOpen={menuOpen}
+                        onClose={() => setMenuOpen(false)}
+                        direction="left"
+                        theme="dark"
+                        user={null}
+                        showProfile={false}
+                        menuItems={menuConfig.menuItems}
+                        bottomLinks={menuConfig.bottomLinks}
+                    />
+
+                    {/* Floating Header */}
+                    <header className="header">
+                        <div className="header-left">
+                            {/* Section Tabs - Custom Image Buttons */}
+                            <div className="section-tabs">
+                                {/* Today's Top Stories - Clickable Tab */}
 
 
-                        {activeSection === 'news' ? (
-                            <>
-                                {/* News Grid - 6 Source-Specific Boxes */}
-                                <section className="news-section">
-                                    {/* Section Title - Removed Icon from here */}
-                                    <div className="section-title">
-                                        {/* Icon moved to header */}
+                                <button
+                                    className={`section-tab-img ${activeSection === 'news' ? 'active' : ''}`}
+                                    onClick={() => setActiveSection('news')}
+                                >
+                                    <img src="/images/btn-news.png" alt="News" />
+                                </button>
+                                <button
+                                    className={`section-tab-img ${activeSection === 'videos' ? 'active' : ''}`}
+                                    onClick={() => setActiveSection('videos')}
+                                >
+                                    <img src="/images/btn-latest-videos.png" alt="Latest Videos" />
+                                </button>
+                                <button
+                                    className={`section-tab-img ${activeSection === 'reels' ? 'active' : ''}`}
+                                    onClick={() => setActiveSection('reels')}
+                                >
+                                    <img src="/images/btn-reels.png" alt="Reels" />
+                                </button>
+
+                                {/* Refresh Button */}
+                                {/* Refresh Button REMOVED */}
+                                {/* Theme Toggle REMOVED per user request */}
+
+                                {/* Theme Toggle REMOVED per user request */}
+                            </div>
+                        </div>
+                        {/* Search bar REMOVED - now in hamburger menu */}
+                    </header>
+
+                    {/* Share Modal */}
+                    <AnimatePresence>
+                        {shareArticle && (
+                            <motion.div
+                                className="share-modal-overlay"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => setShareArticle(null)}
+                            >
+                                <motion.div
+                                    className="share-modal"
+                                    initial={{ scale: 0.9, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    exit={{ scale: 0.9, opacity: 0 }}
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <h3>Share Article</h3>
+                                    <p>{shareArticle.title}</p>
+                                    <div className="share-buttons">
+                                        <button onClick={() => { shareToTwitter(shareArticle); setShareArticle(null); }}>
+                                            <Twitter size={20} /> Twitter
+                                        </button>
+                                        <button onClick={() => { shareToFacebook(shareArticle); setShareArticle(null); }}>
+                                            <Facebook size={20} /> Facebook
+                                        </button>
+                                        <button onClick={() => { copyLink(shareArticle); setShareArticle(null); }}>
+                                            <LinkIcon size={20} /> Copy Link
+                                        </button>
                                     </div>
+                                    <button className="close-modal" onClick={() => setShareArticle(null)}>×</button>
+                                </motion.div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
-                                    {filteredNews.length === 0 && searchQuery ? (
-                                        <div className="no-results">
-                                            <Globe size={48} />
-                                            <p>No articles found for "{searchQuery}"</p>
-                                            <button onClick={() => { setSearchQuery(''); setActiveTab('all'); fetchNews(); }}>
-                                                Clear filters
+                    {/* Loading State */}
+                    {loading && (
+                        <div className="loading">
+                            <Loader className="spinner" size={32} />
+                            <span>Loading latest news...</span>
+                        </div>
+                    )}
+
+                    {/* Main Layout */}
+                    <div className="layout">
+                        {/* Left Column - News Boxes */}
+                        <main className="main-content">
+                            {/* Stories Section */}
+
+
+                            {activeSection === 'news' ? (
+                                <>
+                                    {/* News Grid - 6 Source-Specific Boxes */}
+                                    <section className="news-section">
+                                        {/* Section Title - Removed Icon from here */}
+                                        <div className="section-title">
+                                            {/* Icon moved to header */}
+                                        </div>
+
+                                        {filteredNews.length === 0 && searchQuery ? (
+                                            <div className="no-results">
+                                                <Globe size={48} />
+                                                <p>No articles found for "{searchQuery}"</p>
+                                                <button onClick={() => { setSearchQuery(''); setActiveTab('all'); fetchNews(); }}>
+                                                    Clear filters
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="news-grid">
+                                                {/* Show 1 article per source - 6 dedicated source boxes (always 6) */}
+                                                {topArticles.map((article, index) => (
+                                                    <NewsBox
+                                                        key={article.id}
+                                                        article={article}
+                                                        index={index}
+                                                        onOpen={openArticle}
+                                                        isBookmarked={bookmarks.includes(article.id)}
+                                                        onBookmark={toggleBookmark}
+                                                        onShare={setShareArticle}
+                                                        isRead={readArticles.includes(article.id)}
+                                                    />
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {/* More Stories Button - Clickable */}
+                                        {remainingStories.length > 0 && !showAllStories && (
+                                            <motion.button
+                                                className="more-stories"
+                                                onClick={() => setShowAllStories(true)}
+                                                whileHover={{ scale: 1.02 }}
+                                                whileTap={{ scale: 0.98 }}
+                                            >
+                                                <span>{remainingStories.length} more stories available</span>
+                                                <ChevronDown size={16} />
+                                            </motion.button>
+                                        )}
+                                    </section>
+
+                                    {/* Additional Stories (shown when expanded) */}
+                                    <AnimatePresence>
+                                        {remainingStories.length > 0 && showAllStories && (
+                                            <motion.section
+                                                className="more-section"
+                                                initial={{ opacity: 0, height: 0 }}
+                                                animate={{ opacity: 1, height: 'auto' }}
+                                                exit={{ opacity: 0, height: 0 }}
+                                                transition={{ duration: 0.3 }}
+                                            >
+                                                <h2 className="section-title">
+                                                    <Newspaper size={18} /> More Stories
+                                                    <button
+                                                        className="collapse-btn"
+                                                        onClick={() => setShowAllStories(false)}
+                                                    >
+                                                        Collapse
+                                                    </button>
+                                                </h2>
+                                                <div className="news-list">
+                                                    {remainingStories.map((article) => (
+                                                        <motion.div
+                                                            key={article.id}
+                                                            className="news-list-item"
+                                                            whileHover={{ x: 4 }}
+                                                            onClick={() => openArticle(article)}
+                                                        >
+                                                            <img
+                                                                src={article.image_url || FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news}
+                                                                alt=""
+                                                                className="list-thumb"
+                                                                onError={(e) => { e.target.src = FALLBACK_IMAGES.news; }}
+                                                            />
+                                                            <div className="list-content">
+                                                                <h4>{article.title}</h4>
+                                                                <div className="list-meta">
+                                                                    <span>{article.source_name || article.author_name || 'Source'}</span>
+                                                                    <span>•</span>
+                                                                    <span>{timeAgo(article.published_at)}</span>
+                                                                </div>
+                                                            </div>
+                                                            <ChevronRight size={16} className="list-arrow" />
+                                                        </motion.div>
+                                                    ))}
+                                                </div>
+                                            </motion.section>
+                                        )}
+                                    </AnimatePresence>
+
+                                    {/* Reels Preview Section - Shows on News tab */}
+                                    <section className="reels-preview-section">
+                                        <div className="section-header-row">
+                                            <h2 className="section-title">
+                                                <Film size={18} /> Poker Reels
+                                            </h2>
+                                            <button
+                                                className="see-all-btn"
+                                                onClick={() => setActiveSection('reels')}
+                                            >
+                                                See All →
                                             </button>
                                         </div>
+                                        {reels.length > 0 ? (
+                                            <div className="reels-carousel">
+                                                {reels.slice(0, 6).map(reel => (
+                                                    <ReelCard key={reel.id} reel={reel} openExternal={openExternal} />
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p style={{ color: '#888', padding: '20px', textAlign: 'center' }}>Loading reels...</p>
+                                        )}
+                                    </section>
+
+                                    {/* Videos Preview Section - Shows on News tab */}
+                                    <section className="videos-preview-section">
+                                        <div className="section-header-row">
+                                            <h2 className="section-title">
+                                                <Play size={18} /> Latest Videos
+                                            </h2>
+                                            <button
+                                                className="see-all-btn"
+                                                onClick={() => setActiveSection('videos')}
+                                            >
+                                                See All →
+                                            </button>
+                                        </div>
+                                        {videos.length > 0 ? (
+                                            <div className="videos-carousel">
+                                                {videos.slice(0, 4).map(video => (
+                                                    <VideoCard key={video.id} video={video} onClick={openVideo} />
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p style={{ color: '#888', padding: '20px', textAlign: 'center' }}>Loading videos...</p>
+                                        )}
+                                    </section>
+                                </>
+                            ) : activeSection === 'videos' ? (
+                                /* Videos Section */
+                                <section className="videos-section">
+                                    <h2 className="section-title">
+                                        <Play size={18} /> Latest Poker Videos
+                                    </h2>
+                                    <p className="section-desc">
+                                        Auto-updated every 2 hours with the latest poker content from YouTube
+                                    </p>
+
+                                    <div className="videos-grid">
+                                        {videos.map(video => (
+                                            <VideoCard
+                                                key={video.id}
+                                                video={video}
+                                                onClick={openVideo}
+                                            />
+                                        ))}
+                                    </div>
+
+                                    <Link href="/hub/video-library" className="see-all-videos">
+                                        View Full Video Library <ExternalLink size={14} />
+                                    </Link>
+                                </section>
+                            ) : (
+                                /* Reels Section */
+                                <section className="reels-section">
+                                    <h2 className="section-title">
+                                        <Film size={18} /> Poker Reels
+                                    </h2>
+                                    <p className="section-desc">
+                                        Short-form poker content from top YouTube channels - updated daily
+                                    </p>
+
+                                    {reels.length === 0 ? (
+                                        <div className="no-results">
+                                            <Film size={48} />
+                                            <p>No reels available yet. Check back soon!</p>
+                                        </div>
                                     ) : (
-                                        <div className="news-grid">
-                                            {/* Show 1 article per source - 6 dedicated source boxes (always 6) */}
-                                            {topArticles.map((article, index) => (
-                                                <NewsBox
-                                                    key={article.id}
-                                                    article={article}
-                                                    index={index}
-                                                    onOpen={openArticle}
-                                                    isBookmarked={bookmarks.includes(article.id)}
-                                                    onBookmark={toggleBookmark}
-                                                    onShare={setShareArticle}
-                                                    isRead={readArticles.includes(article.id)}
+                                        <div className="reels-grid">
+                                            {reels.map(reel => (
+                                                <ReelCard
+                                                    key={reel.id || reel.youtube_id}
+                                                    reel={reel}
+                                                    openExternal={openExternal}
                                                 />
                                             ))}
                                         </div>
                                     )}
-
-                                    {/* More Stories Button - Clickable */}
-                                    {remainingStories.length > 0 && !showAllStories && (
-                                        <motion.button
-                                            className="more-stories"
-                                            onClick={() => setShowAllStories(true)}
-                                            whileHover={{ scale: 1.02 }}
-                                            whileTap={{ scale: 0.98 }}
-                                        >
-                                            <span>{remainingStories.length} more stories available</span>
-                                            <ChevronDown size={16} />
-                                        </motion.button>
-                                    )}
                                 </section>
+                            )}
+                        </main>
 
-                                {/* Additional Stories (shown when expanded) */}
-                                <AnimatePresence>
-                                    {remainingStories.length > 0 && showAllStories && (
-                                        <motion.section
-                                            className="more-section"
-                                            initial={{ opacity: 0, height: 0 }}
-                                            animate={{ opacity: 1, height: 'auto' }}
-                                            exit={{ opacity: 0, height: 0 }}
-                                            transition={{ duration: 0.3 }}
+                        {/* Right Sidebar */}
+                        <aside className="sidebar">
+                            {/* MSPT News & Updates - Dedicated Box */}
+                            <div className="widget mspt">
+                                <h4><Trophy size={14} /> MSPT News & Updates</h4>
+                                <ul className="mspt-list">
+                                    {msptNews.map((item) => (
+                                        <li
+                                            key={item.id}
+                                            onClick={() => item.source_url && window.open(item.source_url, '_blank')}
                                         >
-                                            <h2 className="section-title">
-                                                <Newspaper size={18} /> More Stories
-                                                <button
-                                                    className="collapse-btn"
-                                                    onClick={() => setShowAllStories(false)}
-                                                >
-                                                    Collapse
-                                                </button>
-                                            </h2>
-                                            <div className="news-list">
-                                                {remainingStories.map((article) => (
-                                                    <motion.div
-                                                        key={article.id}
-                                                        className="news-list-item"
-                                                        whileHover={{ x: 4 }}
-                                                        onClick={() => openArticle(article)}
-                                                    >
-                                                        <img
-                                                            src={article.image_url || FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news}
-                                                            alt=""
-                                                            className="list-thumb"
-                                                            onError={(e) => { e.target.src = FALLBACK_IMAGES.news; }}
-                                                        />
-                                                        <div className="list-content">
-                                                            <h4>{article.title}</h4>
-                                                            <div className="list-meta">
-                                                                <span>{article.source_name || article.author_name || 'Source'}</span>
-                                                                <span>•</span>
-                                                                <span>{timeAgo(article.published_at)}</span>
-                                                            </div>
-                                                        </div>
-                                                        <ChevronRight size={16} className="list-arrow" />
-                                                    </motion.div>
-                                                ))}
+                                            <div className="mspt-item">
+                                                <span className="mspt-title">{item.title}</span>
+                                                <div className="mspt-meta">
+                                                    <span className="mspt-time">{timeAgo(item.published_at)}</span>
+                                                    {item.prize_pool && (
+                                                        <span className="mspt-prize">{item.prize_pool}</span>
+                                                    )}
+                                                </div>
                                             </div>
-                                        </motion.section>
-                                    )}
-                                </AnimatePresence>
-
-                                {/* Reels Preview Section - Shows on News tab */}
-                                <section className="reels-preview-section">
-                                    <div className="section-header-row">
-                                        <h2 className="section-title">
-                                            <Film size={18} /> Poker Reels
-                                        </h2>
-                                        <button
-                                            className="see-all-btn"
-                                            onClick={() => setActiveSection('reels')}
-                                        >
-                                            See All →
-                                        </button>
-                                    </div>
-                                    {reels.length > 0 ? (
-                                        <div className="reels-carousel">
-                                            {reels.slice(0, 6).map(reel => (
-                                                <ReelCard key={reel.id} reel={reel} openExternal={openExternal} />
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <p style={{ color: '#888', padding: '20px', textAlign: 'center' }}>Loading reels...</p>
-                                    )}
-                                </section>
-
-                                {/* Videos Preview Section - Shows on News tab */}
-                                <section className="videos-preview-section">
-                                    <div className="section-header-row">
-                                        <h2 className="section-title">
-                                            <Play size={18} /> Latest Videos
-                                        </h2>
-                                        <button
-                                            className="see-all-btn"
-                                            onClick={() => setActiveSection('videos')}
-                                        >
-                                            See All →
-                                        </button>
-                                    </div>
-                                    {videos.length > 0 ? (
-                                        <div className="videos-carousel">
-                                            {videos.slice(0, 4).map(video => (
-                                                <VideoCard key={video.id} video={video} onClick={openVideo} />
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <p style={{ color: '#888', padding: '20px', textAlign: 'center' }}>Loading videos...</p>
-                                    )}
-                                </section>
-                            </>
-                        ) : activeSection === 'videos' ? (
-                            /* Videos Section */
-                            <section className="videos-section">
-                                <h2 className="section-title">
-                                    <Play size={18} /> Latest Poker Videos
-                                </h2>
-                                <p className="section-desc">
-                                    Auto-updated every 2 hours with the latest poker content from YouTube
-                                </p>
-
-                                <div className="videos-grid">
-                                    {videos.map(video => (
-                                        <VideoCard
-                                            key={video.id}
-                                            video={video}
-                                            onClick={openVideo}
-                                        />
-                                    ))}
-                                </div>
-
-                                <Link href="/hub/video-library" className="see-all-videos">
-                                    View Full Video Library <ExternalLink size={14} />
-                                </Link>
-                            </section>
-                        ) : (
-                            /* Reels Section */
-                            <section className="reels-section">
-                                <h2 className="section-title">
-                                    <Film size={18} /> Poker Reels
-                                </h2>
-                                <p className="section-desc">
-                                    Short-form poker content from top YouTube channels - updated daily
-                                </p>
-
-                                {reels.length === 0 ? (
-                                    <div className="no-results">
-                                        <Film size={48} />
-                                        <p>No reels available yet. Check back soon!</p>
-                                    </div>
-                                ) : (
-                                    <div className="reels-grid">
-                                        {reels.map(reel => (
-                                            <ReelCard
-                                                key={reel.id || reel.youtube_id}
-                                                reel={reel}
-                                                openExternal={openExternal}
-                                            />
-                                        ))}
-                                    </div>
-                                )}
-                            </section>
-                        )}
-                    </main>
-
-                    {/* Right Sidebar */}
-                    <aside className="sidebar">
-                        {/* MSPT News & Updates - Dedicated Box */}
-                        <div className="widget mspt">
-                            <h4><Trophy size={14} /> MSPT News & Updates</h4>
-                            <ul className="mspt-list">
-                                {msptNews.map((item) => (
-                                    <li
-                                        key={item.id}
-                                        onClick={() => item.source_url && window.open(item.source_url, '_blank')}
-                                    >
-                                        <div className="mspt-item">
-                                            <span className="mspt-title">{item.title}</span>
-                                            <div className="mspt-meta">
-                                                <span className="mspt-time">{timeAgo(item.published_at)}</span>
-                                                {item.prize_pool && (
-                                                    <span className="mspt-prize">{item.prize_pool}</span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                            <a
-                                href="https://msptpoker.com"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="mspt-link"
-                            >
-                                Visit MSPT Official Site <ExternalLink size={12} />
-                            </a>
-                        </div>
-
-                        {/* Trending */}
-                        <div className="widget">
-                            <h4><TrendingUp size={14} /> Trending</h4>
-                            <ul className="trending-list">
-                                {trendingNews.map((article, i) => (
-                                    <li key={article.id} onClick={() => openArticle(article)}>
-                                        <span className="rank">{i + 1}</span>
-                                        <img
-                                            src={article.image_url || FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news}
-                                            alt=""
-                                            className="trend-thumb"
-                                            loading="lazy"
-                                            onError={(e) => { e.target.src = FALLBACK_IMAGES.news; }}
-                                        />
-                                        <span className="title">{article.title}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-
-                        {/* Player of the Year */}
-                        <div className="widget leaderboard">
-                            <h4><Trophy size={14} /> Player of the Year</h4>
-                            <ul>
-                                {leaderboard.map((player, i) => (
-                                    <li key={player.id || i}>
-                                        <span className={`medal medal-${i + 1}`}>{i + 1}</span>
-                                        <span className="name">{player.player_name}</span>
-                                        <span className="points">{(player.points || 0).toLocaleString()}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-
-                        {/* Upcoming Events */}
-                        <Link href="/hub/poker-near-me">
-                            <div className="widget events">
-                                <h4><MapPin size={14} /> Poker Near Me</h4>
-                                <ul className="events-list">
-                                    {events.map(event => (
-                                        <li key={event.id}>
-                                            <span>{event.name}</span>
-                                            <span className="date">{formatEventDate(event.event_date)}</span>
                                         </li>
                                     ))}
                                 </ul>
-                                <div className="view-all">
-                                    View All Events <ExternalLink size={12} />
-                                </div>
+                                <a
+                                    href="https://msptpoker.com"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="mspt-link"
+                                >
+                                    Visit MSPT Official Site <ExternalLink size={12} />
+                                </a>
                             </div>
-                        </Link>
-                    </aside>
-                </div>
 
-                <style jsx>{`
+                            {/* Trending */}
+                            <div className="widget">
+                                <h4><TrendingUp size={14} /> Trending</h4>
+                                <ul className="trending-list">
+                                    {trendingNews.map((article, i) => (
+                                        <li key={article.id} onClick={() => openArticle(article)}>
+                                            <span className="rank">{i + 1}</span>
+                                            <img
+                                                src={article.image_url || FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news}
+                                                alt=""
+                                                className="trend-thumb"
+                                                loading="lazy"
+                                                onError={(e) => { e.target.src = FALLBACK_IMAGES.news; }}
+                                            />
+                                            <span className="title">{article.title}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+
+                            {/* Player of the Year */}
+                            <div className="widget leaderboard">
+                                <h4><Trophy size={14} /> Player of the Year</h4>
+                                <ul>
+                                    {leaderboard.map((player, i) => (
+                                        <li key={player.id || i}>
+                                            <span className={`medal medal-${i + 1}`}>{i + 1}</span>
+                                            <span className="name">{player.player_name}</span>
+                                            <span className="points">{(player.points || 0).toLocaleString()}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+
+                            {/* Upcoming Events */}
+                            <Link href="/hub/poker-near-me">
+                                <div className="widget events">
+                                    <h4><MapPin size={14} /> Poker Near Me</h4>
+                                    <ul className="events-list">
+                                        {events.map(event => (
+                                            <li key={event.id}>
+                                                <span>{event.name}</span>
+                                                <span className="date">{formatEventDate(event.event_date)}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                    <div className="view-all">
+                                        View All Events <ExternalLink size={12} />
+                                    </div>
+                                </div>
+                            </Link>
+                        </aside>
+                    </div>
+
+                    <style jsx>{`
                     .news-hub {
                         min-height: 100vh;
                         background: #18191A;
@@ -3074,12 +3075,12 @@ export default function NewsHub() {
                     }
                 `}</style>
 
-                {/* ================================================================
+                    {/* ================================================================
                     GLOBAL MOBILE OVERRIDE — Bypasses styled-jsx component scoping
                     This is required because NewsBox, VideoCard etc. are separate 
                     components with their own <style jsx> blocks.
                     ================================================================ */}
-                <style jsx global>{`
+                    <style jsx global>{`
                     @media (max-width: 768px) {
                         /* === SCROLL UNLOCK === */
                         body, html, body.antigravity-scroll-lock {
@@ -3281,18 +3282,17 @@ export default function NewsHub() {
                         }
                     }
                 `}</style>
-            </div>
-        </PageTransition>
+                </div>
+            </PageTransition>
 
-        {/* Article Reader Modal - Opens articles in-app via server-side proxy */ }
-    {
-        articleReader.open && (
-            <ArticleReaderModal
-                url={articleReader.url}
-                title={articleReader.title}
-                onClose={() => setArticleReader({ open: false, url: '', title: '' })}
-            />
-        )
-    }
-    </>
+            {/* Article Reader Modal - Opens articles in-app via server-side proxy */}
+            {articleReader.open && (
+                <ArticleReaderModal
+                    url={articleReader.url}
+                    title={articleReader.title}
+                    onClose={() => setArticleReader({ open: false, url: '', title: '' })}
+                />
+            )}
+        </>
+    );
 }
