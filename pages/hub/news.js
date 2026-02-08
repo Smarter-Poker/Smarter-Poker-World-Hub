@@ -1856,7 +1856,7 @@ export default function NewsHub() {
                         }
 
                         .section-title {
-                            padding: 0 16px 12px 16px !important;
+                            padding: 0 16px !important;
                             margin: 0 !important;
                         }
 
