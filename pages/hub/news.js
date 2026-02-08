@@ -1795,7 +1795,7 @@ export default function NewsHub() {
                         header.header {
                             width: 100% !important;
                             max-width: 100vw !important;
-                            padding: 2px 0 !important;
+                            padding: 3px 0 !important;
                             overflow-x: hidden !important;
                             overflow-y: hidden !important;
                             -webkit-overflow-scrolling: touch;
@@ -1815,18 +1815,22 @@ export default function NewsHub() {
                             width: 100% !important;
                             max-width: 100vw !important;
                             justify-content: center !important;
+                            gap: 3px !important;
+                            padding: 0 3px !important;
                             -webkit-overflow-scrolling: touch;
                         }
 
                         .section-tab-img,
                         .refresh-btn-img {
-                            height: 60px !important;
-                            flex-shrink: 0 !important;
+                            flex: 1 1 0 !important;
+                            height: auto !important;
+                            min-width: 0 !important;
                         }
 
                         .section-tab-img img,
                         .refresh-btn-img img {
-                            height: 60px !important;
+                            width: 100% !important;
+                            height: auto !important;
                         }
 
                         .main-content {
@@ -3105,7 +3109,7 @@ export default function NewsHub() {
                         header.header {
                             width: 100% !important;
                             max-width: 100vw !important;
-                            padding: 2px 0 !important;
+                            padding: 3px 0 !important;
                             overflow-x: hidden !important;
                             overflow-y: hidden !important;
                             -webkit-overflow-scrolling: touch;
@@ -3129,18 +3133,22 @@ export default function NewsHub() {
                             width: 100% !important;
                             max-width: 100vw !important;
                             justify-content: center !important;
+                            gap: 3px !important;
+                            padding: 0 3px !important;
                             -webkit-overflow-scrolling: touch;
                         }
 
                         .section-tab-img,
                         .refresh-btn-img {
-                            height: 60px !important;
-                            flex-shrink: 0 !important;
+                            flex: 1 1 0 !important;
+                            height: auto !important;
+                            min-width: 0 !important;
                         }
 
                         .section-tab-img img,
                         .refresh-btn-img img {
-                            height: 60px !important;
+                            width: 100% !important;
+                            height: auto !important;
                         }
 
                         /* === MAIN CONTENT === */
