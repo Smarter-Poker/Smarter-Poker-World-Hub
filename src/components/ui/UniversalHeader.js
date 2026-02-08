@@ -562,11 +562,12 @@ export default function UniversalHeader({
                         <span data-testid="header-diamonds" style={{ fontWeight: 700 }} title={stats.diamonds.toLocaleString() + ' diamonds'}>
                             {showFullDiamonds ? stats.diamonds.toLocaleString() : formatCompact(stats.diamonds)}
                         </span>
-                        <span style={{
-                            fontSize: 15, fontWeight: 700, color: 'white',
-                            display: 'flex', alignSelf: 'center', lineHeight: 0
-                        }}>+</span>
                     </Link>
+                    <Link href="/hub/diamond-store" style={{
+                        fontSize: 15, fontWeight: 700, color: 'white',
+                        display: 'flex', alignSelf: 'center', lineHeight: 0,
+                        textDecoration: 'none'
+                    }}>+</Link>
                 </div>
 
                 {/* RIGHT: Orb Icons */}

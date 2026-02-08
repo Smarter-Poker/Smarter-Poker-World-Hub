@@ -89,7 +89,7 @@ const TYPE_TO_CATEGORY = {
 const CATEGORY_LABELS = {
   poker_cash: 'Cash Games',
   poker_mtt: 'Tournaments',
-  casino_table: 'Casino',
+  casino_table: 'Table Games',
   slots: 'Slots',
   sports: 'Sports Betting',
   expense: 'Expenses',
@@ -179,10 +179,20 @@ export default function BankrollManagerPage() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [locationFilter, setLocationFilter] = useState(null);
   const [timeFilter, setTimeFilter] = useState('Last 30 Days');
+  const [gameTypeFilter, setGameTypeFilter] = useState(new Set(['poker_cash', 'poker_mtt', 'casino_table', 'slots', 'sports']));
 
   // Dropdowns
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const [showTimeDropdown, setShowTimeDropdown] = useState(false);
+  const [showGameTypeDropdown, setShowGameTypeDropdown] = useState(false);
+
+  const toggleGameType = (type) => {
+    setGameTypeFilter(prev => {
+      const next = new Set(prev);
+      if (next.has(type)) { next.delete(type); } else { next.add(type); }
+      return next;
+    });
+  };
 
   // Data
   const [stats, setStats] = useState(null);
@@ -352,6 +362,7 @@ export default function BankrollManagerPage() {
     const handleClick = () => {
       setShowLocationDropdown(false);
       setShowTimeDropdown(false);
+      setShowGameTypeDropdown(false);
     };
     document.addEventListener('click', handleClick);
     return () => document.removeEventListener('click', handleClick);
@@ -440,81 +451,6 @@ export default function BankrollManagerPage() {
           bottomLinks={menuConfig.bottomLinks}
         />
 
-        {/* Top Bar with Filters */}
-        <div style={styles.topBar}>
-          <div style={styles.topBarLeft}>
-            {/* Location Dropdown */}
-            <div style={styles.dropdownContainer} onClick={(e) => e.stopPropagation()}>
-              <button
-                style={styles.dropdownButton}
-                onClick={() => {
-                  setShowLocationDropdown(!showLocationDropdown);
-                  setShowTimeDropdown(false);
-                }}
-              >
-                {selectedLocationName} <span style={styles.dropdownArrow}>▼</span>
-              </button>
-              {showLocationDropdown && (
-                <div style={styles.dropdownMenu}>
-                  <button
-                    style={styles.dropdownItem}
-                    onClick={() => {
-                      setLocationFilter(null);
-                      setShowLocationDropdown(false);
-                    }}
-                  >
-                    All Locations
-                  </button>
-                  {locations.map((loc) => (
-                    <button
-                      key={loc.id}
-                      style={styles.dropdownItem}
-                      onClick={() => {
-                        setLocationFilter(loc.id);
-                        setShowLocationDropdown(false);
-                      }}
-                    >
-                      {loc.name}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Time Filter Dropdown */}
-            <div style={styles.dropdownContainer} onClick={(e) => e.stopPropagation()}>
-              <button
-                style={styles.dropdownButton}
-                onClick={() => {
-                  setShowTimeDropdown(!showTimeDropdown);
-                  setShowLocationDropdown(false);
-                }}
-              >
-                {timeFilter} <span style={styles.dropdownArrow}>▼</span>
-              </button>
-              {showTimeDropdown && (
-                <div style={styles.dropdownMenu}>
-                  {TIME_FILTERS.map((tf) => (
-                    <button
-                      key={tf}
-                      style={styles.dropdownItem}
-                      onClick={() => {
-                        setTimeFilter(tf);
-                        setShowTimeDropdown(false);
-                      }}
-                    >
-                      {tf}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div style={styles.topBarRight}>
-            <button style={styles.searchButton}></button>
-          </div>
-        </div>
 
         {/* Main Layout */}
         <div style={styles.mainLayout}>
@@ -604,6 +540,117 @@ export default function BankrollManagerPage() {
                   onSubmit={handleLogSubmit}
                   onOpenFullModal={handleLogClick}
                 />
+
+                {/* Filters Row */}
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+                  {/* Location Dropdown */}
+                  <div style={styles.dropdownContainer} onClick={(e) => e.stopPropagation()}>
+                    <button
+                      style={styles.dropdownButton}
+                      onClick={() => {
+                        setShowLocationDropdown(!showLocationDropdown);
+                        setShowTimeDropdown(false);
+                        setShowGameTypeDropdown(false);
+                      }}
+                    >
+                      {selectedLocationName} <span style={styles.dropdownArrow}>▼</span>
+                    </button>
+                    {showLocationDropdown && (
+                      <div style={styles.dropdownMenu}>
+                        <button
+                          style={styles.dropdownItem}
+                          onClick={() => { setLocationFilter(null); setShowLocationDropdown(false); }}
+                        >
+                          All Locations
+                        </button>
+                        {locations.map((loc) => (
+                          <button
+                            key={loc.id}
+                            style={styles.dropdownItem}
+                            onClick={() => { setLocationFilter(loc.id); setShowLocationDropdown(false); }}
+                          >
+                            {loc.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Time Filter Dropdown */}
+                  <div style={styles.dropdownContainer} onClick={(e) => e.stopPropagation()}>
+                    <button
+                      style={styles.dropdownButton}
+                      onClick={() => {
+                        setShowTimeDropdown(!showTimeDropdown);
+                        setShowLocationDropdown(false);
+                        setShowGameTypeDropdown(false);
+                      }}
+                    >
+                      {timeFilter} <span style={styles.dropdownArrow}>▼</span>
+                    </button>
+                    {showTimeDropdown && (
+                      <div style={styles.dropdownMenu}>
+                        {TIME_FILTERS.map((tf) => (
+                          <button
+                            key={tf}
+                            style={styles.dropdownItem}
+                            onClick={() => { setTimeFilter(tf); setShowTimeDropdown(false); }}
+                          >
+                            {tf}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Game Type Multi-Select Dropdown */}
+                  <div style={styles.dropdownContainer} onClick={(e) => e.stopPropagation()}>
+                    <button
+                      style={styles.dropdownButton}
+                      onClick={() => {
+                        setShowGameTypeDropdown(!showGameTypeDropdown);
+                        setShowLocationDropdown(false);
+                        setShowTimeDropdown(false);
+                      }}
+                    >
+                      Game Type ({gameTypeFilter.size}) <span style={styles.dropdownArrow}>▼</span>
+                    </button>
+                    {showGameTypeDropdown && (
+                      <div style={{ ...styles.dropdownMenu, minWidth: 200 }}>
+                        {['poker_cash', 'poker_mtt', 'casino_table', 'slots', 'sports'].map((cat) => (
+                          <button
+                            key={cat}
+                            style={{
+                              ...styles.dropdownItem,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 8,
+                              background: gameTypeFilter.has(cat) ? 'rgba(35, 116, 225, 0.15)' : 'transparent',
+                            }}
+                            onClick={() => toggleGameType(cat)}
+                          >
+                            <span style={{
+                              width: 16,
+                              height: 16,
+                              borderRadius: 3,
+                              border: gameTypeFilter.has(cat) ? '2px solid #2374e1' : '2px solid rgba(255,255,255,0.3)',
+                              background: gameTypeFilter.has(cat) ? '#2374e1' : 'transparent',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: 11,
+                              color: '#fff',
+                              flexShrink: 0,
+                            }}>
+                              {gameTypeFilter.has(cat) ? '✓' : ''}
+                            </span>
+                            {CATEGORY_LABELS[cat]}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
 
                 {/* Bankroll Trend Chart */}
                 <BankrollTrendChart entries={entries} isLoading={isLoading} />
