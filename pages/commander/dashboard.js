@@ -353,7 +353,7 @@ export default function CommanderDashboard() {
   if (!staff || loading) {
     return (
       <div className="cmd-page flex items-center justify-center">
-        <div className="animate-pulse text-[#64748B]">Loading...</div>
+        <div className="animate-pulse text-[#B0B3B8]">Loading...</div>
       </div>
     );
   }
@@ -370,8 +370,8 @@ export default function CommanderDashboard() {
         <header className="cmd-header-bar sticky top-0 z-50">
           <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
             <div>
-              <h1 className="font-bold text-white text-lg">{venue?.name || 'Loading...'}</h1>
-              <p className="text-sm text-[#64748B]">
+              <h1 className="font-bold text-[#E4E6EB] text-lg">{venue?.name || 'Loading...'}</h1>
+              <p className="text-sm text-[#B0B3B8]">
                 {staff.display_name || staff.role} ({staff.role})
               </p>
             </div>
@@ -379,12 +379,12 @@ export default function CommanderDashboard() {
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-2 text-sm">
                 {online ? (
-                  <Wifi className="w-4 h-4 text-[#10B981]" />
+                  <Wifi className="w-4 h-4 text-[#31A24C]" />
                 ) : (
                   <WifiOff className="w-4 h-4 text-[#EF4444]" />
                 )}
                 {lastRefresh && (
-                  <span className="text-[#64748B] hidden sm:inline">
+                  <span className="text-[#B0B3B8] hidden sm:inline">
                     {lastRefresh.toLocaleTimeString()}
                   </span>
                 )}
@@ -393,18 +393,18 @@ export default function CommanderDashboard() {
               <button
                 onClick={() => fetchData(true)}
                 disabled={refreshing}
-                className="p-2 rounded-lg hover:bg-[#0B1426] transition-colors min-w-[44px] min-h-[44px] inline-flex items-center justify-center"
+                className="p-2 rounded-lg hover:bg-[#18191A] transition-colors min-w-[44px] min-h-[44px] inline-flex items-center justify-center"
                 title="Refresh"
               >
-                <RefreshCw className={`w-5 h-5 text-[#64748B] ${refreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-5 h-5 text-[#B0B3B8] ${refreshing ? 'animate-spin' : ''}`} />
               </button>
 
               <button
                 onClick={() => setShowNav(true)}
-                className="p-2 rounded-lg hover:bg-[#0B1426] transition-colors min-w-[44px] min-h-[44px] inline-flex items-center justify-center"
+                className="p-2 rounded-lg hover:bg-[#18191A] transition-colors min-w-[44px] min-h-[44px] inline-flex items-center justify-center"
                 title="Menu"
               >
-                <Menu className="w-5 h-5 text-[#64748B]" />
+                <Menu className="w-5 h-5 text-[#B0B3B8]" />
               </button>
             </div>
           </div>
@@ -429,7 +429,7 @@ export default function CommanderDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Games Grid */}
             <section className="lg:col-span-2">
-              <h2 className="text-lg font-semibold text-white mb-4">Active Games</h2>
+              <h2 className="text-lg font-semibold text-[#E4E6EB] mb-4">Active Games</h2>
               <GameGrid
                 games={games}
                 onGameSelect={handleGameSelect}
@@ -439,14 +439,14 @@ export default function CommanderDashboard() {
 
             {/* Activity Feed */}
             <section className="lg:col-span-1">
-              <h2 className="text-lg font-semibold text-white mb-4">Activity</h2>
+              <h2 className="text-lg font-semibold text-[#E4E6EB] mb-4">Activity</h2>
               <ActivityFeed activities={activities} />
             </section>
           </div>
 
           {/* Active Sessions */}
           <section>
-            <h2 className="text-lg font-semibold text-white mb-4">Active Sessions</h2>
+            <h2 className="text-lg font-semibold text-[#E4E6EB] mb-4">Active Sessions</h2>
             <SessionTracker
               sessions={sessions}
               onCheckout={handleCheckoutSession}
@@ -456,10 +456,10 @@ export default function CommanderDashboard() {
 
           {/* AI Insights Panel */}
           {(aiSuggestions.length > 0 || waitTimePredictions.length > 0) && (
-            <section className="bg-gradient-to-r from-[#22D3EE]/5 to-[#8B5CF6]/5 rounded-xl border border-[#22D3EE]/20 p-4">
+            <section className="bg-gradient-to-r from-[#1877F2]/5 to-[#1877F2]/5 rounded-xl border border-[#1877F2]/20 p-4">
               <div className="flex items-center gap-2 mb-4">
-                <Lightbulb className="w-5 h-5 text-[#22D3EE]" />
-                <h2 className="text-lg font-semibold text-white">AI Insights</h2>
+                <Lightbulb className="w-5 h-5 text-[#1877F2]" />
+                <h2 className="text-lg font-semibold text-[#E4E6EB]">AI Insights</h2>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -467,16 +467,16 @@ export default function CommanderDashboard() {
                 {aiSuggestions.length > 0 && (
                   <div className="cmd-panel p-4">
                     <div className="flex items-center gap-2 mb-3">
-                      <ArrowRightLeft className="w-4 h-4 text-[#8B5CF6]" />
-                      <h3 className="font-medium text-white">Table Balance</h3>
+                      <ArrowRightLeft className="w-4 h-4 text-[#1877F2]" />
+                      <h3 className="font-medium text-[#E4E6EB]">Table Balance</h3>
                     </div>
                     <div className="space-y-3">
                       {aiSuggestions.slice(0, 3).map((suggestion, idx) => (
                         <div key={idx} className={`p-3 rounded-lg ${
-                          suggestion.priority === 'high' ? 'bg-[#EF4444]/10' : 'bg-[#0B1426]'
+                          suggestion.priority === 'high' ? 'bg-[#EF4444]/10' : 'bg-[#18191A]'
                         }`}>
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-sm font-medium text-white">
+                            <span className="text-sm font-medium text-[#E4E6EB]">
                               Move {suggestion.player?.name || 'player'}
                             </span>
                             <span className={`text-xs px-2 py-0.5 rounded-full ${
@@ -487,12 +487,12 @@ export default function CommanderDashboard() {
                               {suggestion.priority}
                             </span>
                           </div>
-                          <p className="text-xs text-[#64748B]">
+                          <p className="text-xs text-[#B0B3B8]">
                             Table {suggestion.fromTable?.number} ({suggestion.fromTable?.current_players}p)
                             <ChevronRight className="w-3 h-3 inline mx-1" />
                             Table {suggestion.toTable?.number} ({suggestion.toTable?.current_players}p)
                           </p>
-                          <p className="text-xs text-[#64748B] mt-1">{suggestion.reason}</p>
+                          <p className="text-xs text-[#B0B3B8] mt-1">{suggestion.reason}</p>
                         </div>
                       ))}
                     </div>
@@ -503,35 +503,35 @@ export default function CommanderDashboard() {
                 {waitTimePredictions.length > 0 && (
                   <div className="cmd-panel p-4">
                     <div className="flex items-center gap-2 mb-3">
-                      <Clock className="w-4 h-4 text-[#10B981]" />
-                      <h3 className="font-medium text-white">Wait Time Estimates</h3>
+                      <Clock className="w-4 h-4 text-[#31A24C]" />
+                      <h3 className="font-medium text-[#E4E6EB]">Wait Time Estimates</h3>
                     </div>
                     <div className="space-y-2">
                       {waitTimePredictions
                         .filter(p => p.current_waitlist > 0)
                         .slice(0, 5)
                         .map((prediction, idx) => (
-                          <div key={idx} className="flex items-center justify-between py-2 border-b border-[#4A5E78] last:border-0">
+                          <div key={idx} className="flex items-center justify-between py-2 border-b border-[#3A3B3C] last:border-0">
                             <div>
-                              <span className="text-sm font-medium text-white">
+                              <span className="text-sm font-medium text-[#E4E6EB]">
                                 {prediction.stakes} {prediction.game_type?.toUpperCase()}
                               </span>
-                              <span className="text-xs text-[#64748B] ml-2">
+                              <span className="text-xs text-[#B0B3B8] ml-2">
                                 ({prediction.current_waitlist} waiting)
                               </span>
                             </div>
                             <div className="text-right">
-                              <span className="text-sm font-semibold text-white">
+                              <span className="text-sm font-semibold text-[#E4E6EB]">
                                 ~{prediction.estimated_minutes} min
                               </span>
-                              <span className="text-xs text-[#64748B] ml-1">
+                              <span className="text-xs text-[#B0B3B8] ml-1">
                                 ({Math.round(prediction.confidence * 100)}%)
                               </span>
                             </div>
                           </div>
                         ))}
                       {waitTimePredictions.every(p => p.current_waitlist === 0) && (
-                        <p className="text-sm text-[#64748B] text-center py-2">No players waiting</p>
+                        <p className="text-sm text-[#B0B3B8] text-center py-2">No players waiting</p>
                       )}
                     </div>
                   </div>
@@ -542,7 +542,7 @@ export default function CommanderDashboard() {
 
           {/* Waitlist Manager */}
           <section id="waitlist-section">
-            <h2 className="text-lg font-semibold text-white mb-4">Waitlist</h2>
+            <h2 className="text-lg font-semibold text-[#E4E6EB] mb-4">Waitlist</h2>
             <WaitlistManager
               waitlists={waitlists}
               onCallPlayer={handleCallPlayer}
@@ -610,14 +610,14 @@ export default function CommanderDashboard() {
       {showNav && (
         <div className="fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowNav(false)} />
-          <div className="absolute right-0 top-0 h-full w-72 bg-[#0F1C32] shadow-xl">
-            <div className="p-4 border-b border-[#4A5E78] flex items-center justify-between">
-              <h2 className="font-semibold text-white">Menu</h2>
+          <div className="absolute right-0 top-0 h-full w-72 bg-[#242526] shadow-xl">
+            <div className="p-4 border-b border-[#3A3B3C] flex items-center justify-between">
+              <h2 className="font-semibold text-[#E4E6EB]">Menu</h2>
               <button
                 onClick={() => setShowNav(false)}
-                className="p-2 hover:bg-[#132240] rounded-lg"
+                className="p-2 hover:bg-[#3A3B3C] rounded-lg"
               >
-                <X className="w-5 h-5 text-[#64748B]" />
+                <X className="w-5 h-5 text-[#B0B3B8]" />
               </button>
             </div>
             <nav className="p-2">
@@ -630,8 +630,8 @@ export default function CommanderDashboard() {
                   }}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
                     active
-                      ? 'bg-[#22D3EE]/10 text-[#22D3EE]'
-                      : 'text-[#64748B] hover:bg-[#132240]'
+                      ? 'bg-[#1877F2]/10 text-[#1877F2]'
+                      : 'text-[#B0B3B8] hover:bg-[#3A3B3C]'
                   }`}
                 >
                   <Icon className="w-5 h-5" />
@@ -639,7 +639,7 @@ export default function CommanderDashboard() {
                 </button>
               ))}
             </nav>
-            <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-[#4A5E78]">
+            <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-[#3A3B3C]">
               <button
                 onClick={handleLogout}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors"
