@@ -731,6 +731,95 @@ export async function logSegmentTransfer(
 }
 
 /**
+ * Check if user has set a starting bankroll
+ */
+export async function hasStartingBankroll(userId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from('bankroll_segments')
+    .select('initial_deposit')
+    .eq('user_id', userId)
+    .neq('segment_type', 'life');
+
+  if (!data || data.length === 0) return false;
+  return data.some(seg => (seg.initial_deposit || 0) > 0);
+}
+
+/**
+ * Set a user's starting bankroll (first-time setup)
+ */
+export async function setStartingBankroll(userId: string, amount: number): Promise<void> {
+  // Ensure segments exist
+  await initializeUserBankroll(userId);
+
+  // Set the poker segment as the primary starting balance
+  await supabase
+    .from('bankroll_segments')
+    .update({
+      initial_deposit: amount,
+      current_balance: amount,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('user_id', userId)
+    .eq('segment_type', 'poker');
+
+  // Log as a ledger entry for audit trail
+  await supabase.from('bankroll_ledger').insert({
+    user_id: userId,
+    category: 'deposit',
+    entry_date: new Date().toISOString().split('T')[0],
+    gross_in: amount,
+    gross_out: 0,
+    net_result: amount,
+    notes: 'Starting bankroll',
+    is_adjustment: true,
+  });
+}
+
+/**
+ * Adjust bankroll — deposit or withdraw from external sources
+ * type: 'deposit' (adding money in) or 'withdrawal' (taking money out)
+ */
+export async function adjustBankroll(
+  userId: string,
+  amount: number,
+  type: 'deposit' | 'withdrawal',
+  reason?: string
+): Promise<void> {
+  const signedAmount = type === 'deposit' ? amount : -amount;
+
+  // Update the poker segment balance
+  const { data: current } = await supabase
+    .from('bankroll_segments')
+    .select('current_balance')
+    .eq('user_id', userId)
+    .eq('segment_type', 'poker')
+    .single();
+
+  const newBalance = (current?.current_balance || 0) + signedAmount;
+
+  await supabase
+    .from('bankroll_segments')
+    .update({
+      current_balance: newBalance,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('user_id', userId)
+    .eq('segment_type', 'poker');
+
+  // Log as ledger entry for audit trail
+  await supabase.from('bankroll_ledger').insert({
+    user_id: userId,
+    category: type,
+    entry_date: new Date().toISOString().split('T')[0],
+    gross_in: type === 'deposit' ? amount : 0,
+    gross_out: type === 'withdrawal' ? amount : 0,
+    net_result: signedAmount,
+    notes: reason || (type === 'deposit' ? 'Bankroll deposit' : 'Bankroll withdrawal'),
+    is_adjustment: true,
+  });
+}
+
+/**
  * Get date range filter helpers
  */
 export function getDateRangeFilter(range: string): { startDate: string; endDate: string } {
