@@ -60,6 +60,7 @@ import StakingTracker from '../../src/components/bankroll/StakingTracker';
 import SeriesTracker from '../../src/components/bankroll/SeriesTracker';
 import SessionHandReview from '../../src/components/bankroll/SessionHandReview';
 import TripTracker from '../../src/components/bankroll/TripTracker';
+import CategoryOverview from '../../src/components/bankroll/CategoryOverview';
 import StartingBankrollModal from '../../src/components/bankroll/StartingBankrollModal';
 import AdjustBankrollModal from '../../src/components/bankroll/AdjustBankrollModal';
 import { getActiveTrip, hasStartingBankroll } from '../../src/lib/bankroll/bankrollSelectors';
@@ -476,7 +477,8 @@ export default function BankrollManagerPage() {
             {/* Header */}
             <div style={styles.contentHeader}>
               <h1 style={styles.pageTitle}>
-                {activeSection === 'dashboard' && 'Bankroll Manager'}
+                {activeSection === 'dashboard' && categoryFilter === 'all' && 'Bankroll Manager'}
+                {activeSection === 'dashboard' && categoryFilter !== 'all' && (CATEGORY_LABELS[categoryFilter] || 'Bankroll Manager')}
                 {activeSection === 'trips' && 'Trip Tracker'}
                 {activeSection === 'players' && 'Player Notes'}
                 {activeSection === 'leaks' && 'Leak Analysis'}
@@ -485,7 +487,7 @@ export default function BankrollManagerPage() {
                 {activeSection === 'settings' && 'Settings'}
               </h1>
               <div style={styles.headerActions}>
-                {activeSection !== 'notes' && (
+                {activeSection !== 'notes' && categoryFilter === 'all' && (
                   <button style={styles.logButton} onClick={handleLogClick}>
                     + Log
                   </button>
@@ -493,8 +495,20 @@ export default function BankrollManagerPage() {
               </div>
             </div>
 
+            {/* Category Overview View (Cash Games, Tournaments, etc.) */}
+            {activeSection === 'dashboard' && categoryFilter !== 'all' && (
+              <CategoryOverview
+                userId={userId}
+                categoryFilter={categoryFilter}
+                onBack={() => {
+                  setCategoryFilter('all');
+                  router.push('/hub/bankroll-manager', undefined, { shallow: true });
+                }}
+              />
+            )}
+
             {/* Dashboard View */}
-            {activeSection === 'dashboard' && (
+            {activeSection === 'dashboard' && categoryFilter === 'all' && (
               <>
                 {/* Stats Cards */}
                 <div style={styles.statsGrid}>

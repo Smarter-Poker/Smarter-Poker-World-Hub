@@ -123,13 +123,16 @@ export default function BankrollDashboard({ userId }) {
   };
 
   const handleDeleteEntry = async (entryId) => {
+    // Optimistic removal — entry disappears immediately
+    setEntries(prev => prev.filter(e => e.id !== entryId));
     try {
       await deleteLedgerEntry(userId, entryId);
       toast.success('Entry deleted');
-      await loadData();
+      await loadData(); // Full refresh to sync stats
     } catch (err) {
       console.error('Delete failed:', err);
       toast.error('Failed to delete entry');
+      await loadData(); // Re-fetch to restore if delete failed
     }
   };
 

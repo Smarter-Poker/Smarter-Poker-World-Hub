@@ -177,6 +177,7 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, onC
 
       // Get or create location if name provided but no ID
       let locationId = formData.location_id;
+      if (locationId === '__new__') locationId = ''; // Sentinel for "new location" dropdown choice
       if (!locationId && formData.location_name) {
         locationId = await getOrCreateLocation(userId, formData.location_name);
       }
@@ -516,30 +517,64 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, onC
           </div>
         )}
 
-        {/* Location */}
+        {/* Location / Venue */}
         <div style={styles.formGroup}>
-          <label style={styles.label}>Location</label>
-          {locations.length > 0 ? (
+          <label style={styles.label}>Location / Venue</label>
+          {locations.length > 0 && formData.location_id !== '__new__' ? (
             <select
               value={formData.location_id}
-              onChange={(e) => handleInputChange('location_id', e.target.value)}
+              onChange={(e) => {
+                if (e.target.value === '__new__') {
+                  handleInputChange('location_id', '__new__');
+                  handleInputChange('location_name', '');
+                } else {
+                  handleInputChange('location_id', e.target.value);
+                  const loc = locations.find(l => l.id === e.target.value);
+                  if (loc) handleInputChange('location_name', loc.name);
+                }
+              }}
               style={styles.select}
             >
-              <option value="">Select or enter new...</option>
+              <option value="">Select location...</option>
               {locations.map((loc) => (
                 <option key={loc.id} value={loc.id}>
                   {loc.name}
                 </option>
               ))}
+              <option value="__new__">+ New Location</option>
             </select>
           ) : (
-            <input
-              type="text"
-              value={formData.location_name}
-              onChange={(e) => handleInputChange('location_name', e.target.value)}
-              placeholder="e.g., Rivers Casino"
-              style={styles.input}
-            />
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input
+                type="text"
+                value={formData.location_name}
+                onChange={(e) => handleInputChange('location_name', e.target.value)}
+                placeholder="e.g., Rivers Casino"
+                style={{ ...styles.input, flex: 1 }}
+                autoFocus={formData.location_id === '__new__'}
+              />
+              {locations.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleInputChange('location_id', '');
+                    handleInputChange('location_name', '');
+                  }}
+                  style={{
+                    background: 'rgba(255,255,255,0.1)',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    borderRadius: 6,
+                    color: 'rgba(255,255,255,0.7)',
+                    padding: '8px 12px',
+                    cursor: 'pointer',
+                    fontSize: 12,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  ← Back
+                </button>
+              )}
+            </div>
           )}
         </div>
 
