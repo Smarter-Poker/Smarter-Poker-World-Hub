@@ -62,6 +62,7 @@ import SessionHandReview from '../../src/components/bankroll/SessionHandReview';
 import TripTracker from '../../src/components/bankroll/TripTracker';
 import CategoryOverview from '../../src/components/bankroll/CategoryOverview';
 import StartingBankrollModal from '../../src/components/bankroll/StartingBankrollModal';
+import ManageVenuesModal from '../../src/components/bankroll/ManageVenuesModal';
 import AdjustBankrollModal from '../../src/components/bankroll/AdjustBankrollModal';
 import { getActiveTrip, hasStartingBankroll } from '../../src/lib/bankroll/bankrollSelectors';
 
@@ -201,6 +202,7 @@ export default function BankrollManagerPage() {
   const [trips, setTrips] = useState([]);
   const [locations, setLocations] = useState([]);
   const [leakAnalysis, setLeakAnalysis] = useState(null);
+  const [showVenueModal, setShowVenueModal] = useState(false);
 
   //  INTRO VIDEO STATE - Video plays while page loads in background
   // Only show once per session (not on every reload)
@@ -964,6 +966,13 @@ export default function BankrollManagerPage() {
                   </label>
                 </div>
                 <button
+                  onClick={() => setShowVenueModal(true)}
+                  style={{ width: '100%', padding: '14px 18px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 500, cursor: 'pointer', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}
+                >
+                  Manage Venues
+                  <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
+                </button>
+                <button
                   onClick={() => setActiveSection('reports')}
                   style={{ width: '100%', padding: '14px 18px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 500, cursor: 'pointer', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
                 >
@@ -1047,6 +1056,15 @@ export default function BankrollManagerPage() {
           </aside>
         </div>
       </div>
+
+      {/* Manage Venues Modal */}
+      {showVenueModal && userId && (
+        <ManageVenuesModal
+          userId={userId}
+          onClose={() => setShowVenueModal(false)}
+          onUpdate={loadData}
+        />
+      )}
 
       {/* Log Entry Modal - Shows login prompt if not authenticated */}
       <AnimatePresence>

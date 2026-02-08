@@ -88,6 +88,54 @@ export async function getUserLocations(userId: string): Promise<{ id: string; na
 }
 
 /**
+ * Rename a location
+ */
+export async function renameLocation(
+  userId: string,
+  locationId: string,
+  newName: string
+): Promise<void> {
+  const { error } = await supabase
+    .from('bankroll_locations')
+    .update({ name: newName })
+    .eq('id', locationId)
+    .eq('user_id', userId);
+
+  if (error) throw error;
+}
+
+/**
+ * Delete a location (unlinks ledger entries but doesn't delete them)
+ */
+export async function deleteLocation(
+  userId: string,
+  locationId: string
+): Promise<void> {
+  // First unlink any ledger entries that reference this location
+  await supabase
+    .from('bankroll_ledger')
+    .update({ location_id: null })
+    .eq('user_id', userId)
+    .eq('location_id', locationId);
+
+  // Delete any assistant memories for this location
+  await supabase
+    .from('bankroll_assistant_memory')
+    .delete()
+    .eq('user_id', userId)
+    .eq('location_id', locationId);
+
+  // Delete the location itself
+  const { error } = await supabase
+    .from('bankroll_locations')
+    .delete()
+    .eq('id', locationId)
+    .eq('user_id', userId);
+
+  if (error) throw error;
+}
+
+/**
  * Get comprehensive stats for a location
  */
 export async function getLocationStats(
