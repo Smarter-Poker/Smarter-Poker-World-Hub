@@ -147,6 +147,18 @@ const MODE_CARDS = [
         diamondReward: 8,
         perfectBonus: 15,
         image: '/images/trivia/gto-master.png?v=rembg1'
+    },
+    // Quick Stakes - entry fee game
+    {
+        id: 'arcade',
+        name: 'Quick Stakes',
+        description: '10 Questions in 60 seconds. Answer Fast, Win Big.',
+        icon: Zap,
+        color: '#00D4FF',
+        glowColor: '#00D4FF',
+        diamondReward: '2x stake',
+        perfectBonus: null,
+        image: '/images/trivia/quick-stakes.png?v=rembg1'
     }
 ];
 
@@ -323,29 +335,7 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
                 {/* Daily Refresh Notice removed */}
             </div>
 
-            {/* Quick Stakes Section - Image Based */}
-            <div className="quick-stakes-section" style={{ display: 'flex', justifyContent: 'center' }}>
-                <div
-                    className="mode-image-card"
-                    onClick={() => userDiamonds >= 10 && startMode('arcade')}
-                    style={{
-                        opacity: userDiamonds >= 10 ? 1 : 0.6,
-                        cursor: userDiamonds >= 10 ? 'pointer' : 'not-allowed',
-                        maxWidth: '100%'
-                    }}
-                >
-                    <img
-                        src="/images/trivia/quick-stakes.png?v=rembg1"
-                        alt="Quick Stakes"
-                        className="mode-image-card__img"
-                    />
-                    {userDiamonds < 10 && (
-                        <div className="mode-image-card__lock">
-                            <Lock size={32} />
-                        </div>
-                    )}
-                </div>
-            </div>
+
 
             <style jsx>{`
                 .trivia-lobby {
@@ -503,7 +493,9 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
 
                 .mode-image-card__img {
                     width: 100%;
-                    height: auto;
+                    height: 100%;
+                    object-fit: cover;
+                    aspect-ratio: 1;
                     display: block;
                     border-radius: 8px;
                     pointer-events: none;
