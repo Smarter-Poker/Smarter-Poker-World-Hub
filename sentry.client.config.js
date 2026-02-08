@@ -44,10 +44,36 @@ if (SENTRY_DSN) {
       'Load failed',
       // User-caused
       'Non-Error promise rejection',
+      // AbortError — benign fetch/signal cancellation (navigation, unmount)
+      'AbortError',
+      'signal is aborted without reason',
+      'signal is aborted',
+      'The operation was aborted',
+      'The user aborted a request',
+      // Opaque internal errors (browser internals / IndexedDB)
+      'UnknownError: Internal error',
+      'Internal error',
     ],
 
-    // Before sending, scrub sensitive data
-    beforeSend(event) {
+    // Before sending, scrub sensitive data and filter noise
+    beforeSend(event, hint) {
+      const error = hint?.originalException;
+
+      // Filter AbortError by name (catches all abort variants)
+      if (error && typeof error === 'object') {
+        if ('name' in error && String(error.name) === 'AbortError') return null;
+        if ('message' in error) {
+          const msg = String(error.message);
+          if (msg.includes('signal is aborted') || msg.includes('aborted')) return null;
+          if (msg.includes('Internal error')) return null;
+        }
+        // Filter extension errors
+        if ('stack' in error) {
+          const stack = String(error.stack);
+          if (stack.includes('chrome-extension://') || stack.includes('moz-extension://')) return null;
+        }
+      }
+
       // Remove PII from URLs
       if (event.request?.url) {
         event.request.url = event.request.url.replace(/token=[^&]+/g, 'token=REDACTED');
