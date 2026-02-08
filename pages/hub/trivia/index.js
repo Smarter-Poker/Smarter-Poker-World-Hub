@@ -161,7 +161,8 @@ export default function TriviaHubPage() {
             <style jsx>{`
                 .trivia-page {
                     min-height: 100vh;
-                    background: linear-gradient(135deg, #0a1628 0%, #1a2744 50%, #0f1d32 100%);
+                    background: url('/images/trivia/trivia-bg.jpg') center center / cover no-repeat fixed;
+                    background-color: #0a1628;
                     font-family: 'Inter', -apple-system, sans-serif;
                     position: relative;
                     width: 100%;
