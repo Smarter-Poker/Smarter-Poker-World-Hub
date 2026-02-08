@@ -1798,17 +1798,17 @@ export default function NewsHub() {
                             width: 100% !important;
                         }
 
-                        .header {
+                        header.header {
                             width: 100% !important;
                             max-width: 100vw !important;
                             padding: 4px 0 !important;
-                            overflow-x: auto !important;
+                            overflow-x: hidden !important;
                             overflow-y: hidden !important;
                             -webkit-overflow-scrolling: touch;
                             height: auto !important;
                         }
 
-                        .header-left {
+                        header.header > .header-left {
                             width: 100% !important;
                             max-width: 100vw !important;
                             overflow-x: hidden !important;
@@ -3120,11 +3120,13 @@ export default function NewsHub() {
                         }
 
                         /* === HEADER / TABS === */
-                        .header {
+                        /* SCOPED: Use header.header (tag+class) to target ONLY the news section tabs header,
+                           NOT the UniversalHeader component which also has .header-left */
+                        header.header {
                             width: 100% !important;
                             max-width: 100vw !important;
                             padding: 4px 0 !important;
-                            overflow-x: auto !important;
+                            overflow-x: hidden !important;
                             overflow-y: hidden !important;
                             -webkit-overflow-scrolling: touch;
                             height: auto !important;
@@ -3134,7 +3136,7 @@ export default function NewsHub() {
                             z-index: 90 !important; /* Below UniversalHeader (1000) */
                         }
 
-                        .header-left {
+                        header.header > .header-left {
                             width: 100% !important;
                             max-width: 100vw !important;
                             overflow-x: hidden !important;
