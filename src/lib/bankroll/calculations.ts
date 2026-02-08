@@ -51,17 +51,43 @@ export interface CategoryStats {
 }
 
 /**
- * Calculate total bankroll from all segments
+ * Calculate total bankroll from all ledger entries + initial deposits
+ * Computes directly from bankroll_ledger for accuracy, plus initial_deposit from segments
  */
 export async function calculateTotalBankroll(userId: string): Promise<number> {
-  const { data, error } = await supabase
+  // Get all non-revision ledger entries
+  const { data: entries, error: ledgerError } = await supabase
+    .from('bankroll_ledger')
+    .select('gross_in, gross_out, category')
+    .eq('user_id', userId)
+    .eq('is_revision', false);
+
+  if (ledgerError || !entries) return 0;
+
+  // Sum net results from all entries
+  let total = 0;
+  entries.forEach((e: any) => {
+    if (e.category === 'expense') {
+      total -= Math.abs(e.gross_in || 0);
+    } else {
+      total += (e.gross_out || 0) - (e.gross_in || 0);
+    }
+  });
+
+  // Add initial deposits from segments (from Adjust Bankroll modal)
+  const { data: segments } = await supabase
     .from('bankroll_segments')
-    .select('current_balance, segment_type')
+    .select('initial_deposit, segment_type')
     .eq('user_id', userId)
     .neq('segment_type', 'life');
 
-  if (error || !data) return 0;
-  return data.reduce((sum, seg) => sum + (seg.current_balance || 0), 0);
+  if (segments) {
+    segments.forEach((seg: any) => {
+      total += (seg.initial_deposit || 0);
+    });
+  }
+
+  return total;
 }
 
 /**
