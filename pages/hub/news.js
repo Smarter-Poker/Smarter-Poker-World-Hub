@@ -190,17 +190,7 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                 
                 /* Chrome frame overlay */
                 .news-box::after {
-                    content: '';
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    border-radius: 16px;
-                    border: 5px solid rgba(180, 195, 220, 0.9);
-                    box-shadow: inset 0 0 15px 3px rgba(180, 195, 220, 0.6);
-                    pointer-events: none;
-                    z-index: 100;
+                    display: none;
                 }
 
 
@@ -424,15 +414,7 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                     }
 
                     .news-box::after {
-                        content: '' !important;
-                        display: block !important;
-                        position: absolute !important;
-                        inset: 0 !important;
-                        border-radius: 12px !important;
-                        border: 4px solid rgba(180, 195, 220, 0.9) !important;
-                        box-shadow: inset 0 0 10px 2px rgba(180, 195, 220, 0.5) !important;
-                        pointer-events: none !important;
-                        z-index: 10 !important;
+                        display: none !important;
                     }
 
                     .box-image {
@@ -512,17 +494,7 @@ function VideoCard({ video, onClick }) {
                 
                 /* Chrome frame overlay for video cards */
                 .video-card::after {
-                    content: '';
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    border-radius: 16px;
-                    border: 5px solid rgba(180, 195, 220, 0.9);
-                    box-shadow: none;
-                    pointer-events: none;
-                    z-index: 100;
+                    display: none;
                 }
 
                 .video-card:hover {
@@ -684,17 +656,7 @@ function ReelCard({ reel, onClick, openExternal }) {
                 
                 /* Chrome frame overlay for reel cards */
                 .reel-card::after {
-                    content: '';
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    border-radius: 12px;
-                    border: 5px solid rgba(180, 195, 220, 0.9);
-                    box-shadow: inset 0 0 15px 3px rgba(180, 195, 220, 0.6);
-                    pointer-events: none;
-                    z-index: 100;
+                    display: none;
                 }
 
                 .reel-card:hover {
@@ -713,7 +675,6 @@ function ReelCard({ reel, onClick, openExternal }) {
                     position: relative;
                     aspect-ratio: 9/16;
                     overflow: hidden;
-                    max-height: 280px;
                 }
 
                 .reel-thumbnail img {
@@ -2269,17 +2230,9 @@ export default function NewsHub() {
                             overflow: hidden !important;
                         }
 
-                        /* Restore the metallic chrome frame overlay */
+                        /* Chrome frame overlay removed */
                         .news-box::after {
-                            content: '' !important;
-                            display: block !important;
-                            position: absolute !important;
-                            inset: 0 !important;
-                            border-radius: 12px !important;
-                            border: 4px solid rgba(180, 195, 220, 0.9) !important;
-                            box-shadow: inset 0 0 10px 2px rgba(180, 195, 220, 0.5) !important;
-                            pointer-events: none !important;
-                            z-index: 10 !important;
+                            display: none !important;
                         }
 
                         /* Full width image 16:9 */
@@ -2508,7 +2461,7 @@ export default function NewsHub() {
 
                     .reels-carousel .reel-card {
                         flex-shrink: 0;
-                        width: 160px;
+                        width: 220px;
                     }
 
                     .videos-carousel {
@@ -3212,17 +3165,9 @@ export default function NewsHub() {
                             overflow: hidden !important;
                         }
 
-                        /* CHROME FRAME - RESTORED */
+                        /* CHROME FRAME - REMOVED */
                         .news-box::after {
-                            content: '' !important;
-                            display: block !important;
-                            position: absolute !important;
-                            inset: 0 !important;
-                            border-radius: 12px !important;
-                            border: 4px solid rgba(180, 195, 220, 0.9) !important;
-                            box-shadow: inset 0 0 10px 2px rgba(180, 195, 220, 0.5) !important;
-                            pointer-events: none !important;
-                            z-index: 10 !important;
+                            display: none !important;
                         }
 
                         /* === REELS FIX === */
@@ -3236,9 +3181,9 @@ export default function NewsHub() {
                         }
                         
                         .reel-card {
-                             min-width: 160px !important;
-                             width: 160px !important;
-                             height: 284px !important;
+                             min-width: 180px !important;
+                             width: 180px !important;
+                             height: auto !important;
                              flex-shrink: 0 !important;
                              scroll-snap-align: start !important;
                              margin-right: 0 !important;
