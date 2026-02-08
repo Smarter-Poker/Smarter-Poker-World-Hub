@@ -3,7 +3,7 @@
  * Category-first session logging with minimal required fields
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { createLedgerEntry } from '../../lib/bankroll/bankrollSelectors';
