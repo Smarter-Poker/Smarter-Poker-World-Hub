@@ -1821,6 +1821,8 @@ export default function NewsHub() {
                             overflow-x: hidden !important;
                             width: 100% !important;
                             max-width: 100vw !important;
+                            flex-direction: row !important;
+                            flex-wrap: nowrap !important;
                             justify-content: center !important;
                             gap: 3px !important;
                             padding: 0 3px !important;
@@ -3142,6 +3144,8 @@ export default function NewsHub() {
                             overflow-x: hidden !important;
                             width: 100% !important;
                             max-width: 100vw !important;
+                            flex-direction: row !important;
+                            flex-wrap: nowrap !important;
                             justify-content: center !important;
                             gap: 3px !important;
                             padding: 0 3px !important;
