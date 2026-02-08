@@ -147,18 +147,6 @@ const MODE_CARDS = [
         diamondReward: 8,
         perfectBonus: 15,
         image: '/images/trivia/gto-master.png?v=rembg1'
-    },
-    // Quick Stakes - entry fee game
-    {
-        id: 'arcade',
-        name: 'Quick Stakes',
-        description: '10 Questions in 60 seconds. Answer Fast, Win Big.',
-        icon: Zap,
-        color: '#00D4FF',
-        glowColor: '#00D4FF',
-        diamondReward: '2x stake',
-        perfectBonus: null,
-        image: '/images/trivia/quick-stakes.png?v=rembg1'
     }
 ];
 
@@ -335,7 +323,28 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
                 {/* Daily Refresh Notice removed */}
             </div>
 
-
+            {/* Quick Stakes Section - Landscape Banner */}
+            <div className="quick-stakes-section">
+                <div
+                    className="quick-stakes-banner"
+                    onClick={() => userDiamonds >= 10 && startMode('arcade')}
+                    style={{
+                        opacity: userDiamonds >= 10 ? 1 : 0.6,
+                        cursor: userDiamonds >= 10 ? 'pointer' : 'not-allowed'
+                    }}
+                >
+                    <img
+                        src="/images/trivia/quick-stakes.png?v=rembg2"
+                        alt="Quick Stakes - 10 Questions in 60 Seconds"
+                        className="quick-stakes-banner__img"
+                    />
+                    {userDiamonds < 10 && (
+                        <div className="mode-image-card__lock">
+                            <Lock size={32} />
+                        </div>
+                    )}
+                </div>
+            </div>
 
             <style jsx>{`
                 .trivia-lobby {
@@ -496,6 +505,28 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
                     height: 100%;
                     object-fit: cover;
                     aspect-ratio: 1;
+                    display: block;
+                    border-radius: 8px;
+                    pointer-events: none;
+                }
+
+                /* Quick Stakes Banner - landscape format */
+                .quick-stakes-banner {
+                    position: relative;
+                    border-radius: 12px;
+                    overflow: hidden;
+                    cursor: pointer;
+                    transition: transform 0.2s ease, box-shadow 0.2s ease;
+                }
+
+                .quick-stakes-banner:hover {
+                    transform: scale(1.02);
+                    box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+                }
+
+                .quick-stakes-banner__img {
+                    width: 100%;
+                    height: auto;
                     display: block;
                     border-radius: 8px;
                     pointer-events: none;
