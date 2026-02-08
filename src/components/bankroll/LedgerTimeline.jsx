@@ -1,9 +1,10 @@
 /**
  * LEDGER TIMELINE
- * Displays chronological list of bankroll entries
+ * Displays chronological list of bankroll entries with edit/delete actions
  */
 
-import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const CATEGORY_COLORS = {
   poker_cash: '#22c55e',
@@ -96,7 +97,9 @@ function formatDuration(startTime, endTime) {
   return `${hours.toFixed(1)} hrs`;
 }
 
-function EntryRow({ entry, index }) {
+function EntryRow({ entry, index, onEdit, onDelete }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const duration = formatDuration(entry.start_time, entry.end_time);
 
   // Build details string
@@ -106,6 +109,16 @@ function EntryRow({ entry, index }) {
   else if (entry.expense_type) details = entry.expense_type.replace('_', ' ');
   else if (entry.sport && entry.bet_type) details = `${entry.sport} ${entry.bet_type}`;
   else if (entry.tournament_name) details = entry.tournament_name;
+
+  const handleDelete = () => {
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+    onDelete?.(entry.id);
+    setMenuOpen(false);
+    setConfirmDelete(false);
+  };
 
   return (
     <motion.div
@@ -144,18 +157,58 @@ function EntryRow({ entry, index }) {
               entry.emotional_tag === 'tilted'
                 ? 'rgba(239, 68, 68, 0.2)'
                 : entry.emotional_tag === 'confident'
-                ? 'rgba(34, 197, 94, 0.2)'
-                : 'rgba(255, 255, 255, 0.1)',
+                  ? 'rgba(34, 197, 94, 0.2)'
+                  : 'rgba(255, 255, 255, 0.1)',
           }}
         >
           {entry.emotional_tag}
         </span>
       )}
+
+      {/* Action Menu */}
+      {(onEdit || onDelete) && (
+        <div style={styles.actionContainer}>
+          <button
+            style={styles.menuButton}
+            onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); setConfirmDelete(false); }}
+          >
+            ⋯
+          </button>
+          <AnimatePresence>
+            {menuOpen && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                style={styles.actionMenu}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {onEdit && (
+                  <button
+                    style={styles.actionItem}
+                    onClick={() => { onEdit(entry); setMenuOpen(false); }}
+                  >
+                    ✏️ Edit
+                  </button>
+                )}
+                {onDelete && (
+                  <button
+                    style={{ ...styles.actionItem, color: confirmDelete ? '#fff' : '#ef4444', background: confirmDelete ? '#ef4444' : 'transparent' }}
+                    onClick={handleDelete}
+                  >
+                    {confirmDelete ? '⚠️ Confirm Delete' : '🗑️ Delete'}
+                  </button>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
     </motion.div>
   );
 }
 
-export default function LedgerTimeline({ entries, isLoading }) {
+export default function LedgerTimeline({ entries, isLoading, onEdit, onDelete }) {
   if (isLoading) {
     return (
       <div style={styles.loadingContainer}>
@@ -187,7 +240,7 @@ export default function LedgerTimeline({ entries, isLoading }) {
   return (
     <div style={styles.timeline}>
       {entries.map((entry, index) => (
-        <EntryRow key={entry.id} entry={entry} index={index} />
+        <EntryRow key={entry.id} entry={entry} index={index} onEdit={onEdit} onDelete={onDelete} />
       ))}
     </div>
   );
@@ -208,6 +261,7 @@ const styles = {
     border: '1px solid rgba(255, 255, 255, 0.06)',
     borderRadius: 10,
     transition: 'background 0.2s ease',
+    position: 'relative',
   },
   entryIcon: {
     width: 36,
@@ -259,6 +313,51 @@ const styles = {
     fontSize: 11,
     textTransform: 'capitalize',
     color: 'rgba(255, 255, 255, 0.7)',
+    flexShrink: 0,
+  },
+  actionContainer: {
+    position: 'relative',
+    flexShrink: 0,
+  },
+  menuButton: {
+    width: 32,
+    height: 32,
+    borderRadius: '50%',
+    background: 'transparent',
+    border: 'none',
+    color: 'rgba(255, 255, 255, 0.4)',
+    fontSize: 18,
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    letterSpacing: 2,
+  },
+  actionMenu: {
+    position: 'absolute',
+    top: '100%',
+    right: 0,
+    marginTop: 4,
+    background: '#1a2a44',
+    border: '1px solid rgba(255, 255, 255, 0.15)',
+    borderRadius: 8,
+    padding: 4,
+    minWidth: 150,
+    zIndex: 50,
+    boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+  },
+  actionItem: {
+    display: 'block',
+    width: '100%',
+    padding: '10px 14px',
+    background: 'transparent',
+    border: 'none',
+    borderRadius: 6,
+    color: '#fff',
+    fontSize: 13,
+    cursor: 'pointer',
+    textAlign: 'left',
+    transition: 'background 0.15s ease',
   },
   loadingContainer: {
     display: 'flex',

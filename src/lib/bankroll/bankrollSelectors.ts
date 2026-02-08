@@ -248,6 +248,45 @@ export async function createRevisionEntry(
 }
 
 /**
+ * Update a ledger entry in-place
+ */
+export async function updateLedgerEntry(
+  userId: string,
+  entryId: string,
+  updates: Partial<LedgerEntry>
+): Promise<LedgerEntry> {
+  // Remove fields that should not be updated
+  const { id, user_id, created_at, ...safeUpdates } = updates as any;
+
+  const { data, error } = await supabase
+    .from('bankroll_ledger')
+    .update(safeUpdates)
+    .eq('id', entryId)
+    .eq('user_id', userId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Delete a ledger entry
+ */
+export async function deleteLedgerEntry(
+  userId: string,
+  entryId: string
+): Promise<void> {
+  const { error } = await supabase
+    .from('bankroll_ledger')
+    .delete()
+    .eq('id', entryId)
+    .eq('user_id', userId);
+
+  if (error) throw error;
+}
+
+/**
  * Fetch user's trips
  */
 export async function fetchTrips(userId: string): Promise<Trip[]> {

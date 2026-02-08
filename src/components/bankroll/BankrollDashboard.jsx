@@ -9,7 +9,8 @@ import { supabase } from '../../lib/supabase';
 import { getBankrollStats, calculateTravelROI } from '../../lib/bankroll/calculations';
 import { runLeakAnalysis } from '../../lib/bankroll/leakDetection';
 import { getLocationStats, getUserLocations } from '../../lib/bankroll/locationMemory';
-import { fetchLedgerEntries, fetchTrips, getDateRangeFilter } from '../../lib/bankroll/bankrollSelectors';
+import { fetchLedgerEntries, fetchTrips, getDateRangeFilter, updateLedgerEntry, deleteLedgerEntry } from '../../lib/bankroll/bankrollSelectors';
+import toast from '../../stores/toastStore';
 import LedgerTimeline from './LedgerTimeline';
 import LeakAlertPanel from './LeakAlertPanel';
 import BankrollRulesCard from './BankrollRulesCard';
@@ -71,6 +72,7 @@ export default function BankrollDashboard({ userId }) {
   const [leakAnalysis, setLeakAnalysis] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showLogModal, setShowLogModal] = useState(false);
+  const [editEntry, setEditEntry] = useState(null);
 
   // Filters
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -123,7 +125,24 @@ export default function BankrollDashboard({ userId }) {
 
   const handleLogSubmit = async (formData) => {
     setShowLogModal(false);
+    setEditEntry(null);
     await loadData(); // Refresh data after logging
+  };
+
+  const handleEditEntry = (entry) => {
+    setEditEntry(entry);
+    setShowLogModal(true);
+  };
+
+  const handleDeleteEntry = async (entryId) => {
+    try {
+      await deleteLedgerEntry(userId, entryId);
+      toast.success('Entry deleted');
+      await loadData();
+    } catch (err) {
+      console.error('Delete failed:', err);
+      toast.error('Failed to delete entry');
+    }
   };
 
   const selectedLocationName = locationFilter
@@ -279,7 +298,7 @@ export default function BankrollDashboard({ userId }) {
             </div>
 
             {/* Ledger Timeline */}
-            <LedgerTimeline entries={entries} isLoading={isLoading} />
+            <LedgerTimeline entries={entries} isLoading={isLoading} onEdit={handleEditEntry} onDelete={handleDeleteEntry} />
 
             {/* Trip Expenses Section */}
             {trips.length > 0 && (
@@ -336,7 +355,8 @@ export default function BankrollDashboard({ userId }) {
           userId={userId}
           locations={locations}
           trips={trips}
-          onClose={() => setShowLogModal(false)}
+          editEntry={editEntry}
+          onClose={() => { setShowLogModal(false); setEditEntry(null); }}
           onSubmit={handleLogSubmit}
         />
       )}

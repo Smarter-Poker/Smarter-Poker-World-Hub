@@ -6,7 +6,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
-import { createLedgerEntry } from '../../lib/bankroll/bankrollSelectors';
+import { createLedgerEntry, updateLedgerEntry } from '../../lib/bankroll/bankrollSelectors';
 import { getOrCreateLocation, detectNearbyLocation } from '../../lib/bankroll/locationMemory';
 import { checkRuleViolations } from '../../lib/bankroll/leakDetection';
 import toast from '../../stores/toastStore';
@@ -40,51 +40,73 @@ const SPORTS = ['nfl', 'nba', 'mlb', 'nhl', 'soccer', 'mma', 'golf', 'tennis', '
 const BET_TYPES = ['moneyline', 'spread', 'over_under', 'parlay', 'prop', 'live'];
 const EMOTIONAL_TAGS = ['neutral', 'confident', 'tilted', 'exhausted', 'rushed', 'revenge'];
 
-export default function LogEntryModal({ userId, locations, trips, onClose, onSubmit }) {
-  const [step, setStep] = useState('category'); // 'category' | 'details'
-  const [category, setCategory] = useState(null);
+export default function LogEntryModal({ userId, locations, trips, editEntry, onClose, onSubmit }) {
+  const isEditMode = !!editEntry;
+  const [step, setStep] = useState(isEditMode ? 'details' : 'category');
+  const [category, setCategory] = useState(isEditMode ? editEntry.category : null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [ruleWarnings, setRuleWarnings] = useState([]);
   // showAdvanced removed - always show all fields
 
   // Form state
-  const [formData, setFormData] = useState({
-    // Universal
-    gross_in: '',
-    gross_out: '',
-    location_id: '',
-    location_name: '',
-    trip_id: '',
-    entry_date: new Date().toISOString().split('T')[0],
-    start_time: '',
-    end_time: '',
-    notes: '',
-    // media_url removed in favor of mediaFiles array
-    emotional_tag: '',
+  const buildInitialFormData = () => {
+    if (isEditMode) {
+      const e = editEntry;
+      const extractTime = (dt) => dt ? dt.split('T')[1]?.substring(0, 5) || '' : '';
+      return {
+        gross_in: e.gross_in?.toString() || '',
+        gross_out: e.gross_out?.toString() || '',
+        location_id: e.location_id || '',
+        location_name: e.location_name || '',
+        trip_id: e.trip_id || '',
+        entry_date: e.entry_date || new Date().toISOString().split('T')[0],
+        start_time: extractTime(e.start_time),
+        end_time: extractTime(e.end_time),
+        notes: e.notes || '',
+        emotional_tag: e.emotional_tag || '',
+        stakes: e.stakes || '',
+        game_type: e.game_type || 'nlhe',
+        tournament_name: e.tournament_name || '',
+        buy_in_amount: e.buy_in_amount?.toString() || '',
+        finish_position: e.finish_position?.toString() || '',
+        field_size: e.field_size?.toString() || '',
+        reentry_count: e.reentry_count?.toString() || '0',
+        casino_game: e.casino_game || 'blackjack',
+        sport: e.sport || '',
+        bet_type: e.bet_type || '',
+        odds: e.odds || '',
+        bet_result: e.bet_result || '',
+        expense_type: e.expense_type || '',
+      };
+    }
+    return {
+      gross_in: '',
+      gross_out: '',
+      location_id: '',
+      location_name: '',
+      trip_id: '',
+      entry_date: new Date().toISOString().split('T')[0],
+      start_time: '',
+      end_time: '',
+      notes: '',
+      emotional_tag: '',
+      stakes: '',
+      game_type: 'nlhe',
+      tournament_name: '',
+      buy_in_amount: '',
+      finish_position: '',
+      field_size: '',
+      reentry_count: '0',
+      casino_game: 'blackjack',
+      sport: '',
+      bet_type: '',
+      odds: '',
+      bet_result: '',
+      expense_type: '',
+    };
+  };
 
-    // Poker
-    stakes: '',
-    game_type: 'nlhe',
-
-    // Tournament
-    tournament_name: '',
-    buy_in_amount: '',
-    finish_position: '',
-    field_size: '',
-    reentry_count: '0',
-
-    // Casino
-    casino_game: 'blackjack',
-
-    // Sports
-    sport: '',
-    bet_type: '',
-    odds: '',
-    bet_result: '',
-
-    // Expense
-    expense_type: '',
-  });
+  const [formData, setFormData] = useState(buildInitialFormData);
 
   // Auto-detect location on mount
   useEffect(() => {
@@ -193,7 +215,11 @@ export default function LogEntryModal({ userId, locations, trips, onClose, onSub
         entry.gross_out = 0;
       }
 
-      await createLedgerEntry(userId, entry);
+      if (isEditMode) {
+        await updateLedgerEntry(userId, editEntry.id, entry);
+      } else {
+        await createLedgerEntry(userId, entry);
+      }
       onSubmit(entry);
     } catch (error) {
       console.error('Error logging entry:', error);
@@ -219,7 +245,7 @@ export default function LogEntryModal({ userId, locations, trips, onClose, onSub
   );
 
   // Image Upload State
-  const [mediaFiles, setMediaFiles] = useState([]);
+  const [mediaFiles, setMediaFiles] = useState(isEditMode && editEntry.media_urls ? [...editEntry.media_urls] : []);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -663,7 +689,7 @@ export default function LogEntryModal({ userId, locations, trips, onClose, onSub
               opacity: (isSubmitting || uploading) ? 0.6 : 1,
             }}
           >
-            {isSubmitting ? 'Logging...' : uploading ? 'Uploading...' : 'Log Entry'}
+            {isSubmitting ? (isEditMode ? 'Saving...' : 'Logging...') : uploading ? 'Uploading...' : (isEditMode ? 'Save Changes' : 'Log Entry')}
           </button>
         </div>
       </form>
@@ -687,9 +713,11 @@ export default function LogEntryModal({ userId, locations, trips, onClose, onSub
       >
         <div style={styles.header}>
           <h2 style={styles.title}>
-            {step === 'category'
-              ? 'Log Session'
-              : `Log ${CATEGORIES.find((c) => c.id === category)?.label || 'Entry'}`}
+            {isEditMode
+              ? `Edit ${CATEGORIES.find((c) => c.id === category)?.label || 'Entry'}`
+              : step === 'category'
+                ? 'Log Session'
+                : `Log ${CATEGORIES.find((c) => c.id === category)?.label || 'Entry'}`}
           </h2>
           <button onClick={onClose} style={styles.closeButton}>
             ×
