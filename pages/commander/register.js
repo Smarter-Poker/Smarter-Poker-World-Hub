@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+<<<<<<< Updated upstream
+=======
+import { supabase } from '../../src/lib/supabase';
+>>>>>>> Stashed changes
 
 const TIERS = {
   starter: {
@@ -44,16 +48,16 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [registrationResult, setRegistrationResult] = useState(null);
-  
+
   const [clubInfo, setClubInfo] = useState({
     name: '', address: '', city: '', state: '', zip: '',
     phone: '', email: '', website: '', tables: '', gamesOffered: []
   });
-  
+
   const [ownerInfo, setOwnerInfo] = useState({
     name: '', email: '', password: '', confirmPassword: '', phone: ''
   });
-  
+
   const [selectedTier, setSelectedTier] = useState('professional');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
@@ -134,7 +138,7 @@ export default function RegisterPage() {
       <Head>
         <title>Register Your Club - Club Commander</title>
       </Head>
-      
+
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
@@ -151,9 +155,14 @@ export default function RegisterPage() {
             </div>
             {['Club Info', 'Owner Account', 'Select Plan', 'Complete'].map((label, idx) => (
               <div key={idx} className="flex flex-col items-center relative z-10">
+<<<<<<< Updated upstream
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${
                   step > idx + 1 ? 'bg-green-500 text-white' : step === idx + 1 ? 'bg-purple-500 text-white ring-4 ring-purple-500/30' : 'bg-gray-700 text-gray-400'
                 }`}>{step > idx + 1 ? '\u2713' : idx + 1}</div>
+=======
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${step > idx + 1 ? 'bg-green-500 text-white' : step === idx + 1 ? 'bg-purple-500 text-white ring-4 ring-purple-500/30' : 'bg-gray-700 text-gray-400'
+                  }`}>{step > idx + 1 ? '✓' : idx + 1}</div>
+>>>>>>> Stashed changes
                 <span className={`text-xs mt-2 ${step === idx + 1 ? 'text-white' : 'text-gray-500'}`}>{label}</span>
               </div>
             ))}
