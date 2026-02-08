@@ -34,12 +34,19 @@ export default async function handler(req, res) {
                 const $ = cheerio.load(rawHtml);
 
                 // Remove unwanted elements
-                $('script, style, nav, header, footer, .ad, .advertisement, .social-share, .related-articles, .sidebar, iframe, .newsletter-signup, .ds-authorShare, .ds-authorInfoList, figure img, .article-social, .article-tags, .comments').remove();
+                $('script, style, nav, header, footer, .ad, .advertisement, .social-share, .related-articles, .sidebar, iframe, .newsletter-signup, .ds-authorShare, .ds-authorInfoList, figure img, .article-social, .article-tags, .comments, .related-players, .tags, .toc, [class*=related], [class*=newsletter]').remove();
+
+                // Boilerplate text to filter out
+                const boilerplate = ['table of contents', 'related players', 'tags', 'share this', 'follow us', 'newsletter', 'sign up', 'subscribe', 'feature image courtesy'];
 
                 // Extract text from paragraphs
                 $('p, h2, h3, h4, li, blockquote').each((_, el) => {
                     const text = $(el).text().trim();
                     if (text && text.length > 10) {
+                        // Skip boilerplate
+                        const lower = text.toLowerCase();
+                        if (boilerplate.some(b => lower.startsWith(b) || lower === b)) return;
+
                         const tagName = $(el).prop('tagName')?.toLowerCase();
                         if (tagName === 'h2' || tagName === 'h3' || tagName === 'h4') {
                             paragraphs.push({ type: 'heading', text });

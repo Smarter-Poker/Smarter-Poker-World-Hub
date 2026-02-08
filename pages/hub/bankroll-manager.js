@@ -97,7 +97,7 @@ const CATEGORY_LABELS = {
 
 const TIME_FILTERS = ['Last 7 Days', 'Last 30 Days', 'Last 90 Days', 'This Year', 'All Time'];
 
-function StatCard({ title, value, change, suffix, isRisk, isLoading }) {
+function StatCard({ title, value, change, suffix, isRisk, isLoading, onClick }) {
   const getRiskColor = (risk) => {
     if (risk === 'HIGH') return '#ef4444';
     if (risk === 'MEDIUM') return '#eab308';
@@ -105,7 +105,7 @@ function StatCard({ title, value, change, suffix, isRisk, isLoading }) {
   };
 
   return (
-    <div style={styles.statCard}>
+    <div style={{ ...styles.statCard, ...(onClick ? { cursor: 'pointer' } : {}) }} onClick={onClick}>
       <span style={styles.statTitle}>{title}</span>
       {isLoading ? (
         <div style={styles.statLoading}>—</div>
@@ -343,7 +343,8 @@ export default function BankrollManagerPage() {
   const menuConfig = getMenuConfig('bankroll-manager', user, preferences, {
     setAutoSave: (val) => updatePreference('autoSave', val),
     setNotifications: (val) => updatePreference('notifications', val),
-    setCurrencyEUR: (val) => updatePreference('currencyEUR', val)
+    setCurrencyEUR: (val) => updatePreference('currencyEUR', val),
+    onAdjustBankroll: () => { setMenuOpen(false); setShowAdjustModal(true); }
   });
 
   // Close dropdowns when clicking outside
@@ -566,6 +567,7 @@ export default function BankrollManagerPage() {
                     value={stats ? formatCurrency(stats.totalBankroll, preferences.currencyEUR) : '—'}
                     change={stats?.allInNet}
                     isLoading={isLoading}
+                    onClick={() => setShowAdjustModal(true)}
                   />
                   <StatCard
                     title="All-In Net"
@@ -594,29 +596,7 @@ export default function BankrollManagerPage() {
                   />
                 </div>
 
-                {/* Deposit / Withdraw Button */}
-                <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                  <button
-                    onClick={() => setShowAdjustModal(true)}
-                    style={{
-                      flex: 1,
-                      background: 'rgba(59, 130, 246, 0.08)',
-                      border: '1px solid rgba(59, 130, 246, 0.25)',
-                      borderRadius: 10,
-                      padding: '12px 16px',
-                      color: '#3b82f6',
-                      fontSize: 14,
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 8,
-                    }}
-                  >
-                    💵 Deposit / Withdraw
-                  </button>
-                </div>
+
 
                 {/* Quick Log Widget */}
                 <QuickLogWidget

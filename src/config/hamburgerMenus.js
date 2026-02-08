@@ -375,6 +375,8 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Leaks Analysis', '/hub/bankroll-manager?view=leaks'),
             createMenuItem.navigation('Reports', '/hub/bankroll-manager?view=reports'),
             createMenuItem.divider(),
+            createMenuItem.section('Bankroll'),
+            createMenuItem.action('Adjust Bankroll', handlers.onAdjustBankroll),
             createMenuItem.section('Game Types'),
             createMenuItem.navigation('Cash Games', '/hub/bankroll-manager?type=cash'),
             createMenuItem.navigation('Tournaments', '/hub/bankroll-manager?type=tournament'),
