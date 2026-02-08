@@ -13,11 +13,11 @@ import toast from '../../stores/toastStore';
 
 // Clean Facebook-style categories (no emojis)
 const CATEGORIES = [
-  { id: 'poker_cash', label: 'Poker Cash', icon: '' },
-  { id: 'poker_mtt', label: 'Tournament', icon: '' },
-  { id: 'casino_table', label: 'Table Game', icon: '' },
+  { id: 'poker_cash', label: 'Cash Games', icon: '' },
+  { id: 'poker_mtt', label: 'Tournaments', icon: '' },
+  { id: 'casino_table', label: 'Table Games', icon: '' },
   { id: 'slots', label: 'Slots', icon: '' },
-  { id: 'sports', label: 'Sports Bet', icon: '' },
+  { id: 'sports', label: 'Sports Betting', icon: '' },
   { id: 'expense', label: 'Expense', icon: '' },
 ];
 
