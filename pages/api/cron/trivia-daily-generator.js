@@ -20,7 +20,12 @@ const TRIVIA_CATEGORIES = [
     { id: 'player_profiles', prompt: 'an interesting fact about a famous professional poker player (living or deceased)' },
     { id: 'rule_knowledge', prompt: 'an official poker rule from WSOP or TDA guidelines that many players might not know' },
     { id: 'gto_theory', prompt: 'a Game Theory Optimal (GTO) poker concept or strategy principle' },
-    { id: 'tournament_facts', prompt: 'an interesting fact about major poker tournaments like WSOP, WPT, or EPT' }
+    { id: 'tournament_facts', prompt: 'an interesting fact about major poker tournaments like WSOP, WPT, or EPT' },
+    // Strategy categories - Added Feb 2026
+    { id: 'mtt_situations', prompt: 'a multi-table tournament situation involving ICM pressure, bubble play, short stack strategy, or final table dynamics' },
+    { id: 'cash_game_situations', prompt: 'a cash game scenario involving deep stack play, implied odds, float betting, 3-bet pots, or exploiting recreational players' },
+    { id: 'icm_chip_ev', prompt: 'an ICM or chip EV concept such as risk premium, bubble factor, Nash equilibrium push/fold, or deal-making calculations' },
+    { id: 'gto_scenarios', prompt: 'a GTO solver scenario involving minimum defense frequency, polarized vs linear betting, blocker effects, or mixed strategies' }
 ];
 
 /**

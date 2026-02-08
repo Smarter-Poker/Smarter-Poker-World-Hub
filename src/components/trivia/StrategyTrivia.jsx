@@ -179,6 +179,23 @@ export default function StrategyTrivia({ mode }) {
     async function loadQuestions() {
         setIsLoading(true);
 
+        // 60-day non-repeat: Get user's recently seen question IDs
+        let excludeIds = [];
+        if (userId) {
+            const sixtyDaysAgo = new Date();
+            sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+
+            const { data: recentHistory } = await supabase
+                .from('trivia_user_question_history')
+                .select('question_id')
+                .eq('user_id', userId)
+                .gte('seen_at', sixtyDaysAgo.toISOString());
+
+            if (recentHistory) {
+                excludeIds = recentHistory.map(h => h.question_id);
+            }
+        }
+
         let query = supabase
             .from('trivia_questions')
             .select('*')
@@ -187,8 +204,19 @@ export default function StrategyTrivia({ mode }) {
         const { data } = await query;
 
         if (data && data.length > 0) {
+            // Filter out recently seen questions (60-day exclusion)
+            let available = excludeIds.length > 0
+                ? data.filter(q => !excludeIds.includes(q.id))
+                : data;
+
+            // If not enough unseen questions, fall back to all questions
+            if (available.length < 10) {
+                console.log(`[StrategyTrivia] Not enough unseen questions (${available.length}/10), using all available`);
+                available = data;
+            }
+
             // Shuffle and take 10
-            const shuffled = data.sort(() => Math.random() - 0.5).slice(0, 10);
+            const shuffled = available.sort(() => Math.random() - 0.5).slice(0, 10);
             setQuestions(shuffled);
         } else {
             // Fallback questions for new categories
@@ -340,20 +368,60 @@ export default function StrategyTrivia({ mode }) {
         const timeSpent = Math.floor((Date.now() - startTimeRef.current) / 1000);
         const diamondsEarned = calculateDiamonds(mode, correctCount, questions.length, 0);
 
-        // Save score and award diamonds
-        if (userId && diamondsEarned > 0) {
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('diamonds')
-                .eq('id', userId)
-                .single();
-
-            if (profile) {
-                await supabase
+        if (userId) {
+            // Save score and award diamonds
+            if (diamondsEarned > 0) {
+                const { data: profile } = await supabase
                     .from('profiles')
-                    .update({ diamonds: (profile.diamonds || 0) + diamondsEarned })
-                    .eq('id', userId);
-                setUserDiamonds((profile.diamonds || 0) + diamondsEarned);
+                    .select('diamonds')
+                    .eq('id', userId)
+                    .single();
+
+                if (profile) {
+                    await supabase
+                        .from('profiles')
+                        .update({ diamonds: (profile.diamonds || 0) + diamondsEarned })
+                        .eq('id', userId);
+                    setUserDiamonds((profile.diamonds || 0) + diamondsEarned);
+                }
+            }
+
+            // Save score to trivia_scores
+            try {
+                const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
+                await supabase.from('trivia_scores').insert({
+                    user_id: userId,
+                    mode,
+                    score: correctCount * 100,
+                    correct_count: correctCount,
+                    total_questions: questions.length,
+                    time_spent: timeSpent,
+                    diamonds_earned: diamondsEarned,
+                    play_date: today
+                });
+            } catch (e) {
+                console.error('[StrategyTrivia] Error saving score:', e);
+            }
+
+            // Record question history for 60-day non-repeat tracking
+            if (questions && questions.length > 0) {
+                try {
+                    const historyRecords = questions.map((q, idx) => ({
+                        user_id: userId,
+                        question_id: q.id,
+                        was_correct: answers[idx] === q.correct_index,
+                        seen_at: new Date().toISOString(),
+                        mode
+                    }));
+
+                    await supabase.from('trivia_user_question_history')
+                        .upsert(historyRecords, {
+                            onConflict: 'user_id,question_id',
+                            ignoreDuplicates: false
+                        });
+                } catch (e) {
+                    console.error('[StrategyTrivia] Error recording history:', e);
+                }
             }
         }
 
