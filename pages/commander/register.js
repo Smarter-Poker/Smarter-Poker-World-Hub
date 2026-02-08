@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '../../src/lib/supabase';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 
@@ -64,7 +64,7 @@ function PaymentForm({ onPaymentSuccess, selectedTier, ownerInfo, clubInfo, load
 
   const handlePayment = async () => {
     if (!stripe || !elements) return;
-    
+
     setLoading(true);
     setError('');
 
@@ -138,7 +138,7 @@ function RegistrationWizard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [registrationResult, setRegistrationResult] = useState(null);
-  
+
   // Form state
   const [clubInfo, setClubInfo] = useState({
     name: '',
@@ -152,7 +152,7 @@ function RegistrationWizard() {
     tables: '',
     gamesOffered: []
   });
-  
+
   const [ownerInfo, setOwnerInfo] = useState({
     name: '',
     email: '',
@@ -160,7 +160,7 @@ function RegistrationWizard() {
     confirmPassword: '',
     phone: ''
   });
-  
+
   const [selectedTier, setSelectedTier] = useState('professional');
   const [promoCode, setPromoCode] = useState('');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -186,7 +186,7 @@ function RegistrationWizard() {
 
   const validateStep = (stepNum) => {
     setError('');
-    
+
     if (stepNum === 1) {
       if (!clubInfo.name || !clubInfo.address || !clubInfo.city || !clubInfo.state || !clubInfo.zip || !clubInfo.phone || !clubInfo.email) {
         setError('Please fill in all required fields');
@@ -201,7 +201,7 @@ function RegistrationWizard() {
         return false;
       }
     }
-    
+
     if (stepNum === 2) {
       if (!ownerInfo.name || !ownerInfo.email || !ownerInfo.password || !ownerInfo.phone) {
         setError('Please fill in all required fields');
@@ -220,20 +220,20 @@ function RegistrationWizard() {
         return false;
       }
     }
-    
+
     if (stepNum === 4) {
       if (!agreedToTerms) {
         setError('You must agree to the terms and conditions');
         return false;
       }
     }
-    
+
     return true;
   };
 
   const nextStep = async () => {
     if (!validateStep(step)) return;
-    
+
     // On step 2, create the user account
     if (step === 2) {
       setLoading(true);
@@ -244,7 +244,7 @@ function RegistrationWizard() {
           .select('id')
           .eq('email', ownerInfo.email.toLowerCase())
           .single();
-          
+
         if (existingUser) {
           setError('An account with this email already exists');
           setLoading(false);
@@ -255,7 +255,7 @@ function RegistrationWizard() {
       }
       setLoading(false);
     }
-    
+
     setStep(step + 1);
   };
 
@@ -274,7 +274,7 @@ function RegistrationWizard() {
     // For demo/testing - create account without payment
     setLoading(true);
     setError('');
-    
+
     try {
       const response = await fetch('/api/commander/create-subscription', {
         method: 'POST',
@@ -308,7 +308,7 @@ function RegistrationWizard() {
         <title>Register Your Club - Club Commander</title>
         <meta name="description" content="Get started with Club Commander poker room management software" />
       </Head>
-      
+
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-8">
@@ -330,19 +330,18 @@ function RegistrationWizard() {
           <div className="flex justify-between relative">
             {/* Progress line */}
             <div className="absolute top-5 left-0 right-0 h-0.5 bg-gray-700">
-              <div 
+              <div
                 className="h-full bg-purple-500 transition-all duration-300"
                 style={{ width: `${((step - 1) / 4) * 100}%` }}
               />
             </div>
-            
+
             {['Club Info', 'Owner Account', 'Select Plan', 'Payment', 'Complete'].map((label, idx) => (
               <div key={idx} className="flex flex-col items-center relative z-10">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all ${
-                  step > idx + 1 ? 'bg-green-500 text-white' :
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all ${step > idx + 1 ? 'bg-green-500 text-white' :
                   step === idx + 1 ? 'bg-purple-500 text-white ring-4 ring-purple-500/30' :
-                  'bg-gray-700 text-gray-400'
-                }`}>
+                    'bg-gray-700 text-gray-400'
+                  }`}>
                   {step > idx + 1 ? '✓' : idx + 1}
                 </div>
                 <span className={`text-xs mt-2 font-medium ${step === idx + 1 ? 'text-white' : 'text-gray-500'}`}>
@@ -366,7 +365,7 @@ function RegistrationWizard() {
           {step === 1 && (
             <div className="space-y-5">
               <h2 className="text-2xl font-semibold text-white mb-6">Club Information</h2>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">Club/Venue Name *</label>
                 <input
@@ -378,7 +377,7 @@ function RegistrationWizard() {
                   placeholder="e.g., Bellagio Poker Room"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">Street Address *</label>
                 <input
@@ -390,7 +389,7 @@ function RegistrationWizard() {
                   placeholder="123 Main Street"
                 />
               </div>
-              
+
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1.5">City *</label>
@@ -426,7 +425,7 @@ function RegistrationWizard() {
                   />
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1.5">Phone *</label>
@@ -451,7 +450,7 @@ function RegistrationWizard() {
                   />
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1.5">Website</label>
@@ -478,7 +477,7 @@ function RegistrationWizard() {
                   />
                 </div>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Games Offered</label>
                 <div className="flex flex-wrap gap-2">
@@ -487,11 +486,10 @@ function RegistrationWizard() {
                       key={game}
                       type="button"
                       onClick={() => handleGameToggle(game)}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                        clubInfo.gamesOffered.includes(game)
-                          ? 'bg-purple-500 text-white'
-                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                      }`}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${clubInfo.gamesOffered.includes(game)
+                        ? 'bg-purple-500 text-white'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        }`}
                     >
                       {game}
                     </button>
@@ -506,7 +504,7 @@ function RegistrationWizard() {
             <div className="space-y-5">
               <h2 className="text-2xl font-semibold text-white mb-6">Create Owner Account</h2>
               <p className="text-gray-400 text-sm -mt-4 mb-6">This will be the primary administrator account for your club.</p>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">Full Name *</label>
                 <input
@@ -518,7 +516,7 @@ function RegistrationWizard() {
                   placeholder="John Smith"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">Email (will be your login) *</label>
                 <input
@@ -530,7 +528,7 @@ function RegistrationWizard() {
                   placeholder="you@example.com"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">Phone (for 2FA) *</label>
                 <input
@@ -542,7 +540,7 @@ function RegistrationWizard() {
                   placeholder="(555) 123-4567"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">Password *</label>
                 <input
@@ -554,7 +552,7 @@ function RegistrationWizard() {
                   placeholder="Minimum 8 characters"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">Confirm Password *</label>
                 <input
@@ -573,17 +571,16 @@ function RegistrationWizard() {
           {step === 3 && (
             <div className="space-y-5">
               <h2 className="text-2xl font-semibold text-white mb-6">Choose Your Plan</h2>
-              
+
               <div className="space-y-4">
                 {Object.entries(TIERS).map(([key, tier]) => (
                   <div
                     key={key}
                     onClick={() => setSelectedTier(key)}
-                    className={`relative p-5 rounded-xl border-2 cursor-pointer transition-all ${
-                      selectedTier === key
-                        ? 'border-purple-500 bg-purple-500/10'
-                        : 'border-gray-600 bg-gray-700/30 hover:border-gray-500'
-                    }`}
+                    className={`relative p-5 rounded-xl border-2 cursor-pointer transition-all ${selectedTier === key
+                      ? 'border-purple-500 bg-purple-500/10'
+                      : 'border-gray-600 bg-gray-700/30 hover:border-gray-500'
+                      }`}
                   >
                     {tier.popular && (
                       <span className="absolute -top-3 left-4 px-3 py-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-semibold rounded-full">
@@ -592,9 +589,8 @@ function RegistrationWizard() {
                     )}
                     <div className="flex justify-between items-start">
                       <div className="flex items-start gap-3">
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5 ${
-                          selectedTier === key ? 'border-purple-500 bg-purple-500' : 'border-gray-500'
-                        }`}>
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5 ${selectedTier === key ? 'border-purple-500 bg-purple-500' : 'border-gray-500'
+                          }`}>
                           {selectedTier === key && <span className="text-white text-xs">✓</span>}
                         </div>
                         <div>
@@ -619,7 +615,7 @@ function RegistrationWizard() {
                   </div>
                 ))}
               </div>
-              
+
               <div className="pt-4">
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">Promo Code (optional)</label>
                 <input
@@ -637,7 +633,7 @@ function RegistrationWizard() {
           {step === 4 && (
             <div className="space-y-5">
               <h2 className="text-2xl font-semibold text-white mb-6">Payment Details</h2>
-              
+
               <div className="p-4 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-xl mb-6">
                 <div className="flex justify-between items-center">
                   <div>
@@ -647,11 +643,11 @@ function RegistrationWizard() {
                   <span className="text-2xl font-bold text-white">${TIERS[selectedTier].price}<span className="text-sm text-gray-400">/mo</span></span>
                 </div>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Card Details</label>
                 <Elements stripe={stripePromise}>
-                  <PaymentForm 
+                  <PaymentForm
                     onPaymentSuccess={handlePaymentSuccess}
                     selectedTier={selectedTier}
                     ownerInfo={ownerInfo}
@@ -662,7 +658,7 @@ function RegistrationWizard() {
                   />
                 </Elements>
               </div>
-              
+
               <div className="flex items-start gap-3 pt-2">
                 <input
                   type="checkbox"
@@ -695,10 +691,10 @@ function RegistrationWizard() {
               <div className="w-20 h-20 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-green-500/30">
                 <span className="text-4xl">✓</span>
               </div>
-              
+
               <h2 className="text-2xl font-semibold text-white">Welcome to Club Commander!</h2>
               <p className="text-gray-400">Your account has been created successfully.</p>
-              
+
               {registrationResult && (
                 <div className="bg-gray-700/50 rounded-xl p-5 text-left space-y-3">
                   <div className="flex justify-between">
@@ -715,7 +711,7 @@ function RegistrationWizard() {
                   </div>
                 </div>
               )}
-              
+
               <div className="bg-gray-700/50 rounded-xl p-5 text-left">
                 <h3 className="font-semibold text-white mb-3">Next Steps:</h3>
                 <ol className="list-decimal list-inside space-y-2 text-gray-300">
@@ -725,7 +721,7 @@ function RegistrationWizard() {
                   <li>Import your player database</li>
                 </ol>
               </div>
-              
+
               <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
                 <a
                   href="/downloads/ClubCommander-Setup.exe"
@@ -740,7 +736,7 @@ function RegistrationWizard() {
                   <span>⬇️</span> Download for Mac
                 </a>
               </div>
-              
+
               <button
                 onClick={() => router.push('/commander/dashboard')}
                 className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 font-semibold text-lg transition-all shadow-lg shadow-green-500/30"
@@ -756,15 +752,14 @@ function RegistrationWizard() {
               <button
                 onClick={prevStep}
                 disabled={step === 1}
-                className={`px-6 py-3 rounded-xl font-medium transition-all ${
-                  step === 1
-                    ? 'bg-gray-700/50 text-gray-500 cursor-not-allowed'
-                    : 'bg-gray-600 text-white hover:bg-gray-500'
-                }`}
+                className={`px-6 py-3 rounded-xl font-medium transition-all ${step === 1
+                  ? 'bg-gray-700/50 text-gray-500 cursor-not-allowed'
+                  : 'bg-gray-600 text-white hover:bg-gray-500'
+                  }`}
               >
                 ← Back
               </button>
-              
+
               <button
                 onClick={nextStep}
                 disabled={loading}
@@ -786,7 +781,7 @@ function RegistrationWizard() {
             </div>
           )}
         </div>
-        
+
         {/* Trust badges */}
         <div className="max-w-2xl mx-auto mt-8 text-center">
           <div className="flex justify-center gap-6 text-gray-500 text-sm">
