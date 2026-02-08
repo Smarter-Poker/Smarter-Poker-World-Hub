@@ -2491,6 +2491,7 @@ export default function NewsHub() {
                         display: flex;
                         gap: 16px;
                         overflow-x: auto;
+                        max-width: 100%;
                         padding-bottom: 8px;
                         scrollbar-width: thin;
                         scrollbar-color: rgba(255,255,255,0.2) transparent;
