@@ -60,7 +60,9 @@ import StakingTracker from '../../src/components/bankroll/StakingTracker';
 import SeriesTracker from '../../src/components/bankroll/SeriesTracker';
 import SessionHandReview from '../../src/components/bankroll/SessionHandReview';
 import TripTracker from '../../src/components/bankroll/TripTracker';
-import { getActiveTrip } from '../../src/lib/bankroll/bankrollSelectors';
+import StartingBankrollModal from '../../src/components/bankroll/StartingBankrollModal';
+import AdjustBankrollModal from '../../src/components/bankroll/AdjustBankrollModal';
+import { getActiveTrip, hasStartingBankroll } from '../../src/lib/bankroll/bankrollSelectors';
 
 // Clean Facebook-style navigation (no emojis)
 const SIDEBAR_SECTIONS = [
@@ -162,6 +164,9 @@ export default function BankrollManagerPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showAllEntries, setShowAllEntries] = useState(false);
+  const [showStartingBankroll, setShowStartingBankroll] = useState(false);
+  const [showAdjustModal, setShowAdjustModal] = useState(false);
+  const [bankrollInitialized, setBankrollInitialized] = useState(null); // null = loading, true/false
 
   // Hamburger menu preferences
   const [preferences, setPreferences] = useState({
@@ -264,6 +269,28 @@ export default function BankrollManagerPage() {
     await loadData();
   };
 
+  // Gate Log+ behind bankroll check
+  const handleLogClick = useCallback(async () => {
+    if (!userId) { setShowLogModal(true); return; } // Will show login prompt
+    if (bankrollInitialized === false) {
+      setShowStartingBankroll(true);
+      return;
+    }
+    // If still loading, do async check
+    if (bankrollInitialized === null) {
+      const has = await hasStartingBankroll(userId);
+      setBankrollInitialized(has);
+      if (!has) { setShowStartingBankroll(true); return; }
+    }
+    setShowLogModal(true);
+  }, [userId, bankrollInitialized]);
+
+  // Check starting bankroll on mount
+  useEffect(() => {
+    if (!userId) return;
+    hasStartingBankroll(userId).then(has => setBankrollInitialized(has));
+  }, [userId]);
+
   const handleEditEntry = (entry) => {
     setEditEntry(entry);
     setShowLogModal(true);
@@ -282,7 +309,7 @@ export default function BankrollManagerPage() {
 
   const handleSidebarClick = (sectionId) => {
     if (sectionId === 'log-session') {
-      setShowLogModal(true);
+      handleLogClick();
     } else {
       setActiveSection(sectionId);
     }
@@ -521,7 +548,7 @@ export default function BankrollManagerPage() {
                 {activeSection === 'settings' && 'Settings'}
               </h1>
               <div style={styles.headerActions}>
-                <button style={styles.logButton} onClick={() => setShowLogModal(true)}>
+                <button style={styles.logButton} onClick={handleLogClick}>
                   + Log
                 </button>
               </div>
@@ -565,11 +592,35 @@ export default function BankrollManagerPage() {
                   />
                 </div>
 
+                {/* Deposit / Withdraw Button */}
+                <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                  <button
+                    onClick={() => setShowAdjustModal(true)}
+                    style={{
+                      flex: 1,
+                      background: 'rgba(59, 130, 246, 0.08)',
+                      border: '1px solid rgba(59, 130, 246, 0.25)',
+                      borderRadius: 10,
+                      padding: '12px 16px',
+                      color: '#3b82f6',
+                      fontSize: 14,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                    }}
+                  >
+                    💵 Deposit / Withdraw
+                  </button>
+                </div>
+
                 {/* Quick Log Widget */}
                 <QuickLogWidget
                   userId={userId}
                   onSubmit={handleLogSubmit}
-                  onOpenFullModal={() => setShowLogModal(true)}
+                  onOpenFullModal={handleLogClick}
                 />
 
                 {/* Bankroll Trend Chart */}
@@ -640,7 +691,7 @@ export default function BankrollManagerPage() {
             {activeSection === 'trips' && (
               <TripTracker
                 userId={userId}
-                onOpenLog={() => setShowLogModal(true)}
+                onOpenLog={handleLogClick}
               />
             )}
 
@@ -907,7 +958,7 @@ export default function BankrollManagerPage() {
             {/* Session Timer */}
             <SessionTimer
               onOpenLog={(prefill) => {
-                setShowLogModal(true);
+                handleLogClick();
               }}
             />
 
@@ -944,7 +995,7 @@ export default function BankrollManagerPage() {
 
             <BankrollRulesCard userId={userId} />
 
-            <button style={styles.logTodayButton} onClick={() => setShowLogModal(true)}>
+            <button style={styles.logTodayButton} onClick={handleLogClick}>
               Log Today's Session
               <span style={styles.logArrow}>›</span>
             </button>
@@ -1035,6 +1086,36 @@ export default function BankrollManagerPage() {
               </motion.div>
             </motion.div>
           )
+        )}
+      </AnimatePresence>
+
+      {/* Starting Bankroll Modal */}
+      <AnimatePresence>
+        {showStartingBankroll && (
+          <StartingBankrollModal
+            userId={userId}
+            onComplete={() => {
+              setShowStartingBankroll(false);
+              setBankrollInitialized(true);
+              loadData();
+              setShowLogModal(true); // Now open log modal
+            }}
+            onClose={() => setShowStartingBankroll(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Adjust Bankroll Modal */}
+      <AnimatePresence>
+        {showAdjustModal && (
+          <AdjustBankrollModal
+            userId={userId}
+            onComplete={() => {
+              setShowAdjustModal(false);
+              loadData();
+            }}
+            onClose={() => setShowAdjustModal(false)}
+          />
         )}
       </AnimatePresence>
 
