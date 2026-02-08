@@ -188,9 +188,19 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
                 }
                 
-                /* Chrome frame overlay */
+                /* Chrome frame overlay - border only, no glow */
                 .news-box::after {
-                    display: none;
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    border-radius: 16px;
+                    border: 5px solid rgba(180, 195, 220, 0.9);
+                    box-shadow: none;
+                    pointer-events: none;
+                    z-index: 100;
                 }
 
 
@@ -414,7 +424,15 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                     }
 
                     .news-box::after {
-                        display: none !important;
+                        content: '' !important;
+                        display: block !important;
+                        position: absolute !important;
+                        inset: 0 !important;
+                        border-radius: 12px !important;
+                        border: 4px solid rgba(180, 195, 220, 0.9) !important;
+                        box-shadow: none !important;
+                        pointer-events: none !important;
+                        z-index: 10 !important;
                     }
 
                     .box-image {
@@ -492,9 +510,19 @@ function VideoCard({ video, onClick }) {
                     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
                 }
                 
-                /* Chrome frame overlay for video cards */
+                /* Chrome frame overlay for video cards - border only, no glow */
                 .video-card::after {
-                    display: none;
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    border-radius: 16px;
+                    border: 5px solid rgba(180, 195, 220, 0.9);
+                    box-shadow: none;
+                    pointer-events: none;
+                    z-index: 100;
                 }
 
                 .video-card:hover {
@@ -654,9 +682,19 @@ function ReelCard({ reel, onClick, openExternal }) {
                     box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
                 }
                 
-                /* Chrome frame overlay for reel cards */
+                /* Chrome frame overlay for reel cards - border only, no glow */
                 .reel-card::after {
-                    display: none;
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    border-radius: 12px;
+                    border: 5px solid rgba(180, 195, 220, 0.9);
+                    box-shadow: none;
+                    pointer-events: none;
+                    z-index: 100;
                 }
 
                 .reel-card:hover {
@@ -2230,9 +2268,17 @@ export default function NewsHub() {
                             overflow: hidden !important;
                         }
 
-                        /* Chrome frame overlay removed */
+                        /* Chrome frame - border only, no glow */
                         .news-box::after {
-                            display: none !important;
+                            content: '' !important;
+                            display: block !important;
+                            position: absolute !important;
+                            inset: 0 !important;
+                            border-radius: 12px !important;
+                            border: 4px solid rgba(180, 195, 220, 0.9) !important;
+                            box-shadow: none !important;
+                            pointer-events: none !important;
+                            z-index: 10 !important;
                         }
 
                         /* Full width image 16:9 */
@@ -3165,9 +3211,17 @@ export default function NewsHub() {
                             overflow: hidden !important;
                         }
 
-                        /* CHROME FRAME - REMOVED */
+                        /* CHROME FRAME - border only, no glow */
                         .news-box::after {
-                            display: none !important;
+                            content: '' !important;
+                            display: block !important;
+                            position: absolute !important;
+                            inset: 0 !important;
+                            border-radius: 12px !important;
+                            border: 4px solid rgba(180, 195, 220, 0.9) !important;
+                            box-shadow: none !important;
+                            pointer-events: none !important;
+                            z-index: 10 !important;
                         }
 
                         /* === REELS FIX === */
