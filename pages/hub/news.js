@@ -2511,7 +2511,23 @@ export default function NewsHub() {
 
                     .reels-carousel .reel-card {
                         flex-shrink: 0;
-                        width: 220px;
+                        width: 160px;
+                    }
+
+                    .reels-carousel .reel-thumbnail {
+                        width: 100%;
+                        height: 284px;
+                        aspect-ratio: auto;
+                        overflow: hidden;
+                    }
+
+                    .reels-carousel .reel-thumbnail img {
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        object-fit: cover;
                     }
 
                     .videos-carousel {
