@@ -222,31 +222,32 @@ async function checkForDuplicates(newQuestion, category) {
 async function generateBatch(category, subcategory, difficulty, count) {
     const grok = getGrokClient();
 
-    const prompt = `Generate ${count} unique poker trivia questions.
+    const prompt = `Generate ${count} unique poker trivia questions for the "${category.name}" category.
 
-Category: ${category.name}
 Specific Focus: ${subcategory}
 Difficulty: ${difficulty}
 
-Requirements:
-- Questions must be FACTUALLY ACCURATE and VERIFIABLE
-- Include specific names, dates, amounts, and details
-- Make questions INTERESTING and ENGAGING for poker enthusiasts
-- For ${difficulty} difficulty:
-  ${difficulty === 'easy' ? '- Common knowledge that most poker fans would know' : ''}
-  ${difficulty === 'medium' ? '- Requires solid poker knowledge but not obscure' : ''}
-  ${difficulty === 'hard' ? '- Deep knowledge, obscure facts, requires expert-level understanding' : ''}
-- Do NOT repeat commonly asked trivia facts
-- Each question must have EXACTLY 4 answer options
-- Provide a brief explanation for why the correct answer is right
+ABSOLUTE RULES:
+1. Every question MUST present a SPECIFIC game scenario — NEVER a definition, glossary entry, or textbook concept
+2. Include specific stack sizes, positions, hand cards (with suit symbols ♠♥♦♣), and game context
+3. All 4 answer options must be plausible actions a real player might consider — no obviously wrong filler
+4. The correct answer must be defensible by established poker theory, solver output, or ICM calculations
+5. Explanations must be 2-4 sentences explaining WHY the answer is correct AND why alternatives are inferior
+6. RANDOMIZE which option (A/B/C/D) is correct — distribute evenly
+7. All facts must be verifiable and accurate
 
-Return ONLY a valid JSON array:
+${difficulty === 'easy' ? 'Difficulty: Clear-cut situations most regular players would know.' : ''}
+${difficulty === 'medium' ? 'Difficulty: Requires solid strategic understanding. Multiple options are plausible but one is clearly best.' : ''}
+${difficulty === 'hard' ? 'Difficulty: Expert-level decisions requiring ICM awareness, solver knowledge, or deep reasoning.' : ''}
+
+Return ONLY a valid JSON array (no markdown, no extra text):
 [
     {
-        "question": "The exact question text",
+        "question": "The complete scenario-based question text",
         "options": ["Option A", "Option B", "Option C", "Option D"],
         "correct_index": 0,
-        "explanation": "Brief explanation of why this is correct"
+        "explanation": "2-4 sentence strategic explanation",
+        "subcategory": "${subcategory}"
     }
 ]`;
 
@@ -256,13 +257,13 @@ Return ONLY a valid JSON array:
             messages: [
                 {
                     role: 'system',
-                    content: `You are an expert poker historian, rules expert, and GTO specialist. Generate accurate, engaging trivia questions. Focus on ${subcategory}. Always return valid JSON arrays only, no markdown formatting.`
+                    content: `You are a world-class poker expert and trivia question writer for Smarter.Poker. You create scenario-based trivia questions for serious poker players. Focus on ${subcategory}. NEVER generate definition questions or textbook concepts — ONLY specific game scenarios with stack sizes, positions, and hands. Return valid JSON only.`
                 },
                 { role: 'user', content: prompt }
             ],
             response_format: { type: 'json_object' },
-            temperature: 0.85, // Slightly higher for variety
-            max_tokens: 4000
+            temperature: 0.85,
+            max_tokens: 8000
         });
 
         const content = response.choices[0]?.message?.content;
