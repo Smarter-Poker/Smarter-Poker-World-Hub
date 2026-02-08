@@ -519,7 +519,7 @@ function VideoCard({ video, onClick }) {
                     bottom: 0;
                     border-radius: 16px;
                     border: 5px solid rgba(180, 195, 220, 0.9);
-                    box-shadow: inset 0 0 15px 3px rgba(180, 195, 220, 0.6);
+                    box-shadow: none;
                     pointer-events: none;
                     z-index: 100;
                 }
@@ -1795,7 +1795,7 @@ export default function NewsHub() {
                         header.header {
                             width: 100% !important;
                             max-width: 100vw !important;
-                            padding: 5px 0 !important;
+                            padding: 2px 0 !important;
                             overflow-x: hidden !important;
                             overflow-y: hidden !important;
                             -webkit-overflow-scrolling: touch;
@@ -1820,13 +1820,13 @@ export default function NewsHub() {
 
                         .section-tab-img,
                         .refresh-btn-img {
-                            height: 80px !important;
+                            height: 60px !important;
                             flex-shrink: 0 !important;
                         }
 
                         .section-tab-img img,
                         .refresh-btn-img img {
-                            height: 80px !important;
+                            height: 60px !important;
                         }
 
                         .main-content {
@@ -2423,27 +2423,13 @@ export default function NewsHub() {
                         border-radius: 16px;
                         background: 
                             linear-gradient(135deg, rgba(30, 32, 38, 0.95) 0%, rgba(20, 22, 28, 0.98) 100%);
-                        box-shadow: 
-                            inset 0 0 0 3px rgba(180, 195, 220, 0.4),
-                            inset 0 0 0 6px rgba(100, 115, 140, 0.2),
-                            0 8px 32px rgba(0, 0, 0, 0.6);
+                        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
                         border-image: url('/images/news-icons/section-frame.png') 30 round;
                     }
                     
                     .reels-preview-section::before,
                     .videos-preview-section::before {
-                        content: '';
-                        position: absolute;
-                        inset: -3px;
-                        border-radius: 18px;
-                        background: linear-gradient(135deg, 
-                            rgba(200, 210, 230, 0.5) 0%, 
-                            rgba(120, 140, 170, 0.3) 25%,
-                            rgba(80, 100, 130, 0.2) 50%,
-                            rgba(120, 140, 170, 0.3) 75%,
-                            rgba(200, 210, 230, 0.5) 100%);
-                        z-index: -1;
-                        pointer-events: none;
+                        display: none;
                     }
 
                     .section-header-row {
@@ -3119,7 +3105,7 @@ export default function NewsHub() {
                         header.header {
                             width: 100% !important;
                             max-width: 100vw !important;
-                            padding: 5px 0 !important;
+                            padding: 2px 0 !important;
                             overflow-x: hidden !important;
                             overflow-y: hidden !important;
                             -webkit-overflow-scrolling: touch;
@@ -3148,13 +3134,13 @@ export default function NewsHub() {
 
                         .section-tab-img,
                         .refresh-btn-img {
-                            height: 80px !important;
+                            height: 60px !important;
                             flex-shrink: 0 !important;
                         }
 
                         .section-tab-img img,
                         .refresh-btn-img img {
-                            height: 80px !important;
+                            height: 60px !important;
                         }
 
                         /* === MAIN CONTENT === */
