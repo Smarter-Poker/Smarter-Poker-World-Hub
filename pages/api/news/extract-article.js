@@ -1,9 +1,8 @@
 /**
  * Article Content Extraction API — FULL ARTICLE BODY
  * Uses microlink.io to extract the COMPLETE article content from external URLs
- * Then uses cheerio to clean HTML into readable paragraphs
+ * Parses HTML into clean readable paragraphs without external dependencies
  */
-import * as cheerio from 'cheerio';
 
 export default async function handler(req, res) {
     const { url } = req.query;
@@ -15,9 +14,9 @@ export default async function handler(req, res) {
     try {
         const targetUrl = decodeURIComponent(url);
 
-        // Use microlink with data extraction to get FULL article body HTML
+        // Use microlink with data extraction to get FULL article body HTML + text
         const selectors = 'article,.article-body,.entry-content,.post-content,[class*=article-content],[class*=story-body],main,.content-body';
-        const microlinkUrl = `https://api.microlink.io/?url=${encodeURIComponent(targetUrl)}&data.articleBody.selector=${encodeURIComponent(selectors)}&data.articleBody.type=html`;
+        const microlinkUrl = `https://api.microlink.io/?url=${encodeURIComponent(targetUrl)}&data.articleBody.selector=${encodeURIComponent(selectors)}&data.articleBody.type=html&data.articleText.selector=${encodeURIComponent(selectors)}&data.articleText.type=text`;
 
         const response = await fetch(microlinkUrl, {
             headers: { 'User-Agent': 'SmartPokerBot/1.0' },
@@ -26,40 +25,91 @@ export default async function handler(req, res) {
         const result = await response.json();
 
         if (result.status === 'success' && result.data) {
-            // Parse the article body HTML with cheerio to extract clean text
+            // Parse the article body HTML into paragraphs using regex-based extraction
             let paragraphs = [];
             const rawHtml = result.data.articleBody || '';
+            const rawText = result.data.articleText || '';
 
             if (rawHtml) {
-                const $ = cheerio.load(rawHtml);
-
-                // Remove unwanted elements
-                $('script, style, nav, header, footer, .ad, .advertisement, .social-share, .related-articles, .sidebar, iframe, .newsletter-signup, .ds-authorShare, .ds-authorInfoList, figure img, .article-social, .article-tags, .comments, .related-players, .tags, .toc, [class*=related], [class*=newsletter]').remove();
+                // Strip script/style/nav/footer elements
+                let cleaned = rawHtml
+                    .replace(/<script[\s\S]*?<\/script>/gi, '')
+                    .replace(/<style[\s\S]*?<\/style>/gi, '')
+                    .replace(/<nav[\s\S]*?<\/nav>/gi, '')
+                    .replace(/<footer[\s\S]*?<\/footer>/gi, '')
+                    .replace(/<aside[\s\S]*?<\/aside>/gi, '')
+                    .replace(/<figure[\s\S]*?<\/figure>/gi, ''); // Remove figure captions
 
                 // Boilerplate text to filter out
-                const boilerplate = ['table of contents', 'related players', 'tags', 'share this', 'follow us', 'newsletter', 'sign up', 'subscribe', 'feature image courtesy'];
+                const boilerplate = ['table of contents', 'related players', 'tags', 'share this', 'follow us', 'newsletter', 'sign up', 'subscribe', 'feature image courtesy', 'related articles'];
 
-                // Extract text from paragraphs
-                $('p, h2, h3, h4, li, blockquote').each((_, el) => {
-                    const text = $(el).text().trim();
-                    if (text && text.length > 10) {
-                        // Skip boilerplate
+                // Extract headings (h2/h3)
+                const headingRegex = /<h[23][^>]*>([\s\S]*?)<\/h[23]>/gi;
+                let match;
+                while ((match = headingRegex.exec(cleaned)) !== null) {
+                    const text = stripHtml(match[1]).trim();
+                    if (text.length > 5) {
                         const lower = text.toLowerCase();
-                        if (boilerplate.some(b => lower.startsWith(b) || lower === b)) return;
-
-                        const tagName = $(el).prop('tagName')?.toLowerCase();
-                        if (tagName === 'h2' || tagName === 'h3' || tagName === 'h4') {
-                            paragraphs.push({ type: 'heading', text });
-                        } else if (tagName === 'blockquote') {
-                            paragraphs.push({ type: 'quote', text });
-                        } else {
-                            paragraphs.push({ type: 'paragraph', text });
+                        if (!boilerplate.some(b => lower.startsWith(b))) {
+                            paragraphs.push({ type: 'heading', text, pos: match.index });
                         }
                     }
+                }
+
+                // Extract blockquotes
+                const quoteRegex = /<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi;
+                while ((match = quoteRegex.exec(cleaned)) !== null) {
+                    const text = stripHtml(match[1]).trim();
+                    if (text.length > 10) {
+                        paragraphs.push({ type: 'quote', text, pos: match.index });
+                    }
+                }
+
+                // Extract paragraphs
+                const pRegex = /<p[^>]*>([\s\S]*?)<\/p>/gi;
+                while ((match = pRegex.exec(cleaned)) !== null) {
+                    const text = stripHtml(match[1]).trim();
+                    if (text.length > 10) {
+                        const lower = text.toLowerCase();
+                        if (!boilerplate.some(b => lower.startsWith(b))) {
+                            paragraphs.push({ type: 'paragraph', text, pos: match.index });
+                        }
+                    }
+                }
+
+                // Extract list items 
+                const liRegex = /<li[^>]*>([\s\S]*?)<\/li>/gi;
+                while ((match = liRegex.exec(cleaned)) !== null) {
+                    const text = stripHtml(match[1]).trim();
+                    if (text.length > 15) {
+                        const lower = text.toLowerCase();
+                        if (!boilerplate.some(b => lower.startsWith(b))) {
+                            paragraphs.push({ type: 'paragraph', text: '• ' + text, pos: match.index });
+                        }
+                    }
+                }
+
+                // Sort by document position
+                paragraphs.sort((a, b) => a.pos - b.pos);
+
+                // Remove position markers and deduplicate
+                const seen = new Set();
+                paragraphs = paragraphs.filter(p => {
+                    delete p.pos;
+                    const key = p.text.substring(0, 60);
+                    if (seen.has(key)) return false;
+                    seen.add(key);
+                    return true;
                 });
             }
 
-            // If cheerio extraction failed, try the description as fallback
+            // If HTML extraction found nothing, fall back to raw text split
+            if (paragraphs.length === 0 && rawText) {
+                const lines = rawText.split('\n').filter(l => l.trim().length > 10);
+                paragraphs = lines.map(l => ({ type: 'paragraph', text: l.trim() }));
+            }
+
+            // Final fallback to description
             if (paragraphs.length === 0 && result.data.description) {
                 paragraphs = [{ type: 'paragraph', text: result.data.description }];
             }
@@ -73,7 +123,7 @@ export default async function handler(req, res) {
                     author: result.data.author || '',
                     publisher: result.data.publisher || '',
                     date: result.data.date || '',
-                    paragraphs, // Full article body as structured paragraphs
+                    paragraphs,
                     logo: result.data.logo?.url || '',
                     url: result.data.url || targetUrl,
                 }
@@ -99,4 +149,18 @@ export default async function handler(req, res) {
             error: error.message
         });
     }
+}
+
+// Simple HTML tag stripper
+function stripHtml(html) {
+    return html
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<[^>]+>/g, '')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&nbsp;/g, ' ')
+        .replace(/\s+/g, ' ');
 }
