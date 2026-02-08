@@ -16,15 +16,6 @@ import LeakAlertPanel from './LeakAlertPanel';
 import BankrollRulesCard from './BankrollRulesCard';
 import LogEntryModal from './LogEntryModal';
 
-const CATEGORY_FILTERS = [
-  { id: 'all', label: 'All' },
-  { id: 'poker_cash', label: 'Cash' },
-  { id: 'poker_mtt', label: 'MTT' },
-  { id: 'casino_table', label: 'Table' },
-  { id: 'slots', label: 'Slots' },
-  { id: 'sports', label: 'Sports' },
-  { id: 'expense', label: 'Expenses' },
-];
 
 const TIME_FILTERS = ['Last 7 Days', 'Last 30 Days', 'Last 90 Days', 'This Year', 'All Time'];
 
@@ -75,10 +66,8 @@ export default function BankrollDashboard({ userId }) {
   const [editEntry, setEditEntry] = useState(null);
 
   // Filters
-  const [categoryFilter, setCategoryFilter] = useState('all');
   const [locationFilter, setLocationFilter] = useState(null);
   const [timeFilter, setTimeFilter] = useState('Last 30 Days');
-  const [includeExpenses, setIncludeExpenses] = useState(false);
 
   // Dropdowns
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
@@ -95,11 +84,10 @@ export default function BankrollDashboard({ userId }) {
       const [statsData, entriesData, tripsData, locationsData, leakData] = await Promise.all([
         getBankrollStats(userId, dateRange.startDate, dateRange.endDate, locationFilter),
         fetchLedgerEntries(userId, {
-          category: categoryFilter,
           locationId: locationFilter,
           startDate: dateRange.startDate,
           endDate: dateRange.endDate,
-          includeExpenses,
+          includeExpenses: true,
           limit: 50,
         }),
         fetchTrips(userId),
@@ -117,7 +105,7 @@ export default function BankrollDashboard({ userId }) {
     } finally {
       setIsLoading(false);
     }
-  }, [userId, categoryFilter, locationFilter, timeFilter, includeExpenses]);
+  }, [userId, locationFilter, timeFilter]);
 
   useEffect(() => {
     loadData();
@@ -270,34 +258,7 @@ export default function BankrollDashboard({ userId }) {
           <div style={styles.activitySection}>
             <h2 style={styles.sectionTitle}>Recent Activity</h2>
 
-            {/* Filter Tabs */}
-            <div style={styles.filterTabs}>
-              <div style={styles.filterTabsLeft}>
-                {CATEGORY_FILTERS.map((filter) => (
-                  <button
-                    key={filter.id}
-                    onClick={() => setCategoryFilter(filter.id)}
-                    style={{
-                      ...styles.filterTab,
-                      ...(categoryFilter === filter.id ? styles.filterTabActive : {}),
-                    }}
-                  >
-                    {filter.label}
-                  </button>
-                ))}
-              </div>
-              <label style={styles.expenseToggle}>
-                <input
-                  type="checkbox"
-                  checked={includeExpenses}
-                  onChange={(e) => setIncludeExpenses(e.target.checked)}
-                  style={styles.checkbox}
-                />
-                Include Expenses
-              </label>
-            </div>
-
-            {/* Ledger Timeline */}
+            {/* Ledger Timeline — flat chronological list */}
             <LedgerTimeline entries={entries} isLoading={isLoading} onEdit={handleEditEntry} onDelete={handleDeleteEntry} />
 
             {/* Trip Expenses Section */}

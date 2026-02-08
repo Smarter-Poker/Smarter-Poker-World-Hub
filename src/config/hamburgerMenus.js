@@ -379,6 +379,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Cash Games', '/hub/bankroll-manager?type=cash'),
             createMenuItem.navigation('Tournaments', '/hub/bankroll-manager?type=tournament'),
             createMenuItem.navigation('Casino', '/hub/bankroll-manager?type=casino'),
+            createMenuItem.navigation('Slots', '/hub/bankroll-manager?type=slots'),
             createMenuItem.navigation('Sports Betting', '/hub/bankroll-manager?type=sports'),
             createMenuItem.divider(),
             createMenuItem.section('Settings'),
