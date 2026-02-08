@@ -2442,6 +2442,7 @@ export default function NewsHub() {
                             linear-gradient(135deg, rgba(30, 32, 38, 0.95) 0%, rgba(20, 22, 28, 0.98) 100%);
                         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
                         border-image: url('/images/news-icons/section-frame.png') 30 round;
+                        overflow: hidden;
                     }
                     
                     .reels-preview-section::before,
