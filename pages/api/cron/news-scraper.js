@@ -192,6 +192,60 @@ async function fetchPage(url) {
     }
 }
 
+// Fetch article page with Googlebot-compatible UA (for sites like CardPlayer that block regular browsers)
+async function fetchArticlePage(url) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), CONFIG.REQUEST_TIMEOUT);
+
+    try {
+        const response = await fetch(url, {
+            signal: controller.signal,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5'
+            }
+        });
+        clearTimeout(timeout);
+        if (!response.ok) {
+            // Fallback: try with regular browser UA
+            return await fetchPage(url);
+        }
+        return await response.text();
+    } catch (error) {
+        clearTimeout(timeout);
+        return null;
+    }
+}
+
+// Extract og:image via microlink.io proxy (for sites like CardPlayer that block ALL automated access)
+async function fetchOgImageViaProxy(url) {
+    try {
+        const proxyUrl = `https://api.microlink.io/?url=${encodeURIComponent(url)}`;
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), CONFIG.REQUEST_TIMEOUT);
+
+        const response = await fetch(proxyUrl, {
+            signal: controller.signal,
+            headers: { 'Accept': 'application/json' }
+        });
+        clearTimeout(timeout);
+
+        if (!response.ok) return null;
+
+        const data = await response.json();
+        const imageUrl = data?.data?.image?.url;
+        if (imageUrl) {
+            console.log(`   ✓ Got og:image via proxy: ${imageUrl.substring(0, 60)}...`);
+            return imageUrl;
+        }
+        return null;
+    } catch (error) {
+        console.log(`   Proxy image fetch failed: ${error.message}`);
+        return null;
+    }
+}
+
 function cleanText(text) {
     if (!text) return '';
     return text
@@ -433,10 +487,15 @@ async function scrapeRSS(source) {
 
             let image = extractRssImage(item);
 
-            // If no image in RSS, fetch from article page
+            // If no image in RSS, fetch from article page (use Googlebot UA for sites that block regular browsers)
             if (!image && item.link) {
-                const articleHtml = await fetchPage(item.link);
+                const articleHtml = await fetchArticlePage(item.link);
                 image = extractArticleImage(articleHtml, item.link);
+            }
+
+            // If still no image (site blocks ALL automated access), try microlink.io proxy
+            if (!image && item.link) {
+                image = await fetchOgImageViaProxy(item.link);
             }
 
             // Use source fallback if no image found
@@ -470,39 +529,59 @@ async function scrapeMSPT(html, source) {
     const articles = [];
     const seen = new Set();
 
-    // MSPT uses ../Magazine/title~ID.aspx format
-    const matches = html.matchAll(/href=["'](?:\.\.\/)?(?:\.\/)?([^"']*Magazine\/[^"']+\.aspx)["'][^>]*>([^<]+)/gi);
+    // MSPT uses multiple URL formats:
+    // - Absolute: href="https://msptpoker.com/Magazine/event-name~1590.aspx"
+    // - Relative from /pages/: href="../Magazine/title~ID.aspx"
+    // - Relative from root: href="./Magazine/title~ID.aspx"
+    const patterns = [
+        // Absolute URLs (most common on live site)
+        /href=["'](https?:\/\/(?:www\.)?msptpoker\.com\/Magazine\/[^"']+\.aspx)["'][^>]*>([^<]+)/gi,
+        // Relative with ../
+        /href=["'](?:\.\.\/)(Magazine\/[^"']+\.aspx)["'][^>]*>([^<]+)/gi,
+        // Relative with ./
+        /href=["'](?:\.\/)(Magazine\/[^"']+\.aspx)["'][^>]*>([^<]+)/gi,
+        // Just Magazine/ path
+        /href=["'](Magazine\/[^"']+\.aspx)["'][^>]*>([^<]+)/gi,
+        // Also match /Magazine/ with leading slash
+        /href=["'](\/Magazine\/[^"']+\.aspx)["'][^>]*>([^<]+)/gi
+    ];
 
-    for (const match of matches) {
+    for (const pattern of patterns) {
         if (articles.length >= CONFIG.MAX_ARTICLES_PER_SOURCE) break;
+        const matches = html.matchAll(pattern);
 
-        let url = match[1];
-        const title = cleanText(match[2]);
+        for (const match of matches) {
+            if (articles.length >= CONFIG.MAX_ARTICLES_PER_SOURCE) break;
 
-        if (!title || title.length < 10 || seen.has(url)) continue;
-        if (url.includes('javascript:') || url.includes('#')) continue;
+            let url = match[1];
+            const title = cleanText(match[2]);
 
-        // Build full URL - MSPT uses relative paths from /pages/
-        if (!url.startsWith('http')) {
-            url = url.replace(/^\.\.\//, '').replace(/^\.\//, '');
-            url = source.baseUrl + '/' + url;
-        }
+            if (!title || title.length < 10) continue;
+            if (url.includes('javascript:') || url.includes('#')) continue;
 
-        seen.add(url);
-        console.log(`   Checking MSPT: ${title.substring(0, 40)}...`);
+            // Build full URL if relative
+            if (!url.startsWith('http')) {
+                url = url.replace(/^\.\.\//, '').replace(/^\.\//, '').replace(/^\//, '');
+                url = source.baseUrl + '/' + url;
+            }
 
-        const articleHtml = await fetchPage(url);
-        let image = extractArticleImage(articleHtml, url);
+            if (seen.has(url)) continue;
+            seen.add(url);
+            console.log(`   Checking MSPT: ${title.substring(0, 40)}...`);
 
-        // Use source fallback if no image found
-        if (!image) {
-            image = getContextualFallbackImage(title);
-            console.log(`   Using fallback image for MSPT: ${title.substring(0, 30)}...`);
-        }
+            const articleHtml = await fetchPage(url);
+            let image = extractArticleImage(articleHtml, url);
 
-        // Save articles with images (including fallbacks)
-        if (image) {
-            articles.push({ url, title, image, source });
+            // Use source fallback if no image found
+            if (!image) {
+                image = getContextualFallbackImage(title);
+                console.log(`   Using fallback image for MSPT: ${title.substring(0, 30)}...`);
+            }
+
+            // Save articles with images (including fallbacks)
+            if (image) {
+                articles.push({ url, title, image, source });
+            }
         }
     }
 
@@ -989,8 +1068,10 @@ async function saveArticle(article, newsPosterId) {
             onConflict: 'source_url',
             ignoreDuplicates: true
         })
-        .select()
-        .single();
+        .select();
+
+    // When ignoreDuplicates skips the insert, data is an empty array
+    const savedArticle = data?.[0] || null;
 
     if (error && !error.message.includes('duplicate')) {
         console.error(`   ✗ DB Error: ${error.message}`);
@@ -998,7 +1079,7 @@ async function saveArticle(article, newsPosterId) {
     }
 
     // If article was saved (not duplicate), post to social feed
-    if (data) {
+    if (savedArticle) {
         await postToSocialFeed(article, newsPosterId);
     }
 
