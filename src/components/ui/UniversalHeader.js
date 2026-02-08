@@ -377,7 +377,7 @@ export default function UniversalHeader({
                     border-radius: 0;
                     text-decoration: none;
                     color: white;
-                    width: 90px;
+                    width: auto;
                     height: 40px;
                     box-sizing: border-box;
                 }
@@ -562,12 +562,10 @@ export default function UniversalHeader({
                         <span data-testid="header-diamonds" style={{ fontWeight: 700 }} title={stats.diamonds.toLocaleString() + ' diamonds'}>
                             {showFullDiamonds ? stats.diamonds.toLocaleString() : formatCompact(stats.diamonds)}
                         </span>
+                        <span onClick={(e) => { e.stopPropagation(); e.preventDefault(); window.location.href = '/hub/diamond-store'; }} style={{
+                            fontSize: 15, fontWeight: 700, cursor: 'pointer'
+                        }}>+</span>
                     </Link>
-                    <Link href="/hub/diamond-store" style={{
-                        fontSize: 15, fontWeight: 700, color: 'white',
-                        display: 'flex', alignSelf: 'center', lineHeight: 0,
-                        textDecoration: 'none'
-                    }}>+</Link>
                 </div>
 
                 {/* RIGHT: Orb Icons */}
