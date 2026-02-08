@@ -368,6 +368,8 @@ export const MENU_CONFIGS = {
 
     'bankroll-manager': (user, state, handlers) => ({
         menuItems: [
+            createMenuItem.action('💰 Adjust Bankroll', handlers.onAdjustBankroll),
+            createMenuItem.divider(),
             createMenuItem.section('Views'),
             createMenuItem.navigation('Dashboard', '/hub/bankroll-manager?view=dashboard'),
             createMenuItem.navigation('Log Session', '/hub/bankroll-manager?view=log-session'),
@@ -375,12 +377,10 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Leaks Analysis', '/hub/bankroll-manager?view=leaks'),
             createMenuItem.navigation('Reports', '/hub/bankroll-manager?view=reports'),
             createMenuItem.divider(),
-            createMenuItem.section('Bankroll'),
-            createMenuItem.action('Adjust Bankroll', handlers.onAdjustBankroll),
             createMenuItem.section('Game Types'),
             createMenuItem.navigation('Cash Games', '/hub/bankroll-manager?type=cash'),
             createMenuItem.navigation('Tournaments', '/hub/bankroll-manager?type=tournament'),
-            createMenuItem.navigation('Casino', '/hub/bankroll-manager?type=casino'),
+            createMenuItem.navigation('Table Games', '/hub/bankroll-manager?type=casino'),
             createMenuItem.navigation('Slots', '/hub/bankroll-manager?type=slots'),
             createMenuItem.navigation('Sports Betting', '/hub/bankroll-manager?type=sports'),
             createMenuItem.divider(),
