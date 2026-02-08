@@ -12,133 +12,134 @@ export default async function handler(req, res) {
     }
 
     try {
-        const targetUrl = decodeURIComponent(url);
+        // Don't double-decode — use the raw URL as passed
+        const targetUrl = url.startsWith('http') ? url : decodeURIComponent(url);
 
-        // Use microlink with data extraction to get FULL article body HTML + text
+        // Step 1: Try to get full article body HTML via data extraction
         const selectors = 'article,.article-body,.entry-content,.post-content,[class*=article-content],[class*=story-body],main,.content-body';
-        const microlinkUrl = `https://api.microlink.io/?url=${encodeURIComponent(targetUrl)}&data.articleBody.selector=${encodeURIComponent(selectors)}&data.articleBody.type=html&data.articleText.selector=${encodeURIComponent(selectors)}&data.articleText.type=text`;
+        const fullUrl = 'https://api.microlink.io/?url=' + encodeURIComponent(targetUrl)
+            + '&data.articleBody.selector=' + encodeURIComponent(selectors)
+            + '&data.articleBody.type=html'
+            + '&data.articleText.selector=' + encodeURIComponent(selectors)
+            + '&data.articleText.type=text';
 
-        const response = await fetch(microlinkUrl, {
-            headers: { 'User-Agent': 'SmartPokerBot/1.0' },
-        });
-
+        const response = await fetch(fullUrl);
         const result = await response.json();
 
-        if (result.status === 'success' && result.data) {
-            // Parse the article body HTML into paragraphs using regex-based extraction
-            let paragraphs = [];
-            const rawHtml = result.data.articleBody || '';
-            const rawText = result.data.articleText || '';
-
-            if (rawHtml) {
-                // Strip script/style/nav/footer elements
-                let cleaned = rawHtml
-                    .replace(/<script[\s\S]*?<\/script>/gi, '')
-                    .replace(/<style[\s\S]*?<\/style>/gi, '')
-                    .replace(/<nav[\s\S]*?<\/nav>/gi, '')
-                    .replace(/<footer[\s\S]*?<\/footer>/gi, '')
-                    .replace(/<aside[\s\S]*?<\/aside>/gi, '')
-                    .replace(/<figure[\s\S]*?<\/figure>/gi, ''); // Remove figure captions
-
-                // Boilerplate text to filter out
-                const boilerplate = ['table of contents', 'related players', 'tags', 'share this', 'follow us', 'newsletter', 'sign up', 'subscribe', 'feature image courtesy', 'related articles'];
-
-                // Extract headings (h2/h3)
-                const headingRegex = /<h[23][^>]*>([\s\S]*?)<\/h[23]>/gi;
-                let match;
-                while ((match = headingRegex.exec(cleaned)) !== null) {
-                    const text = stripHtml(match[1]).trim();
-                    if (text.length > 5) {
-                        const lower = text.toLowerCase();
-                        if (!boilerplate.some(b => lower.startsWith(b))) {
-                            paragraphs.push({ type: 'heading', text, pos: match.index });
-                        }
-                    }
-                }
-
-                // Extract blockquotes
-                const quoteRegex = /<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi;
-                while ((match = quoteRegex.exec(cleaned)) !== null) {
-                    const text = stripHtml(match[1]).trim();
-                    if (text.length > 10) {
-                        paragraphs.push({ type: 'quote', text, pos: match.index });
-                    }
-                }
-
-                // Extract paragraphs
-                const pRegex = /<p[^>]*>([\s\S]*?)<\/p>/gi;
-                while ((match = pRegex.exec(cleaned)) !== null) {
-                    const text = stripHtml(match[1]).trim();
-                    if (text.length > 10) {
-                        const lower = text.toLowerCase();
-                        if (!boilerplate.some(b => lower.startsWith(b))) {
-                            paragraphs.push({ type: 'paragraph', text, pos: match.index });
-                        }
-                    }
-                }
-
-                // Extract list items 
-                const liRegex = /<li[^>]*>([\s\S]*?)<\/li>/gi;
-                while ((match = liRegex.exec(cleaned)) !== null) {
-                    const text = stripHtml(match[1]).trim();
-                    if (text.length > 15) {
-                        const lower = text.toLowerCase();
-                        if (!boilerplate.some(b => lower.startsWith(b))) {
-                            paragraphs.push({ type: 'paragraph', text: '• ' + text, pos: match.index });
-                        }
-                    }
-                }
-
-                // Sort by document position
-                paragraphs.sort((a, b) => a.pos - b.pos);
-
-                // Remove position markers and deduplicate
-                const seen = new Set();
-                paragraphs = paragraphs.filter(p => {
-                    delete p.pos;
-                    const key = p.text.substring(0, 60);
-                    if (seen.has(key)) return false;
-                    seen.add(key);
-                    return true;
-                });
-            }
-
-            // If HTML extraction found nothing, fall back to raw text split
-            if (paragraphs.length === 0 && rawText) {
-                const lines = rawText.split('\n').filter(l => l.trim().length > 10);
-                paragraphs = lines.map(l => ({ type: 'paragraph', text: l.trim() }));
-            }
-
-            // Final fallback to description
-            if (paragraphs.length === 0 && result.data.description) {
-                paragraphs = [{ type: 'paragraph', text: result.data.description }];
-            }
-
+        if (result.status !== 'success' || !result.data) {
             return res.status(200).json({
-                success: true,
+                success: false,
                 data: {
-                    title: result.data.title || '',
-                    description: result.data.description || '',
-                    image: result.data.image?.url || '',
-                    author: result.data.author || '',
-                    publisher: result.data.publisher || '',
-                    date: result.data.date || '',
-                    paragraphs,
-                    logo: result.data.logo?.url || '',
-                    url: result.data.url || targetUrl,
+                    title: '',
+                    description: '',
+                    image: '',
+                    paragraphs: [],
+                    url: targetUrl,
                 }
             });
         }
 
-        // Fallback
+        const data = result.data;
+        let paragraphs = [];
+        const rawHtml = data.articleBody || '';
+        const rawText = data.articleText || '';
+
+        if (rawHtml && typeof rawHtml === 'string' && rawHtml.length > 50) {
+            // Strip script/style/nav/footer elements
+            let cleaned = rawHtml
+                .replace(/<script[\s\S]*?<\/script>/gi, '')
+                .replace(/<style[\s\S]*?<\/style>/gi, '')
+                .replace(/<nav[\s\S]*?<\/nav>/gi, '')
+                .replace(/<footer[\s\S]*?<\/footer>/gi, '')
+                .replace(/<aside[\s\S]*?<\/aside>/gi, '')
+                .replace(/<figure[\s\S]*?<\/figure>/gi, '');
+
+            // Boilerplate text to filter out
+            const boilerplate = ['table of contents', 'related players', 'tags', 'share this', 'follow us', 'newsletter', 'sign up', 'subscribe', 'feature image courtesy', 'related articles'];
+
+            // Extract headings (h2/h3)
+            const headingRegex = /<h[23][^>]*>([\s\S]*?)<\/h[23]>/gi;
+            let match;
+            while ((match = headingRegex.exec(cleaned)) !== null) {
+                const text = stripHtml(match[1]).trim();
+                if (text.length > 5) {
+                    const lower = text.toLowerCase();
+                    if (!boilerplate.some(b => lower.startsWith(b))) {
+                        paragraphs.push({ type: 'heading', text, pos: match.index });
+                    }
+                }
+            }
+
+            // Extract blockquotes
+            const quoteRegex = /<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi;
+            while ((match = quoteRegex.exec(cleaned)) !== null) {
+                const text = stripHtml(match[1]).trim();
+                if (text.length > 10) {
+                    paragraphs.push({ type: 'quote', text, pos: match.index });
+                }
+            }
+
+            // Extract paragraphs
+            const pRegex = /<p[^>]*>([\s\S]*?)<\/p>/gi;
+            while ((match = pRegex.exec(cleaned)) !== null) {
+                const text = stripHtml(match[1]).trim();
+                if (text.length > 10) {
+                    const lower = text.toLowerCase();
+                    if (!boilerplate.some(b => lower.startsWith(b))) {
+                        paragraphs.push({ type: 'paragraph', text, pos: match.index });
+                    }
+                }
+            }
+
+            // Extract list items 
+            const liRegex = /<li[^>]*>([\s\S]*?)<\/li>/gi;
+            while ((match = liRegex.exec(cleaned)) !== null) {
+                const text = stripHtml(match[1]).trim();
+                if (text.length > 15) {
+                    const lower = text.toLowerCase();
+                    if (!boilerplate.some(b => lower.startsWith(b))) {
+                        paragraphs.push({ type: 'paragraph', text: '• ' + text, pos: match.index });
+                    }
+                }
+            }
+
+            // Sort by document position
+            paragraphs.sort((a, b) => a.pos - b.pos);
+
+            // Remove position markers and deduplicate
+            const seen = new Set();
+            paragraphs = paragraphs.filter(p => {
+                delete p.pos;
+                const key = p.text.substring(0, 60);
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+        }
+
+        // Fallback: If HTML extraction found nothing, use raw text
+        if (paragraphs.length === 0 && rawText && typeof rawText === 'string') {
+            const lines = rawText.split('\n').filter(l => l.trim().length > 15);
+            paragraphs = lines.map(l => ({ type: 'paragraph', text: l.trim() }));
+        }
+
+        // Final fallback to description
+        if (paragraphs.length === 0 && data.description) {
+            paragraphs = [{ type: 'paragraph', text: data.description }];
+        }
+
         return res.status(200).json({
-            success: false,
+            success: true,
             data: {
-                title: result.data?.title || '',
-                description: result.data?.description || '',
-                image: result.data?.image?.url || '',
-                paragraphs: result.data?.description ? [{ type: 'paragraph', text: result.data.description }] : [],
-                url: targetUrl,
+                title: data.title || '',
+                description: data.description || '',
+                image: data.image?.url || '',
+                author: data.author || '',
+                publisher: data.publisher || '',
+                date: data.date || '',
+                paragraphs,
+                logo: data.logo?.url || '',
+                url: data.url || targetUrl,
             }
         });
 
