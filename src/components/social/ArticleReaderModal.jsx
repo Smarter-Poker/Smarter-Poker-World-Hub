@@ -106,23 +106,6 @@ export default function ArticleReaderModal({ url, title, onClose }) {
                     }}>
                         {title || domain}
                     </div>
-
-                    {/* Open in New Tab */}
-                    <button
-                        onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}
-                        style={{
-                            background: 'rgba(255,255,255,0.1)',
-                            border: 'none',
-                            borderRadius: 8,
-                            padding: '8px 16px',
-                            color: '#FFF',
-                            cursor: 'pointer',
-                            fontSize: 14,
-                            fontWeight: 600,
-                        }}
-                    >
-                        ↗ Open
-                    </button>
                 </div>
 
                 {/* Loading State */}
