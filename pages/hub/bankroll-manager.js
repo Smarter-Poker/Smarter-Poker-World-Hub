@@ -140,7 +140,9 @@ export default function BankrollManagerPage() {
   const [editEntry, setEditEntry] = useState(null);
 
   // Handle query parameters for deep linking
+  // Use router.asPath as dependency — it's a string that reliably changes on same-page navigation
   useEffect(() => {
+    if (!router.isReady) return;
     if (router.query.view) {
       setActiveSection(router.query.view);
     }
@@ -148,10 +150,11 @@ export default function BankrollManagerPage() {
       // Map URL type to DB category
       const dbCategory = TYPE_TO_CATEGORY[router.query.type] || router.query.type;
       setCategoryFilter(dbCategory);
-    } else {
+      setActiveSection('dashboard'); // Ensure we show the dashboard when filtering
+    } else if (!router.query.view) {
       setCategoryFilter('all');
     }
-  }, [router.query]);
+  }, [router.asPath, router.isReady]);
   const [showLogModal, setShowLogModal] = useState(false);
   const [showProjection, setShowProjection] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
