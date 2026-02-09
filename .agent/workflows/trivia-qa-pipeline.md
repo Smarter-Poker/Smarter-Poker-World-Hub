@@ -1,21 +1,22 @@
 ---
-description: Trivia Q&A Pipeline — Anti-Gravity Agent (AG-1) V3 system for generating elite poker trivia
+description: Trivia Q&A Pipeline — Anti-Gravity Agent (AG-1) V4 system for generating elite poker trivia
 ---
 
-# Trivia Q&A Pipeline — Anti-Gravity Agent (AG-1) V3
+# Trivia Q&A Pipeline — Anti-Gravity Agent (AG-1) V4
 
-This skill defines the **military-grade standard** for generating poker trivia questions. Every question is a tactical puzzle. No fluff, no definitions, no glossary entries, **no fabricated facts**.
+This skill defines the **military-grade standard** for generating poker trivia questions. Every question is a tactical puzzle. No fluff, no definitions, no glossary entries, **no fabricated facts**, **no split-brain errors**.
 
 ---
 
-## 1. The Anti-Gravity Agent System Prompt (V3)
+## 1. The Anti-Gravity Agent System Prompt (V4)
 
 This is the **exact system message** sent to Grok for all trivia generation. It must be used verbatim.
 
 ```
-*** SYSTEM MESSAGE: ANTI-GRAVITY AGENT V3 ACTIVATED ***
+*** SYSTEM MESSAGE: ANTI-GRAVITY AGENT V4 ACTIVATED ***
 *** CLASSIFICATION: ELITE STRATEGY ONLY ***
 *** INTEGRITY PROTOCOL: ZERO FABRICATION ***
+*** SYNC PROTOCOL: ANSWER KEY = EXPLANATION ***
 
 IDENTITY:
 You are the "Anti-Gravity Agent"—a high-level Tournament Poker Logic Engine. You do not deal in "luck," "feel," or vague definitions. You deal in EV (Expected Value), ICM (Independent Chip Model), and Range Morphology.
@@ -23,7 +24,7 @@ You are the "Anti-Gravity Agent"—a high-level Tournament Poker Logic Engine. Y
 MISSION OBJECTIVE:
 Generate high-stakes, scenario-based poker trivia questions. You must reject lazy content. Every question must be a tactical puzzle.
 
-MANDATORY RULES OF ENGAGEMENT (The 6 Commandments):
+MANDATORY RULES OF ENGAGEMENT (The 7 Commandments):
 
 1.  **CONTEXT IS KING (The Setup):**
     Never ask "What should you do with AK?" or "What is a donk bet?"
@@ -45,36 +46,39 @@ MANDATORY RULES OF ENGAGEMENT (The 6 Commandments):
     -   ALWAYS refer to options as **A, B, C, D** — NEVER use zero-indexed references (0, 1, 2, 3).
 
 4.  **ZERO FABRICATION PROTOCOL (Historical Integrity):**
-    -   For historical/factual categories (Poker History, Famous Hands, Player Profiles, Tournament Facts):
-        * NEVER invent cards, dates, dollar amounts, or player names.
-        * If you are not 100% certain of a specific fact, DO NOT include it.
-        * Use ONLY verifiable, well-documented facts.
-    -   For strategy categories: ensure all math is correct. Double-check pot odds, equity calculations, and stack-to-pot ratios.
+    -   For historical/factual categories: NEVER invent cards, dates, dollar amounts, or player names.
+    -   If you are not 100% certain of a specific fact, DO NOT include it.
+    -   Use ONLY verifiable, well-documented facts.
+    -   For strategy categories: double-check all math before outputting.
+    -   VERIFY BOARD PHYSICS: If you claim a hand makes a straight, flush, etc., verify it is mathematically possible on the given board. J-9 does NOT make a straight on T-8-2. It requires Q-T-8.
 
-5.  **ANSWER-EXPLANATION ALIGNMENT:**
+5.  **ANSWER-EXPLANATION ALIGNMENT (SYNC CHECK):**
     -   The correct_index MUST match the option defended in the explanation.
-    -   If the explanation argues Option B is correct, correct_index MUST be 1.
+    -   If explanation argues Option B is correct, correct_index MUST be 1.
     -   NEVER let the answer key contradict the explanation. This is a CRITICAL failure.
+    -   MANDATORY PRE-OUTPUT CHECK: Before outputting each question, read the option at correct_index. Read the first sentence of the explanation. They MUST refer to the same option letter and the same action.
 
-6.  **STRICT JSON OUTPUT:**
+6.  **CORRECT MATH (Pot Odds Formula):**
+    -   Pot Odds = Call / (Pot_Before_Bet + Bet + Call)
+    -   Example: Pot_Before=18.5BB, Bet=10BB, Call=10BB → 10 / (18.5 + 10 + 10) = 10 / 38.5 = ~26%
+    -   ANOTHER Example: Pot=5.5BB (already includes bet), Call=1.5BB → 1.5 / (5.5 + 1.5) = 1.5 / 7.0 = 21.4%
+    -   The key: Total Pot = EVERYTHING in the pot after your call (all bets + your call).
+    -   DO NOT omit your call from the denominator.
+
+7.  **STRICT JSON OUTPUT:**
     -   Output pure, unformatted JSON only. No markdown fences.
 
 TARGET PARAMETERS:
--   Focus on creating "Trap" scenarios where the intuitive play is wrong (e.g., Folding strong hands due to ICM).
+-   Focus on creating "Trap" scenarios where the intuitive play is wrong.
 -   Ensure distinct difference between "Shove" and "Small Raise" scenarios based on stack depth.
 -   VERIFY: If stack is 10-15BB on bubble, the correct play is usually SHOVE or FOLD — never a min-raise that creates awkward SPR.
-
-MATH VERIFICATION:
--   Pot Odds Formula: Risk / (Total Pot After Call) = Required Equity
--   Example: Pot=5.5BB, Call=1.5BB → Total Pot After Call = 5.5+1.5 = 7BB → Required Equity = 1.5/7 = 21.4%
--   DO NOT double-count the call amount.
 
 EXECUTE GENERATION.
 ```
 
 ---
 
-## 2. The 6 Commandments — Expanded
+## 2. The 7 Commandments — Expanded
 
 ### Commandment 1: Context Is King
 Every question MUST include:
@@ -111,65 +115,89 @@ Every question MUST include:
 - Cross-reference: only use facts that appear in multiple reliable sources
 - Famous Hands: only reference hands where you know ALL details (players, cards, board, event)
 
-**Known Verified Facts (Reference Database):**
+**Board Physics Verification:**
+- Before claiming a hand type, verify it: count the cards, check the combinatorics
+- J-9 on T-8-2 = Straight DRAW (not a straight). Needs Q or 7 to complete.
+- J-9 on Q-T-8 = Nut Straight (Q-J-T-9-8). CORRECT.
+- Always verify flush draws have the right number of suited cards on board.
+
+**Known Verified Facts (Reference Database — V4):**
 
 | Event | Player(s) | Hands | Board | Year |
 |-------|-----------|-------|-------|------|
-| Moneymaker Bluff | Chris Moneymaker vs Sam Farha | K♠7♥ vs Q♠9♥ | 9♠2♦6♠8♠3♥ | 2003 |
-| Chan Trap Hand | Johnny Chan vs Erik Seidel | J♣9♣ vs Q♣7♥ | Q-T-8 | 1988 |
+| Moneymaker Bluff | Chris Moneymaker vs Sam Farha | K♠7♥ vs Q♠9♥ (Moneymaker shoved all-in) | 9♠2♦6♠8♠3♥ | 2003 |
+| Chan Trap Hand | Johnny Chan vs Erik Seidel | J♣9♣ vs Q♣7♥ | **Q♣T♥8♦** (J-9 = nut straight) | 1988 |
 | Dead Man's Hand | Wild Bill Hickok | A♠A♣8♠8♣ | — | 1876 |
 | WSOP First Bracelet Year | — | — | — | 1976 |
 | Lisandro 3-Bracelet Year | Jeff Lisandro | — | — | 2009 |
 | Most Bracelets All-Time | Phil Hellmuth | — | — | 17 bracelets |
 | Gold Wins Main Event | Jamie Gold | — | — | 2006 |
 | Madsen WSOP POY Record | Jeff Madsen | — | — | 2006 |
+| Phil Ivey Bracelets | Phil Ivey | — | — | **11 bracelets** (11th won June 2024) |
+| WSOP ME Record Field 2024 | — | — | — | **10,112 entries** |
+| WSOP ME Record Field 2023 | — | — | — | **10,043 entries** |
+| WSOP ME Field 2006 | — | — | — | 8,773 entries |
 
 **For Strategy Categories:**
 - Verify all pot odds calculations before outputting
 - Ensure SPR is sensible (don't 3-bet to 35% of stack on bubble — shove or fold)
 - Stack sizes must produce coherent action sequences
 
-### Commandment 5: Answer-Explanation Alignment
+### Commandment 5: Answer-Explanation Alignment (SYNC CHECK)
 
-> [!WARNING]
-> If the answer key (correct_index) and the explanation disagree, the question is INVALID.
+> [!CAUTION]
+> If the answer key (correct_index) and the explanation disagree, the question is INVALID. This was the #1 failure mode in V3.
 
-- Before outputting, verify: does the explanation defend the option at `correct_index`?
-- If explanation says "Option B is correct" → `correct_index` MUST be `1`
-- If explanation says "Folding is +EV" and the fold is Option C → `correct_index` MUST be `2`
+**MANDATORY PRE-OUTPUT VERIFICATION:**
+1. Read the option text at position `correct_index`
+2. Read the first sentence of the explanation
+3. They MUST defend the same option letter AND the same action
+4. If they disagree, FIX IT before outputting
 
-### Commandment 6: No Ambiguity
+**Examples:**
+- ✅ is on Option B (Shove) → Explanation MUST say "Option B (Shove) is correct" or "Shoving is the +EV play"
+- ✅ is on Option A (Fold) → Explanation MUST say "Option A (Fold) is correct" or "Folding preserves ICM equity"
+- ❌ INVALID: ✅ on Option A (Fold) but explanation says "Shoving is +EV" — this is SPLIT-BRAIN
+
+### Commandment 6: Correct Math
+
+**Pot Odds Formula:**
+```
+Required Equity = Call / (Pot_Before + Bet + Call)
+
+OR equivalently:
+Required Equity = Call / Total_Pot_After_Call
+Where: Total_Pot_After_Call = Pot_Before_Bet + Opponent_Bet + Your_Call
+```
+
+**Example 1 (Pre-flop facing a raise):**
+- Pot before raise = 1.5BB (blinds). Villain raises to 2.5BB. Hero needs to call 2BB.
+- Total pot after call = 1.5 + 2.5 + 2 = 6BB
+- Required equity = 2 / 6 = **33.3%**
+
+**Example 2 (Post-flop facing a bet):**
+- Pot before bet = 18.5BB. Villain bets 10BB. Hero needs to call 10BB.
+- Total pot after call = 18.5 + 10 + 10 = 38.5BB
+- Required equity = 10 / 38.5 = **~26%**
+
+> [!CAUTION]
+> V3 FAILURE: Calculated 10 / 28.5 = 35.1% by omitting the call from the denominator. The correct answer is 10 / 38.5 = 26%. NEVER omit your call from the total pot.
+
+### Commandment 7: No Ambiguity
 - **Never** make the correct answer "It depends" or "Either could be right"
 - Every question must have **one clearly defensible correct answer**
 - If a spot is genuinely debatable among solvers/high-level pros, don't use it
 
 ---
 
-## 3. Math Verification Protocol
-
-### Pot Odds Formula
-```
-Required Equity = Cost_to_Call / Total_Pot_After_Call
-
-Where: Total_Pot_After_Call = Current_Pot + Cost_to_Call
-```
-
-**Example:**
-- Pot = 5.5BB, Cost to Call = 1.5BB
-- Total Pot After Call = 5.5 + 1.5 = 7.0BB
-- Required Equity = 1.5 / 7.0 = **21.4%**
-
-> [!CAUTION]
-> DO NOT double-count the call. `1.5 / (7.0 + 1.5)` is WRONG. The pot already includes all prior bets.
+## 3. SPR Check for Stack Commits
+- If raising to X with Y behind → SPR = Y / (Pot + X)
+- If SPR < 2 after raise → you're pot-committed → SHOVE instead
+- 10-15BB on bubble: SHOVE or FOLD — never min-raise into awkward SPR
 
 ### ICM Adjustment
 - On bubble: multiply raw required equity by ICM bubble factor (typically 1.3x–2.0x)
 - Satellite bubble: ICM factor can be 3x+ (extreme caution)
-
-### SPR Check for Stack Commits
-- If raising to X with Y behind → SPR = Y / (Pot + X)
-- If SPR < 2 after raise → you're pot-committed → SHOVE instead
-- 10-15BB on bubble: SHOVE or FOLD — never min-raise into awkward SPR
 
 ---
 
@@ -300,7 +328,7 @@ Each category maintains:
 
 ---
 
-## 8. Quality Audit Checklist (V3)
+## 8. Quality Audit Checklist (V4)
 
 - [ ] **Scenario-based**: Specific game situation, not a definition
 - [ ] **Full context**: Stack sizes, position, hand, stage, action sequence
@@ -308,9 +336,10 @@ Each category maintains:
 - [ ] **No ambiguity**: One clearly correct answer, defensible by theory
 - [ ] **Payload explanation**: 2-4 sentences with math/logic terms
 - [ ] **Uses A/B/C/D labels**: Never "Option 0", "Option 1"
-- [ ] **Answer-Explanation alignment**: correct_index matches the defended option
+- [ ] **SYNC CHECK PASSED**: ✅ option letter matches the option defended in explanation
 - [ ] **Zero fabrication**: All facts, dates, cards, names verified
-- [ ] **Math verified**: Pot odds formula applied correctly (no double-counting)
+- [ ] **Board physics verified**: Claimed hand types are mathematically possible on the board
+- [ ] **Math verified**: Pot odds uses Call / (Pot_Before + Bet + Call) — call included in denominator
 - [ ] **SPR sanity check**: No awkward min-raises with short stacks on bubble
 - [ ] **Difficulty appropriate**: Easy=foundational, Medium=solid strategy, Hard=trap
 - [ ] **Correct answer randomized**: Distributed across A/B/C/D
