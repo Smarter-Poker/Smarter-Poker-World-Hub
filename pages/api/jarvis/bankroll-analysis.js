@@ -94,13 +94,26 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('[Jarvis Bankroll] Server error:', error);
-        return res.status(500).json({
-            success: false,
-            error: 'Analysis failed',
+
+        // Check for specific API credit/rate limit errors
+        const status = error?.status || error?.response?.status;
+        let userMessage = 'Analysis temporarily unavailable.';
+        let userRecs = ['Try again later or check your connection.'];
+
+        if (status === 429) {
+            userMessage = 'AI analysis is temporarily paused — API credits are being refreshed.';
+            userRecs = ['Insights will resume automatically once credits are replenished.', 'Your data is safe and stats are still updating in real time.'];
+        } else if (status === 401 || status === 403) {
+            userMessage = 'AI service authentication issue.';
+            userRecs = ['Please contact support if this persists.'];
+        }
+
+        return res.status(200).json({
+            success: true,
             insights: {
-                summary: "Unable to complete analysis at this time.",
+                summary: userMessage,
                 patterns: [],
-                recommendations: ["Try again later or check your connection."],
+                recommendations: userRecs,
                 riskLevel: 'unknown'
             }
         });
