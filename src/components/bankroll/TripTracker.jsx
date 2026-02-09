@@ -76,7 +76,16 @@ export default function TripTracker({ userId, onOpenLog }) {
             return;
         }
         try {
-            await createTrip(userId, newTrip);
+            // Handle new location creation
+            let locationId = newTrip.location_id;
+            if (locationId === '__new__' && newTrip.location_name?.trim()) {
+                const { getOrCreateLocation } = await import('../../lib/bankroll/locationMemory');
+                locationId = await getOrCreateLocation(userId, newTrip.location_name.trim());
+            } else if (locationId === '__new__') {
+                locationId = null;
+            }
+
+            await createTrip(userId, { ...newTrip, location_id: locationId });
             toast.success('Trip started! 🎒');
             setShowCreateForm(false);
             setNewTrip({ name: '', location_id: null, start_date: new Date().toISOString().split('T')[0], purpose: '', notes: '' });
@@ -257,16 +266,42 @@ export default function TripTracker({ userId, onOpenLog }) {
                         />
 
                         <label style={styles.formLabel}>Location</label>
-                        <select
-                            value={newTrip.location_id || ''}
-                            onChange={e => setNewTrip({ ...newTrip, location_id: e.target.value || null })}
-                            style={styles.formInput}
-                        >
-                            <option value="">— Select Location —</option>
-                            {locations.map(loc => (
-                                <option key={loc.id} value={loc.id}>{loc.name}</option>
-                            ))}
-                        </select>
+                        {newTrip.location_id !== '__new__' ? (
+                            <select
+                                value={newTrip.location_id || ''}
+                                onChange={e => {
+                                    if (e.target.value === '__new__') {
+                                        setNewTrip({ ...newTrip, location_id: '__new__', location_name: '' });
+                                    } else {
+                                        const loc = locations.find(l => l.id === e.target.value);
+                                        setNewTrip({ ...newTrip, location_id: e.target.value || null, location_name: loc?.name || '' });
+                                    }
+                                }}
+                                style={styles.formInput}
+                            >
+                                <option value="">— Select Location —</option>
+                                {locations.map(loc => (
+                                    <option key={loc.id} value={loc.id}>{loc.name}</option>
+                                ))}
+                                <option value="__new__">+ New Location</option>
+                            </select>
+                        ) : (
+                            <div style={{ display: 'flex', gap: 6 }}>
+                                <input
+                                    type="text"
+                                    value={newTrip.location_name || ''}
+                                    onChange={e => setNewTrip({ ...newTrip, location_name: e.target.value })}
+                                    placeholder="e.g. Bellagio, Rivers Casino"
+                                    style={{ ...styles.formInput, flex: 1 }}
+                                    autoFocus
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setNewTrip({ ...newTrip, location_id: null, location_name: '' })}
+                                    style={{ ...styles.formInput, flex: 'none', width: 40, cursor: 'pointer', textAlign: 'center', padding: 0 }}
+                                >↩</button>
+                            </div>
+                        )}
 
                         <label style={styles.formLabel}>Start Date</label>
                         <input
