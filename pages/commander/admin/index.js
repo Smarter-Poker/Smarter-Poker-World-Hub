@@ -116,10 +116,10 @@ function ApiKeysModal({ isOpen, onClose, venueId }) {
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
       <div className="cmd-panel cmd-corner-lights w-full max-w-lg">
-        <div className="flex items-center justify-between p-4 border-b border-[#4A5E78]">
+        <div className="flex items-center justify-between p-4 border-b border-[#3A3B3C]">
           <h3 className="text-lg font-semibold text-white">API Keys</h3>
-          <button onClick={onClose} className="p-2 hover:bg-[#132240] rounded-lg">
-            <X className="w-5 h-5 text-[#64748B]" />
+          <button onClick={onClose} className="p-2 hover:bg-[#3A3B3C] rounded-lg">
+            <X className="w-5 h-5 text-[#B0B3B8]" />
           </button>
         </div>
 
@@ -129,7 +129,7 @@ function ApiKeysModal({ isOpen, onClose, venueId }) {
               {error}
             </div>
           )}
-          <p className="text-sm text-[#64748B] mb-4">
+          <p className="text-sm text-[#B0B3B8] mb-4">
             API keys allow external systems to access Commander data. Keep your keys secure.
           </p>
 
@@ -155,10 +155,10 @@ function ApiKeysModal({ isOpen, onClose, venueId }) {
           {/* Keys List */}
           {loading ? (
             <div className="flex justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin text-[#64748B]" />
+              <Loader2 className="w-6 h-6 animate-spin text-[#B0B3B8]" />
             </div>
           ) : apiKeys.length === 0 ? (
-            <div className="text-center py-8 text-[#64748B]">
+            <div className="text-center py-8 text-[#B0B3B8]">
               <Key className="w-12 h-12 mx-auto mb-3 opacity-50" />
               <p>No API keys yet</p>
             </div>
@@ -167,17 +167,17 @@ function ApiKeysModal({ isOpen, onClose, venueId }) {
               {apiKeys.map((key) => (
                 <div
                   key={key.id}
-                  className="flex items-center justify-between p-3 bg-[#0D192E] rounded-lg"
+                  className="flex items-center justify-between p-3 bg-[#3A3B3C] rounded-lg"
                 >
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-white truncate">{key.name}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      <code className="text-xs text-[#64748B] font-mono">
+                      <code className="text-xs text-[#B0B3B8] font-mono">
                         {showKey[key.id] ? key.api_key : `${key.api_key?.substring(0, 8)}...`}
                       </code>
                       <button
                         onClick={() => setShowKey(prev => ({ ...prev, [key.id]: !prev[key.id] }))}
-                        className="text-[#64748B] hover:text-white"
+                        className="text-[#B0B3B8] hover:text-white"
                       >
                         {showKey[key.id] ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                       </button>
@@ -186,13 +186,13 @@ function ApiKeysModal({ isOpen, onClose, venueId }) {
                   <div className="flex items-center gap-2 ml-2">
                     <button
                       onClick={() => handleCopyKey(key)}
-                      className="p-2 text-[#64748B] hover:text-white hover:bg-[#132240] rounded"
+                      className="p-2 text-[#B0B3B8] hover:text-white hover:bg-[#3A3B3C] rounded"
                     >
-                      {copiedKey === key.id ? <Check className="w-4 h-4 text-[#10B981]" /> : <Copy className="w-4 h-4" />}
+                      {copiedKey === key.id ? <Check className="w-4 h-4 text-[#31A24C]" /> : <Copy className="w-4 h-4" />}
                     </button>
                     <button
                       onClick={() => handleDeleteKey(key.id)}
-                      className="p-2 text-[#64748B] hover:text-[#EF4444] hover:bg-[#132240] rounded"
+                      className="p-2 text-[#B0B3B8] hover:text-[#EF4444] hover:bg-[#3A3B3C] rounded"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -265,10 +265,10 @@ function VenueSettingsModal({ isOpen, onClose, venue, onSave }) {
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
       <div className="cmd-panel cmd-corner-lights w-full max-w-lg">
-        <div className="flex items-center justify-between p-4 border-b border-[#4A5E78]">
+        <div className="flex items-center justify-between p-4 border-b border-[#3A3B3C]">
           <h3 className="text-lg font-semibold text-white">{venue.name} Settings</h3>
-          <button onClick={onClose} className="p-2 hover:bg-[#132240] rounded-lg">
-            <X className="w-5 h-5 text-[#64748B]" />
+          <button onClick={onClose} className="p-2 hover:bg-[#3A3B3C] rounded-lg">
+            <X className="w-5 h-5 text-[#B0B3B8]" />
           </button>
         </div>
 
@@ -289,7 +289,7 @@ function VenueSettingsModal({ isOpen, onClose, venue, onSave }) {
           <div className="flex items-center justify-between">
             <div>
               <p className="font-medium text-white">Auto Text Notifications</p>
-              <p className="text-sm text-[#64748B]">Send automatic SMS to players when called</p>
+              <p className="text-sm text-[#B0B3B8]">Send automatic SMS to players when called</p>
             </div>
             <label className="relative inline-flex cursor-pointer">
               <input
@@ -298,16 +298,16 @@ function VenueSettingsModal({ isOpen, onClose, venue, onSave }) {
                 onChange={(e) => setSettings(prev => ({ ...prev, auto_text_enabled: e.target.checked }))}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-[#4A5E78] peer-focus:ring-2 peer-focus:ring-[#22D3EE] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#22D3EE]"></div>
+              <div className="w-11 h-6 bg-[#3A3B3C] peer-focus:ring-2 peer-focus:ring-[#1877F2] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1877F2]"></div>
             </label>
           </div>
 
           {/* Waitlist Settings */}
-          <div className="pt-3 border-t border-[#4A5E78]">
+          <div className="pt-3 border-t border-[#3A3B3C]">
             <p className="font-medium text-white mb-3">Waitlist Settings</p>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-[#64748B]">Max Call Attempts</span>
+                <span className="text-sm text-[#B0B3B8]">Max Call Attempts</span>
                 <input
                   type="number"
                   min="1"
@@ -321,7 +321,7 @@ function VenueSettingsModal({ isOpen, onClose, venue, onSave }) {
                 />
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-[#64748B]">Call Timeout (minutes)</span>
+                <span className="text-sm text-[#B0B3B8]">Call Timeout (minutes)</span>
                 <input
                   type="number"
                   min="1"
@@ -335,7 +335,7 @@ function VenueSettingsModal({ isOpen, onClose, venue, onSave }) {
                 />
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-[#64748B]">Allow Remote Check-in</span>
+                <span className="text-sm text-[#B0B3B8]">Allow Remote Check-in</span>
                 <label className="relative inline-flex cursor-pointer">
                   <input
                     type="checkbox"
@@ -346,18 +346,18 @@ function VenueSettingsModal({ isOpen, onClose, venue, onSave }) {
                     }))}
                     className="sr-only peer"
                   />
-                  <div className="w-9 h-5 bg-[#4A5E78] peer-focus:ring-2 peer-focus:ring-[#22D3EE] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#22D3EE]"></div>
+                  <div className="w-9 h-5 bg-[#3A3B3C] peer-focus:ring-2 peer-focus:ring-[#1877F2] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#1877F2]"></div>
                 </label>
               </div>
             </div>
           </div>
 
           {/* Display Settings */}
-          <div className="pt-3 border-t border-[#4A5E78]">
+          <div className="pt-3 border-t border-[#3A3B3C]">
             <p className="font-medium text-white mb-3">Display Settings</p>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-[#64748B]">Show Waitlist Count Publicly</span>
+                <span className="text-sm text-[#B0B3B8]">Show Waitlist Count Publicly</span>
                 <label className="relative inline-flex cursor-pointer">
                   <input
                     type="checkbox"
@@ -368,11 +368,11 @@ function VenueSettingsModal({ isOpen, onClose, venue, onSave }) {
                     }))}
                     className="sr-only peer"
                   />
-                  <div className="w-9 h-5 bg-[#4A5E78] peer-focus:ring-2 peer-focus:ring-[#22D3EE] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#22D3EE]"></div>
+                  <div className="w-9 h-5 bg-[#3A3B3C] peer-focus:ring-2 peer-focus:ring-[#1877F2] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#1877F2]"></div>
                 </label>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-[#64748B]">Show Game Stakes</span>
+                <span className="text-sm text-[#B0B3B8]">Show Game Stakes</span>
                 <label className="relative inline-flex cursor-pointer">
                   <input
                     type="checkbox"
@@ -383,11 +383,11 @@ function VenueSettingsModal({ isOpen, onClose, venue, onSave }) {
                     }))}
                     className="sr-only peer"
                   />
-                  <div className="w-9 h-5 bg-[#4A5E78] peer-focus:ring-2 peer-focus:ring-[#22D3EE] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#22D3EE]"></div>
+                  <div className="w-9 h-5 bg-[#3A3B3C] peer-focus:ring-2 peer-focus:ring-[#1877F2] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#1877F2]"></div>
                 </label>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-[#64748B]">Show Player Names on Display</span>
+                <span className="text-sm text-[#B0B3B8]">Show Player Names on Display</span>
                 <label className="relative inline-flex cursor-pointer">
                   <input
                     type="checkbox"
@@ -398,14 +398,14 @@ function VenueSettingsModal({ isOpen, onClose, venue, onSave }) {
                     }))}
                     className="sr-only peer"
                   />
-                  <div className="w-9 h-5 bg-[#4A5E78] peer-focus:ring-2 peer-focus:ring-[#22D3EE] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#22D3EE]"></div>
+                  <div className="w-9 h-5 bg-[#3A3B3C] peer-focus:ring-2 peer-focus:ring-[#1877F2] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#1877F2]"></div>
                 </label>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="p-4 border-t border-[#4A5E78]">
+        <div className="p-4 border-t border-[#3A3B3C]">
           <button
             onClick={handleSave}
             disabled={saving}
@@ -572,15 +572,15 @@ export default function AdminDashboard() {
         <header className="cmd-header-bar">
           <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <h1 className="text-xl font-bold text-[#22D3EE]">
+              <h1 className="text-xl font-bold text-[#1877F2]">
                 Club Commander
               </h1>
-              <span className="text-[#4A5E78]">|</span>
+              <span className="text-[#3A3B3C]">|</span>
               <span className="font-medium text-white">Admin Dashboard</span>
             </div>
             <button
               onClick={loadAdminData}
-              className="p-2 rounded-lg hover:bg-[#132240] text-[#64748B]"
+              className="p-2 rounded-lg hover:bg-[#3A3B3C] text-[#B0B3B8]"
             >
               <RefreshCw size={20} />
             </button>
@@ -588,7 +588,7 @@ export default function AdminDashboard() {
         </header>
 
         {/* Tabs */}
-        <div className="border-b border-[#4A5E78] bg-[#0F1D32]">
+        <div className="border-b border-[#3A3B3C] bg-[#0F1D32]">
           <div className="max-w-7xl mx-auto px-4">
             <div className="flex gap-1">
               {TABS.map(tab => {
@@ -600,8 +600,8 @@ export default function AdminDashboard() {
                     onClick={() => setActiveTab(tab.id)}
                     className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                       isActive
-                        ? 'border-[#22D3EE] text-[#22D3EE]'
-                        : 'border-transparent text-[#64748B] hover:text-white'
+                        ? 'border-[#1877F2] text-[#1877F2]'
+                        : 'border-transparent text-[#B0B3B8] hover:text-white'
                     }`}
                   >
                     <Icon size={18} />
@@ -637,7 +637,7 @@ export default function AdminDashboard() {
             <div>
               {venues.length > 1 && (
                 <div className="mb-4">
-                  <label className="block text-sm text-[#64748B] mb-2">Select Venue</label>
+                  <label className="block text-sm text-[#B0B3B8] mb-2">Select Venue</label>
                   <select
                     value={selectedVenue?.id || ''}
                     onChange={(e) => {
@@ -666,7 +666,7 @@ export default function AdminDashboard() {
             <div className="space-y-6">
               <div className="cmd-panel p-6">
                 <h3 className="text-lg font-semibold text-white mb-4">API Keys</h3>
-                <p className="text-[#64748B] mb-4">
+                <p className="text-[#B0B3B8] mb-4">
                   Create API keys for external integrations like POS systems, player tracking software, or custom displays.
                 </p>
                 <button
@@ -680,22 +680,22 @@ export default function AdminDashboard() {
 
               <div className="cmd-panel p-6">
                 <h3 className="text-lg font-semibold text-white mb-4">Venue Settings</h3>
-                <p className="text-[#64748B] mb-4">
+                <p className="text-[#B0B3B8] mb-4">
                   Configure venue-specific settings like comp rates, notification preferences, and display options.
                 </p>
                 <div className="space-y-3">
                   {venues.map(venue => (
                     <div
                       key={venue.id}
-                      className="flex items-center justify-between p-3 rounded-lg bg-[#0D192E]"
+                      className="flex items-center justify-between p-3 rounded-lg bg-[#3A3B3C]"
                     >
                       <div className="flex items-center gap-3">
-                        <Building2 size={20} className="text-[#64748B]" />
+                        <Building2 size={20} className="text-[#B0B3B8]" />
                         <span className="text-white">{venue.name}</span>
                       </div>
                       <button
                         onClick={() => handleConfigureVenue(venue)}
-                        className="text-[#22D3EE] text-sm hover:underline"
+                        className="text-[#1877F2] text-sm hover:underline"
                       >
                         Configure
                       </button>
