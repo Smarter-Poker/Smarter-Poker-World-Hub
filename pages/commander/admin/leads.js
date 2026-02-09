@@ -117,14 +117,14 @@ export default function LeadManagementPage() {
         <header className="cmd-header-bar sticky top-0 z-20">
           <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Link href="/commander/admin" className="text-[#64748B] hover:text-white">
+              <Link href="/commander/admin" className="text-[#B0B3B8] hover:text-white">
                 <ChevronLeft className="w-5 h-5" />
               </Link>
               <h1 className="text-xl font-bold text-white">Lead Management</h1>
             </div>
             <div className="flex items-center gap-4">
               <div className="relative w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#64748B]" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#B0B3B8]" />
                 <input
                   type="text"
                   placeholder="Search leads..."
@@ -142,27 +142,27 @@ export default function LeadManagementPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
             <div className="cmd-panel p-4">
               <div className="text-2xl font-bold text-white">{totalLeads}</div>
-              <div className="text-sm text-[#64748B]">Total Leads</div>
+              <div className="text-sm text-[#B0B3B8]">Total Leads</div>
             </div>
             <div className="cmd-panel p-4">
               <div className="text-2xl font-bold text-blue-400">{stats.new || 0}</div>
-              <div className="text-sm text-[#64748B]">New</div>
+              <div className="text-sm text-[#B0B3B8]">New</div>
             </div>
             <div className="cmd-panel p-4">
               <div className="text-2xl font-bold text-yellow-400">{stats.demo_scheduled || 0}</div>
-              <div className="text-sm text-[#64748B]">Demos Scheduled</div>
+              <div className="text-sm text-[#B0B3B8]">Demos Scheduled</div>
             </div>
             <div className="cmd-panel p-4">
               <div className="text-2xl font-bold text-cyan-400">{stats.signed || 0}</div>
-              <div className="text-sm text-[#64748B]">Signed</div>
+              <div className="text-sm text-[#B0B3B8]">Signed</div>
             </div>
             <div className="cmd-panel p-4">
               <div className="text-2xl font-bold text-green-400">{stats.live || 0}</div>
-              <div className="text-sm text-[#64748B]">Live</div>
+              <div className="text-sm text-[#B0B3B8]">Live</div>
             </div>
             <div className="cmd-panel p-4">
-              <div className="text-2xl font-bold text-[#22D3EE]">{conversionRate.toFixed(1)}%</div>
-              <div className="text-sm text-[#64748B]">Conversion</div>
+              <div className="text-2xl font-bold text-[#1877F2]">{conversionRate.toFixed(1)}%</div>
+              <div className="text-sm text-[#B0B3B8]">Conversion</div>
             </div>
           </div>
 
@@ -172,7 +172,7 @@ export default function LeadManagementPage() {
               onClick={() => setStatusFilter('all')}
               className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
                 statusFilter === 'all'
-                  ? 'bg-[#22D3EE] text-[#0F172A]'
+                  ? 'bg-[#1877F2] text-[#0F172A]'
                   : 'bg-[#1E293B] text-[#94A3B8] hover:text-white'
               }`}
             >
@@ -184,7 +184,7 @@ export default function LeadManagementPage() {
                 onClick={() => setStatusFilter(key)}
                 className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors flex items-center gap-2 ${
                   statusFilter === key
-                    ? 'bg-[#22D3EE] text-[#0F172A]'
+                    ? 'bg-[#1877F2] text-[#0F172A]'
                     : 'bg-[#1E293B] text-[#94A3B8] hover:text-white'
                 }`}
               >
@@ -197,11 +197,11 @@ export default function LeadManagementPage() {
           {/* Leads Table */}
           <div className="cmd-panel overflow-hidden">
             {loading ? (
-              <div className="p-8 text-center text-[#64748B]">Loading leads...</div>
+              <div className="p-8 text-center text-[#B0B3B8]">Loading leads...</div>
             ) : error ? (
               <div className="p-8 text-center text-red-400">{error}</div>
             ) : filteredLeads.length === 0 ? (
-              <div className="p-8 text-center text-[#64748B]">
+              <div className="p-8 text-center text-[#B0B3B8]">
                 {searchTerm ? `No leads matching "${searchTerm}"` : 'No leads found'}
               </div>
             ) : (
@@ -209,25 +209,25 @@ export default function LeadManagementPage() {
                 <table className="w-full">
                   <thead className="bg-[#1E293B] border-b border-[#374151]">
                     <tr>
-                      <th className="text-left px-4 py-3 text-sm font-medium text-[#64748B]">
+                      <th className="text-left px-4 py-3 text-sm font-medium text-[#B0B3B8]">
                         Venue
                       </th>
-                      <th className="text-left px-4 py-3 text-sm font-medium text-[#64748B]">
+                      <th className="text-left px-4 py-3 text-sm font-medium text-[#B0B3B8]">
                         Contact
                       </th>
-                      <th className="text-left px-4 py-3 text-sm font-medium text-[#64748B]">
+                      <th className="text-left px-4 py-3 text-sm font-medium text-[#B0B3B8]">
                         Location
                       </th>
-                      <th className="text-left px-4 py-3 text-sm font-medium text-[#64748B]">
+                      <th className="text-left px-4 py-3 text-sm font-medium text-[#B0B3B8]">
                         Tables
                       </th>
-                      <th className="text-left px-4 py-3 text-sm font-medium text-[#64748B]">
+                      <th className="text-left px-4 py-3 text-sm font-medium text-[#B0B3B8]">
                         Status
                       </th>
-                      <th className="text-left px-4 py-3 text-sm font-medium text-[#64748B]">
+                      <th className="text-left px-4 py-3 text-sm font-medium text-[#B0B3B8]">
                         Created
                       </th>
-                      <th className="text-right px-4 py-3 text-sm font-medium text-[#64748B]">
+                      <th className="text-right px-4 py-3 text-sm font-medium text-[#B0B3B8]">
                         Actions
                       </th>
                     </tr>
@@ -244,11 +244,11 @@ export default function LeadManagementPage() {
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 bg-[#374151] rounded-lg flex items-center justify-center">
-                                <Building2 className="w-5 h-5 text-[#64748B]" />
+                                <Building2 className="w-5 h-5 text-[#B0B3B8]" />
                               </div>
                               <div>
                                 <div className="font-medium text-white">{lead.venue_name}</div>
-                                <div className="text-sm text-[#64748B]">
+                                <div className="text-sm text-[#B0B3B8]">
                                   {lead.current_system || 'No current system'}
                                 </div>
                               </div>
@@ -256,7 +256,7 @@ export default function LeadManagementPage() {
                           </td>
                           <td className="px-4 py-3">
                             <div className="text-white">{lead.contact_name}</div>
-                            <div className="text-sm text-[#64748B]">{lead.email}</div>
+                            <div className="text-sm text-[#B0B3B8]">{lead.email}</div>
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-1 text-[#94A3B8]">
@@ -299,7 +299,7 @@ export default function LeadManagementPage() {
                               )}
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-[#64748B] text-sm">
+                          <td className="px-4 py-3 text-[#B0B3B8] text-sm">
                             {new Date(lead.created_at).toLocaleDateString()}
                           </td>
                           <td className="px-4 py-3 text-right">
@@ -308,7 +308,7 @@ export default function LeadManagementPage() {
                                 e.stopPropagation();
                                 setSelectedLead(lead);
                               }}
-                              className="text-[#64748B] hover:text-white"
+                              className="text-[#B0B3B8] hover:text-white"
                             >
                               <MoreVertical className="w-5 h-5" />
                             </button>
@@ -331,13 +331,13 @@ export default function LeadManagementPage() {
                 <div className="flex items-start justify-between mb-6">
                   <div>
                     <h2 className="text-xl font-bold text-white">{selectedLead.venue_name}</h2>
-                    <p className="text-[#64748B]">
+                    <p className="text-[#B0B3B8]">
                       {selectedLead.city}, {selectedLead.state}
                     </p>
                   </div>
                   <button
                     onClick={() => setSelectedLead(null)}
-                    className="text-[#64748B] hover:text-white"
+                    className="text-[#B0B3B8] hover:text-white"
                   >
                     <XCircle className="w-6 h-6" />
                   </button>
@@ -347,20 +347,20 @@ export default function LeadManagementPage() {
                   {/* Contact Info */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <div className="text-sm text-[#64748B] mb-1">Contact</div>
+                      <div className="text-sm text-[#B0B3B8] mb-1">Contact</div>
                       <div className="text-white">{selectedLead.contact_name}</div>
                     </div>
                     <div>
-                      <div className="text-sm text-[#64748B] mb-1">Tables</div>
+                      <div className="text-sm text-[#B0B3B8] mb-1">Tables</div>
                       <div className="text-white">{selectedLead.table_count || 'Not specified'}</div>
                     </div>
                   </div>
 
                   <div>
-                    <div className="text-sm text-[#64748B] mb-1">Email</div>
+                    <div className="text-sm text-[#B0B3B8] mb-1">Email</div>
                     <a
                       href={`mailto:${selectedLead.email}`}
-                      className="text-[#22D3EE] hover:underline flex items-center gap-2"
+                      className="text-[#1877F2] hover:underline flex items-center gap-2"
                     >
                       <Mail className="w-4 h-4" />
                       {selectedLead.email}
@@ -368,10 +368,10 @@ export default function LeadManagementPage() {
                   </div>
 
                   <div>
-                    <div className="text-sm text-[#64748B] mb-1">Phone</div>
+                    <div className="text-sm text-[#B0B3B8] mb-1">Phone</div>
                     <a
                       href={`tel:${selectedLead.phone}`}
-                      className="text-[#22D3EE] hover:underline flex items-center gap-2"
+                      className="text-[#1877F2] hover:underline flex items-center gap-2"
                     >
                       <Phone className="w-4 h-4" />
                       {selectedLead.phone}
@@ -380,20 +380,20 @@ export default function LeadManagementPage() {
 
                   {selectedLead.current_system && (
                     <div>
-                      <div className="text-sm text-[#64748B] mb-1">Current System</div>
+                      <div className="text-sm text-[#B0B3B8] mb-1">Current System</div>
                       <div className="text-white">{selectedLead.current_system}</div>
                     </div>
                   )}
 
                   {selectedLead.notes && (
                     <div>
-                      <div className="text-sm text-[#64748B] mb-1">Notes</div>
+                      <div className="text-sm text-[#B0B3B8] mb-1">Notes</div>
                       <div className="text-[#94A3B8] whitespace-pre-wrap">{selectedLead.notes}</div>
                     </div>
                   )}
 
                   <div>
-                    <div className="text-sm text-[#64748B] mb-1">Created</div>
+                    <div className="text-sm text-[#B0B3B8] mb-1">Created</div>
                     <div className="text-white">
                       {new Date(selectedLead.created_at).toLocaleString()}
                     </div>
@@ -401,7 +401,7 @@ export default function LeadManagementPage() {
 
                   {/* Status Update */}
                   <div className="border-t border-[#374151] pt-4 mt-4">
-                    <div className="text-sm text-[#64748B] mb-2">Update Status</div>
+                    <div className="text-sm text-[#B0B3B8] mb-2">Update Status</div>
                     <div className="grid grid-cols-2 gap-2">
                       {Object.entries(STATUS_CONFIG)
                         .slice(0, 6)
@@ -415,7 +415,7 @@ export default function LeadManagementPage() {
                             className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${
                               selectedLead.status === key
                                 ? `${config.color}/20 border-current ${config.textColor}`
-                                : 'border-[#374151] text-[#94A3B8] hover:text-white hover:border-[#64748B]'
+                                : 'border-[#374151] text-[#94A3B8] hover:text-white hover:border-[#B0B3B8]'
                             }`}
                           >
                             <span className={`w-2 h-2 rounded-full ${config.color}`} />
