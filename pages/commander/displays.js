@@ -37,15 +37,15 @@ function DeviceCard({ device, onConfigure, onPushContent, onRemove }) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-            isOnline ? 'bg-[#10B981]/10 border border-[#10B981]/30' : 'bg-[#EF4444]/10 border border-[#EF4444]/30'
+            isOnline ? 'bg-[#31A24C]/10 border border-[#31A24C]/30' : 'bg-[#EF4444]/10 border border-[#EF4444]/30'
           }`}>
-            <Monitor className={`w-5 h-5 ${isOnline ? 'text-[#10B981]' : 'text-[#EF4444]'}`} />
+            <Monitor className={`w-5 h-5 ${isOnline ? 'text-[#31A24C]' : 'text-[#EF4444]'}`} />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <p className="font-semibold text-white">{device.name || `Display ${device.id?.slice(0, 8)}`}</p>
               {isOnline ? (
-                <span className="flex items-center gap-1 text-xs text-[#10B981]">
+                <span className="flex items-center gap-1 text-xs text-[#31A24C]">
                   <Wifi className="w-3 h-3" /> Online
                 </span>
               ) : (
@@ -54,7 +54,7 @@ function DeviceCard({ device, onConfigure, onPushContent, onRemove }) {
                 </span>
               )}
             </div>
-            <p className="text-sm text-[#64748B]">
+            <p className="text-sm text-[#B0B3B8]">
               {device.location || 'No location set'}
               {lastSeen && ` -- Last seen ${lastSeen.toLocaleTimeString()}`}
             </p>
@@ -64,17 +64,17 @@ function DeviceCard({ device, onConfigure, onPushContent, onRemove }) {
         <div className="flex items-center gap-2">
           <button
             onClick={() => onPushContent(device)}
-            className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
+            className="p-2 hover:bg-[#3A3B3C] rounded-lg transition-colors"
             title="Push Content"
           >
-            <Send className="w-4 h-4 text-[#22D3EE]" />
+            <Send className="w-4 h-4 text-[#1877F2]" />
           </button>
           <button
             onClick={() => onConfigure(device)}
-            className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
+            className="p-2 hover:bg-[#3A3B3C] rounded-lg transition-colors"
             title="Configure"
           >
-            <Settings className="w-4 h-4 text-[#64748B]" />
+            <Settings className="w-4 h-4 text-[#B0B3B8]" />
           </button>
           <button
             onClick={() => onRemove(device)}
@@ -88,8 +88,8 @@ function DeviceCard({ device, onConfigure, onPushContent, onRemove }) {
 
       {/* Current content info */}
       {device.current_content && (
-        <div className="mt-3 p-2 bg-[#0D192E] rounded-lg">
-          <p className="text-xs text-[#64748B]">
+        <div className="mt-3 p-2 bg-[#3A3B3C] rounded-lg">
+          <p className="text-xs text-[#B0B3B8]">
             Showing: <span className="text-white">{device.current_content.type || 'Default'}</span>
           </p>
         </div>
@@ -227,7 +227,7 @@ export default function DisplaysManagementPage() {
   if (loading) {
     return (
       <div className="cmd-page flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
       </div>
     );
   }
@@ -246,16 +246,16 @@ export default function DisplaysManagementPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push('/commander/dashboard')}
-                className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
+                className="p-2 hover:bg-[#3A3B3C] rounded-lg transition-colors"
               >
-                <ArrowLeft className="w-5 h-5 text-[#64748B]" />
+                <ArrowLeft className="w-5 h-5 text-[#B0B3B8]" />
               </button>
               <div>
                 <h1 className="font-bold text-white flex items-center gap-2">
-                  <Tv className="w-5 h-5 text-[#22D3EE]" />
+                  <Tv className="w-5 h-5 text-[#1877F2]" />
                   Display Management
                 </h1>
-                <p className="text-sm text-[#64748B]">
+                <p className="text-sm text-[#B0B3B8]">
                   {displays.length} device{displays.length !== 1 ? 's' : ''} -- {onlineCount} online
                 </p>
               </div>
@@ -263,9 +263,9 @@ export default function DisplaysManagementPage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={fetchDisplays}
-                className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
+                className="p-2 hover:bg-[#3A3B3C] rounded-lg transition-colors"
               >
-                <RefreshCw className="w-5 h-5 text-[#64748B]" />
+                <RefreshCw className="w-5 h-5 text-[#B0B3B8]" />
               </button>
               <button
                 onClick={() => setShowRegister(true)}
@@ -281,9 +281,9 @@ export default function DisplaysManagementPage() {
         <main className="max-w-4xl mx-auto px-4 py-6">
           {displays.length === 0 ? (
             <div className="cmd-panel p-12 text-center">
-              <Monitor className="w-16 h-16 text-[#4A5E78] mx-auto mb-4" />
+              <Monitor className="w-16 h-16 text-[#3A3B3C] mx-auto mb-4" />
               <h2 className="text-xl font-bold text-white mb-2">No Displays Registered</h2>
-              <p className="text-[#64748B] mb-6">
+              <p className="text-[#B0B3B8] mb-6">
                 Register table display devices to show waitlists, tournament clocks, and promotions.
               </p>
               <button
@@ -316,10 +316,10 @@ export default function DisplaysManagementPage() {
       {showRegister && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="cmd-panel w-full max-w-md">
-            <div className="flex items-center justify-between p-4 border-b border-[#4A5E78]">
+            <div className="flex items-center justify-between p-4 border-b border-[#3A3B3C]">
               <h3 className="text-lg font-semibold text-white">Register Display</h3>
-              <button onClick={() => setShowRegister(false)} className="p-2 hover:bg-[#132240] rounded-lg">
-                <X className="w-5 h-5 text-[#64748B]" />
+              <button onClick={() => setShowRegister(false)} className="p-2 hover:bg-[#3A3B3C] rounded-lg">
+                <X className="w-5 h-5 text-[#B0B3B8]" />
               </button>
             </div>
             <div className="p-4 space-y-4">
@@ -344,7 +344,7 @@ export default function DisplaysManagementPage() {
                 />
               </div>
             </div>
-            <div className="p-4 border-t border-[#4A5E78]">
+            <div className="p-4 border-t border-[#3A3B3C]">
               <button
                 onClick={handleRegister}
                 disabled={!newDevice.name || registering}
@@ -363,10 +363,10 @@ export default function DisplaysManagementPage() {
       {showConfig && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="cmd-panel w-full max-w-md">
-            <div className="flex items-center justify-between p-4 border-b border-[#4A5E78]">
+            <div className="flex items-center justify-between p-4 border-b border-[#3A3B3C]">
               <h3 className="text-lg font-semibold text-white">Configure: {showConfig.name}</h3>
-              <button onClick={() => setShowConfig(null)} className="p-2 hover:bg-[#132240] rounded-lg">
-                <X className="w-5 h-5 text-[#64748B]" />
+              <button onClick={() => setShowConfig(null)} className="p-2 hover:bg-[#3A3B3C] rounded-lg">
+                <X className="w-5 h-5 text-[#B0B3B8]" />
               </button>
             </div>
             <div className="p-4 space-y-4">
@@ -378,9 +378,9 @@ export default function DisplaysManagementPage() {
                   max="100"
                   value={configData.brightness || 80}
                   onChange={(e) => setConfigData(prev => ({ ...prev, brightness: parseInt(e.target.value) }))}
-                  className="w-full accent-[#22D3EE]"
+                  className="w-full accent-[#1877F2]"
                 />
-                <p className="text-sm text-[#64748B] text-right">{configData.brightness || 80}%</p>
+                <p className="text-sm text-[#B0B3B8] text-right">{configData.brightness || 80}%</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-white mb-2">Rotation Interval (seconds)</label>
@@ -394,17 +394,17 @@ export default function DisplaysManagementPage() {
                   ))}
                 </select>
               </div>
-              <label className="flex items-center justify-between p-3 bg-[#0D192E] rounded-lg cursor-pointer">
+              <label className="flex items-center justify-between p-3 bg-[#3A3B3C] rounded-lg cursor-pointer">
                 <span className="text-white font-medium">Auto-refresh</span>
                 <input
                   type="checkbox"
                   checked={configData.auto_refresh ?? true}
                   onChange={(e) => setConfigData(prev => ({ ...prev, auto_refresh: e.target.checked }))}
-                  className="w-5 h-5 accent-[#22D3EE]"
+                  className="w-5 h-5 accent-[#1877F2]"
                 />
               </label>
             </div>
-            <div className="p-4 border-t border-[#4A5E78]">
+            <div className="p-4 border-t border-[#3A3B3C]">
               <button
                 onClick={() => handleSaveConfig(showConfig)}
                 className="cmd-btn cmd-btn-primary w-full"
@@ -420,10 +420,10 @@ export default function DisplaysManagementPage() {
       {showContent && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="cmd-panel w-full max-w-md">
-            <div className="flex items-center justify-between p-4 border-b border-[#4A5E78]">
+            <div className="flex items-center justify-between p-4 border-b border-[#3A3B3C]">
               <h3 className="text-lg font-semibold text-white">Push Content: {showContent.name}</h3>
-              <button onClick={() => setShowContent(null)} className="p-2 hover:bg-[#132240] rounded-lg">
-                <X className="w-5 h-5 text-[#64748B]" />
+              <button onClick={() => setShowContent(null)} className="p-2 hover:bg-[#3A3B3C] rounded-lg">
+                <X className="w-5 h-5 text-[#B0B3B8]" />
               </button>
             </div>
             <div className="p-4 space-y-3">
@@ -439,18 +439,18 @@ export default function DisplaysManagementPage() {
                   onClick={() => setContentType(option.value)}
                   className={`w-full text-left p-3 rounded-lg border transition-colors ${
                     contentType === option.value
-                      ? 'border-[#22D3EE] bg-[#22D3EE]/10'
-                      : 'border-[#4A5E78] hover:bg-[#132240]'
+                      ? 'border-[#1877F2] bg-[#1877F2]/10'
+                      : 'border-[#3A3B3C] hover:bg-[#3A3B3C]'
                   }`}
                 >
-                  <p className={`font-medium ${contentType === option.value ? 'text-[#22D3EE]' : 'text-white'}`}>
+                  <p className={`font-medium ${contentType === option.value ? 'text-[#1877F2]' : 'text-white'}`}>
                     {option.label}
                   </p>
-                  <p className="text-sm text-[#64748B]">{option.desc}</p>
+                  <p className="text-sm text-[#B0B3B8]">{option.desc}</p>
                 </button>
               ))}
             </div>
-            <div className="p-4 border-t border-[#4A5E78]">
+            <div className="p-4 border-t border-[#3A3B3C]">
               <button
                 onClick={() => handlePushContent(showContent)}
                 disabled={pushing}
