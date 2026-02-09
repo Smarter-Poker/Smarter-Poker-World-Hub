@@ -58,11 +58,11 @@
   "crons": [
     {
       "path": "/api/cron/news-scraper",
-      "schedule": "0 * * * *"
+      "schedule": "0 */2 * * *"
     },
     {
       "path": "/api/cron/pokernews-videos",
-      "schedule": "0 */6 * * *"
+      "schedule": "0 */2 * * *"
     },
     {
       "path": "/api/cron/content-health-check",
@@ -82,7 +82,7 @@
     },
     {
       "path": "/api/cron/youtube-shorts",
-      "schedule": "30 */3 * * *"
+      "schedule": "30 */2 * * *"
     },
     {
       "path": "/api/cron/horses-social-likes",
