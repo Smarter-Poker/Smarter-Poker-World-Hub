@@ -1,19 +1,19 @@
 ---
-description: Trivia Q&A Pipeline — Anti-Gravity Agent (AG-1) V7 system for generating elite poker trivia
+description: Trivia Q&A Pipeline — Anti-Gravity Agent (AG-1) V9 system for generating elite poker trivia
 ---
 
-# Trivia Q&A Pipeline — Anti-Gravity Agent (AG-1) V7
+# Trivia Q&A Pipeline — Anti-Gravity Agent (AG-1) V9
 
 This skill defines the **military-grade standard** for generating poker trivia questions. Every question is a tactical puzzle. No fluff, no definitions, no glossary entries, **no fabricated facts**, **no split-brain errors**, **no mislabeled draws**, **no broken arithmetic**, **no unqualified superlatives**, **no strategically unsound GTO advice**, **no internal monologue in output**.
 
 ---
 
-## 1. The Anti-Gravity Agent System Prompt (V7)
+## 1. The Anti-Gravity Agent System Prompt (V9)
 
 This is the **exact system message** sent to Grok for all trivia generation. It must be used verbatim.
 
 ```
-*** SYSTEM MESSAGE: ANTI-GRAVITY AGENT V7 ACTIVATED ***
+*** SYSTEM MESSAGE: ANTI-GRAVITY AGENT V9 ACTIVATED ***
 *** CLASSIFICATION: ELITE STRATEGY ONLY ***
 *** INTEGRITY PROTOCOL: ZERO FABRICATION ***
 *** SYNC PROTOCOL: ANSWER KEY = EXPLANATION ***
@@ -132,7 +132,7 @@ Every question MUST include:
 - If the ICM threshold exceeds 100%, state "the threshold is impossibly high, but Aces' 85% equity exceeds a realistic threshold of ~70-80%."
 
 
-**Known Verified Facts (Reference Database — V7):**
+**Known Verified Facts (Reference Database — V9):**
 
 | Event | Player(s) | Hands | Board | Year |
 |-------|-----------|-------|-------|------|
@@ -192,6 +192,23 @@ Every question MUST include:
 - The output must be pristine. If you catch an error during generation, fix it silently. The user sees ONLY the final product.
 - NEVER include "SYNC CHECK:" or "Board Physics:" debug lines.
 - Options must be formatted as a **vertical list**, one per line. Never clump horizontally.
+
+**Production Output Formatting Protocol (V9):**
+- **NO developer metadata** in output headers. NEVER append "— Source: V4 Q1" or similar provenance tags.
+  - BAD: `### Q1 [MEDIUM] — Source: V4 Q1`
+  - GOOD: `### Q1 [MEDIUM]`
+- **NO internal prefixes**: Use `Q1`, `Q2`, etc. NEVER use `NEW-Q1`, `DRAFT-Q1`, or any prefix.
+- **Strict vertical stacking**: EVERY option (A, B, C, D) MUST appear on its own separate line. One option per line. No exceptions.
+  - BAD: `✅ A. Doyle Brunson B. Stu Ungar C. Johnny Moss D. Amarillo Slim`
+  - GOOD:
+    ```
+    ✅ A. Doyle Brunson
+    B. Stu Ungar
+    C. Johnny Moss
+    D. Amarillo Slim
+    ```
+- **No surplus sections**: Output only the requested question count. Do not append extra unrequested sections.
+- V8 FAILURE: Included "— Source: V4 Q1" metadata tags and "NEW-Q#" prefixes in production output.
 
 ### Commandment 5: Answer-Explanation Alignment (SYNC CHECK)
 
@@ -380,7 +397,7 @@ Each category maintains:
 
 ---
 
-## 8. Quality Audit Checklist (V7)
+## 8. Quality Audit Checklist (V9)
 
 - [ ] **Scenario-based**: Specific game situation, not a definition
 - [ ] **Full context**: Stack sizes, position, hand, stage, action sequence
