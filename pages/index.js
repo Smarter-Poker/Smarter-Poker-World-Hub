@@ -115,12 +115,7 @@ export default function LandingPage() {
                 {/* Navigation */}
                 <nav className="landing-nav" style={styles.nav}>
                     <div style={styles.logo}>
-                        <img
-                            src="/smarter-poker-logo.png"
-                            alt="Smarter Poker"
-                            style={{ height: 40, filter: 'drop-shadow(0 0 10px rgba(0, 212, 255, 0.5))' }}
-                        />
-                        <span className="landing-logo-text" style={styles.logoText}>SMARTER POKER</span>
+                        <span className="landing-logo-text" style={styles.logoText}>SMARTER.POKER</span>
                     </div>
                     <div className="landing-nav-links" style={styles.navLinks}>
                         <button className="landing-nav-button" onClick={handleSignUp} style={styles.navButton}>
@@ -427,12 +422,7 @@ export default function LandingPage() {
                 <footer className="landing-footer" style={styles.footer}>
                     <div className="landing-footer-content" style={styles.footerContent}>
                         <div style={styles.footerLogo}>
-                            <img
-                                src="/smarter-poker-logo.png"
-                                alt="Smarter Poker"
-                                style={{ height: 28, opacity: 0.8 }}
-                            />
-                            <span style={styles.footerLogoText}>SMARTER POKER</span>
+                            <span style={styles.footerLogoText}>SMARTER.POKER</span>
                         </div>
                         <p style={styles.footerCopyright}>
                             © 2026 Smarter.Poker. All rights reserved.
