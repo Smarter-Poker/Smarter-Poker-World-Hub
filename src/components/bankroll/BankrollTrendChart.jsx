@@ -51,10 +51,10 @@ export default function BankrollTrendChart({ entries = [], isLoading = false }) 
                 break;
         }
 
-        // Filter and sort entries
+        // Filter and sort entries (append T12:00:00 to avoid UTC midnight → wrong day in CST)
         const filtered = entries
-            .filter(e => new Date(e.entry_date) >= startDate)
-            .sort((a, b) => new Date(a.entry_date) - new Date(b.entry_date));
+            .filter(e => new Date(e.entry_date + 'T12:00:00') >= startDate)
+            .sort((a, b) => new Date(a.entry_date + 'T12:00:00') - new Date(b.entry_date + 'T12:00:00'));
 
         if (filtered.length === 0) return [];
 
@@ -64,7 +64,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false }) 
             const net = (entry.gross_out || 0) - (entry.gross_in || 0);
             cumulative += net;
 
-            const date = new Date(entry.entry_date);
+            const date = new Date(entry.entry_date + 'T12:00:00');
             const formattedDate = date.toLocaleDateString('en-US', {
                 month: 'short',
                 day: 'numeric'

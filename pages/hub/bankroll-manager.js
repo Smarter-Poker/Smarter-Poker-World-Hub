@@ -328,6 +328,11 @@ export default function BankrollManagerPage() {
       handleLogClick();
     } else {
       setActiveSection(sectionId);
+      // Reset category filter when going back to Dashboard
+      if (sectionId === 'dashboard') {
+        setCategoryFilter('all');
+        router.push('/hub/bankroll-manager', undefined, { shallow: true });
+      }
     }
   };
 
@@ -676,11 +681,14 @@ export default function BankrollManagerPage() {
 
                 {/* Recent Activity Section */}
                 <div style={styles.activitySection}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <div
+                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, cursor: 'pointer' }}
+                    onClick={() => setShowAllEntries(!showAllEntries)}
+                  >
                     <h2 style={styles.sectionTitle}>Recent Activity</h2>
-                    {entries.length > 5 && (
+                    {entries.length > 0 && (
                       <button
-                        onClick={() => setShowAllEntries(!showAllEntries)}
+                        onClick={(e) => { e.stopPropagation(); setShowAllEntries(!showAllEntries); }}
                         style={{
                           background: 'rgba(59, 130, 246, 0.15)',
                           border: '1px solid rgba(59, 130, 246, 0.3)',
