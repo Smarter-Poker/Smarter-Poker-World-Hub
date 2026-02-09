@@ -478,13 +478,13 @@ export default function ManagerGuidePage() {
         <header className="cmd-header-bar sticky top-0 z-20">
           <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Link href="/commander/dashboard" className="text-[#64748B] hover:text-white">
+              <Link href="/commander/dashboard" className="text-[#B0B3B8] hover:text-white">
                 <ChevronLeft className="w-5 h-5" />
               </Link>
               <h1 className="text-xl font-bold text-white">Manager Admin Guide</h1>
             </div>
             <div className="relative w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#64748B]" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#B0B3B8]" />
               <input
                 type="text"
                 placeholder="Search guide..."
@@ -514,8 +514,8 @@ export default function ManagerGuidePage() {
                           }}
                           className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
                             activeSection === section.id
-                              ? 'bg-[#22D3EE]/10 text-[#22D3EE]'
-                              : 'text-[#64748B] hover:text-white hover:bg-[#374151]'
+                              ? 'bg-[#1877F2]/10 text-[#1877F2]'
+                              : 'text-[#B0B3B8] hover:text-white hover:bg-[#374151]'
                           }`}
                         >
                           <Icon className="w-4 h-4" />
@@ -536,8 +536,8 @@ export default function ManagerGuidePage() {
                     {(() => {
                       const Icon = currentSection.icon;
                       return (
-                        <div className="w-10 h-10 bg-[#22D3EE]/10 rounded-lg flex items-center justify-center">
-                          <Icon className="w-5 h-5 text-[#22D3EE]" />
+                        <div className="w-10 h-10 bg-[#1877F2]/10 rounded-lg flex items-center justify-center">
+                          <Icon className="w-5 h-5 text-[#1877F2]" />
                         </div>
                       );
                     })()}
@@ -552,7 +552,7 @@ export default function ManagerGuidePage() {
                         <ol className="space-y-3 mb-4">
                           {item.steps.map((step, stepIdx) => (
                             <li key={stepIdx} className="flex items-start gap-3">
-                              <span className="flex-shrink-0 w-6 h-6 bg-[#4A5E78] rounded-full flex items-center justify-center text-xs text-white font-medium">
+                              <span className="flex-shrink-0 w-6 h-6 bg-[#3A3B3C] rounded-full flex items-center justify-center text-xs text-white font-medium">
                                 {stepIdx + 1}
                               </span>
                               <span className="text-[#94A3B8] pt-0.5">{step}</span>
@@ -561,9 +561,9 @@ export default function ManagerGuidePage() {
                         </ol>
 
                         {item.note && (
-                          <div className="flex items-start gap-2 p-3 bg-[#22D3EE]/5 border border-[#22D3EE]/20 rounded-lg mt-4">
-                            <AlertTriangle className="w-5 h-5 text-[#22D3EE] flex-shrink-0 mt-0.5" />
-                            <p className="text-sm text-[#22D3EE]">{item.note}</p>
+                          <div className="flex items-start gap-2 p-3 bg-[#1877F2]/5 border border-[#1877F2]/20 rounded-lg mt-4">
+                            <AlertTriangle className="w-5 h-5 text-[#1877F2] flex-shrink-0 mt-0.5" />
+                            <p className="text-sm text-[#1877F2]">{item.note}</p>
                           </div>
                         )}
                       </div>
@@ -575,7 +575,7 @@ export default function ManagerGuidePage() {
                     {currentIndex > 0 ? (
                       <button
                         onClick={() => setActiveSection(GUIDE_SECTIONS[currentIndex - 1].id)}
-                        className="flex items-center gap-2 text-[#64748B] hover:text-white transition-colors"
+                        className="flex items-center gap-2 text-[#B0B3B8] hover:text-white transition-colors"
                       >
                         <ChevronLeft className="w-4 h-4" />
                         <span>{GUIDE_SECTIONS[currentIndex - 1].title}</span>
@@ -587,7 +587,7 @@ export default function ManagerGuidePage() {
                     {currentIndex < GUIDE_SECTIONS.length - 1 ? (
                       <button
                         onClick={() => setActiveSection(GUIDE_SECTIONS[currentIndex + 1].id)}
-                        className="flex items-center gap-2 text-[#22D3EE] hover:text-white transition-colors"
+                        className="flex items-center gap-2 text-[#1877F2] hover:text-white transition-colors"
                       >
                         <span>{GUIDE_SECTIONS[currentIndex + 1].title}</span>
                         <ChevronRight className="w-4 h-4" />
