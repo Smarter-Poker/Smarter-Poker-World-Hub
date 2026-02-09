@@ -3,7 +3,7 @@
  * Pop-up showing 7-day P/L stats on first weekly visit
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const STORAGE_KEY = 'bankroll_weekly_summary_last_shown';
@@ -16,45 +16,9 @@ export default function WeeklySummary({
     onClose
 }) {
     const [isVisible, setIsVisible] = useState(false);
-    const [weeklyData, setWeeklyData] = useState(null);
 
-    useEffect(() => {
-        // Check if we should auto-show
-        if (forceOpen !== undefined) {
-            setIsVisible(forceOpen);
-            if (forceOpen) calculateWeeklyData();
-            return;
-        }
-
-        if (!userId) return;
-
-        const lastShown = localStorage.getItem(STORAGE_KEY);
-        const now = new Date();
-        const weekStart = getWeekStart(now);
-
-        if (!lastShown || new Date(lastShown) < weekStart) {
-            // Haven't shown this week yet
-            calculateWeeklyData();
-            setIsVisible(true);
-            localStorage.setItem(STORAGE_KEY, now.toISOString());
-        }
-    }, [userId, forceOpen]);
-
-    // Recalculate when entries load (they arrive async after initial mount)
-    useEffect(() => {
-        if (isVisible && entries.length > 0) {
-            calculateWeeklyData();
-        }
-    }, [entries]);
-
-    function getWeekStart(date) {
-        const d = new Date(date);
-        const day = d.getDay();
-        const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday start
-        return new Date(d.setDate(diff));
-    }
-
-    function calculateWeeklyData() {
+    // Compute weekly data reactively from entries (no stale closures)
+    const weeklyData = useMemo(() => {
         const now = new Date();
         const weekAgo = new Date();
         weekAgo.setDate(weekAgo.getDate() - 7);
@@ -100,7 +64,7 @@ export default function WeeklySummary({
         const sessionCount = weekEntries.length;
         const winRate = sessionCount > 0 ? Math.round((winCount / sessionCount) * 100) : 0;
 
-        setWeeklyData({
+        return {
             netPL,
             sessionCount,
             winRate,
@@ -111,8 +75,35 @@ export default function WeeklySummary({
                 start: weekAgo.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
                 end: now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
             }
-        });
+        };
+    }, [entries]);
+
+    function getWeekStart(date) {
+        const d = new Date(date);
+        const day = d.getDay();
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday start
+        return new Date(d.setDate(diff));
     }
+
+    useEffect(() => {
+        // Check if we should auto-show
+        if (forceOpen !== undefined) {
+            setIsVisible(forceOpen);
+            return;
+        }
+
+        if (!userId) return;
+
+        const lastShown = localStorage.getItem(STORAGE_KEY);
+        const now = new Date();
+        const weekStart = getWeekStart(now);
+
+        if (!lastShown || new Date(lastShown) < weekStart) {
+            // Haven't shown this week yet
+            setIsVisible(true);
+            localStorage.setItem(STORAGE_KEY, now.toISOString());
+        }
+    }, [userId, forceOpen]);
 
     function handleClose() {
         setIsVisible(false);
