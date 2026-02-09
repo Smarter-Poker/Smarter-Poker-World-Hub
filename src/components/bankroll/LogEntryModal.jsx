@@ -589,7 +589,7 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
             </div>
             {/* Swap Section */}
             <div style={{ ...styles.formGroup, marginTop: 8, padding: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
-              <label style={{ ...styles.label, fontSize: 13, color: '#9ca3af', marginBottom: 8 }}>💱 Swap Deductions</label>
+              <label style={{ ...styles.label, fontSize: 13, color: '#9ca3af', marginBottom: 8 }}>Swap Deductions</label>
               <div style={styles.amountRow}>
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Player Name</label>
@@ -618,7 +618,7 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
                         type="text"
                         value={formData.swap_player}
                         onChange={(e) => handleInputChange('swap_player', e.target.value)}
-                        placeholder="e.g., Mike"
+                        placeholder="Player name"
                         style={{ ...styles.input, flex: 1 }}
                       />
                       {savedSwapNames.length > 0 && (
@@ -649,7 +649,7 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
 
             {/* Staking Section */}
             <div style={{ ...styles.formGroup, marginTop: 8, padding: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
-              <label style={{ ...styles.label, fontSize: 13, color: '#9ca3af', marginBottom: 8 }}>🤝 Staking Deductions</label>
+              <label style={{ ...styles.label, fontSize: 13, color: '#9ca3af', marginBottom: 8 }}>Staking Deductions</label>
               <div style={styles.amountRow}>
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Staker Name</label>
@@ -678,7 +678,7 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
                         type="text"
                         value={formData.staker_name}
                         onChange={(e) => handleInputChange('staker_name', e.target.value)}
-                        placeholder="e.g., John"
+                        placeholder="Staker name"
                         style={{ ...styles.input, flex: 1 }}
                       />
                       {savedStakerNames.length > 0 && (
@@ -988,7 +988,7 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
         {/* Inline Expense — available on all non-expense categories */}
         {!isExpense && (
           <div style={{ ...styles.formGroup, padding: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
-            <label style={{ ...styles.label, fontSize: 13, color: '#9ca3af', marginBottom: 8 }}>💸 Session Expense (optional)</label>
+            <label style={{ ...styles.label, fontSize: 13, color: '#9ca3af', marginBottom: 8 }}>Session Expense (optional)</label>
             <div style={styles.amountRow}>
               <div style={styles.formGroup}>
                 <label style={styles.label}>Type</label>
