@@ -105,7 +105,7 @@ export default function CommanderAnnouncementsPage() {
   if (!staff) {
     return (
       <div className="cmd-page flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
       </div>
     );
   }
@@ -123,13 +123,13 @@ export default function CommanderAnnouncementsPage() {
           <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
             <button
               onClick={() => router.push('/commander/dashboard')}
-              className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
+              className="p-2 hover:bg-[#3A3B3C] rounded-lg transition-colors"
             >
-              <ArrowLeft className="w-5 h-5 text-[#64748B]" />
+              <ArrowLeft className="w-5 h-5 text-[#B0B3B8]" />
             </button>
             <div>
               <h1 className="font-bold text-white text-lg">Announcements</h1>
-              <p className="text-sm text-[#64748B]">{venue?.name}</p>
+              <p className="text-sm text-[#B0B3B8]">{venue?.name}</p>
             </div>
           </div>
         </header>
@@ -138,9 +138,9 @@ export default function CommanderAnnouncementsPage() {
         <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
           {/* Alerts */}
           {success && (
-            <div className="p-4 bg-[#10B981]/10 rounded-xl flex items-center gap-3">
-              <CheckCircle className="w-5 h-5 text-[#10B981]" />
-              <p className="text-sm text-[#10B981] font-medium">{success}</p>
+            <div className="p-4 bg-[#31A24C]/10 rounded-xl flex items-center gap-3">
+              <CheckCircle className="w-5 h-5 text-[#31A24C]" />
+              <p className="text-sm text-[#31A24C] font-medium">{success}</p>
             </div>
           )}
           {error && (
@@ -155,7 +155,7 @@ export default function CommanderAnnouncementsPage() {
 
             {/* Target Selection */}
             <div>
-              <label className="block text-sm font-medium text-[#64748B] mb-2">
+              <label className="block text-sm font-medium text-[#B0B3B8] mb-2">
                 Send to
               </label>
               <div className="flex gap-2">
@@ -170,8 +170,8 @@ export default function CommanderAnnouncementsPage() {
                     onClick={() => setSendTo(value)}
                     className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                       sendTo === value
-                        ? 'bg-[#22D3EE] text-white'
-                        : 'bg-[#0D192E] text-white hover:bg-[#132240]'
+                        ? 'bg-[#1877F2] text-white'
+                        : 'bg-[#3A3B3C] text-white hover:bg-[#3A3B3C]'
                     }`}
                   >
                     <Icon className="w-4 h-4" />
@@ -183,7 +183,7 @@ export default function CommanderAnnouncementsPage() {
 
             {/* Quick Messages */}
             <div>
-              <label className="block text-sm font-medium text-[#64748B] mb-2">
+              <label className="block text-sm font-medium text-[#B0B3B8] mb-2">
                 Quick Messages
               </label>
               <div className="flex flex-wrap gap-2">
@@ -192,7 +192,7 @@ export default function CommanderAnnouncementsPage() {
                     key={item.label}
                     type="button"
                     onClick={() => handleQuickMessage(item.message)}
-                    className="px-3 py-1.5 bg-[#0D192E] text-white text-sm rounded-full hover:bg-[#132240] transition-colors"
+                    className="px-3 py-1.5 bg-[#3A3B3C] text-white text-sm rounded-full hover:bg-[#3A3B3C] transition-colors"
                   >
                     {item.label}
                   </button>
@@ -202,7 +202,7 @@ export default function CommanderAnnouncementsPage() {
 
             {/* Message Input */}
             <div>
-              <label className="block text-sm font-medium text-[#64748B] mb-2">
+              <label className="block text-sm font-medium text-[#B0B3B8] mb-2">
                 Message
               </label>
               <textarea
@@ -212,7 +212,7 @@ export default function CommanderAnnouncementsPage() {
                 rows={3}
                 className="w-full px-3 py-2 cmd-input resize-none"
               />
-              <p className="text-xs text-[#4A5E78] mt-1">
+              <p className="text-xs text-[#3A3B3C] mt-1">
                 {message.length}/160 characters
               </p>
             </div>
@@ -240,14 +240,14 @@ export default function CommanderAnnouncementsPage() {
           {/* Recent Announcements */}
           {recentAnnouncements.length > 0 && (
             <section>
-              <h2 className="text-sm font-semibold text-[#64748B] uppercase tracking-wide mb-3">
+              <h2 className="text-sm font-semibold text-[#B0B3B8] uppercase tracking-wide mb-3">
                 Recent Announcements
               </h2>
-              <div className="cmd-panel divide-y divide-[#4A5E78]">
+              <div className="cmd-panel divide-y divide-[#3A3B3C]">
                 {recentAnnouncements.map((ann) => (
                   <div key={ann.id} className="p-4">
                     <p className="text-white">{ann.message}</p>
-                    <div className="flex items-center gap-4 mt-2 text-xs text-[#64748B]">
+                    <div className="flex items-center gap-4 mt-2 text-xs text-[#B0B3B8]">
                       <span>Sent to {ann.sent_count} players</span>
                       <span>{new Date(ann.sent_at).toLocaleTimeString()}</span>
                     </div>
