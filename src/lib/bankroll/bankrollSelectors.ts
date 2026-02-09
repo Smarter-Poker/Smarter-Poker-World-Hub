@@ -529,6 +529,31 @@ export async function createTrip(
 }
 
 /**
+ * Update an existing trip's editable fields
+ */
+export async function updateTrip(
+  userId: string,
+  tripId: string,
+  updates: Partial<Trip>
+): Promise<Trip> {
+  const { data, error } = await supabase
+    .from('bankroll_trips')
+    .update({
+      name: updates.name,
+      location_id: updates.location_id,
+      purpose: updates.purpose,
+      notes: updates.notes,
+    })
+    .eq('user_id', userId)
+    .eq('id', tripId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/**
  * Complete an active trip — sets status to 'completed' and end_date
  */
 export async function completeTrip(userId: string, tripId: string): Promise<Trip> {

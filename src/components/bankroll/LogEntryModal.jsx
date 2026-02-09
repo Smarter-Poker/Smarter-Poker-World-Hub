@@ -53,25 +53,27 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
   const [customSwapName, setCustomSwapName] = useState(false);
   const [customStakerName, setCustomStakerName] = useState(false);
 
-  // Helper: convert 24h "HH:MM" to { hour, min, period }
+  // Helper: convert 24h "HH:MM" to { time: "H:MM", period }
   const to12h = (time24) => {
-    if (!time24) return { hour: '', min: '', period: 'PM' };
+    if (!time24) return { time: '', period: 'PM' };
     const [hStr, mStr] = time24.split(':');
     let h = parseInt(hStr, 10);
     const period = h >= 12 ? 'PM' : 'AM';
     if (h === 0) h = 12;
     else if (h > 12) h -= 12;
-    return { hour: h.toString(), min: mStr || '', period };
+    return { time: `${h}:${(mStr || '00').padStart(2, '0')}`, period };
   };
 
-  // Helper: convert separate hour + min + period to 24h "HH:MM"
-  const to24h = (hour, min, period) => {
-    if (!hour || min === '') return '';
-    let h = parseInt(hour, 10);
+  // Helper: convert "H:MM" + period to 24h "HH:MM"
+  const to24h = (timeStr, period) => {
+    if (!timeStr) return '';
+    const parts = timeStr.split(':');
+    let h = parseInt(parts[0], 10);
+    const m = parts[1] || '00';
     if (isNaN(h)) return '';
     if (period === 'AM' && h === 12) h = 0;
     else if (period === 'PM' && h !== 12) h += 12;
-    return `${h.toString().padStart(2, '0')}:${(min || '00').padStart(2, '0')}`;
+    return `${h.toString().padStart(2, '0')}:${m.padStart(2, '0')}`;
   };
 
   // Form state
@@ -90,11 +92,9 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
         location_name: e.location_name || '',
         trip_id: e.trip_id || '',
         entry_date: e.entry_date || new Date().toISOString().split('T')[0],
-        start_hour: start12.hour,
-        start_min: start12.min,
+        start_time_text: start12.time,
         start_period: start12.period,
-        end_hour: end12.hour,
-        end_min: end12.min,
+        end_time_text: end12.time,
         end_period: end12.period,
         notes: e.notes || '',
         emotional_tag: e.emotional_tag || '',
@@ -122,11 +122,9 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
       location_name: '',
       trip_id: '',
       entry_date: new Date().toISOString().split('T')[0],
-      start_hour: '',
-      start_min: '',
+      start_time_text: '',
       start_period: 'PM',
-      end_hour: '',
-      end_min: '',
+      end_time_text: '',
       end_period: 'PM',
       notes: '',
       emotional_tag: '',
@@ -261,11 +259,11 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
         location_id: locationId || null,
         trip_id: formData.trip_id || null,
         entry_date: formData.entry_date,
-        start_time: formData.start_hour
-          ? `${formData.entry_date}T${to24h(formData.start_hour, formData.start_min, formData.start_period)}:00`
+        start_time: formData.start_time_text
+          ? `${formData.entry_date}T${to24h(formData.start_time_text, formData.start_period)}:00`
           : null,
-        end_time: formData.end_hour
-          ? `${formData.entry_date}T${to24h(formData.end_hour, formData.end_min, formData.end_period)}:00`
+        end_time: formData.end_time_text
+          ? `${formData.entry_date}T${to24h(formData.end_time_text, formData.end_period)}:00`
           : null,
         gross_in: parseFloat(formData.gross_in) || 0,
         gross_out: parseFloat(formData.gross_out) || 0,
@@ -897,37 +895,23 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
           <div style={styles.amountRow}>
             <div style={styles.formGroup}>
               <label style={styles.label}>Start Time</label>
-              <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: 0, alignItems: 'center' }}>
                 <input
-                  type="number"
-                  value={formData.start_hour}
+                  type="text"
+                  inputMode="numeric"
+                  value={formData.start_time_text}
                   onChange={(e) => {
-                    let v = e.target.value.replace(/\D/g, '');
-                    if (parseInt(v) > 12) v = '12';
-                    handleInputChange('start_hour', v);
+                    let v = e.target.value.replace(/[^0-9:]/g, '');
+                    if (v.length > 5) v = v.substring(0, 5);
+                    handleInputChange('start_time_text', v);
                   }}
-                  placeholder="H"
-                  style={{ ...styles.input, width: 44, textAlign: 'center', padding: '10px 4px' }}
-                  min={1} max={12} maxLength={2}
-                />
-                <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 16, fontWeight: 700 }}>:</span>
-                <input
-                  type="number"
-                  value={formData.start_min}
-                  onChange={(e) => {
-                    let v = e.target.value.replace(/\D/g, '');
-                    if (v.length > 2) v = v.substring(0, 2);
-                    if (parseInt(v) > 59) v = '59';
-                    handleInputChange('start_min', v);
-                  }}
-                  placeholder="MM"
-                  style={{ ...styles.input, width: 48, textAlign: 'center', padding: '10px 4px' }}
-                  min={0} max={59} maxLength={2}
+                  placeholder="0:00"
+                  style={{ ...styles.input, flex: 1, borderTopRightRadius: 0, borderBottomRightRadius: 0, borderRight: 'none' }}
                 />
                 <select
                   value={formData.start_period}
                   onChange={(e) => handleInputChange('start_period', e.target.value)}
-                  style={{ ...styles.input, width: 62, flex: 'none', textAlign: 'center', padding: '10px 2px' }}
+                  style={{ ...styles.input, width: 62, flex: 'none', borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
                 >
                   <option value="AM">AM</option>
                   <option value="PM">PM</option>
@@ -936,37 +920,23 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
             </div>
             <div style={styles.formGroup}>
               <label style={styles.label}>End Time</label>
-              <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: 0, alignItems: 'center' }}>
                 <input
-                  type="number"
-                  value={formData.end_hour}
+                  type="text"
+                  inputMode="numeric"
+                  value={formData.end_time_text}
                   onChange={(e) => {
-                    let v = e.target.value.replace(/\D/g, '');
-                    if (parseInt(v) > 12) v = '12';
-                    handleInputChange('end_hour', v);
+                    let v = e.target.value.replace(/[^0-9:]/g, '');
+                    if (v.length > 5) v = v.substring(0, 5);
+                    handleInputChange('end_time_text', v);
                   }}
-                  placeholder="H"
-                  style={{ ...styles.input, width: 44, textAlign: 'center', padding: '10px 4px' }}
-                  min={1} max={12} maxLength={2}
-                />
-                <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 16, fontWeight: 700 }}>:</span>
-                <input
-                  type="number"
-                  value={formData.end_min}
-                  onChange={(e) => {
-                    let v = e.target.value.replace(/\D/g, '');
-                    if (v.length > 2) v = v.substring(0, 2);
-                    if (parseInt(v) > 59) v = '59';
-                    handleInputChange('end_min', v);
-                  }}
-                  placeholder="MM"
-                  style={{ ...styles.input, width: 48, textAlign: 'center', padding: '10px 4px' }}
-                  min={0} max={59} maxLength={2}
+                  placeholder="0:00"
+                  style={{ ...styles.input, flex: 1, borderTopRightRadius: 0, borderBottomRightRadius: 0, borderRight: 'none' }}
                 />
                 <select
                   value={formData.end_period}
                   onChange={(e) => handleInputChange('end_period', e.target.value)}
-                  style={{ ...styles.input, width: 62, flex: 'none', textAlign: 'center', padding: '10px 2px' }}
+                  style={{ ...styles.input, width: 62, flex: 'none', borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
                 >
                   <option value="AM">AM</option>
                   <option value="PM">PM</option>

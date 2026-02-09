@@ -11,6 +11,7 @@ import {
     getActiveTrip,
     fetchTrips,
     createTrip,
+    updateTrip,
     completeTrip,
     deleteTrip,
     getTripReport,
@@ -38,6 +39,8 @@ export default function TripTracker({ userId, onOpenLog }) {
     const [selectedTripReport, setSelectedTripReport] = useState(null);
     const [confirmComplete, setConfirmComplete] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState(false);
+    const [editMode, setEditMode] = useState(false);
+    const [editForm, setEditForm] = useState({ name: '', location_id: null, purpose: '', notes: '' });
 
     // Create trip form state
     const [newTrip, setNewTrip] = useState({
@@ -119,6 +122,33 @@ export default function TripTracker({ userId, onOpenLog }) {
         }
     };
 
+    const startEditing = () => {
+        if (!activeTrip) return;
+        setEditForm({
+            name: activeTrip.name || '',
+            location_id: activeTrip.location_id || null,
+            purpose: activeTrip.purpose || '',
+            notes: activeTrip.notes || '',
+        });
+        setEditMode(true);
+    };
+
+    const handleSaveEdit = async () => {
+        if (!activeTrip) return;
+        if (!editForm.name.trim()) {
+            toast.error('Trip name is required');
+            return;
+        }
+        try {
+            await updateTrip(userId, activeTrip.id, editForm);
+            toast.success('Trip updated! ✏️');
+            setEditMode(false);
+            await loadData();
+        } catch (err) {
+            toast.error(err.message || 'Failed to update trip');
+        }
+    };
+
     const handleViewReport = async (tripId) => {
         try {
             const report = await getTripReport(userId, tripId);
@@ -150,41 +180,90 @@ export default function TripTracker({ userId, onOpenLog }) {
                     animate={{ opacity: 1, y: 0 }}
                     style={styles.activeTripCard}
                 >
+                    {/* Delete X — upper right corner */}
+                    <button
+                        onClick={() => setConfirmDelete(true)}
+                        style={styles.deleteX}
+                        title="Delete trip"
+                    >✕</button>
+
                     <div style={styles.activeTripHeader}>
                         <div style={styles.activeLed} />
                         <span style={styles.activeLabel}>LIVE TRIP</span>
                     </div>
-                    <h2 style={styles.activeTripName}>{activeTrip.name}</h2>
-                    <p style={styles.activeTripMeta}>
-                        {activeTrip.location_name && `📍 ${activeTrip.location_name} · `}
-                        Started {new Date(activeTrip.start_date).toLocaleDateString()} · Day {daysSinceStart}
-                    </p>
+
+                    {/* Trip Info (view vs edit) */}
+                    {!editMode ? (
+                        <>
+                            <h2 style={styles.activeTripName}>{activeTrip.name}</h2>
+                            <p style={styles.activeTripMeta}>
+                                {activeTrip.location_name && `📍 ${activeTrip.location_name} · `}
+                                Started {new Date(activeTrip.start_date).toLocaleDateString()} · Day {daysSinceStart}
+                            </p>
+                        </>
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, margin: '8px 0 12px' }}>
+                            <input
+                                type="text"
+                                value={editForm.name}
+                                onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                                placeholder="Trip Name"
+                                style={styles.formInput}
+                                autoFocus
+                            />
+                            <select
+                                value={editForm.location_id || ''}
+                                onChange={e => setEditForm({ ...editForm, location_id: e.target.value || null })}
+                                style={styles.formInput}
+                            >
+                                <option value="">— Select Location —</option>
+                                {locations.map(loc => (
+                                    <option key={loc.id} value={loc.id}>{loc.name}</option>
+                                ))}
+                            </select>
+                            <input
+                                type="text"
+                                value={editForm.purpose}
+                                onChange={e => setEditForm({ ...editForm, purpose: e.target.value })}
+                                placeholder="Purpose (e.g. WSOP Series)"
+                                style={styles.formInput}
+                            />
+                            <textarea
+                                value={editForm.notes}
+                                onChange={e => setEditForm({ ...editForm, notes: e.target.value })}
+                                placeholder="Notes"
+                                style={{ ...styles.formInput, minHeight: 60, resize: 'vertical' }}
+                            />
+                        </div>
+                    )}
 
                     {/* Running Totals */}
-                    <div style={styles.runningStats}>
-                        <div style={styles.runningStat}>
-                            <span style={styles.runningStatLabel}>Net P/L</span>
-                            <span style={{
-                                ...styles.runningStatValue,
-                                color: (activeTrip.totalNet || 0) >= 0 ? '#10b981' : '#ef4444',
-                            }}>
-                                {formatCurrency(activeTrip.totalNet || 0)}
-                            </span>
+                    {!editMode && (
+                        <div style={styles.runningStats}>
+                            <div style={styles.runningStat}>
+                                <span style={styles.runningStatLabel}>Net P/L</span>
+                                <span style={{
+                                    ...styles.runningStatValue,
+                                    color: (activeTrip.totalNet || 0) >= 0 ? '#10b981' : '#ef4444',
+                                }}>
+                                    {formatCurrency(activeTrip.totalNet || 0)}
+                                </span>
+                            </div>
+                            <div style={styles.runningStat}>
+                                <span style={styles.runningStatLabel}>Sessions</span>
+                                <span style={styles.runningStatValue}>{activeTrip.entryCount || 0}</span>
+                            </div>
+                            <div style={styles.runningStat}>
+                                <span style={styles.runningStatLabel}>Expenses</span>
+                                <span style={{ ...styles.runningStatValue, color: '#ef4444' }}>
+                                    {formatCurrency(activeTrip.totalExpenses || 0)}
+                                </span>
+                            </div>
                         </div>
-                        <div style={styles.runningStat}>
-                            <span style={styles.runningStatLabel}>Sessions</span>
-                            <span style={styles.runningStatValue}>{activeTrip.entryCount || 0}</span>
-                        </div>
-                        <div style={styles.runningStat}>
-                            <span style={styles.runningStatLabel}>Expenses</span>
-                            <span style={{ ...styles.runningStatValue, color: '#ef4444' }}>
-                                {formatCurrency(activeTrip.totalExpenses || 0)}
-                            </span>
-                        </div>
-                    </div>
+                    )}
 
                     {/* Category Breakdown */}
-                    {activeTrip.categoryBreakdown && Object.keys(activeTrip.categoryBreakdown).length > 0 && (
+                    {!editMode && activeTrip.categoryBreakdown && Object.keys(activeTrip.categoryBreakdown).length > 0 && (
                         <div style={styles.breakdownRow}>
                             {Object.entries(activeTrip.categoryBreakdown).map(([cat, data]) => (
                                 <span key={cat} style={styles.breakdownTag}>
@@ -196,35 +275,47 @@ export default function TripTracker({ userId, onOpenLog }) {
 
                     {/* Actions */}
                     <div style={styles.activeTripActions}>
-                        <button
-                            onClick={() => onOpenLog && onOpenLog()}
-                            style={styles.logEntryBtn}
-                        >
-                            + Log Entry to Trip
-                        </button>
-                        {!confirmComplete && !confirmDelete ? (
+                        {editMode ? (
                             <>
+                                <button onClick={handleSaveEdit} style={styles.completeBtn}>Save Changes</button>
+                                <button onClick={() => setEditMode(false)} style={styles.cancelEditBtn}>Cancel</button>
+                            </>
+                        ) : !confirmComplete ? (
+                            <>
+                                <button onClick={startEditing} style={styles.editBtn}>✏ Edit Trip</button>
                                 <button onClick={() => setConfirmComplete(true)} style={styles.completeBtn}>
                                     ✓ Complete Trip
                                 </button>
-                                <button onClick={() => setConfirmDelete(true)} style={styles.deleteBtn}>
-                                    🗑
-                                </button>
                             </>
-                        ) : confirmComplete ? (
+                        ) : (
                             <div style={styles.confirmRow}>
                                 <span style={styles.confirmText}>Finalize this trip?</span>
                                 <button onClick={handleCompleteTrip} style={styles.confirmYes}>Yes, Complete</button>
                                 <button onClick={() => setConfirmComplete(false)} style={styles.confirmNo}>Cancel</button>
                             </div>
-                        ) : (
-                            <div style={styles.confirmRow}>
-                                <span style={styles.confirmText}>Delete trip & unlink entries?</span>
-                                <button onClick={handleDeleteTrip} style={{ ...styles.confirmYes, background: '#ef4444' }}>Yes, Delete</button>
-                                <button onClick={() => setConfirmDelete(false)} style={styles.confirmNo}>Cancel</button>
-                            </div>
                         )}
                     </div>
+
+                    {/* Delete Confirmation Overlay */}
+                    <AnimatePresence>
+                        {confirmDelete && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                style={styles.deleteOverlay}
+                            >
+                                <div style={styles.deletePopup}>
+                                    <p style={styles.deletePopupText}>Are you sure you want to delete this trip?</p>
+                                    <p style={styles.deletePopupSub}>All entries will be unlinked from this trip.</p>
+                                    <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+                                        <button onClick={handleDeleteTrip} style={styles.deleteConfirmBtn}>Yes, Delete</button>
+                                        <button onClick={() => setConfirmDelete(false)} style={styles.deleteCancelBtn}>Cancel</button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </motion.div>
             )}
 
@@ -394,6 +485,7 @@ const styles = {
         border: '1px solid rgba(16, 185, 129, 0.3)',
         borderRadius: 12,
         padding: 20,
+        position: 'relative',
     },
     activeTripHeader: {
         display: 'flex',
@@ -499,12 +591,82 @@ const styles = {
         fontWeight: 600,
         cursor: 'pointer',
     },
-    deleteBtn: {
-        background: 'rgba(239, 68, 68, 0.1)',
-        color: '#ef4444',
-        border: '1px solid rgba(239, 68, 68, 0.2)',
+    editBtn: {
+        background: 'rgba(59, 130, 246, 0.15)',
+        color: '#3b82f6',
+        border: '1px solid rgba(59, 130, 246, 0.3)',
         borderRadius: 8,
-        padding: '10px 14px',
+        padding: '10px 18px',
+        fontSize: 14,
+        fontWeight: 600,
+        cursor: 'pointer',
+    },
+    cancelEditBtn: {
+        background: 'transparent',
+        color: '#94a3b8',
+        border: '1px solid rgba(255,255,255,0.15)',
+        borderRadius: 8,
+        padding: '10px 18px',
+        fontSize: 14,
+        cursor: 'pointer',
+    },
+    deleteX: {
+        position: 'absolute',
+        top: 10,
+        right: 10,
+        width: 28,
+        height: 28,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'rgba(255,255,255,0.05)',
+        border: '1px solid rgba(255,255,255,0.1)',
+        borderRadius: 6,
+        color: '#666',
+        fontSize: 14,
+        cursor: 'pointer',
+    },
+    deleteOverlay: {
+        position: 'absolute',
+        inset: 0,
+        background: 'rgba(0,0,0,0.8)',
+        borderRadius: 12,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 10,
+    },
+    deletePopup: {
+        textAlign: 'center',
+        padding: 24,
+    },
+    deletePopupText: {
+        fontSize: 16,
+        fontWeight: 600,
+        color: '#fff',
+        margin: '0 0 6px',
+    },
+    deletePopupSub: {
+        fontSize: 12,
+        color: '#94a3b8',
+        margin: '0 0 20px',
+    },
+    deleteConfirmBtn: {
+        background: '#ef4444',
+        color: '#fff',
+        border: 'none',
+        borderRadius: 8,
+        padding: '10px 20px',
+        fontSize: 14,
+        fontWeight: 600,
+        cursor: 'pointer',
+    },
+    deleteCancelBtn: {
+        background: 'transparent',
+        color: '#94a3b8',
+        border: '1px solid rgba(255,255,255,0.15)',
+        borderRadius: 8,
+        padding: '10px 20px',
         fontSize: 14,
         cursor: 'pointer',
     },
