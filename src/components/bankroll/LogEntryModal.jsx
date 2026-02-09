@@ -40,10 +40,10 @@ const SPORTS = ['nfl', 'nba', 'mlb', 'nhl', 'soccer', 'mma', 'golf', 'tennis', '
 const BET_TYPES = ['moneyline', 'spread', 'over_under', 'parlay', 'prop', 'live'];
 const EMOTIONAL_TAGS = ['neutral', 'confident', 'tilted', 'exhausted', 'rushed', 'revenge'];
 
-export default function LogEntryModal({ userId, locations, trips, editEntry, onClose, onSubmit }) {
+export default function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, onClose, onSubmit }) {
   const isEditMode = !!editEntry;
-  const [step, setStep] = useState(isEditMode ? 'details' : 'category');
-  const [category, setCategory] = useState(isEditMode ? editEntry.category : null);
+  const [step, setStep] = useState(isEditMode || defaultCategory ? 'details' : 'category');
+  const [category, setCategory] = useState(isEditMode ? editEntry.category : (defaultCategory || null));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [ruleWarnings, setRuleWarnings] = useState([]);
   // showAdvanced removed - always show all fields

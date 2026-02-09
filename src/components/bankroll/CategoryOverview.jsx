@@ -44,7 +44,7 @@ export default function CategoryOverview({ userId, categoryFilter, onBack }) {
 
             // Load locations & trips for modal
             const [{ data: locs }, { data: trps }] = await Promise.all([
-                supabase.from('user_locations').select('*').eq('user_id', userId),
+                supabase.from('bankroll_locations').select('*').eq('user_id', userId),
                 supabase.from('bankroll_trips').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
             ]);
             setLocations(locs || []);
@@ -181,7 +181,8 @@ export default function CategoryOverview({ userId, categoryFilter, onBack }) {
                     userId={userId}
                     locations={locations}
                     trips={trips}
-                    editEntry={editEntry || { category: categoryFilter }}
+                    editEntry={editEntry}
+                    defaultCategory={categoryFilter}
                     onClose={() => { setShowLogModal(false); setEditEntry(null); }}
                     onSubmit={handleLogSubmit}
                 />
