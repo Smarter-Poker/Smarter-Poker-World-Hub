@@ -38,7 +38,7 @@ function StreamCard({ stream, onStart, onStop, onConfigure }) {
   return (
     <div className="cmd-panel overflow-hidden">
       {/* Preview Area */}
-      <div className={`h-40 flex items-center justify-center ${isLive ? 'bg-[#1F2937]' : 'bg-[#0D192E]'}`}>
+      <div className={`h-40 flex items-center justify-center ${isLive ? 'bg-[#1F2937]' : 'bg-[#3A3B3C]'}`}>
         {isLive ? (
           <div className="text-center">
             <div className="flex items-center justify-center gap-2 text-[#EF4444] mb-2">
@@ -48,7 +48,7 @@ function StreamCard({ stream, onStart, onStop, onConfigure }) {
             <p className="text-white text-sm">{stream.viewer_count || 0} viewers</p>
           </div>
         ) : (
-          <Video className="w-12 h-12 text-[#4A5E78]" />
+          <Video className="w-12 h-12 text-[#3A3B3C]" />
         )}
       </div>
 
@@ -56,7 +56,7 @@ function StreamCard({ stream, onStart, onStop, onConfigure }) {
         <div className="flex items-center justify-between mb-3">
           <div>
             <h3 className="font-semibold text-white">Table {stream.table_number}</h3>
-            <p className="text-sm text-[#64748B]">{stream.game_info || 'No game'}</p>
+            <p className="text-sm text-[#B0B3B8]">{stream.game_info || 'No game'}</p>
           </div>
           {isLive && (
             <span className="px-2 py-1 bg-[#EF4444]/10 text-[#EF4444] text-xs font-medium rounded flex items-center gap-1">
@@ -84,7 +84,7 @@ function StreamCard({ stream, onStart, onStop, onConfigure }) {
               );
             })}
             {stream.delay_minutes > 0 && (
-              <span className="text-xs text-[#64748B] flex items-center gap-1">
+              <span className="text-xs text-[#B0B3B8] flex items-center gap-1">
                 <Clock className="w-3 h-3" />
                 {stream.delay_minutes}m delay
               </span>
@@ -94,7 +94,7 @@ function StreamCard({ stream, onStart, onStop, onConfigure }) {
 
         {/* Duration */}
         {isLive && stream.started_at && (
-          <p className="text-sm text-[#64748B] mb-3">
+          <p className="text-sm text-[#B0B3B8] mb-3">
             Streaming for {Math.round((Date.now() - new Date(stream.started_at).getTime()) / 60000)} minutes
           </p>
         )}
@@ -112,7 +112,7 @@ function StreamCard({ stream, onStart, onStop, onConfigure }) {
           ) : (
             <button
               onClick={() => onStart(stream.table_id)}
-              className="flex-1 py-2 bg-[#10B981] text-white text-sm font-medium rounded-lg hover:bg-[#059669] transition-colors flex items-center justify-center gap-1"
+              className="flex-1 py-2 bg-[#31A24C] text-white text-sm font-medium rounded-lg hover:bg-[#059669] transition-colors flex items-center justify-center gap-1"
             >
               <Play className="w-4 h-4" />
               Start Stream
@@ -164,9 +164,9 @@ function ConfigureModal({ stream, onSave, onClose }) {
           <h2 className="text-xl font-bold text-white">Stream Settings</h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
+            className="p-2 hover:bg-[#3A3B3C] rounded-lg transition-colors"
           >
-            <X className="w-5 h-5 text-[#64748B]" />
+            <X className="w-5 h-5 text-[#B0B3B8]" />
           </button>
         </div>
 
@@ -187,15 +187,15 @@ function ConfigureModal({ stream, onSave, onClose }) {
                     className={`flex-1 py-3 rounded-lg border flex flex-col items-center gap-1 transition-colors ${
                       isSelected
                         ? 'border-2'
-                        : 'border-[#4A5E78]'
+                        : 'border-[#3A3B3C]'
                     }`}
                     style={{
                       borderColor: isSelected ? platform.color : undefined,
                       backgroundColor: isSelected ? `${platform.color}10` : undefined
                     }}
                   >
-                    <Icon className="w-5 h-5" style={{ color: isSelected ? platform.color : '#64748B' }} />
-                    <span className="text-xs" style={{ color: isSelected ? platform.color : '#64748B' }}>
+                    <Icon className="w-5 h-5" style={{ color: isSelected ? platform.color : '#B0B3B8' }} />
+                    <span className="text-xs" style={{ color: isSelected ? platform.color : '#B0B3B8' }}>
                       {platform.label}
                     </span>
                   </button>
@@ -216,8 +216,8 @@ function ConfigureModal({ stream, onSave, onClose }) {
                   onClick={() => setConfig(prev => ({ ...prev, delay_minutes: mins }))}
                   className={`flex-1 py-2 rounded-lg border text-sm font-medium transition-colors ${
                     config.delay_minutes === mins
-                      ? 'border-[#22D3EE] bg-[#22D3EE]/5 text-[#22D3EE]'
-                      : 'border-[#4A5E78] text-[#64748B]'
+                      ? 'border-[#1877F2] bg-[#1877F2]/5 text-[#1877F2]'
+                      : 'border-[#3A3B3C] text-[#B0B3B8]'
                   }`}
                 >
                   {mins}m
@@ -237,7 +237,7 @@ function ConfigureModal({ stream, onSave, onClose }) {
                 { key: 'showPlayerNames', label: 'Show Player Names' },
                 { key: 'showChipCounts', label: 'Show Chip Counts' }
               ].map(option => (
-                <label key={option.key} className="flex items-center justify-between p-3 bg-[#0B1426] rounded-lg">
+                <label key={option.key} className="flex items-center justify-between p-3 bg-[#18191A] rounded-lg">
                   <span className="text-white">{option.label}</span>
                   <input
                     type="checkbox"
@@ -249,7 +249,7 @@ function ConfigureModal({ stream, onSave, onClose }) {
                         [option.key]: e.target.checked
                       }
                     }))}
-                    className="w-5 h-5 rounded border-[#4A5E78] text-[#22D3EE] focus:ring-[#22D3EE]"
+                    className="w-5 h-5 rounded border-[#3A3B3C] text-[#1877F2] focus:ring-[#1877F2]"
                   />
                 </label>
               ))}
@@ -374,7 +374,7 @@ export default function StreamingPage() {
   if (!staff) {
     return (
       <div className="cmd-page flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
       </div>
     );
   }
@@ -393,16 +393,16 @@ export default function StreamingPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push('/commander/dashboard')}
-                className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
+                className="p-2 hover:bg-[#3A3B3C] rounded-lg transition-colors"
               >
-                <ChevronLeft className="w-5 h-5 text-[#64748B]" />
+                <ChevronLeft className="w-5 h-5 text-[#B0B3B8]" />
               </button>
               <div>
                 <h1 className="text-xl font-bold text-white flex items-center gap-2">
-                  <Video className="w-6 h-6 text-[#22D3EE]" />
+                  <Video className="w-6 h-6 text-[#1877F2]" />
                   Streaming
                 </h1>
-                <p className="text-sm text-[#64748B]">
+                <p className="text-sm text-[#B0B3B8]">
                   {liveStreams.length} table{liveStreams.length !== 1 ? 's' : ''} live
                 </p>
               </div>
@@ -413,7 +413,7 @@ export default function StreamingPage() {
         <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
           {loading ? (
             <div className="flex justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
+              <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
             </div>
           ) : (
             <>
@@ -458,8 +458,8 @@ export default function StreamingPage() {
 
               {streams.length === 0 && (
                 <div className="cmd-panel p-8 text-center">
-                  <Video className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
-                  <p className="text-[#64748B]">No tables configured for streaming</p>
+                  <Video className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
+                  <p className="text-[#B0B3B8]">No tables configured for streaming</p>
                 </div>
               )}
             </>
