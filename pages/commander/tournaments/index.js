@@ -13,14 +13,14 @@ import {
 import CreateTournamentModal from '../../../src/components/commander/modals/CreateTournamentModal';
 
 const STATUS_CONFIG = {
-  scheduled: { bg: 'bg-[#64748B]/10', text: 'text-[#64748B]', label: 'Scheduled' },
-  registration: { bg: 'bg-[#22D3EE]/10', text: 'text-[#22D3EE]', label: 'Registration' },
-  registering: { bg: 'bg-[#22D3EE]/10', text: 'text-[#22D3EE]', label: 'Registration' },
-  running: { bg: 'bg-[#10B981]/10', text: 'text-[#10B981]', label: 'Running' },
+  scheduled: { bg: 'bg-[#B0B3B8]/10', text: 'text-[#B0B3B8]', label: 'Scheduled' },
+  registration: { bg: 'bg-[#1877F2]/10', text: 'text-[#1877F2]', label: 'Registration' },
+  registering: { bg: 'bg-[#1877F2]/10', text: 'text-[#1877F2]', label: 'Registration' },
+  running: { bg: 'bg-[#31A24C]/10', text: 'text-[#31A24C]', label: 'Running' },
   paused: { bg: 'bg-[#F59E0B]/10', text: 'text-[#F59E0B]', label: 'Paused' },
   break: { bg: 'bg-[#F59E0B]/10', text: 'text-[#F59E0B]', label: 'On Break' },
-  final_table: { bg: 'bg-[#8B5CF6]/10', text: 'text-[#8B5CF6]', label: 'Final Table' },
-  completed: { bg: 'bg-[#64748B]/10', text: 'text-[#64748B]', label: 'Completed' },
+  final_table: { bg: 'bg-[#1877F2]/10', text: 'text-[#1877F2]', label: 'Final Table' },
+  completed: { bg: 'bg-[#B0B3B8]/10', text: 'text-[#B0B3B8]', label: 'Completed' },
   cancelled: { bg: 'bg-[#EF4444]/10', text: 'text-[#EF4444]', label: 'Cancelled' }
 };
 
@@ -154,7 +154,7 @@ export default function CommanderTournamentsPage() {
   if (!staff || loading) {
     return (
       <div className="cmd-page flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
       </div>
     );
   }
@@ -173,13 +173,13 @@ export default function CommanderTournamentsPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push('/commander/dashboard')}
-                className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
+                className="p-2 hover:bg-[#3A3B3C] rounded-lg transition-colors"
               >
-                <ArrowLeft className="w-5 h-5 text-[#64748B]" />
+                <ArrowLeft className="w-5 h-5 text-[#B0B3B8]" />
               </button>
               <div>
                 <h1 className="font-bold text-white text-lg">Tournaments</h1>
-                <p className="text-sm text-[#64748B]">{venue?.name}</p>
+                <p className="text-sm text-[#B0B3B8]">{venue?.name}</p>
               </div>
             </div>
 
@@ -187,10 +187,10 @@ export default function CommanderTournamentsPage() {
               <button
                 onClick={() => fetchTournaments(true)}
                 disabled={refreshing}
-                className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
+                className="p-2 hover:bg-[#3A3B3C] rounded-lg transition-colors"
                 title="Refresh"
               >
-                <RefreshCw className={`w-5 h-5 text-[#64748B] ${refreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-5 h-5 text-[#B0B3B8] ${refreshing ? 'animate-spin' : ''}`} />
               </button>
               <button
                 onClick={() => setShowCreateModal(true)}
@@ -208,33 +208,33 @@ export default function CommanderTournamentsPage() {
           {/* Stats Row */}
           <div className="grid grid-cols-3 gap-4">
             <div className="cmd-panel p-4 text-center">
-              <Play className="w-5 h-5 text-[#10B981] mx-auto mb-1" />
+              <Play className="w-5 h-5 text-[#31A24C] mx-auto mb-1" />
               <p className="text-2xl font-bold text-white">{activeTournaments.length}</p>
-              <p className="text-xs text-[#64748B]">Active</p>
+              <p className="text-xs text-[#B0B3B8]">Active</p>
             </div>
             <div className="cmd-panel p-4 text-center">
-              <Calendar className="w-5 h-5 text-[#22D3EE] mx-auto mb-1" />
+              <Calendar className="w-5 h-5 text-[#1877F2] mx-auto mb-1" />
               <p className="text-2xl font-bold text-white">{upcomingTournaments.length}</p>
-              <p className="text-xs text-[#64748B]">Upcoming</p>
+              <p className="text-xs text-[#B0B3B8]">Upcoming</p>
             </div>
             <div className="cmd-panel p-4 text-center">
               <Trophy className="w-5 h-5 text-[#F59E0B] mx-auto mb-1" />
               <p className="text-2xl font-bold text-white">{completedTournaments.length}</p>
-              <p className="text-xs text-[#64748B]">Completed</p>
+              <p className="text-xs text-[#B0B3B8]">Completed</p>
             </div>
           </div>
 
           {/* Filter Bar */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1">
-            <Filter className="w-4 h-4 text-[#64748B] flex-shrink-0" />
+            <Filter className="w-4 h-4 text-[#B0B3B8] flex-shrink-0" />
             {FILTER_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
                 onClick={() => setFilter(opt.value)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                   filter === opt.value
-                    ? 'bg-[#22D3EE] text-white'
-                    : 'bg-[#0D192E] text-[#64748B] hover:bg-[#132240]'
+                    ? 'bg-[#1877F2] text-white'
+                    : 'bg-[#3A3B3C] text-[#B0B3B8] hover:bg-[#3A3B3C]'
                 }`}
               >
                 {opt.label}
@@ -245,11 +245,11 @@ export default function CommanderTournamentsPage() {
           {/* Tournament List */}
           {displayTournaments.length === 0 ? (
             <div className="cmd-panel p-8 text-center">
-              <Trophy className="w-12 h-12 text-[#4A5E78] mx-auto mb-4" />
+              <Trophy className="w-12 h-12 text-[#3A3B3C] mx-auto mb-4" />
               <h2 className="text-lg font-semibold text-white mb-2">
                 {filter === 'all' ? 'No Tournaments Yet' : `No ${filter} tournaments`}
               </h2>
-              <p className="text-[#64748B] mb-4">
+              <p className="text-[#B0B3B8] mb-4">
                 {filter === 'all'
                   ? 'Create your first tournament to get started'
                   : 'Try a different filter or create a new tournament'
@@ -274,8 +274,8 @@ export default function CommanderTournamentsPage() {
                   <button
                     key={tournament.id}
                     onClick={() => openTournament(tournament)}
-                    className={`w-full cmd-panel p-4 text-left transition-all hover:border-[#22D3EE]/30 ${
-                      isActive ? 'border-l-4 border-l-[#10B981]' : ''
+                    className={`w-full cmd-panel p-4 text-left transition-all hover:border-[#1877F2]/30 ${
+                      isActive ? 'border-l-4 border-l-[#31A24C]' : ''
                     }`}
                   >
                     <div className="flex items-start justify-between mb-3">
@@ -288,70 +288,70 @@ export default function CommanderTournamentsPage() {
                             {status.label}
                           </span>
                         </div>
-                        <p className="text-sm text-[#64748B]">
+                        <p className="text-sm text-[#B0B3B8]">
                           {tournament.tournament_type ? tournament.tournament_type.charAt(0).toUpperCase() + tournament.tournament_type.slice(1) : 'NLH'}
                           {tournament.buyin_amount ? ` | $${tournament.buyin_amount}` : ''}
                           {tournament.buyin_fee ? `+$${tournament.buyin_fee}` : ''}
                         </p>
                       </div>
-                      <ChevronRight className="w-5 h-5 text-[#4A5E78] flex-shrink-0 mt-1" />
+                      <ChevronRight className="w-5 h-5 text-[#3A3B3C] flex-shrink-0 mt-1" />
                     </div>
 
                     <div className="grid grid-cols-4 gap-3">
                       <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-[#64748B]" />
+                        <Calendar className="w-4 h-4 text-[#B0B3B8]" />
                         <div>
                           <p className="text-xs text-white">
                             {isToday(tournament.scheduled_start) ? 'Today' : formatDate(tournament.scheduled_start)}
                           </p>
-                          <p className="text-xs text-[#64748B]">
+                          <p className="text-xs text-[#B0B3B8]">
                             {formatTime(tournament.scheduled_start)}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4 text-[#64748B]" />
+                        <Users className="w-4 h-4 text-[#B0B3B8]" />
                         <div>
                           <p className="text-xs text-white">
                             {tournament.entries_count || 0}
                             {tournament.max_entries ? `/${tournament.max_entries}` : ''}
                           </p>
-                          <p className="text-xs text-[#64748B]">Entries</p>
+                          <p className="text-xs text-[#B0B3B8]">Entries</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <DollarSign className="w-4 h-4 text-[#64748B]" />
+                        <DollarSign className="w-4 h-4 text-[#B0B3B8]" />
                         <div>
-                          <p className="text-xs text-[#10B981]">
+                          <p className="text-xs text-[#31A24C]">
                             ${totalPrizePool.toLocaleString()}
                           </p>
-                          <p className="text-xs text-[#64748B]">Prize Pool</p>
+                          <p className="text-xs text-[#B0B3B8]">Prize Pool</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-[#64748B]" />
+                        <Clock className="w-4 h-4 text-[#B0B3B8]" />
                         <div>
                           <p className="text-xs text-white">
                             {tournament.starting_chips ? `${(tournament.starting_chips / 1000)}K` : '--'}
                           </p>
-                          <p className="text-xs text-[#64748B]">Chips</p>
+                          <p className="text-xs text-[#B0B3B8]">Chips</p>
                         </div>
                       </div>
                     </div>
 
                     {/* Active tournament extra info */}
                     {isActive && (
-                      <div className="mt-3 pt-3 border-t border-[#4A5E78] flex items-center justify-between">
+                      <div className="mt-3 pt-3 border-t border-[#3A3B3C] flex items-center justify-between">
                         <div className="flex items-center gap-4 text-xs">
-                          <span className="text-[#64748B]">
+                          <span className="text-[#B0B3B8]">
                             Level {tournament.current_level || 1}
                           </span>
-                          <span className="text-[#64748B]">
+                          <span className="text-[#B0B3B8]">
                             {tournament.players_remaining || tournament.entries_count || 0} remaining
                           </span>
                         </div>
-                        <span className="text-xs font-medium text-[#10B981] flex items-center gap-1">
-                          <span className="w-2 h-2 bg-[#10B981] rounded-full animate-pulse" />
+                        <span className="text-xs font-medium text-[#31A24C] flex items-center gap-1">
+                          <span className="w-2 h-2 bg-[#31A24C] rounded-full animate-pulse" />
                           LIVE
                         </span>
                       </div>
