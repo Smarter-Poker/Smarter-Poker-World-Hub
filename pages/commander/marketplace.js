@@ -82,29 +82,29 @@ function RentEquipmentModal({ isOpen, onClose, equipment, venueId }) {
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
       <div className="cmd-panel cmd-corner-lights w-full max-w-md">
-        <div className="flex items-center justify-between p-4 border-b border-[#4A5E78]">
+        <div className="flex items-center justify-between p-4 border-b border-[#3A3B3C]">
           <h3 className="text-lg font-semibold text-white">Request Equipment Rental</h3>
-          <button onClick={onClose} className="p-2 hover:bg-[#132240] rounded-lg">
-            <X className="w-5 h-5 text-[#64748B]" />
+          <button onClick={onClose} className="p-2 hover:bg-[#3A3B3C] rounded-lg">
+            <X className="w-5 h-5 text-[#B0B3B8]" />
           </button>
         </div>
 
         {success ? (
           <div className="p-8 text-center">
-            <CheckCircle className="w-12 h-12 text-[#10B981] mx-auto mb-3" />
+            <CheckCircle className="w-12 h-12 text-[#31A24C] mx-auto mb-3" />
             <p className="font-semibold text-white">Rental Request Sent</p>
-            <p className="text-sm text-[#64748B]">The equipment owner will be notified</p>
+            <p className="text-sm text-[#B0B3B8]">The equipment owner will be notified</p>
           </div>
         ) : (
           <>
             <div className="p-4 space-y-4">
-              <div className="flex items-center gap-3 p-3 bg-[#0D192E] rounded-lg">
-                <div className="w-12 h-12 bg-[#10B981]/10 rounded-lg flex items-center justify-center">
-                  <Package className="w-6 h-6 text-[#10B981]" />
+              <div className="flex items-center gap-3 p-3 bg-[#3A3B3C] rounded-lg">
+                <div className="w-12 h-12 bg-[#31A24C]/10 rounded-lg flex items-center justify-center">
+                  <Package className="w-6 h-6 text-[#31A24C]" />
                 </div>
                 <div>
                   <p className="font-semibold text-white">{equipment.name}</p>
-                  <p className="text-sm text-[#64748B]">${equipment.daily_rate}/day</p>
+                  <p className="text-sm text-[#B0B3B8]">${equipment.daily_rate}/day</p>
                 </div>
               </div>
 
@@ -130,13 +130,13 @@ function RentEquipmentModal({ isOpen, onClose, equipment, venueId }) {
                 />
               </div>
 
-              <div className="p-3 bg-[#0B1426] rounded-lg">
+              <div className="p-3 bg-[#18191A] rounded-lg">
                 <div className="flex justify-between text-sm">
-                  <span className="text-[#64748B]">Duration</span>
+                  <span className="text-[#B0B3B8]">Duration</span>
                   <span className="font-medium text-white">{days} day{days > 1 ? 's' : ''}</span>
                 </div>
                 <div className="flex justify-between text-sm mt-1">
-                  <span className="text-[#64748B]">Estimated Cost</span>
+                  <span className="text-[#B0B3B8]">Estimated Cost</span>
                   <span className="font-semibold text-white">
                     ${(equipment.daily_rate || 50) * days}
                   </span>
@@ -155,11 +155,11 @@ function RentEquipmentModal({ isOpen, onClose, equipment, venueId }) {
               </div>
             </div>
 
-            <div className="p-4 border-t border-[#4A5E78]">
+            <div className="p-4 border-t border-[#3A3B3C]">
               <button
                 onClick={handleSubmit}
                 disabled={!formData.start_date || !formData.end_date || submitting}
-                className="w-full h-12 bg-[#10B981] text-white font-semibold rounded-lg hover:bg-[#059669] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full h-12 bg-[#31A24C] text-white font-semibold rounded-lg hover:bg-[#059669] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Package className="w-5 h-5" />}
                 Send Rental Request
@@ -224,29 +224,29 @@ function BookDealerModal({ isOpen, onClose, dealer, venueId }) {
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
       <div className="cmd-panel cmd-corner-lights w-full max-w-md">
-        <div className="flex items-center justify-between p-4 border-b border-[#4A5E78]">
+        <div className="flex items-center justify-between p-4 border-b border-[#3A3B3C]">
           <h3 className="text-lg font-semibold text-white">Book Dealer</h3>
-          <button onClick={onClose} className="p-2 hover:bg-[#132240] rounded-lg">
-            <X className="w-5 h-5 text-[#64748B]" />
+          <button onClick={onClose} className="p-2 hover:bg-[#3A3B3C] rounded-lg">
+            <X className="w-5 h-5 text-[#B0B3B8]" />
           </button>
         </div>
 
         {success ? (
           <div className="p-8 text-center">
-            <CheckCircle className="w-12 h-12 text-[#10B981] mx-auto mb-3" />
+            <CheckCircle className="w-12 h-12 text-[#31A24C] mx-auto mb-3" />
             <p className="font-semibold text-white">Booking Request Sent</p>
-            <p className="text-sm text-[#64748B]">{dealer.name} will be notified</p>
+            <p className="text-sm text-[#B0B3B8]">{dealer.name} will be notified</p>
           </div>
         ) : (
           <>
             <div className="p-4 space-y-4">
-              <div className="flex items-center gap-3 p-3 bg-[#0D192E] rounded-lg">
-                <div className="w-12 h-12 bg-[#22D3EE]/10 rounded-full flex items-center justify-center">
-                  <Users className="w-6 h-6 text-[#22D3EE]" />
+              <div className="flex items-center gap-3 p-3 bg-[#3A3B3C] rounded-lg">
+                <div className="w-12 h-12 bg-[#1877F2]/10 rounded-full flex items-center justify-center">
+                  <Users className="w-6 h-6 text-[#1877F2]" />
                 </div>
                 <div>
                   <p className="font-semibold text-white">{dealer.name}</p>
-                  <p className="text-sm text-[#64748B]">${dealer.hourly_rate}/hr</p>
+                  <p className="text-sm text-[#B0B3B8]">${dealer.hourly_rate}/hr</p>
                 </div>
               </div>
 
@@ -284,9 +284,9 @@ function BookDealerModal({ isOpen, onClose, dealer, venueId }) {
                 </div>
               </div>
 
-              <div className="p-3 bg-[#0B1426] rounded-lg">
+              <div className="p-3 bg-[#18191A] rounded-lg">
                 <div className="flex justify-between text-sm">
-                  <span className="text-[#64748B]">Estimated Cost</span>
+                  <span className="text-[#B0B3B8]">Estimated Cost</span>
                   <span className="font-semibold text-white">
                     ${(dealer.hourly_rate || 25) * formData.hours}
                   </span>
@@ -305,7 +305,7 @@ function BookDealerModal({ isOpen, onClose, dealer, venueId }) {
               </div>
             </div>
 
-            <div className="p-4 border-t border-[#4A5E78]">
+            <div className="p-4 border-t border-[#3A3B3C]">
               <button
                 onClick={handleSubmit}
                 disabled={!formData.date || submitting}
@@ -327,18 +327,18 @@ function DealerCard({ dealer, onBook }) {
     <div className="cmd-panel p-4">
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-[#22D3EE]/10 rounded-full flex items-center justify-center">
+          <div className="w-12 h-12 bg-[#1877F2]/10 rounded-full flex items-center justify-center">
             {dealer.profiles?.avatar_url ? (
               <img src={dealer.profiles.avatar_url} alt="" className="w-12 h-12 rounded-full object-cover" />
             ) : (
-              <Users className="w-6 h-6 text-[#22D3EE]" />
+              <Users className="w-6 h-6 text-[#1877F2]" />
             )}
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-white">{dealer.name}</h3>
               {dealer.verified && (
-                <CheckCircle className="w-4 h-4 text-[#10B981]" />
+                <CheckCircle className="w-4 h-4 text-[#31A24C]" />
               )}
             </div>
             {dealer.rating && (
@@ -346,7 +346,7 @@ function DealerCard({ dealer, onBook }) {
                 <Star className="w-4 h-4 fill-current" />
                 <span>{dealer.rating.toFixed(1)}</span>
                 {dealer.reviews_count && (
-                  <span className="text-[#64748B]">({dealer.reviews_count})</span>
+                  <span className="text-[#B0B3B8]">({dealer.reviews_count})</span>
                 )}
               </div>
             )}
@@ -355,27 +355,27 @@ function DealerCard({ dealer, onBook }) {
         <div className="text-right">
           <p className="font-semibold text-white">${dealer.hourly_rate}/hr</p>
           {dealer.experience_years && (
-            <p className="text-xs text-[#64748B]">{dealer.experience_years}+ years</p>
+            <p className="text-xs text-[#B0B3B8]">{dealer.experience_years}+ years</p>
           )}
         </div>
       </div>
 
       {dealer.bio && (
-        <p className="text-sm text-[#64748B] mb-3 line-clamp-2">{dealer.bio}</p>
+        <p className="text-sm text-[#B0B3B8] mb-3 line-clamp-2">{dealer.bio}</p>
       )}
 
       <div className="flex flex-wrap gap-2 mb-3">
         {(dealer.games_offered || []).slice(0, 4).map((game) => (
           <span
             key={game}
-            className="px-2 py-1 bg-[#0D192E] rounded text-xs font-medium text-white uppercase"
+            className="px-2 py-1 bg-[#3A3B3C] rounded text-xs font-medium text-white uppercase"
           >
             {game}
           </span>
         ))}
       </div>
 
-      <div className="flex items-center gap-4 text-sm text-[#64748B] mb-4">
+      <div className="flex items-center gap-4 text-sm text-[#B0B3B8] mb-4">
         {dealer.service_area && (
           <span className="flex items-center gap-1">
             <MapPin className="w-4 h-4" />
@@ -404,12 +404,12 @@ function EquipmentCard({ equipment, onRent }) {
   return (
     <div className="cmd-panel p-4">
       <div className="flex items-start gap-3 mb-3">
-        <div className="w-12 h-12 bg-[#10B981]/10 rounded-lg flex items-center justify-center">
-          <Package className="w-6 h-6 text-[#10B981]" />
+        <div className="w-12 h-12 bg-[#31A24C]/10 rounded-lg flex items-center justify-center">
+          <Package className="w-6 h-6 text-[#31A24C]" />
         </div>
         <div className="flex-1">
           <h3 className="font-semibold text-white">{equipment.name}</h3>
-          <p className="text-sm text-[#64748B]">{equipment.category}</p>
+          <p className="text-sm text-[#B0B3B8]">{equipment.category}</p>
         </div>
         <div className="text-right">
           <p className="font-semibold text-white">${equipment.daily_rate}/day</p>
@@ -417,16 +417,16 @@ function EquipmentCard({ equipment, onRent }) {
       </div>
 
       {equipment.description && (
-        <p className="text-sm text-[#64748B] mb-3 line-clamp-2">{equipment.description}</p>
+        <p className="text-sm text-[#B0B3B8] mb-3 line-clamp-2">{equipment.description}</p>
       )}
 
-      <div className="flex items-center gap-4 text-sm text-[#64748B] mb-4">
+      <div className="flex items-center gap-4 text-sm text-[#B0B3B8] mb-4">
         <span className="flex items-center gap-1">
           <MapPin className="w-4 h-4" />
           {equipment.location || 'Local pickup'}
         </span>
         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-          equipment.available ? 'bg-[#10B981]/10 text-[#10B981]' : 'bg-[#EF4444]/10 text-[#EF4444]'
+          equipment.available ? 'bg-[#31A24C]/10 text-[#31A24C]' : 'bg-[#EF4444]/10 text-[#EF4444]'
         }`}>
           {equipment.available ? 'Available' : 'Rented'}
         </span>
@@ -435,7 +435,7 @@ function EquipmentCard({ equipment, onRent }) {
       <button
         onClick={() => onRent(equipment)}
         disabled={!equipment.available}
-        className="w-full h-10 bg-[#10B981] text-white font-medium rounded-lg hover:bg-[#059669] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full h-10 bg-[#31A24C] text-white font-medium rounded-lg hover:bg-[#059669] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {equipment.available ? 'Request Rental' : 'Not Available'}
       </button>
@@ -526,7 +526,7 @@ export default function MarketplacePage() {
   if (!staff) {
     return (
       <div className="cmd-page flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
       </div>
     );
   }
@@ -544,26 +544,26 @@ export default function MarketplacePage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push('/commander/dashboard')}
-                className="p-2 hover:bg-[#132240] rounded-lg"
+                className="p-2 hover:bg-[#3A3B3C] rounded-lg"
               >
-                <ArrowLeft className="w-5 h-5 text-[#64748B]" />
+                <ArrowLeft className="w-5 h-5 text-[#B0B3B8]" />
               </button>
               <div>
                 <h1 className="font-bold text-white">Marketplace</h1>
-                <p className="text-sm text-[#64748B]">
+                <p className="text-sm text-[#B0B3B8]">
                   {activeTab === 'dealers' ? `${dealers.length} dealers` : `${equipment.length} items`}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="max-w-4xl mx-auto px-4 flex gap-1 border-t border-[#4A5E78]">
+          <div className="max-w-4xl mx-auto px-4 flex gap-1 border-t border-[#3A3B3C]">
             <button
               onClick={() => setActiveTab('dealers')}
               className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'dealers'
-                  ? 'border-[#22D3EE] text-[#22D3EE]'
-                  : 'border-transparent text-[#64748B] hover:text-white'
+                  ? 'border-[#1877F2] text-[#1877F2]'
+                  : 'border-transparent text-[#B0B3B8] hover:text-white'
               }`}
             >
               <Users className="w-4 h-4 inline-block mr-2" />
@@ -573,8 +573,8 @@ export default function MarketplacePage() {
               onClick={() => setActiveTab('equipment')}
               className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'equipment'
-                  ? 'border-[#10B981] text-[#10B981]'
-                  : 'border-transparent text-[#64748B] hover:text-white'
+                  ? 'border-[#31A24C] text-[#31A24C]'
+                  : 'border-transparent text-[#B0B3B8] hover:text-white'
               }`}
             >
               <Package className="w-4 h-4 inline-block mr-2" />
@@ -586,7 +586,7 @@ export default function MarketplacePage() {
         <main className="max-w-4xl mx-auto px-4 py-6 space-y-4">
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B]" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#B0B3B8]" />
             <input
               type="text"
               value={searchTerm}
@@ -598,14 +598,14 @@ export default function MarketplacePage() {
 
           {loading ? (
             <div className="flex justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
+              <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
             </div>
           ) : activeTab === 'dealers' ? (
             filteredDealers.length === 0 ? (
               <div className="cmd-panel p-8 text-center">
-                <Users className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
-                <p className="text-[#64748B]">No dealers found</p>
-                <p className="text-sm text-[#4A5E78] mt-1">Try adjusting your search</p>
+                <Users className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
+                <p className="text-[#B0B3B8]">No dealers found</p>
+                <p className="text-sm text-[#3A3B3C] mt-1">Try adjusting your search</p>
               </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
@@ -621,9 +621,9 @@ export default function MarketplacePage() {
           ) : (
             filteredEquipment.length === 0 ? (
               <div className="cmd-panel p-8 text-center">
-                <Package className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
-                <p className="text-[#64748B]">No equipment found</p>
-                <p className="text-sm text-[#4A5E78] mt-1">Try adjusting your search</p>
+                <Package className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
+                <p className="text-[#B0B3B8]">No equipment found</p>
+                <p className="text-sm text-[#3A3B3C] mt-1">Try adjusting your search</p>
               </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
