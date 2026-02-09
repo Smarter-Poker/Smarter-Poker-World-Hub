@@ -651,8 +651,8 @@ export default function BankrollManagerPage() {
                   </div>
                 </div>
 
-                {/* Bankroll Trend Chart — filtered by gameTypeFilter */}
-                <BankrollTrendChart entries={entries.filter(e => gameTypeFilter.has(e.category))} isLoading={isLoading} />
+                {/* Bankroll Trend Chart — filtered by gameTypeFilter, always include expenses */}
+                <BankrollTrendChart entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} isLoading={isLoading} />
 
                 {/* Recent Activity Section */}
                 <div style={styles.activitySection}>
