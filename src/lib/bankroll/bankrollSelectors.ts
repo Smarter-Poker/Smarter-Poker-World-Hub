@@ -894,16 +894,21 @@ export async function adjustBankroll(
   const signedAmount = type === 'deposit' ? amount : -amount;
 
   // Update the poker segment balance
-  const { data: current } = await supabase
+  const { data: current, error: fetchErr } = await supabase
     .from('bankroll_segments')
     .select('current_balance')
     .eq('user_id', userId)
     .eq('segment_type', 'poker')
     .single();
 
+  if (fetchErr) {
+    console.error('[adjustBankroll] Failed to fetch segment:', fetchErr);
+    throw new Error('Failed to read current balance');
+  }
+
   const newBalance = (current?.current_balance || 0) + signedAmount;
 
-  await supabase
+  const { error: updateErr } = await supabase
     .from('bankroll_segments')
     .update({
       current_balance: newBalance,
@@ -912,11 +917,16 @@ export async function adjustBankroll(
     .eq('user_id', userId)
     .eq('segment_type', 'poker');
 
+  if (updateErr) {
+    console.error('[adjustBankroll] Failed to update segment:', updateErr);
+    throw new Error('Failed to update balance');
+  }
+
   // Log as ledger entry for audit trail
   // gross_in = money put on table (buy-in), gross_out = money taken off (cashout)
   // deposit: money added to bankroll → gross_out (like cashing out from an ATM into your roll)
   // withdrawal: money removed from bankroll → gross_in (like buying in / spending)
-  await supabase.from('bankroll_ledger').insert({
+  const { error: insertErr } = await supabase.from('bankroll_ledger').insert({
     user_id: userId,
     category: type,
     entry_date: new Date().toISOString().split('T')[0],
@@ -924,8 +934,21 @@ export async function adjustBankroll(
     gross_out: type === 'deposit' ? amount : 0,
     net_result: signedAmount,
     notes: reason || (type === 'deposit' ? 'Bankroll deposit' : 'Bankroll withdrawal'),
-    is_adjustment: true,
   });
+
+  if (insertErr) {
+    console.error('[adjustBankroll] Failed to insert ledger entry:', insertErr);
+    // Try to rollback the segment update
+    await supabase
+      .from('bankroll_segments')
+      .update({
+        current_balance: current?.current_balance || 0,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', userId)
+      .eq('segment_type', 'poker');
+    throw new Error('Failed to record adjustment');
+  }
 }
 
 /**
