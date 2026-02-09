@@ -127,7 +127,7 @@ export default function CommanderTablesPage() {
   if (!staff || loading) {
     return (
       <div className="cmd-page flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
       </div>
     );
   }
@@ -146,13 +146,13 @@ export default function CommanderTablesPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push('/commander/dashboard')}
-                className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
+                className="p-2 hover:bg-[#3A3B3C] rounded-lg transition-colors"
               >
-                <ArrowLeft className="w-5 h-5 text-[#64748B]" />
+                <ArrowLeft className="w-5 h-5 text-[#B0B3B8]" />
               </button>
               <div>
                 <h1 className="font-bold text-white text-lg">Table Management</h1>
-                <p className="text-sm text-[#64748B]">{venue?.name}</p>
+                <p className="text-sm text-[#B0B3B8]">{venue?.name}</p>
               </div>
             </div>
 
@@ -187,9 +187,9 @@ export default function CommanderTablesPage() {
           {/* Table Management */}
           {tables.length === 0 ? (
             <div className="cmd-panel p-8 text-center">
-              <Table2 className="w-12 h-12 text-[#4A5E78] mx-auto mb-4" />
+              <Table2 className="w-12 h-12 text-[#3A3B3C] mx-auto mb-4" />
               <h2 className="text-lg font-semibold text-white mb-2">No Tables Yet</h2>
-              <p className="text-[#64748B] mb-4">Add tables to start managing your poker room</p>
+              <p className="text-[#B0B3B8] mb-4">Add tables to start managing your poker room</p>
               <button
                 onClick={() => setShowAddModal(true)}
                 className="px-4 py-2 cmd-btn cmd-btn-primary font-medium rounded-lg hover:bg-[#1664d9] transition-colors"
@@ -209,7 +209,7 @@ export default function CommanderTablesPage() {
                       <h3 className="font-semibold text-white">
                         {table.table_name || `Table ${table.table_number}`}
                       </h3>
-                      <p className="text-sm text-[#64748B]">
+                      <p className="text-sm text-[#B0B3B8]">
                         {table.max_seats} seats
                       </p>
                     </div>
@@ -225,8 +225,8 @@ export default function CommanderTablesPage() {
                   </div>
 
                   {table.current_game_id && (
-                    <div className="mb-3 p-2 bg-[#0D192E] rounded-lg">
-                      <div className="flex items-center gap-2 text-sm text-[#64748B]">
+                    <div className="mb-3 p-2 bg-[#3A3B3C] rounded-lg">
+                      <div className="flex items-center gap-2 text-sm text-[#B0B3B8]">
                         <Users className="w-4 h-4" />
                         <span>Game in progress</span>
                       </div>
@@ -236,7 +236,7 @@ export default function CommanderTablesPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => setEditingTable(table)}
-                      className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-sm font-medium text-[#64748B] hover:bg-[#132240] rounded-lg transition-colors"
+                      className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-sm font-medium text-[#B0B3B8] hover:bg-[#3A3B3C] rounded-lg transition-colors"
                     >
                       <Edit2 className="w-4 h-4" />
                       Edit
@@ -297,7 +297,7 @@ function TableModal({ table, onClose, onSubmit }) {
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
       <div className="cmd-panel cmd-corner-lights w-full max-w-md">
-        <div className="p-4 border-b border-[#4A5E78]">
+        <div className="p-4 border-b border-[#3A3B3C]">
           <h2 className="text-lg font-semibold text-white">
             {table ? 'Edit Table' : 'Add Table'}
           </h2>
@@ -344,7 +344,7 @@ function TableModal({ table, onClose, onSubmit }) {
                   className={`flex-1 h-10 rounded-lg text-sm font-medium transition-colors ${
                     maxSeats === num
                       ? 'cmd-btn cmd-btn-primary'
-                      : 'bg-[#0D192E] text-white hover:bg-[#132240]'
+                      : 'bg-[#3A3B3C] text-white hover:bg-[#3A3B3C]'
                   }`}
                 >
                   {num}
@@ -357,7 +357,7 @@ function TableModal({ table, onClose, onSubmit }) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 h-12 border border-[#4A5E78] text-[#64748B] font-medium rounded-lg hover:bg-[#132240] transition-colors"
+              className="flex-1 h-12 border border-[#3A3B3C] text-[#B0B3B8] font-medium rounded-lg hover:bg-[#3A3B3C] transition-colors"
             >
               Cancel
             </button>
