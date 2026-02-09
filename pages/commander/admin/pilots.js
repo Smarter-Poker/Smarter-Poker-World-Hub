@@ -120,12 +120,12 @@ export default function PilotVenuesPage() {
         <header className="cmd-header-bar sticky top-0 z-20">
           <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Link href="/commander/admin" className="text-[#64748B] hover:text-white">
+              <Link href="/commander/admin" className="text-[#B0B3B8] hover:text-white">
                 <ChevronLeft className="w-5 h-5" />
               </Link>
               <div>
                 <h1 className="text-xl font-bold text-white">Pilot Venues</h1>
-                <p className="text-sm text-[#64748B]">Phase 6 - Pilot Expansion</p>
+                <p className="text-sm text-[#B0B3B8]">Phase 6 - Pilot Expansion</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -151,7 +151,7 @@ export default function PilotVenuesPage() {
           {/* Success Criteria Overview */}
           <div className="cmd-panel p-6">
             <h2 className="font-semibold text-white mb-4 flex items-center gap-2">
-              <Target className="w-5 h-5 text-[#22D3EE]" />
+              <Target className="w-5 h-5 text-[#1877F2]" />
               Success Criteria (All Pilots Average)
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -189,7 +189,7 @@ export default function PilotVenuesPage() {
           {/* Regional Progress */}
           <div className="cmd-panel p-6">
             <h2 className="font-semibold text-white mb-4 flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-[#22D3EE]" />
+              <MapPin className="w-5 h-5 text-[#1877F2]" />
               Regional Deployment Progress
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -200,26 +200,26 @@ export default function PilotVenuesPage() {
                   <div key={region.id} className="bg-[#1E293B] rounded-lg p-4">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-white font-medium">{region.region}</span>
-                      <span className="text-sm text-[#64748B]">
+                      <span className="text-sm text-[#B0B3B8]">
                         {current}/{region.target}
                       </span>
                     </div>
                     <div className="h-2 bg-[#374151] rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all ${
-                          progress >= 100 ? 'bg-green-500' : 'bg-[#22D3EE]'
+                          progress >= 100 ? 'bg-green-500' : 'bg-[#1877F2]'
                         }`}
                         style={{ width: `${Math.min(progress, 100)}%` }}
                       />
                     </div>
-                    <p className="text-xs text-[#64748B] mt-2">{region.description}</p>
+                    <p className="text-xs text-[#B0B3B8] mt-2">{region.description}</p>
                   </div>
                 );
               })}
             </div>
             <div className="mt-4 pt-4 border-t border-[#374151]">
               <div className="flex items-center justify-between">
-                <span className="text-[#64748B]">Total Progress</span>
+                <span className="text-[#B0B3B8]">Total Progress</span>
                 <span className="text-white font-medium">
                   {activePilots.length}/5 venues
                 </span>
@@ -227,7 +227,7 @@ export default function PilotVenuesPage() {
               <div className="h-3 bg-[#374151] rounded-full overflow-hidden mt-2">
                 <div
                   className={`h-full rounded-full transition-all ${
-                    activePilots.length >= 5 ? 'bg-green-500' : 'bg-[#22D3EE]'
+                    activePilots.length >= 5 ? 'bg-green-500' : 'bg-[#1877F2]'
                   }`}
                   style={{ width: `${(activePilots.length / 5) * 100}%` }}
                 />
@@ -239,16 +239,16 @@ export default function PilotVenuesPage() {
           <div className="cmd-panel overflow-hidden">
             <div className="px-6 py-4 border-b border-[#374151]">
               <h2 className="font-semibold text-white flex items-center gap-2">
-                <Building2 className="w-5 h-5 text-[#22D3EE]" />
+                <Building2 className="w-5 h-5 text-[#1877F2]" />
                 Active Pilot Venues
               </h2>
             </div>
             {loading ? (
-              <div className="p-8 text-center text-[#64748B]">Loading pilots...</div>
+              <div className="p-8 text-center text-[#B0B3B8]">Loading pilots...</div>
             ) : pilots.length === 0 ? (
               <div className="p-8 text-center">
-                <Building2 className="w-12 h-12 text-[#4A5E78] mx-auto mb-4" />
-                <p className="text-[#64748B]">No pilot venues yet</p>
+                <Building2 className="w-12 h-12 text-[#3A3B3C] mx-auto mb-4" />
+                <p className="text-[#B0B3B8]">No pilot venues yet</p>
                 <button
                   onClick={() => setShowAddModal(true)}
                   className="cmd-btn cmd-btn-primary mt-4"
@@ -267,11 +267,11 @@ export default function PilotVenuesPage() {
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-[#374151] rounded-lg flex items-center justify-center">
-                          <Building2 className="w-6 h-6 text-[#64748B]" />
+                          <Building2 className="w-6 h-6 text-[#B0B3B8]" />
                         </div>
                         <div>
                           <h3 className="font-medium text-white">{pilot.venue_name}</h3>
-                          <p className="text-sm text-[#64748B] flex items-center gap-1">
+                          <p className="text-sm text-[#B0B3B8] flex items-center gap-1">
                             <MapPin className="w-3 h-3" />
                             {pilot.city}, {pilot.state}
                           </p>
@@ -295,7 +295,7 @@ export default function PilotVenuesPage() {
                     {/* Metrics Row */}
                     <div className="grid grid-cols-4 gap-4 mt-4 pt-4 border-t border-[#374151]">
                       <div>
-                        <div className="text-xs text-[#64748B] mb-1">Uptime</div>
+                        <div className="text-xs text-[#B0B3B8] mb-1">Uptime</div>
                         <div className="flex items-center gap-2">
                           <span className="text-white font-medium">
                             {pilot.uptime_percentage?.toFixed(1) || '-'}%
@@ -308,7 +308,7 @@ export default function PilotVenuesPage() {
                         </div>
                       </div>
                       <div>
-                        <div className="text-xs text-[#64748B] mb-1">Tickets</div>
+                        <div className="text-xs text-[#B0B3B8] mb-1">Tickets</div>
                         <div className="flex items-center gap-2">
                           <span className="text-white font-medium">
                             {pilot.support_tickets_count || 0}
@@ -321,7 +321,7 @@ export default function PilotVenuesPage() {
                         </div>
                       </div>
                       <div>
-                        <div className="text-xs text-[#64748B] mb-1">Satisfaction</div>
+                        <div className="text-xs text-[#B0B3B8] mb-1">Satisfaction</div>
                         <div className="flex items-center gap-2">
                           <span className="text-white font-medium">
                             {pilot.staff_satisfaction_score?.toFixed(1) || '-'}/5
@@ -334,7 +334,7 @@ export default function PilotVenuesPage() {
                         </div>
                       </div>
                       <div>
-                        <div className="text-xs text-[#64748B] mb-1">Adoption</div>
+                        <div className="text-xs text-[#B0B3B8] mb-1">Adoption</div>
                         <div className="flex items-center gap-2">
                           <span className="text-white font-medium">
                             {pilot.player_adoption_percentage?.toFixed(0) || '-'}%
@@ -349,10 +349,10 @@ export default function PilotVenuesPage() {
                     </div>
 
                     {/* Start Date */}
-                    <div className="flex items-center gap-2 mt-3 text-sm text-[#64748B]">
+                    <div className="flex items-center gap-2 mt-3 text-sm text-[#B0B3B8]">
                       <Calendar className="w-4 h-4" />
                       Started {new Date(pilot.pilot_start_date).toLocaleDateString()}
-                      <span className="text-[#4A5E78]">|</span>
+                      <span className="text-[#3A3B3C]">|</span>
                       Week {Math.ceil((Date.now() - new Date(pilot.pilot_start_date).getTime()) / (7 * 24 * 60 * 60 * 1000))}
                     </div>
                   </div>
@@ -364,7 +364,7 @@ export default function PilotVenuesPage() {
           {/* Phase 6 Completion Checklist */}
           <div className="cmd-panel p-6">
             <h2 className="font-semibold text-white mb-4 flex items-center gap-2">
-              <Award className="w-5 h-5 text-[#22D3EE]" />
+              <Award className="w-5 h-5 text-[#1877F2]" />
               Phase 6 Completion Checklist
             </h2>
             <div className="space-y-3">
@@ -415,7 +415,7 @@ function MetricCard({ label, value, unit, target, status }) {
   return (
     <div className="bg-[#1E293B] rounded-lg p-4">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-sm text-[#64748B]">{label}</span>
+        <span className="text-sm text-[#B0B3B8]">{label}</span>
         {status === 'pass' ? (
           <CheckCircle className="w-5 h-5 text-green-400" />
         ) : status === 'fail' ? (
@@ -426,9 +426,9 @@ function MetricCard({ label, value, unit, target, status }) {
       </div>
       <div className="text-2xl font-bold text-white">
         {value}
-        <span className="text-sm font-normal text-[#64748B]">{unit}</span>
+        <span className="text-sm font-normal text-[#B0B3B8]">{unit}</span>
       </div>
-      <div className="text-xs text-[#64748B] mt-1">Target: {target}{unit}</div>
+      <div className="text-xs text-[#B0B3B8] mt-1">Target: {target}{unit}</div>
     </div>
   );
 }
@@ -444,12 +444,12 @@ function ChecklistItem({ checked, label, description }) {
         {checked ? (
           <CheckCircle className="w-4 h-4 text-green-400" />
         ) : (
-          <div className="w-2 h-2 rounded-full bg-[#64748B]" />
+          <div className="w-2 h-2 rounded-full bg-[#B0B3B8]" />
         )}
       </div>
       <div>
-        <div className={`font-medium ${checked ? 'text-white' : 'text-[#64748B]'}`}>{label}</div>
-        <div className="text-sm text-[#64748B]">{description}</div>
+        <div className={`font-medium ${checked ? 'text-white' : 'text-[#B0B3B8]'}`}>{label}</div>
+        <div className="text-sm text-[#B0B3B8]">{description}</div>
       </div>
     </div>
   );
