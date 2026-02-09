@@ -522,7 +522,7 @@ export default function TroubleshootingPage() {
         <header className="cmd-header-bar sticky top-0 z-20">
           <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Link href="/commander/dashboard" className="text-[#64748B] hover:text-white">
+              <Link href="/commander/dashboard" className="text-[#B0B3B8] hover:text-white">
                 <ChevronLeft className="w-5 h-5" />
               </Link>
               <div className="flex items-center gap-2">
@@ -531,7 +531,7 @@ export default function TroubleshootingPage() {
               </div>
             </div>
             <div className="relative w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#64748B]" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#B0B3B8]" />
               <input
                 type="text"
                 placeholder="Search issues..."
@@ -562,8 +562,8 @@ export default function TroubleshootingPage() {
                           }}
                           className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
                             activeSection === section.id && !searchTerm
-                              ? 'bg-[#22D3EE]/10 text-[#22D3EE]'
-                              : 'text-[#64748B] hover:text-white hover:bg-[#374151]'
+                              ? 'bg-[#1877F2]/10 text-[#1877F2]'
+                              : 'text-[#B0B3B8] hover:text-white hover:bg-[#374151]'
                           }`}
                         >
                           <Icon className="w-4 h-4" />
@@ -586,7 +586,7 @@ export default function TroubleshootingPage() {
               {searchTerm ? (
                 // Search Results
                 <div className="space-y-4">
-                  <p className="text-[#64748B] mb-4">
+                  <p className="text-[#B0B3B8] mb-4">
                     Found{' '}
                     {filteredSections.reduce((sum, s) => sum + s.issues.length, 0)} issues matching
                     "{searchTerm}"
@@ -677,7 +677,7 @@ function IssueCard({ issue, isExpanded, onToggle, getSeverityColor }) {
           <span className="font-medium text-white">{issue.title}</span>
         </div>
         <ChevronDown
-          className={`w-5 h-5 text-[#64748B] flex-shrink-0 transition-transform ${
+          className={`w-5 h-5 text-[#B0B3B8] flex-shrink-0 transition-transform ${
             isExpanded ? 'rotate-180' : ''
           }`}
         />
@@ -720,12 +720,12 @@ function IssueCard({ issue, isExpanded, onToggle, getSeverityColor }) {
             <ol className="space-y-3">
               {issue.solutions.map((solution, idx) => (
                 <li key={idx} className="flex gap-3">
-                  <span className="flex-shrink-0 w-6 h-6 bg-[#22D3EE]/20 rounded-full flex items-center justify-center text-xs text-[#22D3EE] font-medium">
+                  <span className="flex-shrink-0 w-6 h-6 bg-[#1877F2]/20 rounded-full flex items-center justify-center text-xs text-[#1877F2] font-medium">
                     {idx + 1}
                   </span>
                   <div>
                     <p className="font-medium text-white text-sm">{solution.step}</p>
-                    <p className="text-sm text-[#64748B] mt-1">{solution.details}</p>
+                    <p className="text-sm text-[#B0B3B8] mt-1">{solution.details}</p>
                   </div>
                 </li>
               ))}
