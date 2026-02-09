@@ -129,15 +129,15 @@ const TESTIMONIALS = [
 
 function FeatureCard({ icon: Icon, title, description }) {
   return (
-    <div className="cmd-panel p-6 hover:border-[#22D3EE]/30 transition-all">
+    <div className="cmd-panel p-6 hover:border-[#1877F2]/30 transition-all">
       <div
         className="w-12 h-12 rounded-xl flex items-center justify-center mb-4"
-        style={{ backgroundColor: '#22D3EE20' }}
+        style={{ backgroundColor: '#1877F220' }}
       >
-        <Icon size={24} style={{ color: '#22D3EE' }} />
+        <Icon size={24} style={{ color: '#1877F2' }} />
       </div>
       <h3 className="text-lg font-semibold text-white mb-2">{title}</h3>
-      <p className="text-[#64748B]">{description}</p>
+      <p className="text-[#B0B3B8]">{description}</p>
     </div>
   );
 }
@@ -147,25 +147,25 @@ function PricingCard({ plan, highlighted, onAction }) {
     <div
       className={`p-6 rounded-2xl border ${
         highlighted
-          ? 'border-[#22D3EE] ring-2 ring-[#22D3EE] ring-opacity-50 bg-[#0F2A3E]'
-          : 'border-[#4A5E78] bg-[#0F1D32]'
+          ? 'border-[#1877F2] ring-2 ring-[#1877F2] ring-opacity-50 bg-[#0F2A3E]'
+          : 'border-[#3A3B3C] bg-[#0F1D32]'
       }`}
     >
       {highlighted && (
-        <span className="inline-block px-3 py-1 text-xs font-medium rounded-full bg-[#22D3EE]/10 text-[#22D3EE] mb-4">
+        <span className="inline-block px-3 py-1 text-xs font-medium rounded-full bg-[#1877F2]/10 text-[#1877F2] mb-4">
           Most Popular
         </span>
       )}
       <h3 className="text-xl font-bold text-white">{plan.name}</h3>
       <div className="mt-2 mb-4">
         <span className="text-4xl font-bold text-white">{plan.price}</span>
-        {plan.period && <span className="text-[#64748B]">{plan.period}</span>}
+        {plan.period && <span className="text-[#B0B3B8]">{plan.period}</span>}
       </div>
-      <p className="text-[#64748B] mb-6">{plan.description}</p>
+      <p className="text-[#B0B3B8] mb-6">{plan.description}</p>
       <ul className="space-y-3 mb-6">
         {plan.features.map((feature, i) => (
           <li key={i} className="flex items-start gap-2">
-            <Check size={18} className="text-[#10B981] flex-shrink-0 mt-0.5" />
+            <Check size={18} className="text-[#31A24C] flex-shrink-0 mt-0.5" />
             <span className="text-[#94A3B8]">{feature}</span>
           </li>
         ))}
@@ -243,26 +243,26 @@ export default function CommanderLanding() {
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
       </Head>
 
-      <div className="min-h-screen" style={{ fontFamily: 'Inter, sans-serif', backgroundColor: '#0B1426' }}>
+      <div className="min-h-screen" style={{ fontFamily: 'Inter, sans-serif', backgroundColor: '#18191A' }}>
         {/* Navigation */}
-        <nav className="fixed top-0 left-0 right-0 bg-[#0F1D32]/80 backdrop-blur-md z-50 border-b border-[#4A5E78]">
+        <nav className="fixed top-0 left-0 right-0 bg-[#0F1D32]/80 backdrop-blur-md z-50 border-b border-[#3A3B3C]">
           <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div
                 className="w-10 h-10 rounded-xl flex items-center justify-center"
-                style={{ backgroundColor: '#22D3EE' }}
+                style={{ backgroundColor: '#1877F2' }}
               >
                 <Zap size={24} className="text-white" />
               </div>
               <span className="text-xl font-bold text-white">Club Commander</span>
             </div>
             <div className="hidden md:flex items-center gap-8">
-              <a href="#features" className="text-[#64748B] hover:text-white">Features</a>
-              <a href="#pricing" className="text-[#64748B] hover:text-white">Pricing</a>
-              <a href="#testimonials" className="text-[#64748B] hover:text-white">Reviews</a>
+              <a href="#features" className="text-[#B0B3B8] hover:text-white">Features</a>
+              <a href="#pricing" className="text-[#B0B3B8] hover:text-white">Pricing</a>
+              <a href="#testimonials" className="text-[#B0B3B8] hover:text-white">Reviews</a>
             </div>
             <div className="flex items-center gap-3">
-              <Link href="/commander/login" className="text-[#64748B] hover:text-white">
+              <Link href="/commander/login" className="text-[#B0B3B8] hover:text-white">
                 Staff Login
               </Link>
               <button
@@ -276,14 +276,14 @@ export default function CommanderLanding() {
         </nav>
 
         {/* Hero */}
-        <section className="pt-32 pb-20 px-4 bg-[#0B1426]">
+        <section className="pt-32 pb-20 px-4 bg-[#18191A]">
           <div className="max-w-7xl mx-auto text-center">
             <h1 className="text-5xl md:text-6xl font-extrabold text-white mb-6">
               Poker Room Management
               <br />
-              <span style={{ color: '#22D3EE' }}>Made Simple</span>
+              <span style={{ color: '#1877F2' }}>Made Simple</span>
             </h1>
-            <p className="text-xl text-[#64748B] max-w-2xl mx-auto mb-8">
+            <p className="text-xl text-[#B0B3B8] max-w-2xl mx-auto mb-8">
               Digital waitlists, tournament clocks, player comps, and analytics.
               Everything you need to run a modern poker room.
             </p>
@@ -305,28 +305,28 @@ export default function CommanderLanding() {
             </div>
 
             {/* Hero Feature Showcase */}
-            <div className="max-w-5xl mx-auto rounded-2xl shadow-2xl overflow-hidden border border-[#4A5E78] bg-[#0F1D32]">
-              <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-[#4A5E78]">
+            <div className="max-w-5xl mx-auto rounded-2xl shadow-2xl overflow-hidden border border-[#3A3B3C] bg-[#0F1D32]">
+              <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-[#3A3B3C]">
                 <div className="p-8 text-center">
-                  <div className="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#22D3EE20' }}>
-                    <Users size={28} style={{ color: '#22D3EE' }} />
+                  <div className="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#1877F220' }}>
+                    <Users size={28} style={{ color: '#1877F2' }} />
                   </div>
                   <h3 className="text-lg font-semibold text-white mb-2">Waitlist Management</h3>
-                  <p className="text-sm text-[#64748B]">Players join digitally from anywhere. Real-time position updates and SMS alerts when seats open.</p>
+                  <p className="text-sm text-[#B0B3B8]">Players join digitally from anywhere. Real-time position updates and SMS alerts when seats open.</p>
                 </div>
                 <div className="p-8 text-center">
-                  <div className="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#22D3EE20' }}>
-                    <Monitor size={28} style={{ color: '#22D3EE' }} />
+                  <div className="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#1877F220' }}>
+                    <Monitor size={28} style={{ color: '#1877F2' }} />
                   </div>
                   <h3 className="text-lg font-semibold text-white mb-2">Table Tracking</h3>
-                  <p className="text-sm text-[#64748B]">Live view of every table, game type, stakes, and seat availability. One dashboard for your entire floor.</p>
+                  <p className="text-sm text-[#B0B3B8]">Live view of every table, game type, stakes, and seat availability. One dashboard for your entire floor.</p>
                 </div>
                 <div className="p-8 text-center">
-                  <div className="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#22D3EE20' }}>
-                    <Trophy size={28} style={{ color: '#22D3EE' }} />
+                  <div className="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#1877F220' }}>
+                    <Trophy size={28} style={{ color: '#1877F2' }} />
                   </div>
                   <h3 className="text-lg font-semibold text-white mb-2">Tournament System</h3>
-                  <p className="text-sm text-[#64748B]">Built-in clock, blind structures, registration, and one-click Hendon Mob export.</p>
+                  <p className="text-sm text-[#B0B3B8]">Built-in clock, blind structures, registration, and one-click Hendon Mob export.</p>
                 </div>
               </div>
             </div>
@@ -334,22 +334,22 @@ export default function CommanderLanding() {
         </section>
 
         {/* Social Proof */}
-        <section className="py-12 border-y border-[#4A5E78] bg-[#0F1D32]">
+        <section className="py-12 border-y border-[#3A3B3C] bg-[#0F1D32]">
           <div className="max-w-7xl mx-auto px-4">
             <div className="flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-16">
               <div className="text-center">
                 <p className="text-3xl font-bold text-white">500+</p>
-                <p className="text-sm text-[#64748B]">Poker Rooms</p>
+                <p className="text-sm text-[#B0B3B8]">Poker Rooms</p>
               </div>
-              <div className="hidden sm:block w-px h-10 bg-[#4A5E78]" />
+              <div className="hidden sm:block w-px h-10 bg-[#3A3B3C]" />
               <div className="text-center">
                 <p className="text-3xl font-bold text-white">50,000+</p>
-                <p className="text-sm text-[#64748B]">Players Served</p>
+                <p className="text-sm text-[#B0B3B8]">Players Served</p>
               </div>
-              <div className="hidden sm:block w-px h-10 bg-[#4A5E78]" />
+              <div className="hidden sm:block w-px h-10 bg-[#3A3B3C]" />
               <div className="text-center">
                 <p className="text-3xl font-bold text-white">1M+</p>
-                <p className="text-sm text-[#64748B]">Waitlist Entries</p>
+                <p className="text-sm text-[#B0B3B8]">Waitlist Entries</p>
               </div>
             </div>
           </div>
@@ -362,7 +362,7 @@ export default function CommanderLanding() {
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
                 Everything Your Poker Room Needs
               </h2>
-              <p className="text-xl text-[#64748B] max-w-2xl mx-auto">
+              <p className="text-xl text-[#B0B3B8] max-w-2xl mx-auto">
                 From waitlist management to tournament operations, we've got you covered.
               </p>
             </div>
@@ -375,13 +375,13 @@ export default function CommanderLanding() {
         </section>
 
         {/* Pricing */}
-        <section id="pricing" className="py-20 px-4 bg-[#0B1426]">
+        <section id="pricing" className="py-20 px-4 bg-[#18191A]">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
                 Simple, Transparent Pricing
               </h2>
-              <p className="text-xl text-[#64748B] max-w-2xl mx-auto">
+              <p className="text-xl text-[#B0B3B8] max-w-2xl mx-auto">
                 Start free, upgrade as you grow. No hidden fees.
               </p>
             </div>
@@ -412,7 +412,7 @@ export default function CommanderLanding() {
                   <p className="text-[#94A3B8] mb-4">"{t.quote}"</p>
                   <div>
                     <p className="font-semibold text-white">{t.author}</p>
-                    <p className="text-sm text-[#64748B]">{t.role}</p>
+                    <p className="text-sm text-[#B0B3B8]">{t.role}</p>
                   </div>
                 </div>
               ))}
@@ -442,7 +442,7 @@ export default function CommanderLanding() {
               <button
                 onClick={handleEmailSubmit}
                 disabled={submitting}
-                className="w-full sm:w-auto px-8 py-3 rounded-xl bg-white text-[#0B1426] font-semibold hover:bg-gray-100 disabled:opacity-50"
+                className="w-full sm:w-auto px-8 py-3 rounded-xl bg-white text-[#18191A] font-semibold hover:bg-gray-100 disabled:opacity-50"
               >
                 {submitting ? 'Loading...' : 'Get Started'}
               </button>
@@ -451,11 +451,11 @@ export default function CommanderLanding() {
         </section>
 
         {/* Footer */}
-        <footer className="py-12 px-4 bg-[#070D1A] text-[#64748B]">
+        <footer className="py-12 px-4 bg-[#070D1A] text-[#B0B3B8]">
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[#22D3EE]">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[#1877F2]">
                   <Zap size={18} className="text-white" />
                 </div>
                 <span className="font-bold text-white">Club Commander</span>
@@ -475,11 +475,11 @@ export default function CommanderLanding() {
         {showDemo && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
             <div className="cmd-panel cmd-corner-lights w-full max-w-4xl">
-              <div className="flex items-center justify-between p-4 border-b border-[#4A5E78]">
+              <div className="flex items-center justify-between p-4 border-b border-[#3A3B3C]">
                 <h3 className="text-lg font-semibold text-white">Club Commander Demo</h3>
                 <button
                   onClick={() => setShowDemo(false)}
-                  className="p-2 hover:bg-[#132240] rounded-lg text-[#64748B]"
+                  className="p-2 hover:bg-[#3A3B3C] rounded-lg text-[#B0B3B8]"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -489,33 +489,33 @@ export default function CommanderLanding() {
               <div className="bg-[#070D1A] p-6">
                 <h4 className="text-lg font-semibold text-white mb-4 text-center">Platform Feature Highlights</h4>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-                  <div className="p-4 rounded-xl bg-[#0F1D32] border border-[#4A5E78] text-center">
-                    <Users size={28} className="mx-auto mb-2 text-[#22D3EE]" />
+                  <div className="p-4 rounded-xl bg-[#0F1D32] border border-[#3A3B3C] text-center">
+                    <Users size={28} className="mx-auto mb-2 text-[#1877F2]" />
                     <p className="text-sm font-medium text-white">Digital Waitlist</p>
                   </div>
-                  <div className="p-4 rounded-xl bg-[#0F1D32] border border-[#4A5E78] text-center">
-                    <Clock size={28} className="mx-auto mb-2 text-[#22D3EE]" />
+                  <div className="p-4 rounded-xl bg-[#0F1D32] border border-[#3A3B3C] text-center">
+                    <Clock size={28} className="mx-auto mb-2 text-[#1877F2]" />
                     <p className="text-sm font-medium text-white">AI Wait Times</p>
                   </div>
-                  <div className="p-4 rounded-xl bg-[#0F1D32] border border-[#4A5E78] text-center">
-                    <Trophy size={28} className="mx-auto mb-2 text-[#22D3EE]" />
+                  <div className="p-4 rounded-xl bg-[#0F1D32] border border-[#3A3B3C] text-center">
+                    <Trophy size={28} className="mx-auto mb-2 text-[#1877F2]" />
                     <p className="text-sm font-medium text-white">Tournaments</p>
                   </div>
-                  <div className="p-4 rounded-xl bg-[#0F1D32] border border-[#4A5E78] text-center">
-                    <Bell size={28} className="mx-auto mb-2 text-[#22D3EE]" />
+                  <div className="p-4 rounded-xl bg-[#0F1D32] border border-[#3A3B3C] text-center">
+                    <Bell size={28} className="mx-auto mb-2 text-[#1877F2]" />
                     <p className="text-sm font-medium text-white">SMS Alerts</p>
                   </div>
-                  <div className="p-4 rounded-xl bg-[#0F1D32] border border-[#4A5E78] text-center">
-                    <BarChart3 size={28} className="mx-auto mb-2 text-[#22D3EE]" />
+                  <div className="p-4 rounded-xl bg-[#0F1D32] border border-[#3A3B3C] text-center">
+                    <BarChart3 size={28} className="mx-auto mb-2 text-[#1877F2]" />
                     <p className="text-sm font-medium text-white">Analytics</p>
                   </div>
-                  <div className="p-4 rounded-xl bg-[#0F1D32] border border-[#4A5E78] text-center">
-                    <Gift size={28} className="mx-auto mb-2 text-[#22D3EE]" />
+                  <div className="p-4 rounded-xl bg-[#0F1D32] border border-[#3A3B3C] text-center">
+                    <Gift size={28} className="mx-auto mb-2 text-[#1877F2]" />
                     <p className="text-sm font-medium text-white">Promotions</p>
                   </div>
                 </div>
                 <div className="text-center">
-                  <p className="text-sm text-[#64748B] mb-3">Experience the full platform with a free trial</p>
+                  <p className="text-sm text-[#B0B3B8] mb-3">Experience the full platform with a free trial</p>
                   <button
                     onClick={() => {
                       setShowDemo(false);
