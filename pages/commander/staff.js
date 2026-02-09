@@ -129,7 +129,7 @@ export default function CommanderStaffPage() {
   if (!currentStaff || loading) {
     return (
       <div className="cmd-page flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
       </div>
     );
   }
@@ -148,13 +148,13 @@ export default function CommanderStaffPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push('/commander/dashboard')}
-                className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
+                className="p-2 hover:bg-[#3A3B3C] rounded-lg transition-colors"
               >
-                <ArrowLeft className="w-5 h-5 text-[#64748B]" />
+                <ArrowLeft className="w-5 h-5 text-[#B0B3B8]" />
               </button>
               <div>
                 <h1 className="font-bold text-white text-lg">Staff Management</h1>
-                <p className="text-sm text-[#64748B]">{venue?.name}</p>
+                <p className="text-sm text-[#B0B3B8]">{venue?.name}</p>
               </div>
             </div>
 
@@ -182,9 +182,9 @@ export default function CommanderStaffPage() {
 
           {staffList.length === 0 ? (
             <div className="cmd-panel p-8 text-center">
-              <User className="w-12 h-12 text-[#4A5E78] mx-auto mb-4" />
+              <User className="w-12 h-12 text-[#3A3B3C] mx-auto mb-4" />
               <h2 className="text-lg font-semibold text-white mb-2">No Staff Yet</h2>
-              <p className="text-[#64748B] mb-4">Add staff members to manage your venue</p>
+              <p className="text-[#B0B3B8] mb-4">Add staff members to manage your venue</p>
               {canManageStaff && (
                 <button
                   onClick={() => setShowAddModal(true)}
@@ -195,7 +195,7 @@ export default function CommanderStaffPage() {
               )}
             </div>
           ) : (
-            <div className="cmd-panel divide-y divide-[#4A5E78]">
+            <div className="cmd-panel divide-y divide-[#3A3B3C]">
               {staffList.map((staff) => {
                 const role = ROLES.find(r => r.value === staff.role) || ROLES[4];
                 return (
@@ -204,8 +204,8 @@ export default function CommanderStaffPage() {
                     className="p-4 flex items-center justify-between"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-[#0D192E] rounded-full flex items-center justify-center">
-                        <User className="w-6 h-6 text-[#64748B]" />
+                      <div className="w-12 h-12 bg-[#3A3B3C] rounded-full flex items-center justify-center">
+                        <User className="w-6 h-6 text-[#B0B3B8]" />
                       </div>
                       <div>
                         <h3 className="font-semibold text-white">
@@ -221,13 +221,13 @@ export default function CommanderStaffPage() {
                             const canReveal = isAdmin || isSelf;
                             const isRevealed = revealedPinId === staff.id;
                             return (
-                              <span className="inline-flex items-center gap-1 text-xs text-[#64748B]">
+                              <span className="inline-flex items-center gap-1 text-xs text-[#B0B3B8]">
                                 PIN: {isRevealed ? staff.pin_code : '****'}
                                 {canReveal && (
                                   <button
                                     type="button"
                                     onClick={() => setRevealedPinId(isRevealed ? null : staff.id)}
-                                    className="p-0.5 hover:text-[#22D3EE] transition-colors"
+                                    className="p-0.5 hover:text-[#1877F2] transition-colors"
                                     title={isRevealed ? 'Hide PIN' : 'Show PIN'}
                                   >
                                     {isRevealed
@@ -247,7 +247,7 @@ export default function CommanderStaffPage() {
                       <div className="flex gap-2">
                         <button
                           onClick={() => setEditingStaff(staff)}
-                          className="p-2 text-[#64748B] hover:bg-[#132240] rounded-lg transition-colors"
+                          className="p-2 text-[#B0B3B8] hover:bg-[#3A3B3C] rounded-lg transition-colors"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
@@ -308,15 +308,15 @@ function StaffModal({ staff, onClose, onSubmit }) {
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
       <div className="cmd-panel cmd-corner-lights w-full max-w-md">
-        <div className="flex items-center justify-between p-4 border-b border-[#4A5E78]">
+        <div className="flex items-center justify-between p-4 border-b border-[#3A3B3C]">
           <h2 className="text-lg font-semibold text-white">
             {staff ? 'Edit Staff' : 'Add Staff'}
           </h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
+            className="p-2 hover:bg-[#3A3B3C] rounded-lg transition-colors"
           >
-            <X className="w-5 h-5 text-[#64748B]" />
+            <X className="w-5 h-5 text-[#B0B3B8]" />
           </button>
         </div>
 
@@ -334,8 +334,8 @@ function StaffModal({ staff, onClose, onSubmit }) {
                   onClick={() => setRole(r.value)}
                   className={`p-3 rounded-lg text-sm font-medium transition-colors ${
                     role === r.value
-                      ? 'bg-[#22D3EE] text-white'
-                      : 'bg-[#0D192E] text-white hover:bg-[#132240]'
+                      ? 'bg-[#1877F2] text-white'
+                      : 'bg-[#3A3B3C] text-white hover:bg-[#3A3B3C]'
                   }`}
                 >
                   {r.label}
@@ -356,17 +356,17 @@ function StaffModal({ staff, onClose, onSubmit }) {
               placeholder="4-6 digits"
               className="w-full h-12 px-3 cmd-input"
             />
-            <p className="text-xs text-[#64748B] mt-1">Used for terminal login</p>
+            <p className="text-xs text-[#B0B3B8] mt-1">Used for terminal login</p>
           </div>
 
           {/* Active Toggle */}
-          <div className="flex items-center justify-between p-3 bg-[#0D192E] rounded-lg">
+          <div className="flex items-center justify-between p-3 bg-[#3A3B3C] rounded-lg">
             <span className="font-medium text-white">Active</span>
             <button
               type="button"
               onClick={() => setIsActive(!isActive)}
               className={`w-12 h-7 rounded-full transition-colors relative ${
-                isActive ? 'bg-[#22D3EE]' : 'bg-[#4A5E78]'
+                isActive ? 'bg-[#1877F2]' : 'bg-[#3A3B3C]'
               }`}
             >
               <span
