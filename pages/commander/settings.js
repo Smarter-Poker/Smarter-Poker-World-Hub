@@ -100,7 +100,7 @@ export default function CommanderSettingsPage() {
   if (!staff || loading) {
     return (
       <div className="cmd-page flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
       </div>
     );
   }
@@ -122,13 +122,13 @@ export default function CommanderSettingsPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push('/commander/dashboard')}
-                className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
+                className="p-2 hover:bg-[#3A3B3C] rounded-lg transition-colors"
               >
-                <ArrowLeft className="w-5 h-5 text-[#64748B]" />
+                <ArrowLeft className="w-5 h-5 text-[#B0B3B8]" />
               </button>
               <div>
                 <h1 className="font-bold text-white text-lg">Settings</h1>
-                <p className="text-sm text-[#64748B]">{venue?.name}</p>
+                <p className="text-sm text-[#B0B3B8]">{venue?.name}</p>
               </div>
             </div>
 
@@ -153,8 +153,8 @@ export default function CommanderSettingsPage() {
         <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
           {/* Alerts */}
           {success && (
-            <div className="p-4 bg-[#10B981]/10 rounded-xl">
-              <p className="text-sm text-[#10B981] font-medium">{success}</p>
+            <div className="p-4 bg-[#31A24C]/10 rounded-xl">
+              <p className="text-sm text-[#31A24C] font-medium">{success}</p>
             </div>
           )}
           {error && (
@@ -173,15 +173,15 @@ export default function CommanderSettingsPage() {
 
           {/* Notifications */}
           <section className="cmd-panel">
-            <div className="p-4 border-b border-[#4A5E78]">
+            <div className="p-4 border-b border-[#3A3B3C]">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-[#22D3EE]/10 rounded-lg flex items-center justify-center">
-                  <Bell className="w-5 h-5 text-[#22D3EE]" />
+                <div className="w-10 h-10 bg-[#1877F2]/10 rounded-lg flex items-center justify-center">
+                  <Bell className="w-5 h-5 text-[#1877F2]" />
                 </div>
                 <h2 className="font-semibold text-white">Notifications</h2>
               </div>
             </div>
-            <div className="divide-y divide-[#4A5E78]">
+            <div className="divide-y divide-[#3A3B3C]">
               <SettingToggle
                 label="SMS Notifications"
                 description="Send text messages when calling players"
@@ -201,7 +201,7 @@ export default function CommanderSettingsPage() {
 
           {/* Waitlist */}
           <section className="cmd-panel">
-            <div className="p-4 border-b border-[#4A5E78]">
+            <div className="p-4 border-b border-[#3A3B3C]">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-[#F59E0B]/10 rounded-lg flex items-center justify-center">
                   <Clock className="w-5 h-5 text-[#F59E0B]" />
@@ -209,7 +209,7 @@ export default function CommanderSettingsPage() {
                 <h2 className="font-semibold text-white">Waitlist</h2>
               </div>
             </div>
-            <div className="divide-y divide-[#4A5E78]">
+            <div className="divide-y divide-[#3A3B3C]">
               <SettingNumber
                 label="Call Timeout (minutes)"
                 description="Time player has to respond after being called"
@@ -242,15 +242,15 @@ export default function CommanderSettingsPage() {
 
           {/* Display */}
           <section className="cmd-panel">
-            <div className="p-4 border-b border-[#4A5E78]">
+            <div className="p-4 border-b border-[#3A3B3C]">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-[#10B981]/10 rounded-lg flex items-center justify-center">
-                  <Users className="w-5 h-5 text-[#10B981]" />
+                <div className="w-10 h-10 bg-[#31A24C]/10 rounded-lg flex items-center justify-center">
+                  <Users className="w-5 h-5 text-[#31A24C]" />
                 </div>
                 <h2 className="font-semibold text-white">Display</h2>
               </div>
             </div>
-            <div className="divide-y divide-[#4A5E78]">
+            <div className="divide-y divide-[#3A3B3C]">
               <SettingToggle
                 label="Show Player Names"
                 description="Display full names on public screens"
@@ -271,20 +271,20 @@ export default function CommanderSettingsPage() {
           </section>
 
           {/* Navigation Links */}
-          <section className="cmd-panel divide-y divide-[#4A5E78]">
+          <section className="cmd-panel divide-y divide-[#3A3B3C]">
             <button
               onClick={() => router.push('/commander/tables')}
-              className="w-full p-4 flex items-center justify-between hover:bg-[#0B1426] transition-colors"
+              className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors"
             >
               <span className="font-medium text-white">Manage Tables</span>
-              <ChevronRight className="w-5 h-5 text-[#4A5E78]" />
+              <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
             </button>
             <button
               onClick={() => router.push('/commander/staff')}
-              className="w-full p-4 flex items-center justify-between hover:bg-[#0B1426] transition-colors"
+              className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors"
             >
               <span className="font-medium text-white">Manage Staff</span>
-              <ChevronRight className="w-5 h-5 text-[#4A5E78]" />
+              <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
             </button>
           </section>
         </main>
@@ -298,13 +298,13 @@ function SettingToggle({ label, description, enabled, onChange, disabled }) {
     <div className="p-4 flex items-center justify-between">
       <div>
         <p className="font-medium text-white">{label}</p>
-        <p className="text-sm text-[#64748B]">{description}</p>
+        <p className="text-sm text-[#B0B3B8]">{description}</p>
       </div>
       <button
         onClick={onChange}
         disabled={disabled}
         className={`w-12 h-7 rounded-full transition-colors relative ${
-          enabled ? 'bg-[#22D3EE]' : 'bg-[#4A5E78]'
+          enabled ? 'bg-[#1877F2]' : 'bg-[#3A3B3C]'
         } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         <span
@@ -322,7 +322,7 @@ function SettingNumber({ label, description, value, onChange, min, max, disabled
     <div className="p-4 flex items-center justify-between">
       <div>
         <p className="font-medium text-white">{label}</p>
-        <p className="text-sm text-[#64748B]">{description}</p>
+        <p className="text-sm text-[#B0B3B8]">{description}</p>
       </div>
       <input
         type="number"
