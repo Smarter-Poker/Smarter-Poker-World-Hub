@@ -48,29 +48,30 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
   const [ruleWarnings, setRuleWarnings] = useState([]);
   const [savedStakes, setSavedStakes] = useState([]);
   const [customStakes, setCustomStakes] = useState(false);
-  // showAdvanced removed - always show all fields
+  const [savedSwapNames, setSavedSwapNames] = useState([]);
+  const [savedStakerNames, setSavedStakerNames] = useState([]);
+  const [customSwapName, setCustomSwapName] = useState(false);
+  const [customStakerName, setCustomStakerName] = useState(false);
 
-  // Helper: convert 24h "HH:MM" to { time12: "H:MM", period: "AM"/"PM" }
+  // Helper: convert 24h "HH:MM" to { hour, min, period }
   const to12h = (time24) => {
-    if (!time24) return { time12: '', period: 'PM' };
+    if (!time24) return { hour: '', min: '', period: 'PM' };
     const [hStr, mStr] = time24.split(':');
     let h = parseInt(hStr, 10);
     const period = h >= 12 ? 'PM' : 'AM';
     if (h === 0) h = 12;
     else if (h > 12) h -= 12;
-    return { time12: `${h}:${mStr}`, period };
+    return { hour: h.toString(), min: mStr || '', period };
   };
 
-  // Helper: convert 12h "H:MM" + "AM"/"PM" to 24h "HH:MM"
-  const to24h = (time12, period) => {
-    if (!time12) return '';
-    const [hStr, mStr] = time12.split(':');
-    if (!hStr || !mStr) return '';
-    let h = parseInt(hStr, 10);
+  // Helper: convert separate hour + min + period to 24h "HH:MM"
+  const to24h = (hour, min, period) => {
+    if (!hour || min === '') return '';
+    let h = parseInt(hour, 10);
     if (isNaN(h)) return '';
     if (period === 'AM' && h === 12) h = 0;
     else if (period === 'PM' && h !== 12) h += 12;
-    return `${h.toString().padStart(2, '0')}:${mStr.padStart(2, '0')}`;
+    return `${h.toString().padStart(2, '0')}:${(min || '00').padStart(2, '0')}`;
   };
 
   // Form state
@@ -89,9 +90,11 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
         location_name: e.location_name || '',
         trip_id: e.trip_id || '',
         entry_date: e.entry_date || new Date().toISOString().split('T')[0],
-        start_time: start12.time12,
+        start_hour: start12.hour,
+        start_min: start12.min,
         start_period: start12.period,
-        end_time: end12.time12,
+        end_hour: end12.hour,
+        end_min: end12.min,
         end_period: end12.period,
         notes: e.notes || '',
         emotional_tag: e.emotional_tag || '',
@@ -117,9 +120,11 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
       location_name: '',
       trip_id: '',
       entry_date: new Date().toISOString().split('T')[0],
-      start_time: '',
+      start_hour: '',
+      start_min: '',
       start_period: 'PM',
-      end_time: '',
+      end_hour: '',
+      end_min: '',
       end_period: 'PM',
       notes: '',
       emotional_tag: '',
@@ -188,6 +193,16 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
       });
   }, [userId]);
 
+  // Load saved swap/staker names from localStorage
+  useEffect(() => {
+    try {
+      const swapRaw = localStorage.getItem('bankroll_swap_names');
+      if (swapRaw) setSavedSwapNames(JSON.parse(swapRaw));
+      const stakerRaw = localStorage.getItem('bankroll_staker_names');
+      if (stakerRaw) setSavedStakerNames(JSON.parse(stakerRaw));
+    } catch (_) { /* ignore */ }
+  }, []);
+
   // Auto-attach active trip for new entries
   useEffect(() => {
     if (!userId || isEditMode) return;
@@ -242,11 +257,11 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
         location_id: locationId || null,
         trip_id: formData.trip_id || null,
         entry_date: formData.entry_date,
-        start_time: formData.start_time
-          ? `${formData.entry_date}T${to24h(formData.start_time, formData.start_period)}:00`
+        start_time: formData.start_hour
+          ? `${formData.entry_date}T${to24h(formData.start_hour, formData.start_min, formData.start_period)}:00`
           : null,
-        end_time: formData.end_time
-          ? `${formData.entry_date}T${to24h(formData.end_time, formData.end_period)}:00`
+        end_time: formData.end_hour
+          ? `${formData.entry_date}T${to24h(formData.end_hour, formData.end_min, formData.end_period)}:00`
           : null,
         gross_in: parseFloat(formData.gross_in) || 0,
         gross_out: parseFloat(formData.gross_out) || 0,
@@ -276,6 +291,23 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
           if (stakerAmt > 0) parts.push(`Staked by: ${formData.staker_name || 'Unknown'} — $${stakerAmt}`);
           const extra = parts.join(' | ');
           entry.notes = entry.notes ? `${entry.notes}\n${extra}` : extra;
+        }
+        // Save swap/staker names to localStorage for future use
+        if (formData.swap_player) {
+          try {
+            const prev = JSON.parse(localStorage.getItem('bankroll_swap_names') || '[]');
+            const updated = [...new Set([...prev, formData.swap_player])].sort();
+            localStorage.setItem('bankroll_swap_names', JSON.stringify(updated));
+            setSavedSwapNames(updated);
+          } catch (_) { }
+        }
+        if (formData.staker_name) {
+          try {
+            const prev = JSON.parse(localStorage.getItem('bankroll_staker_names') || '[]');
+            const updated = [...new Set([...prev, formData.staker_name])].sort();
+            localStorage.setItem('bankroll_staker_names', JSON.stringify(updated));
+            setSavedStakerNames(updated);
+          } catch (_) { }
         }
       } else if (category === 'casino_table') {
         entry.casino_game = formData.casino_game || null;
@@ -546,13 +578,43 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
               <div style={styles.amountRow}>
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Player Name</label>
-                  <input
-                    type="text"
-                    value={formData.swap_player}
-                    onChange={(e) => handleInputChange('swap_player', e.target.value)}
-                    placeholder="e.g., Mike"
-                    style={styles.input}
-                  />
+                  {savedSwapNames.length > 0 && !customSwapName ? (
+                    <select
+                      value={formData.swap_player}
+                      onChange={(e) => {
+                        if (e.target.value === '__custom__') {
+                          setCustomSwapName(true);
+                          handleInputChange('swap_player', '');
+                        } else {
+                          handleInputChange('swap_player', e.target.value);
+                        }
+                      }}
+                      style={styles.select}
+                    >
+                      <option value="">Select player...</option>
+                      {savedSwapNames.map(n => (
+                        <option key={n} value={n}>{n}</option>
+                      ))}
+                      <option value="__custom__">+ New Name</option>
+                    </select>
+                  ) : (
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <input
+                        type="text"
+                        value={formData.swap_player}
+                        onChange={(e) => handleInputChange('swap_player', e.target.value)}
+                        placeholder="e.g., Mike"
+                        style={{ ...styles.input, flex: 1 }}
+                      />
+                      {savedSwapNames.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setCustomSwapName(false)}
+                          style={{ ...styles.input, flex: 'none', width: 40, cursor: 'pointer', textAlign: 'center', padding: 0 }}
+                        >↩</button>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Swap Amount ($)</label>
@@ -576,13 +638,43 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
               <div style={styles.amountRow}>
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Staker Name</label>
-                  <input
-                    type="text"
-                    value={formData.staker_name}
-                    onChange={(e) => handleInputChange('staker_name', e.target.value)}
-                    placeholder="e.g., John"
-                    style={styles.input}
-                  />
+                  {savedStakerNames.length > 0 && !customStakerName ? (
+                    <select
+                      value={formData.staker_name}
+                      onChange={(e) => {
+                        if (e.target.value === '__custom__') {
+                          setCustomStakerName(true);
+                          handleInputChange('staker_name', '');
+                        } else {
+                          handleInputChange('staker_name', e.target.value);
+                        }
+                      }}
+                      style={styles.select}
+                    >
+                      <option value="">Select staker...</option>
+                      {savedStakerNames.map(n => (
+                        <option key={n} value={n}>{n}</option>
+                      ))}
+                      <option value="__custom__">+ New Name</option>
+                    </select>
+                  ) : (
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <input
+                        type="text"
+                        value={formData.staker_name}
+                        onChange={(e) => handleInputChange('staker_name', e.target.value)}
+                        placeholder="e.g., John"
+                        style={{ ...styles.input, flex: 1 }}
+                      />
+                      {savedStakerNames.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setCustomStakerName(false)}
+                          style={{ ...styles.input, flex: 'none', width: 40, cursor: 'pointer', textAlign: 'center', padding: 0 }}
+                        >↩</button>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Amount Paid ($)</label>
@@ -783,25 +875,37 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
           <div style={styles.amountRow}>
             <div style={styles.formGroup}>
               <label style={styles.label}>Start Time</label>
-              <div style={{ display: 'flex', gap: 6 }}>
+              <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                 <input
-                  type="text"
-                  value={formData.start_time}
+                  type="number"
+                  value={formData.start_hour}
                   onChange={(e) => {
-                    let v = e.target.value.replace(/[^0-9:]/g, '');
-                    // Auto-insert colon after typing 1-2 digits
-                    if (v.length === 2 && !v.includes(':')) v += ':';
-                    if (v.length > 5) v = v.substring(0, 5);
-                    handleInputChange('start_time', v);
+                    let v = e.target.value.replace(/\D/g, '');
+                    if (parseInt(v) > 12) v = '12';
+                    handleInputChange('start_hour', v);
                   }}
-                  placeholder="H:MM"
-                  style={{ ...styles.input, flex: 1 }}
-                  maxLength={5}
+                  placeholder="H"
+                  style={{ ...styles.input, width: 44, textAlign: 'center', padding: '10px 4px' }}
+                  min={1} max={12} maxLength={2}
+                />
+                <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 16, fontWeight: 700 }}>:</span>
+                <input
+                  type="number"
+                  value={formData.start_min}
+                  onChange={(e) => {
+                    let v = e.target.value.replace(/\D/g, '');
+                    if (v.length > 2) v = v.substring(0, 2);
+                    if (parseInt(v) > 59) v = '59';
+                    handleInputChange('start_min', v);
+                  }}
+                  placeholder="MM"
+                  style={{ ...styles.input, width: 48, textAlign: 'center', padding: '10px 4px' }}
+                  min={0} max={59} maxLength={2}
                 />
                 <select
                   value={formData.start_period}
                   onChange={(e) => handleInputChange('start_period', e.target.value)}
-                  style={{ ...styles.input, width: 70, flex: 'none', textAlign: 'center' }}
+                  style={{ ...styles.input, width: 62, flex: 'none', textAlign: 'center', padding: '10px 2px' }}
                 >
                   <option value="AM">AM</option>
                   <option value="PM">PM</option>
@@ -810,24 +914,37 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
             </div>
             <div style={styles.formGroup}>
               <label style={styles.label}>End Time</label>
-              <div style={{ display: 'flex', gap: 6 }}>
+              <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                 <input
-                  type="text"
-                  value={formData.end_time}
+                  type="number"
+                  value={formData.end_hour}
                   onChange={(e) => {
-                    let v = e.target.value.replace(/[^0-9:]/g, '');
-                    if (v.length === 2 && !v.includes(':')) v += ':';
-                    if (v.length > 5) v = v.substring(0, 5);
-                    handleInputChange('end_time', v);
+                    let v = e.target.value.replace(/\D/g, '');
+                    if (parseInt(v) > 12) v = '12';
+                    handleInputChange('end_hour', v);
                   }}
-                  placeholder="H:MM"
-                  style={{ ...styles.input, flex: 1 }}
-                  maxLength={5}
+                  placeholder="H"
+                  style={{ ...styles.input, width: 44, textAlign: 'center', padding: '10px 4px' }}
+                  min={1} max={12} maxLength={2}
+                />
+                <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 16, fontWeight: 700 }}>:</span>
+                <input
+                  type="number"
+                  value={formData.end_min}
+                  onChange={(e) => {
+                    let v = e.target.value.replace(/\D/g, '');
+                    if (v.length > 2) v = v.substring(0, 2);
+                    if (parseInt(v) > 59) v = '59';
+                    handleInputChange('end_min', v);
+                  }}
+                  placeholder="MM"
+                  style={{ ...styles.input, width: 48, textAlign: 'center', padding: '10px 4px' }}
+                  min={0} max={59} maxLength={2}
                 />
                 <select
                   value={formData.end_period}
                   onChange={(e) => handleInputChange('end_period', e.target.value)}
-                  style={{ ...styles.input, width: 70, flex: 'none', textAlign: 'center' }}
+                  style={{ ...styles.input, width: 62, flex: 'none', textAlign: 'center', padding: '10px 2px' }}
                 >
                   <option value="AM">AM</option>
                   <option value="PM">PM</option>
