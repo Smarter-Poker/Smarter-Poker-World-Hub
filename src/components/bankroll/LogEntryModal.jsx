@@ -100,6 +100,8 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
         emotional_tag: e.emotional_tag || '',
         stakes: e.stakes || '',
         game_type: e.game_type || 'nlhe',
+        inline_expense_amount: '',
+        inline_expense_type: '',
         tournament_name: e.tournament_name || '',
         buy_in_amount: e.buy_in_amount?.toString() || '',
         finish_position: e.finish_position?.toString() || '',
@@ -141,6 +143,8 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
       odds: '',
       bet_result: '',
       expense_type: '',
+      inline_expense_amount: '',
+      inline_expense_type: '',
       swap_player: '',
       swap_amount: '',
       staker_name: '',
@@ -269,6 +273,17 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
         media_urls: mediaFiles.length > 0 ? mediaFiles : null,
         emotional_tag: formData.emotional_tag || null,
       };
+
+      // Inline expense: deduct from gross_out and record in notes (for all non-expense categories)
+      const inlineExp = parseFloat(formData.inline_expense_amount) || 0;
+      if (category !== 'expense' && inlineExp > 0) {
+        entry.gross_out = Math.max(0, (entry.gross_out || 0) - inlineExp);
+        const expLabel = formData.inline_expense_type
+          ? formData.inline_expense_type.charAt(0).toUpperCase() + formData.inline_expense_type.slice(1).replace('_', ' ')
+          : 'Expense';
+        const expNote = `${expLabel}: -$${inlineExp.toFixed(2)}`;
+        entry.notes = entry.notes ? `${entry.notes}\n${expNote}` : expNote;
+      }
 
       // Add category-specific fields
       if (category === 'poker_cash') {
@@ -969,6 +984,41 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
             ))}
           </select>
         </div>
+
+        {/* Inline Expense — available on all non-expense categories */}
+        {!isExpense && (
+          <div style={{ ...styles.formGroup, padding: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
+            <label style={{ ...styles.label, fontSize: 13, color: '#9ca3af', marginBottom: 8 }}>💸 Session Expense (optional)</label>
+            <div style={styles.amountRow}>
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Type</label>
+                <select
+                  value={formData.inline_expense_type}
+                  onChange={(e) => handleInputChange('inline_expense_type', e.target.value)}
+                  style={styles.select}
+                >
+                  <option value="">None</option>
+                  {EXPENSE_TYPES.map((t) => (
+                    <option key={t} value={t}>
+                      {t.charAt(0).toUpperCase() + t.slice(1).replace('_', ' ')}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Amount ($)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.inline_expense_amount}
+                  onChange={(e) => handleInputChange('inline_expense_amount', e.target.value)}
+                  placeholder="0.00"
+                  style={styles.input}
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         <div style={styles.formGroup}>
           <label style={styles.label}>Session Notes</label>
