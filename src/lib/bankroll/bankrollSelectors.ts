@@ -913,12 +913,15 @@ export async function adjustBankroll(
     .eq('segment_type', 'poker');
 
   // Log as ledger entry for audit trail
+  // gross_in = money put on table (buy-in), gross_out = money taken off (cashout)
+  // deposit: money added to bankroll → gross_out (like cashing out from an ATM into your roll)
+  // withdrawal: money removed from bankroll → gross_in (like buying in / spending)
   await supabase.from('bankroll_ledger').insert({
     user_id: userId,
     category: type,
     entry_date: new Date().toISOString().split('T')[0],
-    gross_in: type === 'deposit' ? amount : 0,
-    gross_out: type === 'withdrawal' ? amount : 0,
+    gross_in: type === 'withdrawal' ? amount : 0,
+    gross_out: type === 'deposit' ? amount : 0,
     net_result: signedAmount,
     notes: reason || (type === 'deposit' ? 'Bankroll deposit' : 'Bankroll withdrawal'),
     is_adjustment: true,

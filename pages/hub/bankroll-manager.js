@@ -1040,17 +1040,8 @@ export default function BankrollManagerPage() {
 
           {/* Right Sidebar - Assistant Panel */}
           <aside style={styles.assistantPanel}>
-            {/* Session Timer */}
-            <SessionTimer
-              onOpenLog={(prefill) => {
-                handleLogClick();
-              }}
-            />
-
             {/* Jarvis AI Insights */}
             <JarvisLeakInsights userId={userId} onRefresh={loadData} />
-
-            {/* Streaks & Gamification */}
 
             {/* Goals */}
             <BankrollGoals
@@ -1065,24 +1056,8 @@ export default function BankrollManagerPage() {
             {/* Variance Calculator */}
             <VarianceCalculator entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} />
 
-            {/* Heat Map */}
-            <BankrollHeatMap entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} />
-
             {/* Location Analytics */}
             <LocationAnalytics entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} isLoading={isLoading} />
-
-            <LeakAlertPanel
-              leakAnalysis={leakAnalysis}
-              locationId={locationFilter}
-              isLoading={isLoading}
-            />
-
-            <BankrollRulesCard userId={userId} />
-
-            <button style={styles.logTodayButton} onClick={handleLogClick}>
-              Log Today's Session
-              <span style={styles.logArrow}>›</span>
-            </button>
           </aside>
         </div>
       </div>
