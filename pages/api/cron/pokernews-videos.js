@@ -6,7 +6,7 @@
  * Ingests them as "social_reels" for the PokerNews bot persona.
  *
  * CHANNEL ID: UCSu1ww_wgD0XD66C1ESrIGQ (@pokernewsdotcom)
- * SCHEDULE: Runs every 6 hours
+ * SCHEDULE: Runs every 2 hours
  *
  * ═══════════════════════════════════════════════════════════════════════════
  */

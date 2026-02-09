@@ -1,19 +1,19 @@
 /**
- * 🎬 YOUTUBE SHORTS POKER SCRAPER
+ * 🎬 YOUTUBE POKER VIDEO & SHORTS SCRAPER (RSS-Based)
  * ═══════════════════════════════════════════════════════════════════════════
  *
- * Scrapes poker Shorts from top YouTube channels
- * Posts to social_reels table as SmarterPokerOfficial account
+ * Scrapes latest videos from top poker YouTube channels via RSS feeds.
+ * Posts to social_reels table as SmarterPokerOfficial account.
  *
- * Channels:
- * - PokerGO, Doug Polk, Jonathan Little, Upswing Poker
- * - Daniel Negreanu, WSOP, PokerStars, partypoker
- * - Hustler Casino Live, Poker Clips channels
+ * Uses YouTube RSS feeds (https://www.youtube.com/feeds/videos.xml?channel_id=XXX)
+ * which return the 15 most recent uploads in chronological order.
+ * This is far more reliable than HTML scraping which returns popular/trending videos.
  *
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
 import { createClient } from '@supabase/supabase-js';
+import Parser from 'rss-parser';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -21,239 +21,127 @@ const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY || ANON_KEY);
 
+const parser = new Parser({
+    headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
+    }
+});
+
 // SmarterPokerOfficial system account UUID
 const SYSTEM_ACCOUNT_UUID = '00000000-0000-0000-0000-000000000001';
 
 const CONFIG = {
-    MAX_REELS_PER_CHANNEL: 5,
-    MAX_TOTAL_REELS: 30,
-    REQUEST_TIMEOUT: 15000,
-    REQUEST_DELAY: 1000
+    MAX_VIDEOS_PER_CHANNEL: 3,
+    MAX_TOTAL_VIDEOS: 50,
+    REQUEST_DELAY: 500
 };
 
-// Top poker YouTube channels with their channel handles/IDs
+// Verified YouTube channel IDs (extracted Feb 2026)
 const POKER_CHANNELS = [
     // Major Poker Media
-    { name: 'PokerGO', handle: '@PokerGO' },
-    { name: 'WSOP', handle: '@WSOP' },
-    { name: 'PokerStars', handle: '@PokerStars' },
-    { name: 'WPT', handle: '@WPT' },
-    { name: 'PokerNews', handle: '@PokerNews' },
-    { name: '888poker', handle: '@888aborrajartista' },
+    { name: 'PokerGO', channelId: 'UCOPw3R-TUUNqgN2bQyidW2w' },
+    { name: 'WSOP', channelId: 'UC9m6fb3RXf-W90fH3KkZAJw' },
+    { name: 'PokerStars', channelId: 'UCGWkDcYbDKP9r--ym28YwAQ' },
+    { name: 'World Poker Tour', channelId: 'UCEUGxpG2rkyJlCvr46PBr6g' },
+    { name: 'PokerNews', channelId: 'UCSu1ww_wgD0XD66C1ESrIGQ' },
 
     // Popular Vloggers & Pros
-    { name: 'Doug Polk Poker', handle: '@DougPolkVlogs' },
-    { name: 'Brad Owen', handle: '@TheBradOwenShow' },
-    { name: 'Andrew Neeme', handle: '@AndrewNeeme' },
-    { name: 'Rampage Poker', handle: '@RampagePoker' },
-    { name: 'Mariano', handle: '@maraborern' },
-    { name: 'Wolfgang Poker', handle: '@WolfgangPoker' },
-    { name: 'Jaman Burton', handle: '@JamanBurton' },
+    { name: 'Doug Polk Poker', channelId: 'UCyI7FNTudkyALBh9N7hwI9Q' },
+    { name: 'Brad Owen Poker', channelId: 'UCxYljUelq6VBk4m8dM-7NVA' },
+    { name: 'Andrew Neeme', channelId: 'UCLTP4Ns4v8EsVS0DVGugQrQ' },
+    { name: 'Rampage Poker', channelId: 'UCToA-j1kPYHmllFVQ5k2rYg' },
+    { name: 'Wolfgang Poker', channelId: 'UCNmJnAkKIn5ce2QLHIKk3aw' },
+    { name: 'Jaman Burton', channelId: 'UCwsmVceG4i2AK6u3LicPwBA' },
 
     // Training & Strategy
-    { name: 'Jonathan Little', handle: '@JonathanLittlePoker' },
-    { name: 'Upswing Poker', handle: '@UpswingPoker' },
-    { name: 'PokerCoaching', handle: '@pokercoaching' },
-    { name: 'Solve For Why', handle: '@SolveForWhyAcademy' },
-    { name: 'Run It Once', handle: '@RunItOnce' },
+    { name: 'Poker Coaching', channelId: 'UCOWqXBOz_hoBtaqwWN_kaQQ' },
+    { name: 'Upswing Poker', channelId: 'UCHyxrwq_j4vcReGKd42tWyw' },
+    { name: 'Solve For Why', channelId: 'UCfTYOriUd_yOkUUgoDZX71w' },
+    { name: 'Run It Once', channelId: 'UCs_Zf4zS6x_jsvyBg7FrJnw' },
 
     // High Stakes & Live
-    { name: 'Hustler Casino Live', handle: '@HustlerCasinoLive' },
-    { name: 'Live at the Bike', handle: '@liveatthebike' },
-    { name: 'Poker Bunny', handle: '@pokerbunny' },
+    { name: 'Hustler Casino Live', channelId: 'UCQe7wB0o_cZgv1miyYB9TMA' },
+    { name: 'Bally Poker Live', channelId: 'UCvOEO35ieBuL-KdV0fXiuag' },
+    { name: 'Poker Bunny', channelId: 'UCtXO6IVrDZC6W9okqqaQ-wQ' },
 
     // Pro Players
-    { name: 'Daniel Negreanu', handle: '@DNegs' },
-    { name: 'Phil Hellmuth', handle: '@PhilHellmuth' },
-    { name: 'Lex Veldhuis', handle: '@LexVeldhuis' },
-    { name: 'Matt Berkey', handle: '@SolvingPokerLive' }
+    { name: 'Daniel Negreanu', channelId: 'UC0w4AA42ItXQEb9aZld87-w' },
+    { name: 'Phil Hellmuth', channelId: 'UCmJjB85zuQcX8-uuihyOnkg' },
+    { name: 'Lex Veldhuis', channelId: 'UCXbZOVqJf4DFzMSJH2heJmw' },
 ];
 
 async function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function fetchPage(url) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), CONFIG.REQUEST_TIMEOUT);
+async function fetchChannelVideos(channel) {
+    const videos = [];
+    const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channel.channelId}`;
+
+    console.log(`   📺 Fetching ${channel.name} RSS feed...`);
 
     try {
-        const response = await fetch(url, {
-            signal: controller.signal,
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.9'
-            }
-        });
-        clearTimeout(timeout);
-        if (!response.ok) return null;
-        return await response.text();
-    } catch (error) {
-        clearTimeout(timeout);
-        console.error(`   Failed to fetch ${url}:`, error.message);
-        return null;
-    }
-}
+        const feed = await parser.parseURL(rssUrl);
 
-function cleanText(text) {
-    if (!text) return '';
-    return text
-        .replace(/\\u0026/g, '&')
-        .replace(/\\u003c/g, '<')
-        .replace(/\\u003e/g, '>')
-        .replace(/\\"/g, '"')
-        .replace(/\\/g, '')
-        .replace(/\n/g, ' ')
-        .trim();
-}
-
-async function scrapeChannelShorts(channel) {
-    const shorts = [];
-    const shortsUrl = `https://www.youtube.com/${channel.handle}/shorts`;
-
-    console.log(`   📺 Scraping ${channel.name} shorts...`);
-
-    const html = await fetchPage(shortsUrl);
-    if (!html) {
-        console.log(`   ⚠️ Could not fetch ${channel.name} shorts page`);
-        return shorts;
-    }
-
-    // Extract video data from YouTube's initial data JSON
-    // YouTube embeds video data in ytInitialData variable
-    const dataMatch = html.match(/var ytInitialData = ({.+?});/s);
-    if (!dataMatch) {
-        // Try alternative pattern
-        const altMatch = html.match(/ytInitialData["\s]*[=:]\s*({.+?});/s);
-        if (!altMatch) {
-            console.log(`   ⚠️ Could not find video data for ${channel.name}`);
-            return shorts;
+        if (!feed.items || feed.items.length === 0) {
+            console.log(`   ⚠️ No items in ${channel.name} feed`);
+            return videos;
         }
+
+        console.log(`   Found ${feed.items.length} videos for ${channel.name}`);
+
+        // Take the most recent videos up to the per-channel limit
+        for (const item of feed.items.slice(0, CONFIG.MAX_VIDEOS_PER_CHANNEL)) {
+            const videoUrl = item.link;
+            const title = item.title;
+            const publishedAt = item.isoDate || item.pubDate;
+
+            if (!videoUrl || !title) continue;
+
+            // Extract video ID from URL
+            const videoIdMatch = videoUrl.match(/(?:v=|\/shorts\/)([a-zA-Z0-9_-]{11})/);
+            const videoId = videoIdMatch ? videoIdMatch[1] : null;
+
+            // Also try yt:videoId from the feed
+            const ytVideoId = videoId || item.id?.replace('yt:video:', '') || null;
+
+            if (!ytVideoId) continue;
+
+            // Build both possible URLs (regular video and shorts)
+            const watchUrl = `https://www.youtube.com/watch?v=${ytVideoId}`;
+            const shortsUrl = `https://www.youtube.com/shorts/${ytVideoId}`;
+
+            videos.push({
+                video_id: ytVideoId,
+                video_url: watchUrl,
+                shorts_url: shortsUrl,
+                title: title.substring(0, 200),
+                thumbnail_url: `https://i.ytimg.com/vi/${ytVideoId}/hqdefault.jpg`,
+                channel_name: channel.name,
+                published_at: publishedAt
+            });
+        }
+    } catch (error) {
+        console.error(`   ❌ RSS Error for ${channel.name}: ${error.message}`);
     }
 
-    // Extract video IDs from the page using regex patterns
-    // Shorts URLs follow pattern: /shorts/VIDEO_ID
-    const shortIdPattern = /\/shorts\/([a-zA-Z0-9_-]{11})/g;
-    const matches = [...html.matchAll(shortIdPattern)];
-    const uniqueIds = [...new Set(matches.map(m => m[1]))];
-
-    console.log(`   Found ${uniqueIds.length} shorts for ${channel.name}`);
-
-    // Extract titles - they appear near the video IDs in the JSON
-    const titlePattern = /"title":\s*\{"runs":\s*\[\{"text":\s*"([^"]+)"\}\]/g;
-    const allTitles = [...html.matchAll(titlePattern)].map(m => cleanText(m[1]));
-
-    // Filter out YouTube UI text that gets scraped as titles
-    const INVALID_TITLES = [
-        'keyboard shortcuts',
-        'sign in to youtube',
-        'sign in',
-        'watch on youtube',
-        'share',
-        'save',
-        'report',
-        'transcript',
-        'show transcript',
-        'more videos',
-        'autoplay',
-        'settings',
-        'full screen',
-        'theater mode',
-        'miniplayer',
-        'watch later',
-        'like',
-        'dislike',
-        'subscribe',
-        'subscribed',
-        'notifications',
-        'playlist',
-        'queue',
-        'subtitles and closed captions',
-        'subtitles',
-        'closed captions',
-        'general',
-        'playback',
-        'spherical videos',
-        'annotations',
-        'cards',
-        'end screens',
-        'quality',
-        'speed',
-        'stats for nerds',
-        'help',
-        'send feedback',
-        'keyboard',
-        'about',
-        'press',
-        'copyright',
-        'contact us',
-        'creators',
-        'advertise',
-        'developers',
-        'terms',
-        'privacy',
-        'policy & safety',
-        'how youtube works',
-        'test new features'
-    ];
-
-    const titles = allTitles.filter(title => {
-        const lowerTitle = title.toLowerCase().trim();
-        // Filter out empty titles, very short titles, and known UI text
-        if (!title || title.length < 3) return false;
-        if (INVALID_TITLES.includes(lowerTitle)) return false;
-        // Filter out titles that are just numbers or symbols
-        if (/^[\d\s\W]+$/.test(title)) return false;
-        return true;
-    });
-
-    // Extract view counts
-    const viewPattern = /"viewCountText":\s*\{"simpleText":\s*"([^"]+)"\}/g;
-    const views = [...html.matchAll(viewPattern)].map(m => {
-        const viewStr = m[1].replace(/[^0-9KMB.]/gi, '');
-        if (viewStr.includes('K')) return Math.round(parseFloat(viewStr) * 1000);
-        if (viewStr.includes('M')) return Math.round(parseFloat(viewStr) * 1000000);
-        if (viewStr.includes('B')) return Math.round(parseFloat(viewStr) * 1000000000);
-        return parseInt(viewStr) || 0;
-    });
-
-    // Build shorts objects
-    for (let i = 0; i < Math.min(uniqueIds.length, CONFIG.MAX_REELS_PER_CHANNEL); i++) {
-        const videoId = uniqueIds[i];
-        // Use filtered titles, fallback to channel name if no valid title found
-        const title = titles[i] || `${channel.name} Poker Short`;
-        const viewCount = views[i] || 0;
-
-        shorts.push({
-            youtube_id: videoId,
-            video_url: `https://www.youtube.com/shorts/${videoId}`,
-            title: title.substring(0, 200),
-            thumbnail_url: `https://i.ytimg.com/vi/${videoId}/oar2.jpg`,
-            channel_name: channel.name,
-            duration_seconds: 60,
-            view_count: viewCount
-        });
-    }
-
-    return shorts;
+    return videos;
 }
 
-async function saveReels(reels) {
+async function saveVideos(videos) {
     let saved = 0;
     let skipped = 0;
 
-    // Get existing video URLs to avoid duplicates
+    // Get ALL existing video URLs to avoid duplicates (check both watch and shorts URLs)
     const { data: existingReels } = await supabase
         .from('social_reels')
-        .select('video_url')
-        .eq('author_id', SYSTEM_ACCOUNT_UUID);
+        .select('video_url');
 
     const existingUrls = new Set(existingReels?.map(r => r.video_url) || []);
 
-    for (const reel of reels) {
-        // Skip if already exists
-        if (existingUrls.has(reel.video_url)) {
+    for (const video of videos) {
+        // Skip if either the watch URL or shorts URL already exists
+        if (existingUrls.has(video.video_url) || existingUrls.has(video.shorts_url)) {
             skipped++;
             continue;
         }
@@ -262,20 +150,26 @@ async function saveReels(reels) {
             .from('social_reels')
             .insert({
                 author_id: SYSTEM_ACCOUNT_UUID,
-                video_url: reel.video_url,
-                caption: `🎬 ${reel.title}\n\n📺 From: ${reel.channel_name}\n#poker #pokershorts`,
-                thumbnail_url: reel.thumbnail_url,
-                view_count: reel.view_count,
-                is_public: true
+                video_url: video.video_url,
+                caption: `🎬 ${video.title}\n\n📺 From: ${video.channel_name}\n#poker #pokershorts`,
+                thumbnail_url: video.thumbnail_url,
+                is_public: true,
+                created_at: video.published_at || new Date().toISOString()
             })
             .select()
             .single();
 
         if (data && !error) {
             saved++;
-            existingUrls.add(reel.video_url); // Track newly added
+            existingUrls.add(video.video_url);
+            existingUrls.add(video.shorts_url);
+            console.log(`   ✅ Saved: ${video.title.substring(0, 50)}...`);
         } else if (error) {
-            console.error(`   Error saving reel:`, error.message);
+            // Silently skip unique constraint violations
+            if (!error.message.includes('duplicate') && !error.message.includes('unique')) {
+                console.error(`   Error saving video:`, error.message);
+            }
+            skipped++;
         }
     }
 
@@ -285,9 +179,10 @@ async function saveReels(reels) {
 export default async function handler(req, res) {
     console.log('\n');
     console.log('═'.repeat(70));
-    console.log('🎬 YOUTUBE SHORTS POKER SCRAPER');
+    console.log('🎬 YOUTUBE POKER VIDEO SCRAPER (RSS)');
     console.log('═'.repeat(70));
     console.log(`⏰ Started at: ${new Date().toISOString()}`);
+    console.log(`📡 Channels: ${POKER_CHANNELS.length}`);
 
     try {
         // Verify system account exists
@@ -301,34 +196,40 @@ export default async function handler(req, res) {
             console.error('❌ System account not found!');
             return res.status(500).json({
                 success: false,
-                error: 'System account not found. Run /api/system/setup-account first.'
+                error: 'System account not found.'
             });
         }
 
         console.log(`✅ Posting as: ${systemAccount.username}`);
 
-        const allReels = [];
+        const allVideos = [];
+        const channelResults = {};
 
         for (const channel of POKER_CHANNELS) {
-            if (allReels.length >= CONFIG.MAX_TOTAL_REELS) {
-                console.log(`   Reached max reels limit (${CONFIG.MAX_TOTAL_REELS})`);
+            if (allVideos.length >= CONFIG.MAX_TOTAL_VIDEOS) {
+                console.log(`   Reached max videos limit (${CONFIG.MAX_TOTAL_VIDEOS})`);
                 break;
             }
 
-            const shorts = await scrapeChannelShorts(channel);
-            allReels.push(...shorts);
+            const videos = await fetchChannelVideos(channel);
+            channelResults[channel.name] = videos.length;
+            allVideos.push(...videos);
 
             // Be respectful with rate limiting
             await delay(CONFIG.REQUEST_DELAY);
         }
 
-        console.log(`\n📹 Total reels found: ${allReels.length}`);
+        console.log(`\n📹 Total videos found: ${allVideos.length}`);
 
-        const { saved, skipped } = await saveReels(allReels);
+        const { saved, skipped } = await saveVideos(allVideos);
 
-        console.log('\n═'.repeat(70));
+        console.log('\n' + '═'.repeat(70));
         console.log(`📊 SUMMARY`);
-        console.log(`   Found: ${allReels.length}`);
+        console.log(`   Channels scraped: ${POKER_CHANNELS.length}`);
+        for (const [name, count] of Object.entries(channelResults)) {
+            console.log(`   ${name}: ${count} videos`);
+        }
+        console.log(`   Total found: ${allVideos.length}`);
         console.log(`   Saved: ${saved}`);
         console.log(`   Skipped (duplicates): ${skipped}`);
         console.log('═'.repeat(70));
@@ -338,7 +239,7 @@ export default async function handler(req, res) {
             timestamp: new Date().toISOString(),
             account: systemAccount.username,
             channels_scraped: POKER_CHANNELS.length,
-            found: allReels.length,
+            found: allVideos.length,
             saved,
             skipped
         });
