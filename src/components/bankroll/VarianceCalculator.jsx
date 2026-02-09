@@ -1,99 +1,55 @@
 /**
  * VARIANCE CALCULATOR
- * Statistical analysis with standard deviation and confidence intervals
+ * Statistical analysis — driven by entries prop for real-time filter reactivity
  */
 
-import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { useMemo } from 'react';
 
-export default function VarianceCalculator({ userId }) {
-    const [stats, setStats] = useState(null);
-    const [isLoading, setIsLoading] = useState(true);
+export default function VarianceCalculator({ entries = [] }) {
+    const stats = useMemo(() => {
+        if (!entries || entries.length < 2) return null;
 
-    useEffect(() => {
-        if (userId) loadStats();
-    }, [userId]);
+        const results = entries.map(e => (e.gross_out || 0) - (e.gross_in || 0));
+        const mean = results.reduce((a, b) => a + b, 0) / results.length;
+        const squaredDiffs = results.map(r => Math.pow(r - mean, 2));
+        const variance = squaredDiffs.reduce((a, b) => a + b, 0) / results.length;
+        const stdDev = Math.sqrt(variance);
 
-    async function loadStats() {
-        setIsLoading(true);
-        try {
-            // Fetch all sessions
-            const { data: entries } = await supabase
-                .from('bankroll_ledger')
-                .select('gross_in, gross_out, start_time, end_time')
-                .eq('user_id', userId)
-                .order('entry_date', { ascending: false })
-                .limit(200);
+        // 95% confidence interval
+        const z = 1.96;
+        const marginOfError = z * (stdDev / Math.sqrt(results.length));
 
-            if (!entries || entries.length < 2) {
-                setStats(null);
-                setIsLoading(false);
-                return;
-            }
+        // Hourly rate (assumes ~3hr avg)
+        const hourlyRate = mean / 3;
 
-            // Calculate results array
-            const results = entries.map(e => (e.gross_out || 0) - (e.gross_in || 0));
+        // Extremes
+        const biggestWin = Math.max(...results);
+        const biggestLoss = Math.min(...results);
 
-            // Mean
-            const mean = results.reduce((a, b) => a + b, 0) / results.length;
+        // Max drawdown
+        let maxDrawdown = 0, peak = 0, runningTotal = 0;
+        [...results].reverse().forEach(r => {
+            runningTotal += r;
+            if (runningTotal > peak) peak = runningTotal;
+            const drawdown = peak - runningTotal;
+            if (drawdown > maxDrawdown) maxDrawdown = drawdown;
+        });
 
-            // Standard Deviation
-            const squaredDiffs = results.map(r => Math.pow(r - mean, 2));
-            const variance = squaredDiffs.reduce((a, b) => a + b, 0) / results.length;
-            const stdDev = Math.sqrt(variance);
-
-            // Confidence interval (95%)
-            const z = 1.96; // 95% CI
-            const marginOfError = z * (stdDev / Math.sqrt(results.length));
-
-            // Hourly rate estimate (assumes 3 hour sessions on average)
-            const avgSessionHours = 3;
-            const hourlyRate = mean / avgSessionHours;
-            const hourlyStdDev = stdDev / avgSessionHours;
-
-            // Biggest win/loss
-            const biggestWin = Math.max(...results);
-            const biggestLoss = Math.min(...results);
-
-            // Downswing calculation
-            let maxDrawdown = 0;
-            let peak = 0;
-            let runningTotal = 0;
-            results.reverse().forEach(r => {
-                runningTotal += r;
-                if (runningTotal > peak) peak = runningTotal;
-                const drawdown = peak - runningTotal;
-                if (drawdown > maxDrawdown) maxDrawdown = drawdown;
-            });
-
-            setStats({
-                sampleSize: results.length,
-                mean,
-                stdDev,
-                hourlyRate,
-                hourlyStdDev,
-                confidenceInterval: {
-                    lower: mean - marginOfError,
-                    upper: mean + marginOfError
-                },
-                biggestWin,
-                biggestLoss,
-                maxDrawdown
-            });
-        } catch (err) {
-            console.error('[VarianceCalculator] Error:', err);
-        }
-        setIsLoading(false);
-    }
-
-    if (isLoading) {
-        return <div style={styles.loading}>Calculating variance...</div>;
-    }
+        return {
+            sampleSize: results.length,
+            mean,
+            stdDev,
+            hourlyRate,
+            confidenceInterval: { lower: mean - marginOfError, upper: mean + marginOfError },
+            biggestWin,
+            biggestLoss,
+            maxDrawdown,
+        };
+    }, [entries]);
 
     if (!stats) {
         return (
             <div style={styles.empty}>
-                <span style={{ fontSize: 24, marginBottom: 8 }}></span>
                 <p style={{ margin: 0, fontSize: 12 }}>Need 2+ sessions for variance analysis</p>
             </div>
         );
@@ -102,14 +58,10 @@ export default function VarianceCalculator({ userId }) {
     return (
         <div style={styles.container}>
             <h3 style={styles.title}>Variance Analysis</h3>
-
             <div style={styles.grid}>
                 <div style={styles.statBox}>
                     <div style={styles.statLabel}>Avg Session</div>
-                    <div style={{
-                        ...styles.statValue,
-                        color: stats.mean >= 0 ? '#22c55e' : '#ef4444'
-                    }}>
+                    <div style={{ ...styles.statValue, color: stats.mean >= 0 ? '#22c55e' : '#ef4444' }}>
                         ${stats.mean.toFixed(0)}
                     </div>
                 </div>
@@ -119,10 +71,7 @@ export default function VarianceCalculator({ userId }) {
                 </div>
                 <div style={styles.statBox}>
                     <div style={styles.statLabel}>Hourly Rate</div>
-                    <div style={{
-                        ...styles.statValue,
-                        color: stats.hourlyRate >= 0 ? '#22c55e' : '#ef4444'
-                    }}>
+                    <div style={{ ...styles.statValue, color: stats.hourlyRate >= 0 ? '#22c55e' : '#ef4444' }}>
                         ${stats.hourlyRate.toFixed(0)}/hr
                     </div>
                 </div>
@@ -133,31 +82,21 @@ export default function VarianceCalculator({ userId }) {
                     </div>
                 </div>
             </div>
-
             <div style={styles.extremes}>
                 <div style={styles.extremeItem}>
                     <span style={styles.extremeLabel}>Best Session</span>
-                    <span style={{ ...styles.extremeValue, color: '#22c55e' }}>
-                        +${stats.biggestWin.toLocaleString()}
-                    </span>
+                    <span style={{ ...styles.extremeValue, color: '#22c55e' }}>+${stats.biggestWin.toLocaleString()}</span>
                 </div>
                 <div style={styles.extremeItem}>
                     <span style={styles.extremeLabel}>Worst Session</span>
-                    <span style={{ ...styles.extremeValue, color: '#ef4444' }}>
-                        {stats.biggestLoss >= 0 ? '+' : ''}${stats.biggestLoss.toLocaleString()}
-                    </span>
+                    <span style={{ ...styles.extremeValue, color: '#ef4444' }}>{stats.biggestLoss >= 0 ? '+' : ''}${stats.biggestLoss.toLocaleString()}</span>
                 </div>
                 <div style={styles.extremeItem}>
                     <span style={styles.extremeLabel}>Max Drawdown</span>
-                    <span style={{ ...styles.extremeValue, color: '#eab308' }}>
-                        ${stats.maxDrawdown.toLocaleString()}
-                    </span>
+                    <span style={{ ...styles.extremeValue, color: '#eab308' }}>${stats.maxDrawdown.toLocaleString()}</span>
                 </div>
             </div>
-
-            <div style={styles.sampleNote}>
-                Based on {stats.sampleSize} sessions
-            </div>
+            <div style={styles.sampleNote}>Based on {stats.sampleSize} sessions</div>
         </div>
     );
 }
@@ -168,12 +107,6 @@ const styles = {
         background: 'rgba(255, 255, 255, 0.02)',
         border: '1px solid rgba(255, 255, 255, 0.06)',
         borderRadius: 12,
-    },
-    loading: {
-        padding: 20,
-        textAlign: 'center',
-        color: 'rgba(255, 255, 255, 0.5)',
-        fontSize: 13,
     },
     empty: {
         padding: 20,

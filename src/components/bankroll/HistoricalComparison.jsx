@@ -1,100 +1,78 @@
 /**
  * HISTORICAL COMPARISON
- * Compare this period vs last period
+ * Compare this period vs last period — driven by entries prop for real-time filter reactivity
  */
 
-import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { useState, useMemo } from 'react';
 
-export default function HistoricalComparison({ userId }) {
-    const [comparison, setComparison] = useState(null);
-    const [period, setPeriod] = useState('month'); // 'month' or 'year'
-    const [isLoading, setIsLoading] = useState(true);
+export default function HistoricalComparison({ entries = [] }) {
+    const [period, setPeriod] = useState('month');
 
-    useEffect(() => {
-        if (userId) loadComparison();
-    }, [userId, period]);
+    const comparison = useMemo(() => {
+        if (!entries || entries.length === 0) return null;
 
-    async function loadComparison() {
-        setIsLoading(true);
-        try {
-            const now = new Date();
-            let currentStart, currentEnd, previousStart, previousEnd;
+        const now = new Date();
+        let currentStart, previousStart, previousEnd;
 
-            if (period === 'month') {
-                // This month
-                currentStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-                currentEnd = now.toISOString().split('T')[0];
-                // Last month
-                previousStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split('T')[0];
-                previousEnd = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0];
-            } else {
-                // This year
-                currentStart = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
-                currentEnd = now.toISOString().split('T')[0];
-                // Last year
-                previousStart = new Date(now.getFullYear() - 1, 0, 1).toISOString().split('T')[0];
-                previousEnd = new Date(now.getFullYear() - 1, 11, 31).toISOString().split('T')[0];
-            }
-
-            // Fetch current period
-            const { data: current } = await supabase
-                .from('bankroll_ledger')
-                .select('gross_in, gross_out')
-                .eq('user_id', userId)
-                .gte('entry_date', currentStart)
-                .lte('entry_date', currentEnd);
-
-            // Fetch previous period
-            const { data: previous } = await supabase
-                .from('bankroll_ledger')
-                .select('gross_in, gross_out')
-                .eq('user_id', userId)
-                .gte('entry_date', previousStart)
-                .lte('entry_date', previousEnd);
-
-            // Calculate stats
-            const currentStats = calculateStats(current || []);
-            const previousStats = calculateStats(previous || []);
-
-            setComparison({
-                current: currentStats,
-                previous: previousStats,
-                delta: {
-                    netResult: currentStats.netResult - previousStats.netResult,
-                    sessions: currentStats.sessions - previousStats.sessions,
-                    winRate: currentStats.winRate - previousStats.winRate,
-                }
-            });
-        } catch (err) {
-            console.error('[HistoricalComparison] Error:', err);
+        if (period === 'month') {
+            currentStart = new Date(now.getFullYear(), now.getMonth(), 1);
+            previousStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            previousEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+        } else {
+            currentStart = new Date(now.getFullYear(), 0, 1);
+            previousStart = new Date(now.getFullYear() - 1, 0, 1);
+            previousEnd = new Date(now.getFullYear() - 1, 11, 31);
         }
-        setIsLoading(false);
-    }
 
-    function calculateStats(entries) {
-        let totalIn = 0, totalOut = 0, wins = 0;
-        entries.forEach(e => {
-            totalIn += e.gross_in || 0;
-            totalOut += e.gross_out || 0;
-            if ((e.gross_out - e.gross_in) > 0) wins++;
+        const currentEntries = entries.filter(e => {
+            const d = new Date(e.entry_date + 'T12:00:00');
+            return d >= currentStart && d <= now;
         });
-        return {
-            sessions: entries.length,
-            netResult: totalOut - totalIn,
-            winRate: entries.length > 0 ? (wins / entries.length) * 100 : 0
-        };
-    }
 
-    function formatDelta(value, isPercent = false) {
+        const previousEntries = entries.filter(e => {
+            const d = new Date(e.entry_date + 'T12:00:00');
+            return d >= previousStart && d <= previousEnd;
+        });
+
+        const calc = (arr) => {
+            let totalIn = 0, totalOut = 0, wins = 0;
+            arr.forEach(e => {
+                totalIn += e.gross_in || 0;
+                totalOut += e.gross_out || 0;
+                if ((e.gross_out - e.gross_in) > 0) wins++;
+            });
+            return {
+                sessions: arr.length,
+                netResult: totalOut - totalIn,
+                winRate: arr.length > 0 ? (wins / arr.length) * 100 : 0,
+            };
+        };
+
+        const currentStats = calc(currentEntries);
+        const previousStats = calc(previousEntries);
+
+        return {
+            current: currentStats,
+            previous: previousStats,
+            delta: {
+                netResult: currentStats.netResult - previousStats.netResult,
+                sessions: currentStats.sessions - previousStats.sessions,
+                winRate: currentStats.winRate - previousStats.winRate,
+            },
+        };
+    }, [entries, period]);
+
+    const formatDelta = (value, isPercent = false) => {
         const sign = value >= 0 ? '+' : '';
         if (isPercent) return `${sign}${value.toFixed(1)}%`;
         return `${sign}$${Math.abs(value).toLocaleString()}`;
+    };
+
+    if (!comparison) {
+        return <div style={styles.loading}>No data for comparison</div>;
     }
 
-    if (isLoading || !comparison) {
-        return <div style={styles.loading}>Loading comparison...</div>;
-    }
+    const periodLabel = period === 'month' ? 'vs Last Month' : 'vs Last Year';
 
     return (
         <div style={styles.container}>
@@ -129,6 +107,7 @@ export default function HistoricalComparison({ userId }) {
                         </span>
                     </div>
                 </div>
+
                 <div style={styles.comparisonRow}>
                     <span style={styles.label}>Sessions</span>
                     <div style={styles.values}>
@@ -141,6 +120,7 @@ export default function HistoricalComparison({ userId }) {
                         </span>
                     </div>
                 </div>
+
                 <div style={styles.comparisonRow}>
                     <span style={styles.label}>Win Rate</span>
                     <div style={styles.values}>
@@ -155,9 +135,7 @@ export default function HistoricalComparison({ userId }) {
                 </div>
             </div>
 
-            <div style={styles.periodLabel}>
-                vs {period === 'month' ? 'Last Month' : 'Last Year'}
-            </div>
+            <div style={styles.periodLabel}>{periodLabel}</div>
         </div>
     );
 }
@@ -179,7 +157,7 @@ const styles = {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 16,
+        marginBottom: 14,
     },
     title: {
         fontSize: 14,
@@ -190,36 +168,39 @@ const styles = {
     periodToggle: {
         display: 'flex',
         gap: 4,
-        background: 'rgba(255, 255, 255, 0.05)',
-        padding: 3,
+        background: 'rgba(255,255,255,0.05)',
         borderRadius: 6,
+        padding: 2,
     },
     periodBtn: {
-        padding: '4px 10px',
         background: 'transparent',
         border: 'none',
-        borderRadius: 4,
-        color: 'rgba(255, 255, 255, 0.5)',
+        color: 'rgba(255,255,255,0.5)',
         fontSize: 11,
+        padding: '4px 10px',
+        borderRadius: 4,
         cursor: 'pointer',
     },
     periodBtnActive: {
-        background: 'rgba(0, 212, 255, 0.2)',
-        color: '#2374e1',
+        background: 'rgba(35, 116, 225, 0.3)',
+        color: '#fff',
     },
     comparisonGrid: {
         display: 'flex',
         flexDirection: 'column',
-        gap: 12,
+        gap: 10,
     },
     comparisonRow: {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
+        padding: '8px 10px',
+        background: 'rgba(255,255,255,0.03)',
+        borderRadius: 8,
     },
     label: {
         fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.6)',
+        color: 'rgba(255,255,255,0.6)',
     },
     values: {
         display: 'flex',
@@ -233,17 +214,12 @@ const styles = {
     },
     delta: {
         fontSize: 11,
-        fontWeight: 600,
-        padding: '2px 6px',
-        borderRadius: 4,
-        background: 'rgba(255, 255, 255, 0.05)',
+        fontWeight: 500,
     },
     periodLabel: {
-        marginTop: 12,
-        paddingTop: 12,
-        borderTop: '1px solid rgba(255, 255, 255, 0.06)',
-        fontSize: 11,
-        color: 'rgba(255, 255, 255, 0.4)',
         textAlign: 'center',
+        fontSize: 10,
+        color: 'rgba(255,255,255,0.35)',
+        marginTop: 10,
     },
 };

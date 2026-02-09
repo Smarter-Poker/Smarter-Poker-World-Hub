@@ -537,14 +537,13 @@ export default function BankrollManagerPage() {
                 {/* Stats Cards */}
                 <div style={styles.statsGrid}>
                   <StatCard
-                    title="Total Bankroll"
+                    title="Bankroll Balance"
                     value={stats ? formatCurrency(stats.totalBankroll, preferences.currencyEUR) : '—'}
-                    change={stats?.allInNet}
                     isLoading={isLoading}
                     onClick={() => setShowAdjustModal(true)}
                   />
                   <StatCard
-                    title="All-In Net"
+                    title="Net Results"
                     value={
                       stats
                         ? formatCurrency(stats.allInNet, preferences.currencyEUR)
@@ -1061,16 +1060,16 @@ export default function BankrollManagerPage() {
             />
 
             {/* Historical Comparison */}
-            <HistoricalComparison userId={userId} />
+            <HistoricalComparison entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} />
 
             {/* Variance Calculator */}
-            <VarianceCalculator userId={userId} />
+            <VarianceCalculator entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} />
 
             {/* Heat Map */}
-            <BankrollHeatMap userId={userId} />
+            <BankrollHeatMap entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} />
 
             {/* Location Analytics */}
-            <LocationAnalytics entries={entries} isLoading={isLoading} />
+            <LocationAnalytics entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} isLoading={isLoading} />
 
             <LeakAlertPanel
               leakAnalysis={leakAnalysis}
@@ -1396,7 +1395,7 @@ const styles = {
   },
   statsGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
+    gridTemplateColumns: '1fr 1fr',
     gap: 12,
     marginBottom: 24,
   },

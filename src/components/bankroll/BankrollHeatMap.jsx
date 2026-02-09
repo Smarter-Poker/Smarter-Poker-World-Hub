@@ -1,49 +1,30 @@
 /**
  * BANKROLL HEAT MAP
- * Calendar view with P/L coloring per day
+ * Calendar view with P/L coloring — driven by entries prop for real-time filter reactivity
  */
 
-import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { useState, useMemo } from 'react';
 
-export default function BankrollHeatMap({ userId }) {
-    const [monthData, setMonthData] = useState({});
+export default function BankrollHeatMap({ entries = [] }) {
     const [currentMonth, setCurrentMonth] = useState(new Date());
-    const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        if (userId) loadMonthData();
-    }, [userId, currentMonth]);
+    const monthData = useMemo(() => {
+        const year = currentMonth.getFullYear();
+        const month = currentMonth.getMonth();
+        const startDate = new Date(year, month, 1);
+        const endDate = new Date(year, month + 1, 0);
 
-    async function loadMonthData() {
-        setIsLoading(true);
-        try {
-            const year = currentMonth.getFullYear();
-            const month = currentMonth.getMonth();
-            const startDate = new Date(year, month, 1).toISOString().split('T')[0];
-            const endDate = new Date(year, month + 1, 0).toISOString().split('T')[0];
-
-            const { data: entries } = await supabase
-                .from('bankroll_ledger')
-                .select('entry_date, gross_in, gross_out')
-                .eq('user_id', userId)
-                .gte('entry_date', startDate)
-                .lte('entry_date', endDate);
-
-            // Aggregate by day
-            const dailyPL = {};
-            entries?.forEach(e => {
+        const dailyPL = {};
+        entries.forEach(e => {
+            const d = new Date(e.entry_date + 'T12:00:00');
+            if (d >= startDate && d <= endDate) {
                 const date = e.entry_date;
                 if (!dailyPL[date]) dailyPL[date] = 0;
                 dailyPL[date] += (e.gross_out || 0) - (e.gross_in || 0);
-            });
-
-            setMonthData(dailyPL);
-        } catch (err) {
-            console.error('[BankrollHeatMap] Error:', err);
-        }
-        setIsLoading(false);
-    }
+            }
+        });
+        return dailyPL;
+    }, [entries, currentMonth]);
 
     function getColorForPL(pl) {
         if (pl === undefined) return 'rgba(255, 255, 255, 0.03)';
@@ -56,51 +37,29 @@ export default function BankrollHeatMap({ userId }) {
         return 'rgba(239, 68, 68, 0.6)';
     }
 
-    function getDaysInMonth(year, month) {
-        return new Date(year, month + 1, 0).getDate();
-    }
-
-    function getFirstDayOfMonth(year, month) {
-        return new Date(year, month, 1).getDay();
-    }
-
     function navigateMonth(delta) {
         setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + delta, 1));
     }
 
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
-    const daysInMonth = getDaysInMonth(year, month);
-    const firstDay = getFirstDayOfMonth(year, month);
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const firstDay = new Date(year, month, 1).getDay();
     const monthName = currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' });
 
-    // Build calendar grid
     const days = [];
-    // Empty cells for alignment
     for (let i = 0; i < firstDay; i++) {
         days.push(<div key={`empty-${i}`} style={styles.emptyDay} />);
     }
-    // Actual days
     for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const pl = monthData[dateStr];
         const color = getColorForPL(pl);
-
         days.push(
-            <div
-                key={day}
-                style={{
-                    ...styles.day,
-                    background: color,
-                }}
-                title={pl !== undefined ? `${dateStr}: $${pl.toLocaleString()}` : dateStr}
-            >
+            <div key={day} style={{ ...styles.day, background: color }} title={pl !== undefined ? `${dateStr}: $${pl.toLocaleString()}` : dateStr}>
                 <span style={styles.dayNum}>{day}</span>
                 {pl !== undefined && (
-                    <span style={{
-                        ...styles.dayPL,
-                        color: pl >= 0 ? '#22c55e' : '#ef4444'
-                    }}>
+                    <span style={{ ...styles.dayPL, color: pl >= 0 ? '#22c55e' : '#ef4444' }}>
                         {pl >= 0 ? '+' : ''}{pl > 999 ? `${(pl / 1000).toFixed(1)}k` : pl}
                     </span>
                 )}
@@ -115,17 +74,12 @@ export default function BankrollHeatMap({ userId }) {
                 <h3 style={styles.title}>{monthName}</h3>
                 <button onClick={() => navigateMonth(1)} style={styles.navBtn}>›</button>
             </div>
-
             <div style={styles.weekdays}>
                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
                     <div key={d} style={styles.weekday}>{d}</div>
                 ))}
             </div>
-
-            <div style={styles.grid}>
-                {days}
-            </div>
-
+            <div style={styles.grid}>{days}</div>
             <div style={styles.legend}>
                 <span style={{ ...styles.legendItem, background: 'rgba(239, 68, 68, 0.5)' }}>Loss</span>
                 <span style={{ ...styles.legendItem, background: 'rgba(255, 255, 255, 0.08)' }}>Break-even</span>
