@@ -3,7 +3,7 @@
  * Displays chronological list of bankroll entries with edit/delete actions
  */
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const CATEGORY_COLORS = {
@@ -99,6 +99,20 @@ function formatDuration(startTime, endTime) {
 
 function EntryRow({ entry, index, onEdit, onDelete }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  // Close menu when clicking anywhere outside
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuOpen(false);
+        setConfirmDelete(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [menuOpen]);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const duration = formatDuration(entry.start_time, entry.end_time);
 
@@ -167,7 +181,7 @@ function EntryRow({ entry, index, onEdit, onDelete }) {
 
       {/* Action Menu */}
       {(onEdit || onDelete) && (
-        <div style={styles.actionContainer}>
+        <div ref={menuRef} style={styles.actionContainer}>
           <button
             style={styles.menuButton}
             onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); setConfirmDelete(false); }}

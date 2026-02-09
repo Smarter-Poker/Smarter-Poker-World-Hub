@@ -38,7 +38,7 @@ import LogEntryModal from '../../src/components/bankroll/LogEntryModal';
 import LeakAlertPanel from '../../src/components/bankroll/LeakAlertPanel';
 import BankrollRulesCard from '../../src/components/bankroll/BankrollRulesCard';
 import BankrollTrendChart from '../../src/components/bankroll/BankrollTrendChart';
-import QuickLogWidget from '../../src/components/bankroll/QuickLogWidget';
+// QuickLogWidget removed
 
 import JarvisLeakInsights from '../../src/components/bankroll/JarvisLeakInsights';
 // Phase 2 Components
@@ -538,32 +538,7 @@ export default function BankrollManagerPage() {
                     }
                     isLoading={isLoading}
                   />
-                  <StatCard
-                    title="Leak Risk"
-                    value={stats?.leakRisk || 'LOW'}
-                    isRisk={true}
-                    isLoading={isLoading}
-                  />
-                  <StatCard
-                    title="Travel ROI"
-                    value={
-                      stats
-                        ? formatCurrency(stats.travelROI, preferences.currencyEUR)
-                        : '—'
-                    }
-                    suffix="Last Trip"
-                    isLoading={isLoading}
-                  />
                 </div>
-
-
-
-                {/* Quick Log Widget */}
-                <QuickLogWidget
-                  userId={userId}
-                  onSubmit={handleLogSubmit}
-                  onOpenFullModal={handleLogClick}
-                />
 
                 {/* Filters Row */}
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
@@ -676,8 +651,8 @@ export default function BankrollManagerPage() {
                   </div>
                 </div>
 
-                {/* Bankroll Trend Chart */}
-                <BankrollTrendChart entries={entries} isLoading={isLoading} />
+                {/* Bankroll Trend Chart — filtered by gameTypeFilter */}
+                <BankrollTrendChart entries={entries.filter(e => gameTypeFilter.has(e.category))} isLoading={isLoading} />
 
                 {/* Recent Activity Section */}
                 <div style={styles.activitySection}>
