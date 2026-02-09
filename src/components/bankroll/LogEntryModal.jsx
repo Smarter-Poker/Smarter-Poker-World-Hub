@@ -1031,10 +1031,10 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
         </div>
 
         {/* IMAGE UPLOAD */}
-        <div style={styles.formGroup}>
+        <div style={{ ...styles.formGroup, textAlign: 'center' }}>
           <label style={styles.label}>Session Photos</label>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 10 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 10, justifyContent: 'center' }}>
             {mediaFiles.map((url, index) => (
               <div key={index} style={{ position: 'relative', width: 80, height: 80, borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.2)' }}>
                 <img src={url} alt="Session" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
