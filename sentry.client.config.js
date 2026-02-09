@@ -53,6 +53,8 @@ if (SENTRY_DSN) {
       // Opaque internal errors (browser internals / IndexedDB)
       'UnknownError: Internal error',
       'Internal error',
+      // Minified Supabase/library internal errors (not actionable)
+      'r.error is not a function',
     ],
 
     // Before sending, scrub sensitive data and filter noise

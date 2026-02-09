@@ -41,19 +41,32 @@ export function UnreadProvider({ children }) {
                 return;
             }
 
-            // Count unread messages across all conversations
-            let total = 0;
-            for (const p of participations) {
-                const { count } = await supabase
-                    .from('social_messages')
-                    .select('id', { count: 'exact', head: true })
-                    .eq('conversation_id', p.conversation_id)
-                    .neq('sender_id', userId)
-                    .eq('is_deleted', false)
-                    .gt('created_at', p.last_read_at || '1970-01-01');
+            // Batch: fetch ALL unread messages across all conversations in a single query
+            // instead of N separate queries (fixes Sentry N+1 API Call)
+            const conversationIds = participations.map(p => p.conversation_id);
 
-                total += count || 0;
-            }
+            // Find the earliest last_read_at to use as a floor filter
+            const earliestRead = participations.reduce((earliest, p) => {
+                const ts = p.last_read_at || '1970-01-01';
+                return ts < earliest ? ts : earliest;
+            }, participations[0].last_read_at || '1970-01-01');
+
+            // Single query: get all candidate messages across all conversations
+            const { data: messages } = await supabase
+                .from('social_messages')
+                .select('conversation_id, created_at')
+                .in('conversation_id', conversationIds)
+                .neq('sender_id', userId)
+                .eq('is_deleted', false)
+                .gt('created_at', earliestRead);
+
+            // Count locally — only messages after the per-conversation last_read_at
+            const readMap = new Map(participations.map(p => [p.conversation_id, p.last_read_at || '1970-01-01']));
+            let total = 0;
+            (messages || []).forEach(msg => {
+                const lastRead = readMap.get(msg.conversation_id);
+                if (lastRead && msg.created_at > lastRead) total++;
+            });
 
             setUnreadCount(total);
         } catch (e) {

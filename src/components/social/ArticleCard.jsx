@@ -30,6 +30,37 @@ const C = {
     border: '#DADDE1',
 };
 
+// Module-level cache for link-preview metadata (avoids N+1 API calls)
+const _metadataCache = new Map();
+const _inflightRequests = new Map();
+
+async function fetchLinkPreview(url) {
+    // Return cached result if available
+    if (_metadataCache.has(url)) return _metadataCache.get(url);
+
+    // Deduplicate: if a request for this URL is already in-flight, await it
+    if (_inflightRequests.has(url)) return _inflightRequests.get(url);
+
+    const promise = (async () => {
+        try {
+            const response = await fetch(`/api/link-preview?url=${encodeURIComponent(url)}`);
+            if (response.ok) {
+                const data = await response.json();
+                _metadataCache.set(url, data);
+                return data;
+            }
+        } catch (error) {
+            console.error('ArticleCard: Failed to fetch metadata', error);
+        }
+        return null;
+    })();
+
+    _inflightRequests.set(url, promise);
+    const result = await promise;
+    _inflightRequests.delete(url);
+    return result;
+}
+
 /**
  * Validates if a URL is likely a valid image
  */
@@ -108,32 +139,25 @@ export default function ArticleCard({
     const [loading, setLoading] = useState(!title && !image);
     const [imageError, setImageError] = useState(false);
 
-    // Fetch metadata if not provided
+    // Fetch metadata if not provided (uses shared cache to avoid N+1)
     useEffect(() => {
         if (!url || (title && image)) {
             setLoading(false);
             return;
         }
 
-        const fetchMetadata = async () => {
-            try {
-                const response = await fetch(`/api/link-preview?url=${encodeURIComponent(url)}`);
-                if (response.ok) {
-                    const data = await response.json();
-                    setMetadata(prev => ({
-                        title: prev.title || data.title,
-                        description: prev.description || data.description,
-                        image: prev.image || data.image,
-                        siteName: prev.siteName || data.siteName,
-                    }));
-                }
-            } catch (error) {
-                console.error('ArticleCard: Failed to fetch metadata', error);
+        (async () => {
+            const data = await fetchLinkPreview(url);
+            if (data) {
+                setMetadata(prev => ({
+                    title: prev.title || data.title,
+                    description: prev.description || data.description,
+                    image: prev.image || data.image,
+                    siteName: prev.siteName || data.siteName,
+                }));
             }
             setLoading(false);
-        };
-
-        fetchMetadata();
+        })();
     }, [url, title, image]);
 
     // Check if URL is from a social platform that blocks proxying
