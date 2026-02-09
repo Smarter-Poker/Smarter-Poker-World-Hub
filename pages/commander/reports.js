@@ -23,7 +23,7 @@ import {
   Gift
 } from 'lucide-react';
 
-function MetricCard({ label, value, change, changeLabel, icon: Icon, color = '#22D3EE' }) {
+function MetricCard({ label, value, change, changeLabel, icon: Icon, color = '#1877F2' }) {
   const isPositive = change > 0;
   const isNeutral = change === 0;
 
@@ -37,16 +37,16 @@ function MetricCard({ label, value, change, changeLabel, icon: Icon, color = '#2
           <Icon className="w-5 h-5" style={{ color }} />
         </div>
         {change !== undefined && !isNeutral && (
-          <div className={`flex items-center gap-1 text-sm ${isPositive ? 'text-[#10B981]' : 'text-[#EF4444]'}`}>
+          <div className={`flex items-center gap-1 text-sm ${isPositive ? 'text-[#31A24C]' : 'text-[#EF4444]'}`}>
             {isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
             <span>{Math.abs(change)}%</span>
           </div>
         )}
       </div>
       <p className="text-2xl font-bold text-white">{value}</p>
-      <p className="text-sm text-[#64748B]">{label}</p>
+      <p className="text-sm text-[#B0B3B8]">{label}</p>
       {changeLabel && (
-        <p className="text-xs text-[#4A5E78] mt-1">{changeLabel}</p>
+        <p className="text-xs text-[#3A3B3C] mt-1">{changeLabel}</p>
       )}
     </div>
   );
@@ -54,18 +54,18 @@ function MetricCard({ label, value, change, changeLabel, icon: Icon, color = '#2
 
 function GameSummaryRow({ game }) {
   return (
-    <div className="flex items-center justify-between p-3 border-b border-[#4A5E78] last:border-b-0">
+    <div className="flex items-center justify-between p-3 border-b border-[#3A3B3C] last:border-b-0">
       <div>
         <p className="font-medium text-white">
           {game.stakes} {game.game_type?.toUpperCase() || 'NLHE'}
         </p>
-        <p className="text-sm text-[#64748B]">
+        <p className="text-sm text-[#B0B3B8]">
           Table {game.table_number}
         </p>
       </div>
       <div className="text-right">
         <p className="font-medium text-white">{game.hours_running}h</p>
-        <p className="text-sm text-[#64748B]">{game.unique_players} players</p>
+        <p className="text-sm text-[#B0B3B8]">{game.unique_players} players</p>
       </div>
     </div>
   );
@@ -73,12 +73,12 @@ function GameSummaryRow({ game }) {
 
 function PromotionSummaryRow({ promotion }) {
   return (
-    <div className="flex items-center justify-between p-3 border-b border-[#4A5E78] last:border-b-0">
+    <div className="flex items-center justify-between p-3 border-b border-[#3A3B3C] last:border-b-0">
       <div>
         <p className="font-medium text-white">{promotion.name}</p>
-        <p className="text-sm text-[#64748B]">{promotion.winners} winners</p>
+        <p className="text-sm text-[#B0B3B8]">{promotion.winners} winners</p>
       </div>
-      <p className="font-bold text-[#10B981]">${promotion.total_paid?.toLocaleString()}</p>
+      <p className="font-bold text-[#31A24C]">${promotion.total_paid?.toLocaleString()}</p>
     </div>
   );
 }
@@ -182,7 +182,7 @@ export default function StaffReportsPage() {
   if (!staff) {
     return (
       <div className="cmd-page flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
       </div>
     );
   }
@@ -199,7 +199,7 @@ export default function StaffReportsPage() {
         {exportMessage && (
           <div
             className={`fixed top-0 left-0 right-0 z-50 py-3 px-4 text-center text-white font-medium ${
-              exportMessage.type === 'success' ? 'bg-[#10B981]' : 'bg-[#EF4444]'
+              exportMessage.type === 'success' ? 'bg-[#31A24C]' : 'bg-[#EF4444]'
             }`}
           >
             {exportMessage.text}
@@ -213,16 +213,16 @@ export default function StaffReportsPage() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => router.push('/commander/dashboard')}
-                  className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
+                  className="p-2 hover:bg-[#3A3B3C] rounded-lg transition-colors"
                 >
-                  <ChevronLeft className="w-5 h-5 text-[#64748B]" />
+                  <ChevronLeft className="w-5 h-5 text-[#B0B3B8]" />
                 </button>
                 <div>
                   <h1 className="text-xl font-bold text-white flex items-center gap-2">
-                    <FileText className="w-6 h-6 text-[#22D3EE]" />
+                    <FileText className="w-6 h-6 text-[#1877F2]" />
                     Daily Reports
                   </h1>
-                  <p className="text-sm text-[#64748B]">{report?.venue_name || 'Loading...'}</p>
+                  <p className="text-sm text-[#B0B3B8]">{report?.venue_name || 'Loading...'}</p>
                 </div>
               </div>
               <button
@@ -241,15 +241,15 @@ export default function StaffReportsPage() {
           <div className="flex items-center justify-center gap-4 cmd-panel p-4">
             <button
               onClick={() => changeDate(-1)}
-              className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
+              className="p-2 hover:bg-[#3A3B3C] rounded-lg transition-colors"
             >
-              <ChevronLeft className="w-5 h-5 text-[#64748B]" />
+              <ChevronLeft className="w-5 h-5 text-[#B0B3B8]" />
             </button>
             <div className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-[#22D3EE]" />
+              <Calendar className="w-5 h-5 text-[#1877F2]" />
               <span className="font-medium text-white">{formattedDate}</span>
               {isToday && (
-                <span className="px-2 py-0.5 bg-[#10B981]/10 text-[#10B981] text-xs font-medium rounded">
+                <span className="px-2 py-0.5 bg-[#31A24C]/10 text-[#31A24C] text-xs font-medium rounded">
                   Today
                 </span>
               )}
@@ -258,16 +258,16 @@ export default function StaffReportsPage() {
               onClick={() => changeDate(1)}
               disabled={isToday}
               className={`p-2 rounded-lg transition-colors ${
-                isToday ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#132240]'
+                isToday ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#3A3B3C]'
               }`}
             >
-              <ChevronRight className="w-5 h-5 text-[#64748B]" />
+              <ChevronRight className="w-5 h-5 text-[#B0B3B8]" />
             </button>
           </div>
 
           {loading ? (
             <div className="flex justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
+              <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
             </div>
           ) : report ? (
             <>
@@ -281,7 +281,7 @@ export default function StaffReportsPage() {
                     value={report.summary?.totalGames || 0}
                     change={report.comparisons?.gamesChange}
                     changeLabel="vs last week"
-                    color="#22D3EE"
+                    color="#1877F2"
                   />
                   <MetricCard
                     icon={Users}
@@ -289,7 +289,7 @@ export default function StaffReportsPage() {
                     value={report.summary?.uniquePlayers || 0}
                     change={report.comparisons?.playersChange}
                     changeLabel="vs last week"
-                    color="#10B981"
+                    color="#31A24C"
                   />
                   <MetricCard
                     icon={Clock}
@@ -303,7 +303,7 @@ export default function StaffReportsPage() {
                     icon={TrendingUp}
                     label="Peak Games"
                     value={report.summary?.peakConcurrent || 0}
-                    color="#8B5CF6"
+                    color="#1877F2"
                   />
                 </div>
               </section>
@@ -312,19 +312,19 @@ export default function StaffReportsPage() {
               <section>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <div className="cmd-panel p-4">
-                    <p className="text-sm text-[#64748B]">Check-ins</p>
+                    <p className="text-sm text-[#B0B3B8]">Check-ins</p>
                     <p className="text-xl font-bold text-white">{report.summary?.totalCheckIns || 0}</p>
                   </div>
                   <div className="cmd-panel p-4">
-                    <p className="text-sm text-[#64748B]">New Players</p>
+                    <p className="text-sm text-[#B0B3B8]">New Players</p>
                     <p className="text-xl font-bold text-white">{report.summary?.newPlayers || 0}</p>
                   </div>
                   <div className="cmd-panel p-4">
-                    <p className="text-sm text-[#64748B]">Avg Wait Time</p>
+                    <p className="text-sm text-[#B0B3B8]">Avg Wait Time</p>
                     <p className="text-xl font-bold text-white">{report.summary?.avgWaitTime || 0}m</p>
                   </div>
                   <div className="cmd-panel p-4">
-                    <p className="text-sm text-[#64748B]">Comps Issued</p>
+                    <p className="text-sm text-[#B0B3B8]">Comps Issued</p>
                     <p className="text-xl font-bold text-white">${report.summary?.compsIssued || 0}</p>
                   </div>
                 </div>
@@ -339,7 +339,7 @@ export default function StaffReportsPage() {
                       <GameSummaryRow key={i} game={game} />
                     ))
                   ) : (
-                    <div className="p-6 text-center text-[#64748B]">No games recorded</div>
+                    <div className="p-6 text-center text-[#B0B3B8]">No games recorded</div>
                   )}
                 </div>
               </section>
@@ -356,7 +356,7 @@ export default function StaffReportsPage() {
                       <PromotionSummaryRow key={i} promotion={promo} />
                     ))
                   ) : (
-                    <div className="p-6 text-center text-[#64748B]">No promotions ran</div>
+                    <div className="p-6 text-center text-[#B0B3B8]">No promotions ran</div>
                   )}
                 </div>
               </section>
@@ -370,10 +370,10 @@ export default function StaffReportsPage() {
                       {report.hourlyBreakdown?.map((hour, i) => (
                         <div key={i} className="flex flex-col items-center min-w-[60px]">
                           <div
-                            className="w-8 bg-[#22D3EE] rounded-t"
+                            className="w-8 bg-[#1877F2] rounded-t"
                             style={{ height: `${Math.max(hour.games * 8, 8)}px` }}
                           />
-                          <p className="text-xs text-[#64748B] mt-2">{hour.hour}</p>
+                          <p className="text-xs text-[#B0B3B8] mt-2">{hour.hour}</p>
                           <p className="text-xs font-medium text-white">{hour.games}g</p>
                         </div>
                       ))}
@@ -385,20 +385,20 @@ export default function StaffReportsPage() {
               {/* Staff on Duty */}
               <section>
                 <h2 className="font-semibold text-white mb-3 flex items-center gap-2">
-                  <Users className="w-5 h-5 text-[#64748B]" />
+                  <Users className="w-5 h-5 text-[#B0B3B8]" />
                   Staff on Duty
                 </h2>
                 <div className="cmd-panel overflow-hidden">
                   {report.staffOnDuty?.map((member, i) => (
                     <div
                       key={i}
-                      className="flex items-center justify-between p-3 border-b border-[#4A5E78] last:border-b-0"
+                      className="flex items-center justify-between p-3 border-b border-[#3A3B3C] last:border-b-0"
                     >
                       <div>
                         <p className="font-medium text-white">{member.name}</p>
-                        <p className="text-sm text-[#64748B]">{member.role}</p>
+                        <p className="text-sm text-[#B0B3B8]">{member.role}</p>
                       </div>
-                      <span className="text-sm text-[#64748B]">{member.hours}h</span>
+                      <span className="text-sm text-[#B0B3B8]">{member.hours}h</span>
                     </div>
                   ))}
                 </div>
@@ -406,9 +406,9 @@ export default function StaffReportsPage() {
             </>
           ) : (
             <div className="cmd-panel p-8 text-center">
-              <FileText className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
-              <p className="text-[#64748B]">No report data available</p>
-              <p className="text-sm text-[#4A5E78] mt-1">
+              <FileText className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
+              <p className="text-[#B0B3B8]">No report data available</p>
+              <p className="text-sm text-[#3A3B3C] mt-1">
                 Reports are generated from daily activity
               </p>
             </div>
