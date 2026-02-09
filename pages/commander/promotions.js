@@ -36,9 +36,9 @@ import HighHandDisplay from '../../src/components/commander/promotions/HighHandD
 const PROMO_TYPES = [
   { value: 'high_hand', label: 'High Hand', icon: Trophy, color: '#F59E0B' },
   { value: 'bad_beat', label: 'Bad Beat Jackpot', icon: Zap, color: '#EF4444' },
-  { value: 'splash_pot', label: 'Splash Pot', icon: DollarSign, color: '#10B981' },
-  { value: 'hourly_drawing', label: 'Hourly Drawing', icon: Clock, color: '#8B5CF6' },
-  { value: 'bonus', label: 'Player Bonus', icon: Gift, color: '#22D3EE' },
+  { value: 'splash_pot', label: 'Splash Pot', icon: DollarSign, color: '#31A24C' },
+  { value: 'hourly_drawing', label: 'Hourly Drawing', icon: Clock, color: '#1877F2' },
+  { value: 'bonus', label: 'Player Bonus', icon: Gift, color: '#1877F2' },
   { value: 'tournament', label: 'Tournament Promo', icon: Target, color: '#EC4899' }
 ];
 
@@ -116,10 +116,10 @@ function RecordHighHandModal({ isOpen, onClose, onSubmit, venueId, staff }) {
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
       <div className="cmd-panel cmd-corner-lights w-full max-w-lg max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between p-4 border-b border-[#4A5E78]">
+        <div className="flex items-center justify-between p-4 border-b border-[#3A3B3C]">
           <h3 className="text-lg font-semibold text-white">Record High Hand</h3>
-          <button onClick={onClose} className="p-2 hover:bg-[#132240] rounded-lg">
-            <X className="w-5 h-5 text-[#64748B]" />
+          <button onClick={onClose} className="p-2 hover:bg-[#3A3B3C] rounded-lg">
+            <X className="w-5 h-5 text-[#B0B3B8]" />
           </button>
         </div>
 
@@ -173,7 +173,7 @@ function RecordHighHandModal({ isOpen, onClose, onSubmit, venueId, staff }) {
             <div>
               <label className="block text-sm font-medium text-white mb-2">Prize Amount</label>
               <div className="relative">
-                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B]" />
+                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#B0B3B8]" />
                 <input
                   type="number"
                   value={formData.prize_amount}
@@ -184,21 +184,21 @@ function RecordHighHandModal({ isOpen, onClose, onSubmit, venueId, staff }) {
             </div>
           </div>
 
-          <label className="flex items-center gap-3 p-3 bg-[#0D192E] rounded-lg cursor-pointer">
+          <label className="flex items-center gap-3 p-3 bg-[#3A3B3C] rounded-lg cursor-pointer">
             <input
               type="checkbox"
               checked={formData.auto_verify}
               onChange={(e) => setFormData(prev => ({ ...prev, auto_verify: e.target.checked }))}
-              className="w-5 h-5 text-[#22D3EE] border-[#4A5E78] rounded focus:ring-[#22D3EE]"
+              className="w-5 h-5 text-[#1877F2] border-[#3A3B3C] rounded focus:ring-[#1877F2]"
             />
             <div>
               <p className="font-medium text-white">Auto-verify this hand</p>
-              <p className="text-sm text-[#64748B]">Mark as verified by {staff?.display_name || 'you'}</p>
+              <p className="text-sm text-[#B0B3B8]">Mark as verified by {staff?.display_name || 'you'}</p>
             </div>
           </label>
         </div>
 
-        <div className="p-4 border-t border-[#4A5E78]">
+        <div className="p-4 border-t border-[#3A3B3C]">
           <button
             onClick={handleSubmit}
             disabled={!formData.player_name.trim() || !formData.hand_description.trim() || submitting}
@@ -227,11 +227,11 @@ function HighHandCard({ highHand, onVerify }) {
             <h3 className="font-semibold text-white">
               {highHand.profiles?.display_name || highHand.player_name || 'Unknown Player'}
             </h3>
-            <p className="text-sm text-[#64748B]">{highHand.hand_description}</p>
+            <p className="text-sm text-[#B0B3B8]">{highHand.hand_description}</p>
           </div>
         </div>
         {highHand.verified_at ? (
-          <span className="flex items-center gap-1 px-2 py-1 bg-[#10B981]/10 text-[#10B981] text-xs font-medium rounded-full">
+          <span className="flex items-center gap-1 px-2 py-1 bg-[#31A24C]/10 text-[#31A24C] text-xs font-medium rounded-full">
             <CheckCircle className="w-3 h-3" />
             Verified
           </span>
@@ -245,7 +245,7 @@ function HighHandCard({ highHand, onVerify }) {
         )}
       </div>
 
-      <div className="flex items-center gap-4 text-sm text-[#64748B]">
+      <div className="flex items-center gap-4 text-sm text-[#B0B3B8]">
         <span className="flex items-center gap-1">
           <Award className="w-4 h-4" />
           {rankLabel}
@@ -312,19 +312,19 @@ function PromoCard({ promo, onToggle, onEdit, onDelete }) {
           </div>
           <div>
             <h3 className="font-semibold text-white">{promo.name}</h3>
-            <p className="text-sm text-[#64748B]">{typeConfig.label}</p>
+            <p className="text-sm text-[#B0B3B8]">{typeConfig.label}</p>
           </div>
         </div>
 
         <button
           onClick={() => onToggle?.(promo)}
-          className={`p-1 rounded transition-colors ${promo.is_active ? 'text-[#10B981]' : 'text-[#4A5E78]'}`}
+          className={`p-1 rounded transition-colors ${promo.is_active ? 'text-[#31A24C]' : 'text-[#3A3B3C]'}`}
         >
           {promo.is_active ? <ToggleRight className="w-8 h-8" /> : <ToggleLeft className="w-8 h-8" />}
         </button>
       </div>
 
-      <div className="flex items-center gap-4 text-sm text-[#64748B] mb-3">
+      <div className="flex items-center gap-4 text-sm text-[#B0B3B8] mb-3">
         <span className="flex items-center gap-1">
           <DollarSign className="w-4 h-4" />
           ${promo.prize_amount}
@@ -339,13 +339,13 @@ function PromoCard({ promo, onToggle, onEdit, onDelete }) {
       </div>
 
       {promo.description && (
-        <p className="text-sm text-[#64748B] mb-3 line-clamp-2">{promo.description}</p>
+        <p className="text-sm text-[#B0B3B8] mb-3 line-clamp-2">{promo.description}</p>
       )}
 
-      <div className="flex gap-2 pt-3 border-t border-[#4A5E78]">
+      <div className="flex gap-2 pt-3 border-t border-[#3A3B3C]">
         <button
           onClick={() => onEdit?.(promo)}
-          className="flex-1 h-9 flex items-center justify-center gap-1 text-sm font-medium text-[#22D3EE] hover:bg-[#22D3EE]/5 rounded-lg transition-colors"
+          className="flex-1 h-9 flex items-center justify-center gap-1 text-sm font-medium text-[#1877F2] hover:bg-[#1877F2]/5 rounded-lg transition-colors"
         >
           <Edit className="w-4 h-4" />
           Edit
@@ -508,7 +508,7 @@ export default function PromotionsPage() {
   if (!staff) {
     return (
       <div className="cmd-page flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
       </div>
     );
   }
@@ -526,13 +526,13 @@ export default function PromotionsPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push('/commander/dashboard')}
-                className="p-2 hover:bg-[#132240] rounded-lg"
+                className="p-2 hover:bg-[#3A3B3C] rounded-lg"
               >
-                <ArrowLeft className="w-5 h-5 text-[#64748B]" />
+                <ArrowLeft className="w-5 h-5 text-[#B0B3B8]" />
               </button>
               <div>
                 <h1 className="font-bold text-white">Promotions</h1>
-                <p className="text-sm text-[#64748B]">
+                <p className="text-sm text-[#B0B3B8]">
                   {activeTab === 'promotions' ? `${promotions.length} promotions` : `${highHands.length} high hands today`}
                 </p>
               </div>
@@ -565,13 +565,13 @@ export default function PromotionsPage() {
             )}
           </div>
 
-          <div className="max-w-4xl mx-auto px-4 flex gap-1 border-t border-[#4A5E78]">
+          <div className="max-w-4xl mx-auto px-4 flex gap-1 border-t border-[#3A3B3C]">
             <button
               onClick={() => setActiveTab('promotions')}
               className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'promotions'
-                  ? 'border-[#22D3EE] text-[#22D3EE]'
-                  : 'border-transparent text-[#64748B] hover:text-white'
+                  ? 'border-[#1877F2] text-[#1877F2]'
+                  : 'border-transparent text-[#B0B3B8] hover:text-white'
               }`}
             >
               <Gift className="w-4 h-4 inline-block mr-2" />
@@ -582,7 +582,7 @@ export default function PromotionsPage() {
               className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'high-hands'
                   ? 'border-[#F59E0B] text-[#F59E0B]'
-                  : 'border-transparent text-[#64748B] hover:text-white'
+                  : 'border-transparent text-[#B0B3B8] hover:text-white'
               }`}
             >
               <Trophy className="w-4 h-4 inline-block mr-2" />
@@ -601,7 +601,7 @@ export default function PromotionsPage() {
                     onClick={() => setFilter(f)}
                     className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${
                       filter === f
-                        ? 'bg-[#22D3EE] text-white'
+                        ? 'bg-[#1877F2] text-white'
                         : 'cmd-btn cmd-btn-secondary'
                     }`}
                   >
@@ -612,12 +612,12 @@ export default function PromotionsPage() {
 
               {loading ? (
                 <div className="flex justify-center py-12">
-                  <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
+                  <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
                 </div>
               ) : filteredPromos.length === 0 ? (
                 <div className="cmd-panel p-8 text-center">
-                  <Gift className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
-                  <p className="text-[#64748B]">No promotions found</p>
+                  <Gift className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
+                  <p className="text-[#B0B3B8]">No promotions found</p>
                   <button
                     onClick={() => setShowCreateModal(true)}
                     className="cmd-btn cmd-btn-primary mt-4"
@@ -674,8 +674,8 @@ export default function PromotionsPage() {
                 </div>
               ) : highHands.length === 0 ? (
                 <div className="cmd-panel p-8 text-center">
-                  <Trophy className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
-                  <p className="text-[#64748B]">No high hands recorded today</p>
+                  <Trophy className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
+                  <p className="text-[#B0B3B8]">No high hands recorded today</p>
                   <button
                     onClick={() => setShowHighHandModal(true)}
                     className="mt-4 px-4 py-2 bg-[#F59E0B] text-white font-medium rounded-lg"
@@ -708,9 +708,9 @@ export default function PromotionsPage() {
                 <h3 className="text-lg font-semibold text-white">Promotion Wizard</h3>
                 <button
                   onClick={() => { setUseWizard(false); setShowCreateModal(false); }}
-                  className="p-2 hover:bg-[#132240] rounded-lg"
+                  className="p-2 hover:bg-[#3A3B3C] rounded-lg"
                 >
-                  <X className="w-5 h-5 text-[#64748B]" />
+                  <X className="w-5 h-5 text-[#B0B3B8]" />
                 </button>
               </div>
               <PromotionBuilder
@@ -811,40 +811,40 @@ export default function PromotionsPage() {
       {showAwardsModal && selectedPromoForAwards && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="cmd-panel cmd-corner-lights w-full max-w-lg max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between p-4 border-b border-[#4A5E78]">
+            <div className="flex items-center justify-between p-4 border-b border-[#3A3B3C]">
               <div>
                 <h3 className="text-lg font-semibold text-white">Awards</h3>
-                <p className="text-sm text-[#64748B]">{selectedPromoForAwards.name}</p>
+                <p className="text-sm text-[#B0B3B8]">{selectedPromoForAwards.name}</p>
               </div>
               <button
                 onClick={() => { setShowAwardsModal(false); setSelectedPromoForAwards(null); setPromoAwards([]); }}
-                className="p-2 hover:bg-[#132240] rounded-lg"
+                className="p-2 hover:bg-[#3A3B3C] rounded-lg"
               >
-                <X className="w-5 h-5 text-[#64748B]" />
+                <X className="w-5 h-5 text-[#B0B3B8]" />
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4">
               {awardsLoading ? (
                 <div className="flex justify-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin text-[#22D3EE]" />
+                  <Loader2 className="w-6 h-6 animate-spin text-[#1877F2]" />
                 </div>
               ) : promoAwards.length === 0 ? (
                 <div className="text-center py-8">
-                  <Award className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
-                  <p className="text-[#64748B]">No awards recorded yet</p>
+                  <Award className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
+                  <p className="text-[#B0B3B8]">No awards recorded yet</p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {promoAwards.map((award) => (
-                    <div key={award.id} className="p-3 bg-[#0D192E] rounded-lg">
+                    <div key={award.id} className="p-3 bg-[#3A3B3C] rounded-lg">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-[#22D3EE]/10 flex items-center justify-center">
+                          <div className="w-8 h-8 rounded-full bg-[#1877F2]/10 flex items-center justify-center">
                             {award.profiles?.avatar_url ? (
                               <img src={award.profiles.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover" />
                             ) : (
-                              <User className="w-4 h-4 text-[#22D3EE]" />
+                              <User className="w-4 h-4 text-[#1877F2]" />
                             )}
                           </div>
                           <span className="font-medium text-white text-sm">
@@ -853,15 +853,15 @@ export default function PromotionsPage() {
                         </div>
                         <span className={`text-xs px-2 py-1 rounded-full font-medium ${
                           award.status === 'approved'
-                            ? 'bg-[#10B981]/10 text-[#10B981]'
+                            ? 'bg-[#31A24C]/10 text-[#31A24C]'
                             : award.status === 'pending'
                             ? 'bg-[#F59E0B]/10 text-[#F59E0B]'
-                            : 'bg-[#4A5E78]/10 text-[#64748B]'
+                            : 'bg-[#3A3B3C]/10 text-[#B0B3B8]'
                         }`}>
                           {award.status}
                         </span>
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-[#64748B]">
+                      <div className="flex items-center gap-4 text-sm text-[#B0B3B8]">
                         <span className="flex items-center gap-1">
                           <DollarSign className="w-3 h-3" />
                           ${award.prize_value?.toLocaleString() || 0}
