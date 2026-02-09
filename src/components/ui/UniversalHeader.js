@@ -563,7 +563,7 @@ export default function UniversalHeader({
                             {showFullDiamonds ? stats.diamonds.toLocaleString() : formatCompact(stats.diamonds)}
                         </span>
                         <span onClick={(e) => { e.stopPropagation(); e.preventDefault(); window.location.href = '/hub/diamond-store'; }} style={{
-                            fontSize: '2em', fontWeight: 700, cursor: 'pointer'
+                            fontWeight: 700, cursor: 'pointer'
                         }}>+</span>
                     </Link>
                 </div>
