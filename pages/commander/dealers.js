@@ -40,12 +40,12 @@ function DealerCard({ dealer, onEdit, onRotate }) {
     <div className="cmd-panel p-4">
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-[#22D3EE]/10 rounded-full flex items-center justify-center">
-            <Users className="w-6 h-6 text-[#22D3EE]" />
+          <div className="w-12 h-12 bg-[#1877F2]/10 rounded-full flex items-center justify-center">
+            <Users className="w-6 h-6 text-[#1877F2]" />
           </div>
           <div>
             <h3 className="font-semibold text-white">{dealer.name}</h3>
-            <p className="text-sm text-[#64748B]">ID: {dealer.employee_id || 'N/A'}</p>
+            <p className="text-sm text-[#B0B3B8]">ID: {dealer.employee_id || 'N/A'}</p>
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -55,7 +55,7 @@ function DealerCard({ dealer, onEdit, onRotate }) {
               className={`w-4 h-4 ${
                 level <= (dealer.skill_level || 3)
                   ? 'text-[#F59E0B] fill-[#F59E0B]'
-                  : 'text-[#4A5E78]'
+                  : 'text-[#3A3B3C]'
               }`}
             />
           ))}
@@ -66,7 +66,7 @@ function DealerCard({ dealer, onEdit, onRotate }) {
         {(dealer.certified_games || []).map(game => (
           <span
             key={game}
-            className="px-2 py-1 bg-[#10B981]/10 text-[#10B981] text-xs font-medium rounded"
+            className="px-2 py-1 bg-[#31A24C]/10 text-[#31A24C] text-xs font-medium rounded"
           >
             {game.toUpperCase()}
           </span>
@@ -74,11 +74,11 @@ function DealerCard({ dealer, onEdit, onRotate }) {
       </div>
 
       {dealer.current_table && (
-        <div className="bg-[#22D3EE]/5 rounded-lg p-2 mb-3">
-          <p className="text-sm text-[#22D3EE] font-medium">
+        <div className="bg-[#1877F2]/5 rounded-lg p-2 mb-3">
+          <p className="text-sm text-[#1877F2] font-medium">
             Currently at Table {dealer.current_table}
           </p>
-          <p className="text-xs text-[#64748B]">
+          <p className="text-xs text-[#B0B3B8]">
             Since {new Date(dealer.rotation_started).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
           </p>
         </div>
@@ -139,9 +139,9 @@ function AddDealerModal({ onSubmit, onClose, dealer = null }) {
           </h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
+            className="p-2 hover:bg-[#3A3B3C] rounded-lg transition-colors"
           >
-            <X className="w-5 h-5 text-[#64748B]" />
+            <X className="w-5 h-5 text-[#B0B3B8]" />
           </button>
         </div>
 
@@ -186,7 +186,7 @@ function AddDealerModal({ onSubmit, onClose, dealer = null }) {
                   className={`flex-1 py-3 rounded-lg border text-sm font-medium transition-colors ${
                     formData.skill_level === level
                       ? 'border-[#F59E0B] bg-[#F59E0B]/10 text-[#F59E0B]'
-                      : 'border-[#4A5E78] text-[#64748B]'
+                      : 'border-[#3A3B3C] text-[#B0B3B8]'
                   }`}
                 >
                   {level}
@@ -207,8 +207,8 @@ function AddDealerModal({ onSubmit, onClose, dealer = null }) {
                   onClick={() => toggleCertification(cert.value)}
                   className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
                     formData.certified_games.includes(cert.value)
-                      ? 'border-[#10B981] bg-[#10B981]/10 text-[#10B981]'
-                      : 'border-[#4A5E78] text-[#64748B]'
+                      ? 'border-[#31A24C] bg-[#31A24C]/10 text-[#31A24C]'
+                      : 'border-[#3A3B3C] text-[#B0B3B8]'
                   }`}
                 >
                   {cert.label}
@@ -257,16 +257,16 @@ function RotateModal({ dealer, tables, onSubmit, onClose }) {
           <h2 className="text-xl font-bold text-white">Rotate Dealer</h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
+            className="p-2 hover:bg-[#3A3B3C] rounded-lg transition-colors"
           >
-            <X className="w-5 h-5 text-[#64748B]" />
+            <X className="w-5 h-5 text-[#B0B3B8]" />
           </button>
         </div>
 
         <div className="mb-4">
-          <p className="text-[#64748B]">Moving: <strong className="text-white">{dealer.name}</strong></p>
+          <p className="text-[#B0B3B8]">Moving: <strong className="text-white">{dealer.name}</strong></p>
           {dealer.current_table && (
-            <p className="text-sm text-[#4A5E78]">From Table {dealer.current_table}</p>
+            <p className="text-sm text-[#3A3B3C]">From Table {dealer.current_table}</p>
           )}
         </div>
 
@@ -280,17 +280,17 @@ function RotateModal({ dealer, tables, onSubmit, onClose }) {
               onClick={() => setSelectedTable(table.id)}
               className={`w-full p-3 rounded-lg border text-left transition-colors ${
                 selectedTable === table.id
-                  ? 'border-[#22D3EE] bg-[#22D3EE]/5'
-                  : 'border-[#4A5E78] hover:border-[#22D3EE]'
+                  ? 'border-[#1877F2] bg-[#1877F2]/5'
+                  : 'border-[#3A3B3C] hover:border-[#1877F2]'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium text-white">Table {table.table_number}</p>
-                  <p className="text-sm text-[#64748B]">{table.current_game || 'No game'}</p>
+                  <p className="text-sm text-[#B0B3B8]">{table.current_game || 'No game'}</p>
                 </div>
                 {selectedTable === table.id && (
-                  <Check className="w-5 h-5 text-[#22D3EE]" />
+                  <Check className="w-5 h-5 text-[#1877F2]" />
                 )}
               </div>
             </button>
@@ -461,7 +461,7 @@ export default function DealersPage() {
   if (!staff) {
     return (
       <div className="cmd-page flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
       </div>
     );
   }
@@ -481,16 +481,16 @@ export default function DealersPage() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => router.push('/commander/dashboard')}
-                  className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
+                  className="p-2 hover:bg-[#3A3B3C] rounded-lg transition-colors"
                 >
-                  <ChevronLeft className="w-5 h-5 text-[#64748B]" />
+                  <ChevronLeft className="w-5 h-5 text-[#B0B3B8]" />
                 </button>
                 <div>
                   <h1 className="text-xl font-bold text-white flex items-center gap-2">
-                    <Users className="w-6 h-6 text-[#22D3EE]" />
+                    <Users className="w-6 h-6 text-[#1877F2]" />
                     Dealer Management
                   </h1>
-                  <p className="text-sm text-[#64748B]">
+                  <p className="text-sm text-[#B0B3B8]">
                     {activeDealers.length} active, {availableDealers.length} available
                   </p>
                 </div>
@@ -508,13 +508,13 @@ export default function DealersPage() {
           </div>
 
           {/* Tabs */}
-          <div className="max-w-4xl mx-auto px-4 flex gap-1 border-t border-[#4A5E78]">
+          <div className="max-w-4xl mx-auto px-4 flex gap-1 border-t border-[#3A3B3C]">
             <button
               onClick={() => setActiveTab('dealers')}
               className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'dealers'
-                  ? 'border-[#22D3EE] text-[#22D3EE]'
-                  : 'border-transparent text-[#64748B] hover:text-white'
+                  ? 'border-[#1877F2] text-[#1877F2]'
+                  : 'border-transparent text-[#B0B3B8] hover:text-white'
               }`}
             >
               <Users className="w-4 h-4 inline-block mr-2" />
@@ -524,8 +524,8 @@ export default function DealersPage() {
               onClick={() => setActiveTab('rotations')}
               className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'rotations'
-                  ? 'border-[#10B981] text-[#10B981]'
-                  : 'border-transparent text-[#64748B] hover:text-white'
+                  ? 'border-[#31A24C] text-[#31A24C]'
+                  : 'border-transparent text-[#B0B3B8] hover:text-white'
               }`}
             >
               <History className="w-4 h-4 inline-block mr-2" />
@@ -539,7 +539,7 @@ export default function DealersPage() {
             <>
               {/* Search */}
               <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#4A5E78]" />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#3A3B3C]" />
                 <input
                   type="text"
                   value={searchQuery}
@@ -551,7 +551,7 @@ export default function DealersPage() {
 
               {loading ? (
                 <div className="flex justify-center py-12">
-                  <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
+                  <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
                 </div>
               ) : (
                 <>
@@ -559,7 +559,7 @@ export default function DealersPage() {
                   {activeDealers.length > 0 && (
                     <section>
                       <h2 className="font-semibold text-white mb-3 flex items-center gap-2">
-                        <Clock className="w-5 h-5 text-[#10B981]" />
+                        <Clock className="w-5 h-5 text-[#31A24C]" />
                         On Tables ({activeDealers.length})
                       </h2>
                       <div className="grid md:grid-cols-2 gap-4">
@@ -596,8 +596,8 @@ export default function DealersPage() {
 
                   {filteredDealers.length === 0 && (
                     <div className="cmd-panel p-8 text-center">
-                      <Users className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
-                      <p className="text-[#64748B]">No dealers found</p>
+                      <Users className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
+                      <p className="text-[#B0B3B8]">No dealers found</p>
                       <button
                         onClick={() => setShowAddModal(true)}
                         className="mt-4 px-6 py-2 cmd-btn cmd-btn-primary"
@@ -613,21 +613,21 @@ export default function DealersPage() {
             <>
               {/* Rotation History */}
               <div className="cmd-panel">
-                <div className="p-4 border-b border-[#4A5E78] flex items-center justify-between">
+                <div className="p-4 border-b border-[#3A3B3C] flex items-center justify-between">
                   <h2 className="font-semibold text-white">Recent Rotations</h2>
-                  <span className="text-sm text-[#64748B]">{rotations.length} total</span>
+                  <span className="text-sm text-[#B0B3B8]">{rotations.length} total</span>
                 </div>
 
                 {rotations.length === 0 ? (
                   <div className="p-8 text-center">
-                    <RotateCw className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
-                    <p className="text-[#64748B]">No rotation history yet</p>
-                    <p className="text-sm text-[#4A5E78] mt-1">
+                    <RotateCw className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
+                    <p className="text-[#B0B3B8]">No rotation history yet</p>
+                    <p className="text-sm text-[#3A3B3C] mt-1">
                       Rotations will appear here when dealers are moved between tables
                     </p>
                   </div>
                 ) : (
-                  <div className="divide-y divide-[#4A5E78]">
+                  <div className="divide-y divide-[#3A3B3C]">
                     {rotations.map((rotation) => {
                       const dealer = dealers.find(d => d.id === rotation.dealer_id);
                       const fromTable = tables.find(t => t.id === rotation.from_table_id);
@@ -635,15 +635,15 @@ export default function DealersPage() {
 
                       return (
                         <div key={rotation.id} className="p-4 flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-full bg-[#10B981]/10 flex items-center justify-center">
-                            <RotateCw className="w-5 h-5 text-[#10B981]" />
+                          <div className="w-10 h-10 rounded-full bg-[#31A24C]/10 flex items-center justify-center">
+                            <RotateCw className="w-5 h-5 text-[#31A24C]" />
                           </div>
 
                           <div className="flex-1">
                             <p className="font-medium text-white">
                               {dealer?.name || rotation.dealer_name || 'Unknown Dealer'}
                             </p>
-                            <div className="flex items-center gap-2 text-sm text-[#64748B]">
+                            <div className="flex items-center gap-2 text-sm text-[#B0B3B8]">
                               <span>
                                 {fromTable ? `Table ${fromTable.table_number}` : rotation.from_table_id ? 'Previous Table' : 'Off'}
                               </span>
@@ -661,7 +661,7 @@ export default function DealersPage() {
                                 minute: '2-digit'
                               })}
                             </p>
-                            <p className="text-xs text-[#64748B]">
+                            <p className="text-xs text-[#B0B3B8]">
                               {new Date(rotation.rotated_at || rotation.created_at).toLocaleDateString()}
                             </p>
                           </div>
@@ -673,11 +673,11 @@ export default function DealersPage() {
               </div>
 
               {/* Rotation Tips */}
-              <div className="bg-[#22D3EE]/10 rounded-xl p-4 flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-[#22D3EE] flex-shrink-0 mt-0.5" />
+              <div className="bg-[#1877F2]/10 rounded-xl p-4 flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-[#1877F2] flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-medium text-[#22D3EE]">Rotation Best Practices</p>
-                  <ul className="text-sm text-[#64748B] mt-1 space-y-1">
+                  <p className="font-medium text-[#1877F2]">Rotation Best Practices</p>
+                  <ul className="text-sm text-[#B0B3B8] mt-1 space-y-1">
                     <li>Rotate dealers every 30 minutes to keep games fresh</li>
                     <li>Match dealer certifications to game types</li>
                     <li>Track down-time to ensure fair distribution</li>
