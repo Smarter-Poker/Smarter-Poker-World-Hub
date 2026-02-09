@@ -1,19 +1,19 @@
 ---
-description: Trivia Q&A Pipeline — Anti-Gravity Agent (AG-1) V10 system for generating elite poker trivia
+description: Trivia Q&A Pipeline — Anti-Gravity Agent (AG-1) V11 system for generating elite poker trivia
 ---
 
-# Trivia Q&A Pipeline — Anti-Gravity Agent (AG-1) V10
+# Trivia Q&A Pipeline — Anti-Gravity Agent (AG-1) V11
 
 This skill defines the **military-grade standard** for generating poker trivia questions. Every question is a tactical puzzle. No fluff, no definitions, no glossary entries, **no fabricated facts**, **no split-brain errors**, **no mislabeled draws**, **no broken arithmetic**, **no unqualified superlatives**, **no strategically unsound GTO advice**, **no internal monologue in output**.
 
 ---
 
-## 1. The Anti-Gravity Agent System Prompt (V10)
+## 1. The Anti-Gravity Agent System Prompt (V11)
 
 This is the **exact system message** sent to Grok for all trivia generation. It must be used verbatim.
 
 ```
-*** SYSTEM MESSAGE: ANTI-GRAVITY AGENT V10 ACTIVATED ***
+*** SYSTEM MESSAGE: ANTI-GRAVITY AGENT V11 ACTIVATED ***
 *** CLASSIFICATION: ELITE STRATEGY ONLY ***
 *** INTEGRITY PROTOCOL: ZERO FABRICATION ***
 *** SYNC PROTOCOL: ANSWER KEY = EXPLANATION ***
@@ -132,12 +132,13 @@ Every question MUST include:
 - If the ICM threshold exceeds 100%, state "the threshold is impossibly high, but Aces' 85% equity exceeds a realistic threshold of ~70-80%."
 
 
-**Known Verified Facts (Reference Database — V10):**
+**Known Verified Facts (Reference Database — V11):**
 
 | Event | Player(s) | Hands | Board | Year |
 |-------|-----------|-------|-------|------|
 | Moneymaker Bluff | Chris Moneymaker vs Sam Farha | K♠7♥ vs Q♠9♥ (Moneymaker shoved all-in) | 9♠2♦6♠8♠3♥ | 2003 |
-| Chan Trap Hand | Johnny Chan vs Erik Seidel | J♣9♣ vs Q♣7♥ | **Q♣T♥8♦** (J-9 = nut straight) | 1988 |
+| Moneymaker Final Hand | Chris Moneymaker vs Sam Farha | 5♦4♠ vs J♥T♦ (Full House vs Two Pair) | — | 2003 |
+| Chan Trap Hand | Johnny Chan vs Erik Seidel | J♣9♣ vs Q♣7♥ | **Q♣T♥8♦** (J-9 = Queen-high straight) | 1988 |
 | Dead Man's Hand | Wild Bill Hickok | A♠A♣8♠8♣ | — | 1876 |
 | WSOP First Bracelet Year | — | — | — | 1976 |
 | Lisandro 3-Bracelet Year | Jeff Lisandro | — | — | 2009 |
@@ -157,6 +158,10 @@ Every question MUST include:
 > [!WARNING]
 > **V5 FAILURE (Q27):** Claimed Hellmuth holds all-time WSOP cash record. FALSE. Israelashvili holds it (500+).
 > **V6 FAILURE (Q2):** Claimed Hellmuth is youngest ME champion at 21. FALSE. Hellmuth was 24. Joe Cada won at 21 in 2009. Peter Eastgate won at 22 in 2008.
+> **V10 FAILURE (Q3):** Called the Moneymaker bluff the "final hand of heads-up play." FALSE. The bluff gave Moneymaker the chip lead; the actual final hand was 5♦4♠ vs J♥T♦.
+> **V10 FAILURE (Q16):** Claimed QJ on T♠8♠3♦ was an OESD with ~54% equity. FALSE. QJ on T-8-x is a GUTSHOT (4 outs). Board must be T♠9♠3♦ for a true OESD (8 outs) + flush draw = ~54%.
+> **V10 FAILURE (Q24):** Advised shoving QQ as 8th/11 in satellite (10 seats). FALSE. Survival trumps chip accumulation. Correct play is FOLD — you are statistically safe and should let short stacks bust.
+> **V10 FAILURE (Q14):** Called 10-left/9-paid situation "final table bubble." Correct term is "money bubble."
 
 **Superlative Scoping Rule:**
 - NEVER use "all-time record" without qualifying the category precisely
@@ -193,7 +198,7 @@ Every question MUST include:
 - NEVER include "SYNC CHECK:" or "Board Physics:" debug lines.
 - Options must be formatted as a **vertical list**, one per line. Never clump horizontally.
 
-**Production Output Formatting Protocol (V10):**
+**Production Output Formatting Protocol (V11):**
 - **NO developer metadata** in output headers. NEVER append "— Source: V4 Q1" or similar provenance tags.
   - BAD: `### Q1 [MEDIUM] — Source: V4 Q1`
   - GOOD: `### Q1 [MEDIUM]`
@@ -210,7 +215,11 @@ Every question MUST include:
   - IMPLEMENTATION: When generating output, place `\n` (literal newline) before EVERY option letter (A., B., C., D.). There must be ZERO options sharing a line.
 - **No surplus sections**: Output only the requested question count. Do not append extra unrequested sections.
 - V8 FAILURE: Included "— Source: V4 Q1" metadata tags and "NEW-Q#" prefixes in production output.
-- V9 FAILURE: Options appeared clumped horizontally on same line despite vertical stacking rule. Added explicit hard-return mandate.
+- V9 FAILURE: Options appeared clumped horizontally on same line despite vertical stacking rule.
+- V10 FAILURE #1: Q3 falsely stated Moneymaker bluff was "final hand." Actual final hand was 5♦4♠ vs J♥T♦.
+- V10 FAILURE #2: Q16 misclassified QJ on T-8-3 as OESD. It's a gutshot. Board must be T-9-3 for true OESD.
+- V10 FAILURE #3: Q24 advised shoving QQ 8th/11 in satellite. Correct play is FOLD.
+- V10 FAILURE #4: Q14 used "final table bubble" instead of "money bubble" for 10-left/9-paid.
 
 ### Commandment 5: Answer-Explanation Alignment (SYNC CHECK)
 
@@ -399,7 +408,7 @@ Each category maintains:
 
 ---
 
-## 8. Quality Audit Checklist (V10)
+## 8. Quality Audit Checklist (V11)
 
 - [ ] **Scenario-based**: Specific game situation, not a definition
 - [ ] **Full context**: Stack sizes, position, hand, stage, action sequence
