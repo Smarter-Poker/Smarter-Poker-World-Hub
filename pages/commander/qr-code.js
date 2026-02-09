@@ -75,7 +75,7 @@ export default function VenueQRCodePage() {
   if (!staff) {
     return (
       <div className="cmd-page flex items-center justify-center">
-        <div className="animate-pulse text-[#64748B]">Loading...</div>
+        <div className="animate-pulse text-[#B0B3B8]">Loading...</div>
       </div>
     );
   }
@@ -86,14 +86,14 @@ export default function VenueQRCodePage() {
         className="min-h-screen bg-white flex flex-col items-center justify-center p-8 cursor-pointer"
         onClick={toggleFullscreen}
       >
-        <h1 className="text-4xl font-bold text-[#22D3EE] mb-2">{venue?.name}</h1>
-        <p className="text-xl text-[#64748B] mb-8">Scan to Check In</p>
+        <h1 className="text-4xl font-bold text-[#1877F2] mb-2">{venue?.name}</h1>
+        <p className="text-xl text-[#B0B3B8] mb-8">Scan to Check In</p>
         <img
           src={getQRCodeUrl(400)}
           alt="Check-in QR Code"
           className="w-96 h-96"
         />
-        <p className="text-sm text-[#4A5E78] mt-8">Tap anywhere to exit fullscreen</p>
+        <p className="text-sm text-[#3A3B3C] mt-8">Tap anywhere to exit fullscreen</p>
       </div>
     );
   }
@@ -112,13 +112,13 @@ export default function VenueQRCodePage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push('/commander/dashboard')}
-                className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
+                className="p-2 hover:bg-[#3A3B3C] rounded-lg transition-colors"
               >
-                <ArrowLeft className="w-5 h-5 text-[#64748B]" />
+                <ArrowLeft className="w-5 h-5 text-[#B0B3B8]" />
               </button>
               <div>
                 <h1 className="font-bold text-white">Check-In QR Code</h1>
-                <p className="text-sm text-[#64748B]">{venue?.name}</p>
+                <p className="text-sm text-[#B0B3B8]">{venue?.name}</p>
               </div>
             </div>
           </div>
@@ -127,14 +127,14 @@ export default function VenueQRCodePage() {
         <main className="max-w-2xl mx-auto px-4 py-8">
           {/* QR Code Display */}
           <div className="cmd-panel p-8 text-center">
-            <div className="w-20 h-20 bg-[#22D3EE]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <QrCode className="w-10 h-10 text-[#22D3EE]" />
+            <div className="w-20 h-20 bg-[#1877F2]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <QrCode className="w-10 h-10 text-[#1877F2]" />
             </div>
 
             <h2 className="text-xl font-bold text-white mb-2">
               Player Check-In
             </h2>
-            <p className="text-[#64748B] mb-6">
+            <p className="text-[#B0B3B8] mb-6">
               Display this QR code for players to scan and check in
             </p>
 
@@ -152,8 +152,8 @@ export default function VenueQRCodePage() {
             </div>
 
             {/* URL Display */}
-            <div className="bg-[#0D192E] rounded-lg p-3 mb-6">
-              <p className="text-xs text-[#64748B] mb-1">Check-in URL</p>
+            <div className="bg-[#3A3B3C] rounded-lg p-3 mb-6">
+              <p className="text-xs text-[#B0B3B8] mb-1">Check-in URL</p>
               <p className="text-sm text-white font-mono break-all">{qrUrl}</p>
             </div>
 
@@ -177,9 +177,9 @@ export default function VenueQRCodePage() {
           </div>
 
           {/* Tips */}
-          <div className="mt-6 bg-[#22D3EE]/5 rounded-xl p-4">
-            <h3 className="font-medium text-[#22D3EE] mb-2">Tips</h3>
-            <ul className="text-sm text-[#64748B] space-y-1">
+          <div className="mt-6 bg-[#1877F2]/5 rounded-xl p-4">
+            <h3 className="font-medium text-[#1877F2] mb-2">Tips</h3>
+            <ul className="text-sm text-[#B0B3B8] space-y-1">
               <li>Display on a tablet near the entrance</li>
               <li>Print and post at the check-in desk</li>
               <li>Use fullscreen mode for TV displays</li>
