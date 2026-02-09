@@ -1,19 +1,19 @@
 ---
-description: Trivia Q&A Pipeline — Anti-Gravity Agent (AG-1) V11 system for generating elite poker trivia
+description: Trivia Q&A Pipeline — Anti-Gravity Agent (AG-1) V12 system for generating elite poker trivia
 ---
 
-# Trivia Q&A Pipeline — Anti-Gravity Agent (AG-1) V11
+# Trivia Q&A Pipeline — Anti-Gravity Agent (AG-1) V12
 
 This skill defines the **military-grade standard** for generating poker trivia questions. Every question is a tactical puzzle. No fluff, no definitions, no glossary entries, **no fabricated facts**, **no split-brain errors**, **no mislabeled draws**, **no broken arithmetic**, **no unqualified superlatives**, **no strategically unsound GTO advice**, **no internal monologue in output**.
 
 ---
 
-## 1. The Anti-Gravity Agent System Prompt (V11)
+## 1. The Anti-Gravity Agent System Prompt (V12)
 
 This is the **exact system message** sent to Grok for all trivia generation. It must be used verbatim.
 
 ```
-*** SYSTEM MESSAGE: ANTI-GRAVITY AGENT V11 ACTIVATED ***
+*** SYSTEM MESSAGE: ANTI-GRAVITY AGENT V12 ACTIVATED ***
 *** CLASSIFICATION: ELITE STRATEGY ONLY ***
 *** INTEGRITY PROTOCOL: ZERO FABRICATION ***
 *** SYNC PROTOCOL: ANSWER KEY = EXPLANATION ***
@@ -162,6 +162,8 @@ Every question MUST include:
 > **V10 FAILURE (Q16):** Claimed QJ on T♠8♠3♦ was an OESD with ~54% equity. FALSE. QJ on T-8-x is a GUTSHOT (4 outs). Board must be T♠9♠3♦ for a true OESD (8 outs) + flush draw = ~54%.
 > **V10 FAILURE (Q24):** Advised shoving QQ as 8th/11 in satellite (10 seats). FALSE. Survival trumps chip accumulation. Correct play is FOLD — you are statistically safe and should let short stacks bust.
 > **V10 FAILURE (Q14):** Called 10-left/9-paid situation "final table bubble." Correct term is "money bubble."
+> **V11 FAILURE (Q14):** Referenced "MP folds" with 10 players on 2 tables of 5. In 5-handed play, positions are UTG/CO/BTN/SB/BB — there is no MP.
+> **V11 FAILURE (Q24):** Explanation stated "3 players must bust before you." FALSE. With 11 left and 10 seats, only 1 bust is needed. Correct phrasing: "There are 3 shorter stacks at higher risk of busting before you."
 
 **Superlative Scoping Rule:**
 - NEVER use "all-time record" without qualifying the category precisely
@@ -220,6 +222,8 @@ Every question MUST include:
 - V10 FAILURE #2: Q16 misclassified QJ on T-8-3 as OESD. It's a gutshot. Board must be T-9-3 for true OESD.
 - V10 FAILURE #3: Q24 advised shoving QQ 8th/11 in satellite. Correct play is FOLD.
 - V10 FAILURE #4: Q14 used "final table bubble" instead of "money bubble" for 10-left/9-paid.
+- V11 FAILURE #1: Q14 referenced "MP" in a 10-player/2-table scenario. 5-handed has no MP (UTG/CO/BTN/SB/BB only).
+- V11 FAILURE #2: Q24 explanation said "3 players must bust." Wrong — only 1 bust needed. Should say "3 shorter stacks at higher risk."
 
 ### Commandment 5: Answer-Explanation Alignment (SYNC CHECK)
 
@@ -408,7 +412,7 @@ Each category maintains:
 
 ---
 
-## 8. Quality Audit Checklist (V11)
+## 8. Quality Audit Checklist (V12)
 
 - [ ] **Scenario-based**: Specific game situation, not a definition
 - [ ] **Full context**: Stack sizes, position, hand, stage, action sequence

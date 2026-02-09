@@ -220,7 +220,7 @@ async function checkForDuplicates(newQuestion, category) {
 // ANTI-GRAVITY AGENT SYSTEM PROMPT
 // ═══════════════════════════════════════════════════════════════════════════
 
-const AG1_SYSTEM_PROMPT = `*** SYSTEM MESSAGE: ANTI-GRAVITY AGENT V11 ACTIVATED ***
+const AG1_SYSTEM_PROMPT = `*** SYSTEM MESSAGE: ANTI-GRAVITY AGENT V12 ACTIVATED ***
 *** CLASSIFICATION: ELITE STRATEGY ONLY ***
 *** INTEGRITY PROTOCOL: ZERO FABRICATION ***
 *** SYNC PROTOCOL: ANSWER KEY = EXPLANATION ***
