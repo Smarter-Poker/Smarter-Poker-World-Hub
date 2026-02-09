@@ -1187,12 +1187,7 @@ export default function BankrollManagerPage() {
         )}
       </AnimatePresence>
 
-      {/* Weekly Summary Pop-up (auto-shows once per week) */}
-      <WeeklySummary
-        userId={userId}
-        entries={entries}
-        stats={stats}
-      />
+      {/* Weekly Summary removed — data is already visible on dashboard */}
 
       {/* Bankroll Projection Modal */}
       <AnimatePresence>

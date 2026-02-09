@@ -872,7 +872,13 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
               <label style={styles.label}>Trip</label>
               <select
                 value={formData.trip_id}
-                onChange={(e) => handleInputChange('trip_id', e.target.value)}
+                onChange={(e) => {
+                  if (e.target.value === '__new__') {
+                    window.open('/hub/bankroll-manager?view=trip-tracker', '_blank');
+                  } else {
+                    handleInputChange('trip_id', e.target.value);
+                  }
+                }}
                 style={styles.select}
               >
                 <option value="">None</option>
@@ -881,6 +887,7 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
                     {trip.name}{trip.status === 'active' ? ' (Active)' : ''}
                   </option>
                 ))}
+                <option value="__new__">+ New Trip</option>
               </select>
             </div>
           )}
