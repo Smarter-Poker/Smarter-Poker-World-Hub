@@ -926,13 +926,13 @@ export async function adjustBankroll(
   // gross_in = money put on table (buy-in), gross_out = money taken off (cashout)
   // deposit: money added to bankroll → gross_out (like cashing out from an ATM into your roll)
   // withdrawal: money removed from bankroll → gross_in (like buying in / spending)
+  // NOTE: net_result is a generated column (gross_out - gross_in), do NOT insert it explicitly
   const { error: insertErr } = await supabase.from('bankroll_ledger').insert({
     user_id: userId,
     category: type,
     entry_date: new Date().toISOString().split('T')[0],
     gross_in: type === 'withdrawal' ? amount : 0,
     gross_out: type === 'deposit' ? amount : 0,
-    net_result: signedAmount,
     notes: reason || (type === 'deposit' ? 'Bankroll deposit' : 'Bankroll withdrawal'),
   });
 
