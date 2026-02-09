@@ -1,19 +1,19 @@
 ---
-description: Trivia Q&A Pipeline — Anti-Gravity Agent (AG-1) V5 system for generating elite poker trivia
+description: Trivia Q&A Pipeline — Anti-Gravity Agent (AG-1) V6 system for generating elite poker trivia
 ---
 
-# Trivia Q&A Pipeline — Anti-Gravity Agent (AG-1) V5
+# Trivia Q&A Pipeline — Anti-Gravity Agent (AG-1) V6
 
-This skill defines the **military-grade standard** for generating poker trivia questions. Every question is a tactical puzzle. No fluff, no definitions, no glossary entries, **no fabricated facts**, **no split-brain errors**, **no mislabeled draws**, **no broken arithmetic**.
+This skill defines the **military-grade standard** for generating poker trivia questions. Every question is a tactical puzzle. No fluff, no definitions, no glossary entries, **no fabricated facts**, **no split-brain errors**, **no mislabeled draws**, **no broken arithmetic**, **no unqualified superlatives**, **no strategically unsound GTO advice**.
 
 ---
 
-## 1. The Anti-Gravity Agent System Prompt (V5)
+## 1. The Anti-Gravity Agent System Prompt (V6)
 
 This is the **exact system message** sent to Grok for all trivia generation. It must be used verbatim.
 
 ```
-*** SYSTEM MESSAGE: ANTI-GRAVITY AGENT V5 ACTIVATED ***
+*** SYSTEM MESSAGE: ANTI-GRAVITY AGENT V6 ACTIVATED ***
 *** CLASSIFICATION: ELITE STRATEGY ONLY ***
 *** INTEGRITY PROTOCOL: ZERO FABRICATION ***
 *** SYNC PROTOCOL: ANSWER KEY = EXPLANATION ***
@@ -132,7 +132,7 @@ Every question MUST include:
 - If the ICM threshold exceeds 100%, state "the threshold is impossibly high, but Aces' 85% equity exceeds a realistic threshold of ~70-80%."
 
 
-**Known Verified Facts (Reference Database — V5):**
+**Known Verified Facts (Reference Database — V6):**
 
 | Event | Player(s) | Hands | Board | Year |
 |-------|-----------|-------|-------|------|
@@ -148,11 +148,37 @@ Every question MUST include:
 | WSOP ME Record Field 2024 | — | — | — | **10,112 entries** |
 | WSOP ME Record Field 2023 | — | — | — | **10,043 entries** |
 | WSOP ME Field 2006 | — | — | — | 8,773 entries |
+| Most WSOP Cashes All-Time | **Roland Israelashvili** | — | — | 500+ cashes |
+| Most WSOP Cashes among ME Champions | Phil Hellmuth | — | — | 150+ cashes |
+
+> [!WARNING]
+> **V5 FAILURE (Q27):** Claimed Phil Hellmuth holds the all-time WSOP cash record. FALSE. Roland Israelashvili holds the record with 500+ cashes. **When asking "who holds the record for X," you MUST qualify the scope.** Hellmuth leads among ME Champions, not all players.
+
+**Superlative Scoping Rule:**
+- NEVER use "all-time record" without qualifying the category precisely
+- Always add a qualifier (e.g., "among Main Event champions," "among American players")
+- If you are unsure who holds a superlative, DO NOT ask the question
 
 **For Strategy Categories:**
 - Verify all pot odds calculations before outputting
 - Ensure SPR is sensible (don't 3-bet to 35% of stack on bubble — shove or fold)
 - Stack sizes must produce coherent action sequences
+
+**GTO Board Texture Protocol:**
+- On **dry, disconnected boards** (e.g., K♠8♣3♥): Small c-bet (33% pot) at high frequency. Raiser has range advantage.
+- On **wet, connected boards** (e.g., 8♥7♥6♣): BB has **nut advantage** (sets, straights, two-pairs). GTO checks back strong hands like AA/KK at HIGH frequency for pot control. Do NOT recommend large bets with overpairs on wet boards.
+- V5 FAILURE (Q34): Recommended betting 80% pot with AA on 8♥7♥6♣. This is strategically disastrous — BB has all the sets, straights, and two-pairs. GTO checks AA here.
+
+**ICM Hand Calibration Protocol:**
+- For ICM fold examples: Use hands that are **clearly** foldable (e.g., 88, A9o, KJo). Do NOT use JJ+ — folding premium pairs is debatable and creates ambiguity.
+- For satellite shove exceptions: Use **only AA** as the hand that clears extreme ICM thresholds (~85% equity). QQ (~80%) is borderline and debatable. AA is indisputable.
+- V5 FAILURE (Q33): Used JJ in a fold spot. Folding JJ 4-handed is debatable. Use 88 instead.
+- V5 FAILURE (Q36): Used QQ in a satellite shove. QQ on the satellite bubble is debatable. Use AA instead.
+
+**Output Sanitization Rules:**
+- NEVER include "SYNC CHECK:" lines in final output. These are internal verification only.
+- NEVER include "Board Physics:" lines in final output.
+- Options must be formatted as a **vertical list**, one per line. Never clump options horizontally.
 
 ### Commandment 5: Answer-Explanation Alignment (SYNC CHECK)
 
@@ -341,7 +367,7 @@ Each category maintains:
 
 ---
 
-## 8. Quality Audit Checklist (V5)
+## 8. Quality Audit Checklist (V6)
 
 - [ ] **Scenario-based**: Specific game situation, not a definition
 - [ ] **Full context**: Stack sizes, position, hand, stage, action sequence
@@ -351,10 +377,12 @@ Each category maintains:
 - [ ] **Uses A/B/C/D labels**: Never "Option 0", "Option 1"
 - [ ] **SYNC CHECK PASSED**: ✅ option letter matches the option defended in explanation
 - [ ] **Zero fabrication**: All facts, dates, cards, names verified
+- [ ] **Superlatives scoped**: All "record" / "most" claims have explicit qualifiers
 - [ ] **Board physics verified**: Claimed hand types are mathematically possible on the board
 - [ ] **Flush draw counting**: 4+ suited cards = flush draw (NOT backdoor). 3 suited = backdoor.
+- [ ] **GTO board texture**: Wet boards = check strong hands; dry boards = small frequent bets
 - [ ] **Math verified**: Pot odds uses Call / (Pot_Before + Bet + Call) — call included in denominator
 - [ ] **Arithmetic verified**: All comparisons are mathematically true (never claim X > Y when X < Y)
+- [ ] **ICM hand calibration**: Fold examples use clearly-foldable hands (88, not JJ); satellite shoves use AA
 - [ ] **SPR sanity check**: No awkward min-raises with short stacks on bubble
-- [ ] **Difficulty appropriate**: Easy=foundational, Medium=solid strategy, Hard=trap
-- [ ] **Correct answer randomized**: Distributed across A/B/C/D
+- [ ] **Output sanitized**: No SYNC CHECK or Board Physics debug lines visible; options in vertical lists
