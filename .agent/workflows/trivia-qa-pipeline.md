@@ -1,19 +1,19 @@
 ---
-description: Trivia Q&A Pipeline — Anti-Gravity Agent (AG-1) V4 system for generating elite poker trivia
+description: Trivia Q&A Pipeline — Anti-Gravity Agent (AG-1) V5 system for generating elite poker trivia
 ---
 
-# Trivia Q&A Pipeline — Anti-Gravity Agent (AG-1) V4
+# Trivia Q&A Pipeline — Anti-Gravity Agent (AG-1) V5
 
-This skill defines the **military-grade standard** for generating poker trivia questions. Every question is a tactical puzzle. No fluff, no definitions, no glossary entries, **no fabricated facts**, **no split-brain errors**.
+This skill defines the **military-grade standard** for generating poker trivia questions. Every question is a tactical puzzle. No fluff, no definitions, no glossary entries, **no fabricated facts**, **no split-brain errors**, **no mislabeled draws**, **no broken arithmetic**.
 
 ---
 
-## 1. The Anti-Gravity Agent System Prompt (V4)
+## 1. The Anti-Gravity Agent System Prompt (V5)
 
 This is the **exact system message** sent to Grok for all trivia generation. It must be used verbatim.
 
 ```
-*** SYSTEM MESSAGE: ANTI-GRAVITY AGENT V4 ACTIVATED ***
+*** SYSTEM MESSAGE: ANTI-GRAVITY AGENT V5 ACTIVATED ***
 *** CLASSIFICATION: ELITE STRATEGY ONLY ***
 *** INTEGRITY PROTOCOL: ZERO FABRICATION ***
 *** SYNC PROTOCOL: ANSWER KEY = EXPLANATION ***
@@ -119,9 +119,20 @@ Every question MUST include:
 - Before claiming a hand type, verify it: count the cards, check the combinatorics
 - J-9 on T-8-2 = Straight DRAW (not a straight). Needs Q or 7 to complete.
 - J-9 on Q-T-8 = Nut Straight (Q-J-T-9-8). CORRECT.
-- Always verify flush draws have the right number of suited cards on board.
 
-**Known Verified Facts (Reference Database — V4):**
+**Flush Draw Counting Protocol:**
+- Count ALL suited cards (hole cards + board). If 4+ cards share a suit = **Flush Draw** (9 outs).
+- If only 3 cards share a suit = **Backdoor Flush Draw** (needs runner-runner).
+- V4 FAILURE: J♥T♥ on Q♥7♠2♣5♥ = 4 hearts (J♥, T♥, Q♥, 5♥). This is a FLUSH DRAW, not "backdoor."
+- NEVER label a 4-card flush as "backdoor."
+
+**Arithmetic Verification:**
+- Before writing any comparison (X > Y, X < Y), verify it is arithmetically true.
+- V4 FAILURE: Wrote "85% > 100%." 85 is NOT greater than 100. NEVER write false arithmetic.
+- If the ICM threshold exceeds 100%, state "the threshold is impossibly high, but Aces' 85% equity exceeds a realistic threshold of ~70-80%."
+
+
+**Known Verified Facts (Reference Database — V5):**
 
 | Event | Player(s) | Hands | Board | Year |
 |-------|-----------|-------|-------|------|
@@ -182,6 +193,8 @@ Where: Total_Pot_After_Call = Pot_Before_Bet + Opponent_Bet + Your_Call
 
 > [!CAUTION]
 > V3 FAILURE: Calculated 10 / 28.5 = 35.1% by omitting the call from the denominator. The correct answer is 10 / 38.5 = 26%. NEVER omit your call from the total pot.
+>
+> V4 FAILURE: Stated "85% > 100%" in Q24. NEVER write a comparison that is arithmetically false. If the threshold exceeds 100%, say "the threshold is impossibly high" or use a realistic figure the hand actually exceeds.
 
 ### Commandment 7: No Ambiguity
 - **Never** make the correct answer "It depends" or "Either could be right"
@@ -328,7 +341,7 @@ Each category maintains:
 
 ---
 
-## 8. Quality Audit Checklist (V4)
+## 8. Quality Audit Checklist (V5)
 
 - [ ] **Scenario-based**: Specific game situation, not a definition
 - [ ] **Full context**: Stack sizes, position, hand, stage, action sequence
@@ -339,7 +352,9 @@ Each category maintains:
 - [ ] **SYNC CHECK PASSED**: ✅ option letter matches the option defended in explanation
 - [ ] **Zero fabrication**: All facts, dates, cards, names verified
 - [ ] **Board physics verified**: Claimed hand types are mathematically possible on the board
+- [ ] **Flush draw counting**: 4+ suited cards = flush draw (NOT backdoor). 3 suited = backdoor.
 - [ ] **Math verified**: Pot odds uses Call / (Pot_Before + Bet + Call) — call included in denominator
+- [ ] **Arithmetic verified**: All comparisons are mathematically true (never claim X > Y when X < Y)
 - [ ] **SPR sanity check**: No awkward min-raises with short stacks on bubble
 - [ ] **Difficulty appropriate**: Easy=foundational, Medium=solid strategy, Hard=trap
 - [ ] **Correct answer randomized**: Distributed across A/B/C/D
