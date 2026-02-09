@@ -427,7 +427,7 @@ export async function getBankrollStats(
     .eq('user_id', userId)
     .order('start_date', { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle();
 
   let travelROI = 0;
   if (recentTrip) {

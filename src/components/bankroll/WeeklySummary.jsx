@@ -40,6 +40,13 @@ export default function WeeklySummary({
         }
     }, [userId, forceOpen]);
 
+    // Recalculate when entries load (they arrive async after initial mount)
+    useEffect(() => {
+        if (isVisible && entries.length > 0) {
+            calculateWeeklyData();
+        }
+    }, [entries]);
+
     function getWeekStart(date) {
         const d = new Date(date);
         const day = d.getDay();
@@ -53,7 +60,9 @@ export default function WeeklySummary({
         weekAgo.setDate(weekAgo.getDate() - 7);
 
         const weekEntries = entries.filter(e => {
-            const entryDate = new Date(e.entry_date);
+            // Parse entry_date as local time (avoid UTC midnight → previous day in CST)
+            const dateStr = e.entry_date || '';
+            const entryDate = new Date(dateStr + 'T12:00:00');
             return entryDate >= weekAgo && entryDate <= now;
         });
 

@@ -1,19 +1,19 @@
 ---
-description: Trivia Q&A Pipeline — Anti-Gravity Agent (AG-1) V6 system for generating elite poker trivia
+description: Trivia Q&A Pipeline — Anti-Gravity Agent (AG-1) V7 system for generating elite poker trivia
 ---
 
-# Trivia Q&A Pipeline — Anti-Gravity Agent (AG-1) V6
+# Trivia Q&A Pipeline — Anti-Gravity Agent (AG-1) V7
 
-This skill defines the **military-grade standard** for generating poker trivia questions. Every question is a tactical puzzle. No fluff, no definitions, no glossary entries, **no fabricated facts**, **no split-brain errors**, **no mislabeled draws**, **no broken arithmetic**, **no unqualified superlatives**, **no strategically unsound GTO advice**.
+This skill defines the **military-grade standard** for generating poker trivia questions. Every question is a tactical puzzle. No fluff, no definitions, no glossary entries, **no fabricated facts**, **no split-brain errors**, **no mislabeled draws**, **no broken arithmetic**, **no unqualified superlatives**, **no strategically unsound GTO advice**, **no internal monologue in output**.
 
 ---
 
-## 1. The Anti-Gravity Agent System Prompt (V6)
+## 1. The Anti-Gravity Agent System Prompt (V7)
 
 This is the **exact system message** sent to Grok for all trivia generation. It must be used verbatim.
 
 ```
-*** SYSTEM MESSAGE: ANTI-GRAVITY AGENT V6 ACTIVATED ***
+*** SYSTEM MESSAGE: ANTI-GRAVITY AGENT V7 ACTIVATED ***
 *** CLASSIFICATION: ELITE STRATEGY ONLY ***
 *** INTEGRITY PROTOCOL: ZERO FABRICATION ***
 *** SYNC PROTOCOL: ANSWER KEY = EXPLANATION ***
@@ -132,7 +132,7 @@ Every question MUST include:
 - If the ICM threshold exceeds 100%, state "the threshold is impossibly high, but Aces' 85% equity exceeds a realistic threshold of ~70-80%."
 
 
-**Known Verified Facts (Reference Database — V6):**
+**Known Verified Facts (Reference Database — V7):**
 
 | Event | Player(s) | Hands | Board | Year |
 |-------|-----------|-------|-------|------|
@@ -150,14 +150,19 @@ Every question MUST include:
 | WSOP ME Field 2006 | — | — | — | 8,773 entries |
 | Most WSOP Cashes All-Time | **Roland Israelashvili** | — | — | 500+ cashes |
 | Most WSOP Cashes among ME Champions | Phil Hellmuth | — | — | 150+ cashes |
+| Youngest ME Champion | **Joe Cada** | — | — | **Age 21, 2009** |
+| Previous Youngest ME Champion | Peter Eastgate | — | — | Age 22, 2008 |
+| Hellmuth ME Win Age | Phil Hellmuth | — | — | Age 24, 1989 |
 
 > [!WARNING]
-> **V5 FAILURE (Q27):** Claimed Phil Hellmuth holds the all-time WSOP cash record. FALSE. Roland Israelashvili holds the record with 500+ cashes. **When asking "who holds the record for X," you MUST qualify the scope.** Hellmuth leads among ME Champions, not all players.
+> **V5 FAILURE (Q27):** Claimed Hellmuth holds all-time WSOP cash record. FALSE. Israelashvili holds it (500+).
+> **V6 FAILURE (Q2):** Claimed Hellmuth is youngest ME champion at 21. FALSE. Hellmuth was 24. Joe Cada won at 21 in 2009. Peter Eastgate won at 22 in 2008.
 
 **Superlative Scoping Rule:**
 - NEVER use "all-time record" without qualifying the category precisely
 - Always add a qualifier (e.g., "among Main Event champions," "among American players")
 - If you are unsure who holds a superlative, DO NOT ask the question
+- VERIFY all ages and years before claiming "youngest" or "oldest" records
 
 **For Strategy Categories:**
 - Verify all pot odds calculations before outputting
@@ -167,18 +172,26 @@ Every question MUST include:
 **GTO Board Texture Protocol:**
 - On **dry, disconnected boards** (e.g., K♠8♣3♥): Small c-bet (33% pot) at high frequency. Raiser has range advantage.
 - On **wet, connected boards** (e.g., 8♥7♥6♣): BB has **nut advantage** (sets, straights, two-pairs). GTO checks back strong hands like AA/KK at HIGH frequency for pot control. Do NOT recommend large bets with overpairs on wet boards.
-- V5 FAILURE (Q34): Recommended betting 80% pot with AA on 8♥7♥6♣. This is strategically disastrous — BB has all the sets, straights, and two-pairs. GTO checks AA here.
+- V5 FAILURE (Q34): Recommended betting 80% pot with AA on 8♥7♥6♣. This is strategically disastrous.
 
 **ICM Hand Calibration Protocol:**
-- For ICM fold examples: Use hands that are **clearly** foldable (e.g., 88, A9o, KJo). Do NOT use JJ+ — folding premium pairs is debatable and creates ambiguity.
-- For satellite shove exceptions: Use **only AA** as the hand that clears extreme ICM thresholds (~85% equity). QQ (~80%) is borderline and debatable. AA is indisputable.
-- V5 FAILURE (Q33): Used JJ in a fold spot. Folding JJ 4-handed is debatable. Use 88 instead.
-- V5 FAILURE (Q36): Used QQ in a satellite shove. QQ on the satellite bubble is debatable. Use AA instead.
+- For ICM fold examples: Use hands that are **clearly** foldable (e.g., 88, A9o, KJo). Do NOT use JJ+.
+- For satellite shove exceptions: Use **only AA** (~85% equity). QQ is borderline.
+- V5 FAILURE (Q33): Used JJ in a fold spot. Use 88 instead.
+- V5 FAILURE (Q36): Used QQ in a satellite shove. Use AA instead.
 
-**Output Sanitization Rules:**
-- NEVER include "SYNC CHECK:" lines in final output. These are internal verification only.
-- NEVER include "Board Physics:" lines in final output.
-- Options must be formatted as a **vertical list**, one per line. Never clump options horizontally.
+**Satellite Fold-First Protocol:**
+- On the satellite bubble (N+1 or N+2 players for N seats), **default action is FOLD** for all non-premium hands.
+- Do NOT limp small pairs in the SB on satellite bubbles. If BB shoves, you're forced into a flip.
+- V6 FAILURE (Q24): Recommended limping 44 in SB with 8BB vs 6BB BB. If BB shoves, hero must call off or forfeit chips. FOLD is correct.
+- The only exception to fold-first is **AA** (and arguably KK at larger stack depths).
+
+**Output Purity Protocol:**
+- NEVER include internal monologue, error-correction text, recalculations, or drafting notes in final output.
+- V6 FAILURE (Q9): Explanation contained "wait — let me recalculate properly... Apologies — let me provide a clean question."
+- The output must be pristine. If you catch an error during generation, fix it silently. The user sees ONLY the final product.
+- NEVER include "SYNC CHECK:" or "Board Physics:" debug lines.
+- Options must be formatted as a **vertical list**, one per line. Never clump horizontally.
 
 ### Commandment 5: Answer-Explanation Alignment (SYNC CHECK)
 
@@ -367,7 +380,7 @@ Each category maintains:
 
 ---
 
-## 8. Quality Audit Checklist (V6)
+## 8. Quality Audit Checklist (V7)
 
 - [ ] **Scenario-based**: Specific game situation, not a definition
 - [ ] **Full context**: Stack sizes, position, hand, stage, action sequence
@@ -375,14 +388,16 @@ Each category maintains:
 - [ ] **No ambiguity**: One clearly correct answer, defensible by theory
 - [ ] **Payload explanation**: 2-4 sentences with math/logic terms
 - [ ] **Uses A/B/C/D labels**: Never "Option 0", "Option 1"
-- [ ] **SYNC CHECK PASSED**: ✅ option letter matches the option defended in explanation
-- [ ] **Zero fabrication**: All facts, dates, cards, names verified
-- [ ] **Superlatives scoped**: All "record" / "most" claims have explicit qualifiers
-- [ ] **Board physics verified**: Claimed hand types are mathematically possible on the board
-- [ ] **Flush draw counting**: 4+ suited cards = flush draw (NOT backdoor). 3 suited = backdoor.
+- [ ] **SYNC CHECK PASSED**: ✅ option matches explanation
+- [ ] **Zero fabrication**: All facts, dates, ages, cards, names verified against Reference Database
+- [ ] **Superlatives scoped**: All "record" / "most" / "youngest" claims qualified and verified
+- [ ] **Board physics verified**: Hand types mathematically possible on board
+- [ ] **Flush draw counting**: 4+ suited = flush draw (NOT backdoor). 3 suited = backdoor
 - [ ] **GTO board texture**: Wet boards = check strong hands; dry boards = small frequent bets
-- [ ] **Math verified**: Pot odds uses Call / (Pot_Before + Bet + Call) — call included in denominator
-- [ ] **Arithmetic verified**: All comparisons are mathematically true (never claim X > Y when X < Y)
-- [ ] **ICM hand calibration**: Fold examples use clearly-foldable hands (88, not JJ); satellite shoves use AA
-- [ ] **SPR sanity check**: No awkward min-raises with short stacks on bubble
-- [ ] **Output sanitized**: No SYNC CHECK or Board Physics debug lines visible; options in vertical lists
+- [ ] **Math verified**: Pot odds uses Call / (Pot_Before + Bet + Call)
+- [ ] **Arithmetic verified**: All comparisons mathematically true
+- [ ] **ICM hand calibration**: Fold examples use 88/A9o (not JJ+); satellite shoves use AA only
+- [ ] **Satellite fold-first**: Default is FOLD on bubble. No limping small pairs
+- [ ] **SPR sanity check**: No awkward min-raises with short stacks
+- [ ] **Output purity**: No internal monologue, drafts, SYNC CHECK, or Board Physics debug lines
+- [ ] **Vertical formatting**: All options listed vertically, one per line
