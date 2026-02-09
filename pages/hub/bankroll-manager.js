@@ -187,6 +187,20 @@ export default function BankrollManagerPage() {
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const [showTimeDropdown, setShowTimeDropdown] = useState(false);
   const [showGameTypeDropdown, setShowGameTypeDropdown] = useState(false);
+  const [showChartTypeDropdown, setShowChartTypeDropdown] = useState(false);
+  const [chartType, setChartType] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('bankroll_chart_type') || 'line';
+    }
+    return 'line';
+  });
+  const CHART_TYPE_LABELS = { line: 'Line Chart', bar: 'Bar Chart', donut: 'Donut Chart', stacked: 'Stacked Bar', histogram: 'Histogram', heatmap: 'Heatmap' };
+  const CHART_TYPES = ['line', 'bar', 'donut', 'stacked', 'histogram', 'heatmap'];
+  const handleChartTypeChange = (type) => {
+    setChartType(type);
+    setShowChartTypeDropdown(false);
+    try { localStorage.setItem('bankroll_chart_type', type); } catch (_) { }
+  };
 
   const toggleGameType = (type) => {
     setGameTypeFilter(prev => {
@@ -550,6 +564,7 @@ export default function BankrollManagerPage() {
                         setShowLocationDropdown(!showLocationDropdown);
                         setShowTimeDropdown(false);
                         setShowGameTypeDropdown(false);
+                        setShowChartTypeDropdown(false);
                       }}
                     >
                       {selectedLocationName} <span style={styles.dropdownArrow}>▼</span>
@@ -583,6 +598,7 @@ export default function BankrollManagerPage() {
                         setShowTimeDropdown(!showTimeDropdown);
                         setShowLocationDropdown(false);
                         setShowGameTypeDropdown(false);
+                        setShowChartTypeDropdown(false);
                       }}
                     >
                       {timeFilter} <span style={styles.dropdownArrow}>▼</span>
@@ -610,6 +626,7 @@ export default function BankrollManagerPage() {
                         setShowGameTypeDropdown(!showGameTypeDropdown);
                         setShowLocationDropdown(false);
                         setShowTimeDropdown(false);
+                        setShowChartTypeDropdown(false);
                       }}
                     >
                       Game Type ({gameTypeFilter.size}) <span style={styles.dropdownArrow}>▼</span>
@@ -649,10 +666,41 @@ export default function BankrollManagerPage() {
                       </div>
                     )}
                   </div>
+
+                  {/* Chart Type Dropdown */}
+                  <div style={styles.dropdownContainer} onClick={(e) => e.stopPropagation()}>
+                    <button
+                      style={styles.dropdownButton}
+                      onClick={() => {
+                        setShowChartTypeDropdown(!showChartTypeDropdown);
+                        setShowLocationDropdown(false);
+                        setShowTimeDropdown(false);
+                        setShowGameTypeDropdown(false);
+                      }}
+                    >
+                      {CHART_TYPE_LABELS[chartType] || 'Line Chart'} <span style={styles.dropdownArrow}>▼</span>
+                    </button>
+                    {showChartTypeDropdown && (
+                      <div style={styles.dropdownMenu}>
+                        {CHART_TYPES.map((ct) => (
+                          <button
+                            key={ct}
+                            style={{
+                              ...styles.dropdownItem,
+                              background: chartType === ct ? 'rgba(35, 116, 225, 0.15)' : 'transparent',
+                            }}
+                            onClick={() => handleChartTypeChange(ct)}
+                          >
+                            {CHART_TYPE_LABELS[ct]}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Bankroll Trend Chart — filtered by gameTypeFilter, always include expenses */}
-                <BankrollTrendChart entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} isLoading={isLoading} />
+                <BankrollTrendChart entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} isLoading={isLoading} chartType={chartType} />
 
                 {/* Recent Activity Section */}
                 <div style={styles.activitySection}>
