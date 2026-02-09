@@ -46,6 +46,8 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
   const [category, setCategory] = useState(isEditMode ? editEntry.category : (defaultCategory || null));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [ruleWarnings, setRuleWarnings] = useState([]);
+  const [savedStakes, setSavedStakes] = useState([]);
+  const [customStakes, setCustomStakes] = useState(false);
   // showAdvanced removed - always show all fields
 
   // Helper: convert 24h "HH:MM" to { time12: "H:MM", period: "AM"/"PM" }
@@ -134,6 +136,10 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
       odds: '',
       bet_result: '',
       expense_type: '',
+      swap_player: '',
+      swap_amount: '',
+      staker_name: '',
+      staker_amount: '',
     };
   };
 
@@ -163,6 +169,23 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
         }
       );
     }
+  }, [userId]);
+
+  // Fetch previously saved stakes for dropdown
+  useEffect(() => {
+    if (!userId) return;
+    supabase
+      .from('bankroll_ledger')
+      .select('stakes')
+      .eq('user_id', userId)
+      .eq('category', 'poker_cash')
+      .not('stakes', 'is', null)
+      .then(({ data }) => {
+        if (data) {
+          const unique = [...new Set(data.map(d => d.stakes).filter(Boolean))];
+          setSavedStakes(unique.sort());
+        }
+      });
   }, [userId]);
 
   // Auto-attach active trip for new entries
@@ -242,6 +265,18 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
         entry.finish_position = parseInt(formData.finish_position) || null;
         entry.field_size = parseInt(formData.field_size) || null;
         entry.reentry_count = parseInt(formData.reentry_count) || 0;
+        // Subtract swap and staking amounts from gross_out
+        const swapAmt = parseFloat(formData.swap_amount) || 0;
+        const stakerAmt = parseFloat(formData.staker_amount) || 0;
+        if (swapAmt > 0 || stakerAmt > 0) {
+          entry.gross_out = Math.max(0, (entry.gross_out || 0) - swapAmt - stakerAmt);
+          // Append swap/staking details to notes
+          const parts = [];
+          if (swapAmt > 0) parts.push(`Swap: ${formData.swap_player || 'Unknown'} — $${swapAmt}`);
+          if (stakerAmt > 0) parts.push(`Staked by: ${formData.staker_name || 'Unknown'} — $${stakerAmt}`);
+          const extra = parts.join(' | ');
+          entry.notes = entry.notes ? `${entry.notes}\n${extra}` : extra;
+        }
       } else if (category === 'casino_table') {
         entry.casino_game = formData.casino_game || null;
       } else if (category === 'slots') {
@@ -330,7 +365,7 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
       }
 
       setMediaFiles(prev => [...prev, ...newUploads]);
-      toast.success(`Uploaded ${newUploads.length} images`);
+      // Photo upload success toast removed per user request
     } catch (error) {
       console.error('Upload failed:', error);
       toast.error('Failed to upload image');
@@ -417,13 +452,43 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
           <div style={styles.amountRow}>
             <div style={styles.formGroup}>
               <label style={styles.label}>Stakes</label>
-              <input
-                type="text"
-                value={formData.stakes}
-                onChange={(e) => handleInputChange('stakes', e.target.value)}
-                placeholder="e.g., 2/5 NL"
-                style={styles.input}
-              />
+              {savedStakes.length > 0 && !customStakes ? (
+                <select
+                  value={formData.stakes}
+                  onChange={(e) => {
+                    if (e.target.value === '__custom__') {
+                      setCustomStakes(true);
+                      handleInputChange('stakes', '');
+                    } else {
+                      handleInputChange('stakes', e.target.value);
+                    }
+                  }}
+                  style={styles.select}
+                >
+                  <option value="">Select stakes...</option>
+                  {savedStakes.map(s => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                  <option value="__custom__">+ Custom Stakes</option>
+                </select>
+              ) : (
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <input
+                    type="text"
+                    value={formData.stakes}
+                    onChange={(e) => handleInputChange('stakes', e.target.value)}
+                    placeholder="e.g., 2/5 NL"
+                    style={{ ...styles.input, flex: 1 }}
+                  />
+                  {savedStakes.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setCustomStakes(false)}
+                      style={{ ...styles.input, flex: 'none', width: 40, cursor: 'pointer', textAlign: 'center', padding: 0 }}
+                    >↩</button>
+                  )}
+                </div>
+              )}
             </div>
             <div style={styles.formGroup}>
               <label style={styles.label}>Game Type</label>
@@ -473,6 +538,65 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
                   placeholder="e.g., 150"
                   style={styles.input}
                 />
+              </div>
+            </div>
+            {/* Swap Section */}
+            <div style={{ ...styles.formGroup, marginTop: 8, padding: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
+              <label style={{ ...styles.label, fontSize: 13, color: '#9ca3af', marginBottom: 8 }}>💱 Swap Deductions</label>
+              <div style={styles.amountRow}>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Player Name</label>
+                  <input
+                    type="text"
+                    value={formData.swap_player}
+                    onChange={(e) => handleInputChange('swap_player', e.target.value)}
+                    placeholder="e.g., Mike"
+                    style={styles.input}
+                  />
+                </div>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Swap Amount ($)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.swap_amount}
+                    onChange={(e) => handleInputChange('swap_amount', e.target.value)}
+                    onFocus={(e) => { if (e.target.value === '0') { e.target.value = ''; handleInputChange('swap_amount', ''); } }}
+                    onBlur={(e) => { if (!e.target.value) handleInputChange('swap_amount', ''); }}
+                    placeholder="0.00"
+                    style={styles.input}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Staking Section */}
+            <div style={{ ...styles.formGroup, marginTop: 8, padding: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
+              <label style={{ ...styles.label, fontSize: 13, color: '#9ca3af', marginBottom: 8 }}>🤝 Staking Deductions</label>
+              <div style={styles.amountRow}>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Staker Name</label>
+                  <input
+                    type="text"
+                    value={formData.staker_name}
+                    onChange={(e) => handleInputChange('staker_name', e.target.value)}
+                    placeholder="e.g., John"
+                    style={styles.input}
+                  />
+                </div>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Amount Paid ($)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.staker_amount}
+                    onChange={(e) => handleInputChange('staker_amount', e.target.value)}
+                    onFocus={(e) => { if (e.target.value === '0') { e.target.value = ''; handleInputChange('staker_amount', ''); } }}
+                    onBlur={(e) => { if (!e.target.value) handleInputChange('staker_amount', ''); }}
+                    placeholder="0.00"
+                    style={styles.input}
+                  />
+                </div>
               </div>
             </div>
           </>
