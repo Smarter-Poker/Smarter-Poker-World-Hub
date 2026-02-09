@@ -92,6 +92,7 @@ export async function calculateTotalBankroll(userId: string): Promise<number> {
 
 /**
  * Calculate all-in net (all categories including expenses)
+ * Excludes deposit/withdrawal — those are bankroll movements, not gambling results
  */
 export async function calculateAllInNet(
   userId: string,
@@ -103,7 +104,8 @@ export async function calculateAllInNet(
     .from('bankroll_ledger')
     .select('net_result')
     .eq('user_id', userId)
-    .eq('is_revision', false);
+    .eq('is_revision', false)
+    .not('category', 'in', '("deposit","withdrawal")');
 
   if (startDate) query = query.gte('entry_date', startDate);
   if (endDate) query = query.lte('entry_date', endDate);

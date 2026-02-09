@@ -96,12 +96,15 @@ export default function AdjustBankrollModal({ userId, onComplete, onClose }) {
                             {type === 'deposit' ? '+$' : '−$'}
                         </span>
                         <input
-                            type="number"
+                            type="text"
+                            inputMode="decimal"
                             value={amount}
-                            onChange={(e) => setAmount(e.target.value)}
+                            onChange={(e) => {
+                                // Allow only digits and one decimal point
+                                const val = e.target.value.replace(/[^0-9.]/g, '');
+                                if ((val.match(/\./g) || []).length <= 1) setAmount(val);
+                            }}
                             placeholder="0.00"
-                            min="1"
-                            step="0.01"
                             style={styles.input}
                             autoFocus
                         />
@@ -211,7 +214,7 @@ const styles = {
         display: 'flex',
         alignItems: 'center',
         background: 'rgba(0,0,0,0.3)',
-        border: '2px solid rgba(59, 130, 246, 0.2)',
+        border: '1px solid rgba(255,255,255,0.15)',
         borderRadius: 12,
         padding: '4px 16px',
     },
