@@ -176,8 +176,8 @@ function FooterCard({ orb, index, onSelect, isIntroComplete }: FooterCardProps) 
                         width: '100%',
                         aspectRatio: '2 / 3',
                         borderRadius: 8,
-                        overflow: 'visible',
-                        background: 'linear-gradient(135deg, rgba(10, 30, 60, 0.85), rgba(5, 20, 40, 0.9))',
+                        overflow: 'hidden',
+                        background: 'transparent',
                         border: 'none',
                         boxShadow: `0 20px 40px rgba(0, 0, 0, 0.5)`,
                     }}
@@ -197,7 +197,7 @@ function FooterCard({ orb, index, onSelect, isIntroComplete }: FooterCardProps) 
                                 : `linear-gradient(135deg, ${orb.gradient?.[0] || orb.color}, ${orb.gradient?.[1] || orb.color})`,
                             backgroundSize: '100% 100%',
                             backgroundPosition: 'center',
-                            borderRadius: 6,
+                            borderRadius: 8,
                         }}
                     />
 
