@@ -20,6 +20,7 @@ import { getUserLocations } from '../../lib/bankroll/locationMemory';
 import { formatCurrency } from '../../lib/bankroll/currencyUtils';
 import toast from '../../stores/toastStore';
 import TripReport from './TripReport';
+import VenueSelector from './VenueSelector';
 
 const CATEGORY_LABELS = {
     poker_cash: 'Cash Games',
@@ -41,14 +42,16 @@ export default function TripTracker({ userId, onOpenLog }) {
     const [confirmDelete, setConfirmDelete] = useState(false);
     const [editMode, setEditMode] = useState(false);
     const [editForm, setEditForm] = useState({ name: '', location_id: null, purpose: '', notes: '' });
-    const [dbVenues, setDbVenues] = useState([]);
-    const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
 
     // Create trip form state
     const [newTrip, setNewTrip] = useState({
         name: '',
         location_id: null,
         location_name: '',
+        venue_type: 'casino',
+        poker_venue_id: null,
+        latitude: null,
+        longitude: null,
         start_date: new Date().toISOString().split('T')[0],
         purpose: '',
         notes: '',
@@ -75,21 +78,7 @@ export default function TripTracker({ userId, onOpenLog }) {
 
     useEffect(() => { loadData(); }, [loadData]);
 
-    // Fetch all 483 poker venues on mount
-    useEffect(() => {
-        fetch('/api/poker/venues?limit=500')
-            .then(r => r.json())
-            .then(data => {
-                if (data.success && data.data) {
-                    setDbVenues(data.data.map(v => ({
-                        name: v.name,
-                        city: v.city || '',
-                        state: v.state || '',
-                    })).sort((a, b) => a.name.localeCompare(b.name)));
-                }
-            })
-            .catch(err => console.warn('Could not load venues:', err));
-    }, []);
+
 
     const handleCreateTrip = async (e) => {
         e.preventDefault();
@@ -98,11 +87,18 @@ export default function TripTracker({ userId, onOpenLog }) {
             return;
         }
         try {
-            // Handle new location creation
+            // Handle new location creation with coordinates
             let locationId = newTrip.location_id;
             if (locationId === '__new__' && newTrip.location_name?.trim()) {
                 const { getOrCreateLocation } = await import('../../lib/bankroll/locationMemory');
-                locationId = await getOrCreateLocation(userId, newTrip.location_name.trim());
+                locationId = await getOrCreateLocation(
+                    userId,
+                    newTrip.location_name.trim(),
+                    newTrip.venue_type || 'casino',
+                    newTrip.latitude,
+                    newTrip.longitude,
+                    newTrip.poker_venue_id
+                );
             } else if (locationId === '__new__') {
                 locationId = null;
             }
@@ -110,7 +106,7 @@ export default function TripTracker({ userId, onOpenLog }) {
             await createTrip(userId, { ...newTrip, location_id: locationId });
             toast.success('Trip started!');
             setShowCreateForm(false);
-            setNewTrip({ name: '', location_id: null, location_name: '', start_date: new Date().toISOString().split('T')[0], purpose: '', notes: '' });
+            setNewTrip({ name: '', location_id: null, location_name: '', venue_type: 'casino', poker_venue_id: null, latitude: null, longitude: null, start_date: new Date().toISOString().split('T')[0], purpose: '', notes: '' });
             await loadData();
         } catch (err) {
             toast.error(err.message || 'Failed to create trip');
@@ -376,62 +372,23 @@ export default function TripTracker({ userId, onOpenLog }) {
                         />
 
                         <label style={styles.formLabel}>Location</label>
-                        <div style={{ position: 'relative' }}>
-                            <input
-                                type="text"
-                                value={newTrip.location_name || ''}
-                                onChange={e => {
-                                    const val = e.target.value;
-                                    const match = locations.find(l => l.name.toLowerCase() === val.toLowerCase());
-                                    setNewTrip({ ...newTrip, location_name: val, location_id: match ? match.id : '__new__' });
-                                    setShowLocationSuggestions(true);
-                                }}
-                                onFocus={() => setShowLocationSuggestions(true)}
-                                onBlur={() => setTimeout(() => setShowLocationSuggestions(false), 200)}
-                                placeholder="Type venue name..."
-                                style={styles.formInput}
-                            />
-                            {showLocationSuggestions && (() => {
-                                const q = (newTrip.location_name || '').toLowerCase();
-                                // User's saved locations
-                                const savedFiltered = q.length > 0
-                                    ? locations.filter(l => l.name.toLowerCase().includes(q))
-                                    : locations;
-                                // DB venues (exclude ones already in saved)
-                                const savedNames = new Set(locations.map(l => l.name.toLowerCase()));
-                                const dbFiltered = q.length > 0
-                                    ? dbVenues.filter(v => !savedNames.has(v.name.toLowerCase()) && (v.name.toLowerCase().includes(q) || v.city.toLowerCase().includes(q) || v.state.toLowerCase().includes(q)))
-                                    : [];
-                                if (savedFiltered.length === 0 && dbFiltered.length === 0) return null;
-                                return (
-                                    <div style={{
-                                        position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4,
-                                        background: '#242526', border: '1px solid rgba(255,255,255,0.15)',
-                                        borderRadius: 8, maxHeight: 220, overflowY: 'auto', zIndex: 50,
-                                        boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-                                    }}>
-                                        {savedFiltered.length > 0 && (
-                                            <div style={{ padding: '6px 14px', fontSize: 10, color: '#666', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>Your Venues</div>
-                                        )}
-                                        {savedFiltered.map(loc => (
-                                            <button key={`s-${loc.id}`} type="button"
-                                                onMouseDown={e => { e.preventDefault(); setNewTrip({ ...newTrip, location_id: loc.id, location_name: loc.name }); setShowLocationSuggestions(false); }}
-                                                style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', color: '#e4e6eb', fontSize: 13, textAlign: 'left', cursor: 'pointer' }}
-                                            >{loc.name}</button>
-                                        ))}
-                                        {dbFiltered.length > 0 && (
-                                            <div style={{ padding: '6px 14px', fontSize: 10, color: '#666', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>Poker Venues</div>
-                                        )}
-                                        {dbFiltered.slice(0, 20).map((v, i) => (
-                                            <button key={`db-${i}`} type="button"
-                                                onMouseDown={e => { e.preventDefault(); setNewTrip({ ...newTrip, location_id: '__new__', location_name: v.name }); setShowLocationSuggestions(false); }}
-                                                style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', color: '#e4e6eb', fontSize: 13, textAlign: 'left', cursor: 'pointer' }}
-                                            >{v.name} <span style={{ fontSize: 11, color: '#888' }}>{v.city}, {v.state}</span></button>
-                                        ))}
-                                    </div>
-                                );
-                            })()}
-                        </div>
+                        <VenueSelector
+                            value={newTrip.location_name}
+                            venueType={newTrip.venue_type}
+                            userId={userId}
+                            onChange={(name, venueType, pokerVenueId, lat, lng) => {
+                                const match = locations.find(l => l.name.toLowerCase() === (name || '').toLowerCase());
+                                setNewTrip(prev => ({
+                                    ...prev,
+                                    location_name: name,
+                                    location_id: match ? match.id : (name ? '__new__' : null),
+                                    venue_type: venueType,
+                                    poker_venue_id: pokerVenueId,
+                                    latitude: lat,
+                                    longitude: lng,
+                                }));
+                            }}
+                        />
 
                         <label style={styles.formLabel}>Start Date</label>
                         <input

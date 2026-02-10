@@ -7,7 +7,7 @@
  * Flow:
  *   1. User picks venue type: Casino, Club, or Home Game
  *   2. Casino/Club → auto-suggest from poker_venues
- *   3. Home Game → manual name entry + optional GPS pin
+ *   3. Home Game → manual name entry + interactive map picker
  *
  * Props:
  *   value       - current venue name string
@@ -17,6 +17,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import LocationMapPicker from './LocationMapPicker';
 
 const VENUE_TYPES = [
     { id: 'casino', label: 'Casino / Card Room' },
@@ -31,8 +32,9 @@ export default function VenueSelector({ value, venueType, onChange, userId }) {
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [isSearching, setIsSearching] = useState(false);
     const [selectedVenue, setSelectedVenue] = useState(null); // full poker_venues object
-    const [gettingLocation, setGettingLocation] = useState(false);
+    const [showMapPicker, setShowMapPicker] = useState(false);
     const [homeCoords, setHomeCoords] = useState(null);
+    const [homeAddress, setHomeAddress] = useState('');
     const debounceRef = useRef(null);
     const containerRef = useRef(null);
 
@@ -81,7 +83,7 @@ export default function VenueSelector({ value, venueType, onChange, userId }) {
         }
 
         // For home game or when typing custom, fire onChange immediately
-        onChange(val, selectedType, null, null, null);
+        onChange(val, selectedType, null, homeCoords?.lat || null, homeCoords?.lng || null);
     };
 
     const handleSelectVenue = (venue) => {
@@ -99,23 +101,16 @@ export default function VenueSelector({ value, venueType, onChange, userId }) {
         setSelectedVenue(null);
         setSuggestions([]);
         setHomeCoords(null);
+        setHomeAddress('');
         onChange('', type, null, null, null);
     };
 
-    const handleUseMyLocation = () => {
-        if (!navigator.geolocation) return;
-        setGettingLocation(true);
-        navigator.geolocation.getCurrentPosition(
-            (pos) => {
-                const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                setHomeCoords(coords);
-                setGettingLocation(false);
-                // Fire onChange with coordinates
-                onChange(searchQuery || 'Home Game', 'home_game', null, coords.lat, coords.lng);
-            },
-            () => setGettingLocation(false),
-            { enableHighAccuracy: true, timeout: 10000 }
-        );
+    const handleMapConfirm = ({ lat, lng, address }) => {
+        setHomeCoords({ lat, lng });
+        setHomeAddress(address);
+        setShowMapPicker(false);
+        // Fire onChange with updated coordinates
+        onChange(searchQuery || 'Home Game', 'home_game', null, lat, lng);
     };
 
     return (
@@ -157,23 +152,21 @@ export default function VenueSelector({ value, venueType, onChange, userId }) {
                 {selectedVenue && <span style={styles.linked}>✓ Linked</span>}
             </div>
 
-            {/* Home Game — Step 2: Add to Map or Skip (only shows after naming) */}
+            {/* Home Game — Map Pin Section */}
             {selectedType === 'home_game' && searchQuery.trim().length > 0 && (
                 <div style={styles.homeRow}>
                     {!homeCoords ? (
                         <>
                             <button
                                 type="button"
-                                onClick={handleUseMyLocation}
-                                disabled={gettingLocation}
+                                onClick={() => setShowMapPicker(true)}
                                 style={styles.locationBtn}
                             >
-                                {gettingLocation ? 'Getting location...' : '📍 Add to Map'}
+                                📍 Add to Map
                             </button>
                             <button
                                 type="button"
                                 onClick={() => {
-                                    // Skip map — just confirm the name
                                     onChange(searchQuery, 'home_game', null, null, null);
                                 }}
                                 style={{ ...styles.locationBtn, color: '#b0b3b8' }}
@@ -182,9 +175,22 @@ export default function VenueSelector({ value, venueType, onChange, userId }) {
                             </button>
                         </>
                     ) : (
-                        <span style={styles.coordsText}>
-                            ✓ Pinned: {homeCoords.lat.toFixed(4)}, {homeCoords.lng.toFixed(4)}
-                        </span>
+                        <div style={styles.confirmedLocation}>
+                            <span style={styles.pinIcon}>📍</span>
+                            <div style={styles.confirmedInfo}>
+                                <span style={styles.confirmedLabel}>Location pinned</span>
+                                <span style={styles.confirmedAddress}>
+                                    {homeAddress || `${homeCoords.lat.toFixed(4)}, ${homeCoords.lng.toFixed(4)}`}
+                                </span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setShowMapPicker(true)}
+                                style={styles.editPinBtn}
+                            >
+                                Edit
+                            </button>
+                        </div>
                     )}
                 </div>
             )}
@@ -211,6 +217,16 @@ export default function VenueSelector({ value, venueType, onChange, userId }) {
                         </button>
                     ))}
                 </div>
+            )}
+
+            {/* Map Picker Modal */}
+            {showMapPicker && (
+                <LocationMapPicker
+                    initialLat={homeCoords?.lat}
+                    initialLng={homeCoords?.lng}
+                    onConfirm={handleMapConfirm}
+                    onClose={() => setShowMapPicker(false)}
+                />
             )}
         </div>
     );
@@ -274,9 +290,6 @@ const styles = {
         fontWeight: 600,
     },
     homeRow: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
         marginTop: 8,
     },
     locationBtn: {
@@ -287,10 +300,52 @@ const styles = {
         borderRadius: 8,
         color: '#e4e6eb',
         cursor: 'pointer',
+        marginRight: 8,
     },
-    coordsText: {
+    confirmedLocation: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        padding: '10px 14px',
+        background: 'rgba(34,197,94,0.08)',
+        border: '1px solid rgba(34,197,94,0.25)',
+        borderRadius: 10,
+    },
+    pinIcon: {
+        fontSize: 18,
+        flexShrink: 0,
+    },
+    confirmedInfo: {
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2,
+    },
+    confirmedLabel: {
+        fontSize: 12,
+        fontWeight: 600,
+        color: '#4ade80',
+    },
+    confirmedAddress: {
         fontSize: 11,
         color: '#b0b3b8',
+        lineHeight: 1.3,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        display: '-webkit-box',
+        WebkitLineClamp: 2,
+        WebkitBoxOrient: 'vertical',
+    },
+    editPinBtn: {
+        padding: '6px 12px',
+        fontSize: 11,
+        fontWeight: 600,
+        background: 'rgba(255,255,255,0.05)',
+        border: '1px solid rgba(255,255,255,0.15)',
+        borderRadius: 6,
+        color: '#b0b3b8',
+        cursor: 'pointer',
+        flexShrink: 0,
     },
     dropdown: {
         position: 'absolute',
@@ -333,3 +388,4 @@ const styles = {
         color: '#65676b',
     },
 };
+
