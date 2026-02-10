@@ -46,20 +46,24 @@ export async function getOrCreateLocation(
   longitude?: number,
   pokerVenueId?: string | number | null
 ): Promise<string> {
+  // Verify auth session — RLS requires auth.uid() = user_id
+  const { data: { session } } = await supabase.auth.getSession();
+  const authUserId = session?.user?.id || userId;
+
   // Try to find existing location
   const { data: existing } = await supabase
     .from('bankroll_locations')
     .select('id')
-    .eq('user_id', userId)
+    .eq('user_id', authUserId)
     .ilike('name', name)
     .limit(1)
     .single();
 
   if (existing) return existing.id;
 
-  // Create new location
+  // Create new location using the auth session's user ID
   const insertData: Record<string, unknown> = {
-    user_id: userId,
+    user_id: authUserId,
     name,
     venue_type: venueType,
     latitude,
