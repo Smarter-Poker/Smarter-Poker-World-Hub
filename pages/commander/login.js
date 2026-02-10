@@ -1,13 +1,13 @@
 /**
- * Commander Staff Login Page - PIN entry only
- * Requires venue_id in URL - no venue picker
+ * Commander Login Landing Page
+ * Clean welcome page with Sign In / Sign Up options
  * Facebook color scheme
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
-import { KeyRound, Loader2, AlertCircle } from 'lucide-react';
+import { KeyRound, Loader2 } from 'lucide-react';
 
 export default function CommanderLogin() {
   const router = useRouter();
@@ -22,7 +22,7 @@ export default function CommanderLogin() {
   useEffect(() => {
     if (venue_id) {
       fetchVenue(venue_id);
-    } else if (router.isReady && !venue_id) {
+    } else if (router.isReady) {
       setLoading(false);
     }
   }, [venue_id, router.isReady]);
@@ -32,7 +32,6 @@ export default function CommanderLogin() {
       const res = await fetch(`/api/commander/venues/${id}`);
       const data = await res.json();
       if (data.success && data.data.venue) {
-        // Verify this venue has commander enabled
         if (data.data.venue.commander_enabled) {
           setVenue(data.data.venue);
         } else {
@@ -99,53 +98,63 @@ export default function CommanderLogin() {
     }
   }
 
-  // No venue_id provided - show error/redirect
-  if (!loading && !venue_id) {
-    return (
-      <div className="min-h-screen bg-[#18191A] flex items-center justify-center p-4">
-        <Head>
-          <title>Staff Login | Club Commander</title>
-        </Head>
-        <div className="bg-[#242526] rounded-xl p-8 max-w-md w-full text-center border border-[#3A3B3C]">
-          <AlertCircle className="w-16 h-16 text-[#F02849] mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-[#E4E6EB] mb-2">No Venue Specified</h1>
-          <p className="text-[#B0B3B8] mb-6">
-            Staff login requires a venue-specific link. Please contact your manager for the correct login URL.
-          </p>
-          <Link href="/commander/register" className="text-[#1877F2] hover:underline">
-            Register a new venue →
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
   // Loading
   if (loading) {
     return (
       <div className="min-h-screen bg-[#18191A] flex items-center justify-center">
         <Head>
-          <title>Staff Login | Club Commander</title>
+          <title>Club Commander</title>
         </Head>
         <Loader2 className="w-8 h-8 text-[#1877F2] animate-spin" />
       </div>
     );
   }
 
-  // Error loading venue
-  if (error && !venue) {
+  // No venue_id - show welcome landing page
+  if (!venue_id || !venue) {
     return (
       <div className="min-h-screen bg-[#18191A] flex items-center justify-center p-4">
         <Head>
-          <title>Staff Login | Club Commander</title>
+          <title>Club Commander</title>
         </Head>
-        <div className="bg-[#242526] rounded-xl p-8 max-w-md w-full text-center border border-[#3A3B3C]">
-          <AlertCircle className="w-16 h-16 text-[#F02849] mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-[#E4E6EB] mb-2">Error</h1>
-          <p className="text-[#B0B3B8] mb-6">{error}</p>
-          <Link href="/commander/register" className="text-[#1877F2] hover:underline">
-            Register a new venue →
-          </Link>
+        
+        <div className="max-w-md w-full">
+          {/* Logo */}
+          <div className="text-center mb-8">
+            <img 
+              src="/images/club-commander-logo.jpg" 
+              alt="Club Commander" 
+              className="w-full max-w-sm mx-auto rounded-lg mb-6"
+            />
+          </div>
+
+          {/* Buttons */}
+          <div className="space-y-4">
+            <Link 
+              href="/commander/register"
+              className="block w-full bg-[#1877F2] hover:bg-[#1664d9] text-white font-semibold py-4 px-6 rounded-xl text-center text-lg transition-colors"
+            >
+              Sign Up
+            </Link>
+            
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-[#3A3B3C]"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-4 bg-[#18191A] text-[#B0B3B8]">Already registered?</span>
+              </div>
+            </div>
+
+            <p className="text-[#B0B3B8] text-center text-sm">
+              Staff members: Use the login link provided by your venue manager.
+            </p>
+          </div>
+
+          {/* Footer */}
+          <p className="text-center text-[#65676B] text-xs mt-8">
+            Powered by SMARTER.POKER
+          </p>
         </div>
       </div>
     );
