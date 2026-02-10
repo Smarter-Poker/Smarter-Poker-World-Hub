@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { createLedgerEntry, updateLedgerEntry, getActiveTrip } from '../../lib/bankroll/bankrollSelectors';
 import { getOrCreateLocation, detectNearbyLocation } from '../../lib/bankroll/locationMemory';
+import VenueSelector from './VenueSelector';
 import { checkRuleViolations } from '../../lib/bankroll/leakDetection';
 import toast from '../../stores/toastStore';
 
@@ -120,6 +121,10 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
       gross_out: '0',
       location_id: '',
       location_name: '',
+      venue_type: 'casino',
+      poker_venue_id: null,
+      venue_lat: null,
+      venue_lng: null,
       trip_id: '',
       entry_date: new Date().toLocaleDateString('en-CA'),
       start_time_text: '',
@@ -249,7 +254,14 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
       let locationId = formData.location_id;
       if (locationId === '__new__') locationId = ''; // Sentinel for "new location" dropdown choice
       if (!locationId && formData.location_name) {
-        locationId = await getOrCreateLocation(userId, formData.location_name);
+        locationId = await getOrCreateLocation(
+          userId,
+          formData.location_name,
+          formData.venue_type || 'casino',
+          formData.venue_lat ?? undefined,
+          formData.venue_lng ?? undefined,
+          formData.poker_venue_id ?? undefined
+        );
       }
 
       // Build entry based on category
@@ -784,62 +796,20 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
         {/* Location / Venue */}
         <div style={styles.formGroup}>
           <label style={styles.label}>Location / Venue</label>
-          {locations.length > 0 && formData.location_id !== '__new__' ? (
-            <select
-              value={formData.location_id}
-              onChange={(e) => {
-                if (e.target.value === '__new__') {
-                  handleInputChange('location_id', '__new__');
-                  handleInputChange('location_name', '');
-                } else {
-                  handleInputChange('location_id', e.target.value);
-                  const loc = locations.find(l => l.id === e.target.value);
-                  if (loc) handleInputChange('location_name', loc.name);
-                }
-              }}
-              style={styles.select}
-            >
-              <option value="">Select location...</option>
-              {locations.map((loc) => (
-                <option key={loc.id} value={loc.id}>
-                  {loc.name}
-                </option>
-              ))}
-              <option value="__new__">+ New Location</option>
-            </select>
-          ) : (
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <input
-                type="text"
-                value={formData.location_name}
-                onChange={(e) => handleInputChange('location_name', e.target.value)}
-                placeholder="e.g., Rivers Casino"
-                style={{ ...styles.input, flex: 1 }}
-                autoFocus={formData.location_id === '__new__'}
-              />
-              {locations.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleInputChange('location_id', '');
-                    handleInputChange('location_name', '');
-                  }}
-                  style={{
-                    background: 'rgba(255,255,255,0.1)',
-                    border: '1px solid rgba(255,255,255,0.2)',
-                    borderRadius: 6,
-                    color: 'rgba(255,255,255,0.7)',
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    fontSize: 12,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  ← Back
-                </button>
-              )}
-            </div>
-          )}
+          <VenueSelector
+            value={formData.location_name}
+            venueType={formData.venue_type}
+            userId={userId}
+            onChange={(name, venueType, pokerVenueId, lat, lng) => {
+              handleInputChange('location_name', name);
+              handleInputChange('venue_type', venueType);
+              handleInputChange('poker_venue_id', pokerVenueId);
+              handleInputChange('venue_lat', lat);
+              handleInputChange('venue_lng', lng);
+              // Clear location_id so getOrCreateLocation will run on submit
+              handleInputChange('location_id', '');
+            }}
+          />
         </div>
 
         {/* ALL FIELDS ALWAYS VISIBLE (No Toggle) */}

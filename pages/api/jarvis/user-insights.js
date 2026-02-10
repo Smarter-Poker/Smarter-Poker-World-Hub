@@ -147,6 +147,76 @@ export default async function handler(req, res) {
             });
         }
 
+        // ─── Bankroll Data Enrichment ───
+        let bankrollSummary = null;
+        try {
+            // Get recent bankroll entries for this user
+            const { data: bankrollEntries } = await supabase
+                .from('bankroll_ledger')
+                .select('net_result, category, start_time, end_time, entry_date, stakes')
+                .eq('user_id', userId)
+                .eq('is_revision', false)
+                .order('entry_date', { ascending: false })
+                .limit(100);
+
+            if (bankrollEntries && bankrollEntries.length > 0) {
+                const totalNet = bankrollEntries.reduce((s, e) => s + (e.net_result || 0), 0);
+                const pokerEntries = bankrollEntries.filter(e =>
+                    e.category === 'poker_cash' || e.category === 'poker_mtt'
+                );
+                const winCount = pokerEntries.filter(e => (e.net_result || 0) > 0).length;
+                let totalHours = 0;
+                pokerEntries.forEach(e => {
+                    if (e.start_time && e.end_time) {
+                        totalHours += (new Date(e.end_time) - new Date(e.start_time)) / 3600000;
+                    }
+                });
+
+                // Monthly P/L (last 30 days)
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                const monthlyEntries = bankrollEntries.filter(e =>
+                    new Date(e.entry_date) >= thirtyDaysAgo
+                );
+                const monthlyPL = monthlyEntries.reduce((s, e) => s + (e.net_result || 0), 0);
+
+                // Trend (last 5 sessions)
+                const last5 = pokerEntries.slice(0, 5);
+                const last5Net = last5.reduce((s, e) => s + (e.net_result || 0), 0);
+                const recentTrend = last5Net > 0 ? 'upswing' : last5Net < -500 ? 'downswing' : 'stable';
+
+                // Get location stats (top/worst)
+                const { data: locationStats } = await supabase
+                    .from('bankroll_ledger')
+                    .select('location_id, net_result, bankroll_locations(name)')
+                    .eq('user_id', userId)
+                    .eq('is_revision', false)
+                    .not('location_id', 'is', null);
+
+                const locMap = {};
+                (locationStats || []).forEach(e => {
+                    const lid = e.location_id;
+                    if (!locMap[lid]) locMap[lid] = { name: e.bankroll_locations?.name || 'Unknown', net: 0 };
+                    locMap[lid].net += e.net_result || 0;
+                });
+                const locArr = Object.values(locMap).sort((a, b) => b.net - a.net);
+
+                bankrollSummary = {
+                    totalSessions: bankrollEntries.length,
+                    pokerSessions: pokerEntries.length,
+                    totalNet,
+                    monthlyPL,
+                    hourlyRate: totalHours > 0 ? Math.round(totalNet / totalHours) : 0,
+                    winRate: pokerEntries.length > 0 ? Math.round((winCount / pokerEntries.length) * 100) : 0,
+                    recentTrend,
+                    topVenue: locArr[0] || null,
+                    worstVenue: locArr.length > 0 ? locArr[locArr.length - 1] : null,
+                };
+            }
+        } catch (bankrollErr) {
+            console.warn('[JarvisInsights] Bankroll enrichment failed:', bankrollErr.message);
+        }
+
         return res.status(200).json({
             success: true,
             insights: {
@@ -165,7 +235,8 @@ export default async function handler(req, res) {
                 personalizedInsights: insights,
                 jarvisAdvice: insights.length > 0
                     ? `Focus on your ${topLeaks[0]?.leak || 'fundamentals'} to see the biggest improvement.`
-                    : 'Keep training to unlock personalized insights!'
+                    : 'Keep training to unlock personalized insights!',
+                bankroll: bankrollSummary,
             }
         });
 

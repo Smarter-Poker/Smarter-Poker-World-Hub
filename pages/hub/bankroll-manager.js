@@ -66,6 +66,8 @@ import StartingBankrollModal from '../../src/components/bankroll/StartingBankrol
 import ManageVenuesModal from '../../src/components/bankroll/ManageVenuesModal';
 import AdjustBankrollModal from '../../src/components/bankroll/AdjustBankrollModal';
 import { getActiveTrip, hasStartingBankroll } from '../../src/lib/bankroll/bankrollSelectors';
+import GeofenceService from '../../src/lib/geofence';
+import { requestPermission, showVenueAlert } from '../../src/lib/pushAlerts';
 
 // Clean Facebook-style navigation (no emojis)
 const SIDEBAR_SECTIONS = [
@@ -296,6 +298,33 @@ export default function BankrollManagerPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Geofence: start watching when userId is available
+  useEffect(() => {
+    if (!userId) return;
+    const gf = new GeofenceService();
+
+    (async () => {
+      try {
+        const res = await fetch(`/api/bankroll/linked-venues?userId=${userId}`);
+        const data = await res.json();
+        if (data.success && data.venues?.length > 0) {
+          gf.start(data.venues, async (venue) => {
+            // Request permission on first trigger
+            await requestPermission();
+            // Show browser notification
+            showVenueAlert(venue, 'checkin');
+            // Also open log modal pre-filled with this venue
+            toast.show(`📍 You're near ${venue.name}! Tap to log a session.`);
+          });
+        }
+      } catch (err) {
+        console.warn('[Geofence] Failed to load venues:', err);
+      }
+    })();
+
+    return () => gf.stop();
+  }, [userId]);
 
   const handleLogSubmit = async () => {
     setShowLogModal(false);

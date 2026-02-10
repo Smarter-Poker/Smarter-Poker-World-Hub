@@ -43,7 +43,8 @@ export async function getOrCreateLocation(
   name: string,
   venueType: string = 'casino',
   latitude?: number,
-  longitude?: number
+  longitude?: number,
+  pokerVenueId?: string | number | null
 ): Promise<string> {
   // Try to find existing location
   const { data: existing } = await supabase
@@ -57,15 +58,20 @@ export async function getOrCreateLocation(
   if (existing) return existing.id;
 
   // Create new location
+  const insertData: Record<string, unknown> = {
+    user_id: userId,
+    name,
+    venue_type: venueType,
+    latitude,
+    longitude,
+  };
+  if (pokerVenueId) {
+    insertData.poker_venue_id = pokerVenueId;
+  }
+
   const { data: newLoc, error } = await supabase
     .from('bankroll_locations')
-    .insert({
-      user_id: userId,
-      name,
-      venue_type: venueType,
-      latitude,
-      longitude,
-    })
+    .insert(insertData)
     .select('id')
     .single();
 

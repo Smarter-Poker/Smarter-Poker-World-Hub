@@ -139,6 +139,53 @@ export default function JarvisDashboard() {
                                 </div>
                             )}
 
+                            {/* Bankroll Summary */}
+                            {insights?.bankroll && (
+                                <div style={styles.section}>
+                                    <h2 style={styles.sectionTitle}>💰 Bankroll Overview</h2>
+                                    <div style={styles.statsGrid}>
+                                        <StatCard
+                                            label="Monthly P/L"
+                                            value={`${insights.bankroll.monthlyPL >= 0 ? '+' : ''}$${Math.abs(insights.bankroll.monthlyPL).toLocaleString()}`}
+                                            icon="📈"
+                                        />
+                                        <StatCard
+                                            label="Hourly Rate"
+                                            value={`$${insights.bankroll.hourlyRate}/hr`}
+                                            icon="⏱️"
+                                        />
+                                        <StatCard
+                                            label="Win Rate"
+                                            value={`${insights.bankroll.winRate}%`}
+                                            icon="🎯"
+                                        />
+                                        <StatCard
+                                            label="Trend"
+                                            value={insights.bankroll.recentTrend}
+                                            icon={insights.bankroll.recentTrend === 'upswing' ? '🟢' : insights.bankroll.recentTrend === 'downswing' ? '🔴' : '🟡'}
+                                        />
+                                    </div>
+                                    {(insights.bankroll.topVenue || insights.bankroll.worstVenue) && (
+                                        <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
+                                            {insights.bankroll.topVenue && (
+                                                <div style={{ ...styles.adviceBox, flex: 1, borderColor: 'rgba(34,197,94,0.3)', background: 'rgba(34,197,94,0.1)' }}>
+                                                    <div style={{ fontSize: 11, color: '#22c55e', marginBottom: 4 }}>🏆 Best Venue</div>
+                                                    <div style={{ fontWeight: 600, fontSize: 14 }}>{insights.bankroll.topVenue.name}</div>
+                                                    <div style={{ fontSize: 12, color: '#22c55e' }}>+${Math.abs(Math.round(insights.bankroll.topVenue.net)).toLocaleString()}</div>
+                                                </div>
+                                            )}
+                                            {insights.bankroll.worstVenue && insights.bankroll.worstVenue.net < 0 && (
+                                                <div style={{ ...styles.adviceBox, flex: 1, borderColor: 'rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.1)' }}>
+                                                    <div style={{ fontSize: 11, color: '#ef4444', marginBottom: 4 }}>⚠️ Worst Venue</div>
+                                                    <div style={{ fontWeight: 600, fontSize: 14 }}>{insights.bankroll.worstVenue.name}</div>
+                                                    <div style={{ fontSize: 12, color: '#ef4444' }}>-${Math.abs(Math.round(insights.bankroll.worstVenue.net)).toLocaleString()}</div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             {/* Weekly Progress */}
                             <div style={styles.section}>
                                 <h2 style={styles.sectionTitle}>📈 This Week</h2>
