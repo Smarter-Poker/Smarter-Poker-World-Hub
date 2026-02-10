@@ -725,7 +725,7 @@ export default function TriviaModePage() {
             <style jsx>{`
                 .trivia-mode-page {
                     min-height: 100vh;
-                    background: linear-gradient(135deg, #0a1628 0%, #1a2744 50%, #0f1d32 100%);
+                    background: #000000;
                     font-family: 'Inter', -apple-system, sans-serif;
                     position: relative;
                     width: 100%;
