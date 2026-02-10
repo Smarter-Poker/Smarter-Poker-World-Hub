@@ -69,8 +69,9 @@ import { getActiveTrip, hasStartingBankroll } from '../../src/lib/bankroll/bankr
 // Clean Facebook-style navigation (no emojis)
 const SIDEBAR_SECTIONS = [
   { id: 'dashboard', label: 'Dashboard', icon: '' },
-  { id: 'log-session', label: 'Log Session', icon: '' },
   { id: 'trips', label: 'Trip Tracker', icon: '' },
+  { id: 'series', label: 'Series Tracker', icon: '' },
+  { id: 'scan-receipt', label: 'Scan Receipt', icon: '' },
   { id: 'players', label: 'Player Notes', icon: '' },
   { id: 'leaks', label: 'Leaks', icon: '' },
   { id: 'reports', label: 'Reports', icon: '' },
@@ -394,8 +395,11 @@ export default function BankrollManagerPage() {
   };
 
   const handleSidebarClick = (sectionId) => {
-    if (sectionId === 'log-session') {
+    if (sectionId === 'scan-receipt') {
+      // TODO: Open scan receipt flow
       handleLogClick();
+    } else if (sectionId === 'series') {
+      router.push('/hub/bankroll-manager?view=series');
     } else {
       setActiveSection(sectionId);
       // Reset category filter when going back to Dashboard
@@ -547,7 +551,7 @@ export default function BankrollManagerPage() {
                 }}
               >
                 <span style={styles.sidebarIcon}>{section.icon}</span>
-                <span>{section.label}</span>
+                <span>{section.id === 'dashboard' && activeSection !== 'dashboard' ? '← Back to Dashboard' : section.label}</span>
               </button>
             ))}
           </nav>

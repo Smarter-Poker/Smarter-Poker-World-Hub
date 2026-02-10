@@ -540,11 +540,11 @@ export default function UniversalHeader({
                         </button>
                     )}
                     <button
-                        onClick={pageDepth > 1 ? handleBack : () => router.push('/hub')}
+                        onClick={() => router.push('/hub')}
                         className="nav-btn"
                     >
                         <span>←</span>
-                        <span>{pageDepth > 1 ? 'Back' : 'Hub'}</span>
+                        <span>Hub</span>
                     </button>
                     <span className="brand-text">Smarter.Poker</span>
                 </div>
