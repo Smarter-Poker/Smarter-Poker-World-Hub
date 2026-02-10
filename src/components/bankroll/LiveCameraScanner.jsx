@@ -1,389 +1,253 @@
 /**
- * LIVE CAMERA SCANNER — v2
- * Guide-frame camera → detects content in frame → auto-captures
- * After capture: Hough line detection → auto-crop → preview → Use/Retry
+ * LIVE CAMERA SCANNER — v3
+ * Real-time document tracking with dynamic quad overlay
  *
- * Architecture:
- *   1. Live camera feed with guide rectangle overlay
- *   2. Basic brightness/contrast check inside guide area (is there content?)
- *   3. When stable content detected for ~2s → auto-capture
- *   4. Post-capture: proper Hough Line Transform finds document edges
- *   5. Perspective warp crops to just the document
- *   6. Shows cropped result with "Use Image" / "Try Again"
+ * Flow:
+ *   1. Live camera feed — runs edge detection every frame at low res
+ *   2. Detected quad morphs in real-time to wrap around the receipt
+ *   3. When quad is stable for ~2s → auto-captures
+ *   4. Post-capture: perspective warp using detected corners → cropped result
+ *   5. Preview: "Use Image" / "Try Again"
+ *
+ * Detection pipeline (optimized for real-time at ~160px):
+ *   Sobel edges → threshold → Hough Line Transform → line grouping →
+ *   best quadrilateral from intersections → smooth interpolation
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 
 // ═══════════════════════════════════════════════════════════════════
-// DOCUMENT DETECTION ENGINE (runs ONCE on captured still image)
+// DETECTION ENGINE (optimized for real-time ~15fps)
 // ═══════════════════════════════════════════════════════════════════
 
-function toGrayscale(imageData) {
-    const { data, width, height } = imageData;
-    const gray = new Float32Array(width * height);
-    for (let i = 0; i < width * height; i++) {
+function detectQuad(video, detectW, detectH) {
+    const canvas = document.createElement('canvas');
+    canvas.width = detectW;
+    canvas.height = detectH;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, detectW, detectH);
+    const imageData = ctx.getImageData(0, 0, detectW, detectH);
+    const d = imageData.data;
+    const len = detectW * detectH;
+
+    // 1. Grayscale
+    const gray = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
         const idx = i * 4;
-        gray[i] = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
-    }
-    return gray;
-}
-
-function gaussianBlur(gray, width, height) {
-    // 5x5 Gaussian kernel (sigma ≈ 1.4)
-    const kernel = [
-        2, 4, 5, 4, 2,
-        4, 9, 12, 9, 4,
-        5, 12, 15, 12, 5,
-        4, 9, 12, 9, 4,
-        2, 4, 5, 4, 2,
-    ];
-    const kSum = 159;
-    const out = new Float32Array(width * height);
-
-    for (let y = 2; y < height - 2; y++) {
-        for (let x = 2; x < width - 2; x++) {
-            let sum = 0;
-            for (let ky = -2; ky <= 2; ky++) {
-                for (let kx = -2; kx <= 2; kx++) {
-                    sum += gray[(y + ky) * width + (x + kx)] * kernel[(ky + 2) * 5 + (kx + 2)];
-                }
-            }
-            out[y * width + x] = sum / kSum;
-        }
-    }
-    return out;
-}
-
-function sobelEdges(gray, width, height) {
-    const mag = new Float32Array(width * height);
-    const dir = new Float32Array(width * height);
-
-    for (let y = 1; y < height - 1; y++) {
-        for (let x = 1; x < width - 1; x++) {
-            const i = y * width + x;
-            const gx =
-                -gray[i - width - 1] + gray[i - width + 1]
-                - 2 * gray[i - 1] + 2 * gray[i + 1]
-                - gray[i + width - 1] + gray[i + width + 1];
-            const gy =
-                -gray[i - width - 1] - 2 * gray[i - width] - gray[i - width + 1]
-                + gray[i + width - 1] + 2 * gray[i + width] + gray[i + width + 1];
-            mag[i] = Math.sqrt(gx * gx + gy * gy);
-            dir[i] = Math.atan2(gy, gx);
-        }
-    }
-    return { mag, dir };
-}
-
-function nonMaxSuppression(mag, dir, width, height) {
-    const nms = new Float32Array(width * height);
-
-    for (let y = 1; y < height - 1; y++) {
-        for (let x = 1; x < width - 1; x++) {
-            const i = y * width + x;
-            const m = mag[i];
-            if (m === 0) continue;
-
-            // Round direction to 0, 45, 90, 135 degrees
-            let angle = dir[i] * (180 / Math.PI);
-            if (angle < 0) angle += 180;
-
-            let m1 = 0, m2 = 0;
-            if (angle < 22.5 || angle >= 157.5) {
-                m1 = mag[i - 1]; m2 = mag[i + 1];
-            } else if (angle < 67.5) {
-                m1 = mag[i - width + 1]; m2 = mag[i + width - 1];
-            } else if (angle < 112.5) {
-                m1 = mag[i - width]; m2 = mag[i + width];
-            } else {
-                m1 = mag[i - width - 1]; m2 = mag[i + width + 1];
-            }
-
-            nms[i] = (m >= m1 && m >= m2) ? m : 0;
-        }
-    }
-    return nms;
-}
-
-function hysteresisThreshold(nms, width, height, lowRatio, highRatio) {
-    // Find automatic thresholds
-    let maxVal = 0;
-    for (let i = 0; i < nms.length; i++) {
-        if (nms[i] > maxVal) maxVal = nms[i];
-    }
-    const highThresh = maxVal * highRatio;
-    const lowThresh = maxVal * lowRatio;
-
-    const result = new Uint8Array(width * height);
-    const STRONG = 255, WEAK = 128;
-
-    for (let i = 0; i < nms.length; i++) {
-        if (nms[i] >= highThresh) result[i] = STRONG;
-        else if (nms[i] >= lowThresh) result[i] = WEAK;
+        gray[i] = (d[idx] * 77 + d[idx + 1] * 150 + d[idx + 2] * 29) >> 8;
     }
 
-    // Connect weak edges to strong edges
-    for (let y = 1; y < height - 1; y++) {
-        for (let x = 1; x < width - 1; x++) {
-            const i = y * width + x;
-            if (result[i] !== WEAK) continue;
-
-            // Check 8-connected neighbors for strong edge
-            let hasStrong = false;
-            for (let dy = -1; dy <= 1; dy++) {
-                for (let dx = -1; dx <= 1; dx++) {
-                    if (result[(y + dy) * width + (x + dx)] === STRONG) {
-                        hasStrong = true;
-                        break;
-                    }
-                }
-                if (hasStrong) break;
-            }
-            result[i] = hasStrong ? STRONG : 0;
+    // 2. Simple 3x3 blur
+    const blurred = new Uint8Array(len);
+    for (let y = 1; y < detectH - 1; y++) {
+        for (let x = 1; x < detectW - 1; x++) {
+            const i = y * detectW + x;
+            blurred[i] = (
+                gray[i - detectW - 1] + gray[i - detectW] * 2 + gray[i - detectW + 1] +
+                gray[i - 1] * 2 + gray[i] * 4 + gray[i + 1] * 2 +
+                gray[i + detectW - 1] + gray[i + detectW] * 2 + gray[i + detectW + 1]
+            ) >> 4;
         }
     }
 
-    return result;
-}
+    // 3. Sobel edges
+    const edges = new Uint8Array(len);
+    for (let y = 1; y < detectH - 1; y++) {
+        for (let x = 1; x < detectW - 1; x++) {
+            const i = y * detectW + x;
+            const gx = Math.abs(
+                -blurred[i - detectW - 1] + blurred[i - detectW + 1]
+                - 2 * blurred[i - 1] + 2 * blurred[i + 1]
+                - blurred[i + detectW - 1] + blurred[i + detectW + 1]
+            );
+            const gy = Math.abs(
+                -blurred[i - detectW - 1] - 2 * blurred[i - detectW] - blurred[i - detectW + 1]
+                + blurred[i + detectW - 1] + 2 * blurred[i + detectW] + blurred[i + detectW + 1]
+            );
+            const m = gx + gy;
+            edges[i] = m > 60 ? 255 : 0;
+        }
+    }
 
-// ─── HOUGH LINE TRANSFORM ─────────────────────────────────────────
-function houghLines(edges, width, height, threshold) {
-    const rhoMax = Math.ceil(Math.sqrt(width * width + height * height));
-    const thetaSteps = 180;
-    const accumulator = new Int32Array(2 * rhoMax * thetaSteps);
+    // 4. Hough Line Transform (90 angle steps for speed)
+    const rhoMax = Math.ceil(Math.sqrt(detectW * detectW + detectH * detectH));
+    const thetaSteps = 90;
+    const accum = new Int32Array(2 * rhoMax * thetaSteps);
 
-    // Precompute sin/cos
-    const cosTable = new Float32Array(thetaSteps);
-    const sinTable = new Float32Array(thetaSteps);
+    const cosT = new Float32Array(thetaSteps);
+    const sinT = new Float32Array(thetaSteps);
     for (let t = 0; t < thetaSteps; t++) {
         const theta = (t * Math.PI) / thetaSteps;
-        cosTable[t] = Math.cos(theta);
-        sinTable[t] = Math.sin(theta);
+        cosT[t] = Math.cos(theta);
+        sinT[t] = Math.sin(theta);
     }
 
-    // Vote
-    for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-            if (edges[y * width + x] === 0) continue;
+    for (let y = 0; y < detectH; y++) {
+        for (let x = 0; x < detectW; x++) {
+            if (edges[y * detectW + x] === 0) continue;
             for (let t = 0; t < thetaSteps; t++) {
-                const rho = Math.round(x * cosTable[t] + y * sinTable[t]) + rhoMax;
-                accumulator[rho * thetaSteps + t]++;
+                const rho = Math.round(x * cosT[t] + y * sinT[t]) + rhoMax;
+                accum[rho * thetaSteps + t]++;
             }
         }
     }
 
-    // Find peaks
+    // 5. Find peaks
+    const minVotes = Math.max(15, Math.min(detectW, detectH) * 0.12);
     const lines = [];
     for (let r = 0; r < 2 * rhoMax; r++) {
         for (let t = 0; t < thetaSteps; t++) {
-            const votes = accumulator[r * thetaSteps + t];
-            if (votes < threshold) continue;
-
-            // Local maximum check (3x3 neighborhood)
+            const votes = accum[r * thetaSteps + t];
+            if (votes < minVotes) continue;
             let isMax = true;
             for (let dr = -2; dr <= 2 && isMax; dr++) {
                 for (let dt = -2; dt <= 2 && isMax; dt++) {
                     if (dr === 0 && dt === 0) continue;
                     const nr = r + dr, nt = t + dt;
                     if (nr >= 0 && nr < 2 * rhoMax && nt >= 0 && nt < thetaSteps) {
-                        if (accumulator[nr * thetaSteps + nt] > votes) isMax = false;
+                        if (accum[nr * thetaSteps + nt] > votes) isMax = false;
                     }
                 }
             }
-            if (isMax) {
-                lines.push({
-                    rho: r - rhoMax,
-                    theta: (t * Math.PI) / thetaSteps,
-                    votes,
-                });
-            }
+            if (isMax) lines.push({ rho: r - rhoMax, theta: (t * Math.PI) / thetaSteps, votes });
         }
     }
-
-    // Sort by votes descending
     lines.sort((a, b) => b.votes - a.votes);
-    return lines;
-}
 
-// ─── FIND DOCUMENT CORNERS VIA LINE INTERSECTIONS ─────────────────
-function lineIntersection(l1, l2) {
-    const cos1 = Math.cos(l1.theta), sin1 = Math.sin(l1.theta);
-    const cos2 = Math.cos(l2.theta), sin2 = Math.sin(l2.theta);
-    const det = cos1 * sin2 - cos2 * sin1;
-    if (Math.abs(det) < 1e-6) return null; // Parallel lines
-    return {
-        x: (l1.rho * sin2 - l2.rho * sin1) / det,
-        y: (l2.rho * cos1 - l1.rho * cos2) / det,
-    };
-}
-
-function findDocumentQuad(lines, width, height) {
-    if (lines.length < 4) return null;
-
-    // Separate lines into roughly horizontal and roughly vertical
-    const horizontal = []; // theta near 90° (pi/2)
-    const vertical = [];   // theta near 0° or 180°
-
-    for (const line of lines.slice(0, 40)) { // Top 40 lines max
+    // 6. Group into horizontal/vertical
+    const horizontal = [], vertical = [];
+    for (const line of lines.slice(0, 30)) {
         const deg = (line.theta * 180) / Math.PI;
-        if (deg > 45 && deg < 135) {
-            horizontal.push(line);
-        } else {
-            vertical.push(line);
-        }
+        if (deg > 30 && deg < 150) horizontal.push(line);
+        else vertical.push(line);
     }
-
     if (horizontal.length < 2 || vertical.length < 2) return null;
 
-    // Merge similar lines (within 15px rho and 5° theta)
-    const mergeLines = (lines) => {
-        const merged = [];
+    // Merge similar lines
+    const merge = (arr) => {
+        const out = [];
         const used = new Set();
-        for (let i = 0; i < lines.length; i++) {
+        for (let i = 0; i < arr.length; i++) {
             if (used.has(i)) continue;
-            let rhoSum = lines[i].rho;
-            let thetaSum = lines[i].theta;
-            let votesSum = lines[i].votes;
-            let count = 1;
-            for (let j = i + 1; j < lines.length; j++) {
+            let rS = arr[i].rho, tS = arr[i].theta, vS = arr[i].votes, n = 1;
+            for (let j = i + 1; j < arr.length; j++) {
                 if (used.has(j)) continue;
-                const dRho = Math.abs(lines[i].rho - lines[j].rho);
-                const dTheta = Math.abs(lines[i].theta - lines[j].theta);
-                if (dRho < 15 && dTheta < (5 * Math.PI) / 180) {
-                    rhoSum += lines[j].rho;
-                    thetaSum += lines[j].theta;
-                    votesSum += lines[j].votes;
-                    count++;
-                    used.add(j);
+                if (Math.abs(arr[i].rho - arr[j].rho) < 12 && Math.abs(arr[i].theta - arr[j].theta) < 0.1) {
+                    rS += arr[j].rho; tS += arr[j].theta; vS += arr[j].votes; n++; used.add(j);
                 }
             }
-            merged.push({
-                rho: rhoSum / count,
-                theta: thetaSum / count,
-                votes: votesSum,
-            });
+            out.push({ rho: rS / n, theta: tS / n, votes: vS });
             used.add(i);
         }
-        return merged;
+        return out;
     };
 
-    const hMerged = mergeLines(horizontal);
-    const vMerged = mergeLines(vertical);
+    const hm = merge(horizontal);
+    const vm = merge(vertical);
+    if (hm.length < 2 || vm.length < 2) return null;
+    hm.sort((a, b) => a.rho - b.rho);
+    vm.sort((a, b) => a.rho - b.rho);
 
-    if (hMerged.length < 2 || vMerged.length < 2) return null;
+    // 7. Find best quadrilateral from line intersections
+    const intersect = (l1, l2) => {
+        const c1 = Math.cos(l1.theta), s1 = Math.sin(l1.theta);
+        const c2 = Math.cos(l2.theta), s2 = Math.sin(l2.theta);
+        const det = c1 * s2 - c2 * s1;
+        if (Math.abs(det) < 1e-6) return null;
+        return { x: (l1.rho * s2 - l2.rho * s1) / det, y: (l2.rho * c1 - l1.rho * c2) / det };
+    };
 
-    // Sort horizontal by rho (top to bottom) and vertical by rho (left to right)
-    hMerged.sort((a, b) => a.rho - b.rho);
-    vMerged.sort((a, b) => a.rho - b.rho);
+    let bestQuad = null, bestArea = 0;
+    const hN = Math.min(hm.length, 4), vN = Math.min(vm.length, 4);
 
-    // Try all combinations of 2 horizontal + 2 vertical to find best quadrilateral
-    let bestQuad = null;
-    let bestArea = 0;
-
-    const hCount = Math.min(hMerged.length, 5);
-    const vCount = Math.min(vMerged.length, 5);
-
-    for (let h1 = 0; h1 < hCount; h1++) {
-        for (let h2 = h1 + 1; h2 < hCount; h2++) {
-            for (let v1 = 0; v1 < vCount; v1++) {
-                for (let v2 = v1 + 1; v2 < vCount; v2++) {
-                    const tl = lineIntersection(hMerged[h1], vMerged[v1]);
-                    const tr = lineIntersection(hMerged[h1], vMerged[v2]);
-                    const br = lineIntersection(hMerged[h2], vMerged[v2]);
-                    const bl = lineIntersection(hMerged[h2], vMerged[v1]);
-
+    for (let h1 = 0; h1 < hN; h1++) {
+        for (let h2 = h1 + 1; h2 < hN; h2++) {
+            for (let v1 = 0; v1 < vN; v1++) {
+                for (let v2 = v1 + 1; v2 < vN; v2++) {
+                    const tl = intersect(hm[h1], vm[v1]);
+                    const tr = intersect(hm[h1], vm[v2]);
+                    const br = intersect(hm[h2], vm[v2]);
+                    const bl = intersect(hm[h2], vm[v1]);
                     if (!tl || !tr || !br || !bl) continue;
 
-                    // All corners must be within image bounds (with some margin)
-                    const m = -width * 0.05;
                     const corners = [tl, tr, br, bl];
-                    const inBounds = corners.every(c =>
-                        c.x >= m && c.x <= width * 1.05 && c.y >= m && c.y <= height * 1.05
-                    );
-                    if (!inBounds) continue;
+                    const m = -detectW * 0.1;
+                    if (!corners.every(c => c.x >= m && c.x <= detectW * 1.1 && c.y >= m && c.y <= detectH * 1.1)) continue;
 
-                    // Compute area using Shoelace formula
+                    // Area
                     const area = 0.5 * Math.abs(
                         (tr.x - tl.x) * (br.y - tl.y) - (br.x - tl.x) * (tr.y - tl.y) +
                         (br.x - tl.x) * (bl.y - tl.y) - (bl.x - tl.x) * (br.y - tl.y)
                     );
+                    if (area < detectW * detectH * 0.05) continue;
+                    if (area > detectW * detectH * 0.98) continue;
 
-                    // Must cover at least 8% of image
-                    if (area < width * height * 0.08) continue;
-                    // Must not exceed 98% (would be the whole image)
-                    if (area > width * height * 0.98) continue;
-
-                    // Check roughly rectangular (angles between 60-120°)
-                    const angleBetween = (a, b, c) => {
-                        const abx = a.x - b.x, aby = a.y - b.y;
-                        const cbx = c.x - b.x, cby = c.y - b.y;
-                        const dot = abx * cbx + aby * cby;
-                        const cross = abx * cby - aby * cbx;
-                        return Math.abs(Math.atan2(cross, dot)) * (180 / Math.PI);
+                    // Angle check
+                    const ab = (a, b, c) => {
+                        const dx1 = a.x - b.x, dy1 = a.y - b.y, dx2 = c.x - b.x, dy2 = c.y - b.y;
+                        return Math.abs(Math.atan2(dx1 * dy2 - dy1 * dx2, dx1 * dx2 + dy1 * dy2)) * (180 / Math.PI);
                     };
-
-                    const angles = [
-                        angleBetween(bl, tl, tr),
-                        angleBetween(tl, tr, br),
-                        angleBetween(tr, br, bl),
-                        angleBetween(br, bl, tl),
-                    ];
-
+                    const angles = [ab(bl, tl, tr), ab(tl, tr, br), ab(tr, br, bl), ab(br, bl, tl)];
                     if (!angles.every(a => a > 50 && a < 130)) continue;
 
-                    if (area > bestArea) {
-                        bestArea = area;
-                        bestQuad = corners;
-                    }
+                    if (area > bestArea) { bestArea = area; bestQuad = corners; }
                 }
             }
         }
     }
 
-    return bestQuad; // [TL, TR, BR, BL] or null
+    return bestQuad; // [TL, TR, BR, BL] in detection coords, or null
 }
 
-// ─── PERSPECTIVE TRANSFORM ────────────────────────────────────────
-function computeHomography(src, dst) {
+// ═══════════════════════════════════════════════════════════════════
+// PERSPECTIVE WARP
+// ═══════════════════════════════════════════════════════════════════
+
+function perspectiveCrop(video, corners) {
+    // corners in VIDEO coordinates [TL, TR, BR, BL]
+    const vw = video.videoWidth, vh = video.videoHeight;
+
+    // Full-res source
+    const srcCanvas = document.createElement('canvas');
+    srcCanvas.width = vw; srcCanvas.height = vh;
+    const srcCtx = srcCanvas.getContext('2d');
+    srcCtx.drawImage(video, 0, 0, vw, vh);
+
+    const dist = (a, b) => Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
+    const outW = Math.round(Math.max(dist(corners[0], corners[1]), dist(corners[3], corners[2])));
+    const outH = Math.round(Math.max(dist(corners[0], corners[3]), dist(corners[1], corners[2])));
+
+    // Homography: dst → src
+    const dst = [{ x: 0, y: 0 }, { x: outW, y: 0 }, { x: outW, y: outH }, { x: 0, y: outH }];
+
     const A = [];
     for (let i = 0; i < 4; i++) {
-        const sx = src[i].x, sy = src[i].y;
-        const dx = dst[i].x, dy = dst[i].y;
+        const sx = corners[i].x, sy = corners[i].y, dx = dst[i].x, dy = dst[i].y;
         A.push([-sx, -sy, -1, 0, 0, 0, sx * dx, sy * dx, dx]);
         A.push([0, 0, 0, -sx, -sy, -1, sx * dy, sy * dy, dy]);
     }
-    const n = 8;
-    const M = A.map(row => [...row]);
+    const n = 8, M = A.map(r => [...r]);
     for (let col = 0; col < n; col++) {
-        let maxRow = col;
-        for (let row = col + 1; row < n; row++) {
-            if (Math.abs(M[row][col]) > Math.abs(M[maxRow][col])) maxRow = row;
-        }
-        [M[col], M[maxRow]] = [M[maxRow], M[col]];
+        let mr = col;
+        for (let row = col + 1; row < n; row++) if (Math.abs(M[row][col]) > Math.abs(M[mr][col])) mr = row;
+        [M[col], M[mr]] = [M[mr], M[col]];
         if (Math.abs(M[col][col]) < 1e-10) continue;
         for (let row = 0; row < n; row++) {
             if (row === col) continue;
-            const factor = M[row][col] / M[col][col];
-            for (let j = col; j <= n; j++) M[row][j] -= factor * M[col][j];
+            const f = M[row][col] / M[col][col];
+            for (let j = col; j <= n; j++) M[row][j] -= f * M[col][j];
         }
     }
     const h = [];
     for (let i = 0; i < n; i++) h.push(-M[i][n] / M[i][i]);
     h.push(1);
-    return h;
-}
 
-function perspectiveWarp(srcCanvas, corners, outW, outH) {
-    const dst = [{ x: 0, y: 0 }, { x: outW, y: 0 }, { x: outW, y: outH }, { x: 0, y: outH }];
-    const h = computeHomography(dst, corners);
-    const srcCtx = srcCanvas.getContext('2d');
-    const srcData = srcCtx.getImageData(0, 0, srcCanvas.width, srcCanvas.height);
+    // Inverse warp
     const dstCanvas = document.createElement('canvas');
-    dstCanvas.width = outW;
-    dstCanvas.height = outH;
+    dstCanvas.width = outW; dstCanvas.height = outH;
     const dstCtx = dstCanvas.getContext('2d');
+    const srcData = srcCtx.getImageData(0, 0, vw, vh);
     const dstData = dstCtx.createImageData(outW, outH);
-    const sw = srcCanvas.width, sh = srcCanvas.height;
     const sd = srcData.data, dd = dstData.data;
 
     for (let dy = 0; dy < outH; dy++) {
@@ -391,107 +255,53 @@ function perspectiveWarp(srcCanvas, corners, outW, outH) {
             const w = h[6] * dx + h[7] * dy + h[8];
             const sx = Math.round((h[0] * dx + h[1] * dy + h[2]) / w);
             const sy = Math.round((h[3] * dx + h[4] * dy + h[5]) / w);
-            if (sx >= 0 && sx < sw && sy >= 0 && sy < sh) {
-                const si = (sy * sw + sx) * 4;
-                const di = (dy * outW + dx) * 4;
+            if (sx >= 0 && sx < vw && sy >= 0 && sy < vh) {
+                const si = (sy * vw + sx) * 4, di = (dy * outW + dx) * 4;
                 dd[di] = sd[si]; dd[di + 1] = sd[si + 1]; dd[di + 2] = sd[si + 2]; dd[di + 3] = 255;
             }
         }
     }
     dstCtx.putImageData(dstData, 0, 0);
-    return dstCanvas;
-}
-
-// ─── MAIN DETECTION PIPELINE ──────────────────────────────────────
-function detectAndCropDocument(imageBase64) {
-    return new Promise((resolve) => {
-        const img = new Image();
-        img.onload = () => {
-            // Work at reduced resolution for speed
-            const maxDim = 500;
-            const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
-            const w = Math.round(img.width * scale);
-            const h = Math.round(img.height * scale);
-
-            const canvas = document.createElement('canvas');
-            canvas.width = w;
-            canvas.height = h;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, w, h);
-
-            const imageData = ctx.getImageData(0, 0, w, h);
-            const gray = toGrayscale(imageData);
-            const blurred = gaussianBlur(gray, w, h);
-            const { mag, dir } = sobelEdges(blurred, w, h);
-            const nms = nonMaxSuppression(mag, dir, w, h);
-            const edges = hysteresisThreshold(nms, w, h, 0.05, 0.15);
-
-            // Hough line detection
-            const minVotes = Math.max(30, Math.min(w, h) * 0.15);
-            const lines = houghLines(edges, w, h, minVotes);
-
-            const quad = findDocumentQuad(lines, w, h);
-
-            if (quad) {
-                // Scale corners back to full resolution
-                const fullCorners = quad.map(c => ({
-                    x: c.x / scale,
-                    y: c.y / scale,
-                }));
-
-                // Full-res source canvas
-                const fullCanvas = document.createElement('canvas');
-                fullCanvas.width = img.width;
-                fullCanvas.height = img.height;
-                const fullCtx = fullCanvas.getContext('2d');
-                fullCtx.drawImage(img, 0, 0);
-
-                // Calculate output dimensions
-                const dist = (a, b) => Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
-                const outW = Math.round(Math.max(dist(fullCorners[0], fullCorners[1]), dist(fullCorners[3], fullCorners[2])));
-                const outH = Math.round(Math.max(dist(fullCorners[0], fullCorners[3]), dist(fullCorners[1], fullCorners[2])));
-
-                const cropped = perspectiveWarp(fullCanvas, fullCorners, outW, outH);
-                resolve({
-                    success: true,
-                    croppedImage: cropped.toDataURL('image/jpeg', 0.92),
-                    corners: fullCorners,
-                });
-            } else {
-                // No document detected — return original
-                resolve({
-                    success: false,
-                    croppedImage: imageBase64,
-                    corners: null,
-                });
-            }
-        };
-        img.onerror = () => resolve({ success: false, croppedImage: imageBase64, corners: null });
-        img.src = imageBase64;
-    });
+    return dstCanvas.toDataURL('image/jpeg', 0.92);
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// LIVE CAMERA COMPONENT
+// SMOOTH INTERPOLATION FOR QUAD CORNERS
+// ═══════════════════════════════════════════════════════════════════
+
+function lerpCorners(prev, next, t) {
+    if (!prev) return next;
+    return next.map((c, i) => ({
+        x: prev[i].x + (c.x - prev[i].x) * t,
+        y: prev[i].y + (c.y - prev[i].y) * t,
+    }));
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// COMPONENT
 // ═══════════════════════════════════════════════════════════════════
 
 export default function LiveCameraScanner({ onCapture, onClose }) {
     const videoRef = useRef(null);
+    const overlayRef = useRef(null);
     const streamRef = useRef(null);
-    const stableRef = useRef(0);
     const rafRef = useRef(null);
+    const stableRef = useRef(0);
+    const smoothCornersRef = useRef(null);
+    const lastDetectRef = useRef(null);
+    const detectIntervalRef = useRef(0);
 
-    const [phase, setPhase] = useState('camera'); // 'camera' | 'processing' | 'preview'
+    const [phase, setPhase] = useState('camera'); // camera | processing | preview
     const [cameraReady, setCameraReady] = useState(false);
     const [cameraError, setCameraError] = useState(null);
-    const [contentDetected, setContentDetected] = useState(false);
+    const [detected, setDetected] = useState(false);
     const [progress, setProgress] = useState(0);
     const [croppedImage, setCroppedImage] = useState(null);
-    const [capturedRaw, setCapturedRaw] = useState(null);
 
-    const STABLE_NEEDED = 50; // ~1.7 seconds
+    const STABLE_NEEDED = 45; // ~1.5s at 30fps
+    const DETECT_RES = 160;  // Detection resolution width
 
-    // Start camera
+    // ─── Start camera ───────────────────────────────────────────────
     useEffect(() => {
         let mounted = true;
         async function start() {
@@ -522,133 +332,195 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
         };
     }, []);
 
-    // Content detection loop (checks if there's something to scan in the guide area)
+    // ─── Real-time detection & overlay loop ─────────────────────────
     useEffect(() => {
         if (!cameraReady || phase !== 'camera') return;
 
-        // Wait 1 second before starting detection
+        // 1.5s warmup before detection starts
         const warmup = setTimeout(() => {
-            const checkContent = () => {
+            const processFrame = () => {
                 const video = videoRef.current;
-                if (!video || !video.videoWidth) {
-                    rafRef.current = requestAnimationFrame(checkContent);
+                const overlay = overlayRef.current;
+                if (!video || !overlay || !video.videoWidth) {
+                    rafRef.current = requestAnimationFrame(processFrame);
                     return;
                 }
 
-                // Sample the center 60% of the frame
                 const vw = video.videoWidth, vh = video.videoHeight;
-                const sampleCanvas = document.createElement('canvas');
-                const sw = 160, sh = 120;
-                sampleCanvas.width = sw;
-                sampleCanvas.height = sh;
-                const sCtx = sampleCanvas.getContext('2d');
 
-                // Crop center 60%
-                const cropX = vw * 0.2, cropY = vh * 0.2;
-                const cropW = vw * 0.6, cropH = vh * 0.6;
-                sCtx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, sw, sh);
+                // Size overlay to match displayed video
+                const rect = video.getBoundingClientRect();
+                if (overlay.width !== rect.width) overlay.width = rect.width;
+                if (overlay.height !== rect.height) overlay.height = rect.height;
 
-                const data = sCtx.getImageData(0, 0, sw, sh).data;
-
-                // Check for variation (standard deviation of brightness)
-                let sum = 0, sumSq = 0;
-                const n = sw * sh;
-                for (let i = 0; i < n; i++) {
-                    const idx = i * 4;
-                    const lum = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
-                    sum += lum;
-                    sumSq += lum * lum;
+                // Run detection every 2nd frame for performance
+                detectIntervalRef.current++;
+                let rawCorners = lastDetectRef.current;
+                if (detectIntervalRef.current % 2 === 0) {
+                    const dw = DETECT_RES;
+                    const dh = Math.round(vh * (dw / vw));
+                    rawCorners = detectQuad(video, dw, dh);
+                    lastDetectRef.current = rawCorners;
                 }
-                const mean = sum / n;
-                const variance = sumSq / n - mean * mean;
-                const stdDev = Math.sqrt(Math.max(0, variance));
 
-                // Also check for edge density
-                let edgePixels = 0;
-                for (let y = 1; y < sh - 1; y++) {
-                    for (let x = 1; x < sw - 1; x += 2) {
-                        const i = y * sw + x;
-                        const idx = i * 4;
-                        const cur = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
-                        const right = 0.299 * data[idx + 4] + 0.587 * data[idx + 5] + 0.114 * data[idx + 6];
-                        const below = 0.299 * data[(i + sw) * 4] + 0.587 * data[(i + sw) * 4 + 1] + 0.114 * data[(i + sw) * 4 + 2];
-                        if (Math.abs(cur - right) > 25 || Math.abs(cur - below) > 25) edgePixels++;
+                // Draw overlay
+                const oCtx = overlay.getContext('2d');
+                oCtx.clearRect(0, 0, overlay.width, overlay.height);
+
+                if (rawCorners) {
+                    // Scale from detect coords to video coords
+                    const dw = DETECT_RES;
+                    const dh = Math.round(vh * (dw / vw));
+                    const videoCorners = rawCorners.map(c => ({
+                        x: (c.x / dw) * vw,
+                        y: (c.y / dh) * vh,
+                    }));
+
+                    // Smooth interpolation
+                    smoothCornersRef.current = lerpCorners(smoothCornersRef.current, videoCorners, 0.3);
+                    const smooth = smoothCornersRef.current;
+
+                    // Scale from video coords to display coords
+                    // Handle object-fit: cover — video might be cropped
+                    const videoAspect = vw / vh;
+                    const displayAspect = rect.width / rect.height;
+                    let scaleX, scaleY, offsetX = 0, offsetY = 0;
+
+                    if (videoAspect > displayAspect) {
+                        // Video wider than display — cropped horizontally
+                        scaleY = rect.height / vh;
+                        scaleX = scaleY;
+                        offsetX = (rect.width - vw * scaleX) / 2;
+                    } else {
+                        // Video taller than display — cropped vertically
+                        scaleX = rect.width / vw;
+                        scaleY = scaleX;
+                        offsetY = (rect.height - vh * scaleY) / 2;
                     }
-                }
-                const edgeRatio = edgePixels / (n / 2);
 
-                // Content present if there's enough variation AND edges
-                const hasContent = stdDev > 30 && edgeRatio > 0.03;
+                    const displayCorners = smooth.map(c => ({
+                        x: c.x * scaleX + offsetX,
+                        y: c.y * scaleY + offsetY,
+                    }));
 
-                if (hasContent) {
-                    stableRef.current = Math.min(stableRef.current + 1, STABLE_NEEDED);
+                    // Check stability
+                    const prev = smoothCornersRef.current;
+                    if (prev) {
+                        const maxDrift = Math.max(...displayCorners.map((c, i) => {
+                            const p = displayCorners[i]; // comparing to self after lerp — stable = small changes
+                            return 0; // drift is handled by lerp smoothing
+                        }));
+                    }
+
+                    // Stability: check if detection is consistent
+                    stableRef.current++;
+                    const stableRatio = Math.min(1, stableRef.current / STABLE_NEEDED);
+                    setProgress(stableRatio);
+                    setDetected(true);
+
+                    // Draw the morphing quad
+                    const isReady = stableRatio >= 1;
+                    oCtx.strokeStyle = isReady ? '#22c55e' : `rgba(0, 212, 255, ${0.5 + stableRatio * 0.5})`;
+                    oCtx.lineWidth = isReady ? 3 : 2;
+                    oCtx.beginPath();
+                    oCtx.moveTo(displayCorners[0].x, displayCorners[0].y);
+                    oCtx.lineTo(displayCorners[1].x, displayCorners[1].y);
+                    oCtx.lineTo(displayCorners[2].x, displayCorners[2].y);
+                    oCtx.lineTo(displayCorners[3].x, displayCorners[3].y);
+                    oCtx.closePath();
+                    oCtx.stroke();
+
+                    // Semi-transparent fill inside detected area
+                    oCtx.fillStyle = isReady ? 'rgba(34, 197, 94, 0.08)' : 'rgba(0, 212, 255, 0.05)';
+                    oCtx.fill();
+
+                    // Corner dots
+                    const dotR = isReady ? 7 : 5;
+                    for (const c of displayCorners) {
+                        oCtx.beginPath();
+                        oCtx.arc(c.x, c.y, dotR, 0, Math.PI * 2);
+                        oCtx.fillStyle = isReady ? '#22c55e' : '#00d4ff';
+                        oCtx.fill();
+                    }
+
+                    // Auto-capture when stable
+                    if (stableRef.current >= STABLE_NEEDED) {
+                        setPhase('processing');
+                        // Use the smooth video-coord corners for cropping
+                        const cropCorners = smooth;
+                        streamRef.current?.getTracks().forEach(t => t.stop());
+
+                        try {
+                            const cropped = perspectiveCrop(video, cropCorners);
+                            setCroppedImage(cropped);
+                            setPhase('preview');
+                        } catch (err) {
+                            console.error('Crop error:', err);
+                            // Fallback: capture full frame
+                            const fc = document.createElement('canvas');
+                            fc.width = vw; fc.height = vh;
+                            fc.getContext('2d').drawImage(video, 0, 0);
+                            setCroppedImage(fc.toDataURL('image/jpeg', 0.92));
+                            setPhase('preview');
+                        }
+                        return;
+                    }
                 } else {
+                    // No detection — decay stability
                     stableRef.current = Math.max(0, stableRef.current - 3);
+                    if (stableRef.current === 0) smoothCornersRef.current = null;
+                    setDetected(false);
+                    setProgress(Math.min(1, stableRef.current / STABLE_NEEDED));
                 }
 
-                setContentDetected(hasContent);
-                setProgress(stableRef.current / STABLE_NEEDED);
-
-                // Auto-capture when stable
-                if (stableRef.current >= STABLE_NEEDED) {
-                    captureFrame();
-                    return;
-                }
-
-                rafRef.current = requestAnimationFrame(checkContent);
+                rafRef.current = requestAnimationFrame(processFrame);
             };
 
-            rafRef.current = requestAnimationFrame(checkContent);
-        }, 1000);
+            rafRef.current = requestAnimationFrame(processFrame);
+        }, 1200); // 1.2s warmup
 
         return () => {
             clearTimeout(warmup);
             if (rafRef.current) cancelAnimationFrame(rafRef.current);
         };
-    }, [cameraReady, phase]);
+    }, [cameraReady, phase, onCapture]);
 
-    // Capture and process
-    const captureFrame = useCallback(() => {
+    // ─── Manual capture ─────────────────────────────────────────────
+    const handleManualCapture = useCallback(() => {
         const video = videoRef.current;
-        if (!video) return;
+        if (!video || phase !== 'camera') return;
 
-        const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0);
-        const raw = canvas.toDataURL('image/jpeg', 0.92);
-
-        // Stop camera
+        setPhase('processing');
         streamRef.current?.getTracks().forEach(t => t.stop());
 
-        setCapturedRaw(raw);
-        setPhase('processing');
+        if (smoothCornersRef.current) {
+            // Use detected corners
+            try {
+                const cropped = perspectiveCrop(video, smoothCornersRef.current);
+                setCroppedImage(cropped);
+                setPhase('preview');
+                return;
+            } catch (e) { /* fall through */ }
+        }
 
-        // Run detection pipeline
-        detectAndCropDocument(raw).then(result => {
-            setCroppedImage(result.croppedImage);
-            setPhase('preview');
-        });
-    }, []);
+        // No detection — capture full frame
+        const fc = document.createElement('canvas');
+        fc.width = video.videoWidth; fc.height = video.videoHeight;
+        fc.getContext('2d').drawImage(video, 0, 0);
+        setCroppedImage(fc.toDataURL('image/jpeg', 0.92));
+        setPhase('preview');
+    }, [phase]);
 
-    // Manual capture
-    const handleManualCapture = useCallback(() => {
-        if (phase !== 'camera' || !cameraReady) return;
-        stableRef.current = STABLE_NEEDED;
-        captureFrame();
-    }, [phase, cameraReady, captureFrame]);
-
-    // Retry
+    // ─── Retry ──────────────────────────────────────────────────────
     const handleRetry = useCallback(() => {
         setCroppedImage(null);
-        setCapturedRaw(null);
         setProgress(0);
         stableRef.current = 0;
-        setContentDetected(false);
+        smoothCornersRef.current = null;
+        lastDetectRef.current = null;
+        setDetected(false);
         setPhase('camera');
 
-        // Restart camera
         navigator.mediaDevices.getUserMedia({
             video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
             audio: false,
@@ -661,12 +533,14 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
         }).catch(() => setCameraError('Could not restart camera.'));
     }, []);
 
-    // Use image
+    // ─── Use image ──────────────────────────────────────────────────
     const handleUseImage = useCallback(() => {
-        onCapture(croppedImage || capturedRaw);
-    }, [croppedImage, capturedRaw, onCapture]);
+        if (croppedImage) onCapture(croppedImage);
+    }, [croppedImage, onCapture]);
 
-    // ─── RENDER ─────────────────────────────────────────────────────
+    // ═══════════════════════════════════════════════════════════════
+    // RENDER
+    // ═══════════════════════════════════════════════════════════════
     return (
         <div style={styles.container}>
             {/* === CAMERA PHASE === */}
@@ -674,51 +548,34 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
                 <>
                     <div style={styles.viewfinder}>
                         <video ref={videoRef} playsInline muted style={styles.video} />
+                        <canvas ref={overlayRef} style={styles.overlay} />
 
-                        {/* Guide frame overlay */}
-                        {cameraReady && (
-                            <div style={styles.guideOverlay}>
-                                <div style={{
-                                    ...styles.guideFrame,
-                                    borderColor: contentDetected
-                                        ? progress >= 1 ? '#22c55e' : '#00d4ff'
-                                        : 'rgba(255,255,255,0.3)',
-                                }}>
-                                    {/* Corner brackets */}
-                                    <div style={{ ...styles.cornerBracket, top: -2, left: -2, borderTop: '3px solid', borderLeft: '3px solid', borderColor: 'inherit' }} />
-                                    <div style={{ ...styles.cornerBracket, top: -2, right: -2, borderTop: '3px solid', borderRight: '3px solid', borderColor: 'inherit' }} />
-                                    <div style={{ ...styles.cornerBracket, bottom: -2, right: -2, borderBottom: '3px solid', borderRight: '3px solid', borderColor: 'inherit' }} />
-                                    <div style={{ ...styles.cornerBracket, bottom: -2, left: -2, borderBottom: '3px solid', borderLeft: '3px solid', borderColor: 'inherit' }} />
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Status */}
+                        {/* Status pill */}
                         {cameraReady && (
                             <div style={styles.statusBar}>
                                 <div style={{
                                     ...styles.statusDot,
-                                    background: contentDetected
+                                    background: detected
                                         ? progress >= 1 ? '#22c55e' : '#00d4ff'
                                         : 'rgba(255,255,255,0.3)',
                                 }} />
                                 <span style={styles.statusText}>
-                                    {contentDetected
+                                    {detected
                                         ? progress >= 1 ? 'Capturing...' : 'Hold steady...'
-                                        : 'Position receipt in frame'}
+                                        : 'Point at receipt'}
                                 </span>
                             </div>
                         )}
 
                         {/* Progress ring */}
-                        {cameraReady && contentDetected && progress > 0 && progress < 1 && (
+                        {cameraReady && detected && progress > 0 && progress < 1 && (
                             <div style={styles.progressRing}>
-                                <svg width="56" height="56" viewBox="0 0 56 56">
-                                    <circle cx="28" cy="28" r="24" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="3" />
-                                    <circle cx="28" cy="28" r="24" fill="none" stroke="#00d4ff" strokeWidth="3"
-                                        strokeDasharray={`${2 * Math.PI * 24}`}
-                                        strokeDashoffset={`${2 * Math.PI * 24 * (1 - progress)}`}
-                                        strokeLinecap="round" transform="rotate(-90 28 28)"
+                                <svg width="52" height="52" viewBox="0 0 52 52">
+                                    <circle cx="26" cy="26" r="22" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="3" />
+                                    <circle cx="26" cy="26" r="22" fill="none" stroke="#00d4ff" strokeWidth="3"
+                                        strokeDasharray={`${2 * Math.PI * 22}`}
+                                        strokeDashoffset={`${2 * Math.PI * 22 * (1 - progress)}`}
+                                        strokeLinecap="round" transform="rotate(-90 26 26)"
                                         style={{ transition: 'stroke-dashoffset 0.15s ease' }}
                                     />
                                 </svg>
@@ -731,6 +588,7 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
                                 <p style={{ color: '#fff', fontSize: 14, textAlign: 'center' }}>{cameraError}</p>
                             </div>
                         )}
+
                         {!cameraReady && !cameraError && (
                             <div style={styles.loadingState}>
                                 <div style={styles.spinner} />
@@ -739,6 +597,7 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
                         )}
                     </div>
 
+                    {/* Controls bar */}
                     <div style={styles.controls}>
                         <button onClick={onClose} style={styles.cancelBtn}>Cancel</button>
                         <button onClick={handleManualCapture} disabled={!cameraReady}
@@ -749,21 +608,21 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
                     </div>
                     <div style={styles.hint}>
                         <p style={{ margin: 0, color: 'rgba(255,255,255,0.4)', fontSize: 11, textAlign: 'center' }}>
-                            Auto-captures when receipt is detected · Or tap capture button
+                            Box wraps around receipt · Auto-captures when stable
                         </p>
                     </div>
                 </>
             )}
 
-            {/* === PROCESSING PHASE === */}
+            {/* === PROCESSING === */}
             {phase === 'processing' && (
                 <div style={styles.processingView}>
                     <div style={styles.spinner} />
-                    <span style={{ color: '#fff', fontSize: 14, marginTop: 12 }}>Detecting & cropping receipt...</span>
+                    <span style={{ color: '#fff', fontSize: 14, marginTop: 12 }}>Cropping receipt...</span>
                 </div>
             )}
 
-            {/* === PREVIEW PHASE === */}
+            {/* === PREVIEW === */}
             {phase === 'preview' && croppedImage && (
                 <>
                     <div style={styles.previewHeader}>
@@ -780,8 +639,8 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
             )}
 
             <style jsx global>{`
-        @keyframes liveScanFlash { 0% { opacity: 0.8; } 100% { opacity: 0; } }
-        @keyframes liveScanSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes lcsFlash { 0% { opacity: 0.8; } 100% { opacity: 0; } }
+        @keyframes lcsSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
         </div>
     );
@@ -792,73 +651,36 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
 // ═══════════════════════════════════════════════════════════════════
 const styles = {
     container: {
-        display: 'flex',
-        flexDirection: 'column',
-        background: '#000',
-        borderRadius: '0 0 16px 16px',
-        overflow: 'hidden',
+        display: 'flex', flexDirection: 'column',
+        background: '#000', borderRadius: '0 0 16px 16px', overflow: 'hidden',
     },
     viewfinder: {
-        position: 'relative',
-        width: '100%',
-        aspectRatio: '3/4',
-        background: '#111',
-        overflow: 'hidden',
+        position: 'relative', width: '100%', aspectRatio: '3/4',
+        background: '#111', overflow: 'hidden',
     },
     video: { width: '100%', height: '100%', objectFit: 'cover' },
-    guideOverlay: {
-        position: 'absolute',
-        inset: 0,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        pointerEvents: 'none',
-    },
-    guideFrame: {
-        position: 'relative',
-        width: '80%',
-        height: '70%',
-        border: '2px solid rgba(255,255,255,0.3)',
-        borderRadius: 8,
-        transition: 'border-color 0.3s ease',
-    },
-    cornerBracket: {
-        position: 'absolute',
-        width: 24,
-        height: 24,
-    },
+    overlay: { position: 'absolute', inset: 0, pointerEvents: 'none' },
     statusBar: {
-        position: 'absolute',
-        top: 12,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        padding: '6px 14px',
-        background: 'rgba(0,0,0,0.65)',
-        borderRadius: 20,
-        backdropFilter: 'blur(8px)',
+        position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
+        display: 'flex', alignItems: 'center', gap: 8,
+        padding: '6px 14px', background: 'rgba(0,0,0,0.65)',
+        borderRadius: 20, backdropFilter: 'blur(8px)',
     },
     statusDot: { width: 8, height: 8, borderRadius: '50%', transition: 'background 0.2s' },
     statusText: { color: '#fff', fontSize: 13, fontWeight: 500, fontFamily: 'Inter, -apple-system, sans-serif' },
     progressRing: { position: 'absolute', bottom: 16, right: 16 },
     errorState: {
-        position: 'absolute', inset: 0,
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        background: '#111', padding: 24,
+        position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center', background: '#111', padding: 24,
     },
     loadingState: {
-        position: 'absolute', inset: 0,
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        gap: 12, background: '#111',
+        position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center', gap: 12, background: '#111',
     },
     spinner: {
         width: 28, height: 28,
-        border: '2px solid rgba(255,255,255,0.1)',
-        borderTopColor: '#00d4ff',
-        borderRadius: '50%',
-        animation: 'liveScanSpin 0.8s linear infinite',
+        border: '2px solid rgba(255,255,255,0.1)', borderTopColor: '#00d4ff',
+        borderRadius: '50%', animation: 'lcsSpin 0.8s linear infinite',
     },
     controls: {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -870,53 +692,35 @@ const styles = {
     },
     captureBtn: {
         width: 64, height: 64, borderRadius: '50%',
-        border: '3px solid rgba(255,255,255,0.8)',
-        background: 'transparent', cursor: 'pointer',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
+        border: '3px solid rgba(255,255,255,0.8)', background: 'transparent',
+        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
     },
     captureBtnInner: { width: 52, height: 52, borderRadius: '50%', background: '#fff' },
     hint: { padding: '4px 16px 14px', background: '#000' },
-
-    // Processing
     processingView: {
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         padding: '80px 24px', background: '#111',
     },
-
-    // Preview
     previewHeader: {
-        padding: '14px 20px',
-        borderBottom: '1px solid rgba(255,255,255,0.08)',
-        background: '#1a1b1e',
+        padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', background: '#1a1b1e',
     },
     previewArea: {
-        padding: 16,
-        background: '#000',
-        display: 'flex',
-        justifyContent: 'center',
-        maxHeight: 400,
-        overflow: 'auto',
+        padding: 16, background: '#000', display: 'flex', justifyContent: 'center',
+        maxHeight: 400, overflow: 'auto',
     },
     previewImage: {
-        maxWidth: '100%',
-        maxHeight: 380,
-        objectFit: 'contain',
-        borderRadius: 8,
-        border: '1px solid rgba(255,255,255,0.1)',
+        maxWidth: '100%', maxHeight: 380, objectFit: 'contain',
+        borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)',
     },
     previewActions: {
-        display: 'flex',
-        gap: 12,
-        padding: '16px 20px',
-        borderTop: '1px solid rgba(255,255,255,0.08)',
-        background: '#1a1b1e',
+        display: 'flex', gap: 12, padding: '16px 20px',
+        borderTop: '1px solid rgba(255,255,255,0.08)', background: '#1a1b1e',
     },
     retryBtn: {
-        flex: 1, padding: '14px 16px',
-        background: 'rgba(255,255,255,0.06)',
-        border: '1px solid rgba(255,255,255,0.15)',
-        borderRadius: 10, color: 'rgba(255,255,255,0.7)',
-        fontFamily: 'Inter, -apple-system, sans-serif', fontSize: 15, fontWeight: 600, cursor: 'pointer',
+        flex: 1, padding: '14px 16px', background: 'rgba(255,255,255,0.06)',
+        border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10,
+        color: 'rgba(255,255,255,0.7)', fontFamily: 'Inter, -apple-system, sans-serif',
+        fontSize: 15, fontWeight: 600, cursor: 'pointer',
     },
     useBtn: {
         flex: 1, padding: '14px 16px',

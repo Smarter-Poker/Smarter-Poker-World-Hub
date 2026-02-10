@@ -854,7 +854,7 @@ export default function SignUpPage() {
                                         placeholder="YourPokerName"
                                         style={{
                                             ...styles.inputSingle,
-                                            borderColor: aliasAvailable === false ? '#ff4d4d' :
+                                            borderColor: aliasAvailable === false ? '#F02849' :
                                                 aliasAvailable === true ? '#00ff66' :
                                                     'rgba(0, 212, 255, 0.3)',
                                         }}
@@ -866,10 +866,10 @@ export default function SignUpPage() {
                                         <span style={styles.aliasStatus}>Checking...</span>
                                     )}
                                     {!aliasChecking && aliasAvailable === true && (
-                                        <span style={{ ...styles.aliasStatus, color: '#00ff66' }}>✓ Available</span>
+                                        <span style={{ ...styles.aliasStatus, color: '#31A24C' }}>✓ Available</span>
                                     )}
                                     {!aliasChecking && aliasAvailable === false && (
-                                        <span style={{ ...styles.aliasStatus, color: '#ff4d4d' }}>✗ Taken</span>
+                                        <span style={{ ...styles.aliasStatus, color: '#F02849' }}>✗ Taken</span>
                                     )}
                                 </div>
                                 {aliasError && (
@@ -881,7 +881,7 @@ export default function SignUpPage() {
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>
                                     Phone Number
-                                    {phoneVerified && <span style={{ color: '#00ff66', marginLeft: '8px' }}>✓ Verified</span>}
+                                    {phoneVerified && <span style={{ color: '#31A24C', marginLeft: '8px' }}>✓ Verified</span>}
                                 </label>
                                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                                     <div style={{ ...styles.phoneInput, flex: 1 }}>
@@ -893,7 +893,7 @@ export default function SignUpPage() {
                                             placeholder=""
                                             style={{
                                                 ...styles.input,
-                                                borderColor: phoneVerified ? '#00ff66' : 'rgba(0, 212, 255, 0.3)',
+                                                borderColor: phoneVerified ? '#31A24C' : '#3E4042',
                                             }}
                                             maxLength={14}
                                             required
@@ -907,7 +907,7 @@ export default function SignUpPage() {
                                             disabled={phoneSendingOtp || phoneOtpCooldown > 0 || formData.phone.replace(/\D/g, '').length !== 10}
                                             style={{
                                                 padding: '12px 16px',
-                                                background: phoneOtpCooldown > 0 ? 'rgba(100, 100, 100, 0.5)' : 'linear-gradient(135deg, #00d4ff, #0099cc)',
+                                                background: phoneOtpCooldown > 0 ? 'rgba(100, 100, 100, 0.5)' : '#1877F2',
                                                 border: 'none',
                                                 borderRadius: '8px',
                                                 color: '#fff',
@@ -926,7 +926,7 @@ export default function SignUpPage() {
 
                                 {/* Phone Error Message */}
                                 {phoneError && (
-                                    <span style={{ color: '#ff4d4d', fontSize: '12px', marginTop: '6px', display: 'block' }}>{phoneError}</span>
+                                    <span style={{ color: '#F02849', fontSize: '12px', marginTop: '6px', display: 'block' }}>{phoneError}</span>
                                 )}
                             </div>
 
