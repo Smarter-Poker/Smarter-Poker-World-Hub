@@ -643,7 +643,7 @@ export default function SurvivalGamePage() {
                 <title>Survival Mode | Smarter.Poker</title>
             </Head>
 
-            <UniversalHeader />
+            <UniversalHeader pageDepth={2} />
 
             <PageTransition>
                 <div style={{
