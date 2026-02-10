@@ -93,7 +93,14 @@ export default function AdjustBankrollModal({ userId, onComplete, onClose }) {
                             ...styles.dollarSign,
                             color: type === 'deposit' ? '#10b981' : '#ef4444',
                         }}>
-                            {type === 'deposit' ? '+$' : '−$'}
+                            {type === 'deposit' ? '+' : '-'}
+                        </span>
+                        <span style={{
+                            ...styles.dollarSign,
+                            color: type === 'deposit' ? '#10b981' : '#ef4444',
+                            marginRight: 2,
+                        }}>
+                            $
                         </span>
                         <input
                             type="text"
