@@ -22,39 +22,40 @@ export default function DownloadsPage() {
     windows: {
       name: 'Windows',
       icon: '',
-      filename: 'Club.Commander.Setup.1.0.0.exe',
+      filename: 'Club.Commander.Setup.1.0.1.exe',
       size: '72.9 MB',
-      downloadUrl: 'https://github.com/Smarter-Poker/club-commander-desktop/releases/download/v1.0.0/Club.Commander.Setup.1.0.0.exe',
+      downloadUrl: 'https://github.com/Smarter-Poker/club-commander-desktop/releases/download/v1.0.1/Club.Commander.Setup.1.0.1.exe',
       altDownload: {
         name: 'Portable Version',
-        filename: 'Club.Commander.1.0.0.exe',
-        url: 'https://github.com/Smarter-Poker/club-commander-desktop/releases/download/v1.0.0/Club.Commander.1.0.0.exe'
+        filename: 'Club.Commander.1.0.1.exe',
+        url: 'https://github.com/Smarter-Poker/club-commander-desktop/releases/download/v1.0.1/Club.Commander.1.0.1.exe'
       },
       requirements: ['Windows 10 or later', '4GB RAM minimum', '200MB disk space']
     },
     mac: {
       name: 'macOS',
       icon: '',
-      filename: 'Club.Commander-1.0.0-arm64.dmg',
+      filename: 'Club.Commander-1.0.1-arm64.dmg',
       size: '89.8 MB',
-      downloadUrl: 'https://github.com/Smarter-Poker/club-commander-desktop/releases/download/v1.0.0/Club.Commander-1.0.0-arm64.dmg',
+      downloadUrl: 'https://github.com/Smarter-Poker/club-commander-desktop/releases/download/v1.0.1/Club.Commander-1.0.1-arm64.dmg',
       altDownload: {
         name: 'ZIP Archive',
-        filename: 'Club.Commander-1.0.0-arm64-mac.zip',
-        url: 'https://github.com/Smarter-Poker/club-commander-desktop/releases/download/v1.0.0/Club.Commander-1.0.0-arm64-mac.zip'
+        filename: 'Club.Commander-1.0.1-arm64-mac.zip',
+        url: 'https://github.com/Smarter-Poker/club-commander-desktop/releases/download/v1.0.1/Club.Commander-1.0.1-arm64-mac.zip'
       },
-      requirements: ['macOS 11 (Big Sur) or later', 'Apple Silicon (M1/M2/M3)', '4GB RAM minimum', '200MB disk space']
+      requirements: ['macOS 11 (Big Sur) or later', 'Apple Silicon (M1/M2/M3)', '4GB RAM minimum', '200MB disk space'],
+      installNote: 'After downloading, right-click the app and select "Open", then click "Open" in the dialog. Or go to System Settings → Privacy & Security and click "Open Anyway".'
     },
     linux: {
       name: 'Linux',
       icon: '',
-      filename: 'Club.Commander-1.0.0.AppImage',
+      filename: 'Club.Commander-1.0.1.AppImage',
       size: '99.6 MB',
-      downloadUrl: 'https://github.com/Smarter-Poker/club-commander-desktop/releases/download/v1.0.0/Club.Commander-1.0.0.AppImage',
+      downloadUrl: 'https://github.com/Smarter-Poker/club-commander-desktop/releases/download/v1.0.1/Club.Commander-1.0.1.AppImage',
       altDownload: {
         name: 'Debian Package',
-        filename: 'club-commander_1.0.0_amd64.deb',
-        url: 'https://github.com/Smarter-Poker/club-commander-desktop/releases/download/v1.0.0/club-commander_1.0.0_amd64.deb'
+        filename: 'club-commander_1.0.1_amd64.deb',
+        url: 'https://github.com/Smarter-Poker/club-commander-desktop/releases/download/v1.0.1/club-commander_1.0.1_amd64.deb'
       },
       requirements: ['Ubuntu 20.04+ or equivalent', '4GB RAM minimum', '200MB disk space']
     }
@@ -89,7 +90,7 @@ export default function DownloadsPage() {
           </div>
           <h1 className="text-4xl font-bold text-[#E4E6EB] mb-3">Club Commander Desktop</h1>
           <p className="text-[#B0B3B8] text-lg">The fastest way to manage your poker room</p>
-          <p className="text-[#31A24C] text-sm mt-2">✓ Version 1.0.0 - Released February 2026</p>
+          <p className="text-[#31A24C] text-sm mt-2">✓ Version 1.0.1 - Released February 2026</p>
         </div>
 
         {/* Main Download Card */}
@@ -100,13 +101,12 @@ export default function DownloadsPage() {
               <button
                 key={key}
                 onClick={() => setPlatform(key)}
-                className={`px-5 py-2.5 rounded-lg font-medium transition-colors ${
-                  platform === key
+                className={`px-5 py-2.5 rounded-lg font-medium transition-colors ${platform === key
                     ? 'bg-[#1877F2] text-white'
                     : 'bg-[#3A3B3C] text-[#B0B3B8] hover:bg-[#4E4F50]'
-                }`}
+                  }`}
               >
-                
+
                 {p.name}
               </button>
             ))}
@@ -122,8 +122,8 @@ export default function DownloadsPage() {
               {downloading ? (
                 <span className="flex items-center justify-center gap-2">
                   <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
                   Starting Download...
                 </span>
@@ -140,7 +140,7 @@ export default function DownloadsPage() {
               {currentPlatform.filename} ({currentPlatform.size})
             </p>
             {currentPlatform.altDownload && (
-              <a 
+              <a
                 href={currentPlatform.altDownload.url}
                 className="text-[#1877F2] hover:underline text-sm mt-2 inline-block"
               >
@@ -160,6 +160,19 @@ export default function DownloadsPage() {
               ))}
             </ul>
           </div>
+
+          {/* Mac Installation Note */}
+          {currentPlatform.installNote && (
+            <div className="border-t border-[#3A3B3C] pt-6 mt-4">
+              <h3 className="text-[#E4E6EB] font-medium mb-3 flex items-center gap-2">
+                <svg className="w-5 h-5 text-[#F0AD4E]" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                macOS Installation
+              </h3>
+              <p className="text-[#B0B3B8] text-sm">{currentPlatform.installNote}</p>
+            </div>
+          )}
         </div>
 
         {/* Features Grid */}
@@ -174,7 +187,7 @@ export default function DownloadsPage() {
 
         {/* All Downloads Link */}
         <div className="text-center">
-          <a 
+          <a
             href="https://github.com/Smarter-Poker/club-commander-desktop/releases"
             target="_blank"
             rel="noopener noreferrer"
