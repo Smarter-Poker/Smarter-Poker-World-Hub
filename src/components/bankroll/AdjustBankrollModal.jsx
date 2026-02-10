@@ -228,7 +228,9 @@ const styles = {
     dollarSign: {
         fontSize: 24,
         fontWeight: 700,
-        marginRight: 4,
+        marginRight: 0,
+        flexShrink: 0,
+        lineHeight: 1,
     },
     input: {
         flex: 1,
