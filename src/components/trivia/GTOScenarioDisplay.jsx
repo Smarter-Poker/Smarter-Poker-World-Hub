@@ -14,7 +14,7 @@ import { ChevronDown, ChevronUp, Info, Target, DollarSign, GitBranch, Brain } fr
 import styles from './GTOScenarioDisplay.module.css';
 
 // Jarvis avatar - using the official persona
-const JARVIS_AVATAR = '/images/horses/jarvis.png';
+const JARVIS_AVATAR = '/images/jarvis-avatar.png';
 
 // Highlight GTO keywords in text
 const highlightKeywords = (text) => {

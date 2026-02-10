@@ -627,27 +627,77 @@ export default function StrategyTrivia({ mode }) {
                                     </div>
                                 )}
 
-                                {/* GTO Scenario Display */}
-                                {showResult && (
-                                    <GTOScenarioDisplay
-                                        action={currentQuestion.options[currentQuestion.correct_index]?.split(' ')[0]?.toUpperCase() || 'OPTIMAL'}
-                                        confidence={currentQuestion.difficulty === 'hard' ? 85 : currentQuestion.difficulty === 'medium' ? 78 : 92}
-                                        explanation={currentQuestion.explanation}
-                                        gtoApproach={generateGTOApproach(currentQuestion)}
-                                        evAnalysis={generateEVAnalysis(currentQuestion)}
-                                        alternateLines={generateAlternateLines(currentQuestion)}
-                                        isCorrectAnswer={selectedAnswer === currentQuestion.correct_index}
-                                        showDetails={true}
-                                    />
-                                )}
+                                {/* GTO Scenario Display — Full-Screen Overlay */}
+                                {showResult && (() => {
+                                    const altLines = generateAlternateLines(currentQuestion);
+                                    const altSum = altLines.reduce((sum, l) => sum + l.frequency, 0);
+                                    const computedConfidence = 100 - altSum;
 
-                                {/* Next Button */}
-                                {showResult && (
-                                    <button className="next-btn" onClick={nextQuestion}>
-                                        {currentQuestionIndex + 1 >= questions.length ? 'See Results' : 'Next Question'}
-                                        <ArrowRight size={18} />
-                                    </button>
-                                )}
+                                    return (
+                                        <div style={{
+                                            position: 'fixed',
+                                            top: 0,
+                                            left: 0,
+                                            right: 0,
+                                            bottom: 0,
+                                            zIndex: 9999,
+                                            background: '#0f1923',
+                                            overflowY: 'auto',
+                                            padding: '16px',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                        }}>
+                                            {/* Result badge at top */}
+                                            <div style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '8px',
+                                                marginBottom: '12px',
+                                                padding: '8px 16px',
+                                                borderRadius: '8px',
+                                                background: selectedAnswer === currentQuestion.correct_index
+                                                    ? 'rgba(0, 255, 136, 0.15)'
+                                                    : 'rgba(239, 68, 68, 0.15)',
+                                                border: `1px solid ${selectedAnswer === currentQuestion.correct_index ? '#00ff88' : '#ef4444'}`,
+                                                color: selectedAnswer === currentQuestion.correct_index ? '#00ff88' : '#ef4444',
+                                                fontWeight: 700,
+                                                fontSize: '14px',
+                                            }}>
+                                                {selectedAnswer === currentQuestion.correct_index ? '✓ CORRECT' : '✗ INCORRECT'}
+                                            </div>
+
+                                            <div style={{ width: '100%', maxWidth: '500px' }}>
+                                                <GTOScenarioDisplay
+                                                    action={currentQuestion.options[currentQuestion.correct_index]?.split(' ')[0]?.toUpperCase() || 'OPTIMAL'}
+                                                    confidence={computedConfidence}
+                                                    explanation={currentQuestion.explanation}
+                                                    gtoApproach={generateGTOApproach(currentQuestion)}
+                                                    evAnalysis={generateEVAnalysis(currentQuestion)}
+                                                    alternateLines={altLines}
+                                                    isCorrectAnswer={selectedAnswer === currentQuestion.correct_index}
+                                                    showDetails={true}
+                                                />
+                                            </div>
+
+                                            {/* Next button at bottom of overlay */}
+                                            <button
+                                                className="next-btn"
+                                                onClick={nextQuestion}
+                                                style={{
+                                                    marginTop: '16px',
+                                                    width: '100%',
+                                                    maxWidth: '500px',
+                                                }}
+                                            >
+                                                {currentQuestionIndex + 1 >= questions.length ? 'See Results' : 'Next Question'}
+                                                <ArrowRight size={18} />
+                                            </button>
+                                        </div>
+                                    );
+                                })()}
+
+
                             </div>
                         </div>
                     )}
