@@ -1,66 +1,69 @@
 /**
  * BANKROLL RULES CARD
- * Displays user's active bankroll rules and thresholds
+ * Displays pre-made bankroll rules that users can toggle on/off
+ * NO default rules — all rules start disabled until user enables them
  */
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { fetchBankrollRules, updateBankrollRule } from '../../lib/bankroll/bankrollSelectors';
 import { supabase } from '../../lib/supabase';
 import toast from '../../stores/toastStore';
 
-const RULE_LABELS = {
-  stop_loss_session: 'Stop Loss (Session)',
-  stop_loss_day: 'Stop Loss (Day)',
-  stop_loss_month: 'Stop Loss (Month)',
-  max_buyin_percent: 'Max Buy-In',
-  max_mtt_percent: 'Max MTT Buy-In',
-  shot_take_threshold: 'Shot-Take Threshold',
-  win_goal_session: 'Win Goal (Session)',
-  time_limit_session: 'Time Limit',
-};
-
-const RULE_FORMATS = {
-  stop_loss_session: (v) => `$${v.toLocaleString()} / session`,
-  stop_loss_day: (v) => `$${v.toLocaleString()} / day`,
-  stop_loss_month: (v) => `$${v.toLocaleString()} / month`,
-  max_buyin_percent: (v) => `${v}% of bankroll`,
-  max_mtt_percent: (v) => `${v}% of bankroll`,
-  shot_take_threshold: (v) => `${v} buy-ins`,
-  win_goal_session: (v) => `$${v.toLocaleString()} / session`,
-  time_limit_session: (v) => `${v} hours`,
-};
-
-function RuleItem({ rule, onToggle }) {
-  const label = RULE_LABELS[rule.rule_type] || rule.rule_type;
-  const value = RULE_FORMATS[rule.rule_type]
-    ? RULE_FORMATS[rule.rule_type](rule.value)
-    : `$${rule.value}`;
-
-  return (
-    <div style={styles.ruleItem}>
-      <span
-        style={{
-          ...styles.ruleIndicator,
-          color: rule.is_strict ? '#ef4444' : '#2374e1',
-        }}
-      >
-        {rule.is_strict ? '●' : '○'}
-      </span>
-      <span style={styles.ruleLabel}>{label}:</span>
-      <span style={styles.ruleValue}>{value}</span>
-    </div>
-  );
-}
+const PREMADE_RULES = [
+  {
+    rule_type: 'stop_loss_session',
+    label: 'Session Stop-Loss',
+    description: 'Alert when session loss exceeds this amount',
+    defaultValue: 500,
+    format: (v) => `$${v.toLocaleString()}`,
+    unit: '$',
+  },
+  {
+    rule_type: 'stop_loss_day',
+    label: 'Daily Stop-Loss',
+    description: 'Alert when total daily loss exceeds this amount',
+    defaultValue: 1000,
+    format: (v) => `$${v.toLocaleString()}`,
+    unit: '$',
+  },
+  {
+    rule_type: 'max_buyin_percent',
+    label: 'Max Buy-In %',
+    description: 'Alert when a single buy-in exceeds this % of bankroll',
+    defaultValue: 5,
+    format: (v) => `${v}%`,
+    unit: '%',
+  },
+  {
+    rule_type: 'win_goal_session',
+    label: 'Session Win Goal',
+    description: 'Notify when session profit reaches this amount',
+    defaultValue: 1000,
+    format: (v) => `$${v.toLocaleString()}`,
+    unit: '$',
+  },
+  {
+    rule_type: 'stop_loss_month',
+    label: 'Monthly Stop-Loss',
+    description: 'Alert when monthly loss exceeds this amount',
+    defaultValue: 5000,
+    format: (v) => `$${v.toLocaleString()}`,
+    unit: '$',
+  },
+  {
+    rule_type: 'time_limit_session',
+    label: 'Session Time Limit',
+    description: 'Alert when session exceeds this many hours',
+    defaultValue: 8,
+    format: (v) => `${v} hrs`,
+    unit: 'hrs',
+  },
+];
 
 export default function BankrollRulesCard({ userId }) {
-  const [rules, setRules] = useState([]);
+  const [rules, setRules] = useState({}); // { rule_type: { id, value, is_active } }
   const [isLoading, setIsLoading] = useState(true);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [newRuleType, setNewRuleType] = useState('stop_loss_session');
-  const [newRuleValue, setNewRuleValue] = useState('');
-  const [newRuleStrict, setNewRuleStrict] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [editingRule, setEditingRule] = useState(null);
+  const [editValue, setEditValue] = useState('');
 
   useEffect(() => {
     loadRules();
@@ -70,34 +73,100 @@ export default function BankrollRulesCard({ userId }) {
     if (!userId) return;
     setIsLoading(true);
     try {
-      const data = await fetchBankrollRules(userId);
-      setRules(data);
-    } catch (error) {
-      // Rules table may not exist yet
+      const { data, error } = await supabase
+        .from('bankroll_rules')
+        .select('*')
+        .eq('user_id', userId);
+      if (error) throw error;
+      const ruleMap = {};
+      (data || []).forEach(r => {
+        ruleMap[r.rule_type] = r;
+      });
+      setRules(ruleMap);
+    } catch (err) {
+      // Table may not exist
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleAddRule = async () => {
-    if (!newRuleValue || !userId) return;
-    setSaving(true);
+  const handleToggle = async (premadeRule) => {
+    const existing = rules[premadeRule.rule_type];
     try {
-      const { error } = await supabase.from('bankroll_rules').insert({
-        user_id: userId,
-        rule_type: newRuleType,
-        value: parseFloat(newRuleValue),
-        is_strict: newRuleStrict,
-      });
-      if (error) throw error;
-      toast.success('Rule added');
-      setShowAddForm(false);
-      setNewRuleValue('');
-      await loadRules();
+      if (existing) {
+        // Toggle is_active
+        const newActive = !existing.is_active;
+        const { error } = await supabase
+          .from('bankroll_rules')
+          .update({ is_active: newActive, updated_at: new Date().toISOString() })
+          .eq('id', existing.id);
+        if (error) throw error;
+        setRules(prev => ({
+          ...prev,
+          [premadeRule.rule_type]: { ...existing, is_active: newActive },
+        }));
+        toast.success(newActive ? `${premadeRule.label} enabled` : `${premadeRule.label} disabled`);
+      } else {
+        // Create new rule (enabled)
+        const { data, error } = await supabase
+          .from('bankroll_rules')
+          .insert({
+            user_id: userId,
+            rule_type: premadeRule.rule_type,
+            value: premadeRule.defaultValue,
+            is_active: true,
+            is_strict: false,
+          })
+          .select()
+          .single();
+        if (error) throw error;
+        setRules(prev => ({ ...prev, [premadeRule.rule_type]: data }));
+        toast.success(`${premadeRule.label} enabled`);
+      }
     } catch (err) {
-      toast.error('Failed to add rule');
-    } finally {
-      setSaving(false);
+      console.error('[BankrollRules] Toggle error:', err);
+      toast.error('Failed to update rule');
+    }
+  };
+
+  const handleSaveValue = async (premadeRule) => {
+    const existing = rules[premadeRule.rule_type];
+    const newValue = parseFloat(editValue);
+    if (isNaN(newValue) || newValue <= 0) {
+      toast.error('Enter a valid number');
+      return;
+    }
+    try {
+      if (existing) {
+        const { error } = await supabase
+          .from('bankroll_rules')
+          .update({ value: newValue, updated_at: new Date().toISOString() })
+          .eq('id', existing.id);
+        if (error) throw error;
+        setRules(prev => ({
+          ...prev,
+          [premadeRule.rule_type]: { ...existing, value: newValue },
+        }));
+      } else {
+        const { data, error } = await supabase
+          .from('bankroll_rules')
+          .insert({
+            user_id: userId,
+            rule_type: premadeRule.rule_type,
+            value: newValue,
+            is_active: true,
+            is_strict: false,
+          })
+          .select()
+          .single();
+        if (error) throw error;
+        setRules(prev => ({ ...prev, [premadeRule.rule_type]: data }));
+      }
+      toast.success('Value updated');
+      setEditingRule(null);
+      setEditValue('');
+    } catch (err) {
+      toast.error('Failed to save');
     }
   };
 
@@ -105,25 +174,8 @@ export default function BankrollRulesCard({ userId }) {
     return (
       <div style={styles.container}>
         <h3 style={styles.title}>Bankroll Rules</h3>
-        <div style={styles.loadingState}>
-          {[1, 2].map((i) => (
-            <div key={i} style={styles.loadingItem}>
-              <div style={styles.loadingDot} />
-              <div style={styles.loadingText} />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (rules.length === 0 && !showAddForm) {
-    return (
-      <div style={styles.container}>
-        <h3 style={styles.title}>Bankroll Rules</h3>
-        <div style={styles.emptyState}>
-          <p style={styles.emptyText}>No rules configured</p>
-          <button style={styles.addButton} onClick={() => setShowAddForm(true)}>+ Add Rule</button>
+        <div style={{ padding: 20, textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>
+          Loading rules...
         </div>
       </div>
     );
@@ -131,57 +183,67 @@ export default function BankrollRulesCard({ userId }) {
 
   return (
     <div style={styles.container}>
-      <div style={styles.header}>
-        <h3 style={styles.title}>Bankroll Rules</h3>
-        <button style={styles.addButton} onClick={() => setShowAddForm(!showAddForm)}>
-          {showAddForm ? 'Cancel' : '+ Add Rule'}
-        </button>
-      </div>
-
-      {showAddForm && (
-        <div style={{ marginBottom: 16, padding: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)' }}>
-          <select
-            value={newRuleType}
-            onChange={(e) => setNewRuleType(e.target.value)}
-            style={{ width: '100%', marginBottom: 8, padding: '8px 10px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, color: '#fff', fontSize: 12 }}
-          >
-            {Object.entries(RULE_LABELS).map(([key, label]) => (
-              <option key={key} value={key}>{label}</option>
-            ))}
-          </select>
-          <input
-            type="number"
-            placeholder="Value"
-            value={newRuleValue}
-            onChange={(e) => setNewRuleValue(e.target.value)}
-            style={{ width: '100%', marginBottom: 8, padding: '8px 10px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, color: '#fff', fontSize: 12 }}
-          />
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, fontSize: 12, color: 'rgba(255,255,255,0.6)', cursor: 'pointer' }}>
-            <input type="checkbox" checked={newRuleStrict} onChange={(e) => setNewRuleStrict(e.target.checked)} />
-            Strict (block play when exceeded)
-          </label>
-          <button
-            onClick={handleAddRule}
-            disabled={saving || !newRuleValue}
-            style={{ width: '100%', padding: '8px 12px', background: '#2374e1', border: 'none', borderRadius: 6, color: '#000', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: saving || !newRuleValue ? 0.5 : 1 }}
-          >
-            {saving ? 'Saving...' : 'Save Rule'}
-          </button>
-        </div>
-      )}
-
+      <h3 style={styles.title}>Bankroll Rules</h3>
+      <p style={styles.subtitle}>Toggle rules on or off. Tap the value to customize.</p>
       <div style={styles.ruleList}>
-        {rules.map((rule) => (
-          <RuleItem key={rule.id} rule={rule} />
-        ))}
-      </div>
-      <div style={styles.legend}>
-        <span style={styles.legendItem}>
-          <span style={{ color: '#2374e1' }}>○</span> Advisory
-        </span>
-        <span style={styles.legendItem}>
-          <span style={{ color: '#ef4444' }}>●</span> Strict
-        </span>
+        {PREMADE_RULES.map((premade) => {
+          const existing = rules[premade.rule_type];
+          const isActive = existing?.is_active || false;
+          const currentValue = existing?.value || premade.defaultValue;
+          const isEditing = editingRule === premade.rule_type;
+
+          return (
+            <div key={premade.rule_type} style={{
+              ...styles.ruleItem,
+              opacity: isActive ? 1 : 0.5,
+            }}>
+              <div style={styles.ruleTop}>
+                <div style={styles.ruleInfo}>
+                  <span style={styles.ruleLabel}>{premade.label}</span>
+                  <span style={styles.ruleDesc}>{premade.description}</span>
+                </div>
+                <button
+                  onClick={() => handleToggle(premade)}
+                  style={{
+                    ...styles.toggle,
+                    background: isActive ? '#2374e1' : 'rgba(255,255,255,0.1)',
+                  }}
+                >
+                  <div style={{
+                    ...styles.toggleKnob,
+                    transform: isActive ? 'translateX(16px)' : 'translateX(0)',
+                  }} />
+                </button>
+              </div>
+              {isActive && (
+                <div style={styles.ruleValueRow}>
+                  {isEditing ? (
+                    <div style={styles.editRow}>
+                      <input
+                        type="number"
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        style={styles.editInput}
+                        autoFocus
+                        placeholder={String(currentValue)}
+                      />
+                      <span style={styles.editUnit}>{premade.unit}</span>
+                      <button style={styles.saveBtn} onClick={() => handleSaveValue(premade)}>Save</button>
+                      <button style={styles.cancelBtn} onClick={() => { setEditingRule(null); setEditValue(''); }}>✕</button>
+                    </div>
+                  ) : (
+                    <button
+                      style={styles.valueBtn}
+                      onClick={() => { setEditingRule(premade.rule_type); setEditValue(String(currentValue)); }}
+                    >
+                      {premade.format(currentValue)} ✎
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -191,99 +253,120 @@ const styles = {
   container: {
     marginBottom: 24,
     padding: 16,
-    background: 'rgba(255, 255, 255, 0.02)',
-    border: '1px solid rgba(255, 255, 255, 0.06)',
+    background: 'linear-gradient(135deg, rgba(0,30,60,0.95), rgba(0,20,40,0.9))',
+    border: '1px solid rgba(0,212,255,0.2)',
     borderRadius: 10,
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
   },
   title: {
     fontSize: 14,
     fontWeight: 600,
-    color: '#fff',
-    margin: 0,
+    color: '#2374e1',
+    margin: '0 0 4px',
+  },
+  subtitle: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.4)',
+    margin: '0 0 14px',
   },
   ruleList: {
     display: 'flex',
     flexDirection: 'column',
-    gap: 2,
+    gap: 8,
   },
   ruleItem: {
+    padding: 12,
+    background: 'rgba(255,255,255,0.03)',
+    borderRadius: 8,
+    border: '1px solid rgba(255,255,255,0.06)',
+    transition: 'opacity 0.2s',
+  },
+  ruleTop: {
     display: 'flex',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 8,
-    padding: '8px 0',
   },
-  ruleIndicator: {
-    fontSize: 10,
-    flexShrink: 0,
-  },
-  ruleLabel: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
-  },
-  ruleValue: {
-    fontSize: 12,
-    fontWeight: 600,
-    color: '#fff',
-    marginLeft: 'auto',
-  },
-  legend: {
-    display: 'flex',
-    gap: 16,
-    marginTop: 12,
-    paddingTop: 12,
-    borderTop: '1px solid rgba(255, 255, 255, 0.05)',
-  },
-  legendItem: {
-    fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.4)',
-    display: 'flex',
-    alignItems: 'center',
-    gap: 4,
-  },
-  loadingState: {
+  ruleInfo: {
     display: 'flex',
     flexDirection: 'column',
-    gap: 12,
-    marginTop: 12,
+    gap: 2,
+    flex: 1,
+    marginRight: 12,
   },
-  loadingItem: {
+  ruleLabel: {
+    fontSize: 13,
+    fontWeight: 600,
+    color: '#fff',
+  },
+  ruleDesc: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.4)',
+  },
+  toggle: {
+    width: 40,
+    height: 24,
+    borderRadius: 12,
+    border: 'none',
+    padding: 3,
+    cursor: 'pointer',
+    position: 'relative',
+    flexShrink: 0,
+    transition: 'background 0.2s',
+  },
+  toggleKnob: {
+    width: 18,
+    height: 18,
+    borderRadius: '50%',
+    background: '#fff',
+    transition: 'transform 0.2s',
+  },
+  ruleValueRow: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTop: '1px solid rgba(255,255,255,0.05)',
+  },
+  valueBtn: {
+    background: 'none',
+    border: 'none',
+    color: '#2374e1',
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: 'pointer',
+    padding: 0,
+  },
+  editRow: {
     display: 'flex',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
-  loadingDot: {
-    width: 8,
-    height: 8,
-    borderRadius: '50%',
-    background: 'rgba(255, 255, 255, 0.1)',
-  },
-  loadingText: {
-    height: 12,
-    width: '100%',
+  editInput: {
+    width: 80,
+    padding: '4px 8px',
+    background: 'rgba(0,0,0,0.3)',
+    border: '1px solid rgba(255,255,255,0.15)',
     borderRadius: 4,
-    background: 'rgba(255, 255, 255, 0.05)',
+    color: '#fff',
+    fontSize: 13,
   },
-  emptyState: {
-    padding: '12px 0',
+  editUnit: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.4)',
   },
-  emptyText: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.4)',
-    margin: '0 0 12px',
-  },
-  addButton: {
-    padding: '8px 12px',
-    background: 'rgba(255, 255, 255, 0.05)',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    borderRadius: 6,
-    color: 'rgba(255, 255, 255, 0.6)',
-    fontSize: 12,
+  saveBtn: {
+    padding: '4px 10px',
+    background: '#2374e1',
+    border: 'none',
+    borderRadius: 4,
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: 600,
     cursor: 'pointer',
+  },
+  cancelBtn: {
+    background: 'none',
+    border: 'none',
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 14,
+    cursor: 'pointer',
+    padding: '2px 4px',
   },
 };

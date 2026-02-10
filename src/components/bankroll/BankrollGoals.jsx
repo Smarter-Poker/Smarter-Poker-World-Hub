@@ -124,11 +124,6 @@ export default function BankrollGoals({ userId, currentBankroll = 0, periodPL = 
                 <div style={styles.titleRow}>
                     <h4 style={styles.title}>Goals</h4>
                 </div>
-                {!showAddGoal && !activeGoal && (
-                    <button onClick={() => setShowAddGoal(true)} style={styles.addBtn}>
-                        +
-                    </button>
-                )}
             </div>
 
             {isLoading && (

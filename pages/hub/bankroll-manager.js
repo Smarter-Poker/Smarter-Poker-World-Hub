@@ -73,7 +73,6 @@ const SIDEBAR_SECTIONS = [
   { id: 'trips', label: 'Trip Tracker', icon: '' },
   { id: 'series', label: 'Series Tracker', icon: '' },
   { id: 'scan-receipt', label: 'Scan Receipt', icon: '' },
-  { id: 'receipts', label: 'Saved Receipts', icon: '' },
   { id: 'players', label: 'Player Notes', icon: '' },
   { id: 'leaks', label: 'Leaks', icon: '' },
   { id: 'reports', label: 'Reports', icon: '' },
@@ -695,15 +694,20 @@ export default function BankrollManagerPage() {
           <main className="bankroll-main-content" style={styles.mainContent}>
             {/* Mobile Navigation — horizontal pill bar, visible only on mobile */}
             <div className="bankroll-mobile-nav">
-              {SIDEBAR_SECTIONS.map((section) => (
-                <button
-                  key={section.id}
-                  className={`bankroll-mobile-nav-item${activeSection === section.id ? ' active' : ''}`}
-                  onClick={() => handleSidebarClick(section.id)}
-                >
-                  {section.label}
-                </button>
-              ))}
+              {SIDEBAR_SECTIONS.map((section) => {
+                const isDashboard = section.id === 'dashboard';
+                const onSubPage = activeSection !== 'dashboard';
+                const displayLabel = isDashboard && onSubPage ? '← Back' : section.label;
+                return (
+                  <button
+                    key={section.id}
+                    className={`bankroll-mobile-nav-item${activeSection === section.id ? ' active' : ''}`}
+                    onClick={() => handleSidebarClick(section.id)}
+                  >
+                    {displayLabel}
+                  </button>
+                );
+              })}
             </div>
             {/* Header */}
             <div className="bankroll-content-header" style={styles.contentHeader}>
@@ -718,7 +722,7 @@ export default function BankrollManagerPage() {
                 {activeSection === 'settings' && 'Settings'}
               </h1>
               <div style={styles.headerActions}>
-                {activeSection !== 'notes' && categoryFilter === 'all' && (
+                {activeSection === 'dashboard' && categoryFilter === 'all' && (
                   <button className="bankroll-log-btn" style={styles.logButton} onClick={handleLogClick}>
                     Add +
                   </button>
