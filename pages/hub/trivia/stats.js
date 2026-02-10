@@ -1,6 +1,7 @@
 /**
  * Trivia - Player Stats
  * Fetches real user data from Supabase
+ * Uses Facebook Dark color schema
  */
 
 import { useState, useEffect } from 'react';
@@ -81,6 +82,13 @@ export default function TriviaStats() {
         loadStats();
     }, []);
 
+    const StatCard = ({ label, value, color }) => (
+        <div style={{ background: '#242526', border: '1px solid #4e4f50', borderRadius: '12px', padding: '24px' }}>
+            <div style={{ color: '#65676b', fontSize: '14px', marginBottom: '8px' }}>{label}</div>
+            <div style={{ color: color || '#e4e6eb', fontSize: '32px', fontWeight: 'bold' }}>{value}</div>
+        </div>
+    );
+
     return (
         <>
             <Head>
@@ -88,64 +96,41 @@ export default function TriviaStats() {
             </Head>
 
             <PageTransition>
-                <div style={{ minHeight: '100vh', background: '#0a0e1a' }}>
+                <div style={{ minHeight: '100vh', background: '#18191a' }}>
                     <UniversalHeader pageDepth={2} />
 
                     <div style={{ padding: '120px 20px 40px', maxWidth: '1200px', margin: '0 auto' }}>
                         <button
                             onClick={() => router.push('/hub/trivia')}
                             style={{
-                                background: 'rgba(139, 92, 246, 0.1)',
-                                border: '1px solid rgba(139, 92, 246, 0.3)',
-                                color: '#8b5cf6',
+                                background: 'rgba(35, 116, 225, 0.1)',
+                                border: '1px solid rgba(35, 116, 225, 0.3)',
+                                color: '#2374e1',
                                 padding: '8px 16px',
                                 borderRadius: '8px',
                                 cursor: 'pointer',
                                 marginBottom: '20px'
                             }}
                         >
-                            ← Back to Trivia
+                            Back to Trivia
                         </button>
 
-                        <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#fff', marginBottom: '30px' }}>
+                        <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#e4e6eb', marginBottom: '30px' }}>
                             My Trivia Stats
                         </h1>
 
                         {isLoading ? (
-                            <div style={{ color: 'rgba(255,255,255,0.6)', textAlign: 'center', padding: '40px' }}>
+                            <div style={{ color: '#65676b', textAlign: 'center', padding: '40px' }}>
                                 Loading stats...
                             </div>
                         ) : (
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
-                                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '24px' }}>
-                                    <div style={{ color: '#9ca3af', fontSize: '14px', marginBottom: '8px' }}>Games Played</div>
-                                    <div style={{ color: '#fff', fontSize: '32px', fontWeight: 'bold' }}>{stats.gamesPlayed.toLocaleString()}</div>
-                                </div>
-
-                                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '24px' }}>
-                                    <div style={{ color: '#9ca3af', fontSize: '14px', marginBottom: '8px' }}>Total Questions</div>
-                                    <div style={{ color: '#fff', fontSize: '32px', fontWeight: 'bold' }}>{stats.totalQuestions.toLocaleString()}</div>
-                                </div>
-
-                                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '24px' }}>
-                                    <div style={{ color: '#9ca3af', fontSize: '14px', marginBottom: '8px' }}>Accuracy</div>
-                                    <div style={{ color: '#10b981', fontSize: '32px', fontWeight: 'bold' }}>{stats.accuracy}%</div>
-                                </div>
-
-                                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '24px' }}>
-                                    <div style={{ color: '#9ca3af', fontSize: '14px', marginBottom: '8px' }}>Current Streak</div>
-                                    <div style={{ color: '#f59e0b', fontSize: '32px', fontWeight: 'bold' }}>{stats.currentStreak}</div>
-                                </div>
-
-                                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '24px' }}>
-                                    <div style={{ color: '#9ca3af', fontSize: '14px', marginBottom: '8px' }}>Best Streak</div>
-                                    <div style={{ color: '#8b5cf6', fontSize: '32px', fontWeight: 'bold' }}>{stats.bestStreak}</div>
-                                </div>
-
-                                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '24px' }}>
-                                    <div style={{ color: '#9ca3af', fontSize: '14px', marginBottom: '8px' }}>Diamonds Earned</div>
-                                    <div style={{ color: '#00D4FF', fontSize: '32px', fontWeight: 'bold' }}>{stats.diamondsEarned.toLocaleString()}</div>
-                                </div>
+                                <StatCard label="Games Played" value={stats.gamesPlayed.toLocaleString()} />
+                                <StatCard label="Total Questions" value={stats.totalQuestions.toLocaleString()} />
+                                <StatCard label="Accuracy" value={`${stats.accuracy}%`} color="#31a24c" />
+                                <StatCard label="Current Streak" value={stats.currentStreak} color="#e69500" />
+                                <StatCard label="Best Streak" value={stats.bestStreak} color="#2374e1" />
+                                <StatCard label="Diamonds Earned" value={stats.diamondsEarned.toLocaleString()} color="#2374e1" />
                             </div>
                         )}
 
@@ -153,18 +138,18 @@ export default function TriviaStats() {
                             <div style={{
                                 marginTop: '40px',
                                 padding: '40px',
-                                background: 'rgba(139, 92, 246, 0.1)',
-                                border: '1px solid rgba(139, 92, 246, 0.3)',
+                                background: 'rgba(35, 116, 225, 0.1)',
+                                border: '1px solid rgba(35, 116, 225, 0.3)',
                                 borderRadius: '12px',
                                 textAlign: 'center'
                             }}>
-                                <p style={{ color: '#fff', fontSize: '18px', marginBottom: '16px' }}>
+                                <p style={{ color: '#e4e6eb', fontSize: '18px', marginBottom: '16px' }}>
                                     No trivia games played yet!
                                 </p>
                                 <button
                                     onClick={() => router.push('/hub/trivia')}
                                     style={{
-                                        background: '#8b5cf6',
+                                        background: '#2374e1',
                                         border: 'none',
                                         color: '#fff',
                                         padding: '12px 24px',

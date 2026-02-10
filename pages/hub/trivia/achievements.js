@@ -2,6 +2,7 @@
  * Trivia - Achievements
  * Fetches user's trivia achievements from Supabase
  * Uses trivia_scores and trivia_streaks to determine unlocks
+ * Facebook Dark color schema — no emojis
  */
 
 import { useState, useEffect } from 'react';
@@ -11,21 +12,22 @@ import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
+import { Target, BookOpen, Award, Trophy, Flame, Zap, Crown, CheckCircle, Gem, Gamepad2, Calendar, Star } from 'lucide-react';
 
-// Achievement definitions with unlock conditions
+// Achievement definitions with unlock conditions — using Lucide icons instead of emojis
 const ACHIEVEMENTS = [
-    { id: 'first_answer', name: 'First Steps', description: 'Answer your first trivia question', icon: '🎯', requirement: (stats) => stats.totalQuestions >= 1 },
-    { id: 'ten_correct', name: 'Getting Started', description: 'Get 10 correct answers', icon: '📚', requirement: (stats) => stats.correctAnswers >= 10 },
-    { id: 'fifty_correct', name: 'Trivia Apprentice', description: 'Get 50 correct answers', icon: '🎓', requirement: (stats) => stats.correctAnswers >= 50 },
-    { id: 'hundred_correct', name: 'Trivia Expert', description: 'Get 100 correct answers', icon: '🏆', requirement: (stats) => stats.correctAnswers >= 100 },
-    { id: 'streak_5', name: 'Hot Streak', description: 'Achieve a 5-day streak', icon: '🔥', requirement: (stats) => stats.bestStreak >= 5 },
-    { id: 'streak_10', name: 'Streak Master', description: 'Achieve a 10-day streak', icon: '⚡', requirement: (stats) => stats.bestStreak >= 10 },
-    { id: 'streak_30', name: 'Dedicated Player', description: 'Achieve a 30-day streak', icon: '👑', requirement: (stats) => stats.bestStreak >= 30 },
-    { id: 'perfect_game', name: 'Perfect Score', description: 'Get 100% in a trivia session', icon: '💯', requirement: (stats) => stats.hasPerfectGame },
-    { id: 'diamond_winner', name: 'Diamond Winner', description: 'Earn 100 diamonds from trivia', icon: '💎', requirement: (stats) => stats.diamondsEarned >= 100 },
-    { id: 'arcade_master', name: 'Arcade Master', description: 'Play 10 arcade games', icon: '🕹️', requirement: (stats) => stats.arcadeGames >= 10 },
-    { id: 'daily_player', name: 'Daily Devotee', description: 'Play daily trivia 7 days in a row', icon: '📅', requirement: (stats) => stats.dailyStreak >= 7 },
-    { id: 'thousand_questions', name: 'Knowledge Seeker', description: 'Answer 1,000 questions', icon: '🌟', requirement: (stats) => stats.totalQuestions >= 1000 }
+    { id: 'first_answer', name: 'First Steps', description: 'Answer your first trivia question', Icon: Target, requirement: (stats) => stats.totalQuestions >= 1 },
+    { id: 'ten_correct', name: 'Getting Started', description: 'Get 10 correct answers', Icon: BookOpen, requirement: (stats) => stats.correctAnswers >= 10 },
+    { id: 'fifty_correct', name: 'Trivia Apprentice', description: 'Get 50 correct answers', Icon: Award, requirement: (stats) => stats.correctAnswers >= 50 },
+    { id: 'hundred_correct', name: 'Trivia Expert', description: 'Get 100 correct answers', Icon: Trophy, requirement: (stats) => stats.correctAnswers >= 100 },
+    { id: 'streak_5', name: 'Hot Streak', description: 'Achieve a 5-day streak', Icon: Flame, requirement: (stats) => stats.bestStreak >= 5 },
+    { id: 'streak_10', name: 'Streak Master', description: 'Achieve a 10-day streak', Icon: Zap, requirement: (stats) => stats.bestStreak >= 10 },
+    { id: 'streak_30', name: 'Dedicated Player', description: 'Achieve a 30-day streak', Icon: Crown, requirement: (stats) => stats.bestStreak >= 30 },
+    { id: 'perfect_game', name: 'Perfect Score', description: 'Get 100% in a trivia session', Icon: CheckCircle, requirement: (stats) => stats.hasPerfectGame },
+    { id: 'diamond_winner', name: 'Diamond Winner', description: 'Earn 100 diamonds from trivia', Icon: Gem, requirement: (stats) => stats.diamondsEarned >= 100 },
+    { id: 'arcade_master', name: 'Arcade Master', description: 'Play 10 arcade games', Icon: Gamepad2, requirement: (stats) => stats.arcadeGames >= 10 },
+    { id: 'daily_player', name: 'Daily Devotee', description: 'Play daily trivia 7 days in a row', Icon: Calendar, requirement: (stats) => stats.dailyStreak >= 7 },
+    { id: 'thousand_questions', name: 'Knowledge Seeker', description: 'Answer 1,000 questions', Icon: Star, requirement: (stats) => stats.totalQuestions >= 1000 }
 ];
 
 export default function TriviaAchievements() {
@@ -100,36 +102,36 @@ export default function TriviaAchievements() {
             </Head>
 
             <PageTransition>
-                <div style={{ minHeight: '100vh', background: '#0a0e1a' }}>
+                <div style={{ minHeight: '100vh', background: '#18191a' }}>
                     <UniversalHeader pageDepth={2} />
 
                     <div style={{ padding: '120px 20px 40px', maxWidth: '1200px', margin: '0 auto' }}>
                         <button
                             onClick={() => router.push('/hub/trivia')}
                             style={{
-                                background: 'rgba(139, 92, 246, 0.1)',
-                                border: '1px solid rgba(139, 92, 246, 0.3)',
-                                color: '#8b5cf6',
+                                background: 'rgba(35, 116, 225, 0.1)',
+                                border: '1px solid rgba(35, 116, 225, 0.3)',
+                                color: '#2374e1',
                                 padding: '8px 16px',
                                 borderRadius: '8px',
                                 cursor: 'pointer',
                                 marginBottom: '20px'
                             }}
                         >
-                            ← Back to Trivia
+                            Back to Trivia
                         </button>
 
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-                            <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#fff', margin: 0 }}>
+                            <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#e4e6eb', margin: 0 }}>
                                 Achievements
                             </h1>
                             {!isLoading && (
                                 <div style={{
-                                    background: 'rgba(139, 92, 246, 0.2)',
-                                    border: '1px solid rgba(139, 92, 246, 0.4)',
+                                    background: 'rgba(35, 116, 225, 0.2)',
+                                    border: '1px solid rgba(35, 116, 225, 0.4)',
                                     padding: '8px 16px',
                                     borderRadius: '8px',
-                                    color: '#8b5cf6',
+                                    color: '#2374e1',
                                     fontWeight: 'bold'
                                 }}>
                                     {unlockedCount} / {ACHIEVEMENTS.length} Unlocked
@@ -138,54 +140,65 @@ export default function TriviaAchievements() {
                         </div>
 
                         {isLoading ? (
-                            <div style={{ color: 'rgba(255,255,255,0.6)', textAlign: 'center', padding: '40px' }}>
+                            <div style={{ color: '#65676b', textAlign: 'center', padding: '40px' }}>
                                 Loading achievements...
                             </div>
                         ) : (
                             <div style={{ display: 'grid', gap: '16px' }}>
-                                {achievements.map(achievement => (
-                                    <div
-                                        key={achievement.id}
-                                        style={{
-                                            background: achievement.unlocked ? 'rgba(139, 92, 246, 0.1)' : 'rgba(255,255,255,0.03)',
-                                            border: `1px solid ${achievement.unlocked ? 'rgba(139, 92, 246, 0.3)' : 'rgba(255,255,255,0.1)'}`,
-                                            borderRadius: '12px',
-                                            padding: '20px',
-                                            display: 'flex',
-                                            gap: '16px',
-                                            alignItems: 'center',
-                                            opacity: achievement.unlocked ? 1 : 0.5,
-                                            transition: 'all 0.2s'
-                                        }}
-                                    >
-                                        <div style={{
-                                            fontSize: '48px',
-                                            filter: achievement.unlocked ? 'none' : 'grayscale(100%)'
-                                        }}>
-                                            {achievement.icon}
-                                        </div>
-                                        <div style={{ flex: 1 }}>
-                                            <div style={{ color: '#fff', fontWeight: 'bold', marginBottom: '4px' }}>
-                                                {achievement.name}
-                                            </div>
-                                            <div style={{ color: '#9ca3af', fontSize: '14px' }}>
-                                                {achievement.description}
-                                            </div>
-                                        </div>
-                                        {achievement.unlocked && (
+                                {achievements.map(achievement => {
+                                    const IconComponent = achievement.Icon;
+                                    return (
+                                        <div
+                                            key={achievement.id}
+                                            style={{
+                                                background: achievement.unlocked ? 'rgba(35, 116, 225, 0.1)' : '#242526',
+                                                border: `1px solid ${achievement.unlocked ? 'rgba(35, 116, 225, 0.3)' : '#4e4f50'}`,
+                                                borderRadius: '12px',
+                                                padding: '20px',
+                                                display: 'flex',
+                                                gap: '16px',
+                                                alignItems: 'center',
+                                                opacity: achievement.unlocked ? 1 : 0.5,
+                                                transition: 'all 0.2s'
+                                            }}
+                                        >
                                             <div style={{
-                                                color: '#10b981',
-                                                fontWeight: 'bold',
+                                                width: '48px',
+                                                height: '48px',
                                                 display: 'flex',
                                                 alignItems: 'center',
-                                                gap: '6px'
+                                                justifyContent: 'center',
+                                                background: achievement.unlocked ? 'rgba(35, 116, 225, 0.15)' : '#3a3b3c',
+                                                borderRadius: '12px'
                                             }}>
-                                                <span style={{ fontSize: '20px' }}>✓</span>
-                                                Unlocked
+                                                <IconComponent
+                                                    size={24}
+                                                    color={achievement.unlocked ? '#2374e1' : '#65676b'}
+                                                />
                                             </div>
-                                        )}
-                                    </div>
-                                ))}
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{ color: '#e4e6eb', fontWeight: 'bold', marginBottom: '4px' }}>
+                                                    {achievement.name}
+                                                </div>
+                                                <div style={{ color: '#65676b', fontSize: '14px' }}>
+                                                    {achievement.description}
+                                                </div>
+                                            </div>
+                                            {achievement.unlocked && (
+                                                <div style={{
+                                                    color: '#31a24c',
+                                                    fontWeight: 'bold',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '6px'
+                                                }}>
+                                                    <CheckCircle size={20} />
+                                                    Unlocked
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
                             </div>
                         )}
                     </div>

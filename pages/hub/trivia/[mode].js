@@ -25,6 +25,7 @@ import { TRIVIA_ACHIEVEMENTS, checkNewUnlocks } from '../../../src/config/trivia
 
 // Phase 2 Enhancement Imports
 import DoubleOrNothing from '../../../src/components/trivia/DoubleOrNothing';
+import { Gem } from 'lucide-react';
 
 const CATEGORY_MAP = {
     daily: null,
@@ -737,7 +738,7 @@ export default function TriviaModePage() {
                                 <div className="daily-results-section">
                                     {result.dailyBonusDiamonds > 0 && (
                                         <div className="daily-bonus-callout">
-                                            <span className="bonus-icon">💎</span>
+                                            <Gem size={20} />
                                             <span>+{result.dailyBonusDiamonds} Daily Completion Bonus!</span>
                                         </div>
                                     )}

@@ -1,6 +1,7 @@
 /**
  * Trivia - Leaderboard
  * Fetches real rankings from Supabase trivia_scores table
+ * Uses Facebook Dark color schema
  */
 
 import { useState, useEffect } from 'react';
@@ -106,6 +107,20 @@ export default function TriviaLeaderboard() {
         return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     }
 
+    function getRankLabel(rank) {
+        if (rank === 1) return '1st';
+        if (rank === 2) return '2nd';
+        if (rank === 3) return '3rd';
+        return `#${rank}`;
+    }
+
+    function getRankColor(rank) {
+        if (rank === 1) return '#FFD700';
+        if (rank === 2) return '#C0C0C0';
+        if (rank === 3) return '#CD7F32';
+        return '#e4e6eb';
+    }
+
     return (
         <>
             <Head>
@@ -113,27 +128,27 @@ export default function TriviaLeaderboard() {
             </Head>
 
             <PageTransition>
-                <div style={{ minHeight: '100vh', background: '#0a0e1a' }}>
+                <div style={{ minHeight: '100vh', background: '#18191a' }}>
                     <UniversalHeader pageDepth={2} />
 
                     <div style={{ padding: '120px 20px 40px', maxWidth: '1200px', margin: '0 auto' }}>
                         <button
                             onClick={() => router.push('/hub/trivia')}
                             style={{
-                                background: 'rgba(139, 92, 246, 0.1)',
-                                border: '1px solid rgba(139, 92, 246, 0.3)',
-                                color: '#8b5cf6',
+                                background: 'rgba(35, 116, 225, 0.1)',
+                                border: '1px solid rgba(35, 116, 225, 0.3)',
+                                color: '#2374e1',
                                 padding: '8px 16px',
                                 borderRadius: '8px',
                                 cursor: 'pointer',
                                 marginBottom: '20px'
                             }}
                         >
-                            ← Back to Trivia
+                            Back to Trivia
                         </button>
 
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap', gap: '16px' }}>
-                            <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#fff', margin: 0 }}>
+                            <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#e4e6eb', margin: 0 }}>
                                 Trivia Leaderboard
                             </h1>
 
@@ -144,9 +159,9 @@ export default function TriviaLeaderboard() {
                                         onClick={() => setPeriod(p)}
                                         style={{
                                             padding: '8px 16px',
-                                            background: period === p ? '#8b5cf6' : 'rgba(255,255,255,0.05)',
-                                            border: period === p ? 'none' : '1px solid rgba(255,255,255,0.1)',
-                                            color: '#fff',
+                                            background: period === p ? '#2374e1' : '#3a3b3c',
+                                            border: period === p ? 'none' : '1px solid #4e4f50',
+                                            color: '#e4e6eb',
                                             borderRadius: '8px',
                                             cursor: 'pointer',
                                             fontWeight: period === p ? 'bold' : 'normal',
@@ -160,30 +175,30 @@ export default function TriviaLeaderboard() {
                         </div>
 
                         {isLoading ? (
-                            <div style={{ color: 'rgba(255,255,255,0.6)', textAlign: 'center', padding: '40px' }}>
+                            <div style={{ color: '#65676b', textAlign: 'center', padding: '40px' }}>
                                 Loading leaderboard...
                             </div>
                         ) : leaderboard.length === 0 ? (
                             <div style={{
                                 padding: '60px',
                                 textAlign: 'center',
-                                background: 'rgba(255,255,255,0.03)',
+                                background: '#242526',
                                 borderRadius: '12px',
-                                border: '1px solid rgba(255,255,255,0.1)'
+                                border: '1px solid #4e4f50'
                             }}>
-                                <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '18px' }}>
+                                <p style={{ color: '#65676b', fontSize: '18px' }}>
                                     No scores yet for this period. Be the first!
                                 </p>
                             </div>
                         ) : (
-                            <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', overflow: 'hidden' }}>
+                            <div style={{ background: '#242526', border: '1px solid #4e4f50', borderRadius: '12px', overflow: 'hidden' }}>
                                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                     <thead>
-                                        <tr style={{ background: 'rgba(255,255,255,0.05)' }}>
-                                            <th style={{ padding: '16px', textAlign: 'left', color: '#9ca3af', fontWeight: '600' }}>Rank</th>
-                                            <th style={{ padding: '16px', textAlign: 'left', color: '#9ca3af', fontWeight: '600' }}>Player</th>
-                                            <th style={{ padding: '16px', textAlign: 'right', color: '#9ca3af', fontWeight: '600' }}>Score</th>
-                                            <th style={{ padding: '16px', textAlign: 'right', color: '#9ca3af', fontWeight: '600' }}>Accuracy</th>
+                                        <tr style={{ background: '#3a3b3c' }}>
+                                            <th style={{ padding: '16px', textAlign: 'left', color: '#65676b', fontWeight: '600' }}>Rank</th>
+                                            <th style={{ padding: '16px', textAlign: 'left', color: '#65676b', fontWeight: '600' }}>Player</th>
+                                            <th style={{ padding: '16px', textAlign: 'right', color: '#65676b', fontWeight: '600' }}>Score</th>
+                                            <th style={{ padding: '16px', textAlign: 'right', color: '#65676b', fontWeight: '600' }}>Accuracy</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -191,26 +206,23 @@ export default function TriviaLeaderboard() {
                                             <tr
                                                 key={player.user_id || player.rank}
                                                 style={{
-                                                    borderTop: '1px solid rgba(255,255,255,0.05)',
-                                                    background: player.user_id === currentUserId ? 'rgba(139, 92, 246, 0.1)' : 'transparent'
+                                                    borderTop: '1px solid #4e4f50',
+                                                    background: player.user_id === currentUserId ? 'rgba(35, 116, 225, 0.1)' : 'transparent'
                                                 }}
                                             >
-                                                <td style={{ padding: '16px', color: '#fff', fontWeight: 'bold' }}>
-                                                    {player.rank === 1 && '🥇'}
-                                                    {player.rank === 2 && '🥈'}
-                                                    {player.rank === 3 && '🥉'}
-                                                    {player.rank > 3 && `#${player.rank}`}
+                                                <td style={{ padding: '16px', color: getRankColor(player.rank), fontWeight: 'bold' }}>
+                                                    {getRankLabel(player.rank)}
                                                 </td>
-                                                <td style={{ padding: '16px', color: '#fff' }}>
+                                                <td style={{ padding: '16px', color: '#e4e6eb' }}>
                                                     {player.displayName}
                                                     {player.user_id === currentUserId && (
-                                                        <span style={{ marginLeft: '8px', color: '#8b5cf6', fontSize: '12px' }}>(You)</span>
+                                                        <span style={{ marginLeft: '8px', color: '#2374e1', fontSize: '12px' }}>(You)</span>
                                                     )}
                                                 </td>
-                                                <td style={{ padding: '16px', color: '#8b5cf6', textAlign: 'right', fontWeight: 'bold' }}>
+                                                <td style={{ padding: '16px', color: '#2374e1', textAlign: 'right', fontWeight: 'bold' }}>
                                                     {player.score.toLocaleString()}
                                                 </td>
-                                                <td style={{ padding: '16px', color: '#10b981', textAlign: 'right', fontWeight: 'bold' }}>
+                                                <td style={{ padding: '16px', color: '#31a24c', textAlign: 'right', fontWeight: 'bold' }}>
                                                     {player.accuracy}%
                                                 </td>
                                             </tr>

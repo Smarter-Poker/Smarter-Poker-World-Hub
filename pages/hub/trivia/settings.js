@@ -1,6 +1,7 @@
 /**
  * Trivia - Settings
  * Preferences are saved to Supabase via triviaPreferences service
+ * Facebook Dark color schema
  */
 
 import { useState, useEffect } from 'react';
@@ -79,7 +80,7 @@ export default function TriviaSettings() {
             style={{
                 width: '50px',
                 height: '26px',
-                background: checked ? '#8b5cf6' : 'rgba(255,255,255,0.1)',
+                background: checked ? '#2374e1' : '#3a3b3c',
                 borderRadius: '13px',
                 position: 'relative',
                 cursor: 'pointer',
@@ -106,43 +107,43 @@ export default function TriviaSettings() {
             </Head>
 
             <PageTransition>
-                <div style={{ minHeight: '100vh', background: '#0a0e1a' }}>
+                <div style={{ minHeight: '100vh', background: '#18191a' }}>
                     <UniversalHeader pageDepth={2} />
 
                     <div style={{ padding: '120px 20px 40px', maxWidth: '800px', margin: '0 auto' }}>
                         <button
                             onClick={() => router.push('/hub/trivia')}
                             style={{
-                                background: 'rgba(139, 92, 246, 0.1)',
-                                border: '1px solid rgba(139, 92, 246, 0.3)',
-                                color: '#8b5cf6',
+                                background: 'rgba(35, 116, 225, 0.1)',
+                                border: '1px solid rgba(35, 116, 225, 0.3)',
+                                color: '#2374e1',
                                 padding: '8px 16px',
                                 borderRadius: '8px',
                                 cursor: 'pointer',
                                 marginBottom: '20px'
                             }}
                         >
-                            ← Back to Trivia
+                            Back to Trivia
                         </button>
 
-                        <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#fff', marginBottom: '12px' }}>
+                        <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#e4e6eb', marginBottom: '12px' }}>
                             Trivia Settings
                         </h1>
-                        <p style={{ color: '#9ca3af', marginBottom: '40px' }}>
+                        <p style={{ color: '#65676b', marginBottom: '40px' }}>
                             Customize your trivia experience
                         </p>
 
                         {isLoading ? (
-                            <div style={{ color: 'rgba(255,255,255,0.6)', textAlign: 'center', padding: '40px' }}>
+                            <div style={{ color: '#65676b', textAlign: 'center', padding: '40px' }}>
                                 Loading settings...
                             </div>
                         ) : (
                             <div style={{ display: 'grid', gap: '20px' }}>
-                                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '20px' }}>
+                                <div style={{ background: '#242526', border: '1px solid #4e4f50', borderRadius: '12px', padding: '20px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <div>
-                                            <div style={{ color: '#fff', fontWeight: 'bold', marginBottom: '4px' }}>Sound Effects</div>
-                                            <div style={{ color: '#9ca3af', fontSize: '14px' }}>Play sounds for correct/incorrect answers</div>
+                                            <div style={{ color: '#e4e6eb', fontWeight: 'bold', marginBottom: '4px' }}>Sound Effects</div>
+                                            <div style={{ color: '#65676b', fontSize: '14px' }}>Play sounds for correct/incorrect answers</div>
                                         </div>
                                         <ToggleSwitch
                                             checked={preferences.soundEffects}
@@ -151,11 +152,11 @@ export default function TriviaSettings() {
                                     </div>
                                 </div>
 
-                                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '20px' }}>
+                                <div style={{ background: '#242526', border: '1px solid #4e4f50', borderRadius: '12px', padding: '20px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <div>
-                                            <div style={{ color: '#fff', fontWeight: 'bold', marginBottom: '4px' }}>Timer</div>
-                                            <div style={{ color: '#9ca3af', fontSize: '14px' }}>Show countdown timer during questions</div>
+                                            <div style={{ color: '#e4e6eb', fontWeight: 'bold', marginBottom: '4px' }}>Timer</div>
+                                            <div style={{ color: '#65676b', fontSize: '14px' }}>Show countdown timer during questions</div>
                                         </div>
                                         <ToggleSwitch
                                             checked={preferences.timerEnabled}
@@ -164,11 +165,11 @@ export default function TriviaSettings() {
                                     </div>
                                 </div>
 
-                                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '20px' }}>
+                                <div style={{ background: '#242526', border: '1px solid #4e4f50', borderRadius: '12px', padding: '20px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <div>
-                                            <div style={{ color: '#fff', fontWeight: 'bold', marginBottom: '4px' }}>Show Hints</div>
-                                            <div style={{ color: '#9ca3af', fontSize: '14px' }}>Display hints for difficult questions</div>
+                                            <div style={{ color: '#e4e6eb', fontWeight: 'bold', marginBottom: '4px' }}>Show Hints</div>
+                                            <div style={{ color: '#65676b', fontSize: '14px' }}>Display hints for difficult questions</div>
                                         </div>
                                         <ToggleSwitch
                                             checked={preferences.hintsEnabled}
@@ -177,8 +178,8 @@ export default function TriviaSettings() {
                                     </div>
                                 </div>
 
-                                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '20px' }}>
-                                    <div style={{ color: '#fff', fontWeight: 'bold', marginBottom: '12px' }}>Difficulty Level</div>
+                                <div style={{ background: '#242526', border: '1px solid #4e4f50', borderRadius: '12px', padding: '20px' }}>
+                                    <div style={{ color: '#e4e6eb', fontWeight: 'bold', marginBottom: '12px' }}>Difficulty Level</div>
                                     <div style={{ display: 'flex', gap: '10px' }}>
                                         {['easy', 'medium', 'hard', 'expert'].map(level => (
                                             <button
@@ -187,9 +188,9 @@ export default function TriviaSettings() {
                                                 style={{
                                                     flex: 1,
                                                     padding: '12px',
-                                                    background: preferences.difficulty === level ? '#8b5cf6' : 'rgba(255,255,255,0.05)',
-                                                    border: preferences.difficulty === level ? 'none' : '1px solid rgba(255,255,255,0.1)',
-                                                    color: '#fff',
+                                                    background: preferences.difficulty === level ? '#2374e1' : '#3a3b3c',
+                                                    border: preferences.difficulty === level ? 'none' : '1px solid #4e4f50',
+                                                    color: '#e4e6eb',
                                                     borderRadius: '8px',
                                                     cursor: 'pointer',
                                                     fontWeight: preferences.difficulty === level ? 'bold' : 'normal',
@@ -208,10 +209,10 @@ export default function TriviaSettings() {
                             <div style={{
                                 marginTop: '20px',
                                 padding: '12px',
-                                background: saveMessage.includes('success') ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                                border: `1px solid ${saveMessage.includes('success') ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`,
+                                background: saveMessage.includes('success') ? 'rgba(49, 162, 76, 0.2)' : 'rgba(240, 40, 73, 0.2)',
+                                border: `1px solid ${saveMessage.includes('success') ? 'rgba(49, 162, 76, 0.4)' : 'rgba(240, 40, 73, 0.4)'}`,
                                 borderRadius: '8px',
-                                color: saveMessage.includes('success') ? '#10b981' : '#ef4444',
+                                color: saveMessage.includes('success') ? '#31a24c' : '#f02849',
                                 textAlign: 'center'
                             }}>
                                 {saveMessage}
@@ -222,7 +223,7 @@ export default function TriviaSettings() {
                             onClick={handleSave}
                             disabled={isSaving || isLoading}
                             style={{
-                                background: isSaving ? 'rgba(139, 92, 246, 0.5)' : '#8b5cf6',
+                                background: isSaving ? 'rgba(35, 116, 225, 0.5)' : '#2374e1',
                                 border: 'none',
                                 color: '#fff',
                                 padding: '16px 32px',
