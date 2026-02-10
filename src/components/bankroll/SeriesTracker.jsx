@@ -52,14 +52,7 @@ export default function SeriesTracker({ userId, onOpenLog }) {
         notes: '',
     });
     const [showSeriesSuggestions, setShowSeriesSuggestions] = useState(false);
-
-    // Common tournament series for auto-suggest
-    const COMMON_SERIES = [
-        'WSOP', 'WPT', 'MSPT', 'HPT', 'Wynn Millions', 'Venetian DeepStack',
-        'RGPS', 'WPT Prime', 'Seminole Hard Rock Poker Open', 'Aria High Roller',
-        'PokerStars Players Championship', 'Borgata Poker Open', 'Lucky Hearts Poker Open',
-        'Choctaw Poker Series', 'Thunder Valley Poker Series', 'Bay 101 Shooting Stars',
-    ];
+    const [dbSeriesNames, setDbSeriesNames] = useState([]);
 
     const loadData = useCallback(async () => {
         if (!userId) return;
@@ -73,6 +66,18 @@ export default function SeriesTracker({ userId, onOpenLog }) {
             setActiveSeries(active);
             setCompletedSeries(all.filter(s => s.status === 'completed'));
             setLocations(locs || []);
+
+            // Fetch tournament series from Poker Near Me database
+            try {
+                const seriesRes = await fetch('/api/poker/series?limit=200');
+                const seriesData = await seriesRes.json();
+                if (seriesData.success && seriesData.data) {
+                    const names = [...new Set(seriesData.data.map(s => s.name).filter(Boolean))];
+                    setDbSeriesNames(names);
+                }
+            } catch (seriesErr) {
+                console.warn('Could not load tournament series for suggestions:', seriesErr);
+            }
         } catch (err) {
             console.error('Error loading series data:', err);
         } finally {
@@ -386,7 +391,7 @@ export default function SeriesTracker({ userId, onOpenLog }) {
                             {showSeriesSuggestions && (() => {
                                 const q = newSeries.name.toLowerCase();
                                 const pastNames = [...new Set(completedSeries.map(s => s.name))];
-                                const allNames = [...new Set([...pastNames, ...COMMON_SERIES])];
+                                const allNames = [...new Set([...pastNames, ...dbSeriesNames])];
                                 const filtered = q.length > 0
                                     ? allNames.filter(n => n.toLowerCase().includes(q))
                                     : allNames;
