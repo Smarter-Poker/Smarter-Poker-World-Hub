@@ -20,34 +20,43 @@ body.world-bankroll-manager {
 /* ═══════════════════════════════════════════════════════════════════════════
    UNIVERSAL SILVER BORDER — 2px Thick on EVERY element across ALL pages
    Applies to top-level AND deeply nested interior elements
+   EXCLUDES: Global header (.universal-header) and hamburger menu
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* ── MASTER RULE: Every div with a border-radius (= every card/box/container) ── */
-.bankroll-page div[style*="border-radius"],
-.bankroll-page section[style*="border-radius"] {
+.bankroll-page div[style*="border-radius"]:not(.universal-header *):not(.hamburger-menu *),
+.bankroll-page section[style*="border-radius"]:not(.universal-header *):not(.hamburger-menu *) {
     border: 2px solid #9ca3af !important;
 }
 
-/* ── MASTER RULE: Every button everywhere ── */
-.bankroll-page button {
+/* ── MASTER RULE: Every button everywhere (except header/hamburger) ── */
+.bankroll-page button:not(.universal-header *):not(.universal-header button):not(.hamburger-menu *):not(.hamburger-menu button) {
     border: 2px solid #9ca3af !important;
 }
 
-.bankroll-page button:hover {
+.bankroll-page button:not(.universal-header *):not(.hamburger-menu *):hover {
     border-color: #d1d5db !important;
 }
 
-/* ── MASTER RULE: Every form element ── */
-.bankroll-page input,
-.bankroll-page select,
-.bankroll-page textarea {
+/* ── MASTER RULE: Every form element (except header/hamburger) ── */
+.bankroll-page input:not(.universal-header *):not(.hamburger-menu *),
+.bankroll-page select:not(.universal-header *):not(.hamburger-menu *),
+.bankroll-page textarea:not(.universal-header *):not(.hamburger-menu *) {
     border: 2px solid #9ca3af !important;
 }
 
-.bankroll-page input:focus,
-.bankroll-page select:focus,
-.bankroll-page textarea:focus {
+.bankroll-page input:not(.universal-header *):not(.hamburger-menu *):focus,
+.bankroll-page select:not(.universal-header *):not(.hamburger-menu *):focus,
+.bankroll-page textarea:not(.universal-header *):not(.hamburger-menu *):focus {
     border-color: #d1d5db !important;
+}
+
+/* ── Header elements — explicitly remove any borders ── */
+.bankroll-page .universal-header,
+.bankroll-page .universal-header *,
+.bankroll-page header.universal-header,
+.bankroll-page header.universal-header * {
+    border: none !important;
 }
 
 /* ── Mobile nav tabs ── */
@@ -60,8 +69,8 @@ body.world-bankroll-manager {
     border: 2px solid #9ca3af !important;
 }
 
-/* ── Modal overlays (LogEntryModal, AdjustBankroll, etc.) ── */
-.bankroll-page div[style*="z-index"] div[style*="border-radius"] {
+/* ── Modal overlays (LogEntryModal, AdjustBankroll, Projection, etc.) ── */
+.bankroll-page div[style*="z-index"] div[style*="border-radius"]:not(.universal-header *) {
     border: 2px solid #9ca3af !important;
 }
 
@@ -122,4 +131,10 @@ body.world-bankroll-manager {
 .bankroll-page div[style*="height: 8px"],
 .bankroll-page div[style*="height: 4px"] {
     border: none !important;
+}
+
+/* Leaflet map internals — no borders on map tiles/controls */
+.bankroll-page .leaflet-container *,
+.bankroll-page .leaflet-pane * {
+    border: unset !important;
 }
