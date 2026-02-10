@@ -85,7 +85,7 @@ export default function DownloadsPage() {
         {/* Header */}
         <div className="text-center mb-12">
           <div className="flex justify-center mb-4">
-            <div className="w-20 h-20 bg-[#1877F2] rounded-2xl flex items-center justify-center text-4xl text-white">CC</div>
+            <img src="/images/club-commander-logo.jpg" alt="Club Commander" className="w-full max-w-md rounded-lg" />
           </div>
           <h1 className="text-4xl font-bold text-[#E4E6EB] mb-3">Club Commander Desktop</h1>
           <p className="text-[#B0B3B8] text-lg">The fastest way to manage your poker room</p>
