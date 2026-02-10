@@ -553,6 +553,74 @@ export default function BankrollManagerPage() {
                   />
                 </div>
 
+                {/* Active Trip Featured Banner */}
+                {(() => {
+                  const activeTrip = trips.find(t => t.status === 'active');
+                  if (!activeTrip) return null;
+                  const daysSinceStart = Math.max(1, Math.ceil((Date.now() - new Date(activeTrip.start_date + 'T12:00:00').getTime()) / (1000 * 60 * 60 * 24)));
+                  return (
+                    <div
+                      style={{
+                        background: 'linear-gradient(135deg, rgba(16,185,129,0.12) 0%, rgba(59,130,246,0.08) 100%)',
+                        border: '1px solid rgba(16,185,129,0.3)',
+                        borderRadius: 12,
+                        padding: '14px 16px',
+                        marginBottom: 12,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 14,
+                        cursor: 'pointer',
+                      }}
+                      onClick={() => setActiveSection('trips')}
+                    >
+                      <div style={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: '50%',
+                        background: '#10b981',
+                        boxShadow: '0 0 8px rgba(16,185,129,0.6)',
+                        flexShrink: 0,
+                        animation: 'metalGlow 2s infinite',
+                      }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginBottom: 2 }}>
+                          {activeTrip.name}
+                        </div>
+                        <div style={{ fontSize: 12, color: '#94a3b8' }}>
+                          {activeTrip.location_name && `📍 ${activeTrip.location_name} · `}
+                          Day {daysSinceStart} · {activeTrip.entryCount || 0} sessions
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <div style={{
+                          fontSize: 16,
+                          fontWeight: 700,
+                          color: (activeTrip.totalNet || 0) >= 0 ? '#10b981' : '#ef4444',
+                        }}>
+                          {(activeTrip.totalNet || 0) >= 0 ? '+' : ''}${Math.abs(activeTrip.totalNet || 0).toLocaleString()}
+                        </div>
+                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleLogClick(); }}
+                        style={{
+                          background: '#3b82f6',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: 8,
+                          padding: '8px 14px',
+                          fontSize: 12,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          flexShrink: 0,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        + Add Entry
+                      </button>
+                    </div>
+                  );
+                })()}
+
                 {/* Filters Row */}
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
                   {/* Location Dropdown */}

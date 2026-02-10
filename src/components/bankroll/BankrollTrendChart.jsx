@@ -186,7 +186,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
                         <stop offset="100%" stopColor="#ef4444" stopOpacity={0.02} />
                     </linearGradient>
                 </defs>
-                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 10 }} interval="preserveStartEnd" />
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 10 }} interval="equidistantPreserveStart" />
                 <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 10 }} tickFormatter={v => `$${Math.abs(v)}`} width={52} />
                 <ReferenceLine y={0} stroke="rgba(255,255,255,0.08)" strokeDasharray="4 4" />
                 <Tooltip content={({ active, payload }) => {
@@ -208,7 +208,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
     const renderBar = () => (
         <ResponsiveContainer width="100%" height={chartHeight}>
             <BarChart data={barData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
-                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 10 }} interval="preserveStartEnd" />
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 10 }} interval="equidistantPreserveStart" />
                 <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 10 }} tickFormatter={v => `$${Math.abs(v)}`} width={52} />
                 <ReferenceLine y={0} stroke="rgba(255,255,255,0.12)" strokeDasharray="4 4" />
                 <Tooltip content={({ active, payload }) => {
@@ -233,7 +233,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
         return (
             <ResponsiveContainer width="100%" height={chartHeight}>
                 <BarChart data={stackedData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
-                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 10 }} interval="preserveStartEnd" />
+                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 10 }} interval="equidistantPreserveStart" />
                     <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 10 }} tickFormatter={v => `$${Math.abs(v)}`} width={52} />
                     <ReferenceLine y={0} stroke="rgba(255,255,255,0.12)" strokeDasharray="4 4" />
                     <Tooltip content={({ active, payload, label }) => {
@@ -467,7 +467,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
                     </div>
                     <div style={S.statItem}>
                         <span style={S.statLabel}>Low</span>
-                        <span style={{ ...S.statValue, color: '#f87171' }}>{fmtVal(stats.low)}</span>
+                        <span style={{ ...S.statValue, color: stats.low >= 0 ? '#4ade80' : '#f87171' }}>{fmtVal(stats.low)}</span>
                     </div>
                     <div style={S.statItem}>
                         <span style={S.statLabel}>Sessions</span>
