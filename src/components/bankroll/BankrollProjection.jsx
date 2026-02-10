@@ -123,7 +123,7 @@ export default function BankrollProjection({ userId, currentBankroll = 0, onClos
                             disabled={isLoading}
                             style={styles.runBtn}
                         >
-                            {isLoading ? 'Running 1,000 Simulations...' : '🎲 Run Projection'}
+                            {isLoading ? 'Running 1,000 Simulations...' : 'Run Projection'}
                         </button>
                     </>
                 )}

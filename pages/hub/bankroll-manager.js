@@ -1166,7 +1166,7 @@ export default function BankrollManagerPage() {
                 <h2 style={styles.sectionTitle}>Bankroll Goals</h2>
                 <BankrollGoals
                   userId={userId}
-                  currentBankroll={stats?.currentBankroll || 0}
+                  currentBankroll={stats?.totalBankroll || 0}
                   periodPL={stats?.monthlyPL || 0}
                 />
               </div>
@@ -1774,7 +1774,7 @@ export default function BankrollManagerPage() {
         {showProjection && (
           <BankrollProjection
             userId={userId}
-            currentBankroll={stats?.currentBankroll || 0}
+            currentBankroll={stats?.totalBankroll || 0}
             onClose={() => setShowProjection(false)}
           />
         )}
