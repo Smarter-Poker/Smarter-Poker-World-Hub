@@ -829,6 +829,13 @@ export default function BankrollManagerPage() {
                 {/* Bankroll Trend Chart — filtered by gameTypeFilter, always include expenses */}
                 <BankrollTrendChart entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} isLoading={isLoading} chartType={chartType} />
 
+                {/* Analytics Grid — relocated from right panel */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
+                  <HistoricalComparison entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} />
+                  <VarianceCalculator entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} />
+                  <LocationAnalytics entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} isLoading={isLoading} />
+                </div>
+
                 {/* Recent Activity Section */}
                 <div style={styles.activitySection}>
                   <div
@@ -1183,14 +1190,7 @@ export default function BankrollManagerPage() {
             {/* Jarvis AI Insights */}
             <JarvisLeakInsights userId={userId} onRefresh={loadData} />
 
-            {/* Historical Comparison */}
-            <HistoricalComparison entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} />
-
-            {/* Variance Calculator */}
-            <VarianceCalculator entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} />
-
-            {/* Location Analytics */}
-            <LocationAnalytics entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} isLoading={isLoading} />
+            {/* Analytics widgets moved to main dashboard content area */}
           </aside>
         </div>
       </div>
@@ -1548,6 +1548,7 @@ const styles = {
     marginBottom: 4,
     textAlign: 'left',
     transition: 'all 0.2s ease',
+    whiteSpace: 'nowrap',
   },
   sidebarItemActive: {
     background: 'rgba(35, 116, 225, 0.15)',  // Facebook blue
