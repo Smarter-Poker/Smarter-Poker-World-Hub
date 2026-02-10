@@ -593,28 +593,31 @@ export default function BankrollManagerPage() {
             }
             .bankroll-filters-row {
               flex-direction: row !important;
-              flex-wrap: nowrap !important;
-              overflow-x: auto;
-              gap: 4px !important;
+              flex-wrap: wrap !important;
+              overflow: visible !important;
+              gap: 6px !important;
               margin-bottom: 8px !important;
               padding-bottom: 4px;
-              -webkit-overflow-scrolling: touch;
-              scrollbar-width: none;
-            }
-            .bankroll-filters-row::-webkit-scrollbar {
-              display: none;
             }
             .bankroll-filters-row > div {
               flex-shrink: 0;
+              position: relative;
             }
             .bankroll-filters-row button {
-              padding: 5px 10px !important;
+              padding: 6px 10px !important;
               font-size: 11px !important;
               white-space: nowrap;
               width: auto !important;
+              min-height: 32px;
+              touch-action: manipulation;
             }
             .bankroll-dropdown-menu {
               min-width: 160px !important;
+              position: fixed !important;
+              z-index: 9999 !important;
+              left: 12px !important;
+              right: 12px !important;
+              max-height: 50vh !important;
             }
             .bankroll-analytics-slider {
               display: flex !important;
@@ -848,7 +851,7 @@ export default function BankrollManagerPage() {
                       {selectedLocationName} <span style={styles.dropdownArrow}>▼</span>
                     </button>
                     {showLocationDropdown && (
-                      <div style={styles.dropdownMenu}>
+                      <div className="bankroll-dropdown-menu" style={styles.dropdownMenu}>
                         <button
                           style={styles.dropdownItem}
                           onClick={() => { setLocationFilter(null); setShowLocationDropdown(false); }}
@@ -882,7 +885,7 @@ export default function BankrollManagerPage() {
                       {timeFilter} <span style={styles.dropdownArrow}>▼</span>
                     </button>
                     {showTimeDropdown && (
-                      <div style={styles.dropdownMenu}>
+                      <div className="bankroll-dropdown-menu" style={styles.dropdownMenu}>
                         {TIME_FILTERS.map((tf) => (
                           <button
                             key={tf}
@@ -910,7 +913,7 @@ export default function BankrollManagerPage() {
                       Game Type ({gameTypeFilter.size}) <span style={styles.dropdownArrow}>▼</span>
                     </button>
                     {showGameTypeDropdown && (
-                      <div style={{ ...styles.dropdownMenu, minWidth: 200 }}>
+                      <div className="bankroll-dropdown-menu" style={{ ...styles.dropdownMenu, minWidth: 200 }}>
                         {['poker_cash', 'poker_mtt', 'casino_table', 'slots', 'sports'].map((cat) => (
                           <button
                             key={cat}
@@ -959,7 +962,7 @@ export default function BankrollManagerPage() {
                       {CHART_TYPE_LABELS[chartType] || 'Line Chart'} <span style={styles.dropdownArrow}>▼</span>
                     </button>
                     {showChartTypeDropdown && (
-                      <div style={styles.dropdownMenu}>
+                      <div className="bankroll-dropdown-menu" style={styles.dropdownMenu}>
                         {CHART_TYPES.map((ct) => (
                           <button
                             key={ct}
