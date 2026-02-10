@@ -72,8 +72,15 @@ export default function SeriesTracker({ userId, onOpenLog }) {
                 const seriesRes = await fetch('/api/poker/series?limit=200');
                 const seriesData = await seriesRes.json();
                 if (seriesData.success && seriesData.data) {
-                    const names = [...new Set(seriesData.data.map(s => s.name).filter(Boolean))];
-                    setDbSeriesNames(names);
+                    // Extract unique tour names (e.g. WSOP, WPT, MSPT) — not venue-specific stops
+                    const tourSet = new Set();
+                    seriesData.data.forEach(s => {
+                        // Use short_name as the tour brand (e.g. "MSPT", "WSOP", "WPT")
+                        if (s.short_name) tourSet.add(s.short_name);
+                        // Also add the full name for major unique series (e.g. "Venetian DeepStack Championship")
+                        if (s.series_type === 'major' && s.name) tourSet.add(s.name);
+                    });
+                    setDbSeriesNames([...tourSet].sort());
                 }
             } catch (seriesErr) {
                 console.warn('Could not load tournament series for suggestions:', seriesErr);
