@@ -253,19 +253,19 @@ const styles = {
   container: {
     marginBottom: 24,
     padding: 16,
-    background: 'linear-gradient(135deg, rgba(0,30,60,0.95), rgba(0,20,40,0.9))',
-    border: '1px solid rgba(0,212,255,0.2)',
+    background: '#242526',
+    border: '1px solid #3a3b3c',
     borderRadius: 10,
   },
   title: {
     fontSize: 14,
     fontWeight: 600,
-    color: '#2374e1',
+    color: '#e4e6eb',
     margin: '0 0 4px',
   },
   subtitle: {
     fontSize: 11,
-    color: 'rgba(255,255,255,0.4)',
+    color: '#b0b3b8',
     margin: '0 0 14px',
   },
   ruleList: {
@@ -275,9 +275,9 @@ const styles = {
   },
   ruleItem: {
     padding: 12,
-    background: 'rgba(255,255,255,0.03)',
+    background: '#3a3b3c',
     borderRadius: 8,
-    border: '1px solid rgba(255,255,255,0.06)',
+    border: '1px solid #4a4b4c',
     transition: 'opacity 0.2s',
   },
   ruleTop: {
@@ -295,11 +295,11 @@ const styles = {
   ruleLabel: {
     fontSize: 13,
     fontWeight: 600,
-    color: '#fff',
+    color: '#e4e6eb',
   },
   ruleDesc: {
     fontSize: 10,
-    color: 'rgba(255,255,255,0.4)',
+    color: '#b0b3b8',
   },
   toggle: {
     width: 40,
@@ -322,7 +322,7 @@ const styles = {
   ruleValueRow: {
     marginTop: 8,
     paddingTop: 8,
-    borderTop: '1px solid rgba(255,255,255,0.05)',
+    borderTop: '1px solid #4a4b4c',
   },
   valueBtn: {
     background: 'none',
@@ -341,15 +341,15 @@ const styles = {
   editInput: {
     width: 80,
     padding: '4px 8px',
-    background: 'rgba(0,0,0,0.3)',
-    border: '1px solid rgba(255,255,255,0.15)',
+    background: '#18191a',
+    border: '1px solid #4a4b4c',
     borderRadius: 4,
-    color: '#fff',
+    color: '#e4e6eb',
     fontSize: 13,
   },
   editUnit: {
     fontSize: 11,
-    color: 'rgba(255,255,255,0.4)',
+    color: '#b0b3b8',
   },
   saveBtn: {
     padding: '4px 10px',
@@ -364,7 +364,7 @@ const styles = {
   cancelBtn: {
     background: 'none',
     border: 'none',
-    color: 'rgba(255,255,255,0.4)',
+    color: '#b0b3b8',
     fontSize: 14,
     cursor: 'pointer',
     padding: '2px 4px',

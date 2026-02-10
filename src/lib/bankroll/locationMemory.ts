@@ -121,21 +121,27 @@ export async function deleteLocation(
   userId: string,
   locationId: string
 ): Promise<void> {
-  // First unlink any ledger entries that reference this location
-  await supabase
+  // First unlink any ledger entries that reference this location (non-critical)
+  const { error: unlinkErr } = await supabase
     .from('bankroll_ledger')
     .update({ location_id: null })
     .eq('user_id', userId)
     .eq('location_id', locationId);
+  if (unlinkErr) {
+    console.warn('[deleteLocation] Failed to unlink ledger entries, continuing:', unlinkErr.message);
+  }
 
-  // Delete any assistant memories for this location
-  await supabase
+  // Delete any assistant memories for this location (non-critical, table may not exist)
+  const { error: memErr } = await supabase
     .from('bankroll_assistant_memory')
     .delete()
     .eq('user_id', userId)
     .eq('location_id', locationId);
+  if (memErr) {
+    console.warn('[deleteLocation] Failed to delete assistant memory, continuing:', memErr.message);
+  }
 
-  // Delete the location itself
+  // Delete the location itself — this is the critical step
   const { error } = await supabase
     .from('bankroll_locations')
     .delete()

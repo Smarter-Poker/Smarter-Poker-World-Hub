@@ -1029,15 +1029,34 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
         </div>
 
 
-        {/* Rule Warnings */}
+        {/* Rule Warnings — Facebook Dark Theme */}
         {ruleWarnings.length > 0 && (
           <div style={styles.warningBox}>
-            <strong>Warning:</strong>
-            <ul style={styles.warningList}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <span style={{ fontSize: 16 }}>⚠️</span>
+              <strong style={{ color: '#e4e6eb', fontSize: 14 }}>Bankroll Rule Alerts</strong>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {ruleWarnings.map((w, i) => (
-                <li key={i}>{w}</li>
+                <div key={i} style={styles.warningItem}>
+                  <span style={{ flex: 1, fontSize: 13, color: '#b0b3b8' }}>{w}</span>
+                  <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRuleWarnings(prev => prev.filter((_, idx) => idx !== i));
+                      }}
+                      style={styles.warningDismissBtn}
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
               ))}
-            </ul>
+            </div>
+            <p style={{ fontSize: 11, color: '#65676b', margin: '10px 0 0', fontStyle: 'italic' }}>
+              Manage rules from Bankroll Rules on your dashboard
+            </p>
           </div>
         )}
 
@@ -1262,12 +1281,30 @@ const styles = {
     textAlign: 'left',
   },
   warningBox: {
-    padding: 16,
-    background: 'rgba(234, 179, 8, 0.1)',
-    border: '1px solid rgba(234, 179, 8, 0.3)',
-    borderRadius: 8,
-    color: '#eab308',
+    padding: 14,
+    background: '#242526',
+    border: '1px solid #3a3b3c',
+    borderRadius: 10,
     fontSize: 13,
+  },
+  warningItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    padding: '8px 10px',
+    background: '#3a3b3c',
+    borderRadius: 8,
+    flexWrap: 'wrap',
+  },
+  warningDismissBtn: {
+    padding: '4px 10px',
+    borderRadius: 6,
+    border: '1px solid #4a4b4c',
+    background: 'transparent',
+    color: '#b0b3b8',
+    fontSize: 11,
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
   },
   warningList: {
     margin: '8px 0 0',

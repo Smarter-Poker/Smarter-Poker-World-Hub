@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { getUserLocations, renameLocation, deleteLocation } from '../../lib/bankroll/locationMemory';
+import { getUserLocations, renameLocation } from '../../lib/bankroll/locationMemory';
+import { supabase } from '../../lib/supabase';
 import { useToastStore } from '../../stores/toastStore';
 
 /**
@@ -12,6 +13,7 @@ export default function ManageVenuesModal({ userId, onClose, onUpdate }) {
     const [editingId, setEditingId] = useState(null);
     const [editName, setEditName] = useState('');
     const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+    const [deletingId, setDeletingId] = useState(null);
 
     useEffect(() => { loadVenues(); }, []);
 
@@ -40,14 +42,38 @@ export default function ManageVenuesModal({ userId, onClose, onUpdate }) {
     };
 
     const handleDelete = async (venueId) => {
+        setDeletingId(venueId);
         try {
-            await deleteLocation(userId, venueId);
+            // Unlink ledger entries first (non-critical)
+            await supabase
+                .from('bankroll_ledger')
+                .update({ location_id: null })
+                .eq('user_id', userId)
+                .eq('location_id', venueId);
+
+            // Delete the location directly via Supabase
+            const { error } = await supabase
+                .from('bankroll_locations')
+                .delete()
+                .eq('id', venueId)
+                .eq('user_id', userId);
+
+            if (error) {
+                console.error('[ManageVenues] Delete error:', error);
+                toast.error('Failed to delete: ' + (error.message || 'Unknown error'));
+                return;
+            }
+
+            // Optimistic removal from local state
+            setVenues(prev => prev.filter(v => v.id !== venueId));
             toast.success('Venue deleted');
             setConfirmDeleteId(null);
-            await loadVenues();
             onUpdate?.();
         } catch (err) {
+            console.error('[ManageVenues] Delete exception:', err);
             toast.error('Failed to delete: ' + (err.message || ''));
+        } finally {
+            setDeletingId(null);
         }
     };
 
