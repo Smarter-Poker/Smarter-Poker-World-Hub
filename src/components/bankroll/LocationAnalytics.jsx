@@ -172,6 +172,9 @@ const styles = {
         padding: 16,
         height: '100%',
         boxSizing: 'border-box',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
     },
     header: {
         display: 'flex',
@@ -230,6 +233,9 @@ const styles = {
         display: 'flex',
         flexDirection: 'column',
         gap: 10,
+        flex: 1,
+        overflowY: 'auto',
+        minHeight: 0,
     },
     barRow: {
         display: 'flex',
