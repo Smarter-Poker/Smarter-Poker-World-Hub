@@ -77,6 +77,10 @@ const SIDEBAR_SECTIONS = [
   { id: 'players', label: 'Player Notes', icon: '' },
   { id: 'leaks', label: 'Leaks', icon: '' },
   { id: 'reports', label: 'Reports', icon: '' },
+  { id: 'scan-receipt', label: 'Scan Receipt', icon: '' },
+  { id: 'projection', label: 'Run Projections', icon: '' },
+  { id: 'staking', label: 'Staking Tracker', icon: '' },
+  { id: 'tax', label: 'Tax Reports', icon: '' },
   { id: 'settings', label: 'Settings', icon: '' },
 ];
 
@@ -434,6 +438,12 @@ export default function BankrollManagerPage() {
       setScannerStep('scan');
       setScannerEntryId(null);
       setScannerImageUrl(null);
+    } else if (sectionId === 'projection') {
+      setShowProjection(true);
+    } else if (sectionId === 'staking') {
+      setActiveSection('pro');
+    } else if (sectionId === 'tax') {
+      setActiveSection('pro');
     } else if (sectionId === 'receipts') {
       setActiveSection('receipts');
     } else {
