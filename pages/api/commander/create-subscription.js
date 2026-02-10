@@ -24,29 +24,79 @@ const TIER_PRICES = {
   },
 };
 
-// Helper: get existing user by email using Supabase Admin REST API
-async function getUserByEmail(email) {
+// Robust user lookup — tries multiple methods
+async function findUserByEmail(email) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  // Method 1: Direct GoTrue REST API with email filter
   try {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/admin/users?page=1&per_page=50`,
-      {
-        headers: {
-          'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-          'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY,
-        },
+    const url = `${supabaseUrl}/auth/v1/admin/users?filter=email%20eq%20${encodeURIComponent(email)}`;
+    const resp = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${serviceKey}`,
+        'apikey': serviceKey,
+        'Content-Type': 'application/json',
+      },
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      const users = data.users || data;
+      if (Array.isArray(users)) {
+        const found = users.find(u => u.email === email);
+        if (found) {
+          console.log('Found user via Method 1 (REST filter)');
+          return found;
+        }
       }
-    );
-    if (!response.ok) return null;
-    const data = await response.json();
-    const users = data.users || data;
-    if (Array.isArray(users)) {
-      return users.find(u => u.email === email) || null;
     }
-    return null;
-  } catch (err) {
-    console.error('getUserByEmail error:', err);
-    return null;
+  } catch (e) {
+    console.log('Method 1 failed:', e.message);
   }
+
+  // Method 2: GoTrue REST API - get all users (paginated)
+  try {
+    let page = 1;
+    while (page <= 10) {
+      const url = `${supabaseUrl}/auth/v1/admin/users?page=${page}&per_page=100`;
+      const resp = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${serviceKey}`,
+          'apikey': serviceKey,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!resp.ok) break;
+      const data = await resp.json();
+      const users = data.users || data;
+      if (!Array.isArray(users) || users.length === 0) break;
+      const found = users.find(u => u.email === email);
+      if (found) {
+        console.log(`Found user via Method 2 (REST page ${page})`);
+        return found;
+      }
+      if (users.length < 100) break;
+      page++;
+    }
+  } catch (e) {
+    console.log('Method 2 failed:', e.message);
+  }
+
+  // Method 3: Supabase JS admin listUsers
+  try {
+    const { data, error } = await supabase.auth.admin.listUsers({ perPage: 1000 });
+    if (!error && data?.users) {
+      const found = data.users.find(u => u.email === email);
+      if (found) {
+        console.log('Found user via Method 3 (JS listUsers)');
+        return found;
+      }
+    }
+  } catch (e) {
+    console.log('Method 3 failed:', e.message);
+  }
+
+  return null;
 }
 
 export default async function handler(req, res) {
@@ -62,87 +112,57 @@ export default async function handler(req, res) {
   }
 
   try {
-    // ─── 1. Get or create user ───────────────────────────────────────
-    let userId;
     const email = ownerInfo.email;
+    let userId = null;
 
-    if (existingAccount || !ownerInfo.password) {
-      // They said they have an account — skip creation, just find them
-      const existingUser = await getUserByEmail(email);
+    // ─── 1. Always try createUser first ──────────────────────────────
+    // This handles both new users AND tells us if user already exists
+    const password = ownerInfo.password || ('Tmp' + Math.random().toString(36).slice(2) + 'X1!');
 
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: {
+        full_name: ownerInfo.name,
+        phone: ownerInfo.phone,
+        role: 'venue_owner'
+      }
+    });
+
+    if (!authError && authData?.user) {
+      // New user created successfully
+      userId = authData.user.id;
+      console.log('Created new user:', userId);
+    } else {
+      // User likely already exists — find them
+      console.log('createUser failed:', authError?.message, '— looking up existing user');
+
+      const existingUser = await findUserByEmail(email);
       if (existingUser) {
         userId = existingUser.id;
-      } else {
-        // Can't find them, but don't block — create a new account with random password
-        const tempPassword = 'Temp' + Math.random().toString(36).slice(2) + '1!';
-        const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-          email,
-          password: tempPassword,
-          email_confirm: true,
-          user_metadata: {
-            full_name: ownerInfo.name,
-            phone: ownerInfo.phone,
-            role: 'venue_owner'
-          }
-        });
-        if (authError) {
-          console.error('Create fallback user error:', authError);
-          return res.status(400).json({ error: 'Could not set up account. Please try unchecking "I already have an account" and creating a password.' });
-        }
-        userId = authData.user.id;
-      }
-    } else {
-      // New user with password — try to create
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email,
-        password: ownerInfo.password,
-        email_confirm: true,
-        user_metadata: {
-          full_name: ownerInfo.name,
-          phone: ownerInfo.phone,
-          role: 'venue_owner'
-        }
-      });
+        console.log('Found existing user:', userId);
 
-      if (authError) {
-        // If user already exists, find and use them
-        if (authError.message?.includes('already') || authError.status === 422) {
-          const existingUser = await getUserByEmail(email);
-          if (existingUser) {
-            userId = existingUser.id;
-          } else {
-            // Last resort: try direct Supabase auth admin API with broader search
-            try {
-              const { data: listData } = await supabase.auth.admin.listUsers({ perPage: 1000 });
-              const found = listData?.users?.find(u => u.email === email);
-              if (found) {
-                userId = found.id;
-              } else {
-                return res.status(400).json({ error: 'An account with this email exists but could not be linked. Please check "I already have a Smarter.Poker account" and try again.' });
-              }
-            } catch (listErr) {
-              return res.status(400).json({ error: 'An account with this email exists but could not be linked. Please check "I already have a Smarter.Poker account" and try again.' });
+        // Update their metadata
+        try {
+          await supabase.auth.admin.updateUserById(userId, {
+            user_metadata: {
+              full_name: ownerInfo.name,
+              phone: ownerInfo.phone,
+              role: 'venue_owner',
             }
-          }
-        } else {
-          return res.status(400).json({ error: authError.message });
-        }
+          });
+        } catch (e) { /* non-critical */ }
       } else {
-        userId = authData.user.id;
-      }
-    }
+        // Could not find user by any method — log detailed error for debugging
+        console.error('CRITICAL: Could not find or create user for email:', email);
+        console.error('createUser error was:', authError?.message);
+        console.error('All 3 lookup methods failed');
 
-    // Update user metadata to include venue_owner role
-    try {
-      await supabase.auth.admin.updateUserById(userId, {
-        user_metadata: {
-          full_name: ownerInfo.name,
-          phone: ownerInfo.phone,
-          role: 'venue_owner',
-        }
-      });
-    } catch (e) {
-      // Non-critical
+        return res.status(400).json({
+          error: `Registration issue: ${authError?.message || 'Unknown error'}. Please contact support at admin@smarter.poker with your email address and we will set up your account.`
+        });
+      }
     }
 
     // ─── 2. Create or find the venue ─────────────────────────────────
@@ -261,7 +281,6 @@ export default async function handler(req, res) {
           status: 'trialing',
           stripe_customer_id: stripeCustomerId,
           stripe_subscription_id: stripeSubscriptionId,
-          stripe_payment_method_id: paymentMethodId || null,
           monthly_price: TIER_PRICES[tier].price,
           billing_email: email,
           billing_name: ownerInfo.name,
@@ -281,7 +300,6 @@ export default async function handler(req, res) {
           status: 'trialing',
           stripe_customer_id: stripeCustomerId,
           stripe_subscription_id: stripeSubscriptionId,
-          stripe_payment_method_id: paymentMethodId || null,
           monthly_price: TIER_PRICES[tier].price,
           billing_email: email,
           billing_name: ownerInfo.name,
@@ -291,9 +309,7 @@ export default async function handler(req, res) {
         .select()
         .single();
 
-      if (subError) {
-        console.error('Subscription creation error:', subError);
-      }
+      if (subError) console.error('Subscription creation error:', subError);
       subscriptionData = newSub;
     }
 
@@ -306,54 +322,34 @@ export default async function handler(req, res) {
       .single();
 
     if (!existingStaff) {
-      await supabase
-        .from('commander_staff')
-        .insert({
-          venue_id: venueId,
-          user_id: userId,
-          name: ownerInfo.name,
-          email,
-          phone: ownerInfo.phone,
-          role: 'owner',
-          permissions: ['all'],
-          status: 'active',
-          pin: null,
-        });
+      await supabase.from('commander_staff').insert({
+        venue_id: venueId,
+        user_id: userId,
+        name: ownerInfo.name,
+        email,
+        phone: ownerInfo.phone,
+        role: 'owner',
+        permissions: ['all'],
+        status: 'active',
+      });
     }
 
     // ─── 6. Social Hub page (best-effort) ────────────────────────────
     try {
-      const socialResponse = await fetch(`${process.env.SOCIAL_HUB_API_URL}/api/create-club-page`, {
+      await fetch(`${process.env.SOCIAL_HUB_API_URL}/api/create-club-page`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${process.env.SOCIAL_HUB_API_KEY}`
         },
         body: JSON.stringify({
-          venue_id: venueId,
-          name: clubInfo.name,
+          venue_id: venueId, name: clubInfo.name,
           description: `${clubInfo.name} - Poker Room in ${clubInfo.city}, ${clubInfo.state}`,
-          address: clubInfo.address,
-          city: clubInfo.city,
-          state: clubInfo.state,
-          website: clubInfo.website,
-          owner_id: userId
+          address: clubInfo.address, city: clubInfo.city, state: clubInfo.state,
+          website: clubInfo.website, owner_id: userId
         })
       });
-
-      if (socialResponse.ok) {
-        const socialData = await socialResponse.json();
-        await supabase
-          .from('poker_venues')
-          .update({
-            social_hub_page_id: socialData.page_id,
-            social_hub_page_url: socialData.page_url
-          })
-          .eq('id', venueId);
-      }
-    } catch (socialError) {
-      console.error('Social Hub page creation error:', socialError);
-    }
+    } catch (e) { /* non-critical */ }
 
     // ─── 7. Welcome email (best-effort) ──────────────────────────────
     try {
@@ -361,16 +357,11 @@ export default async function handler(req, res) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          to: email,
-          name: ownerInfo.name,
-          clubName: clubInfo.name,
-          tier,
-          loginUrl: `${process.env.NEXT_PUBLIC_APP_URL}/commander/login`
+          to: email, name: ownerInfo.name, clubName: clubInfo.name,
+          tier, loginUrl: `${process.env.NEXT_PUBLIC_APP_URL}/commander/login`
         })
       });
-    } catch (emailError) {
-      console.error('Welcome email error:', emailError);
-    }
+    } catch (e) { /* non-critical */ }
 
     // ─── Done ────────────────────────────────────────────────────────
     return res.status(200).json({
