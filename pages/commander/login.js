@@ -39,7 +39,7 @@ export default function CommanderLogin() {
         .from('commander_subscriptions')
         .select('*, venue:poker_venues(*)')
         .eq('owner_id', data.user.id)
-        .eq('status', 'active')
+        .in('status', ['active', 'trialing'])
         .single();
 
       if (subError || !subscription) {
