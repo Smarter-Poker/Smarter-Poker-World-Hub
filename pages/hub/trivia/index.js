@@ -161,8 +161,8 @@ export default function TriviaHubPage() {
             <style jsx>{`
                 .trivia-page {
                     min-height: 100vh;
-                    background: url('/images/trivia/trivia-bg.jpg') center center / cover no-repeat;
-                    background-color: #0a1628;
+                    background: url('/images/trivia/starfield-bg.png') center center / cover no-repeat;
+                    background-color: #000000;
                     font-family: 'Inter', -apple-system, sans-serif;
                     position: relative;
                     width: 100%;
@@ -178,15 +178,7 @@ export default function TriviaHubPage() {
                 
 
                 .bg-overlay {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    background:
-                        radial-gradient(ellipse at 30% 20%, rgba(14, 165, 233, 0.08), transparent 50%),
-                        radial-gradient(ellipse at 70% 80%, rgba(139, 92, 246, 0.06), transparent 50%);
-                    pointer-events: none;
+                    display: none;
                 }
 
                 .content {

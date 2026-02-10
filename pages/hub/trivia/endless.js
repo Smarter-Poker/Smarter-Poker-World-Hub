@@ -539,7 +539,8 @@ export default function EndlessModePage() {
             <PageTransition>
                 <div style={{
                     minHeight: '100vh',
-                    background: '#18191a',
+                    background: "url('/images/trivia/starfield-bg.png') center center / cover no-repeat",
+                    backgroundColor: '#000000',
                     padding: '20px'
                 }}>
                     <div style={{ maxWidth: '700px', margin: '0 auto' }}>

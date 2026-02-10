@@ -552,17 +552,13 @@ export default function TournamentsPage() {
             <style jsx>{`
                 .tournaments-page {
                     min-height: 100vh;
-                    background: linear-gradient(135deg, #0a1628 0%, #1a2744 50%, #0f1d32 100%);
+                    background: url('/images/trivia/starfield-bg.png') center center / cover no-repeat;
+                    background-color: #000000;
                     font-family: 'Inter', -apple-system, sans-serif;
                 }
 
                 .bg-overlay {
-                    position: fixed;
-                    inset: 0;
-                    background:
-                        radial-gradient(ellipse at 30% 20%, rgba(255, 215, 0, 0.08), transparent 50%),
-                        radial-gradient(ellipse at 70% 80%, rgba(139, 92, 246, 0.06), transparent 50%);
-                    pointer-events: none;
+                    display: none;
                 }
 
                 .content {
