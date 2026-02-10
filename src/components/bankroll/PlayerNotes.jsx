@@ -175,8 +175,8 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
     const fileInputRef = useRef(null);
     const [savedStakes, setSavedStakes] = useState([]);
     const [savedVenues, setSavedVenues] = useState([]);
-    const [customStakes, setCustomStakes] = useState(!player?.stakes);
-    const [customVenue, setCustomVenue] = useState(!player?.venue);
+    const [customStakes, setCustomStakes] = useState(true);
+    const [customVenue, setCustomVenue] = useState(true);
 
     // Load saved stakes from bankroll_ledger and venues from bankroll_locations
     useEffect(() => {
@@ -191,7 +191,14 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
                     .not('stakes', 'is', null);
                 if (stakesData) {
                     const unique = [...new Set(stakesData.map(d => d.stakes).filter(Boolean))].sort();
+                    // Include player's current value if not in the list
+                    if (player?.stakes && !unique.includes(player.stakes)) {
+                        unique.push(player.stakes);
+                        unique.sort();
+                    }
                     setSavedStakes(unique);
+                    // Switch to dropdown mode since we have saved values
+                    if (unique.length > 0) setCustomStakes(false);
                 }
                 // Fetch locations
                 const { data: locData } = await supabase
@@ -200,7 +207,14 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
                     .eq('user_id', userId)
                     .order('name');
                 if (locData) {
-                    setSavedVenues(locData.map(l => l.name).filter(Boolean));
+                    const venues = locData.map(l => l.name).filter(Boolean);
+                    // Include player's current venue if not in the list
+                    if (player?.venue && !venues.includes(player.venue)) {
+                        venues.push(player.venue);
+                        venues.sort();
+                    }
+                    setSavedVenues(venues);
+                    if (venues.length > 0) setCustomVenue(false);
                 }
             } catch (err) {
                 console.error('[PlayerModal] Failed to load saved fields:', err);

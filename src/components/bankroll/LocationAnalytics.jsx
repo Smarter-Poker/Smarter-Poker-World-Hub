@@ -169,7 +169,9 @@ const styles = {
         background: 'linear-gradient(135deg, rgba(0,30,60,0.95), rgba(0,20,40,0.9))',
         borderRadius: 12,
         border: '1px solid rgba(0,212,255,0.2)',
-        padding: 14,
+        padding: 16,
+        height: '100%',
+        boxSizing: 'border-box',
     },
     header: {
         display: 'flex',

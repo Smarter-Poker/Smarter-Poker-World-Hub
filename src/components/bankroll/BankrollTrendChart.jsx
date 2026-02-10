@@ -175,17 +175,22 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
         return byDay;
     }, [filteredEntries]);
 
-    // Donut — category breakdown
+    // Donut — category breakdown (ordered: Cash, MTT, Table Games, Slots, Sports, Expenses)
+    const CATEGORY_ORDER = ['poker_cash', 'poker_mtt', 'casino_table', 'slots', 'sports', 'expense'];
     const donutData = useMemo(() => {
         const byCat = {};
         filteredEntries.forEach(e => {
             const cat = e.category || 'other';
             byCat[cat] = (byCat[cat] || 0) + ((e.gross_out || 0) - (e.gross_in || 0));
         });
-        return Object.entries(byCat).map(([key, value]) => ({
+        // Sort by CATEGORY_ORDER, then any remaining
+        const ordered = CATEGORY_ORDER.filter(k => byCat[k] !== undefined);
+        const remaining = Object.keys(byCat).filter(k => !CATEGORY_ORDER.includes(k));
+        return [...ordered, ...remaining].map(key => ({
+            key,
             name: CATEGORY_LABELS[key] || key,
-            value: Math.abs(value),
-            rawValue: value,
+            value: Math.abs(byCat[key]),
+            rawValue: byCat[key],
             color: CATEGORY_COLORS[key] || '#888',
         }));
     }, [filteredEntries]);
@@ -567,8 +572,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
                     <PieChart>
                         <defs>
                             {donutData.map((d, i) => {
-                                const catKey = Object.keys(CATEGORY_LABELS).find(k => CATEGORY_LABELS[k] === d.name) || 'expense';
-                                const [c1, c2] = DONUT_COLORS[catKey] || [d.color, d.color];
+                                const [c1, c2] = DONUT_COLORS[d.key] || [d.color, d.color];
                                 return (
                                     <linearGradient key={i} id={`donutGrad_${i}`} x1="0" y1="0" x2="1" y2="1">
                                         <stop offset="0%" stopColor={c1} stopOpacity={1} />

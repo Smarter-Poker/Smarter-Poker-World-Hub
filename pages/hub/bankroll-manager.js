@@ -833,7 +833,7 @@ export default function BankrollManagerPage() {
                 })()}
 
                 {/* Filters Row */}
-                <div className="bankroll-filters-row" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+                <div className="bankroll-filters-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 12 }}>
                   {/* Location Dropdown */}
                   <div style={styles.dropdownContainer} onClick={(e) => e.stopPropagation()}>
                     <button
@@ -1749,6 +1749,7 @@ const styles = {
   },
   dropdownContainer: {
     position: 'relative',
+    width: '100%',
   },
   dropdownButton: {
     padding: '8px 16px',
@@ -1758,6 +1759,8 @@ const styles = {
     color: '#fff',
     fontSize: 13,
     cursor: 'pointer',
+    width: '100%',
+    textAlign: 'left',
     display: 'flex',
     alignItems: 'center',
     gap: 8,
