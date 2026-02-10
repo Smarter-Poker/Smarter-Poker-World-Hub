@@ -224,6 +224,8 @@ export default function BankrollManagerPage() {
   const [scannerStep, setScannerStep] = useState('scan'); // 'scan' | 'post-capture' | 'pick-entry'
   const [scannerEntryId, setScannerEntryId] = useState(null);
   const [scannerImageUrl, setScannerImageUrl] = useState(null);
+  const [defaultReceiptCategory, setDefaultReceiptCategory] = useState(null);
+  const [defaultReceiptMedia, setDefaultReceiptMedia] = useState(null);
   const [ruleViolations, setRuleViolations] = useState([]);
 
   //  INTRO VIDEO STATE - Video plays while page loads in background
@@ -1362,12 +1364,10 @@ export default function BankrollManagerPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <button
                     onClick={() => {
-                      // Open LogEntryModal with receipt pre-attached
-                      setEditEntry({
-                        category: 'expense',
-                        media_urls: [scannerImageUrl],
-                        entry_date: new Date().toISOString().split('T')[0],
-                      });
+                      // Open LogEntryModal as NEW entry with receipt pre-attached
+                      setDefaultReceiptCategory('expense');
+                      setDefaultReceiptMedia([scannerImageUrl]);
+                      setEditEntry(null);
                       setShowLogModal(true);
                       setShowScanner(false);
                       setScannerStep('scan');
@@ -1484,8 +1484,10 @@ export default function BankrollManagerPage() {
               locations={locations}
               trips={trips}
               editEntry={editEntry}
-              onClose={() => { setShowLogModal(false); setEditEntry(null); }}
-              onSubmit={handleLogSubmit}
+              defaultCategory={defaultReceiptCategory}
+              defaultMediaUrls={defaultReceiptMedia}
+              onClose={() => { setShowLogModal(false); setEditEntry(null); setDefaultReceiptCategory(null); setDefaultReceiptMedia(null); }}
+              onSubmit={() => { handleLogSubmit(); setDefaultReceiptCategory(null); setDefaultReceiptMedia(null); }}
             />
           ) : (
             <motion.div

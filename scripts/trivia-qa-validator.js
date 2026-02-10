@@ -20,6 +20,19 @@
 // POKER CONSTANTS — Ground Truth
 // ═══════════════════════════════════════════════════════════════════════════
 const VALID_POSITIONS = ['UTG', 'UTG+1', 'UTG+2', 'MP', 'MP+1', 'HJ', 'CO', 'BTN', 'SB', 'BB', 'EP', 'LP'];
+const SPELLED_OUT_POSITIONS = [
+    'under the gun', 'under-the-gun',
+    'middle position',
+    'hijack', 'hi-jack',
+    'cutoff', 'cut-off', 'cut off',
+    'button',
+    'small blind', 'big blind',
+    'early position', 'late position',
+    'on the button', 'in the blinds',
+    'in the sb', 'in the bb',
+    'in the co', 'on the btn',
+    'dealer', 'dealer button',
+];
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 const SUITS = ['♠', '♣', '♥', '♦', 's', 'c', 'h', 'd', '♤', '♧', '♡', '♢'];
 
@@ -238,9 +251,12 @@ function checkLogic(q) {
     // --- Check after river action ---
     const isRiver = /river|final\s*board|complete\s*board|5th\s*street/i.test(q.question);
     if (isRiver) {
-        const hasDrawOption = q.options?.some(o => /draw|outs|improve/i.test(o));
-        if (hasDrawOption) {
-            errors.push('LOGIC-02: Drawing/outs mentioned as option on the river — no more cards to come');
+        // Only flag if options suggest IMPROVING hand or drawing to outs
+        const hasDrawImproveOption = q.options?.some(o =>
+            /\b(draw\s*to|need.*outs|improve.*hand|chase|still\s*draw)\b/i.test(o)
+        );
+        if (hasDrawImproveOption) {
+            errors.push('LOGIC-02: Drawing/improving mentioned as option on the river — no more cards to come');
         }
     }
 
@@ -292,12 +308,14 @@ function checkQuality(q) {
             errors.push('QUAL-01: Strategy question missing stack size (BB)');
         }
 
-        // Must have position info
-        const hasPosition = VALID_POSITIONS.some(pos => {
+        // Must have position info — check both abbreviated and spelled-out
+        const qLower = q.question.toLowerCase();
+        const hasAbbrevPosition = VALID_POSITIONS.some(pos => {
             const regex = new RegExp(`\\b${pos}\\b`, 'i');
             return regex.test(q.question);
         });
-        if (!hasPosition && !/position/i.test(q.question)) {
+        const hasSpelledPosition = SPELLED_OUT_POSITIONS.some(pos => qLower.includes(pos));
+        if (!hasAbbrevPosition && !hasSpelledPosition && !/position/i.test(q.question)) {
             errors.push('QUAL-02: Strategy question missing position context');
         }
 

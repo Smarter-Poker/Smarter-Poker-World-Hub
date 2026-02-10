@@ -40,7 +40,7 @@ const SPORTS = ['nfl', 'nba', 'mlb', 'nhl', 'soccer', 'mma', 'golf', 'tennis', '
 const BET_TYPES = ['moneyline', 'spread', 'over_under', 'parlay', 'prop', 'live'];
 const EMOTIONAL_TAGS = ['neutral', 'confident', 'tilted', 'exhausted', 'rushed', 'revenge'];
 
-export default function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, onClose, onSubmit }) {
+export default function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, defaultMediaUrls, onClose, onSubmit }) {
   const isEditMode = !!editEntry;
   const [step, setStep] = useState(isEditMode || defaultCategory ? 'details' : 'category');
   const [category, setCategory] = useState(isEditMode ? editEntry.category : (defaultCategory || null));
@@ -369,7 +369,11 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
   );
 
   // Image Upload State
-  const [mediaFiles, setMediaFiles] = useState(isEditMode && editEntry.media_urls ? [...editEntry.media_urls] : []);
+  const [mediaFiles, setMediaFiles] = useState(
+    isEditMode && editEntry.media_urls ? [...editEntry.media_urls]
+      : defaultMediaUrls && defaultMediaUrls.length > 0 ? [...defaultMediaUrls]
+        : []
+  );
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -841,7 +845,7 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
 
         {/* ALL FIELDS ALWAYS VISIBLE (No Toggle) */}
 
-        <div style={{ ...styles.amountRow, marginTop: 16 }}>
+        <div style={{ marginTop: 16 }}>
           <div style={styles.formGroup}>
             <label style={styles.label}>Date</label>
             <input
@@ -857,7 +861,7 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
               display: 'flex', alignItems: 'center', gap: 10,
               background: 'rgba(16, 185, 129, 0.1)',
               border: '1px solid rgba(16, 185, 129, 0.25)',
-              borderRadius: 8, padding: '10px 14px', marginBottom: 12
+              borderRadius: 8, padding: '10px 14px', marginBottom: 12, marginTop: 12
             }}>
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px rgba(16,185,129,0.5)', flexShrink: 0 }} />
               <span style={{ fontSize: 13, color: '#10b981', fontWeight: 500 }}>
