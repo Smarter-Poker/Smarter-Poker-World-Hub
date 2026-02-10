@@ -221,17 +221,16 @@ export function getDifficultyColor(difficulty: string): string {
 
 export function getCategoryIcon(category: string): string {
     switch (category) {
-        case 'poker_history': return '📜';
-        case 'famous_hands': return '🃏';
-        case 'gto_theory': return '🧮';
-        case 'player_profiles': return '👤';
-        case 'tournament_facts': return '🏆';
-        case 'rule_knowledge': return '📋';
-        // New categories
-        case 'mtt_situations': return '🎯';
-        case 'cash_game_situations': return '💵';
-        case 'icm_chip_ev': return '📊';
-        default: return '❓';
+        case 'poker_history': return 'HIST';
+        case 'famous_hands': return 'HAND';
+        case 'gto_theory': return 'GTO';
+        case 'player_profiles': return 'PRO';
+        case 'tournament_facts': return 'TOUR';
+        case 'rule_knowledge': return 'RULE';
+        case 'mtt_situations': return 'MTT';
+        case 'cash_game_situations': return 'CASH';
+        case 'icm_chip_ev': return 'ICM';
+        default: return '?';
     }
 }
 

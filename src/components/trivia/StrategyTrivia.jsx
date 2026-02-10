@@ -47,6 +47,14 @@ const STRATEGY_MODES = {
     }
 };
 
+// Lobby image mapping — modes with full-bleed lobby images
+const LOBBY_IMAGES = {
+    mtt: '/images/trivia/lobby-mtt.jpg',
+    cash: '/images/trivia/lobby-cash.jpg',
+    icm: '/images/trivia/lobby-icm.jpg',
+    gto: null,  // pending
+};
+
 // Helper functions for GTO analysis generation
 function generateGTOApproach(question) {
     const category = question?.category || '';
@@ -132,7 +140,10 @@ export default function StrategyTrivia({ mode }) {
 
     const currentQuestion = questions[currentQuestionIndex];
 
-    // Initialize
+    // Preloaded questions state (load in background while user views lobby image)
+    const [preloadedQuestions, setPreloadedQuestions] = useState(null);
+
+    // Initialize + preload questions
     useEffect(() => {
         const user = getAuthUser();
         if (user) {
@@ -140,7 +151,42 @@ export default function StrategyTrivia({ mode }) {
             loadUserDiamonds(user.id);
         }
         setIsLoading(false);
+        // Preload questions in background
+        preloadQuestions();
     }, []);
+
+    async function preloadQuestions() {
+        try {
+            const categories = config.categories;
+            const { data, error } = await supabase
+                .from('trivia_questions')
+                .select('*')
+                .in('category', categories);
+
+            if (!error && data && data.length > 0) {
+                let available = data;
+                // Try to exclude recently seen questions
+                if (userId) {
+                    const { data: history } = await supabase
+                        .from('trivia_user_question_history')
+                        .select('question_id')
+                        .eq('user_id', userId);
+                    if (history && history.length > 0) {
+                        const seenIds = new Set(history.map(h => h.question_id));
+                        const unseen = data.filter(q => !seenIds.has(q.id));
+                        if (unseen.length >= 10) available = unseen;
+                    }
+                }
+                const shuffled = available.sort(() => Math.random() - 0.5).slice(0, 20);
+                setPreloadedQuestions(shuffled);
+            } else {
+                setPreloadedQuestions(getFallbackQuestions(mode));
+            }
+        } catch (err) {
+            console.error('[StrategyTrivia] Preload failed:', err);
+            setPreloadedQuestions(getFallbackQuestions(mode));
+        }
+    }
 
     async function loadUserDiamonds(uid) {
         const { data: profile } = await supabase
@@ -340,7 +386,12 @@ export default function StrategyTrivia({ mode }) {
     }
 
     function startGame() {
-        loadQuestions();
+        // Use preloaded questions if available, otherwise load fresh
+        if (preloadedQuestions && preloadedQuestions.length > 0) {
+            setQuestions(preloadedQuestions);
+        } else {
+            loadQuestions();
+        }
         setGameState('playing');
         setCurrentQuestionIndex(0);
         setCorrectCount(0);
@@ -538,30 +589,48 @@ export default function StrategyTrivia({ mode }) {
                 <div className="content">
                     {/* LOBBY STATE */}
                     {gameState === 'lobby' && (
-                        <div className="lobby">
-                            <div className="mode-icon">{config.icon === 'target' ? <Target size={48} /> : config.icon === 'dollar' ? <DollarSign size={48} /> : config.icon === 'chart' ? <BarChart3 size={48} /> : <Brain size={48} />}</div>
-                            <h1 style={{ color: config.color }}>{config.title}</h1>
-                            <p className="subtitle">{config.subtitle}</p>
-
-                            <div className="info-card">
-                                <div className="info-row">
-                                    <span>Questions</span>
-                                    <span>10</span>
-                                </div>
-                                <div className="info-row">
-                                    <span>Time per Question</span>
-                                    <span>60 seconds</span>
-                                </div>
-                                <div className="info-row">
-                                    <span>Perfect Score Bonus</span>
-                                    <span>+{TRIVIA_MODES[mode]?.perfectBonus || 10} <Gem size={14} /></span>
-                                </div>
+                        LOBBY_IMAGES[mode] ? (
+                            /* Full-bleed image lobby */
+                            <div className="lobby-image-wrapper" onClick={startGame}>
+                                <img
+                                    src={LOBBY_IMAGES[mode]}
+                                    alt={`${config.title} - Start Challenge`}
+                                    className="lobby-image"
+                                />
+                                {!preloadedQuestions && (
+                                    <div className="lobby-loading-overlay">
+                                        <div className="lobby-spinner" />
+                                        <span>Loading questions...</span>
+                                    </div>
+                                )}
                             </div>
+                        ) : (
+                            /* Fallback text lobby for modes without images */
+                            <div className="lobby">
+                                <div className="mode-icon">{config.icon === 'target' ? <Target size={48} /> : config.icon === 'dollar' ? <DollarSign size={48} /> : config.icon === 'chart' ? <BarChart3 size={48} /> : <Brain size={48} />}</div>
+                                <h1 style={{ color: config.color }}>{config.title}</h1>
+                                <p className="subtitle">{config.subtitle}</p>
 
-                            <button className="start-btn" onClick={startGame} style={{ background: config.color }}>
-                                Start Challenge
-                            </button>
-                        </div>
+                                <div className="info-card">
+                                    <div className="info-row">
+                                        <span>Questions</span>
+                                        <span>20</span>
+                                    </div>
+                                    <div className="info-row">
+                                        <span>Time per Question</span>
+                                        <span>60 seconds</span>
+                                    </div>
+                                    <div className="info-row">
+                                        <span>Perfect Score Bonus</span>
+                                        <span>+{TRIVIA_MODES[mode]?.perfectBonus || 10} <Gem size={14} /></span>
+                                    </div>
+                                </div>
+
+                                <button className="start-btn" onClick={startGame} style={{ background: config.color }}>
+                                    Start Challenge
+                                </button>
+                            </div>
+                        )
                     )}
 
                     {/* PLAYING STATE */}
@@ -772,7 +841,63 @@ export default function StrategyTrivia({ mode }) {
                     margin: 0 auto;
                 }
 
-                /* LOBBY */
+                /* LOBBY — Full-bleed image */
+                .lobby-image-wrapper {
+                    position: relative;
+                    cursor: pointer;
+                    border-radius: 16px;
+                    overflow: hidden;
+                    transition: transform 0.3s ease, box-shadow 0.3s ease;
+                    max-width: 500px;
+                    margin: 0 auto;
+                }
+
+                .lobby-image-wrapper:hover {
+                    transform: scale(1.02);
+                    box-shadow: 0 0 40px rgba(14, 165, 233, 0.3);
+                }
+
+                .lobby-image-wrapper:active {
+                    transform: scale(0.98);
+                }
+
+                .lobby-image {
+                    width: 100%;
+                    height: auto;
+                    display: block;
+                    border-radius: 16px;
+                }
+
+                .lobby-loading-overlay {
+                    position: absolute;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    background: rgba(0, 0, 0, 0.7);
+                    backdrop-filter: blur(4px);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 12px;
+                    padding: 16px;
+                    color: rgba(255, 255, 255, 0.8);
+                    font-size: 14px;
+                }
+
+                .lobby-spinner {
+                    width: 20px;
+                    height: 20px;
+                    border: 2px solid rgba(255, 255, 255, 0.2);
+                    border-top-color: #0ea5e9;
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                }
+
+                @keyframes spin {
+                    to { transform: rotate(360deg); }
+                }
+
+                /* LOBBY — Text fallback */
                 .lobby {
                     text-align: center;
                     padding: 40px 0;

@@ -39,6 +39,15 @@ const CATEGORY_MAP = {
     // survival mode has separate page
 };
 
+// Lobby image mapping — modes with full-bleed lobby images
+const LOBBY_IMAGES = {
+    history: '/images/trivia/lobby-history.jpg',
+    rules: '/images/trivia/lobby-rules.jpg',
+    pro: null,      // pending
+    daily: null,     // pending
+    arcade: null,    // pending
+};
+
 export default function TriviaModePage() {
     const router = useRouter();
     const { mode } = router.query;
@@ -541,41 +550,53 @@ export default function TriviaModePage() {
                     )}
 
                     {gameState === 'ready' && (
-                        <div className="ready-screen">
-                            <div className="mode-info">
-                                <h1>{modeConfig.name}</h1>
-                                <p>{modeConfig.description}</p>
-
-                                <div className="mode-details">
-                                    <div className="detail">
-                                        <span className="label">Questions</span>
-                                        <span className="value">{modeConfig.questionsCount}</span>
-                                    </div>
-                                    {modeConfig.timeLimit && (
-                                        <div className="detail">
-                                            <span className="label">Time Limit</span>
-                                            <span className="value">{modeConfig.timeLimit}s</span>
-                                        </div>
-                                    )}
-                                    {modeConfig.diamondCost > 0 && (
-                                        <div className="detail">
-                                            <span className="label">Entry Cost</span>
-                                            <span className="value">{modeConfig.diamondCost} Diamonds</span>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <button className="start-btn" onClick={startGame}>
-                                    {mode === 'arcade' ? `Play (${modeConfig.diamondCost} Diamonds)` : 'Start Quiz'}
-                                </button>
+                        LOBBY_IMAGES[mode] ? (
+                            /* Full-bleed image lobby */
+                            <div className="lobby-image-wrapper" onClick={startGame}>
+                                <img
+                                    src={LOBBY_IMAGES[mode]}
+                                    alt={`${modeConfig.name} - Start Challenge`}
+                                    className="lobby-image"
+                                />
                             </div>
+                        ) : (
+                            /* Fallback text lobby */
+                            <div className="ready-screen">
+                                <div className="mode-info">
+                                    <h1>{modeConfig.name}</h1>
+                                    <p>{modeConfig.description}</p>
 
-                            {mode === 'arcade' && leaderboard.length > 0 && (
-                                <div className="leaderboard-section">
-                                    <LeaderboardDisplay entries={leaderboard} currentUserId={userId} />
+                                    <div className="mode-details">
+                                        <div className="detail">
+                                            <span className="label">Questions</span>
+                                            <span className="value">{modeConfig.questionsCount}</span>
+                                        </div>
+                                        {modeConfig.timeLimit && (
+                                            <div className="detail">
+                                                <span className="label">Time Limit</span>
+                                                <span className="value">{modeConfig.timeLimit}s</span>
+                                            </div>
+                                        )}
+                                        {modeConfig.diamondCost > 0 && (
+                                            <div className="detail">
+                                                <span className="label">Entry Cost</span>
+                                                <span className="value">{modeConfig.diamondCost} Diamonds</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <button className="start-btn" onClick={startGame}>
+                                        {mode === 'arcade' ? `Play (${modeConfig.diamondCost} Diamonds)` : 'Start Quiz'}
+                                    </button>
                                 </div>
-                            )}
-                        </div>
+
+                                {mode === 'arcade' && leaderboard.length > 0 && (
+                                    <div className="leaderboard-section">
+                                        <LeaderboardDisplay entries={leaderboard} currentUserId={userId} />
+                                    </div>
+                                )}
+                            </div>
+                        )
                     )}
 
                     {gameState === 'playing' && mode !== 'survival' && (
@@ -773,6 +794,32 @@ export default function TriviaModePage() {
                 .ready-screen {
                     max-width: 600px;
                     margin: 0 auto;
+                }
+
+                .lobby-image-wrapper {
+                    position: relative;
+                    cursor: pointer;
+                    border-radius: 16px;
+                    overflow: hidden;
+                    transition: transform 0.3s ease, box-shadow 0.3s ease;
+                    max-width: 500px;
+                    margin: 0 auto;
+                }
+
+                .lobby-image-wrapper:hover {
+                    transform: scale(1.02);
+                    box-shadow: 0 0 40px rgba(14, 165, 233, 0.3);
+                }
+
+                .lobby-image-wrapper:active {
+                    transform: scale(0.98);
+                }
+
+                .lobby-image {
+                    width: 100%;
+                    height: auto;
+                    display: block;
+                    border-radius: 16px;
                 }
 
                 .mode-info {
