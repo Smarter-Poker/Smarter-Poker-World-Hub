@@ -59,15 +59,15 @@ const MODE_CARDS = [
         image: '/images/trivia/poker-history.png?v=rembg1'
     },
     {
-        id: 'rules',
-        name: 'Rules Quiz',
-        description: 'Test your understanding of official poker rules',
-        icon: BookOpen,
-        color: '#4a90d9',
-        glowColor: '#4a90d9',
-        diamondReward: 3,
-        perfectBonus: 5,
-        image: '/images/trivia/rules-quiz.png?v=rembg1'
+        id: 'tournaments',
+        name: 'Tournaments',
+        description: 'Weekly competitions with big prizes!',
+        icon: Calendar,
+        color: '#FFD700',
+        glowColor: '#FFD700',
+        diamondReward: 'Prize pool',
+        perfectBonus: null,
+        image: '/images/trivia/tournaments.png?v=rembg1'
     },
     {
         id: 'pro',
@@ -127,15 +127,15 @@ const MODE_CARDS = [
         image: '/images/trivia/pvp-battle.png?v=rembg1'
     },
     {
-        id: 'tournaments',
-        name: 'Tournaments',
-        description: 'Weekly competitions with big prizes!',
-        icon: Calendar,
-        color: '#FFD700',
-        glowColor: '#FFD700',
-        diamondReward: 'Prize pool',
-        perfectBonus: null,
-        image: '/images/trivia/tournaments.png?v=rembg1'
+        id: 'rules',
+        name: 'Rules Quiz',
+        description: 'Test your understanding of official poker rules',
+        icon: BookOpen,
+        color: '#4a90d9',
+        glowColor: '#4a90d9',
+        diamondReward: 3,
+        perfectBonus: 5,
+        image: '/images/trivia/rules-quiz.png?v=rembg1'
     },
     {
         id: 'gto',
