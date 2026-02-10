@@ -1,248 +1,170 @@
 /**
- * Commander Login Landing Page
- * Clean welcome page with Sign In / Sign Up options
+ * Commander Owner/Manager Login Page
+ * Email + Password for venue owners
  * Facebook color scheme
  */
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
-import { KeyRound, Loader2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { supabase } from '@/src/lib/supabase';
 
 export default function CommanderLogin() {
   const router = useRouter();
-  const { venue_id } = router.query;
-
-  const [venue, setVenue] = useState(null);
-  const [pin, setPin] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [verifying, setVerifying] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    if (venue_id) {
-      fetchVenue(venue_id);
-    } else if (router.isReady) {
-      setLoading(false);
-    }
-  }, [venue_id, router.isReady]);
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!email || !password) return;
 
-  async function fetchVenue(id) {
-    try {
-      const res = await fetch(`/api/commander/venues/${id}`);
-      const data = await res.json();
-      if (data.success && data.data.venue) {
-        if (data.data.venue.commander_enabled) {
-          setVenue(data.data.venue);
-        } else {
-          setError('This venue is not registered for Club Commander.');
-        }
-      } else {
-        setError('Venue not found.');
-      }
-    } catch (err) {
-      console.error('Failed to fetch venue:', err);
-      setError('Failed to load venue.');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function handlePinInput(digit) {
-    if (pin.length < 4) {
-      const newPin = pin + digit;
-      setPin(newPin);
-      if (newPin.length === 4) {
-        setTimeout(() => handleSubmit(newPin), 100);
-      }
-    }
-  }
-
-  function handleBackspace() {
-    setPin(pin.slice(0, -1));
-  }
-
-  function handleClear() {
-    setPin('');
-  }
-
-  async function handleSubmit(submitPin) {
-    const pinToSubmit = submitPin || pin;
-    if (pinToSubmit.length !== 4 || !venue) return;
-
-    setVerifying(true);
+    setLoading(true);
     setError(null);
 
     try {
-      const res = await fetch('/api/commander/staff/verify-pin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ venue_id: venue.id, pin_code: pinToSubmit })
+      // Sign in with Supabase
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password
       });
 
-      const data = await res.json();
+      if (authError) throw authError;
 
-      if (data.success) {
-        localStorage.setItem('commander_staff', JSON.stringify(data.data.staff));
-        localStorage.setItem('commander_venue', JSON.stringify(venue));
-        router.push('/commander/dashboard');
-      } else {
-        setError(data.error || 'Invalid PIN');
-        setPin('');
+      // Check if user has a commander subscription
+      const { data: subscription, error: subError } = await supabase
+        .from('commander_subscriptions')
+        .select('*, venue:poker_venues(*)')
+        .eq('owner_id', data.user.id)
+        .eq('status', 'active')
+        .single();
+
+      if (subError || !subscription) {
+        setError('No active Club Commander subscription found for this account.');
+        return;
       }
+
+      // Store venue info and redirect to dashboard
+      localStorage.setItem('commander_venue', JSON.stringify(subscription.venue));
+      localStorage.setItem('commander_subscription', JSON.stringify(subscription));
+      router.push('/commander/dashboard');
+
     } catch (err) {
-      setError('Verification failed. Please try again.');
-      setPin('');
+      console.error('Login error:', err);
+      setError(err.message || 'Invalid email or password');
     } finally {
-      setVerifying(false);
+      setLoading(false);
     }
   }
 
-  // Loading
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#18191A] flex items-center justify-center">
-        <Head>
-          <title>Club Commander</title>
-        </Head>
-        <Loader2 className="w-8 h-8 text-[#1877F2] animate-spin" />
-      </div>
-    );
-  }
-
-  // No venue_id - show welcome landing page
-  if (!venue_id || !venue) {
-    return (
-      <div className="min-h-screen bg-[#18191A] flex items-center justify-center p-4">
-        <Head>
-          <title>Club Commander</title>
-        </Head>
-        
-        <div className="max-w-md w-full">
-          {/* Logo */}
-          <div className="text-center mb-8">
-            <img 
-              src="/images/club-commander-logo.jpg" 
-              alt="Club Commander" 
-              className="w-full max-w-sm mx-auto rounded-lg mb-6"
-            />
-          </div>
-
-          {/* Buttons */}
-          <div className="space-y-4">
-            <Link 
-              href="/commander/register"
-              className="block w-full bg-[#1877F2] hover:bg-[#1664d9] text-white font-semibold py-4 px-6 rounded-xl text-center text-lg transition-colors"
-            >
-              Sign Up
-            </Link>
-            
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-[#3A3B3C]"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-[#18191A] text-[#B0B3B8]">Already registered?</span>
-              </div>
-            </div>
-
-            <p className="text-[#B0B3B8] text-center text-sm">
-              Staff members: Use the login link provided by your venue manager.
-            </p>
-          </div>
-
-          {/* Footer */}
-          <p className="text-center text-[#65676B] text-xs mt-8">
-            Powered by SMARTER.POKER
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // PIN entry for specific venue
   return (
     <div className="min-h-screen bg-[#18191A] flex items-center justify-center p-4">
       <Head>
-        <title>Staff Login | {venue?.name} | Club Commander</title>
+        <title>Sign In | Club Commander</title>
       </Head>
-
-      <div className="bg-[#242526] rounded-xl p-8 max-w-md w-full border border-[#3A3B3C]">
-        {/* Venue Header */}
+      
+      <div className="max-w-md w-full">
+        {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-[#1877F2] rounded-full flex items-center justify-center mx-auto mb-4">
-            <KeyRound className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold text-[#E4E6EB]">{venue?.name}</h1>
-          <p className="text-[#B0B3B8] text-sm mt-1">{venue?.city}, {venue?.state}</p>
-          <p className="text-[#B0B3B8] mt-4">Enter your 4-digit staff PIN</p>
+          <img 
+            src="/images/club-commander-logo.jpg" 
+            alt="Club Commander" 
+            className="w-full max-w-sm mx-auto rounded-lg"
+          />
         </div>
 
-        {/* PIN Display */}
-        <div className="flex justify-center gap-3 mb-6">
-          {[0, 1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className={`w-14 h-14 rounded-lg border-2 flex items-center justify-center text-2xl font-bold ${
-                pin.length > i
-                  ? 'bg-[#1877F2] border-[#1877F2] text-white'
-                  : 'bg-[#3A3B3C] border-[#4E4F50] text-[#E4E6EB]'
-              }`}
-            >
-              {pin.length > i ? '•' : ''}
+        {/* Login Form */}
+        <div className="bg-[#242526] rounded-xl p-8 border border-[#3A3B3C]">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Email */}
+            <div>
+              <label className="block text-[#E4E6EB] text-sm font-medium mb-2">
+                Email
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full bg-[#3A3B3C] border border-[#4E4F50] rounded-lg px-4 py-3 text-[#E4E6EB] placeholder-[#8A8D91] focus:outline-none focus:border-[#1877F2]"
+                placeholder="you@example.com"
+                required
+              />
             </div>
-          ))}
-        </div>
 
-        {/* Error Message */}
-        {error && (
-          <div className="bg-[#F02849]/10 border border-[#F02849]/30 text-[#F02849] px-4 py-2 rounded-lg mb-4 text-center text-sm">
-            {error}
-          </div>
-        )}
+            {/* Password */}
+            <div>
+              <label className="block text-[#E4E6EB] text-sm font-medium mb-2">
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-[#3A3B3C] border border-[#4E4F50] rounded-lg px-4 py-3 text-[#E4E6EB] placeholder-[#8A8D91] focus:outline-none focus:border-[#1877F2] pr-12"
+                  placeholder="••••••••"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8A8D91] hover:text-[#E4E6EB]"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+            </div>
 
-        {/* PIN Pad */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((digit) => (
+            {/* Error */}
+            {error && (
+              <div className="bg-[#F02849]/10 border border-[#F02849]/30 text-[#F02849] px-4 py-2 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
+
+            {/* Submit */}
             <button
-              key={digit}
-              onClick={() => handlePinInput(String(digit))}
-              disabled={verifying}
-              className="h-14 rounded-lg bg-[#3A3B3C] hover:bg-[#4E4F50] text-[#E4E6EB] text-xl font-semibold transition-colors disabled:opacity-50"
+              type="submit"
+              disabled={loading}
+              className="w-full bg-[#1877F2] hover:bg-[#1664d9] disabled:bg-[#3A3B3C] text-white font-semibold py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2"
             >
-              {digit}
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                'Sign In'
+              )}
             </button>
-          ))}
-          <button
-            onClick={handleClear}
-            disabled={verifying}
-            className="h-14 rounded-lg bg-[#3A3B3C] hover:bg-[#4E4F50] text-[#B0B3B8] text-sm font-medium transition-colors disabled:opacity-50"
+          </form>
+
+          {/* Divider */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-[#3A3B3C]"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-4 bg-[#242526] text-[#B0B3B8]">New to Club Commander?</span>
+            </div>
+          </div>
+
+          {/* Sign Up Link */}
+          <Link 
+            href="/commander/register"
+            className="block w-full bg-[#3A3B3C] hover:bg-[#4E4F50] text-[#E4E6EB] font-semibold py-3 px-6 rounded-lg text-center transition-colors"
           >
-            Clear
-          </button>
-          <button
-            onClick={() => handlePinInput('0')}
-            disabled={verifying}
-            className="h-14 rounded-lg bg-[#3A3B3C] hover:bg-[#4E4F50] text-[#E4E6EB] text-xl font-semibold transition-colors disabled:opacity-50"
-          >
-            0
-          </button>
-          <button
-            onClick={handleBackspace}
-            disabled={verifying}
-            className="h-14 rounded-lg bg-[#3A3B3C] hover:bg-[#4E4F50] text-[#B0B3B8] text-sm font-medium transition-colors disabled:opacity-50"
-          >
-            ←
-          </button>
+            Sign Up
+          </Link>
         </div>
 
-        {/* Verifying indicator */}
-        {verifying && (
-          <div className="flex items-center justify-center gap-2 text-[#1877F2]">
-            <Loader2 className="w-5 h-5 animate-spin" />
-            <span>Verifying...</span>
-          </div>
-        )}
+        {/* Footer */}
+        <p className="text-center text-[#65676B] text-xs mt-6">
+          Powered by SMARTER.POKER
+        </p>
       </div>
     </div>
   );
