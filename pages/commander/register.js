@@ -194,7 +194,7 @@ export default function RegisterPage() {
                 <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Website</label><input type="url" name="website" value={clubInfo.website} onChange={handleClubInfoChange} className={inputClass} /></div>
                 <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Number of Tables</label><input type="number" name="tables" value={clubInfo.tables} onChange={handleClubInfoChange} className={inputClass} /></div>
               </div>
-              <div><label className="block text-sm text-[#B0B3B8] mb-2">Games Offered</label><div className="flex flex-wrap gap-2">{['NLH', 'PLO', 'PLO8', 'Limit HE', 'Stud', 'Mixed'].map(game => (<button key={game} type="button" onClick={() => handleGameToggle(game)} className={`px-4 py-2 rounded-full text-sm ${clubInfo.gamesOffered.includes(game) ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'}`}>{game}</button>))}</div></div>
+              <div><label className="block text-sm text-[#B0B3B8] mb-2">Games Offered</label><div className="flex flex-wrap gap-2">{['NLH', 'PLO', 'PLO8', 'Limit HE', 'Stud', 'Mixed', 'Tournaments'].map(game => (<button key={game} type="button" onClick={() => handleGameToggle(game)} className={`px-4 py-2 rounded-full text-sm ${clubInfo.gamesOffered.includes(game) ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'}`}>{game}</button>))}</div></div>
 
               {/* Divider */}
               <div className="border-t border-[#3A3B3C] pt-6 mt-6">
