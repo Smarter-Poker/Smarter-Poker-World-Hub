@@ -57,44 +57,8 @@
   ],
   "crons": [
     {
-      "path": "/api/cron/news-scraper",
-      "schedule": "0 */2 * * *"
-    },
-    {
-      "path": "/api/cron/pokernews-videos",
-      "schedule": "0 */2 * * *"
-    },
-    {
-      "path": "/api/cron/content-health-check",
-      "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/cron/scrape-sports-clips",
-      "schedule": "0 4 * * *"
-    },
-    {
-      "path": "/api/cron/trivia-daily-generator",
-      "schedule": "59 5 * * *"
-    },
-    {
-      "path": "/api/cron/post-official-news",
-      "schedule": "0 */2 * * *"
-    },
-    {
-      "path": "/api/cron/youtube-shorts",
-      "schedule": "30 */2 * * *"
-    },
-    {
-      "path": "/api/cron/horses-social-likes",
-      "schedule": "*/10 * * * *"
-    },
-    {
-      "path": "/api/cron/horses-social-comments",
-      "schedule": "*/7 * * * *"
-    },
-    {
-      "path": "/api/cron/horses-social-replies",
-      "schedule": "*/8 * * * *"
+      "path": "/api/cron/horses-social-all",
+      "schedule": "*/15 * * * *"
     },
     {
       "path": "/api/cron/horses-social-friends",
@@ -149,12 +113,8 @@
       "schedule": "0 6 * * *"
     },
     {
-      "path": "/api/cron/generate-trivia-questions",
-      "schedule": "0 * * * *"
-    },
-    {
-      "path": "/api/cron/trivia-tournaments",
-      "schedule": "30 * * * *"
+      "path": "/api/cron/trivia-daily-generator",
+      "schedule": "59 5 * * *"
     },
     {
       "path": "/api/cron/training-daily-challenge",
@@ -165,12 +125,12 @@
       "schedule": "0 8 * * *"
     },
     {
-      "path": "/api/cron/geofence-session-reminder",
-      "schedule": "0 */2 * * *"
+      "path": "/api/cron/content-health-check",
+      "schedule": "0 6 * * *"
     },
     {
-      "path": "/api/cron/bankroll-alerts",
-      "schedule": "0 */6 * * *"
+      "path": "/api/cron/scrape-sports-clips",
+      "schedule": "0 4 * * *"
     },
     {
       "path": "/api/cron/scrape-venue-info?batch=1",

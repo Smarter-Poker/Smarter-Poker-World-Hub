@@ -81,6 +81,12 @@ async function postNewsArticle(article) {
 // MAIN HANDLER
 // ═══════════════════════════════════════════════════════════════════════════
 export default async function handler(req, res) {
+    // Security: validate cron auth for external callers
+    const { validateCronAuth } = await import('../../../src/utils/cron-auth.js');
+    if (!validateCronAuth(req)) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     console.log('\n📰 OFFICIAL NEWS POSTER - SmarterPokerOfficial');
     console.log('═'.repeat(60));
 

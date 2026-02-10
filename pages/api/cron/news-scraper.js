@@ -1217,6 +1217,12 @@ async function archiveOldArticles() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default async function handler(req, res) {
+    // Security: validate cron auth for external callers
+    const { validateCronAuth } = await import('../../../src/utils/cron-auth.js');
+    if (!validateCronAuth(req)) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     console.log('\n');
     console.log('═'.repeat(70));
     console.log('📰 SMARTER.POKER NEWS SCRAPER - 6 Box System');
