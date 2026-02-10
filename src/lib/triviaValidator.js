@@ -141,6 +141,29 @@ function checkLogic(q) {
         if (hasDrawImproveOption)
             errors.push('LOGIC-02: Drawing/improving mentioned on the river — no more cards to come');
     }
+
+    // --- BB ANTE RULE: Tournament antes must equal 1BB ---
+    const fullText = `${q.question} ${q.explanation || ''}`;
+    const blindsAnteMatch = fullText.match(/(\d[\d,]*)\/(\d[\d,]*).*?(\d[\d,]*)\s*ante/i);
+    if (blindsAnteMatch) {
+        const bb = parseInt(blindsAnteMatch[2].replace(/,/g, ''));
+        const ante = parseInt(blindsAnteMatch[3].replace(/,/g, ''));
+        if (ante > 0 && ante !== bb) {
+            errors.push(`LOGIC-07: Non-BB ante (blinds ${blindsAnteMatch[1]}/${blindsAnteMatch[2]}, ante ${ante}). Must use BB ante (ante = ${bb})`);
+        }
+    }
+    if (!blindsAnteMatch) {
+        const blindsOnly = fullText.match(/(\d[\d,]*)\/(\d[\d,]*)/);
+        const anteOnly = fullText.match(/(\d[\d,]*)\s*ante/i) || fullText.match(/ante\s+(?:of\s+)?(\d[\d,]*)/i);
+        if (blindsOnly && anteOnly) {
+            const bb2 = parseInt(blindsOnly[2].replace(/,/g, ''));
+            const ante2 = parseInt(anteOnly[1].replace(/,/g, ''));
+            if (ante2 > 0 && ante2 !== bb2) {
+                errors.push(`LOGIC-07: Non-BB ante (BB=${bb2}, ante=${ante2}). Must use BB ante`);
+            }
+        }
+    }
+
     return errors;
 }
 

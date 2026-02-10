@@ -292,6 +292,29 @@ function checkLogic(q) {
         }
     }
 
+    // --- BB ANTE RULE: Tournament antes must equal 1BB ---
+    // Modern tournaments ALWAYS use BB ante. "2000/4000 with 400 ante" is WRONG — ante must be 4000.
+    const blindsAnteMatch = fullText.match(/(\d[\d,]*)\/(\d[\d,]*).*?(\d[\d,]*)\s*ante/i);
+    if (blindsAnteMatch) {
+        const bb = parseInt(blindsAnteMatch[2].replace(/,/g, ''));
+        const ante = parseInt(blindsAnteMatch[3].replace(/,/g, ''));
+        if (ante > 0 && ante !== bb) {
+            errors.push(`LOGIC-07: Non-BB ante detected (blinds ${blindsAnteMatch[1]}/${blindsAnteMatch[2]}, ante ${ante}). Tournaments use BB ante — ante must equal 1BB (${bb})`);
+        }
+    }
+    // Also catch "ante of X" or "X ante" patterns with explicit blinds
+    if (!blindsAnteMatch) {
+        const blindsOnly = fullText.match(/(\d[\d,]*)\/(\d[\d,]*)/);
+        const anteOnly = fullText.match(/(?:with\s+(?:a\s+)?)?(\d[\d,]*)\s*ante/i) || fullText.match(/ante\s+(?:of\s+)?(\d[\d,]*)/i);
+        if (blindsOnly && anteOnly) {
+            const bb2 = parseInt(blindsOnly[2].replace(/,/g, ''));
+            const ante2 = parseInt(anteOnly[1].replace(/,/g, ''));
+            if (ante2 > 0 && ante2 !== bb2) {
+                errors.push(`LOGIC-07: Non-BB ante detected (BB=${bb2}, ante=${ante2}). Tournaments use BB ante — ante must equal 1BB`);
+            }
+        }
+    }
+
     return errors;
 }
 

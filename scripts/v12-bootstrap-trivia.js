@@ -72,6 +72,7 @@ STRATEGY RULES:
 - At 12BB: open-shove, not open-raise
 - AKs in satellite bubble with short stacks present: usually FOLD
 - AA in satellite covering shover: CALL (85% > 70-80% threshold)
+- TOURNAMENT ANTES: ALWAYS BB ANTE. Ante = 1BB, 100% of the time. NEVER use old-school antes like "2000/4000 with 400 ante". Correct format: "2000/4000 with 4000 ante" or simply say "BB ante" or just reference stack sizes in BB without specifying blinds/antes.
 
 Return ONLY valid JSON array. No markdown, no explanation outside JSON.
 Format: [{"question":"...","options":["A","B","C","D"],"correct_index":0,"explanation":"..."}]`;

@@ -48,33 +48,66 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
         );
     }, [entries]);
 
-    // Line / Area — cumulative
+    // Helper: aggregate entries by day
+    const entriesByDay = useMemo(() => {
+        const map = {};
+        filteredEntries.forEach(e => {
+            const day = e.entry_date; // YYYY-MM-DD
+            if (!map[day]) map[day] = [];
+            map[day].push(e);
+        });
+        return map;
+    }, [filteredEntries]);
+
+    // Helper: generate all days between start and end (inclusive)
+    const allDays = useMemo(() => {
+        if (filteredEntries.length === 0) return [];
+        const dates = filteredEntries.map(e => e.entry_date).sort();
+        const start = new Date(dates[0] + 'T12:00:00');
+        const end = new Date(dates[dates.length - 1] + 'T12:00:00');
+        const days = [];
+        const d = new Date(start);
+        while (d <= end) {
+            days.push(d.toISOString().split('T')[0]);
+            d.setDate(d.getDate() + 1);
+        }
+        return days;
+    }, [filteredEntries]);
+
+    // Line / Area — cumulative with every day filled in
     const lineData = useMemo(() => {
+        if (allDays.length === 0) return [];
         let cumulative = 0;
-        return filteredEntries.map(e => {
-            const net = (e.gross_out || 0) - (e.gross_in || 0);
-            cumulative += net;
-            const d = new Date(e.entry_date + 'T12:00:00');
+        return allDays.map(day => {
+            const dayEntries = entriesByDay[day] || [];
+            const dayNet = dayEntries.reduce((s, e) => s + ((e.gross_out || 0) - (e.gross_in || 0)), 0);
+            cumulative += dayNet;
+            const d = new Date(day + 'T12:00:00');
             return {
                 date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
                 value: cumulative,
-                net,
-                category: e.category,
+                net: dayNet,
+                sessions: dayEntries.length,
+                hasData: dayEntries.length > 0,
+                category: dayEntries.length > 0 ? dayEntries[0].category : null,
             };
         });
-    }, [filteredEntries]);
+    }, [allDays, entriesByDay]);
 
-    // Bar — per session
+    // Bar — per day net (show every day, $0 for no-session days)
     const barData = useMemo(() =>
-        filteredEntries.map(e => {
-            const net = (e.gross_out || 0) - (e.gross_in || 0);
+        allDays.map(day => {
+            const dayEntries = entriesByDay[day] || [];
+            const net = dayEntries.reduce((s, e) => s + ((e.gross_out || 0) - (e.gross_in || 0)), 0);
             return {
-                date: new Date(e.entry_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                date: new Date(day + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
                 value: net,
-                category: e.category,
-                fill: net >= 0 ? '#22c55e' : '#ef4444',
+                sessions: dayEntries.length,
+                hasData: dayEntries.length > 0,
+                category: dayEntries.length > 0 ? dayEntries[0].category : null,
+                fill: dayEntries.length === 0 ? 'rgba(255,255,255,0.05)' : net >= 0 ? '#22c55e' : '#ef4444',
             };
-        }), [filteredEntries]);
+        }), [allDays, entriesByDay]);
 
     // Stacked — grouped by day, split by category
     const stackedData = useMemo(() => {
@@ -196,7 +229,9 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
                         <TT>
                             <div style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 3 }}>{d.date}</div>
                             <div style={{ color: d.value >= 0 ? '#4ade80' : '#f87171', fontWeight: 600, fontSize: 14 }}>{fmtVal(d.value)}</div>
-                            <div style={{ color: 'rgba(255,255,255,0.45)', marginTop: 3, fontSize: 11 }}>Session: {d.net >= 0 ? '+' : ''}${d.net.toLocaleString()}</div>
+                            <div style={{ color: 'rgba(255,255,255,0.45)', marginTop: 3, fontSize: 11 }}>
+                                {d.hasData ? `${d.sessions} session${d.sessions > 1 ? 's' : ''}: ${d.net >= 0 ? '+' : ''}$${d.net.toLocaleString()}` : 'No sessions'}
+                            </div>
                         </TT>
                     );
                 }} />
@@ -216,8 +251,10 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
                     const d = payload[0].payload;
                     return (
                         <TT>
-                            <div style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 3 }}>{d.date} — {CATEGORY_LABELS[d.category] || d.category}</div>
-                            <div style={{ color: d.value >= 0 ? '#4ade80' : '#f87171', fontWeight: 600, fontSize: 14 }}>{fmtVal(d.value)}</div>
+                            <div style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 3 }}>{d.date}{d.hasData && d.category ? ` — ${CATEGORY_LABELS[d.category] || d.category}` : ''}</div>
+                            <div style={{ color: d.hasData ? (d.value >= 0 ? '#4ade80' : '#f87171') : 'rgba(255,255,255,0.3)', fontWeight: 600, fontSize: 14 }}>
+                                {d.hasData ? fmtVal(d.value) : 'No sessions'}
+                            </div>
                         </TT>
                     );
                 }} />
