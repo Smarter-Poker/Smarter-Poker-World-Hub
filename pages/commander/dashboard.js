@@ -60,10 +60,10 @@ const CARDS = [
     glow: '#94A3B8',
     features: [
       { label: 'Wait List Reports', href: '/commander/reports/waitlist', icon: '/images/commander/icons/rp-waitlist.png' },
-      { label: 'Player Reports', href: '/commander/reports/players', icon: '/images/commander/icons/rp-players.png' },
-      { label: 'Tournament Reports', href: '/commander/reports/tournaments', icon: '/images/commander/icons/rp-tournaments.png' },
+      { label: 'Player Reports', href: '/commander/reports/players', icon: '/images/commander/icons/rp-player.png' },
+      { label: 'Tournament Reports', href: '/commander/reports/tournaments', icon: '/images/commander/icons/rp-tournament.png' },
       { label: 'Custom Reports', href: '/commander/reports/custom', icon: '/images/commander/icons/rp-custom.png' },
-      { label: 'Configuration', href: '/commander/settings', icon: '/images/commander/icons/rp-configuration.png' },
+      { label: 'Configuration', href: '/commander/settings', icon: '/images/commander/icons/rp-config.png' },
       { label: 'Setups', href: '/commander/reports/setups', icon: '/images/commander/icons/rp-setups.png' },
       { label: 'Activity List', href: '/commander/reports/activity', icon: '/images/commander/icons/rp-activity.png' },
       { label: 'System Information', href: '/commander/reports/system', icon: '/images/commander/icons/rp-system.png' },
