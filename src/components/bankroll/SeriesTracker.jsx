@@ -381,52 +381,57 @@ export default function SeriesTracker({ userId, onOpenLog }) {
                         <h3 style={styles.formTitle}>New Series</h3>
 
                         <label style={styles.formLabel}>Series Name *</label>
-                        {newSeries._seriesMode !== '__new__' ? (
-                            <select
-                                value={newSeries.name || ''}
+                        <div style={{ position: 'relative' }}>
+                            <input
+                                type="text"
+                                value={newSeries.name}
                                 onChange={e => {
-                                    if (e.target.value === '__new__') {
-                                        setNewSeries({ ...newSeries, name: '', _seriesMode: '__new__' });
-                                    } else {
-                                        setNewSeries({ ...newSeries, name: e.target.value });
-                                    }
+                                    setNewSeries({ ...newSeries, name: e.target.value });
+                                    setShowSeriesSuggestions(true);
                                 }}
+                                onFocus={() => setShowSeriesSuggestions(true)}
+                                onBlur={() => setTimeout(() => setShowSeriesSuggestions(false), 200)}
+                                placeholder="Type series or tour name..."
                                 style={styles.formInput}
-                            >
-                                <option value="">-- Select Series --</option>
-                                {completedSeries.length > 0 && (
-                                    <optgroup label="Your Series">
-                                        {[...new Set(completedSeries.map(s => s.name))].map(name => (
-                                            <option key={`past-${name}`} value={name}>{name}</option>
+                                autoFocus
+                            />
+                            {showSeriesSuggestions && (() => {
+                                const q = (newSeries.name || '').toLowerCase();
+                                const pastNames = [...new Set(completedSeries.map(s => s.name))];
+                                const allNames = [...new Set([...pastNames, ...dbSeriesNames])];
+                                const filtered = q.length > 0
+                                    ? allNames.filter(n => n.toLowerCase().includes(q))
+                                    : allNames;
+                                if (filtered.length === 0) return null;
+                                return (
+                                    <div style={{
+                                        position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4,
+                                        background: '#242526', border: '1px solid rgba(255,255,255,0.15)',
+                                        borderRadius: 8, maxHeight: 200, overflowY: 'auto', zIndex: 50,
+                                        boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+                                    }}>
+                                        {pastNames.length > 0 && filtered.some(n => pastNames.includes(n)) && (
+                                            <div style={{ padding: '6px 14px', fontSize: 10, color: '#666', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>Your Series</div>
+                                        )}
+                                        {filtered.filter(n => pastNames.includes(n)).map((name, i) => (
+                                            <button key={`p-${i}`} type="button"
+                                                onMouseDown={e => { e.preventDefault(); setNewSeries({ ...newSeries, name }); setShowSeriesSuggestions(false); }}
+                                                style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', color: '#22c55e', fontSize: 13, textAlign: 'left', cursor: 'pointer' }}
+                                            >{name}</button>
                                         ))}
-                                    </optgroup>
-                                )}
-                                {dbSeriesNames.length > 0 && (
-                                    <optgroup label="Tournament Series">
-                                        {dbSeriesNames.map(name => (
-                                            <option key={`db-${name}`} value={name}>{name}</option>
+                                        {dbSeriesNames.length > 0 && filtered.some(n => dbSeriesNames.includes(n) && !pastNames.includes(n)) && (
+                                            <div style={{ padding: '6px 14px', fontSize: 10, color: '#666', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>Tournament Tours</div>
+                                        )}
+                                        {filtered.filter(n => !pastNames.includes(n)).map((name, i) => (
+                                            <button key={`d-${i}`} type="button"
+                                                onMouseDown={e => { e.preventDefault(); setNewSeries({ ...newSeries, name }); setShowSeriesSuggestions(false); }}
+                                                style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', color: '#e4e6eb', fontSize: 13, textAlign: 'left', cursor: 'pointer' }}
+                                            >{name}</button>
                                         ))}
-                                    </optgroup>
-                                )}
-                                <option value="__new__">+ New Series</option>
-                            </select>
-                        ) : (
-                            <div style={{ display: 'flex', gap: 6 }}>
-                                <input
-                                    type="text"
-                                    value={newSeries.name}
-                                    onChange={e => setNewSeries({ ...newSeries, name: e.target.value })}
-                                    placeholder="Enter new series name..."
-                                    style={{ ...styles.formInput, flex: 1 }}
-                                    autoFocus
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setNewSeries({ ...newSeries, name: '', _seriesMode: undefined })}
-                                    style={{ ...styles.formInput, flex: 'none', width: 40, cursor: 'pointer', textAlign: 'center', padding: 0 }}
-                                >&#x21A9;</button>
-                            </div>
-                        )}
+                                    </div>
+                                );
+                            })()}
+                        </div>
 
                         <label style={styles.formLabel}>Location</label>
                         {newSeries.location_id !== '__new__' ? (
