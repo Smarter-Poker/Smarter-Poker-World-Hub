@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { LogOut, ArrowLeft, X } from 'lucide-react';
+import { LogOut, ArrowLeft, X, Menu, Settings, Download, Users, QrCode } from 'lucide-react';
 
 /* ─────────────────────────────────────────────────
    CARD DEFINITIONS — each card has sub-features
@@ -75,6 +75,7 @@ export default function CommanderDashboard() {
   const router = useRouter();
   const [staff, setStaff] = useState(null);
   const [activeCard, setActiveCard] = useState(null); // which card is "opened"
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // Auth guard
   useEffect(() => {
@@ -140,23 +141,104 @@ export default function CommanderDashboard() {
           color: #888;
           margin-top: 2px;
         }
-        .cmd-topbar-btn {
+        .cmd-hamburger {
           background: none;
           border: 1px solid #333;
-          padding: 8px 12px;
+          padding: 8px;
           border-radius: 8px;
-          color: #aaa;
+          color: #ccc;
           cursor: pointer;
           display: flex;
           align-items: center;
-          gap: 6px;
-          font-size: 13px;
+          justify-content: center;
           transition: all 0.2s;
         }
-        .cmd-topbar-btn:hover {
+        .cmd-hamburger:hover {
           border-color: #555;
           color: #fff;
+          background: rgba(255,255,255,0.05);
         }
+
+        /* ── HAMBURGER DROPDOWN ── */
+        .cmd-menu-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 200;
+          background: rgba(0,0,0,0.5);
+          animation: cmdMenuFade 0.15s ease;
+        }
+        @keyframes cmdMenuFade {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .cmd-menu-panel {
+          position: fixed;
+          top: 0;
+          right: 0;
+          z-index: 201;
+          width: 260px;
+          max-height: 100vh;
+          background: linear-gradient(180deg, #1a1a1a 0%, #111 100%);
+          border-left: 1px solid #333;
+          border-bottom: 1px solid #333;
+          padding: 16px 0;
+          animation: cmdMenuSlide 0.2s ease;
+        }
+        @keyframes cmdMenuSlide {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
+        }
+        .cmd-menu-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0 16px 12px;
+          border-bottom: 1px solid #222;
+          margin-bottom: 8px;
+        }
+        .cmd-menu-header-text {
+          font-family: 'Orbitron', sans-serif;
+          font-size: 13px;
+          font-weight: 700;
+          color: #fff;
+          letter-spacing: 1.5px;
+          text-transform: uppercase;
+        }
+        .cmd-menu-close {
+          background: none;
+          border: none;
+          color: #666;
+          cursor: pointer;
+          padding: 4px;
+          display: flex;
+        }
+        .cmd-menu-close:hover { color: #fff; }
+        .cmd-menu-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          width: 100%;
+          padding: 12px 20px;
+          background: none;
+          border: none;
+          color: #ccc;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.15s;
+          text-align: left;
+        }
+        .cmd-menu-item:hover {
+          background: rgba(255,255,255,0.05);
+          color: #fff;
+        }
+        .cmd-menu-divider {
+          height: 1px;
+          background: #222;
+          margin: 8px 16px;
+        }
+        .cmd-menu-item.danger { color: #ef4444; }
+        .cmd-menu-item.danger:hover { background: rgba(239,68,68,0.1); color: #f87171; }
 
         /* ── 4-CARD GRID ── */
         .cmd-grid {
@@ -331,10 +413,41 @@ export default function CommanderDashboard() {
             <div className="cmd-topbar-title">Club Commander</div>
             <div className="cmd-topbar-venue">{staff.venue_name || 'Poker Room'}</div>
           </div>
-          <button className="cmd-topbar-btn" onClick={handleLogout}>
-            <LogOut size={16} /> Sign Out
+          <button className="cmd-hamburger" onClick={() => setMenuOpen(true)}>
+            <Menu size={22} />
           </button>
         </div>
+
+        {/* HAMBURGER MENU */}
+        {menuOpen && (
+          <>
+            <div className="cmd-menu-overlay" onClick={() => setMenuOpen(false)} />
+            <div className="cmd-menu-panel">
+              <div className="cmd-menu-header">
+                <span className="cmd-menu-header-text">Menu</span>
+                <button className="cmd-menu-close" onClick={() => setMenuOpen(false)}>
+                  <X size={18} />
+                </button>
+              </div>
+              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/members'); }}>
+                <Users size={18} /> Members
+              </button>
+              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/qr-code'); }}>
+                <QrCode size={18} /> QR Code
+              </button>
+              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/downloads'); }}>
+                <Download size={18} /> Downloads
+              </button>
+              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/settings'); }}>
+                <Settings size={18} /> Settings
+              </button>
+              <div className="cmd-menu-divider" />
+              <button className="cmd-menu-item danger" onClick={handleLogout}>
+                <LogOut size={18} /> Sign Out
+              </button>
+            </div>
+          </>
+        )}
 
         {/* ── MAIN: 4-CARD GRID ── */}
         {!activeCard && (
