@@ -91,7 +91,7 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
         location_id: e.location_id || '',
         location_name: e.location_name || '',
         trip_id: e.trip_id || '',
-        entry_date: e.entry_date || new Date().toISOString().split('T')[0],
+        entry_date: e.entry_date || new Date().toLocaleDateString('en-CA'),
         start_time_text: start12.time,
         start_period: start12.period,
         end_time_text: end12.time,
@@ -121,7 +121,7 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
       location_id: '',
       location_name: '',
       trip_id: '',
-      entry_date: new Date().toISOString().split('T')[0],
+      entry_date: new Date().toLocaleDateString('en-CA'),
       start_time_text: '',
       start_period: 'PM',
       end_time_text: '',
@@ -205,13 +205,12 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
     } catch (_) { /* ignore */ }
   }, []);
 
-  // Auto-attach active trip for new entries
+  // Detect active trip for display (but don't auto-assign)
   useEffect(() => {
     if (!userId || isEditMode) return;
     getActiveTrip(userId).then(trip => {
       if (trip) {
         setActiveTrip(trip);
-        setFormData(prev => ({ ...prev, trip_id: trip.id }));
       }
     }).catch(() => { });
   }, [userId, isEditMode]);
