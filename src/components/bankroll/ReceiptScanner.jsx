@@ -10,6 +10,7 @@ import { supabase } from '../../lib/supabase';
 import { formatCurrency } from '../../lib/bankroll/currencyUtils';
 import { METAL, GRADIENTS, GLOWS, ANIMATIONS } from './metalStyles';
 import DocumentCropper from './DocumentCropper';
+import LiveCameraScanner from './LiveCameraScanner';
 
 // No emoji icons - use labels only for clean Facebook-style UI
 const EXPENSE_ICONS = {
@@ -31,6 +32,7 @@ export default function ReceiptScanner({ onScanComplete, displayEUR = false, tri
     const [imagePreview, setImagePreview] = useState(null);
     const [showCropper, setShowCropper] = useState(false);
     const [rawImage, setRawImage] = useState(null);
+    const [showLiveCamera, setShowLiveCamera] = useState(false);
     const fileInputRef = useRef(null);
 
     const handleFileSelect = useCallback(async (e) => {
@@ -65,6 +67,13 @@ export default function ReceiptScanner({ onScanComplete, displayEUR = false, tri
             await scanReceipt(file);
         }
     }, [rawImage]);
+
+    // Handle live camera capture
+    const handleLiveCapture = useCallback((capturedBase64) => {
+        setShowLiveCamera(false);
+        setRawImage(capturedBase64);
+        setShowCropper(true);
+    }, []);
 
     const scanReceipt = async (file) => {
         setIsScanning(true);
@@ -121,6 +130,7 @@ export default function ReceiptScanner({ onScanComplete, displayEUR = false, tri
         setImagePreview(null);
         setRawImage(null);
         setShowCropper(false);
+        setShowLiveCamera(false);
         setError(null);
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
@@ -160,25 +170,46 @@ export default function ReceiptScanner({ onScanComplete, displayEUR = false, tri
                 </div>
             )}
 
-            {/* Upload Area */}
-            {!imagePreview && !isScanning && (
-                <div
-                    style={styles.uploadArea}
-                    onClick={() => fileInputRef.current?.click()}
-                >
+            {/* Live Camera */}
+            {showLiveCamera && !imagePreview && !isScanning && (
+                <LiveCameraScanner
+                    onCapture={handleLiveCapture}
+                    onClose={() => setShowLiveCamera(false)}
+                />
+            )}
+
+            {/* Upload Area — shows when no camera active */}
+            {!showLiveCamera && !imagePreview && !isScanning && (
+                <div style={styles.uploadArea}>
+                    <div
+                        style={styles.cameraLaunchBtn}
+                        onClick={() => setShowLiveCamera(true)}
+                    >
+                        <div style={styles.uploadIcon}>
+                            <Camera size={32} />
+                        </div>
+                        <p style={styles.uploadText}>TAP TO SCAN RECEIPT</p>
+                        <p style={styles.uploadHint}>Auto-detects and captures receipts</p>
+                    </div>
+                    <div style={styles.uploadDivider}>
+                        <span style={styles.uploadDividerLine} />
+                        <span style={styles.uploadDividerText}>or</span>
+                        <span style={styles.uploadDividerLine} />
+                    </div>
+                    <button
+                        onClick={() => fileInputRef.current?.click()}
+                        style={styles.fileUploadBtn}
+                    >
+                        <Upload size={14} />
+                        Upload from gallery
+                    </button>
                     <input
                         ref={fileInputRef}
                         type="file"
                         accept="image/*"
-                        capture="environment"
                         onChange={handleFileSelect}
                         style={styles.fileInput}
                     />
-                    <div style={styles.uploadIcon}>
-                        <Camera size={32} />
-                    </div>
-                    <p style={styles.uploadText}>TAP TO SCAN RECEIPT</p>
-                    <p style={styles.uploadHint}>Buy-ins, hotels, meals, gas, rentals</p>
                 </div>
             )}
 
@@ -401,6 +432,45 @@ const styles = {
         fontSize: 12,
         color: 'rgba(255,255,255,0.4)',
         marginTop: 6,
+    },
+    cameraLaunchBtn: {
+        cursor: 'pointer',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        padding: '24px 0',
+    },
+    uploadDivider: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        padding: '0 24px',
+        margin: '4px 0',
+    },
+    uploadDividerLine: {
+        flex: 1,
+        height: 1,
+        background: 'rgba(255,255,255,0.1)',
+    },
+    uploadDividerText: {
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.3)',
+        fontFamily: 'Inter, -apple-system, sans-serif',
+    },
+    fileUploadBtn: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        width: '100%',
+        padding: '10px 0',
+        background: 'none',
+        border: 'none',
+        color: 'rgba(255,255,255,0.5)',
+        fontSize: 13,
+        fontWeight: 500,
+        cursor: 'pointer',
+        fontFamily: 'Inter, -apple-system, sans-serif',
     },
     scanningState: {
         position: 'relative',
