@@ -456,7 +456,7 @@ export default function BankrollManagerPage() {
     } else if (sectionId === 'staking') {
       setActiveSection('pro');
     } else if (sectionId === 'tax') {
-      setActiveSection('pro');
+      setActiveSection('tax');
     } else if (sectionId === 'receipts') {
       setActiveSection('receipts');
     } else {
@@ -733,7 +733,7 @@ export default function BankrollManagerPage() {
                   ...(activeSection === section.id ? styles.sidebarItemActive : {}),
                 }}
               >
-                {section.id === 'dashboard' && activeSection !== 'dashboard' ? '← Back to Dashboard' : section.label}
+                {section.id === 'dashboard' && activeSection !== 'dashboard' ? '← Dashboard' : section.label}
               </button>
             ))}
 
@@ -1402,6 +1402,23 @@ export default function BankrollManagerPage() {
               </div>
             )}
 
+            {/* Tax Reports — dedicated view showing only Tax Report Generator */}
+            {activeSection === 'tax' && (
+              <div style={styles.proToolsContainer}>
+                <div style={{ padding: '20px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  <h2 style={{ fontSize: 16, fontWeight: 700, color: '#e4e6eb', margin: 0 }}>
+                    Tax Reports
+                  </h2>
+                  <p style={{ fontSize: 12, color: '#b0b3b8', margin: '4px 0 0' }}>Generate tax documents for your poker income</p>
+                </div>
+                <BankrollProGate userId={userId}>
+                  <div style={{ padding: 16 }}>
+                    <TaxReportPanel userId={userId} />
+                  </div>
+                </BankrollProGate>
+              </div>
+            )}
+
             {/* Pro Tools View - Gated for non-VIP */}
             {activeSection === 'pro' && (
               <div style={styles.proToolsContainer}>
@@ -1416,7 +1433,6 @@ export default function BankrollManagerPage() {
                 <BankrollProGate userId={userId}>
                   {/* Pro Features Grid - Only visible after unlock or for VIP */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, padding: 16 }}>
-                    <TaxReportPanel userId={userId} />
                     <StakingTracker userId={userId} />
                     <SeriesTracker userId={userId} />
                     <SessionHandReview userId={userId} />
@@ -1937,6 +1953,8 @@ const styles = {
     textAlign: 'left',
     transition: 'all 0.2s ease',
     whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
   },
   sidebarItemActive: {
     background: 'rgba(35, 116, 225, 0.15)',  // Facebook blue
