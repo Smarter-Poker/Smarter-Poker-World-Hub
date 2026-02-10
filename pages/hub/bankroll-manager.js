@@ -550,10 +550,14 @@ export default function BankrollManagerPage() {
                   ...(activeSection === section.id ? styles.sidebarItemActive : {}),
                 }}
               >
-                <span style={styles.sidebarIcon}>{section.icon}</span>
-                <span>{section.id === 'dashboard' && activeSection !== 'dashboard' ? '← Back to Dashboard' : section.label}</span>
+                {section.id === 'dashboard' && activeSection !== 'dashboard' ? '← Back to Dashboard' : section.label}
               </button>
             ))}
+
+            {/* Jarvis AI Insights - moved from right panel */}
+            <div style={{ marginTop: 16, borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 16 }}>
+              <JarvisLeakInsights userId={userId} onRefresh={loadData} />
+            </div>
           </nav>
 
           {/* Main Content - Switches based on activeSection */}
@@ -1184,14 +1188,6 @@ export default function BankrollManagerPage() {
               </div>
             )}
           </main>
-
-          {/* Right Sidebar - Assistant Panel */}
-          <aside style={styles.assistantPanel}>
-            {/* Jarvis AI Insights */}
-            <JarvisLeakInsights userId={userId} onRefresh={loadData} />
-
-            {/* Analytics widgets moved to main dashboard content area */}
-          </aside>
         </div>
       </div>
 
@@ -1534,18 +1530,17 @@ const styles = {
     borderRight: '1px solid rgba(255, 255, 255, 0.08)',
   },
   sidebarItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 10,
+    display: 'block',
     width: '100%',
-    padding: '12px 14px',
+    padding: '10px 14px',
     background: 'transparent',
     border: 'none',
     borderRadius: 8,
     color: 'rgba(255, 255, 255, 0.6)',
     fontSize: 13,
+    fontWeight: 500,
     cursor: 'pointer',
-    marginBottom: 4,
+    marginBottom: 2,
     textAlign: 'left',
     transition: 'all 0.2s ease',
     whiteSpace: 'nowrap',
@@ -1738,12 +1733,7 @@ const styles = {
     fontSize: 20,
     color: 'rgba(255, 255, 255, 0.3)',
   },
-  assistantPanel: {
-    width: 220,
-    padding: '20px 16px',
-    borderLeft: '1px solid rgba(255, 255, 255, 0.08)',
-    overflowY: 'auto',
-  },
+  // assistantPanel removed - right panel eliminated
   logTodayButton: {
     display: 'flex',
     justifyContent: 'space-between',
