@@ -9,7 +9,7 @@ import Head from 'next/head';
 import {
   LogOut, RefreshCw, Wifi, WifiOff, Menu, X,
   Trophy, Gift, BarChart3, Users, Settings, Home, Grid3X3, QrCode, FileText, AlertTriangle, UserCog, Video,
-  Lightbulb, Clock, ArrowRightLeft, ChevronRight
+  Lightbulb, Clock, ArrowRightLeft, ChevronRight, Contact
 } from 'lucide-react';
 import GameGrid from '../../src/components/commander/staff/GameGrid';
 import WaitlistManager from '../../src/components/commander/staff/WaitlistManager';
@@ -66,6 +66,7 @@ export default function CommanderDashboard() {
     { href: '/commander/dealers', label: 'Dealers', icon: UserCog },
     { href: '/commander/streaming', label: 'Streaming', icon: Video },
     { href: '/commander/qr-code', label: 'Check-In QR', icon: QrCode },
+    { href: '/commander/members', label: 'Members', icon: Contact },
     { href: '/commander/staff', label: 'Staff', icon: Users },
     { href: '/commander/settings', label: 'Settings', icon: Settings },
   ];
@@ -472,18 +473,16 @@ export default function CommanderDashboard() {
                     </div>
                     <div className="space-y-3">
                       {aiSuggestions.slice(0, 3).map((suggestion, idx) => (
-                        <div key={idx} className={`p-3 rounded-lg ${
-                          suggestion.priority === 'high' ? 'bg-[#EF4444]/10' : 'bg-[#18191A]'
-                        }`}>
+                        <div key={idx} className={`p-3 rounded-lg ${suggestion.priority === 'high' ? 'bg-[#EF4444]/10' : 'bg-[#18191A]'
+                          }`}>
                           <div className="flex items-center justify-between mb-1">
                             <span className="text-sm font-medium text-[#E4E6EB]">
                               Move {suggestion.player?.name || 'player'}
                             </span>
-                            <span className={`text-xs px-2 py-0.5 rounded-full ${
-                              suggestion.priority === 'high'
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${suggestion.priority === 'high'
                                 ? 'bg-[#EF4444]/10 text-[#EF4444]'
                                 : 'bg-[#F59E0B]/10 text-[#F59E0B]'
-                            }`}>
+                              }`}>
                               {suggestion.priority}
                             </span>
                           </div>
@@ -628,11 +627,10 @@ export default function CommanderDashboard() {
                     setShowNav(false);
                     router.push(href);
                   }}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
-                    active
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${active
                       ? 'bg-[#1877F2]/10 text-[#1877F2]'
                       : 'text-[#B0B3B8] hover:bg-[#3A3B3C]'
-                  }`}
+                    }`}
                 >
                   <Icon className="w-5 h-5" />
                   <span className="font-medium">{label}</span>

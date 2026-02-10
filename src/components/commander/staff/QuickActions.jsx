@@ -3,7 +3,7 @@
  * Reference: IMPLEMENTATION_PHASES.md - Step 1.5
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
-import { Plus, UserPlus, Users, Table2, Bell, Settings } from 'lucide-react';
+import { Plus, UserPlus, Users, Table2, Bell, Settings, Contact, ScanLine } from 'lucide-react';
 
 export default function QuickActions({
   onOpenGame,
@@ -12,6 +12,8 @@ export default function QuickActions({
   onManageTables,
   onSendAnnouncement,
   onSettings,
+  onNewMember,
+  onScanMember,
   permissions = {}
 }) {
   const actions = [
@@ -54,6 +56,22 @@ export default function QuickActions({
       onClick: onSendAnnouncement,
       color: 'bg-[#F59E0B]',
       show: permissions.send_notifications !== false
+    },
+    {
+      id: 'new-member',
+      label: 'New Member',
+      icon: Contact,
+      onClick: onNewMember,
+      color: 'bg-[#8B5CF6]',
+      show: true
+    },
+    {
+      id: 'scan-card',
+      label: 'Scan Card',
+      icon: ScanLine,
+      onClick: onScanMember,
+      color: 'bg-[#0EA5E9]',
+      show: true
     },
     {
       id: 'settings',
