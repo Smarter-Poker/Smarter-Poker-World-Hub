@@ -326,15 +326,6 @@ export default function TournamentsPage() {
                                 />
                             </div>
 
-                            {/* Header */}
-                            <div className="page-header">
-                                <Trophy size={32} color="#FFD700" />
-                                <h1>TOURNAMENTS</h1>
-                                <div className="diamond-balance">
-                                    <Gem size={18} /> {userDiamonds}
-                                </div>
-                            </div>
-
                             {/* Active Tournament */}
                             {activeTournament && (
                                 <MetalFrame padding="24px" showBolts={true} className="active-tournament">
@@ -563,8 +554,8 @@ export default function TournamentsPage() {
 
                 .content {
                     position: relative;
-                    padding: 100px 20px 40px;
-                    max-width: 600px;
+                    padding: 80px 0 40px;
+                    max-width: 100%;
                     margin: 0 auto;
                 }
 

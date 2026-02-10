@@ -652,7 +652,7 @@ export default function SurvivalGamePage() {
                     backgroundColor: '#000000',
                     padding: '20px'
                 }}>
-                    <div style={{ maxWidth: '700px', margin: '0 auto' }}>
+                    <div style={{ maxWidth: '100%', margin: '0 auto' }}>
                         {/* In-game HUD (only visible during gameplay) */}
                         {gameState === 'playing' && (
                             <div style={{

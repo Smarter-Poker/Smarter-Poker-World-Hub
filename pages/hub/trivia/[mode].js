@@ -867,7 +867,7 @@ export default function TriviaModePage() {
 
                 .content {
                     position: relative;
-                    padding: 100px 20px 40px;
+                    padding: 80px 0 40px;
                 }
 
                 .loading,
@@ -916,7 +916,7 @@ export default function TriviaModePage() {
                     border-radius: 16px;
                     overflow: hidden;
                     transition: transform 0.3s ease, box-shadow 0.3s ease;
-                    max-width: 500px;
+                    max-width: 100%;
                     margin: 0 auto;
                 }
 

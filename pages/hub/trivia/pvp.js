@@ -598,17 +598,19 @@ export default function PvPPage() {
                 <UniversalHeader pageDepth={2} />
 
                 <div className="content">
-                    {/* Stats Bar */}
-                    <div className="stats-bar">
-                        <div className="stat">
-                            <Trophy size={16} />
-                            <span>{stats.wins}W - {stats.losses}L</span>
+                    {/* Stats Bar - only visible during gameplay */}
+                    {gameState !== 'lobby' && (
+                        <div className="stats-bar">
+                            <div className="stat">
+                                <Trophy size={16} />
+                                <span>{stats.wins}W - {stats.losses}L</span>
+                            </div>
+                            <div className="stat diamonds">
+                                <Gem size={16} />
+                                <span>{userDiamonds}</span>
+                            </div>
                         </div>
-                        <div className="stat diamonds">
-                            <Gem size={16} />
-                            <span>{userDiamonds}</span>
-                        </div>
-                    </div>
+                    )}
 
                     {/* Lobby */}
                     {gameState === 'lobby' && (
@@ -806,8 +808,8 @@ export default function PvPPage() {
 
                 .content {
                     position: relative;
-                    padding: 100px 20px 40px;
-                    max-width: 600px;
+                    padding: 80px 0 40px;
+                    max-width: 100%;
                     margin: 0 auto;
                 }
 

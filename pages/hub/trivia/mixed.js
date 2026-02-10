@@ -535,8 +535,8 @@ export default function MixedModePage() {
 
                 .content {
                     position: relative;
-                    padding: 100px 20px 40px;
-                    max-width: 600px;
+                    padding: 80px 0 40px;
+                    max-width: 100%;
                     margin: 0 auto;
                 }
 
