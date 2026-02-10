@@ -613,10 +613,7 @@ export default function BankrollManagerPage() {
             }
             .bankroll-dropdown-menu {
               min-width: 160px !important;
-              position: fixed !important;
               z-index: 9999 !important;
-              left: 12px !important;
-              right: 12px !important;
               max-height: 50vh !important;
             }
             .bankroll-analytics-slider {
