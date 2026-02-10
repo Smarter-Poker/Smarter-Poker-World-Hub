@@ -61,6 +61,28 @@ export default async function handler(req, res) {
                 article = byName;
             }
 
+            // MSPT Cross-Source Fallback: If MSPT's own articles are stale (>3 days old),
+            // search for any recent article mentioning "MSPT" in the title from ANY source
+            // (e.g., PokerNews covering MSPT events). This mirrors the "MSPT News & Updates" bar.
+            if (box.box === 2 && article) {
+                const articleAge = Date.now() - new Date(article.published_at).getTime();
+                const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
+                if (articleAge > threeDaysMs) {
+                    const { data: crossSource } = await supabase
+                        .from('poker_news')
+                        .select('*')
+                        .ilike('title', '%MSPT%')
+                        .eq('is_published', true)
+                        .order('published_at', { ascending: false })
+                        .limit(1)
+                        .single();
+
+                    if (crossSource && new Date(crossSource.published_at) > new Date(article.published_at)) {
+                        article = crossSource;
+                    }
+                }
+            }
+
             // If we found an article, add it with box number
             if (article) {
                 boxArticles.push({
