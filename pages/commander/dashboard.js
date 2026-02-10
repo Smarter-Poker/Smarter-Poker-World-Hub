@@ -303,33 +303,20 @@ export default function CommanderDashboard() {
           to { opacity: 1; transform: scale(1); }
         }
         .cmd-open-header {
-          position: relative;
-          width: 100%;
-          height: 200px;
-          overflow: hidden;
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          padding: 16px 20px;
+          border-bottom: 1px solid #222;
+          background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%);
           flex-shrink: 0;
         }
-        .cmd-open-header img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          object-position: top center;
-        }
-        .cmd-open-header-overlay {
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(10,10,10,0.95) 85%);
-        }
         .cmd-open-back {
-          position: absolute;
-          top: 12px;
-          left: 12px;
-          z-index: 10;
-          background: rgba(0,0,0,0.6);
+          background: none;
           border: 1px solid #444;
           border-radius: 10px;
           padding: 8px 14px;
-          color: #fff;
+          color: #ccc;
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -337,24 +324,18 @@ export default function CommanderDashboard() {
           font-size: 13px;
           font-weight: 600;
           transition: all 0.2s;
-          backdrop-filter: blur(8px);
         }
         .cmd-open-back:hover {
-          background: rgba(0,0,0,0.8);
           border-color: #666;
+          color: #fff;
         }
         .cmd-open-title {
-          position: absolute;
-          bottom: 20px;
-          left: 20px;
-          z-index: 5;
           font-family: 'Orbitron', sans-serif;
-          font-size: 28px;
+          font-size: 22px;
           font-weight: 900;
           color: #fff;
           text-transform: uppercase;
           letter-spacing: 3px;
-          text-shadow: 0 2px 20px rgba(0,0,0,0.8);
         }
 
         /* ── SUB-FEATURE BUTTONS ── */
@@ -412,13 +393,13 @@ export default function CommanderDashboard() {
       <div className="cmd-dashboard">
         {/* TOP BAR */}
         <div className="cmd-topbar">
-          <div>
-            <div className="cmd-topbar-title">Club Commander</div>
-            <div className="cmd-topbar-venue">{staff.venue_name || 'Poker Room'}</div>
-          </div>
           <button className="cmd-hamburger" onClick={() => setMenuOpen(true)}>
             <Menu size={22} />
           </button>
+          <div style={{ textAlign: 'right' }}>
+            <div className="cmd-topbar-title">Club Commander</div>
+            <div className="cmd-topbar-venue">{staff.venue_name || 'Poker Room'}</div>
+          </div>
         </div>
 
         {/* HAMBURGER MENU */}
@@ -473,8 +454,6 @@ export default function CommanderDashboard() {
         {openCard && (
           <div className="cmd-open">
             <div className="cmd-open-header">
-              <img src={openCard.image} alt={openCard.title} />
-              <div className="cmd-open-header-overlay" />
               <button className="cmd-open-back" onClick={() => setActiveCard(null)}>
                 <ArrowLeft size={16} /> Back
               </button>
