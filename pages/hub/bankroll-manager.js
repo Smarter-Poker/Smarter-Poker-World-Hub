@@ -55,6 +55,7 @@ import BankrollHeatMap from '../../src/components/bankroll/BankrollHeatMap';
 // Phase 5 Pro Components
 import BankrollProGate from '../../src/components/bankroll/BankrollProGate';
 import ReceiptScanner from '../../src/components/bankroll/ReceiptScanner';
+import SavedReceipts from '../../src/components/bankroll/SavedReceipts';
 import TaxReportPanel from '../../src/components/bankroll/TaxReportPanel';
 import StakingTracker from '../../src/components/bankroll/StakingTracker';
 import SeriesTracker from '../../src/components/bankroll/SeriesTracker';
@@ -72,6 +73,7 @@ const SIDEBAR_SECTIONS = [
   { id: 'trips', label: 'Trip Tracker', icon: '' },
   { id: 'series', label: 'Series Tracker', icon: '' },
   { id: 'scan-receipt', label: 'Scan Receipt', icon: '' },
+  { id: 'receipts', label: 'Saved Receipts', icon: '' },
   { id: 'players', label: 'Player Notes', icon: '' },
   { id: 'leaks', label: 'Leaks', icon: '' },
   { id: 'reports', label: 'Reports', icon: '' },
@@ -219,8 +221,9 @@ export default function BankrollManagerPage() {
   const [leakAnalysis, setLeakAnalysis] = useState(null);
   const [showVenueModal, setShowVenueModal] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
-  const [scannerStep, setScannerStep] = useState('choice'); // 'choice' | 'pick-entry' | 'scan'
+  const [scannerStep, setScannerStep] = useState('scan'); // 'scan' | 'post-capture' | 'pick-entry'
   const [scannerEntryId, setScannerEntryId] = useState(null);
+  const [scannerImageUrl, setScannerImageUrl] = useState(null);
   const [ruleViolations, setRuleViolations] = useState([]);
 
   //  INTRO VIDEO STATE - Video plays while page loads in background
@@ -400,8 +403,11 @@ export default function BankrollManagerPage() {
   const handleSidebarClick = (sectionId) => {
     if (sectionId === 'scan-receipt') {
       setShowScanner(true);
-      setScannerStep('choice');
+      setScannerStep('scan');
       setScannerEntryId(null);
+      setScannerImageUrl(null);
+    } else if (sectionId === 'receipts') {
+      setActiveSection('receipts');
     } else if (sectionId === 'series') {
       router.push('/hub/bankroll-manager?view=series');
     } else {
@@ -1167,6 +1173,13 @@ export default function BankrollManagerPage() {
               </div>
             )}
 
+            {/* Saved Receipts View */}
+            {activeSection === 'receipts' && (
+              <div style={styles.activitySection}>
+                <SavedReceipts userId={userId} />
+              </div>
+            )}
+
             {/* Pro Tools View - Gated for non-VIP */}
             {activeSection === 'pro' && (
               <div style={styles.proToolsContainer}>
@@ -1201,54 +1214,87 @@ export default function BankrollManagerPage() {
           <div style={styles.scannerModalContent}>
             <div style={styles.scannerModalHeader}>
               <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: '#fff' }}>
-                {scannerStep === 'choice' && 'Scan Receipt'}
+                {scannerStep === 'scan' && 'Scan Receipt'}
+                {scannerStep === 'post-capture' && 'Receipt Saved'}
                 {scannerStep === 'pick-entry' && 'Select Entry'}
-                {scannerStep === 'scan' && (scannerEntryId ? 'Add to Entry' : 'New Expense')}
               </h2>
               <button
-                onClick={() => { setShowScanner(false); setScannerStep('choice'); setScannerEntryId(null); }}
+                onClick={() => { setShowScanner(false); setScannerStep('scan'); setScannerEntryId(null); setScannerImageUrl(null); }}
                 style={styles.scannerCloseBtn}
               >
                 ✕
               </button>
             </div>
 
-            {/* Step 1: Choice */}
-            {scannerStep === 'choice' && (
+            {/* Step 1: Scan — camera captures first */}
+            {scannerStep === 'scan' && (
+              <div>
+                <ReceiptScanner
+                  userId={userId}
+                  onScanComplete={({ imageUrl }) => {
+                    setScannerImageUrl(imageUrl);
+                    setScannerStep('post-capture');
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Step 2: Post-capture — choose what to do */}
+            {scannerStep === 'post-capture' && scannerImageUrl && (
               <div style={{ padding: 20 }}>
+                {/* Receipt thumbnail */}
+                <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                  <img
+                    src={scannerImageUrl}
+                    alt="Receipt"
+                    style={{ maxWidth: '100%', maxHeight: 180, objectFit: 'contain', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)' }}
+                  />
+                </div>
+
                 <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, marginTop: 0, marginBottom: 20, textAlign: 'center' }}>
-                  What would you like to do?
+                  What would you like to do with this receipt?
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <button
+                    onClick={() => {
+                      // Open LogEntryModal with receipt pre-attached
+                      setEditEntry({
+                        category: 'expense',
+                        media_urls: [scannerImageUrl],
+                        entry_date: new Date().toISOString().split('T')[0],
+                      });
+                      setShowLogModal(true);
+                      setShowScanner(false);
+                      setScannerStep('scan');
+                      setScannerImageUrl(null);
+                    }}
+                    style={styles.scannerChoiceBtn}
+                  >
+                    <span style={{ fontSize: 22 }}>🆕</span>
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{ fontWeight: 600, color: '#fff', fontSize: 15 }}>Create New Expense</div>
+                      <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 2 }}>Log this as a new expense entry</div>
+                    </div>
+                  </button>
                   <button
                     onClick={() => setScannerStep('pick-entry')}
                     style={styles.scannerChoiceBtn}
                   >
                     <span style={{ fontSize: 22 }}>📎</span>
                     <div style={{ textAlign: 'left' }}>
-                      <div style={{ fontWeight: 600, color: '#fff', fontSize: 15 }}>Add to Existing Entry</div>
-                      <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 2 }}>Attach receipt to a recent session or expense</div>
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => { setScannerEntryId(null); setScannerStep('scan'); }}
-                    style={styles.scannerChoiceBtn}
-                  >
-                    <span style={{ fontSize: 22 }}>🆕</span>
-                    <div style={{ textAlign: 'left' }}>
-                      <div style={{ fontWeight: 600, color: '#fff', fontSize: 15 }}>Create New Expense</div>
-                      <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 2 }}>Scan as a standalone expense entry</div>
+                      <div style={{ fontWeight: 600, color: '#fff', fontSize: 15 }}>Attach to Existing Entry</div>
+                      <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 2 }}>Add this receipt to a recent session or expense</div>
                     </div>
                   </button>
                 </div>
               </div>
             )}
 
-            {/* Step 2: Pick existing entry */}
+            {/* Step 3: Pick existing entry to attach receipt */}
             {scannerStep === 'pick-entry' && (
               <div style={{ padding: '0 16px 16px' }}>
                 <button
-                  onClick={() => setScannerStep('choice')}
+                  onClick={() => setScannerStep('post-capture')}
                   style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: 13, cursor: 'pointer', padding: '12px 4px', fontWeight: 500 }}
                 >
                   ← Back
@@ -1268,7 +1314,24 @@ export default function BankrollManagerPage() {
                       return (
                         <button
                           key={entry.id}
-                          onClick={() => { setScannerEntryId(entry.id); setScannerStep('scan'); }}
+                          onClick={async () => {
+                            try {
+                              // Append receipt URL to entry's media_urls
+                              const existing = entry.media_urls || [];
+                              const updated = [...existing, scannerImageUrl];
+                              await supabase
+                                .from('bankroll_ledger')
+                                .update({ media_urls: updated })
+                                .eq('id', entry.id);
+                              await loadData();
+                              setShowScanner(false);
+                              setScannerStep('scan');
+                              setScannerEntryId(null);
+                              setScannerImageUrl(null);
+                            } catch (err) {
+                              console.error('Attach failed:', err);
+                            }
+                          }}
                           style={styles.scannerEntryBtn}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
@@ -1292,27 +1355,6 @@ export default function BankrollManagerPage() {
                     })}
                   </div>
                 )}
-              </div>
-            )}
-
-            {/* Step 3: Scanner */}
-            {scannerStep === 'scan' && (
-              <div>
-                {scannerEntryId && (
-                  <div style={{ padding: '8px 16px', background: 'rgba(59,130,246,0.1)', borderBottom: '1px solid rgba(59,130,246,0.2)', fontSize: 12, color: '#3b82f6' }}>
-                    Attaching to entry #{scannerEntryId.slice(0, 8)}...
-                  </div>
-                )}
-                <ReceiptScanner
-                  userId={userId}
-                  tripId={scannerEntryId}
-                  onScanComplete={(data) => {
-                    loadData();
-                    setShowScanner(false);
-                    setScannerStep('choice');
-                    setScannerEntryId(null);
-                  }}
-                />
               </div>
             )}
           </div>

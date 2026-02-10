@@ -376,6 +376,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Trip Tracker', '/hub/bankroll-manager?view=trips'),
             createMenuItem.navigation('Leaks Analysis', '/hub/bankroll-manager?view=leaks'),
             createMenuItem.navigation('Reports', '/hub/bankroll-manager?view=reports'),
+            createMenuItem.navigation('Saved Receipts', '/hub/bankroll-manager?view=receipts'),
             createMenuItem.divider(),
             createMenuItem.section('Game Types'),
             createMenuItem.navigation('Cash Games', '/hub/bankroll-manager?type=cash'),

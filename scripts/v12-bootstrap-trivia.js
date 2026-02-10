@@ -16,6 +16,7 @@
 require('dotenv').config({ path: '.env.local' });
 const { createClient } = require('@supabase/supabase-js');
 const OpenAI = require('openai');
+const { validateBatch } = require('./trivia-qa-validator');
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -395,33 +396,48 @@ async function main() {
 
             process.stdout.write(`   Batch ${batchNum + 1}: [${difficulty.toUpperCase()}] ${topic.substring(0, 40)}... `);
 
-            const questions = await generateBatch(category, topic, difficulty, batchSize, existingTexts);
+            const rawQuestions = await generateBatch(category, topic, difficulty, batchSize, existingTexts);
 
-            if (questions.length > 0) {
-                consecutiveFailures = 0;
+            if (rawQuestions.length > 0) {
+                // ═══ QA VALIDATION GATE — NO QUESTION ENTERS DB WITHOUT PASSING ═══
+                const { valid: validQuestions, rejected, report } = validateBatch(rawQuestions);
 
-                if (dryRun) {
-                    generated += questions.length;
-                    console.log(`✅ +${questions.length} (dry run, total: ${currentCount + generated})`);
-                } else {
-                    const { data, error } = await supabase
-                        .from('trivia_questions')
-                        .insert(questions)
-                        .select();
+                if (rejected.length > 0) {
+                    console.log(`\n      🛡️  QA GATE: ${rejected.length}/${rawQuestions.length} REJECTED:`);
+                    rejected.forEach(r => {
+                        console.log(`         ❌ "${r.question.question?.substring(0, 50)}..."`);
+                        r.errors.forEach(e => console.log(`            → ${e}`));
+                    });
+                }
 
-                    if (!error && data) {
-                        generated += data.length;
-                        grandTotalGenerated += data.length;
-                        // Add to dedup list
-                        data.forEach(q => existingTexts.push(q.question));
-                        console.log(`✅ +${data.length} (total: ${currentCount + generated})`);
+                if (validQuestions.length > 0) {
+                    consecutiveFailures = 0;
+
+                    if (dryRun) {
+                        generated += validQuestions.length;
+                        console.log(`      ✅ +${validQuestions.length} passed QA (dry run, total: ${currentCount + generated})`);
                     } else {
-                        console.log(`❌ Insert error: ${error?.message}`);
+                        const { data, error } = await supabase
+                            .from('trivia_questions')
+                            .insert(validQuestions)
+                            .select();
+
+                        if (!error && data) {
+                            generated += data.length;
+                            grandTotalGenerated += data.length;
+                            data.forEach(q => existingTexts.push(q.question));
+                            console.log(`      ✅ +${data.length} passed QA & inserted (total: ${currentCount + generated})`);
+                        } else {
+                            console.log(`      ❌ Insert error: ${error?.message}`);
+                        }
                     }
+                } else {
+                    consecutiveFailures++;
+                    console.log(`      ⚠️ ALL questions rejected by QA gate (fail ${consecutiveFailures}/3)`);
                 }
             } else {
                 consecutiveFailures++;
-                console.log(`⚠️ No valid questions (fail ${consecutiveFailures}/3)`);
+                console.log(`⚠️ No questions generated (fail ${consecutiveFailures}/3)`);
             }
 
             batchNum++;
