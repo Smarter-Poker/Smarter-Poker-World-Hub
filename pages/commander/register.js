@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
-import { supabase } from '../../src/lib/supabase';
 
 const TIERS = {
   starter: {
@@ -52,19 +51,17 @@ export default function RegisterPage() {
     phone: '', email: '', website: '', tables: '', gamesOffered: []
   });
 
-  const [ownerInfo, setOwnerInfo] = useState({
-    name: '', email: '', password: '', confirmPassword: '', phone: ''
-  });
+  // Owner fields — just name & password. Email/phone come from clubInfo.
+  const [ownerName, setOwnerName] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [existingAccount, setExistingAccount] = useState(false);
 
   const [selectedTier, setSelectedTier] = useState('professional');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const handleClubInfoChange = (e) => {
     setClubInfo(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  };
-
-  const handleOwnerInfoChange = (e) => {
-    setOwnerInfo(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const handleGameToggle = (game) => {
@@ -80,25 +77,29 @@ export default function RegisterPage() {
     setError('');
     if (stepNum === 1) {
       if (!clubInfo.name || !clubInfo.address || !clubInfo.city || !clubInfo.state || !clubInfo.zip || !clubInfo.phone || !clubInfo.email) {
-        setError('Please fill in all required fields');
+        setError('Please fill in all required club fields');
         return false;
+      }
+      if (!ownerName) {
+        setError('Please enter the owner/manager name');
+        return false;
+      }
+      if (!existingAccount) {
+        if (!password) {
+          setError('Please create a password for your account');
+          return false;
+        }
+        if (password !== confirmPassword) {
+          setError('Passwords do not match');
+          return false;
+        }
+        if (password.length < 8) {
+          setError('Password must be at least 8 characters');
+          return false;
+        }
       }
     }
-    if (stepNum === 2) {
-      if (!ownerInfo.name || !ownerInfo.email || !ownerInfo.password || !ownerInfo.phone) {
-        setError('Please fill in all required fields');
-        return false;
-      }
-      if (ownerInfo.password !== ownerInfo.confirmPassword) {
-        setError('Passwords do not match');
-        return false;
-      }
-      if (ownerInfo.password.length < 8) {
-        setError('Password must be at least 8 characters');
-        return false;
-      }
-    }
-    if (stepNum === 3 && !agreedToTerms) {
+    if (stepNum === 2 && !agreedToTerms) {
       setError('Please agree to terms and conditions');
       return false;
     }
@@ -106,25 +107,36 @@ export default function RegisterPage() {
   };
 
   const nextStep = () => {
-    if (validateStep(step)) setStep(s => Math.min(s + 1, 4));
+    if (validateStep(step)) setStep(s => Math.min(s + 1, 3));
   };
 
   const prevStep = () => setStep(s => Math.max(s - 1, 1));
 
   const handleSubmit = async () => {
-    if (!validateStep(3)) return;
+    if (!validateStep(2)) return;
     setLoading(true);
     setError('');
     try {
       const res = await fetch('/api/commander/create-subscription', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clubInfo, ownerInfo, selectedTier, skipPayment: true })
+        body: JSON.stringify({
+          clubInfo,
+          ownerInfo: {
+            name: ownerName,
+            email: clubInfo.email,
+            phone: clubInfo.phone,
+            password: existingAccount ? null : password,
+          },
+          selectedTier,
+          existingAccount,
+          skipPayment: true,
+        })
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Registration failed');
-      setRegistrationResult(data.data);
-      setStep(4);
+      setRegistrationResult(data);
+      setStep(3);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -133,12 +145,12 @@ export default function RegisterPage() {
   };
 
   const inputClass = "w-full px-4 py-3 bg-[#3A3B3C] border border-[#4E4F50] rounded-lg text-[#E4E6EB] placeholder-[#8A8D91] focus:border-[#1877F2] focus:ring-2 focus:ring-[#1877F2]/20 focus:outline-none";
-  const steps = ['Club Info', 'Owner Account', 'Select Plan', 'Complete'];
+  const steps = ['Club & Owner Info', 'Select Plan', 'Complete'];
 
   return (
     <div className="min-h-screen bg-[#18191A]">
       <Head><title>Register Your Club - Club Commander</title></Head>
-      
+
       <div className="container mx-auto px-4 py-8 max-w-3xl">
         {/* Logo */}
         <div className="text-center mb-6">
@@ -149,7 +161,7 @@ export default function RegisterPage() {
         {/* Progress Steps */}
         <div className="flex justify-between items-center mb-8 relative">
           <div className="absolute top-5 left-0 right-0 h-0.5 bg-[#3A3B3C]">
-            <div className="h-full bg-[#1877F2] transition-all" style={{ width: `${((step - 1) / 3) * 100}%` }} />
+            <div className="h-full bg-[#1877F2] transition-all" style={{ width: `${((step - 1) / 2) * 100}%` }} />
           </div>
           {steps.map((label, idx) => (
             <div key={label} className="relative z-10 flex flex-col items-center">
@@ -163,7 +175,7 @@ export default function RegisterPage() {
         <div className="bg-[#242526] rounded-xl p-8 border border-[#3A3B3C]">
           {error && <div className="mb-6 p-4 bg-[#F02849]/10 border border-[#F02849]/30 rounded-lg text-[#F02849]">{error}</div>}
 
-          {/* Step 1: Club Info */}
+          {/* Step 1: Club Info + Owner */}
           {step === 1 && (
             <div className="space-y-4">
               <h2 className="text-xl font-bold text-[#E4E6EB] mb-6">Club Information</h2>
@@ -176,30 +188,39 @@ export default function RegisterPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Phone *</label><input type="tel" name="phone" value={clubInfo.phone} onChange={handleClubInfoChange} className={inputClass} /></div>
-                <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Email *</label><input type="email" name="email" value={clubInfo.email} onChange={handleClubInfoChange} className={inputClass} /></div>
+                <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Email *</label><input type="email" name="email" value={clubInfo.email} onChange={handleClubInfoChange} className={inputClass} placeholder="Also used for your login" /></div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Website</label><input type="url" name="website" value={clubInfo.website} onChange={handleClubInfoChange} className={inputClass} /></div>
-                <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Tables</label><input type="number" name="tables" value={clubInfo.tables} onChange={handleClubInfoChange} className={inputClass} /></div>
+                <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Number of Tables</label><input type="number" name="tables" value={clubInfo.tables} onChange={handleClubInfoChange} className={inputClass} /></div>
               </div>
               <div><label className="block text-sm text-[#B0B3B8] mb-2">Games Offered</label><div className="flex flex-wrap gap-2">{['NLH', 'PLO', 'PLO8', 'Limit HE', 'Stud', 'Mixed'].map(game => (<button key={game} type="button" onClick={() => handleGameToggle(game)} className={`px-4 py-2 rounded-full text-sm ${clubInfo.gamesOffered.includes(game) ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'}`}>{game}</button>))}</div></div>
+
+              {/* Divider */}
+              <div className="border-t border-[#3A3B3C] pt-6 mt-6">
+                <h2 className="text-xl font-bold text-[#E4E6EB] mb-4">Owner / Manager</h2>
+                <p className="text-sm text-[#8A8D91] mb-4">Your club email above will be used as your login. Just add your name and create a password.</p>
+              </div>
+
+              <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Your Full Name *</label><input type="text" value={ownerName} onChange={e => setOwnerName(e.target.value)} className={inputClass} placeholder="Owner or manager name" /></div>
+
+              {/* Existing account toggle */}
+              <div className="flex items-center gap-3 p-4 bg-[#3A3B3C]/40 rounded-lg">
+                <input type="checkbox" id="existingAccount" checked={existingAccount} onChange={e => setExistingAccount(e.target.checked)} className="w-4 h-4 rounded" />
+                <label htmlFor="existingAccount" className="text-sm text-[#B0B3B8]">I already have a Smarter.Poker account with this email</label>
+              </div>
+
+              {!existingAccount && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Create Password *</label><input type="password" value={password} onChange={e => setPassword(e.target.value)} className={inputClass} placeholder="Min 8 characters" /></div>
+                  <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Confirm Password *</label><input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className={inputClass} /></div>
+                </div>
+              )}
             </div>
           )}
 
-          {/* Step 2: Owner Account */}
+          {/* Step 2: Select Plan */}
           {step === 2 && (
-            <div className="space-y-4">
-              <h2 className="text-xl font-bold text-[#E4E6EB] mb-6">Owner Account</h2>
-              <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Full Name *</label><input type="text" name="name" value={ownerInfo.name} onChange={handleOwnerInfoChange} className={inputClass} /></div>
-              <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Email *</label><input type="email" name="email" value={ownerInfo.email} onChange={handleOwnerInfoChange} className={inputClass} /></div>
-              <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Phone *</label><input type="tel" name="phone" value={ownerInfo.phone} onChange={handleOwnerInfoChange} className={inputClass} /></div>
-              <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Password *</label><input type="password" name="password" value={ownerInfo.password} onChange={handleOwnerInfoChange} className={inputClass} placeholder="Min 8 characters" /></div>
-              <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Confirm Password *</label><input type="password" name="confirmPassword" value={ownerInfo.confirmPassword} onChange={handleOwnerInfoChange} className={inputClass} /></div>
-            </div>
-          )}
-
-          {/* Step 3: Select Plan */}
-          {step === 3 && (
             <div className="space-y-6">
               <h2 className="text-xl font-bold text-[#E4E6EB] mb-6">Select Your Plan</h2>
               <div className="grid gap-4">
@@ -221,8 +242,8 @@ export default function RegisterPage() {
             </div>
           )}
 
-          {/* Step 4: Complete */}
-          {step === 4 && (
+          {/* Step 3: Complete */}
+          {step === 3 && (
             <div className="text-center space-y-6">
               <div className="w-20 h-20 bg-[#31A24C] rounded-full flex items-center justify-center mx-auto text-4xl text-white">✓</div>
               <h2 className="text-2xl font-bold text-[#E4E6EB]">Welcome to Club Commander!</h2>
@@ -233,13 +254,12 @@ export default function RegisterPage() {
           )}
 
           {/* Navigation Buttons */}
-          {step < 3 && (
-            <div className="flex justify-between mt-8">
-              <button onClick={prevStep} disabled={step === 1} className={`px-6 py-3 rounded-lg ${step === 1 ? 'bg-[#3A3B3C]/50 text-[#8A8D91]' : 'bg-[#3A3B3C] text-[#E4E6EB] hover:bg-[#4E4F50]'}`}>Back</button>
-              <button onClick={nextStep} className="px-8 py-3 bg-[#1877F2] hover:bg-[#1664d9] text-white rounded-lg font-semibold">Continue</button>
+          {step === 1 && (
+            <div className="flex justify-end mt-8">
+              <button onClick={nextStep} className="px-8 py-3 bg-[#1877F2] hover:bg-[#1664d9] text-white rounded-lg font-semibold">Continue to Plan Selection</button>
             </div>
           )}
-          {step === 3 && (
+          {step === 2 && (
             <div className="flex justify-between mt-8">
               <button onClick={prevStep} className="px-6 py-3 rounded-lg bg-[#3A3B3C] text-[#E4E6EB] hover:bg-[#4E4F50]">Back</button>
               <button onClick={handleSubmit} disabled={loading || !agreedToTerms} className="px-8 py-3 bg-[#1877F2] hover:bg-[#1664d9] text-white rounded-lg font-semibold disabled:opacity-50">{loading ? 'Creating...' : 'Start Free Trial'}</button>
@@ -250,7 +270,7 @@ export default function RegisterPage() {
         {/* Already have account link */}
         <div className="text-center mt-6">
           <Link href="/commander/login" className="text-[#B0B3B8] hover:text-[#E4E6EB]">
-            Already have an account? <span className="text-[#1877F2]">Sign In</span>
+            Already have a Club Commander account? <span className="text-[#1877F2]">Sign In</span>
           </Link>
         </div>
 
