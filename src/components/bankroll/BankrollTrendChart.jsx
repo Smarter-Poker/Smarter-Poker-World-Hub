@@ -38,7 +38,24 @@ const CATEGORY_LABELS = {
     expense: 'Expenses',
 };
 
-export default function BankrollTrendChart({ entries = [], isLoading = false, chartType = 'line' }) {
+/** Compute the start date for a given time-filter string */
+function getFilterStartDate(timeFilter) {
+    const now = new Date();
+    switch (timeFilter) {
+        case 'Last 7 Days':
+            return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        case 'Last 30 Days':
+            return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        case 'Last 90 Days':
+            return new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        case 'This Year':
+            return `${now.getFullYear()}-01-01`;
+        default:
+            return null; // All Time — use data bounds
+    }
+}
+
+export default function BankrollTrendChart({ entries = [], isLoading = false, chartType = 'line', timeFilter = 'Last 30 Days' }) {
     // ── Data Pipelines ──────────────────────────────────────────
 
     const filteredEntries = useMemo(() => {
@@ -59,12 +76,16 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
         return map;
     }, [filteredEntries]);
 
-    // Helper: generate all days between start and end (inclusive)
+    // Helper: generate all days spanning the full time-filter window
     const allDays = useMemo(() => {
         if (filteredEntries.length === 0) return [];
         const dates = filteredEntries.map(e => e.entry_date).sort();
-        const start = new Date(dates[0] + 'T12:00:00');
-        const end = new Date(dates[dates.length - 1] + 'T12:00:00');
+        const filterStart = getFilterStartDate(timeFilter);
+        const start = filterStart
+            ? new Date(Math.min(new Date(filterStart + 'T12:00:00'), new Date(dates[0] + 'T12:00:00')))
+            : new Date(dates[0] + 'T12:00:00');
+        const end = new Date(); // always go up to today
+        end.setHours(12, 0, 0, 0);
         const days = [];
         const d = new Date(start);
         while (d <= end) {
@@ -72,7 +93,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
             d.setDate(d.getDate() + 1);
         }
         return days;
-    }, [filteredEntries]);
+    }, [filteredEntries, timeFilter]);
 
     // Line / Area — cumulative with every day filled in
     const lineData = useMemo(() => {
@@ -290,7 +311,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
         const cats = [...categoriesPresent];
         return (
             <ResponsiveContainer width="100%" height={chartHeight}>
-                <BarChart data={stackedData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                <BarChart data={stackedData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }} barCategoryGap="20%">
                     <defs>
                         {Object.entries(CATEGORY_COLORS).map(([key, color]) => (
                             <linearGradient key={key} id={`stackGrad_${key}`} x1="0" y1="0" x2="0" y2="1">
@@ -302,7 +323,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
                     <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 10 }} interval="equidistantPreserveStart" />
                     <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 10 }} tickFormatter={v => `$${Math.abs(v).toLocaleString()}`} width={52} />
                     <ReferenceLine y={0} stroke="rgba(255,255,255,0.12)" strokeDasharray="4 4" />
-                    <Tooltip content={({ active, payload, label }) => {
+                    <Tooltip cursor={{ fill: 'rgba(255,255,255,0.04)' }} content={({ active, payload, label }) => {
                         if (!active || !payload?.length) return null;
                         const total = payload.reduce((s, p) => s + (p.value || 0), 0);
                         return (
@@ -337,7 +358,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
         }
         return (
             <ResponsiveContainer width="100%" height={chartHeight}>
-                <BarChart data={histogramData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                <BarChart data={histogramData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }} barCategoryGap="15%">
                     <defs>
                         <linearGradient id="histGreen" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="0%" stopColor="#4ade80" stopOpacity={0.95} />
@@ -354,7 +375,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
                     </defs>
                     <XAxis dataKey="range" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 9 }} interval={0} />
                     <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} width={30} allowDecimals={false} />
-                    <Tooltip content={({ active, payload }) => {
+                    <Tooltip cursor={{ fill: 'rgba(255,255,255,0.04)' }} content={({ active, payload }) => {
                         if (!active || !payload?.[0]) return null;
                         const d = payload[0].payload;
                         return (
@@ -380,8 +401,14 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
         const values = Object.values(heatmapData);
         const maxAbs = Math.max(1, ...values.map(Math.abs));
 
-        const startDate = new Date(days[0] + 'T12:00:00');
-        const endDate = new Date(days[days.length - 1] + 'T12:00:00');
+        // Use full filter window for heatmap
+        const filterStart = getFilterStartDate(timeFilter);
+        const startDate = filterStart
+            ? new Date(Math.min(new Date(filterStart + 'T12:00:00'), new Date(days[0] + 'T12:00:00')))
+            : new Date(days[0] + 'T12:00:00');
+        const endDate = new Date();
+        endDate.setHours(12, 0, 0, 0);
+
         const cells = [];
         const d = new Date(startDate);
         d.setDate(d.getDate() - d.getDay());
@@ -390,6 +417,17 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
             cells.push({ date: key, value: heatmapData[key] ?? null, day: d.getDay() });
             d.setDate(d.getDate() + 1);
         }
+
+        // Build month markers for labeling
+        const monthMarkers = [];
+        let lastMonth = -1;
+        cells.forEach((cell, i) => {
+            const m = new Date(cell.date + 'T12:00:00').getMonth();
+            if (m !== lastMonth && cell.day === 0) {
+                monthMarkers.push({ index: Math.floor(i / 7), label: new Date(cell.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short' }) });
+                lastMonth = m;
+            }
+        });
 
         const getHeatColor = (value) => {
             if (value === null) return { bg: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.04)', glow: 'none' };
@@ -415,6 +453,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
         const totalLoss = values.filter(v => v < 0).reduce((s, v) => s + v, 0);
         const winDays = values.filter(v => v > 0).length;
         const lossDays = values.filter(v => v < 0).length;
+        const [hoveredCell, setHoveredCell] = [null, () => { }]; // tooltip via title attr
 
         return (
             <div style={{ padding: '8px 0' }}>
@@ -424,6 +463,14 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
                     <span style={{ color: '#f87171', fontWeight: 600 }}>{lossDays}L ({fmtVal(totalLoss)})</span>
                     <span style={{ color: 'rgba(255,255,255,0.45)', fontWeight: 500 }}>{winDays + lossDays > 0 ? Math.round(winDays / (winDays + lossDays) * 100) : 0}% win rate</span>
                 </div>
+                {/* Month labels */}
+                {monthMarkers.length > 0 && (
+                    <div style={{ display: 'flex', gap: 0, fontSize: 9, color: 'rgba(255,255,255,0.45)', marginBottom: 4, fontWeight: 600, letterSpacing: '0.5px', position: 'relative', height: 14 }}>
+                        {monthMarkers.map((m, i) => (
+                            <span key={i} style={{ position: 'absolute', left: `${(m.index / Math.ceil(cells.length / 7)) * 100}%`, textTransform: 'uppercase' }}>{m.label}</span>
+                        ))}
+                    </div>
+                )}
                 {/* Day labels */}
                 <div style={{ display: 'flex', gap: 3, fontSize: 9, color: 'rgba(255,255,255,0.35)', marginBottom: 4, paddingLeft: 2, fontWeight: 500 }}>
                     {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((l, i) => (
@@ -434,27 +481,32 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
                     {cells.map((cell, i) => {
                         const colors = getHeatColor(cell.value);
+                        const dateObj = new Date(cell.date + 'T12:00:00');
+                        const titleText = cell.value !== null
+                            ? `${dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}: ${fmtVal(cell.value)}`
+                            : dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
                         return (
                             <div
                                 key={i}
-                                title={cell.value !== null ? `${cell.date}: ${fmtVal(cell.value)}` : cell.date}
+                                title={titleText}
                                 style={{
                                     aspectRatio: '1',
                                     background: colors.bg,
                                     border: colors.border,
-                                    borderRadius: 5,
+                                    borderRadius: 4,
                                     cursor: cell.value !== null ? 'pointer' : 'default',
-                                    minHeight: 18,
+                                    minHeight: 14,
+                                    maxHeight: 22,
                                     boxShadow: colors.glow,
-                                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                                    transition: 'transform 0.15s ease, box-shadow 0.15s ease',
                                     position: 'relative',
                                 }}
                                 onMouseEnter={e => {
                                     if (cell.value !== null) {
-                                        e.currentTarget.style.transform = 'scale(1.2)';
+                                        e.currentTarget.style.transform = 'scale(1.3)';
                                         e.currentTarget.style.boxShadow = cell.value > 0
-                                            ? '0 0 12px rgba(34,197,94,0.4)'
-                                            : '0 0 12px rgba(239,68,68,0.4)';
+                                            ? '0 0 14px rgba(34,197,94,0.5)'
+                                            : '0 0 14px rgba(239,68,68,0.5)';
                                         e.currentTarget.style.zIndex = '10';
                                     }
                                 }}
@@ -498,37 +550,57 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
         if (donutData.length === 0) return <div style={S.emptyState}><span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>No category data</span></div>;
         const total = donutData.reduce((s, d) => s + d.rawValue, 0);
         const totalAbs = donutData.reduce((s, d) => s + d.value, 0);
+
+        // Bolder, more saturated colors for donut
+        const DONUT_COLORS = {
+            poker_cash: ['#22c55e', '#15803d'],
+            poker_mtt: ['#60a5fa', '#2563eb'],
+            casino_table: ['#fbbf24', '#d97706'],
+            slots: ['#c084fc', '#7c3aed'],
+            sports: ['#f87171', '#dc2626'],
+            expense: ['#94a3b8', '#475569'],
+        };
+
         return (
             <div style={{ position: 'relative' }}>
-                <ResponsiveContainer width="100%" height={240}>
+                <ResponsiveContainer width="100%" height={260}>
                     <PieChart>
                         <defs>
-                            {donutData.map((d, i) => (
-                                <linearGradient key={i} id={`donutGrad_${i}`} x1="0" y1="0" x2="1" y2="1">
-                                    <stop offset="0%" stopColor={d.color} stopOpacity={1} />
-                                    <stop offset="100%" stopColor={d.color} stopOpacity={0.7} />
-                                </linearGradient>
-                            ))}
+                            {donutData.map((d, i) => {
+                                const catKey = Object.keys(CATEGORY_LABELS).find(k => CATEGORY_LABELS[k] === d.name) || 'expense';
+                                const [c1, c2] = DONUT_COLORS[catKey] || [d.color, d.color];
+                                return (
+                                    <linearGradient key={i} id={`donutGrad_${i}`} x1="0" y1="0" x2="1" y2="1">
+                                        <stop offset="0%" stopColor={c1} stopOpacity={1} />
+                                        <stop offset="100%" stopColor={c2} stopOpacity={0.85} />
+                                    </linearGradient>
+                                );
+                            })}
                             <filter id="donutGlow">
-                                <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+                                <feGaussianBlur stdDeviation="3" result="coloredBlur" />
                                 <feMerge>
                                     <feMergeNode in="coloredBlur" />
                                     <feMergeNode in="SourceGraphic" />
                                 </feMerge>
                             </filter>
+                            <filter id="donutShadow">
+                                <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor="rgba(0,0,0,0.5)" />
+                            </filter>
                         </defs>
                         <Pie
                             data={donutData}
                             cx="50%"
-                            cy="50%"
-                            innerRadius={52}
-                            outerRadius={88}
-                            paddingAngle={4}
+                            cy="48%"
+                            innerRadius={56}
+                            outerRadius={95}
+                            paddingAngle={3}
                             dataKey="value"
-                            stroke="rgba(0,0,0,0.4)"
+                            stroke="rgba(0,0,0,0.6)"
                             strokeWidth={2}
-                            cornerRadius={4}
+                            cornerRadius={5}
                             filter="url(#donutGlow)"
+                            animationBegin={0}
+                            animationDuration={800}
                         >
                             {donutData.map((e, i) => <Cell key={i} fill={`url(#donutGrad_${i})`} />)}
                         </Pie>
@@ -538,12 +610,12 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
                             const pct = totalAbs > 0 ? Math.round(d.value / totalAbs * 100) : 0;
                             return (
                                 <TT>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                                        <span style={{ width: 10, height: 10, borderRadius: '50%', background: d.color, display: 'inline-block', boxShadow: `0 0 6px ${d.color}` }} />
-                                        <span style={{ color: d.color, fontWeight: 600, fontSize: 13 }}>{d.name}</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                                        <span style={{ width: 12, height: 12, borderRadius: '50%', background: d.color, display: 'inline-block', boxShadow: `0 0 8px ${d.color}` }} />
+                                        <span style={{ color: d.color, fontWeight: 700, fontSize: 14 }}>{d.name}</span>
                                     </div>
-                                    <div style={{ fontSize: 15, fontWeight: 700, color: d.rawValue >= 0 ? '#4ade80' : '#f87171' }}>{fmtVal(d.rawValue)}</div>
-                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{pct}% of total volume</div>
+                                    <div style={{ fontSize: 18, fontWeight: 800, color: d.rawValue >= 0 ? '#4ade80' : '#f87171', marginBottom: 2 }}>{fmtVal(d.rawValue)}</div>
+                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>{pct}% of total volume</div>
                                 </TT>
                             );
                         }} />
@@ -551,21 +623,26 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
                 </ResponsiveContainer>
                 {/* Center label */}
                 <div style={{
-                    position: 'absolute', top: '45%', left: '50%', transform: 'translate(-50%, -50%)',
+                    position: 'absolute', top: '44%', left: '50%', transform: 'translate(-50%, -50%)',
                     textAlign: 'center', pointerEvents: 'none',
                 }}>
-                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 3, fontWeight: 500 }}>Net P/L</div>
-                    <div style={{ fontSize: 20, fontWeight: 800, color: total >= 0 ? '#4ade80' : '#f87171', letterSpacing: '-0.5px', textShadow: total >= 0 ? '0 0 12px rgba(74,222,128,0.3)' : '0 0 12px rgba(248,113,113,0.3)' }}>{fmtVal(total)}</div>
+                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', letterSpacing: '1.2px', textTransform: 'uppercase', marginBottom: 4, fontWeight: 600 }}>Net P/L</div>
+                    <div style={{
+                        fontSize: 22, fontWeight: 800,
+                        color: total >= 0 ? '#4ade80' : '#f87171',
+                        letterSpacing: '-0.5px',
+                        textShadow: total >= 0 ? '0 0 16px rgba(74,222,128,0.4)' : '0 0 16px rgba(248,113,113,0.4)',
+                    }}>{fmtVal(total)}</div>
                 </div>
                 {/* Legend */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 14, fontSize: 11, marginTop: 4 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 16, fontSize: 12, marginTop: 6 }}>
                     {donutData.map((d, i) => {
                         const pct = totalAbs > 0 ? Math.round(d.value / totalAbs * 100) : 0;
                         return (
-                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'rgba(255,255,255,0.65)' }}>
-                                <span style={{ width: 8, height: 8, borderRadius: '50%', background: d.color, display: 'inline-block', boxShadow: `0 0 4px ${d.color}` }} />
-                                <span>{d.name}</span>
-                                <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10 }}>{pct}%</span>
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'rgba(255,255,255,0.75)' }}>
+                                <span style={{ width: 10, height: 10, borderRadius: '50%', background: d.color, display: 'inline-block', boxShadow: `0 0 6px ${d.color}` }} />
+                                <span style={{ fontWeight: 500 }}>{d.name}</span>
+                                <span style={{ color: d.rawValue >= 0 ? 'rgba(74,222,128,0.7)' : 'rgba(248,113,113,0.7)', fontWeight: 600, fontSize: 11 }}>{pct}%</span>
                             </div>
                         );
                     })}

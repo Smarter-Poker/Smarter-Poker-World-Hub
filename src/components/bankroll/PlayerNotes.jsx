@@ -7,6 +7,17 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 
+const PLAYER_TYPE_LABELS = {
+    unknown: 'Unknown',
+    fish: 'Fish (Recreational)',
+    reg: 'Regular',
+    shark: 'Shark (Expert)',
+    whale: 'Whale (Big Spender)',
+    nit: 'Nit (Ultra-Tight)',
+    lag: 'Loose Aggressive (LAG)',
+    tag: 'Tight Aggressive (TAG)',
+};
+
 export default function PlayerNotes({ userId }) {
     const [players, setPlayers] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -110,7 +121,7 @@ export default function PlayerNotes({ userId }) {
                                         ...styles.playerType,
                                         color: getPlayerTypeColor(player.player_type)
                                     }}>
-                                        {player.player_type || 'unknown'}
+                                        {PLAYER_TYPE_LABELS[player.player_type] || player.player_type || 'Unknown'}
                                     </span>
                                     {player.stakes && <span style={styles.playerStakes}>{player.stakes}</span>}
                                 </div>
@@ -162,6 +173,40 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
     const [isSaving, setIsSaving] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef(null);
+    const [savedStakes, setSavedStakes] = useState([]);
+    const [savedVenues, setSavedVenues] = useState([]);
+    const [customStakes, setCustomStakes] = useState(!player?.stakes);
+    const [customVenue, setCustomVenue] = useState(!player?.venue);
+
+    // Load saved stakes from bankroll_ledger and venues from bankroll_locations
+    useEffect(() => {
+        if (!userId) return;
+        (async () => {
+            try {
+                // Fetch unique stakes
+                const { data: stakesData } = await supabase
+                    .from('bankroll_ledger')
+                    .select('stakes')
+                    .eq('user_id', userId)
+                    .not('stakes', 'is', null);
+                if (stakesData) {
+                    const unique = [...new Set(stakesData.map(d => d.stakes).filter(Boolean))].sort();
+                    setSavedStakes(unique);
+                }
+                // Fetch locations
+                const { data: locData } = await supabase
+                    .from('bankroll_locations')
+                    .select('name')
+                    .eq('user_id', userId)
+                    .order('name');
+                if (locData) {
+                    setSavedVenues(locData.map(l => l.name).filter(Boolean));
+                }
+            } catch (err) {
+                console.error('[PlayerModal] Failed to load saved fields:', err);
+            }
+        })();
+    }, [userId]);
 
     async function handlePhotoUpload(e) {
         const file = e.target.files?.[0];
@@ -347,38 +392,85 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
                                 onChange={e => setFormData({ ...formData, player_type: e.target.value })}
                                 style={styles.select}
                             >
-                                <option value="unknown">Unknown</option>
-                                <option value="fish">Fish</option>
-                                <option value="reg">Reg</option>
-                                <option value="shark">Shark</option>
-                                <option value="whale">Whale</option>
-                                <option value="nit">Nit</option>
-                                <option value="lag">LAG</option>
-                                <option value="tag">TAG</option>
+                                {Object.entries(PLAYER_TYPE_LABELS).map(([val, label]) => (
+                                    <option key={val} value={val}>{label}</option>
+                                ))}
                             </select>
                         </div>
                         <div style={styles.formGroup}>
                             <label style={styles.label}>Typical Stakes</label>
-                            <input
-                                type="text"
-                                value={formData.stakes}
-                                onChange={e => setFormData({ ...formData, stakes: e.target.value })}
-                                placeholder="e.g. 2/5 NL"
-                                style={styles.input}
-                            />
+                            {savedStakes.length > 0 && !customStakes ? (
+                                <select
+                                    value={formData.stakes}
+                                    onChange={e => {
+                                        if (e.target.value === '__custom__') {
+                                            setCustomStakes(true);
+                                            setFormData({ ...formData, stakes: '' });
+                                        } else {
+                                            setFormData({ ...formData, stakes: e.target.value });
+                                        }
+                                    }}
+                                    style={styles.select}
+                                >
+                                    <option value="">Select stakes...</option>
+                                    {savedStakes.map(s => (
+                                        <option key={s} value={s}>{s}</option>
+                                    ))}
+                                    <option value="__custom__">+ Custom Stakes</option>
+                                </select>
+                            ) : (
+                                <div style={{ display: 'flex', gap: 6 }}>
+                                    <input
+                                        type="text"
+                                        value={formData.stakes}
+                                        onChange={e => setFormData({ ...formData, stakes: e.target.value })}
+                                        placeholder="e.g. 2/5 NL"
+                                        style={{ ...styles.input, flex: 1 }}
+                                    />
+                                    {savedStakes.length > 0 && (
+                                        <button type="button" onClick={() => setCustomStakes(false)} style={{ ...styles.input, flex: 'none', width: 36, cursor: 'pointer', textAlign: 'center', padding: 0, fontSize: 16 }}>&#x21A9;</button>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
 
                     {/* Venue */}
                     <div style={styles.formGroup}>
                         <label style={styles.label}>Usually Plays At</label>
-                        <input
-                            type="text"
-                            value={formData.venue}
-                            onChange={e => setFormData({ ...formData, venue: e.target.value })}
-                            placeholder="e.g. Rivers Casino"
-                            style={styles.input}
-                        />
+                        {savedVenues.length > 0 && !customVenue ? (
+                            <select
+                                value={formData.venue}
+                                onChange={e => {
+                                    if (e.target.value === '__custom__') {
+                                        setCustomVenue(true);
+                                        setFormData({ ...formData, venue: '' });
+                                    } else {
+                                        setFormData({ ...formData, venue: e.target.value });
+                                    }
+                                }}
+                                style={styles.select}
+                            >
+                                <option value="">Select venue...</option>
+                                {savedVenues.map(v => (
+                                    <option key={v} value={v}>{v}</option>
+                                ))}
+                                <option value="__custom__">+ Custom Venue</option>
+                            </select>
+                        ) : (
+                            <div style={{ display: 'flex', gap: 6 }}>
+                                <input
+                                    type="text"
+                                    value={formData.venue}
+                                    onChange={e => setFormData({ ...formData, venue: e.target.value })}
+                                    placeholder="e.g. Rivers Casino"
+                                    style={{ ...styles.input, flex: 1 }}
+                                />
+                                {savedVenues.length > 0 && (
+                                    <button type="button" onClick={() => setCustomVenue(false)} style={{ ...styles.input, flex: 'none', width: 36, cursor: 'pointer', textAlign: 'center', padding: 0, fontSize: 16 }}>&#x21A9;</button>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     {/* Notes */}
