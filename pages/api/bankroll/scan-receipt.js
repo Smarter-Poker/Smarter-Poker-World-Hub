@@ -73,8 +73,7 @@ async function analyzeReceipt(imageBase64) {
     const GROK_API_KEY = process.env.GROK_API_KEY;
 
     if (!GROK_API_KEY) {
-        // Fallback to mock data for development
-        return mockReceiptData();
+        throw new Error('Receipt scanning is not configured. Missing API key.');
     }
 
     const prompt = `Analyze this receipt image and extract the following information in JSON format:
@@ -96,72 +95,49 @@ async function analyzeReceipt(imageBase64) {
 
 If any field is not visible, use null. For poker buy-ins, look for "buy-in", "entry fee", "tournament", "cash", "chips". For hotels look for room rates, nights stayed. For meals look for food items, tips, total.`;
 
-    try {
-        const response = await fetch('https://api.x.ai/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${GROK_API_KEY}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                model: 'grok-2-vision-latest',
-                messages: [
-                    {
-                        role: 'user',
-                        content: [
-                            {
-                                type: 'image_url',
-                                image_url: {
-                                    url: imageBase64.startsWith('data:')
-                                        ? imageBase64
-                                        : `data:image/jpeg;base64,${imageBase64}`,
-                                },
+    const response = await fetch('https://api.x.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${GROK_API_KEY}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            model: 'grok-2-vision-latest',
+            messages: [
+                {
+                    role: 'user',
+                    content: [
+                        {
+                            type: 'image_url',
+                            image_url: {
+                                url: imageBase64.startsWith('data:')
+                                    ? imageBase64
+                                    : `data:image/jpeg;base64,${imageBase64}`,
                             },
-                            {
-                                type: 'text',
-                                text: prompt,
-                            },
-                        ],
-                    },
-                ],
-                temperature: 0.1,
-            }),
-        });
+                        },
+                        {
+                            type: 'text',
+                            text: prompt,
+                        },
+                    ],
+                },
+            ],
+            temperature: 0.1,
+        }),
+    });
 
-        if (!response.ok) {
-            throw new Error(`Grok API error: ${response.status}`);
-        }
-
-        const result = await response.json();
-        const content = result.choices?.[0]?.message?.content;
-
-        // Parse JSON from response
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-            return JSON.parse(jsonMatch[0]);
-        }
-
-        return mockReceiptData();
-    } catch (error) {
-        console.error('Grok Vision error:', error);
-        return mockReceiptData();
+    if (!response.ok) {
+        throw new Error(`OCR API error: ${response.status}`);
     }
-}
 
-function mockReceiptData() {
-    return {
-        category: 'buy_in',
-        amount: 235,
-        currency: 'USD',
-        vendor: 'Bellagio Poker Room',
-        location: 'Las Vegas, NV',
-        date: new Date().toISOString().split('T')[0],
-        description: 'Tournament buy-in',
-        tax_deductible: true,
-        itemized: [
-            { item: 'Entry fee', amount: 200 },
-            { item: 'Dealer add-on', amount: 35 }
-        ],
-        confidence: 0 // Mock data indicator
-    };
+    const result = await response.json();
+    const content = result.choices?.[0]?.message?.content;
+
+    // Parse JSON from response
+    const jsonMatch = content?.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+    }
+
+    throw new Error('Could not extract receipt data from image');
 }

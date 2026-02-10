@@ -7,20 +7,39 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 
-// ─── EDGE DETECTION (simplified for real-time performance) ────────
+// ─── GEOMETRY HELPERS ─────────────────────────────────────────────
+function angleBetween(a, b, c) {
+    const abx = a.x - b.x, aby = a.y - b.y;
+    const cbx = c.x - b.x, cby = c.y - b.y;
+    const dot = abx * cbx + aby * cby;
+    const cross = abx * cby - aby * cbx;
+    return Math.abs(Math.atan2(cross, dot)) * (180 / Math.PI);
+}
+
+function isRoughlyRectangular(corners) {
+    const angles = [
+        angleBetween(corners[3], corners[0], corners[1]),
+        angleBetween(corners[0], corners[1], corners[2]),
+        angleBetween(corners[1], corners[2], corners[3]),
+        angleBetween(corners[2], corners[3], corners[0]),
+    ];
+    return angles.every(a => a > 60 && a < 120);
+}
+
+// ─── EDGE DETECTION ───────────────────────────────────────────────
 function detectDocumentInFrame(canvas, ctx, width, height) {
     const imageData = ctx.getImageData(0, 0, width, height);
     const d = imageData.data;
     const len = width * height;
 
-    // Convert to grayscale
+    // Grayscale
     const gray = new Uint8Array(len);
     for (let i = 0; i < len; i++) {
         const idx = i * 4;
         gray[i] = (d[idx] * 77 + d[idx + 1] * 150 + d[idx + 2] * 29) >> 8;
     }
 
-    // Sobel edge detection (skip border pixels)
+    // Sobel
     const edges = new Uint8Array(len);
     for (let y = 1; y < height - 1; y++) {
         for (let x = 1; x < width - 1; x++) {
@@ -45,20 +64,18 @@ function detectDocumentInFrame(canvas, ctx, width, height) {
         if (edges[i] > threshold) edgeCount++;
     }
 
-    // Need sufficient edges (at least 0.5% of pixels)
     const edgeRatio = edgeCount / len;
     if (edgeRatio < 0.005 || edgeRatio > 0.3) return null;
 
-    // Find extreme edge points in each quadrant for corners
+    // Find corners in each quadrant
     const cx = width / 2, cy = height / 2;
     const margin = Math.min(width, height) * 0.08;
 
-    // Sample edge points in quadrants
     const corners = [
-        { x: margin, y: margin },           // TL default
-        { x: width - margin, y: margin },   // TR default
-        { x: width - margin, y: height - margin }, // BR default
-        { x: margin, y: height - margin },  // BL default
+        { x: margin, y: margin },
+        { x: width - margin, y: margin },
+        { x: width - margin, y: height - margin },
+        { x: margin, y: height - margin },
     ];
 
     const targets = [
@@ -70,19 +87,15 @@ function detectDocumentInFrame(canvas, ctx, width, height) {
 
     const bestDist = [Infinity, Infinity, Infinity, Infinity];
 
-    // Sample every 3rd pixel for speed
     for (let y = 2; y < height - 2; y += 3) {
         for (let x = 2; x < width - 2; x += 3) {
             if (edges[y * width + x] <= threshold) continue;
-
             const qx = x < cx ? 0 : 1;
             const qy = y < cy ? 0 : 1;
             const qi = qy === 0 ? (qx === 0 ? 0 : 1) : (qx === 1 ? 2 : 3);
-
             const dx = x - targets[qi].x;
             const dy = y - targets[qi].y;
             const dist = dx * dx + dy * dy;
-
             if (dist < bestDist[qi]) {
                 bestDist[qi] = dist;
                 corners[qi] = { x, y };
@@ -90,7 +103,7 @@ function detectDocumentInFrame(canvas, ctx, width, height) {
         }
     }
 
-    // Validate: corners should form a reasonable quadrilateral
+    // Validate side lengths
     const minSide = Math.min(width, height) * 0.15;
     const sides = [
         Math.sqrt((corners[1].x - corners[0].x) ** 2 + (corners[1].y - corners[0].y) ** 2),
@@ -98,10 +111,9 @@ function detectDocumentInFrame(canvas, ctx, width, height) {
         Math.sqrt((corners[3].x - corners[2].x) ** 2 + (corners[3].y - corners[2].y) ** 2),
         Math.sqrt((corners[0].x - corners[3].x) ** 2 + (corners[0].y - corners[3].y) ** 2),
     ];
-
     if (sides.some(s => s < minSide)) return null;
 
-    // Check that it covers a reasonable portion of the frame (at least 10%)
+    // Validate area (>= 15% of frame)
     const area = 0.5 * Math.abs(
         (corners[1].x - corners[0].x) * (corners[2].y - corners[0].y) -
         (corners[2].x - corners[0].x) * (corners[1].y - corners[0].y)
@@ -109,10 +121,12 @@ function detectDocumentInFrame(canvas, ctx, width, height) {
         (corners[2].x - corners[0].x) * (corners[3].y - corners[0].y) -
         (corners[3].x - corners[0].x) * (corners[2].y - corners[0].y)
     );
+    if (area < width * height * 0.15) return null;
 
-    if (area < width * height * 0.10) return null;
+    // Validate rectangularity — reject weird angled shapes
+    if (!isRoughlyRectangular(corners)) return null;
 
-    return corners; // [TL, TR, BR, BL]
+    return corners;
 }
 
 // ─── COMPONENT ────────────────────────────────────────────────────
@@ -124,14 +138,17 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
     const rafRef = useRef(null);
     const stableCountRef = useRef(0);
     const lastCornersRef = useRef(null);
+    const warmupTimerRef = useRef(null);
 
     const [cameraReady, setCameraReady] = useState(false);
     const [cameraError, setCameraError] = useState(null);
     const [detected, setDetected] = useState(false);
     const [capturing, setCapturing] = useState(false);
     const [progress, setProgress] = useState(0);
+    const [warmedUp, setWarmedUp] = useState(false);
 
-    const STABLE_FRAMES_NEEDED = 15; // ~0.5 seconds of stable detection
+    const STABLE_FRAMES_NEEDED = 60; // ~2 seconds of stable rectangular detection
+    const WARMUP_DELAY = 1500; // 1.5s before detection starts
 
     // Start camera
     useEffect(() => {
@@ -186,12 +203,21 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
             if (rafRef.current) {
                 cancelAnimationFrame(rafRef.current);
             }
+            if (warmupTimerRef.current) {
+                clearTimeout(warmupTimerRef.current);
+            }
         };
     }, []);
 
     // Frame processing loop
     useEffect(() => {
         if (!cameraReady || capturing) return;
+
+        // Warmup: give user 1.5s to position their receipt before detection starts
+        if (!warmedUp) {
+            warmupTimerRef.current = setTimeout(() => setWarmedUp(true), WARMUP_DELAY);
+            return () => clearTimeout(warmupTimerRef.current);
+        }
 
         const video = videoRef.current;
         const canvas = canvasRef.current;
@@ -207,7 +233,6 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
             const w = video.videoWidth;
             const h = video.videoHeight;
 
-            // Set canvas sizes
             if (canvas.width !== w) canvas.width = w;
             if (canvas.height !== h) canvas.height = h;
 
@@ -234,7 +259,6 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
             oCtx.clearRect(0, 0, ow, oh);
 
             if (corners) {
-                // Scale corners to overlay size
                 const sx = ow / detectW;
                 const sy = oh / detectH;
                 const scaled = corners.map(c => ({ x: c.x * sx, y: c.y * sy }));
@@ -245,7 +269,6 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
                     const maxDrift = Math.max(...scaled.map((c, i) =>
                         Math.sqrt((c.x - prev[i].x) ** 2 + (c.y - prev[i].y) ** 2)
                     ));
-
                     if (maxDrift < 15) {
                         stableCountRef.current++;
                     } else {
@@ -270,7 +293,7 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
                 oCtx.closePath();
                 oCtx.stroke();
 
-                // Corner indicators
+                // Corner dots
                 const handleR = stableRatio >= 1 ? 8 : 6;
                 for (const c of scaled) {
                     oCtx.beginPath();
@@ -279,11 +302,10 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
                     oCtx.fill();
                 }
 
-                // Auto-capture when stable
+                // Auto-capture when stable for ~2 seconds
                 if (stableCountRef.current >= STABLE_FRAMES_NEEDED && !capturing) {
                     setCapturing(true);
 
-                    // Capture at full resolution
                     const fullCanvas = document.createElement('canvas');
                     fullCanvas.width = w;
                     fullCanvas.height = h;
@@ -292,17 +314,12 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
 
                     const capturedImage = fullCanvas.toDataURL('image/jpeg', 0.92);
 
-                    // Stop camera
                     if (streamRef.current) {
                         streamRef.current.getTracks().forEach(t => t.stop());
                     }
 
-                    // Short delay for visual feedback before returning
-                    setTimeout(() => {
-                        onCapture(capturedImage);
-                    }, 300);
-
-                    return; // Stop processing
+                    setTimeout(() => onCapture(capturedImage), 300);
+                    return;
                 }
             } else {
                 stableCountRef.current = Math.max(0, stableCountRef.current - 3);
@@ -319,7 +336,7 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
         return () => {
             if (rafRef.current) cancelAnimationFrame(rafRef.current);
         };
-    }, [cameraReady, capturing, onCapture]);
+    }, [cameraReady, capturing, onCapture, warmedUp]);
 
     // Handle overlay canvas sizing
     useEffect(() => {
@@ -339,7 +356,7 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
         return () => observer.disconnect();
     }, [cameraReady]);
 
-    // Manual capture button
+    // Manual capture
     const handleManualCapture = () => {
         if (!videoRef.current || capturing) return;
         setCapturing(true);
@@ -362,14 +379,8 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
 
     return (
         <div style={styles.container}>
-            {/* Camera viewfinder */}
             <div style={styles.viewfinder}>
-                <video
-                    ref={videoRef}
-                    playsInline
-                    muted
-                    style={styles.video}
-                />
+                <video ref={videoRef} playsInline muted style={styles.video} />
                 <canvas ref={canvasRef} style={{ display: 'none' }} />
                 <canvas ref={overlayRef} style={styles.overlay} />
 
@@ -378,20 +389,22 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
                     <div style={styles.statusBar}>
                         <div style={{
                             ...styles.statusDot,
-                            background: detected ? (progress >= 1 ? '#22c55e' : '#00d4ff') : 'rgba(255,255,255,0.3)',
+                            background: !warmedUp
+                                ? 'rgba(255,255,255,0.3)'
+                                : detected ? (progress >= 1 ? '#22c55e' : '#00d4ff') : 'rgba(255,255,255,0.3)',
                         }} />
                         <span style={styles.statusText}>
-                            {capturing
-                                ? 'Captured!'
+                            {!warmedUp
+                                ? 'Position receipt in frame...'
                                 : detected
                                     ? progress >= 1 ? 'Capturing...' : 'Hold steady...'
-                                    : 'Point at receipt'}
+                                    : 'Looking for receipt...'}
                         </span>
                     </div>
                 )}
 
                 {/* Progress ring */}
-                {cameraReady && detected && !capturing && (
+                {cameraReady && detected && warmedUp && !capturing && (
                     <div style={styles.progressRing}>
                         <svg width="60" height="60" viewBox="0 0 60 60">
                             <circle cx="30" cy="30" r="26" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="3" />
@@ -411,9 +424,7 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
                 )}
 
                 {/* Capture flash */}
-                {capturing && (
-                    <div style={styles.captureFlash} />
-                )}
+                {capturing && <div style={styles.captureFlash} />}
 
                 {/* Camera error */}
                 {cameraError && (
@@ -423,7 +434,7 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
                     </div>
                 )}
 
-                {/* Loading state */}
+                {/* Loading */}
                 {!cameraReady && !cameraError && (
                     <div style={styles.loadingState}>
                         <div style={styles.spinner} />
@@ -432,25 +443,19 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
                 )}
             </div>
 
-            {/* Bottom controls */}
+            {/* Controls */}
             <div style={styles.controls}>
-                <button onClick={onClose} style={styles.cancelBtn}>
-                    Cancel
-                </button>
+                <button onClick={onClose} style={styles.cancelBtn}>Cancel</button>
                 <button
                     onClick={handleManualCapture}
                     disabled={!cameraReady || capturing}
-                    style={{
-                        ...styles.captureBtn,
-                        opacity: !cameraReady || capturing ? 0.4 : 1,
-                    }}
+                    style={{ ...styles.captureBtn, opacity: !cameraReady || capturing ? 0.4 : 1 }}
                 >
                     <div style={styles.captureBtnInner} />
                 </button>
-                <div style={{ width: 60 }} /> {/* Spacer for centering */}
+                <div style={{ width: 60 }} />
             </div>
 
-            {/* Instructions */}
             <div style={styles.instructions}>
                 <p style={{ margin: 0, color: 'rgba(255,255,255,0.5)', fontSize: 12, textAlign: 'center' }}>
                     Auto-captures when receipt is detected · Or tap the button to capture manually
@@ -490,16 +495,8 @@ const styles = {
         alignItems: 'center',
         justifyContent: 'center',
     },
-    video: {
-        width: '100%',
-        height: '100%',
-        objectFit: 'cover',
-    },
-    overlay: {
-        position: 'absolute',
-        inset: 0,
-        pointerEvents: 'none',
-    },
+    video: { width: '100%', height: '100%', objectFit: 'cover' },
+    overlay: { position: 'absolute', inset: 0, pointerEvents: 'none' },
     statusBar: {
         position: 'absolute',
         top: 12,
@@ -513,23 +510,9 @@ const styles = {
         borderRadius: 20,
         backdropFilter: 'blur(8px)',
     },
-    statusDot: {
-        width: 8,
-        height: 8,
-        borderRadius: '50%',
-        transition: 'background 0.2s ease',
-    },
-    statusText: {
-        color: '#fff',
-        fontSize: 13,
-        fontWeight: 500,
-        fontFamily: 'Inter, -apple-system, sans-serif',
-    },
-    progressRing: {
-        position: 'absolute',
-        bottom: 16,
-        right: 16,
-    },
+    statusDot: { width: 8, height: 8, borderRadius: '50%', transition: 'background 0.2s ease' },
+    statusText: { color: '#fff', fontSize: 13, fontWeight: 500, fontFamily: 'Inter, -apple-system, sans-serif' },
+    progressRing: { position: 'absolute', bottom: 16, right: 16 },
     captureFlash: {
         position: 'absolute',
         inset: 0,
@@ -593,14 +576,6 @@ const styles = {
         justifyContent: 'center',
         padding: 0,
     },
-    captureBtnInner: {
-        width: 52,
-        height: 52,
-        borderRadius: '50%',
-        background: '#fff',
-    },
-    instructions: {
-        padding: '8px 16px 16px',
-        background: '#000',
-    },
+    captureBtnInner: { width: 52, height: 52, borderRadius: '50%', background: '#fff' },
+    instructions: { padding: '8px 16px 16px', background: '#000' },
 };
