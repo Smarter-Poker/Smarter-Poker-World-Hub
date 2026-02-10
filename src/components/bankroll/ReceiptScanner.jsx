@@ -68,11 +68,14 @@ export default function ReceiptScanner({ onScanComplete, displayEUR = false, tri
         }
     }, [rawImage]);
 
-    // Handle live camera capture
-    const handleLiveCapture = useCallback((capturedBase64) => {
+    // Handle live camera capture — already cropped by the scanner
+    const handleLiveCapture = useCallback(async (capturedBase64) => {
         setShowLiveCamera(false);
-        setRawImage(capturedBase64);
-        setShowCropper(true);
+        setImagePreview(capturedBase64);
+        const res = await fetch(capturedBase64);
+        const blob = await res.blob();
+        const file = new File([blob], 'receipt-cropped.jpg', { type: 'image/jpeg' });
+        await scanReceipt(file);
     }, []);
 
     const scanReceipt = async (file) => {
