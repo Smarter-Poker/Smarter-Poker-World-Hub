@@ -1085,6 +1085,14 @@ export default function BankrollManagerPage() {
                       </div>
                       <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
                     </button>
+                    <button onClick={() => { setShowScanner(true); setScannerStep('scan'); }} style={styles.reportActionBtn}>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>Receipt</span>
+                      <div style={{ flex: 1, textAlign: 'left' }}>
+                        <div style={{ fontWeight: 600, color: '#fff' }}>Scan Receipt</div>
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Upload and scan receipts</div>
+                      </div>
+                      <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
+                    </button>
                   </div>
                 </div>
               </>

@@ -209,7 +209,7 @@ export default function SeriesTracker({ userId, onOpenLog }) {
                                 type="text"
                                 value={editForm.name}
                                 onChange={e => setEditForm({ ...editForm, name: e.target.value })}
-                                placeholder="Series Name"
+                                placeholder=""
                                 style={styles.formInput}
                                 autoFocus
                             />
@@ -227,7 +227,7 @@ export default function SeriesTracker({ userId, onOpenLog }) {
                                 type="text"
                                 value={editForm.purpose}
                                 onChange={e => setEditForm({ ...editForm, purpose: e.target.value })}
-                                placeholder="Purpose (e.g. WSOP Main Event)"
+                                placeholder=""
                                 style={styles.formInput}
                             />
                             <div style={{ display: 'flex', gap: 8 }}>
@@ -244,7 +244,7 @@ export default function SeriesTracker({ userId, onOpenLog }) {
                             <textarea
                                 value={editForm.notes}
                                 onChange={e => setEditForm({ ...editForm, notes: e.target.value })}
-                                placeholder="Notes"
+                                placeholder=""
                                 style={{ ...styles.formInput, minHeight: 60, resize: 'vertical' }}
                             />
                         </div>
@@ -364,7 +364,7 @@ export default function SeriesTracker({ userId, onOpenLog }) {
                             type="text"
                             value={newSeries.name}
                             onChange={e => setNewSeries({ ...newSeries, name: e.target.value })}
-                            placeholder="e.g. WSOP 2026, WPT Venetian"
+                            placeholder=""
                             style={styles.formInput}
                             autoFocus
                         />
@@ -395,7 +395,7 @@ export default function SeriesTracker({ userId, onOpenLog }) {
                                     type="text"
                                     value={newSeries.location_name || ''}
                                     onChange={e => setNewSeries({ ...newSeries, location_name: e.target.value })}
-                                    placeholder="e.g. Horseshoe, Venetian"
+                                    placeholder=""
                                     style={{ ...styles.formInput, flex: 1 }}
                                     autoFocus
                                 />
@@ -433,7 +433,7 @@ export default function SeriesTracker({ userId, onOpenLog }) {
                             type="text"
                             value={newSeries.purpose}
                             onChange={e => setNewSeries({ ...newSeries, purpose: e.target.value })}
-                            placeholder="e.g. WSOP Main Event, WPT Weekend"
+                            placeholder=""
                             style={styles.formInput}
                         />
 
@@ -441,7 +441,7 @@ export default function SeriesTracker({ userId, onOpenLog }) {
                         <textarea
                             value={newSeries.notes}
                             onChange={e => setNewSeries({ ...newSeries, notes: e.target.value })}
-                            placeholder="Any notes..."
+                            placeholder=""
                             style={{ ...styles.formInput, minHeight: 60, resize: 'vertical' }}
                         />
 
@@ -507,8 +507,8 @@ const styles = {
 
     // Active Series
     activeCard: {
-        background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(59, 130, 246, 0.08) 100%)',
-        border: '1px solid rgba(245, 158, 11, 0.3)',
+        background: 'linear-gradient(135deg, rgba(35, 116, 225, 0.1) 0%, rgba(59, 130, 246, 0.08) 100%)',
+        border: '1px solid rgba(35, 116, 225, 0.3)',
         borderRadius: 12,
         padding: 20,
         position: 'relative',
@@ -523,15 +523,15 @@ const styles = {
         width: 8,
         height: 8,
         borderRadius: '50%',
-        background: '#f59e0b',
-        boxShadow: '0 0 8px rgba(245, 158, 11, 0.6)',
+        background: '#2374e1',
+        boxShadow: '0 0 8px rgba(35, 116, 225, 0.6)',
         animation: 'pulse 2s infinite',
     },
     activeLabel: {
         fontSize: 11,
         fontWeight: 700,
         letterSpacing: 1.5,
-        color: '#f59e0b',
+        color: '#2374e1',
         textTransform: 'uppercase',
     },
     activeName: {
@@ -598,9 +598,9 @@ const styles = {
         alignItems: 'center',
     },
     completeBtn: {
-        background: 'rgba(245, 158, 11, 0.15)',
-        color: '#f59e0b',
-        border: '1px solid rgba(245, 158, 11, 0.3)',
+        background: 'rgba(35, 116, 225, 0.15)',
+        color: '#2374e1',
+        border: '1px solid rgba(35, 116, 225, 0.3)',
         borderRadius: 8,
         padding: '10px 18px',
         fontSize: 14,
@@ -696,8 +696,8 @@ const styles = {
         color: '#94a3b8',
     },
     confirmYes: {
-        background: '#f59e0b',
-        color: '#000',
+        background: '#2374e1',
+        color: '#fff',
         border: 'none',
         borderRadius: 6,
         padding: '6px 14px',
@@ -720,8 +720,8 @@ const styles = {
         display: 'flex',
         alignItems: 'center',
         gap: 14,
-        background: 'rgba(245, 158, 11, 0.08)',
-        border: '2px dashed rgba(245, 158, 11, 0.3)',
+        background: 'rgba(35, 116, 225, 0.08)',
+        border: '2px dashed rgba(35, 116, 225, 0.3)',
         borderRadius: 12,
         padding: '20px 24px',
         cursor: 'pointer',
@@ -741,8 +741,8 @@ const styles = {
 
     // Form
     createForm: {
-        background: 'rgba(95, 68, 30, 0.15)',
-        border: '1px solid rgba(245, 158, 11, 0.2)',
+        background: 'rgba(35, 116, 225, 0.08)',
+        border: '1px solid rgba(35, 116, 225, 0.2)',
         borderRadius: 12,
         padding: 20,
         overflow: 'hidden',
@@ -780,8 +780,8 @@ const styles = {
         marginTop: 20,
     },
     formSubmitBtn: {
-        background: '#f59e0b',
-        color: '#000',
+        background: '#2374e1',
+        color: '#fff',
         border: 'none',
         borderRadius: 8,
         padding: '10px 24px',
@@ -831,7 +831,7 @@ const styles = {
         gap: 10,
     },
     seriesCard: {
-        background: 'rgba(95, 68, 30, 0.15)',
+        background: 'rgba(35, 116, 225, 0.08)',
         border: '1px solid rgba(255,255,255,0.08)',
         borderRadius: 10,
         padding: 16,
@@ -869,7 +869,7 @@ const styles = {
         color: '#64748b',
     },
     viewReportLink: {
-        color: '#f59e0b',
+        color: '#2374e1',
         fontWeight: 500,
     },
 };
