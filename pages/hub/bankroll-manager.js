@@ -465,6 +465,7 @@ export default function BankrollManagerPage() {
       if (sectionId === 'dashboard') {
         setCategoryFilter('all');
         router.push('/hub/bankroll-manager', undefined, { shallow: true });
+        loadData(); // Refresh dashboard data (trips, series banners, stats)
       }
     }
   };
