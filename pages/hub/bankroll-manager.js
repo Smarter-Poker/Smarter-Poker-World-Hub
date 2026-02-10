@@ -593,20 +593,46 @@ export default function BankrollManagerPage() {
               font-weight: 600;
             }
             .bankroll-filters-row {
-              flex-direction: column !important;
-              gap: 6px !important;
+              flex-direction: row !important;
+              flex-wrap: nowrap !important;
+              overflow-x: auto;
+              gap: 4px !important;
+              margin-bottom: 8px !important;
+              padding-bottom: 4px;
+              -webkit-overflow-scrolling: touch;
+              scrollbar-width: none;
+            }
+            .bankroll-filters-row::-webkit-scrollbar {
+              display: none;
             }
             .bankroll-filters-row > div {
-              width: 100%;
+              flex-shrink: 0;
             }
             .bankroll-filters-row button {
-              width: 100%;
-              justify-content: space-between;
+              padding: 5px 10px !important;
+              font-size: 11px !important;
+              white-space: nowrap;
+              width: auto !important;
             }
             .bankroll-dropdown-menu {
-              min-width: 100% !important;
-              left: 0 !important;
-              right: 0 !important;
+              min-width: 160px !important;
+            }
+            .bankroll-analytics-slider {
+              display: flex !important;
+              overflow-x: auto;
+              scroll-snap-type: x mandatory;
+              gap: 12px;
+              padding-bottom: 8px;
+              -webkit-overflow-scrolling: touch;
+              scrollbar-width: none;
+            }
+            .bankroll-analytics-slider::-webkit-scrollbar {
+              display: none;
+            }
+            .bankroll-analytics-slider > * {
+              flex: 0 0 85%;
+              scroll-snap-align: start;
+              min-width: 0;
             }
             .bankroll-active-trip {
               flex-wrap: wrap;
@@ -950,8 +976,8 @@ export default function BankrollManagerPage() {
                 {/* Bankroll Trend Chart — filtered by gameTypeFilter, always include expenses */}
                 <BankrollTrendChart entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} isLoading={isLoading} chartType={chartType} />
 
-                {/* Analytics Grid — relocated from right panel */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
+                {/* Analytics Grid — horizontal slider on mobile */}
+                <div className="bankroll-analytics-slider" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
                   <HistoricalComparison entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} />
                   <VarianceCalculator entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} />
                   <LocationAnalytics entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} isLoading={isLoading} />
