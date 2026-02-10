@@ -177,28 +177,29 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
             current: values[values.length - 1] || 0,
             high: Math.max(...values),
             low: Math.min(...values),
-            sessions: lineData.length,
+            sessions: filteredEntries.length,
         };
-    }, [lineData]);
+    }, [lineData, filteredEntries]);
 
     const categoriesPresent = useMemo(() => new Set(filteredEntries.map(e => e.category)), [filteredEntries]);
 
     // ── Formatters ──────────────────────────────────────────────
     const fmtVal = (v) => v >= 0 ? `+$${v.toLocaleString()}` : `-$${Math.abs(v).toLocaleString()}`;
     const isPositive = stats.current >= 0;
-    const chartHeight = 200;
+    const chartHeight = 220;
 
     // ── Shared Tooltip ──────────────────────────────────────────
     const TT = ({ children }) => (
         <div style={{
-            background: 'rgba(10,15,30,0.95)',
-            backdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255,255,255,0.12)',
-            borderRadius: 10,
-            padding: '10px 14px',
+            background: 'linear-gradient(135deg, rgba(8,16,36,0.97), rgba(12,24,52,0.95))',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(0,212,255,0.2)',
+            borderRadius: 12,
+            padding: '12px 16px',
             fontSize: 12,
             color: '#e5e7eb',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.6), 0 0 20px rgba(0,212,255,0.08)',
+            minWidth: 120,
         }}>
             {children}
         </div>
@@ -211,31 +212,40 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
             <AreaChart data={lineData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
                 <defs>
                     <linearGradient id="gradPos" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#22c55e" stopOpacity={0.35} />
+                        <stop offset="0%" stopColor="#22c55e" stopOpacity={0.4} />
+                        <stop offset="50%" stopColor="#22c55e" stopOpacity={0.15} />
                         <stop offset="100%" stopColor="#22c55e" stopOpacity={0.02} />
                     </linearGradient>
                     <linearGradient id="gradNeg" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#ef4444" stopOpacity={0.35} />
+                        <stop offset="0%" stopColor="#ef4444" stopOpacity={0.4} />
+                        <stop offset="50%" stopColor="#ef4444" stopOpacity={0.15} />
                         <stop offset="100%" stopColor="#ef4444" stopOpacity={0.02} />
                     </linearGradient>
+                    <filter id="glow">
+                        <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+                        <feMerge>
+                            <feMergeNode in="coloredBlur" />
+                            <feMergeNode in="SourceGraphic" />
+                        </feMerge>
+                    </filter>
                 </defs>
                 <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 10 }} interval="equidistantPreserveStart" />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 10 }} tickFormatter={v => `$${Math.abs(v)}`} width={52} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 10 }} tickFormatter={v => `$${Math.abs(v).toLocaleString()}`} width={52} />
                 <ReferenceLine y={0} stroke="rgba(255,255,255,0.08)" strokeDasharray="4 4" />
                 <Tooltip content={({ active, payload }) => {
                     if (!active || !payload?.[0]) return null;
                     const d = payload[0].payload;
                     return (
                         <TT>
-                            <div style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 3 }}>{d.date}</div>
-                            <div style={{ color: d.value >= 0 ? '#4ade80' : '#f87171', fontWeight: 600, fontSize: 14 }}>{fmtVal(d.value)}</div>
-                            <div style={{ color: 'rgba(255,255,255,0.45)', marginTop: 3, fontSize: 11 }}>
+                            <div style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 4, fontSize: 11, letterSpacing: '0.3px' }}>{d.date}</div>
+                            <div style={{ color: d.value >= 0 ? '#4ade80' : '#f87171', fontWeight: 700, fontSize: 16, letterSpacing: '-0.3px' }}>{fmtVal(d.value)}</div>
+                            <div style={{ color: 'rgba(255,255,255,0.45)', marginTop: 4, fontSize: 11, borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 4 }}>
                                 {d.hasData ? `${d.sessions} session${d.sessions > 1 ? 's' : ''}: ${d.net >= 0 ? '+' : ''}$${d.net.toLocaleString()}` : 'No sessions'}
                             </div>
                         </TT>
                     );
                 }} />
-                <Area type="monotone" dataKey="value" stroke={isPositive ? '#22c55e' : '#ef4444'} strokeWidth={2.5} fill={isPositive ? 'url(#gradPos)' : 'url(#gradNeg)'} dot={false} activeDot={{ r: 4, fill: isPositive ? '#22c55e' : '#ef4444', strokeWidth: 0 }} />
+                <Area type="monotone" dataKey="value" stroke={isPositive ? '#22c55e' : '#ef4444'} strokeWidth={2.5} fill={isPositive ? 'url(#gradPos)' : 'url(#gradNeg)'} dot={false} activeDot={{ r: 5, fill: isPositive ? '#22c55e' : '#ef4444', strokeWidth: 2, stroke: 'rgba(255,255,255,0.3)' }} filter="url(#glow)" />
             </AreaChart>
         </ResponsiveContainer>
     );
@@ -243,23 +253,34 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
     const renderBar = () => (
         <ResponsiveContainer width="100%" height={chartHeight}>
             <BarChart data={barData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                <defs>
+                    <linearGradient id="barGradGreen" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#4ade80" stopOpacity={1} />
+                        <stop offset="100%" stopColor="#16a34a" stopOpacity={0.8} />
+                    </linearGradient>
+                    <linearGradient id="barGradRed" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#f87171" stopOpacity={1} />
+                        <stop offset="100%" stopColor="#dc2626" stopOpacity={0.8} />
+                    </linearGradient>
+                </defs>
                 <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 10 }} interval="equidistantPreserveStart" />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 10 }} tickFormatter={v => `$${Math.abs(v)}`} width={52} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 10 }} tickFormatter={v => `$${Math.abs(v).toLocaleString()}`} width={52} />
                 <ReferenceLine y={0} stroke="rgba(255,255,255,0.12)" strokeDasharray="4 4" />
                 <Tooltip content={({ active, payload }) => {
                     if (!active || !payload?.[0]) return null;
                     const d = payload[0].payload;
                     return (
                         <TT>
-                            <div style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 3 }}>{d.date}{d.hasData && d.category ? ` — ${CATEGORY_LABELS[d.category] || d.category}` : ''}</div>
-                            <div style={{ color: d.hasData ? (d.value >= 0 ? '#4ade80' : '#f87171') : 'rgba(255,255,255,0.3)', fontWeight: 600, fontSize: 14 }}>
+                            <div style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 4, fontSize: 11 }}>{d.date}{d.hasData && d.category ? ` — ${CATEGORY_LABELS[d.category] || d.category}` : ''}</div>
+                            <div style={{ color: d.hasData ? (d.value >= 0 ? '#4ade80' : '#f87171') : 'rgba(255,255,255,0.3)', fontWeight: 700, fontSize: 16 }}>
                                 {d.hasData ? fmtVal(d.value) : 'No sessions'}
                             </div>
+                            {d.hasData && d.sessions > 1 && <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, marginTop: 2 }}>{d.sessions} sessions</div>}
                         </TT>
                     );
                 }} />
-                <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={28}>
-                    {barData.map((e, i) => <Cell key={i} fill={e.fill} fillOpacity={0.85} />)}
+                <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={32}>
+                    {barData.map((e, i) => <Cell key={i} fill={!e.hasData ? 'rgba(255,255,255,0.03)' : e.value >= 0 ? 'url(#barGradGreen)' : 'url(#barGradRed)'} />)}
                 </Bar>
             </BarChart>
         </ResponsiveContainer>
@@ -270,29 +291,40 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
         return (
             <ResponsiveContainer width="100%" height={chartHeight}>
                 <BarChart data={stackedData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                    <defs>
+                        {Object.entries(CATEGORY_COLORS).map(([key, color]) => (
+                            <linearGradient key={key} id={`stackGrad_${key}`} x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor={color} stopOpacity={1} />
+                                <stop offset="100%" stopColor={color} stopOpacity={0.6} />
+                            </linearGradient>
+                        ))}
+                    </defs>
                     <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 10 }} interval="equidistantPreserveStart" />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 10 }} tickFormatter={v => `$${Math.abs(v)}`} width={52} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 10 }} tickFormatter={v => `$${Math.abs(v).toLocaleString()}`} width={52} />
                     <ReferenceLine y={0} stroke="rgba(255,255,255,0.12)" strokeDasharray="4 4" />
                     <Tooltip content={({ active, payload, label }) => {
                         if (!active || !payload?.length) return null;
                         const total = payload.reduce((s, p) => s + (p.value || 0), 0);
                         return (
                             <TT>
-                                <div style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>{label}</div>
+                                <div style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 6, fontSize: 11, letterSpacing: '0.3px' }}>{label}</div>
                                 {payload.map((p, i) => (
-                                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, fontSize: 11 }}>
-                                        <span style={{ color: CATEGORY_COLORS[p.dataKey] || '#ccc' }}>{CATEGORY_LABELS[p.dataKey] || p.dataKey}</span>
-                                        <span style={{ color: '#e5e7eb' }}>{fmtVal(p.value || 0)}</span>
+                                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 20, fontSize: 12, marginBottom: 3 }}>
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                            <span style={{ width: 8, height: 8, borderRadius: 2, background: CATEGORY_COLORS[p.dataKey] || '#ccc', display: 'inline-block' }} />
+                                            {CATEGORY_LABELS[p.dataKey] || p.dataKey}
+                                        </span>
+                                        <span style={{ color: (p.value || 0) >= 0 ? '#4ade80' : '#f87171', fontWeight: 600 }}>{fmtVal(p.value || 0)}</span>
                                     </div>
                                 ))}
-                                <div style={{ borderTop: '1px solid rgba(255,255,255,0.15)', marginTop: 5, paddingTop: 5, fontWeight: 600, color: total >= 0 ? '#4ade80' : '#f87171' }}>
+                                <div style={{ borderTop: '1px solid rgba(255,255,255,0.15)', marginTop: 6, paddingTop: 6, fontWeight: 700, fontSize: 13, color: total >= 0 ? '#4ade80' : '#f87171', textAlign: 'right' }}>
                                     Total: {fmtVal(total)}
                                 </div>
                             </TT>
                         );
                     }} />
                     {cats.map(cat => (
-                        <Bar key={cat} dataKey={cat} stackId="stack" fill={CATEGORY_COLORS[cat] || '#888'} fillOpacity={0.8} radius={[2, 2, 0, 0]} maxBarSize={28} />
+                        <Bar key={cat} dataKey={cat} stackId="stack" fill={`url(#stackGrad_${cat})`} radius={[3, 3, 0, 0]} maxBarSize={32} />
                     ))}
                 </BarChart>
             </ResponsiveContainer>
@@ -306,16 +338,35 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
         return (
             <ResponsiveContainer width="100%" height={chartHeight}>
                 <BarChart data={histogramData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
-                    <XAxis dataKey="range" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 9 }} interval={0} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 10 }} width={30} allowDecimals={false} />
+                    <defs>
+                        <linearGradient id="histGreen" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#4ade80" stopOpacity={0.95} />
+                            <stop offset="100%" stopColor="#16a34a" stopOpacity={0.7} />
+                        </linearGradient>
+                        <linearGradient id="histRed" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#f87171" stopOpacity={0.95} />
+                            <stop offset="100%" stopColor="#dc2626" stopOpacity={0.7} />
+                        </linearGradient>
+                        <linearGradient id="histBlue" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#60a5fa" stopOpacity={0.95} />
+                            <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.7} />
+                        </linearGradient>
+                    </defs>
+                    <XAxis dataKey="range" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 9 }} interval={0} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} width={30} allowDecimals={false} />
                     <Tooltip content={({ active, payload }) => {
                         if (!active || !payload?.[0]) return null;
                         const d = payload[0].payload;
-                        return <TT><div style={{ marginBottom: 2 }}>{d.rangeLabel}</div><div style={{ fontWeight: 600 }}>{d.count} session{d.count !== 1 ? 's' : ''}</div></TT>;
+                        return (
+                            <TT>
+                                <div style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 3, fontSize: 11 }}>{d.rangeLabel}</div>
+                                <div style={{ fontWeight: 700, fontSize: 16, color: '#e5e7eb' }}>{d.count} <span style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.5)' }}>session{d.count !== 1 ? 's' : ''}</span></div>
+                            </TT>
+                        );
                     }} />
-                    <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={32}>
+                    <Bar dataKey="count" radius={[6, 6, 0, 0]} maxBarSize={36}>
                         {histogramData.map((e, i) => (
-                            <Cell key={i} fill={e.lo >= 0 ? 'rgba(34,197,94,0.7)' : e.hi <= 0 ? 'rgba(239,68,68,0.7)' : 'rgba(59,130,246,0.7)'} />
+                            <Cell key={i} fill={e.lo >= 0 ? 'url(#histGreen)' : e.hi <= 0 ? 'url(#histRed)' : 'url(#histBlue)'} />
                         ))}
                     </Bar>
                 </BarChart>
@@ -340,51 +391,103 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
             d.setDate(d.getDate() + 1);
         }
 
+        const getHeatColor = (value) => {
+            if (value === null) return { bg: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.04)', glow: 'none' };
+            const intensity = Math.min(1, Math.abs(value) / maxAbs);
+            if (value > 0) {
+                const alpha = 0.15 + intensity * 0.65;
+                return {
+                    bg: `rgba(34,197,94,${alpha})`,
+                    border: `1px solid rgba(34,197,94,${0.1 + intensity * 0.3})`,
+                    glow: intensity > 0.5 ? `0 0 ${4 + intensity * 8}px rgba(34,197,94,${intensity * 0.3})` : 'none',
+                };
+            } else {
+                const alpha = 0.15 + intensity * 0.65;
+                return {
+                    bg: `rgba(239,68,68,${alpha})`,
+                    border: `1px solid rgba(239,68,68,${0.1 + intensity * 0.3})`,
+                    glow: intensity > 0.5 ? `0 0 ${4 + intensity * 8}px rgba(239,68,68,${intensity * 0.3})` : 'none',
+                };
+            }
+        };
+
+        const totalWin = values.filter(v => v > 0).reduce((s, v) => s + v, 0);
+        const totalLoss = values.filter(v => v < 0).reduce((s, v) => s + v, 0);
+        const winDays = values.filter(v => v > 0).length;
+        const lossDays = values.filter(v => v < 0).length;
+
         return (
-            <div style={{ padding: '10px 0' }}>
-                <div style={{ display: 'flex', gap: 3, fontSize: 9, color: 'rgba(255,255,255,0.3)', marginBottom: 6, paddingLeft: 2 }}>
-                    {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((l, i) => (
+            <div style={{ padding: '8px 0' }}>
+                {/* Mini stats row */}
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginBottom: 10, fontSize: 11 }}>
+                    <span style={{ color: '#4ade80', fontWeight: 600 }}>{winDays}W ({fmtVal(totalWin)})</span>
+                    <span style={{ color: '#f87171', fontWeight: 600 }}>{lossDays}L ({fmtVal(totalLoss)})</span>
+                    <span style={{ color: 'rgba(255,255,255,0.45)', fontWeight: 500 }}>{winDays + lossDays > 0 ? Math.round(winDays / (winDays + lossDays) * 100) : 0}% win rate</span>
+                </div>
+                {/* Day labels */}
+                <div style={{ display: 'flex', gap: 3, fontSize: 9, color: 'rgba(255,255,255,0.35)', marginBottom: 4, paddingLeft: 2, fontWeight: 500 }}>
+                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((l, i) => (
                         <div key={i} style={{ width: 'calc((100% - 18px) / 7)', textAlign: 'center' }}>{l}</div>
                     ))}
                 </div>
+                {/* Calendar grid */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
                     {cells.map((cell, i) => {
-                        let bg = 'rgba(255,255,255,0.03)';
-                        let border = 'none';
-                        if (cell.value !== null) {
-                            const intensity = Math.min(1, Math.abs(cell.value) / maxAbs);
-                            if (cell.value > 0) bg = `rgba(34,197,94,${0.12 + intensity * 0.55})`;
-                            else if (cell.value < 0) bg = `rgba(239,68,68,${0.12 + intensity * 0.55})`;
-                            border = '1px solid rgba(255,255,255,0.06)';
-                        }
+                        const colors = getHeatColor(cell.value);
                         return (
                             <div
                                 key={i}
                                 title={cell.value !== null ? `${cell.date}: ${fmtVal(cell.value)}` : cell.date}
                                 style={{
                                     aspectRatio: '1',
-                                    background: bg,
-                                    border,
-                                    borderRadius: 4,
+                                    background: colors.bg,
+                                    border: colors.border,
+                                    borderRadius: 5,
                                     cursor: cell.value !== null ? 'pointer' : 'default',
-                                    minHeight: 16,
-                                    transition: 'transform 0.15s, box-shadow 0.15s',
+                                    minHeight: 18,
+                                    boxShadow: colors.glow,
+                                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                                    position: 'relative',
                                 }}
-                                onMouseEnter={e => { if (cell.value !== null) { e.target.style.transform = 'scale(1.15)'; e.target.style.boxShadow = '0 0 8px rgba(255,255,255,0.15)'; } }}
-                                onMouseLeave={e => { e.target.style.transform = 'scale(1)'; e.target.style.boxShadow = 'none'; }}
+                                onMouseEnter={e => {
+                                    if (cell.value !== null) {
+                                        e.currentTarget.style.transform = 'scale(1.2)';
+                                        e.currentTarget.style.boxShadow = cell.value > 0
+                                            ? '0 0 12px rgba(34,197,94,0.4)'
+                                            : '0 0 12px rgba(239,68,68,0.4)';
+                                        e.currentTarget.style.zIndex = '10';
+                                    }
+                                }}
+                                onMouseLeave={e => {
+                                    e.currentTarget.style.transform = 'scale(1)';
+                                    e.currentTarget.style.boxShadow = colors.glow;
+                                    e.currentTarget.style.zIndex = '1';
+                                }}
                             />
                         );
                     })}
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 10, fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <span style={{ width: 10, height: 10, borderRadius: 2, background: 'rgba(239,68,68,0.5)' }} /> Loss
+                {/* Gradient legend */}
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 10, fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <span style={{ display: 'flex', gap: 2 }}>
+                            {[0.15, 0.35, 0.55, 0.75].map((a, idx) => (
+                                <span key={idx} style={{ width: 10, height: 10, borderRadius: 3, background: `rgba(239,68,68,${a})` }} />
+                            ))}
+                        </span>
+                        Loss
                     </span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <span style={{ width: 10, height: 10, borderRadius: 2, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }} /> No data
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <span style={{ width: 10, height: 10, borderRadius: 3, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }} />
+                        Off
                     </span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <span style={{ width: 10, height: 10, borderRadius: 2, background: 'rgba(34,197,94,0.5)' }} /> Win
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <span style={{ display: 'flex', gap: 2 }}>
+                            {[0.15, 0.35, 0.55, 0.75].map((a, idx) => (
+                                <span key={idx} style={{ width: 10, height: 10, borderRadius: 3, background: `rgba(34,197,94,${a})` }} />
+                            ))}
+                        </span>
+                        Win
                     </span>
                 </div>
             </div>
@@ -392,33 +495,55 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
     };
 
     const renderDonut = () => {
-        if (donutData.length === 0) return <div style={S.emptyState}><span>No category data</span></div>;
+        if (donutData.length === 0) return <div style={S.emptyState}><span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>No category data</span></div>;
         const total = donutData.reduce((s, d) => s + d.rawValue, 0);
         const totalAbs = donutData.reduce((s, d) => s + d.value, 0);
         return (
             <div style={{ position: 'relative' }}>
-                <ResponsiveContainer width="100%" height={220}>
+                <ResponsiveContainer width="100%" height={240}>
                     <PieChart>
+                        <defs>
+                            {donutData.map((d, i) => (
+                                <linearGradient key={i} id={`donutGrad_${i}`} x1="0" y1="0" x2="1" y2="1">
+                                    <stop offset="0%" stopColor={d.color} stopOpacity={1} />
+                                    <stop offset="100%" stopColor={d.color} stopOpacity={0.7} />
+                                </linearGradient>
+                            ))}
+                            <filter id="donutGlow">
+                                <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+                                <feMerge>
+                                    <feMergeNode in="coloredBlur" />
+                                    <feMergeNode in="SourceGraphic" />
+                                </feMerge>
+                            </filter>
+                        </defs>
                         <Pie
                             data={donutData}
                             cx="50%"
                             cy="50%"
-                            innerRadius={55}
-                            outerRadius={85}
-                            paddingAngle={3}
+                            innerRadius={52}
+                            outerRadius={88}
+                            paddingAngle={4}
                             dataKey="value"
-                            stroke="rgba(0,0,0,0.3)"
-                            strokeWidth={1}
+                            stroke="rgba(0,0,0,0.4)"
+                            strokeWidth={2}
+                            cornerRadius={4}
+                            filter="url(#donutGlow)"
                         >
-                            {donutData.map((e, i) => <Cell key={i} fill={e.color} fillOpacity={0.85} />)}
+                            {donutData.map((e, i) => <Cell key={i} fill={`url(#donutGrad_${i})`} />)}
                         </Pie>
                         <Tooltip content={({ active, payload }) => {
                             if (!active || !payload?.[0]) return null;
                             const d = payload[0].payload;
+                            const pct = totalAbs > 0 ? Math.round(d.value / totalAbs * 100) : 0;
                             return (
                                 <TT>
-                                    <div style={{ color: d.color, fontWeight: 600, marginBottom: 2 }}>{d.name}</div>
-                                    <div>{fmtVal(d.rawValue)} ({totalAbs > 0 ? Math.round(d.value / totalAbs * 100) : 0}%)</div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                                        <span style={{ width: 10, height: 10, borderRadius: '50%', background: d.color, display: 'inline-block', boxShadow: `0 0 6px ${d.color}` }} />
+                                        <span style={{ color: d.color, fontWeight: 600, fontSize: 13 }}>{d.name}</span>
+                                    </div>
+                                    <div style={{ fontSize: 15, fontWeight: 700, color: d.rawValue >= 0 ? '#4ade80' : '#f87171' }}>{fmtVal(d.rawValue)}</div>
+                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{pct}% of total volume</div>
                                 </TT>
                             );
                         }} />
@@ -426,20 +551,24 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
                 </ResponsiveContainer>
                 {/* Center label */}
                 <div style={{
-                    position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -55%)',
+                    position: 'absolute', top: '45%', left: '50%', transform: 'translate(-50%, -50%)',
                     textAlign: 'center', pointerEvents: 'none',
                 }}>
-                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 2 }}>Total</div>
-                    <div style={{ fontSize: 17, fontWeight: 700, color: total >= 0 ? '#4ade80' : '#f87171' }}>{fmtVal(total)}</div>
+                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 3, fontWeight: 500 }}>Net P/L</div>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: total >= 0 ? '#4ade80' : '#f87171', letterSpacing: '-0.5px', textShadow: total >= 0 ? '0 0 12px rgba(74,222,128,0.3)' : '0 0 12px rgba(248,113,113,0.3)' }}>{fmtVal(total)}</div>
                 </div>
                 {/* Legend */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 12, fontSize: 11, marginTop: 4 }}>
-                    {donutData.map((d, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'rgba(255,255,255,0.6)' }}>
-                            <span style={{ width: 8, height: 8, borderRadius: '50%', background: d.color, display: 'inline-block' }} />
-                            {d.name}
-                        </div>
-                    ))}
+                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 14, fontSize: 11, marginTop: 4 }}>
+                    {donutData.map((d, i) => {
+                        const pct = totalAbs > 0 ? Math.round(d.value / totalAbs * 100) : 0;
+                        return (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'rgba(255,255,255,0.65)' }}>
+                                <span style={{ width: 8, height: 8, borderRadius: '50%', background: d.color, display: 'inline-block', boxShadow: `0 0 4px ${d.color}` }} />
+                                <span>{d.name}</span>
+                                <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10 }}>{pct}%</span>
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
         );

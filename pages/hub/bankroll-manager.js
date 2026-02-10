@@ -981,7 +981,7 @@ export default function BankrollManagerPage() {
                 <BankrollTrendChart entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} isLoading={isLoading} chartType={chartType} />
 
                 {/* Analytics Grid — horizontal slider on mobile */}
-                <div className="bankroll-analytics-slider" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
+                <div className="bankroll-analytics-slider" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16, alignItems: 'stretch' }}>
                   <LocationAnalytics entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} isLoading={isLoading} />
                   <VarianceCalculator entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} />
                   <HistoricalComparison entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} />
