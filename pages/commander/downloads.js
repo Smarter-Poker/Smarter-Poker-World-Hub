@@ -44,7 +44,7 @@ export default function DownloadsPage() {
         url: '/api/commander/download?platform=mac-zip'
       },
       requirements: ['macOS 11 (Big Sur) or later', 'Apple Silicon (M1/M2/M3)', '4GB RAM minimum', '200MB disk space'],
-      installNote: 'After downloading, right-click the app and select "Open", then click "Open" in the dialog. Or go to System Settings → Privacy & Security and click "Open Anyway".'
+      installNote: 'If you see "Club Commander is damaged and can\'t be opened", open Terminal and run: xattr -cr /Applications/Club\\ Commander.app — then re-open the app. This removes the macOS quarantine flag from unsigned apps.'
     },
     linux: {
       name: 'Linux',
