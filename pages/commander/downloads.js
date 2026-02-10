@@ -22,23 +22,41 @@ export default function DownloadsPage() {
     windows: {
       name: 'Windows',
       icon: '🪟',
-      filename: 'ClubCommander-Setup-1.0.0.exe',
-      downloadUrl: 'https://github.com/Smarter-Poker/club-commander-desktop/releases/download/v1.0.0/ClubCommander-Setup-1.0.0.exe',
+      filename: 'Club.Commander.Setup.1.0.0.exe',
+      size: '72.9 MB',
+      downloadUrl: 'https://github.com/Smarter-Poker/club-commander-desktop/releases/download/v1.0.0/Club.Commander.Setup.1.0.0.exe',
+      altDownload: {
+        name: 'Portable Version',
+        filename: 'Club.Commander.1.0.0.exe',
+        url: 'https://github.com/Smarter-Poker/club-commander-desktop/releases/download/v1.0.0/Club.Commander.1.0.0.exe'
+      },
       requirements: ['Windows 10 or later', '4GB RAM minimum', '200MB disk space']
     },
     mac: {
       name: 'macOS',
       icon: '🍎',
-      filename: 'ClubCommander-1.0.0.dmg',
-      downloadUrl: 'https://github.com/Smarter-Poker/club-commander-desktop/releases/download/v1.0.0/ClubCommander-1.0.0.dmg',
-      requirements: ['macOS 10.15 (Catalina) or later', '4GB RAM minimum', '200MB disk space']
+      filename: 'Club.Commander-1.0.0-arm64.dmg',
+      size: '89.8 MB',
+      downloadUrl: 'https://github.com/Smarter-Poker/club-commander-desktop/releases/download/v1.0.0/Club.Commander-1.0.0-arm64.dmg',
+      altDownload: {
+        name: 'ZIP Archive',
+        filename: 'Club.Commander-1.0.0-arm64-mac.zip',
+        url: 'https://github.com/Smarter-Poker/club-commander-desktop/releases/download/v1.0.0/Club.Commander-1.0.0-arm64-mac.zip'
+      },
+      requirements: ['macOS 11 (Big Sur) or later', 'Apple Silicon (M1/M2/M3)', '4GB RAM minimum', '200MB disk space']
     },
     linux: {
       name: 'Linux',
       icon: '🐧',
-      filename: 'ClubCommander-1.0.0.AppImage',
-      downloadUrl: 'https://github.com/Smarter-Poker/club-commander-desktop/releases/download/v1.0.0/ClubCommander-1.0.0.AppImage',
-      requirements: ['Ubuntu 18.04+ or equivalent', '4GB RAM minimum', '200MB disk space']
+      filename: 'Club.Commander-1.0.0.AppImage',
+      size: '99.6 MB',
+      downloadUrl: 'https://github.com/Smarter-Poker/club-commander-desktop/releases/download/v1.0.0/Club.Commander-1.0.0.AppImage',
+      altDownload: {
+        name: 'Debian Package',
+        filename: 'club-commander_1.0.0_amd64.deb',
+        url: 'https://github.com/Smarter-Poker/club-commander-desktop/releases/download/v1.0.0/club-commander_1.0.0_amd64.deb'
+      },
+      requirements: ['Ubuntu 20.04+ or equivalent', '4GB RAM minimum', '200MB disk space']
     }
   };
 
@@ -71,6 +89,7 @@ export default function DownloadsPage() {
           </div>
           <h1 className="text-4xl font-bold text-[#E4E6EB] mb-3">Club Commander Desktop</h1>
           <p className="text-[#B0B3B8] text-lg">The fastest way to manage your poker room</p>
+          <p className="text-[#31A24C] text-sm mt-2">✓ Version 1.0.0 - Released February 2026</p>
         </div>
 
         {/* Main Download Card */}
@@ -98,36 +117,45 @@ export default function DownloadsPage() {
             <button
               onClick={handleDownload}
               disabled={downloading}
-              className="inline-flex items-center gap-3 px-10 py-4 bg-[#1877F2] hover:bg-[#166FE5] text-white text-xl font-semibold rounded-xl transition-colors disabled:opacity-70"
+              className="w-full max-w-md bg-[#1877F2] hover:bg-[#1664d9] disabled:bg-[#3A3B3C] text-white font-bold py-4 px-8 rounded-xl text-lg transition-colors"
             >
               {downloading ? (
-                <>
-                  <svg className="animate-spin h-6 w-6" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
                   </svg>
                   Starting Download...
-                </>
+                </span>
               ) : (
-                <>
+                <span className="flex items-center justify-center gap-2">
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
                   Download for {currentPlatform.name}
-                </>
+                </span>
               )}
             </button>
-            <p className="text-[#B0B3B8] text-sm mt-3">{currentPlatform.filename}</p>
+            <p className="text-[#B0B3B8] text-sm mt-3">
+              {currentPlatform.filename} ({currentPlatform.size})
+            </p>
+            {currentPlatform.altDownload && (
+              <a 
+                href={currentPlatform.altDownload.url}
+                className="text-[#1877F2] hover:underline text-sm mt-2 inline-block"
+              >
+                Or download {currentPlatform.altDownload.name} →
+              </a>
+            )}
           </div>
 
-          {/* System Requirements */}
-          <div className="bg-[#3A3B3C] rounded-lg p-5">
-            <h3 className="text-[#E4E6EB] font-semibold mb-3">System Requirements</h3>
-            <ul className="space-y-2">
+          {/* Requirements */}
+          <div className="border-t border-[#3A3B3C] pt-6">
+            <h3 className="text-[#E4E6EB] font-medium mb-3">System Requirements</h3>
+            <ul className="text-[#B0B3B8] text-sm space-y-1">
               {currentPlatform.requirements.map((req, i) => (
-                <li key={i} className="text-[#B0B3B8] text-sm flex items-center gap-2">
-                  <span className="text-[#31A24C]">{'\u2713'}</span>
-                  {req}
+                <li key={i} className="flex items-center gap-2">
+                  <span className="text-[#31A24C]">✓</span> {req}
                 </li>
               ))}
             </ul>
@@ -135,40 +163,32 @@ export default function DownloadsPage() {
         </div>
 
         {/* Features Grid */}
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl font-bold text-[#E4E6EB] text-center mb-8">Why Use the Desktop App?</h2>
-          <div className="grid md:grid-cols-2 gap-4">
-            {features.map((feature, i) => (
-              <div key={i} className="bg-[#242526] border border-[#3A3B3C] rounded-xl p-5">
-                <h3 className="text-[#E4E6EB] font-semibold mb-2">{feature.title}</h3>
-                <p className="text-[#B0B3B8] text-sm">{feature.desc}</p>
-              </div>
-            ))}
-          </div>
+        <div className="max-w-2xl mx-auto grid grid-cols-2 gap-4 mb-8">
+          {features.map((feature, i) => (
+            <div key={i} className="bg-[#242526] rounded-lg p-4 border border-[#3A3B3C]">
+              <h4 className="text-[#E4E6EB] font-medium mb-1">{feature.title}</h4>
+              <p className="text-[#B0B3B8] text-sm">{feature.desc}</p>
+            </div>
+          ))}
         </div>
 
-        {/* Alternative Links */}
-        <div className="max-w-2xl mx-auto mt-12 text-center">
-          <p className="text-[#B0B3B8] mb-4">Prefer the web version?</p>
-          <div className="flex justify-center gap-4">
-            <Link href="/commander/login" className="text-[#1877F2] hover:underline font-medium">
-              Open Web App
-            </Link>
-            <span className="text-[#3A3B3C]">|</span>
-            <Link href="/commander/register" className="text-[#1877F2] hover:underline font-medium">
-              Create Account
-            </Link>
-          </div>
+        {/* All Downloads Link */}
+        <div className="text-center">
+          <a 
+            href="https://github.com/Smarter-Poker/club-commander-desktop/releases"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#1877F2] hover:underline"
+          >
+            View all releases on GitHub →
+          </a>
         </div>
 
-        {/* Version Info */}
-        <div className="text-center mt-12 text-[#B0B3B8] text-sm">
-          <p>Version 1.0.0 | Released February 2026</p>
-          <p className="mt-1">
-            <a href="https://github.com/Smarter-Poker/club-commander-desktop/releases" className="text-[#1877F2] hover:underline">
-              View all releases
-            </a>
-          </p>
+        {/* Back to Login */}
+        <div className="text-center mt-8">
+          <Link href="/commander/login" className="text-[#B0B3B8] hover:text-[#E4E6EB]">
+            ← Back to Login
+          </Link>
         </div>
       </div>
     </div>
