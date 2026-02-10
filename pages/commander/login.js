@@ -49,9 +49,32 @@ export default function CommanderLogin() {
 
       const subscription = subData.subscription;
 
-      // Store venue info and redirect to dashboard
+      // Store venue info and staff session for dashboard access
       localStorage.setItem('commander_venue', JSON.stringify(subscription.venue));
       localStorage.setItem('commander_subscription', JSON.stringify(subscription));
+
+      // Dashboard checks for commander_staff — set it with owner permissions
+      const staffSession = {
+        user_id: data.user.id,
+        email: data.user.email,
+        display_name: subscription.billing_name || data.user.email,
+        role: 'owner',
+        venue_id: subscription.venue_id,
+        venue_name: subscription.venue?.name || 'My Venue',
+        permissions: {
+          manage_games: true,
+          manage_waitlist: true,
+          manage_staff: true,
+          manage_tables: true,
+          manage_tournaments: true,
+          manage_settings: true,
+          view_analytics: true,
+          view_reports: true,
+          send_announcements: true,
+        }
+      };
+      localStorage.setItem('commander_staff', JSON.stringify(staffSession));
+
       router.push('/commander/dashboard');
 
     } catch (err) {
