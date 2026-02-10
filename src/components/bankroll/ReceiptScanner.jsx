@@ -1,13 +1,12 @@
 /**
  * RECEIPT SCANNER COMPONENT
- * Futuristic Metal UI - OCR for poker + travel expense receipts
- * Industrial sci-fi scanner interface with LED indicators
+ * Captures receipt image → uploads to Supabase Storage → saves URL to bankroll entry
+ * NO AI / NO APIs — just image upload to Supabase
  */
 
 import { useState, useRef, useCallback } from 'react';
-import { Camera, Upload, X, Loader2, Check, RefreshCw, Scan, Zap } from 'lucide-react';
+import { Camera, Upload, X, Loader2, Check, RefreshCw, Scan } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { formatCurrency } from '../../lib/bankroll/currencyUtils';
 import { METAL, GRADIENTS, GLOWS, ANIMATIONS } from './metalStyles';
 import DocumentCropper from './DocumentCropper';
 import LiveCameraScanner from './LiveCameraScanner';
@@ -25,9 +24,9 @@ const EXPENSE_LABELS = {
     tournament: 'TOURNAMENT', other: 'OTHER'
 };
 
-export default function ReceiptScanner({ onScanComplete, displayEUR = false, tripId = null }) {
-    const [isScanning, setIsScanning] = useState(false);
-    const [scanResult, setScanResult] = useState(null);
+export default function ReceiptScanner({ onScanComplete, userId, displayEUR = false, tripId = null }) {
+    const [isUploading, setIsUploading] = useState(false);
+    const [uploadedUrl, setUploadedUrl] = useState(null);
     const [error, setError] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
     const [showCropper, setShowCropper] = useState(false);
@@ -50,12 +49,11 @@ export default function ReceiptScanner({ onScanComplete, displayEUR = false, tri
     const handleCropConfirm = useCallback(async (croppedBase64) => {
         setShowCropper(false);
         setImagePreview(croppedBase64);
-        // Convert cropped base64 to file-like blob for scanning
         const res = await fetch(croppedBase64);
         const blob = await res.blob();
         const file = new File([blob], 'receipt-cropped.jpg', { type: 'image/jpeg' });
-        await scanReceipt(file);
-    }, []);
+        await uploadReceipt(file);
+    }, [userId]);
 
     const handleCropSkip = useCallback(async () => {
         setShowCropper(false);
@@ -64,9 +62,9 @@ export default function ReceiptScanner({ onScanComplete, displayEUR = false, tri
             const res = await fetch(rawImage);
             const blob = await res.blob();
             const file = new File([blob], 'receipt-original.jpg', { type: 'image/jpeg' });
-            await scanReceipt(file);
+            await uploadReceipt(file);
         }
-    }, [rawImage]);
+    }, [rawImage, userId]);
 
     // Handle live camera capture — already cropped by the scanner
     const handleLiveCapture = useCallback(async (capturedBase64) => {
@@ -75,61 +73,55 @@ export default function ReceiptScanner({ onScanComplete, displayEUR = false, tri
         const res = await fetch(capturedBase64);
         const blob = await res.blob();
         const file = new File([blob], 'receipt-cropped.jpg', { type: 'image/jpeg' });
-        await scanReceipt(file);
-    }, []);
+        await uploadReceipt(file);
+    }, [userId]);
 
-    const scanReceipt = async (file) => {
-        setIsScanning(true);
+    // Upload receipt image directly to Supabase Storage
+    const uploadReceipt = async (file) => {
+        setIsUploading(true);
         setError(null);
-        setScanResult(null);
+        setUploadedUrl(null);
 
         try {
-            const base64 = await fileToBase64(file);
             const { data: { session } } = await supabase.auth.getSession();
-            const token = session?.access_token;
-
-            if (!token) {
-                setError('Authentication required');
+            if (!session?.user?.id) {
+                setError('Sign in required');
                 return;
             }
 
-            const response = await fetch('/api/bankroll/scan-receipt', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ image: base64 }),
-            });
+            const uid = userId || session.user.id;
+            const fileExt = file.name?.split('.').pop() || 'jpg';
+            const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+            const filePath = `bankroll/${uid}/${fileName}`;
 
-            if (!response.ok) throw new Error('Scan failed');
+            const { error: uploadError } = await supabase.storage
+                .from('images')
+                .upload(filePath, file);
 
-            const { data } = await response.json();
-            setScanResult(data);
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('images')
+                .getPublicUrl(filePath);
+
+            setUploadedUrl(publicUrl);
         } catch (err) {
-            console.error('Scan error:', err);
-            setError('SCAN FAILED - RETRY');
+            console.error('Upload error:', err);
+            setError('UPLOAD FAILED - RETRY');
         } finally {
-            setIsScanning(false);
+            setIsUploading(false);
         }
     };
 
-    const fileToBase64 = (file) => new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-    });
-
     const handleConfirm = () => {
-        if (scanResult && onScanComplete) {
-            onScanComplete({ ...scanResult, tripId });
+        if (uploadedUrl && onScanComplete) {
+            onScanComplete({ imageUrl: uploadedUrl, tripId });
         }
         resetScanner();
     };
 
     const resetScanner = () => {
-        setScanResult(null);
+        setUploadedUrl(null);
         setImagePreview(null);
         setRawImage(null);
         setShowCropper(false);
@@ -149,7 +141,7 @@ export default function ReceiptScanner({ onScanComplete, displayEUR = false, tri
                     <Scan size={16} style={{ color: METAL.cyan }} />
                     <span>SCAN RECEIPT</span>
                 </div>
-                {(imagePreview || scanResult) && (
+                {(imagePreview || uploadedUrl) && (
                     <button onClick={resetScanner} style={styles.resetBtn}>
                         <RefreshCw size={12} />
                         NEW SCAN
@@ -158,23 +150,23 @@ export default function ReceiptScanner({ onScanComplete, displayEUR = false, tri
             </div>
 
             {/* Scanning State */}
-            {isScanning && (
+            {isUploading && (
                 <div style={styles.scanningState}>
                     <div style={styles.scannerOverlay}>
                         <div style={styles.scanLine} />
                     </div>
                     {imagePreview && (
-                        <img src={imagePreview} alt="Scanning" style={styles.scanningImage} />
+                        <img src={imagePreview} alt="Uploading" style={styles.scanningImage} />
                     )}
                     <div style={styles.scanningInfo}>
                         <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} />
-                        <span>ANALYZING RECEIPT...</span>
+                        <span>UPLOADING RECEIPT...</span>
                     </div>
                 </div>
             )}
 
             {/* Live Camera */}
-            {showLiveCamera && !imagePreview && !isScanning && (
+            {showLiveCamera && !imagePreview && !isUploading && (
                 <LiveCameraScanner
                     onCapture={handleLiveCapture}
                     onClose={() => setShowLiveCamera(false)}
@@ -182,7 +174,7 @@ export default function ReceiptScanner({ onScanComplete, displayEUR = false, tri
             )}
 
             {/* Upload Area — shows when no camera active */}
-            {!showLiveCamera && !imagePreview && !isScanning && (
+            {!showLiveCamera && !imagePreview && !isUploading && (
                 <div style={styles.uploadArea}>
                     <div
                         style={styles.cameraLaunchBtn}
@@ -217,107 +209,29 @@ export default function ReceiptScanner({ onScanComplete, displayEUR = false, tri
             )}
 
             {/* Error State */}
-            {error && !isScanning && (
+            {error && !isUploading && (
                 <div style={styles.errorBox}>
                     <X size={16} />
                     <span>{error}</span>
-                    <button onClick={() => fileInputRef.current?.click()} style={styles.retryBtn}>
+                    <button onClick={resetScanner} style={styles.retryBtn}>
                         RETRY
                     </button>
                 </div>
             )}
 
             {/* Scan Result */}
-            {scanResult && !isScanning && (
+            {uploadedUrl && !isUploading && (
                 <div style={styles.resultContainer}>
-                    {/* Confidence Indicator */}
+                    {/* Success badge */}
                     <div style={styles.confidenceBadge}>
-                        <Zap size={10} />
-                        {scanResult.confidence > 0
-                            ? `${scanResult.confidence}% CONFIDENCE`
-                            : 'DEMO DATA'
-                        }
+                        <Check size={10} />
+                        RECEIPT UPLOADED
                     </div>
 
                     {/* Preview Image */}
-                    {imagePreview && (
-                        <div style={styles.previewContainer}>
-                            <img src={imagePreview} alt="Receipt" style={styles.previewImage} />
-                        </div>
-                    )}
-
-                    {/* Extracted Data */}
-                    <div style={styles.dataGrid}>
-                        {/* Category */}
-                        <div style={styles.dataRow}>
-                            <span style={styles.dataLabel}>CATEGORY</span>
-                            <span style={styles.dataValue}>
-                                {EXPENSE_ICONS[scanResult.category]} {EXPENSE_LABELS[scanResult.category]}
-                            </span>
-                        </div>
-
-                        {/* Amount */}
-                        <div style={styles.dataRow}>
-                            <span style={styles.dataLabel}>AMOUNT</span>
-                            <span style={{ ...styles.dataValue, color: METAL.cyan, fontSize: 20 }}>
-                                {formatCurrency(scanResult.amount, scanResult.currency || 'USD')}
-                            </span>
-                        </div>
-
-                        {/* Vendor */}
-                        {scanResult.vendor && (
-                            <div style={styles.dataRow}>
-                                <span style={styles.dataLabel}>VENDOR</span>
-                                <span style={styles.dataValue}>{scanResult.vendor}</span>
-                            </div>
-                        )}
-
-                        {/* Date */}
-                        {scanResult.date && (
-                            <div style={styles.dataRow}>
-                                <span style={styles.dataLabel}>DATE</span>
-                                <span style={styles.dataValue}>{scanResult.date}</span>
-                            </div>
-                        )}
-
-                        {/* Location */}
-                        {scanResult.location && (
-                            <div style={styles.dataRow}>
-                                <span style={styles.dataLabel}>LOCATION</span>
-                                <span style={styles.dataValue}>{scanResult.location}</span>
-                            </div>
-                        )}
-
-                        {/* Tax Deductible */}
-                        <div style={styles.dataRow}>
-                            <span style={styles.dataLabel}>TAX DEDUCTIBLE</span>
-                            <span style={{
-                                ...styles.statusBadge,
-                                background: scanResult.tax_deductible
-                                    ? 'rgba(34,197,94,0.15)'
-                                    : 'rgba(239,68,68,0.15)',
-                                color: scanResult.tax_deductible ? METAL.success : METAL.danger,
-                                border: `1px solid ${scanResult.tax_deductible ? METAL.success : METAL.danger}`,
-                            }}>
-                                {scanResult.tax_deductible ? '✓ YES' : '✕ NO'}
-                            </span>
-                        </div>
+                    <div style={styles.previewContainer}>
+                        <img src={uploadedUrl} alt="Receipt" style={styles.previewImage} />
                     </div>
-
-                    {/* Itemized Breakdown */}
-                    {scanResult.itemized?.length > 0 && (
-                        <div style={styles.itemizedSection}>
-                            <div style={styles.itemizedHeader}>ITEMIZED</div>
-                            {scanResult.itemized.map((item, i) => (
-                                <div key={i} style={styles.itemizedRow}>
-                                    <span>{item.item}</span>
-                                    <span style={{ color: 'rgba(255,255,255,0.7)' }}>
-                                        ${item.amount?.toFixed(2)}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    )}
 
                     {/* Actions */}
                     <div style={styles.actions}>
@@ -327,7 +241,7 @@ export default function ReceiptScanner({ onScanComplete, displayEUR = false, tri
                         </button>
                         <button onClick={handleConfirm} style={styles.confirmBtn}>
                             <Check size={14} />
-                            ADD TO LOG
+                            SAVE RECEIPT
                         </button>
                     </div>
                 </div>

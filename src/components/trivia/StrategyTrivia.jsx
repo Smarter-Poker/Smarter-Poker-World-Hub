@@ -196,31 +196,56 @@ export default function StrategyTrivia({ mode }) {
             }
         }
 
-        let query = supabase
+        // First try daily-tagged questions for today
+        const today = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' }))
+            .toISOString().split('T')[0];
+
+        let dailyQuery = supabase
             .from('trivia_questions')
             .select('*')
-            .in('category', config.categories);
+            .in('category', config.categories)
+            .eq('daily_date', today);
 
-        const { data } = await query;
+        const { data: dailyData } = await dailyQuery;
 
-        if (data && data.length > 0) {
-            // Filter out recently seen questions (60-day exclusion)
+        if (dailyData && dailyData.length >= 20) {
+            // Filter out recently seen, take 20
             let available = excludeIds.length > 0
-                ? data.filter(q => !excludeIds.includes(q.id))
-                : data;
+                ? dailyData.filter(q => !excludeIds.includes(q.id))
+                : dailyData;
 
-            // If not enough unseen questions, fall back to all questions
-            if (available.length < 10) {
-                console.log(`[StrategyTrivia] Not enough unseen questions (${available.length}/10), using all available`);
-                available = data;
+            if (available.length >= 20) {
+                setQuestions(available.slice(0, 20));
+            } else {
+                // Supplement with daily questions even if seen
+                setQuestions(dailyData.slice(0, 20));
             }
-
-            // Shuffle and take 10
-            const shuffled = available.sort(() => Math.random() - 0.5).slice(0, 10);
-            setQuestions(shuffled);
         } else {
-            // Fallback questions for new categories
-            setQuestions(getFallbackQuestions(mode));
+            // Fallback: fetch from full pool
+            let query = supabase
+                .from('trivia_questions')
+                .select('*')
+                .in('category', config.categories);
+
+            const { data } = await query;
+
+            if (data && data.length > 0) {
+                // Filter out recently seen questions (60-day exclusion)
+                let available = excludeIds.length > 0
+                    ? data.filter(q => !excludeIds.includes(q.id))
+                    : data;
+
+                // If not enough unseen questions, fall back to all
+                if (available.length < 20) {
+                    available = data;
+                }
+
+                // Shuffle and take 20
+                const shuffled = available.sort(() => Math.random() - 0.5).slice(0, 20);
+                setQuestions(shuffled);
+            } else {
+                setQuestions(getFallbackQuestions(mode));
+            }
         }
 
         setIsLoading(false);
@@ -665,7 +690,7 @@ export default function StrategyTrivia({ mode }) {
 
                                             <div style={{ width: '100%', maxWidth: '500px' }}>
                                                 <GTOScenarioDisplay
-                                                    action={currentQuestion.options[currentQuestion.correct_index]?.split(' ')[0]?.toUpperCase() || 'OPTIMAL'}
+                                                    action={currentQuestion.options[currentQuestion.correct_index]?.split(' ')[0]?.replace(/[^a-zA-Z-]/g, '').toUpperCase() || 'OPTIMAL'}
                                                     confidence={computedConfidence}
                                                     explanation={currentQuestion.explanation}
                                                     gtoApproach={generateGTOApproach(currentQuestion)}

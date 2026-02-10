@@ -70,7 +70,7 @@ export default async function handler(req, res) {
 }
 
 async function analyzeReceipt(imageBase64) {
-    const GROK_API_KEY = process.env.GROK_API_KEY;
+    const GROK_API_KEY = process.env.XAI_API_KEY || process.env.GROK_API_KEY;
 
     if (!GROK_API_KEY) {
         throw new Error('Receipt scanning is not configured. Missing API key.');
