@@ -374,7 +374,6 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Dashboard', '/hub/bankroll-manager?view=dashboard'),
             createMenuItem.navigation('Log Session', '/hub/bankroll-manager?view=log-session'),
             createMenuItem.navigation('Trip Tracker', '/hub/bankroll-manager?view=trips'),
-            createMenuItem.navigation('Leaks Analysis', '/hub/bankroll-manager?view=leaks'),
             createMenuItem.navigation('Reports', '/hub/bankroll-manager?view=reports'),
             createMenuItem.navigation('Saved Receipts', '/hub/bankroll-manager?view=receipts'),
             createMenuItem.divider(),
@@ -391,6 +390,7 @@ export const MENU_CONFIGS = {
             createMenuItem.toggle('Notifications', state.notifications !== false, handlers.setNotifications),
             createMenuItem.navigation('Bankroll Rules', '/hub/bankroll-manager?view=rules'),
             createMenuItem.navigation('Goals', '/hub/bankroll-manager?view=goals'),
+            createMenuItem.navigation('Manage Venues & Settings', '/hub/bankroll-manager?view=settings'),
             createMenuItem.navigation('Export Data', '/hub/bankroll-manager/export')
         ],
         bottomLinks: [

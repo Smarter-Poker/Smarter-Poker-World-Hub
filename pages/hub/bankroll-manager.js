@@ -82,7 +82,6 @@ const SIDEBAR_SECTIONS = [
   { id: 'tax', label: 'Tax Reports', icon: '' },
 
   { id: 'reports', label: 'Reports', icon: '' },
-  { id: 'settings', label: 'Settings', icon: '' },
 ];
 
 // Accounting-only categories: NEVER count as sessions, never affect win rate, projections, or stats
@@ -773,6 +772,7 @@ export default function BankrollManagerPage() {
                 {activeSection === 'reports' && 'Reports'}
                 {activeSection === 'pro' && 'Pro Tools'}
                 {activeSection === 'settings' && 'Settings'}
+                {activeSection === 'rules' && 'Bankroll Rules'}
               </h1>
               <div style={styles.headerActions}>
                 {activeSection === 'dashboard' && categoryFilter === 'all' && (
@@ -1392,6 +1392,14 @@ export default function BankrollManagerPage() {
                   Export Data
                   <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
                 </button>
+              </div>
+            )}
+
+            {/* Bankroll Rules View */}
+            {activeSection === 'rules' && (
+              <div style={styles.activitySection}>
+                <h2 style={styles.sectionTitle}>Bankroll Rules</h2>
+                <BankrollRulesCard userId={userId} />
               </div>
             )}
 
