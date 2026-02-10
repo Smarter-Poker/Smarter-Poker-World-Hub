@@ -12,7 +12,7 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { calculateDiamonds, TRIVIA_MODES, getCategoryName } from '../../../src/lib/trivia/triviaEngine';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
-import { Zap, SkipForward, Shield, Clock, CheckCircle, XCircle, ArrowRight, Trophy, Gem } from 'lucide-react';
+import { Zap, SkipForward, Shield, Clock, CheckCircle, XCircle, ArrowRight, Trophy, Gem, Target, DollarSign, BarChart3, Brain } from 'lucide-react';
 import GTOScenarioDisplay from './GTOScenarioDisplay';
 
 // Strategy mode configuration
@@ -22,28 +22,28 @@ const STRATEGY_MODES = {
         subtitle: 'Multi-Table Tournament Situations',
         categories: ['mtt_situations'],
         color: '#f97316',
-        icon: '🎯'
+        icon: 'target'
     },
     cash: {
         title: 'Cash Game',
         subtitle: 'Deep Stack Scenarios & Implied Odds',
         categories: ['cash_game_situations'],
         color: '#22c55e',
-        icon: '💵'
+        icon: 'dollar'
     },
     icm: {
         title: 'ICM & Chip EV',
         subtitle: 'Tournament Equity Decisions',
         categories: ['icm_chip_ev'],
         color: '#06b6d4',
-        icon: '📊'
+        icon: 'chart'
     },
     gto: {
         title: 'GTO Master',
         subtitle: 'Solver-Based Strategy Scenarios',
         categories: ['gto_theory', 'mtt_situations', 'cash_game_situations', 'icm_chip_ev'],
         color: '#a855f7',
-        icon: '🧠'
+        icon: 'brain'
     }
 };
 
@@ -125,7 +125,7 @@ export default function StrategyTrivia({ mode }) {
     const [isLoading, setIsLoading] = useState(true);
 
     // Timer
-    const [timeLeft, setTimeLeft] = useState(24);
+    const [timeLeft, setTimeLeft] = useState(60);
     const [isTimerRunning, setIsTimerRunning] = useState(false);
     const timerRef = useRef(null);
     const startTimeRef = useRef(null);
@@ -351,7 +351,7 @@ export default function StrategyTrivia({ mode }) {
         setEliminatedOptions([]);
         setSkipUsed(false);
         setLifelinesUsedCount(0);
-        setTimeLeft(24);
+        setTimeLeft(60);
         setIsTimerRunning(true);
         startTimeRef.current = Date.now();
     }
@@ -383,7 +383,7 @@ export default function StrategyTrivia({ mode }) {
             setSelectedAnswer(null);
             setShowResult(false);
             setEliminatedOptions([]);
-            setTimeLeft(24);
+            setTimeLeft(60);
             setIsTimerRunning(true);
         }
     }
@@ -510,7 +510,7 @@ export default function StrategyTrivia({ mode }) {
                 setSelectedAnswer(null);
                 setShowResult(false);
                 setEliminatedOptions([]);
-                setTimeLeft(24);
+                setTimeLeft(60);
                 setIsTimerRunning(true);
             }
         }, 300);
@@ -539,7 +539,7 @@ export default function StrategyTrivia({ mode }) {
                     {/* LOBBY STATE */}
                     {gameState === 'lobby' && (
                         <div className="lobby">
-                            <div className="mode-icon">{config.icon}</div>
+                            <div className="mode-icon">{config.icon === 'target' ? <Target size={48} /> : config.icon === 'dollar' ? <DollarSign size={48} /> : config.icon === 'chart' ? <BarChart3 size={48} /> : <Brain size={48} />}</div>
                             <h1 style={{ color: config.color }}>{config.title}</h1>
                             <p className="subtitle">{config.subtitle}</p>
 
@@ -550,11 +550,11 @@ export default function StrategyTrivia({ mode }) {
                                 </div>
                                 <div className="info-row">
                                     <span>Time per Question</span>
-                                    <span>24 seconds</span>
+                                    <span>60 seconds</span>
                                 </div>
                                 <div className="info-row">
                                     <span>Perfect Score Bonus</span>
-                                    <span>+{TRIVIA_MODES[mode]?.perfectBonus || 10} 💎</span>
+                                    <span>+{TRIVIA_MODES[mode]?.perfectBonus || 10} <Gem size={14} /></span>
                                 </div>
                             </div>
 
@@ -634,7 +634,7 @@ export default function StrategyTrivia({ mode }) {
                                         >
                                             <Zap size={18} />
                                             <span>50/50</span>
-                                            <span className="cost">{LIFELINE_COST}💎</span>
+                                            <span className="cost">{LIFELINE_COST}<Gem size={14} /></span>
                                         </button>
                                         <button
                                             className="lifeline-btn"
@@ -643,7 +643,7 @@ export default function StrategyTrivia({ mode }) {
                                         >
                                             <SkipForward size={18} />
                                             <span>Skip</span>
-                                            <span className="cost">{LIFELINE_COST}💎</span>
+                                            <span className="cost">{LIFELINE_COST}<Gem size={14} /></span>
                                         </button>
                                     </div>
                                 )}
@@ -727,7 +727,7 @@ export default function StrategyTrivia({ mode }) {
                     {gameState === 'results' && (
                         <div className="results">
                             <div className="result-icon">
-                                {correctCount >= 8 ? '🏆' : correctCount >= 5 ? '⭐' : '📚'}
+                                {correctCount >= 8 ? <Trophy size={48} color="#fbbf24" /> : correctCount >= 5 ? <CheckCircle size={48} color="#22c55e" /> : <Clock size={48} color="#3b82f6" />}
                             </div>
                             <h1>Challenge Complete!</h1>
 
