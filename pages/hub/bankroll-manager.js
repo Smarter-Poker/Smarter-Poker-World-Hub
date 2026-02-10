@@ -681,7 +681,9 @@ export default function BankrollManagerPage() {
               flex: 0 0 85%;
               scroll-snap-align: start;
               min-width: 0;
-              height: 300px;
+              height: 300px !important;
+              min-height: 300px !important;
+              max-height: 300px !important;
               overflow: auto;
             }
             .bankroll-active-trip {

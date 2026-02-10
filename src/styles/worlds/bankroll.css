@@ -15,4 +15,132 @@ body.world-bankroll-manager {
     --world-surface: rgba(15, 50, 35, 0.6);
     --world-surface-elevated: rgba(20, 70, 50, 0.8);
     --world-border: rgba(34, 197, 94, 0.3);
+    --silver-border: #6b7280;
+    --silver-border-light: rgba(148, 163, 184, 0.45);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SILVER BORDER SYSTEM — Premium Dynamic Styling
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Stat Cards (Bankroll Balance, Net Results) ── */
+.bankroll-page .bankroll-stats-grid>div {
+    border: 1px solid var(--silver-border) !important;
+}
+
+/* ── Filter Row Buttons ── */
+.bankroll-page .bankroll-filters-row>div>button {
+    border: 1px solid var(--silver-border-light) !important;
+}
+
+/* ── Chart Container (Bankroll Trend) ── */
+.bankroll-page .bankroll-main-content>div>div[style*="borderRadius"] {
+    border-color: var(--silver-border) !important;
+}
+
+/* ── Analytics Cards (Venue, Variance, Historical) ── */
+.bankroll-page .bankroll-analytics-slider>div {
+    border: 1px solid var(--silver-border) !important;
+}
+
+/* ── Sidebar Items ── */
+.bankroll-sidebar button {
+    border: 1px solid transparent !important;
+    transition: border-color 0.2s ease;
+}
+
+.bankroll-sidebar button:hover {
+    border-color: var(--silver-border-light) !important;
+}
+
+/* ── Mobile Nav Tabs ── */
+.bankroll-mobile-nav .bankroll-mobile-nav-item {
+    border: 1px solid var(--silver-border-light) !important;
+}
+
+.bankroll-mobile-nav .bankroll-mobile-nav-item.active {
+    border-color: var(--silver-border) !important;
+}
+
+/* ── Active Trip/Series Banners ── */
+.bankroll-page .bankroll-main-content div[style*="linear-gradient(135deg"] {
+    border: 1px solid var(--silver-border) !important;
+}
+
+/* ── Log Entry / Add+ Button ── */
+.bankroll-log-btn {
+    border: 1px solid var(--silver-border) !important;
+}
+
+/* ── View All / Action Buttons ── */
+.bankroll-page .bankroll-main-content button[style*="background: rgba(59, 130, 246"] {
+    border: 1px solid var(--silver-border-light) !important;
+}
+
+/* ── Dropdown Menus ── */
+.bankroll-page .bankroll-dropdown-menu {
+    border: 1px solid var(--silver-border) !important;
+}
+
+/* ── Activity / Ledger Entry Cards ── */
+.bankroll-page .bankroll-main-content div[style*="rgba(255,255,255,0.03)"] {
+    border: 1px solid var(--silver-border-light) !important;
+}
+
+/* ── Reports Section Buttons ── */
+.bankroll-page .bankroll-main-content button[style*="rgba(255,255,255,0.05)"] {
+    border: 1px solid var(--silver-border-light) !important;
+}
+
+/* ── Content Header ── */
+.bankroll-content-header {
+    border-bottom: 1px solid var(--silver-border-light) !important;
+}
+
+/* ── Settings / Form Containers ── */
+.bankroll-page .bankroll-main-content div[style*="rgba(255,255,255,0.06)"] {
+    border-color: var(--silver-border-light) !important;
+}
+
+/* ── Input Fields & Select Dropdowns ── */
+.bankroll-page input,
+.bankroll-page select,
+.bankroll-page textarea {
+    border: 1px solid var(--silver-border-light) !important;
+    transition: border-color 0.2s ease;
+}
+
+.bankroll-page input:focus,
+.bankroll-page select:focus,
+.bankroll-page textarea:focus {
+    border-color: var(--silver-border) !important;
+}
+
+/* ── Trip Tracker & Series Tracker Cards ── */
+.bankroll-page div[style*="rgba(16, 185, 129, 0.1)"] {
+    border: 1px solid var(--silver-border) !important;
+}
+
+.bankroll-page div[style*="rgba(59, 130, 246, 0.08)"] {
+    border: 1px solid var(--silver-border) !important;
+}
+
+/* ── Generic Bordered Cards catch-all ── */
+.bankroll-page div[style*="border: 1px solid rgba(255"] {
+    border-color: var(--silver-border-light) !important;
+}
+
+/* ── All Buttons inside bankroll ── */
+.bankroll-page .bankroll-main-content button {
+    border-color: var(--silver-border-light) !important;
+}
+
+.bankroll-page .bankroll-main-content button:hover {
+    border-color: var(--silver-border) !important;
+}
+
+/* ── Completed Trip/Series History Cards ── */
+.bankroll-page div[style*="whileHover"],
+.bankroll-page div[role="button"] {
+    border: 1px solid var(--silver-border-light) !important;
 }
