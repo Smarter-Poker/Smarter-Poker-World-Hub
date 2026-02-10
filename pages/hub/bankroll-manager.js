@@ -527,6 +527,99 @@ export default function BankrollManagerPage() {
           @keyframes metalGlow { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
           @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
           @keyframes scanLine { 0% { top: 0; } 100% { top: 100%; } }
+
+          /* ═══════ MOBILE RESPONSIVE ═══════ */
+          .bankroll-mobile-nav {
+            display: none;
+          }
+
+          @media (max-width: 768px) {
+            .bankroll-sidebar {
+              display: none !important;
+            }
+            .bankroll-main-layout {
+              flex-direction: column !important;
+            }
+            .bankroll-main-content {
+              padding: 12px 12px !important;
+            }
+            .bankroll-content-header {
+              margin-bottom: 12px !important;
+            }
+            .bankroll-page-title {
+              font-size: 18px !important;
+            }
+            .bankroll-log-btn {
+              padding: 8px 16px !important;
+              font-size: 13px !important;
+            }
+            .bankroll-stats-grid {
+              gap: 8px !important;
+              margin-bottom: 16px !important;
+            }
+            .bankroll-mobile-nav {
+              display: flex !important;
+              overflow-x: auto;
+              gap: 6px;
+              padding: 0 0 12px 0;
+              margin-bottom: 8px;
+              border-bottom: 1px solid rgba(255,255,255,0.08);
+              -webkit-overflow-scrolling: touch;
+              scrollbar-width: none;
+            }
+            .bankroll-mobile-nav::-webkit-scrollbar {
+              display: none;
+            }
+            .bankroll-mobile-nav-item {
+              flex-shrink: 0;
+              padding: 7px 14px;
+              border-radius: 20px;
+              border: 1px solid rgba(255,255,255,0.12);
+              background: rgba(255,255,255,0.04);
+              color: rgba(255,255,255,0.6);
+              font-size: 12px;
+              font-weight: 500;
+              cursor: pointer;
+              white-space: nowrap;
+              font-family: Inter, -apple-system, sans-serif;
+              transition: all 0.15s ease;
+            }
+            .bankroll-mobile-nav-item.active {
+              background: rgba(35,116,225,0.2);
+              border-color: #2374e1;
+              color: #2374e1;
+              font-weight: 600;
+            }
+            .bankroll-filters-row {
+              flex-direction: column !important;
+              gap: 6px !important;
+            }
+            .bankroll-filters-row > div {
+              width: 100%;
+            }
+            .bankroll-filters-row button {
+              width: 100%;
+              justify-content: space-between;
+            }
+            .bankroll-dropdown-menu {
+              min-width: 100% !important;
+              left: 0 !important;
+              right: 0 !important;
+            }
+            .bankroll-active-trip {
+              flex-wrap: wrap;
+              gap: 10px !important;
+            }
+            .bankroll-stat-value {
+              font-size: 20px !important;
+            }
+          }
+
+          @media (min-width: 769px) {
+            .bankroll-mobile-nav {
+              display: none !important;
+            }
+          }
         `}</style>
       </Head>
 
@@ -548,9 +641,9 @@ export default function BankrollManagerPage() {
 
 
         {/* Main Layout */}
-        <div style={styles.mainLayout}>
-          {/* Left Sidebar */}
-          <nav style={styles.sidebar}>
+        <div className="bankroll-main-layout" style={styles.mainLayout}>
+          {/* Left Sidebar — hidden on mobile via CSS */}
+          <nav className="bankroll-sidebar" style={styles.sidebar}>
             {SIDEBAR_SECTIONS.map((section) => (
               <button
                 key={section.id}
@@ -571,10 +664,22 @@ export default function BankrollManagerPage() {
           </nav>
 
           {/* Main Content - Switches based on activeSection */}
-          <main style={styles.mainContent}>
+          <main className="bankroll-main-content" style={styles.mainContent}>
+            {/* Mobile Navigation — horizontal pill bar, visible only on mobile */}
+            <div className="bankroll-mobile-nav">
+              {SIDEBAR_SECTIONS.map((section) => (
+                <button
+                  key={section.id}
+                  className={`bankroll-mobile-nav-item${activeSection === section.id ? ' active' : ''}`}
+                  onClick={() => handleSidebarClick(section.id)}
+                >
+                  {section.label}
+                </button>
+              ))}
+            </div>
             {/* Header */}
-            <div style={styles.contentHeader}>
-              <h1 style={styles.pageTitle}>
+            <div className="bankroll-content-header" style={styles.contentHeader}>
+              <h1 className="bankroll-page-title" style={styles.pageTitle}>
                 {activeSection === 'dashboard' && categoryFilter === 'all' && 'Bankroll Manager'}
                 {activeSection === 'dashboard' && categoryFilter !== 'all' && (CATEGORY_LABELS[categoryFilter] || 'Bankroll Manager')}
                 {activeSection === 'trips' && 'Trip Tracker'}
@@ -586,7 +691,7 @@ export default function BankrollManagerPage() {
               </h1>
               <div style={styles.headerActions}>
                 {activeSection !== 'notes' && categoryFilter === 'all' && (
-                  <button style={styles.logButton} onClick={handleLogClick}>
+                  <button className="bankroll-log-btn" style={styles.logButton} onClick={handleLogClick}>
                     Add +
                   </button>
                 )}
@@ -609,7 +714,7 @@ export default function BankrollManagerPage() {
             {activeSection === 'dashboard' && categoryFilter === 'all' && (
               <>
                 {/* Stats Cards */}
-                <div style={styles.statsGrid}>
+                <div className="bankroll-stats-grid" style={styles.statsGrid}>
                   <StatCard
                     title="Bankroll Balance"
                     value={stats ? formatCurrency(stats.totalBankroll, preferences.currencyEUR) : '—'}
@@ -696,7 +801,7 @@ export default function BankrollManagerPage() {
                 })()}
 
                 {/* Filters Row */}
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+                <div className="bankroll-filters-row" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
                   {/* Location Dropdown */}
                   <div style={styles.dropdownContainer} onClick={(e) => e.stopPropagation()}>
                     <button
