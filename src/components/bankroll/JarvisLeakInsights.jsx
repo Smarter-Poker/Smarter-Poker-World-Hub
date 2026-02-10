@@ -252,7 +252,7 @@ const styles = {
     triggerTitle: {
         fontSize: 13,
         fontWeight: 600,
-        color: '#8b5cf6',
+        color: '#fff',
     },
     triggerHint: {
         fontSize: 10,

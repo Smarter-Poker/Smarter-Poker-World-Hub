@@ -72,11 +72,9 @@ const SIDEBAR_SECTIONS = [
   { id: 'dashboard', label: 'Dashboard', icon: '' },
   { id: 'trips', label: 'Trip Tracker', icon: '' },
   { id: 'series', label: 'Series Tracker', icon: '' },
-  { id: 'scan-receipt', label: 'Scan Receipt', icon: '' },
   { id: 'players', label: 'Player Notes', icon: '' },
   { id: 'leaks', label: 'Leaks', icon: '' },
   { id: 'reports', label: 'Reports', icon: '' },
-  { id: 'pro', label: 'Pro Tools', icon: '' },
   { id: 'settings', label: 'Settings', icon: '' },
 ];
 
@@ -409,8 +407,6 @@ export default function BankrollManagerPage() {
       setScannerImageUrl(null);
     } else if (sectionId === 'receipts') {
       setActiveSection('receipts');
-    } else if (sectionId === 'series') {
-      router.push('/hub/bankroll-manager?view=series');
     } else {
       setActiveSection(sectionId);
       // Reset category filter when going back to Dashboard
@@ -1023,12 +1019,59 @@ export default function BankrollManagerPage() {
 
 
                 </div>
+
+                {/* Quick Links */}
+                <div style={{ marginTop: 16, marginBottom: 16 }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.6)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Quick Links</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <button onClick={() => setActiveSection('players')} style={styles.reportActionBtn}>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>Notes</span>
+                      <div style={{ flex: 1, textAlign: 'left' }}>
+                        <div style={{ fontWeight: 600, color: '#fff' }}>Player Notes</div>
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Track opponents and tendencies</div>
+                      </div>
+                      <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
+                    </button>
+                    <button onClick={() => setShowProjection(true)} style={styles.reportActionBtn}>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>Projection</span>
+                      <div style={{ flex: 1, textAlign: 'left' }}>
+                        <div style={{ fontWeight: 600, color: '#fff' }}>Run Projection</div>
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Monte Carlo simulation for bankroll growth</div>
+                      </div>
+                      <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
+                    </button>
+                    <button onClick={() => setActiveSection('pro')} style={styles.reportActionBtn}>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>Staking</span>
+                      <div style={{ flex: 1, textAlign: 'left' }}>
+                        <div style={{ fontWeight: 600, color: '#fff' }}>Staking Tracker</div>
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Track staking deals and swaps</div>
+                      </div>
+                      <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
+                    </button>
+                    <button onClick={() => setActiveSection('pro')} style={styles.reportActionBtn}>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>Tax</span>
+                      <div style={{ flex: 1, textAlign: 'left' }}>
+                        <div style={{ fontWeight: 600, color: '#fff' }}>Tax Report Generator</div>
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Generate tax-ready reports</div>
+                      </div>
+                      <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
+                    </button>
+                  </div>
+                </div>
               </>
             )}
 
             {/* Trip Tracker View */}
             {activeSection === 'trips' && (
               <TripTracker
+                userId={userId}
+                onOpenLog={handleLogClick}
+              />
+            )}
+
+            {/* Series Tracker View */}
+            {activeSection === 'series' && (
+              <SeriesTracker
                 userId={userId}
                 onOpenLog={handleLogClick}
               />
@@ -1129,21 +1172,6 @@ export default function BankrollManagerPage() {
 
                 {/* Action Buttons */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {/* Run Projection */}
-                  <button
-                    onClick={() => setShowProjection(true)}
-                    style={styles.reportActionBtn}
-                  >
-                    <span style={{ fontSize: 14, color: '#65676b' }}>Projection</span>
-                    <div style={{ flex: 1, textAlign: 'left' }}>
-                      <div style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>Run Projection</div>
-                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
-                        Monte Carlo simulation for bankroll growth
-                      </div>
-                    </div>
-                    <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
-                  </button>
-
                   {/* Export CSV */}
                   <button
                     onClick={async () => {
@@ -1170,7 +1198,7 @@ export default function BankrollManagerPage() {
                     }}
                     style={styles.reportActionBtn}
                   >
-                    <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>Import</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>CSV</span>
                     <div style={{ flex: 1, textAlign: 'left' }}>
                       <div style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>Export to CSV</div>
                       <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
@@ -1296,18 +1324,16 @@ export default function BankrollManagerPage() {
             {activeSection === 'pro' && (
               <div style={styles.proToolsContainer}>
                 {/* Pro Tools Header */}
-                <div style={styles.proToolsHeader}>
-                  <div style={styles.proToolsLed} />
-                  <h2 style={styles.proToolsTitle}>
-                    PRO TOOLS
+                <div style={{ padding: '20px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  <h2 style={{ fontSize: 16, fontWeight: 700, color: '#e4e6eb', margin: 0 }}>
+                    Pro Tools
                   </h2>
-                  <p style={styles.proToolsSubtitle}>Premium bankroll features for serious players</p>
+                  <p style={{ fontSize: 12, color: '#b0b3b8', margin: '4px 0 0' }}>Premium bankroll features for serious players</p>
                 </div>
 
                 <BankrollProGate userId={userId}>
                   {/* Pro Features Grid - Only visible after unlock or for VIP */}
-                  <div style={styles.proToolsGrid}>
-                    <ReceiptScanner userId={userId} onScanComplete={loadData} />
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, padding: 16 }}>
                     <TaxReportPanel userId={userId} />
                     <StakingTracker userId={userId} />
                     <SeriesTracker userId={userId} />

@@ -16,6 +16,7 @@ const PLAYER_TYPE_LABELS = {
     nit: 'Nit (Ultra-Tight)',
     lag: 'Loose Aggressive (LAG)',
     tag: 'Tight Aggressive (TAG)',
+    maniac: 'Maniac',
 };
 
 export default function PlayerNotes({ userId }) {
