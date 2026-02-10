@@ -189,7 +189,7 @@ export default function BankrollManagerPage() {
   // Filters
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [locationFilter, setLocationFilter] = useState(null);
-  const [timeFilter, setTimeFilter] = useState('Last 30 Days');
+  const [timeFilter, setTimeFilter] = useState('Last 7 Days');
   const [gameTypeFilter, setGameTypeFilter] = useState(new Set(['poker_cash', 'poker_mtt', 'casino_table', 'slots', 'sports']));
 
   // Dropdowns

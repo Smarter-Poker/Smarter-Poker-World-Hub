@@ -51,6 +51,15 @@ export default function SeriesTracker({ userId, onOpenLog }) {
         purpose: '',
         notes: '',
     });
+    const [showSeriesSuggestions, setShowSeriesSuggestions] = useState(false);
+
+    // Common tournament series for auto-suggest
+    const COMMON_SERIES = [
+        'WSOP', 'WPT', 'MSPT', 'HPT', 'Wynn Millions', 'Venetian DeepStack',
+        'RGPS', 'WPT Prime', 'Seminole Hard Rock Poker Open', 'Aria High Roller',
+        'PokerStars Players Championship', 'Borgata Poker Open', 'Lucky Hearts Poker Open',
+        'Choctaw Poker Series', 'Thunder Valley Poker Series', 'Bay 101 Shooting Stars',
+    ];
 
     const loadData = useCallback(async () => {
         if (!userId) return;
@@ -360,14 +369,62 @@ export default function SeriesTracker({ userId, onOpenLog }) {
                         <h3 style={styles.formTitle}>New Series</h3>
 
                         <label style={styles.formLabel}>Series Name *</label>
-                        <input
-                            type="text"
-                            value={newSeries.name}
-                            onChange={e => setNewSeries({ ...newSeries, name: e.target.value })}
-                            placeholder=""
-                            style={styles.formInput}
-                            autoFocus
-                        />
+                        <div style={{ position: 'relative' }}>
+                            <input
+                                type="text"
+                                value={newSeries.name}
+                                onChange={e => {
+                                    setNewSeries({ ...newSeries, name: e.target.value });
+                                    setShowSeriesSuggestions(e.target.value.length > 0);
+                                }}
+                                onFocus={() => setShowSeriesSuggestions(newSeries.name.length > 0 || true)}
+                                onBlur={() => setTimeout(() => setShowSeriesSuggestions(false), 200)}
+                                placeholder="Search or add new series..."
+                                style={styles.formInput}
+                                autoFocus
+                            />
+                            {showSeriesSuggestions && (() => {
+                                const q = newSeries.name.toLowerCase();
+                                const pastNames = [...new Set(completedSeries.map(s => s.name))];
+                                const allNames = [...new Set([...pastNames, ...COMMON_SERIES])];
+                                const filtered = q.length > 0
+                                    ? allNames.filter(n => n.toLowerCase().includes(q))
+                                    : allNames;
+                                if (filtered.length === 0) return null;
+                                return (
+                                    <div style={{
+                                        position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4,
+                                        background: '#242526', border: '1px solid rgba(255,255,255,0.1)',
+                                        borderRadius: 8, maxHeight: 200, overflowY: 'auto', zIndex: 50,
+                                        boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+                                    }}>
+                                        {filtered.map((name, i) => (
+                                            <button
+                                                key={i}
+                                                type="button"
+                                                onMouseDown={(e) => {
+                                                    e.preventDefault();
+                                                    setNewSeries({ ...newSeries, name });
+                                                    setShowSeriesSuggestions(false);
+                                                }}
+                                                style={{
+                                                    display: 'block', width: '100%', padding: '10px 14px',
+                                                    background: 'none', border: 'none',
+                                                    borderBottom: '1px solid rgba(255,255,255,0.05)',
+                                                    color: pastNames.includes(name) ? '#22c55e' : '#e4e6eb',
+                                                    fontSize: 13, textAlign: 'left', cursor: 'pointer',
+                                                }}
+                                            >
+                                                {name}
+                                                {pastNames.includes(name) && (
+                                                    <span style={{ fontSize: 10, color: '#888', marginLeft: 8 }}>previously played</span>
+                                                )}
+                                            </button>
+                                        ))}
+                                    </div>
+                                );
+                            })()}
+                        </div>
 
                         <label style={styles.formLabel}>Location</label>
                         {newSeries.location_id !== '__new__' ? (
