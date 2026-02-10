@@ -53,6 +53,7 @@ export default function SeriesTracker({ userId, onOpenLog }) {
     });
     const [showSeriesSuggestions, setShowSeriesSuggestions] = useState(false);
     const [dbSeriesNames, setDbSeriesNames] = useState([]);
+    const [dbVenues, setDbVenues] = useState([]);
     const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
 
     const loadData = useCallback(async () => {
@@ -85,6 +86,21 @@ export default function SeriesTracker({ userId, onOpenLog }) {
                 }
             } catch (seriesErr) {
                 console.warn('Could not load tournament series for suggestions:', seriesErr);
+            }
+
+            // Fetch poker venues from Poker Near Me database (483 venues)
+            try {
+                const venuesRes = await fetch('/api/poker/venues?limit=500');
+                const venuesData = await venuesRes.json();
+                if (venuesData.success && venuesData.data) {
+                    setDbVenues(venuesData.data.map(v => ({
+                        name: v.name,
+                        city: v.city || '',
+                        state: v.state || '',
+                    })).sort((a, b) => a.name.localeCompare(b.name)));
+                }
+            } catch (venueErr) {
+                console.warn('Could not load venues for suggestions:', venueErr);
             }
         } catch (err) {
             console.error('Error loading series data:', err);
@@ -452,26 +468,40 @@ export default function SeriesTracker({ userId, onOpenLog }) {
                             />
                             {showLocationSuggestions && (() => {
                                 const q = (newSeries.location_name || '').toLowerCase();
-                                const filtered = q.length > 0
+                                // User's saved locations
+                                const savedFiltered = q.length > 0
                                     ? locations.filter(l => l.name.toLowerCase().includes(q))
                                     : locations;
-                                if (filtered.length === 0) return null;
+                                // DB venues (exclude ones already in saved)
+                                const savedNames = new Set(locations.map(l => l.name.toLowerCase()));
+                                const dbFiltered = q.length > 0
+                                    ? dbVenues.filter(v => !savedNames.has(v.name.toLowerCase()) && (v.name.toLowerCase().includes(q) || v.city.toLowerCase().includes(q) || v.state.toLowerCase().includes(q)))
+                                    : [];
+                                if (savedFiltered.length === 0 && dbFiltered.length === 0) return null;
                                 return (
                                     <div style={{
                                         position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4,
                                         background: '#242526', border: '1px solid rgba(255,255,255,0.15)',
-                                        borderRadius: 8, maxHeight: 180, overflowY: 'auto', zIndex: 50,
+                                        borderRadius: 8, maxHeight: 220, overflowY: 'auto', zIndex: 50,
                                         boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
                                     }}>
-                                        {filtered.map(loc => (
-                                            <button key={loc.id} type="button"
-                                                onMouseDown={e => {
-                                                    e.preventDefault();
-                                                    setNewSeries({ ...newSeries, location_id: loc.id, location_name: loc.name });
-                                                    setShowLocationSuggestions(false);
-                                                }}
-                                                style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', color: '#e4e6eb', fontSize: 13, textAlign: 'left', cursor: 'pointer' }}
+                                        {savedFiltered.length > 0 && (
+                                            <div style={{ padding: '6px 14px', fontSize: 10, color: '#666', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>Your Venues</div>
+                                        )}
+                                        {savedFiltered.map(loc => (
+                                            <button key={`s-${loc.id}`} type="button"
+                                                onMouseDown={e => { e.preventDefault(); setNewSeries({ ...newSeries, location_id: loc.id, location_name: loc.name }); setShowLocationSuggestions(false); }}
+                                                style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', color: '#22c55e', fontSize: 13, textAlign: 'left', cursor: 'pointer' }}
                                             >{loc.name}</button>
+                                        ))}
+                                        {dbFiltered.length > 0 && (
+                                            <div style={{ padding: '6px 14px', fontSize: 10, color: '#666', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>Poker Venues</div>
+                                        )}
+                                        {dbFiltered.slice(0, 20).map((v, i) => (
+                                            <button key={`db-${i}`} type="button"
+                                                onMouseDown={e => { e.preventDefault(); setNewSeries({ ...newSeries, location_id: '__new__', location_name: v.name }); setShowLocationSuggestions(false); }}
+                                                style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', color: '#e4e6eb', fontSize: 13, textAlign: 'left', cursor: 'pointer' }}
+                                            >{v.name} <span style={{ fontSize: 11, color: '#888' }}>{v.city}, {v.state}</span></button>
                                         ))}
                                     </div>
                                 );
