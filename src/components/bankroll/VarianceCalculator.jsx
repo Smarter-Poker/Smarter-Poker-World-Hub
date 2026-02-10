@@ -66,10 +66,6 @@ export default function VarianceCalculator({ entries = [] }) {
                     </div>
                 </div>
                 <div style={styles.statBox}>
-                    <div style={styles.statLabel}>Standard Deviation</div>
-                    <div style={styles.statValue}>${stats.stdDev.toFixed(0)}</div>
-                </div>
-                <div style={styles.statBox}>
                     <div style={styles.statLabel}>Hourly Rate</div>
                     <div style={{ ...styles.statValue, color: stats.hourlyRate >= 0 ? '#22c55e' : '#ef4444' }}>
                         ${stats.hourlyRate.toFixed(0)}/hr
@@ -120,7 +116,7 @@ const styles = {
     },
     grid: {
         display: 'grid',
-        gridTemplateColumns: '1fr 1fr 1fr',
+        gridTemplateColumns: '1fr 1fr',
         gap: 10,
         marginBottom: 14,
     },
