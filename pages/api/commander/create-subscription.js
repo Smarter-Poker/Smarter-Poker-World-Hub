@@ -30,7 +30,7 @@ export default async function handler(req, res) {
   }
 
   const { paymentMethodId, selectedTier, clubInfo, ownerInfo, existingAccount, skipPayment } = req.body;
-  const tier = selectedTier || req.body.tier; // support both field names
+  const tier = selectedTier || req.body.tier;
 
   if (!tier || !TIER_PRICES[tier]) {
     return res.status(400).json({ error: 'Invalid subscription tier' });
@@ -38,42 +38,53 @@ export default async function handler(req, res) {
 
   try {
     // ─── 1. Get or create the user account ───────────────────────────
+    // Simple approach: try to find existing user first, create if not found.
+    // This works whether they checked "existing account" or not.
     let userId;
 
-    if (existingAccount) {
-      // User says they already have a Smarter.Poker account — look them up
-      const { data: usersData, error: listError } = await supabase.auth.admin.listUsers();
+    // First, check if user already exists
+    const { data: existingUserData } = await supabase.auth.admin.listUsers({
+      page: 1,
+      perPage: 1,
+    });
 
-      if (listError) {
-        console.error('Error listing users:', listError);
-        return res.status(500).json({ error: 'Could not verify existing account' });
+    // Use getUserByEmail-style lookup via filter
+    let existingUser = null;
+    try {
+      const { data: allUsers } = await supabase.auth.admin.listUsers({ perPage: 1000 });
+      if (allUsers?.users) {
+        existingUser = allUsers.users.find(u => u.email === ownerInfo.email);
       }
+    } catch (lookupErr) {
+      console.log('User lookup failed, will try to create:', lookupErr.message);
+    }
 
-      const existingUser = usersData.users.find(u => u.email === ownerInfo.email);
-
-      if (!existingUser) {
-        return res.status(400).json({
-          error: 'No Smarter.Poker account found with that email. Uncheck "I already have an account" and create a password instead.'
-        });
-      }
-
+    if (existingUser) {
+      // User exists — use their account
       userId = existingUser.id;
 
-      // Update their metadata to include venue_owner role
-      await supabase.auth.admin.updateUserById(userId, {
-        user_metadata: {
-          ...existingUser.user_metadata,
-          full_name: existingUser.user_metadata?.full_name || ownerInfo.name,
-          phone: existingUser.user_metadata?.phone || ownerInfo.phone,
-          role: 'venue_owner',
-        }
-      });
+      // Update metadata to add venue_owner role
+      try {
+        await supabase.auth.admin.updateUserById(userId, {
+          user_metadata: {
+            ...existingUser.user_metadata,
+            full_name: existingUser.user_metadata?.full_name || ownerInfo.name,
+            phone: existingUser.user_metadata?.phone || ownerInfo.phone,
+            role: 'venue_owner',
+          }
+        });
+      } catch (updateErr) {
+        console.log('Metadata update failed (non-critical):', updateErr.message);
+      }
 
     } else {
-      // New user — create account
+      // User doesn't exist — create new account
+      // Generate a random password if they said "existing account" but we couldn't find them
+      const userPassword = ownerInfo.password || (Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2) + 'A1!');
+
       const { data: authData, error: authError } = await supabase.auth.admin.createUser({
         email: ownerInfo.email,
-        password: ownerInfo.password,
+        password: userPassword,
         email_confirm: true,
         user_metadata: {
           full_name: ownerInfo.name,
@@ -83,41 +94,16 @@ export default async function handler(req, res) {
       });
 
       if (authError) {
-        // If user already exists, try to find them instead of failing
-        if (authError.message?.includes('already been registered') || authError.message?.includes('already exists')) {
-          const { data: usersData } = await supabase.auth.admin.listUsers();
-          const existingUser = usersData?.users?.find(u => u.email === ownerInfo.email);
-
-          if (existingUser) {
-            userId = existingUser.id;
-
-            // Update metadata
-            await supabase.auth.admin.updateUserById(userId, {
-              user_metadata: {
-                ...existingUser.user_metadata,
-                full_name: existingUser.user_metadata?.full_name || ownerInfo.name,
-                phone: existingUser.user_metadata?.phone || ownerInfo.phone,
-                role: 'venue_owner',
-              }
-            });
-          } else {
-            return res.status(400).json({
-              error: 'An account with this email already exists. Check "I already have a Smarter.Poker account" and try again.'
-            });
-          }
-        } else {
-          console.error('Auth error:', authError);
-          return res.status(400).json({ error: authError.message });
-        }
-      } else {
-        userId = authData.user.id;
+        console.error('Auth error:', authError);
+        return res.status(400).json({ error: 'Could not create account: ' + authError.message });
       }
+
+      userId = authData.user.id;
     }
 
     // ─── 2. Create or find the venue ─────────────────────────────────
     let venueId;
 
-    // Check if venue already exists by name and address
     const { data: existingVenue } = await supabase
       .from('poker_venues')
       .select('id')
@@ -214,7 +200,6 @@ export default async function handler(req, res) {
     }
 
     // ─── 4. Commander subscription record ────────────────────────────
-    // Check if one already exists for this venue
     const { data: existingSub } = await supabase
       .from('commander_subscriptions')
       .select('id')
@@ -269,7 +254,6 @@ export default async function handler(req, res) {
     }
 
     // ─── 5. Staff record (owner role) ────────────────────────────────
-    // Upsert so it doesn't fail if they already exist
     const { data: existingStaff } = await supabase
       .from('commander_staff')
       .select('id')
