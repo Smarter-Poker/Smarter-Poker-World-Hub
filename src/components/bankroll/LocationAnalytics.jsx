@@ -69,7 +69,6 @@ export default function LocationAnalytics({ entries = [], isLoading }) {
         return (
             <div style={styles.container}>
                 <div style={styles.header}>
-                    <span style={styles.icon}>📍</span>
                     <h4 style={styles.title}>Venue Analytics</h4>
                 </div>
                 <div style={styles.emptyState}>
@@ -86,7 +85,6 @@ export default function LocationAnalytics({ entries = [], isLoading }) {
         <div style={styles.container}>
             <div style={styles.header}>
                 <div style={styles.titleRow}>
-                    <span style={styles.icon}>📍</span>
                     <h4 style={styles.title}>Venue Analytics</h4>
                 </div>
                 <div style={styles.sortToggle}>
@@ -172,7 +170,6 @@ const styles = {
         borderRadius: 12,
         border: '1px solid rgba(0,212,255,0.2)',
         padding: 14,
-        marginBottom: 16,
     },
     header: {
         display: 'flex',

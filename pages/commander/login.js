@@ -8,7 +8,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
-import { supabase } from '@/src/lib/supabase';
+import { supabase } from '../../src/lib/supabase';
 
 export default function CommanderLogin() {
   const router = useRouter();
@@ -65,13 +65,13 @@ export default function CommanderLogin() {
       <Head>
         <title>Sign In | Club Commander</title>
       </Head>
-      
+
       <div className="max-w-md w-full">
         {/* Logo */}
         <div className="text-center mb-8">
-          <img 
-            src="/images/club-commander-logo.jpg" 
-            alt="Club Commander" 
+          <img
+            src="/images/club-commander-logo.jpg"
+            alt="Club Commander"
             className="w-full max-w-sm mx-auto rounded-lg"
           />
         </div>
@@ -153,7 +153,7 @@ export default function CommanderLogin() {
           </div>
 
           {/* Sign Up Link */}
-          <Link 
+          <Link
             href="/commander/register"
             className="block w-full bg-[#3A3B3C] hover:bg-[#4E4F50] text-[#E4E6EB] font-semibold py-3 px-6 rounded-lg text-center transition-colors"
           >

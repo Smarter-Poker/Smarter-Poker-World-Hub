@@ -170,7 +170,7 @@ const styles = {
     },
     modal: {
         background: 'linear-gradient(180deg, #0d1f3c 0%, #0a1628 100%)',
-        border: '1px solid rgba(59, 130, 246, 0.3)',
+        border: '1px solid rgba(255,255,255,0.12)',
         borderRadius: 16,
         padding: 28,
         maxWidth: 420,
