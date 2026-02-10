@@ -268,6 +268,8 @@ export default function CommanderDashboard() {
           cursor: pointer;
           transition: transform 0.2s, box-shadow 0.3s;
           border: 2px solid #222;
+          background: #0a0a0a;
+          padding: 6px;
         }
         .cmd-card:hover {
           transform: scale(1.02);
@@ -277,7 +279,7 @@ export default function CommanderDashboard() {
           height: 100%;
           object-fit: contain;
           display: block;
-          background: #0a0a0a;
+          border-radius: 10px;
         }
         .cmd-card-overlay {
           position: absolute;
