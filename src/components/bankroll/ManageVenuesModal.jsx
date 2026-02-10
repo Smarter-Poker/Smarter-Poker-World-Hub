@@ -100,8 +100,8 @@ export default function ManageVenuesModal({ userId, onClose, onUpdate }) {
                                     <>
                                         <span style={s.venueName}>{venue.name}</span>
                                         <div style={s.actions}>
-                                            <button onClick={() => startEdit(venue)} style={s.actionBtn} title="Rename">✏️</button>
-                                            <button onClick={() => { setConfirmDeleteId(venue.id); setEditingId(null); }} style={s.actionBtn} title="Delete">🗑️</button>
+                                            <button onClick={() => startEdit(venue)} style={s.actionBtn} title="Rename">Edit</button>
+                                            <button onClick={() => { setConfirmDeleteId(venue.id); setEditingId(null); }} style={s.actionBtn} title="Delete">Del</button>
                                         </div>
                                     </>
                                 )}

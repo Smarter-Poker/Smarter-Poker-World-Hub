@@ -864,7 +864,7 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
             }}>
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px rgba(16,185,129,0.5)', flexShrink: 0 }} />
               <span style={{ fontSize: 13, color: '#10b981', fontWeight: 500 }}>
-                📍 Adding to: <strong>{activeTrip.name}</strong>
+                Adding to: <strong>{activeTrip.name}</strong>
               </span>
             </div>
           )}
@@ -1043,7 +1043,7 @@ export default function LogEntryModal({ userId, locations, trips, editEntry, def
                 cursor: 'pointer', fontSize: 12
               }}
             >
-              <span style={{ fontSize: 20, marginBottom: 4 }}>📷</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>SCAN</span>
               {uploading ? '...' : 'Add'}
             </button>
           </div>

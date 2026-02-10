@@ -200,7 +200,7 @@ export default function WeeklySummary({
                         {/* Empty Week State */}
                         {weeklyData.sessionCount === 0 && (
                             <div style={styles.emptyWeek}>
-                                <span style={{ fontSize: 32 }}>📝</span>
+                                <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.4)' }}>No data</span>
                                 <span>No sessions logged this week</span>
                                 <span style={{ fontSize: 12, color: '#666' }}>
                                     Keep tracking to see your weekly trends!

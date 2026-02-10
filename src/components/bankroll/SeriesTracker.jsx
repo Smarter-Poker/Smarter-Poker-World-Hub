@@ -1,714 +1,875 @@
 /**
- * SERIES TRACKER
- * Futuristic Metal UI - Track tournament series ROI
+ * SERIES TRACKER COMPONENT
+ * ---------------------------------------------------------------
+ * Full series management: create, track active, complete, view history
+ * Mirrors Trip Tracker structure for multi-day tournament series
+ * ---------------------------------------------------------------
  */
 
-import { useState, useEffect } from 'react';
-import { Trophy, Plus, Edit2, Trash2, Calendar, MapPin, Target, TrendingUp, Loader2, X, Check } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
-import { METAL, GRADIENTS, GLOWS, ANIMATIONS } from './metalStyles';
+import React, { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+    getActiveSeries,
+    fetchSeries,
+    createSeries,
+    updateSeries,
+    completeSeries,
+    deleteSeries,
+    getSeriesReport,
+} from '../../lib/bankroll/bankrollSelectors';
+import { getUserLocations } from '../../lib/bankroll/locationMemory';
+import { formatCurrency } from '../../lib/bankroll/currencyUtils';
+import toast from '../../stores/toastStore';
+import TripReport from './TripReport';
 
-export default function SeriesTracker({ userId }) {
-    const [series, setSeries] = useState([]);
-    const [stats, setStats] = useState({ totalEvents: 0, netResult: 0, roi: 0 });
-    const [loading, setLoading] = useState(true);
-    const [showModal, setShowModal] = useState(false);
-    const [editingSeries, setEditingSeries] = useState(null);
-    const [saving, setSaving] = useState(false);
+const CATEGORY_LABELS = {
+    poker_cash: 'Cash Games',
+    poker_mtt: 'Tournaments',
+    casino_table: 'Casino',
+    slots: 'Slots',
+    sports: 'Sports Betting',
+    expense: 'Expenses',
+};
 
-    const [form, setForm] = useState({
+export default function SeriesTracker({ userId, onOpenLog }) {
+    const [activeSeries, setActiveSeries] = useState(null);
+    const [completedSeries, setCompletedSeries] = useState([]);
+    const [locations, setLocations] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [showCreateForm, setShowCreateForm] = useState(false);
+    const [selectedSeriesReport, setSelectedSeriesReport] = useState(null);
+    const [confirmComplete, setConfirmComplete] = useState(false);
+    const [confirmDelete, setConfirmDelete] = useState(false);
+    const [editMode, setEditMode] = useState(false);
+    const [editForm, setEditForm] = useState({ name: '', location_id: null, purpose: '', notes: '', end_date: '' });
+
+    const [newSeries, setNewSeries] = useState({
         name: '',
-        type: 'wsop',
-        location: '',
-        start_date: '',
+        location_id: null,
+        start_date: new Date().toISOString().split('T')[0],
         end_date: '',
-        planned_budget: 0,
+        purpose: '',
+        notes: '',
     });
 
-    // Clean Facebook-style labels without emojis
-    const SERIES_TYPES = {
-        wsop: { label: 'WSOP', icon: '' },
-        wpt: { label: 'WPT', icon: '' },
-        mspt: { label: 'MSPT', icon: '' },
-        other: { label: 'OTHER', icon: '' },
-    };
-
-    useEffect(() => {
-        if (userId) loadData();
+    const loadData = useCallback(async () => {
+        if (!userId) return;
+        setIsLoading(true);
+        try {
+            const [active, all, locs] = await Promise.all([
+                getActiveSeries(userId),
+                fetchSeries(userId),
+                getUserLocations(userId),
+            ]);
+            setActiveSeries(active);
+            setCompletedSeries(all.filter(s => s.status === 'completed'));
+            setLocations(locs || []);
+        } catch (err) {
+            console.error('Error loading series data:', err);
+        } finally {
+            setIsLoading(false);
+        }
     }, [userId]);
 
-    const loadData = async () => {
-        setLoading(true);
+    useEffect(() => { loadData(); }, [loadData]);
 
-        const { data } = await supabase
-            .from('tournament_series')
-            .select('*, bankroll_ledger(result)')
-            .eq('user_id', userId)
-            .order('start_date', { ascending: false });
-
-        // Calculate stats for each series
-        const enriched = (data || []).map(s => {
-            const results = s.bankroll_ledger || [];
-            const net = results.reduce((sum, r) => sum + (r.result || 0), 0);
-            const events = results.length;
-            const roi = s.planned_budget > 0 ? ((net / s.planned_budget) * 100).toFixed(1) : 0;
-            return { ...s, net, events, roi };
-        });
-
-        setSeries(enriched);
-
-        // Overall stats
-        const totalEvents = enriched.reduce((sum, s) => sum + s.events, 0);
-        const netResult = enriched.reduce((sum, s) => sum + s.net, 0);
-        const totalBudget = enriched.reduce((sum, s) => sum + (s.planned_budget || 0), 0);
-        const overallRoi = totalBudget > 0 ? ((netResult / totalBudget) * 100).toFixed(1) : 0;
-
-        setStats({ totalEvents, netResult, roi: overallRoi });
-        setLoading(false);
-    };
-
-    const handleAddNew = () => {
-        setEditingSeries(null);
-        setForm({
-            name: '',
-            type: 'wsop',
-            location: '',
-            start_date: '',
-            end_date: '',
-            planned_budget: 0,
-        });
-        setShowModal(true);
-    };
-
-    const handleEdit = (s) => {
-        setEditingSeries(s);
-        setForm({
-            name: s.name || '',
-            type: s.type || 'wsop',
-            location: s.location || '',
-            start_date: s.start_date || '',
-            end_date: s.end_date || '',
-            planned_budget: s.planned_budget || 0,
-        });
-        setShowModal(true);
-    };
-
-    const handleSave = async () => {
-        setSaving(true);
-
-        const data = {
-            user_id: userId,
-            name: form.name,
-            type: form.type,
-            location: form.location,
-            start_date: form.start_date || null,
-            end_date: form.end_date || null,
-            planned_budget: parseFloat(form.planned_budget) || 0,
-        };
-
-        if (editingSeries) {
-            await supabase.from('tournament_series').update(data).eq('id', editingSeries.id);
-        } else {
-            await supabase.from('tournament_series').insert(data);
+    const handleCreateSeries = async (e) => {
+        e.preventDefault();
+        if (!newSeries.name.trim()) {
+            toast.error('Please enter a series name');
+            return;
         }
+        try {
+            let locationId = newSeries.location_id;
+            if (locationId === '__new__' && newSeries.location_name?.trim()) {
+                const { getOrCreateLocation } = await import('../../lib/bankroll/locationMemory');
+                locationId = await getOrCreateLocation(userId, newSeries.location_name.trim());
+            } else if (locationId === '__new__') {
+                locationId = null;
+            }
 
-        setSaving(false);
-        setShowModal(false);
-        loadData();
+            await createSeries(userId, { ...newSeries, location_id: locationId });
+            toast.success('Series started!');
+            setShowCreateForm(false);
+            setNewSeries({ name: '', location_id: null, start_date: new Date().toISOString().split('T')[0], end_date: '', purpose: '', notes: '' });
+            await loadData();
+        } catch (err) {
+            toast.error(err.message || 'Failed to create series');
+        }
     };
 
-    const handleDelete = async (id) => {
-        if (!confirm('Delete this series?')) return;
-        await supabase.from('tournament_series').delete().eq('id', id);
-        loadData();
+    const handleCompleteSeries = async () => {
+        if (!activeSeries) return;
+        try {
+            await completeSeries(userId, activeSeries.id);
+            toast.success('Series completed!');
+            setConfirmComplete(false);
+            await loadData();
+        } catch (err) {
+            toast.error(err.message || 'Failed to complete series');
+        }
     };
 
-    // Is series currently active?
-    const isActive = (s) => {
-        const now = new Date();
-        const start = s.start_date ? new Date(s.start_date) : null;
-        const end = s.end_date ? new Date(s.end_date) : null;
-        return start && end && now >= start && now <= end;
+    const handleDeleteSeries = async () => {
+        if (!activeSeries) return;
+        try {
+            await deleteSeries(userId, activeSeries.id);
+            toast.success('Series deleted');
+            setConfirmDelete(false);
+            await loadData();
+        } catch (err) {
+            toast.error(err.message || 'Failed to delete series');
+        }
     };
 
-    if (loading) {
+    const startEditing = () => {
+        if (!activeSeries) return;
+        setEditForm({
+            name: activeSeries.name || '',
+            location_id: activeSeries.location_id || null,
+            purpose: activeSeries.purpose || '',
+            notes: activeSeries.notes || '',
+            end_date: activeSeries.end_date || '',
+        });
+        setEditMode(true);
+    };
+
+    const handleSaveEdit = async () => {
+        if (!activeSeries) return;
+        if (!editForm.name.trim()) {
+            toast.error('Series name is required');
+            return;
+        }
+        try {
+            await updateSeries(userId, activeSeries.id, editForm);
+            toast.success('Series updated!');
+            setEditMode(false);
+            await loadData();
+        } catch (err) {
+            toast.error(err.message || 'Failed to update series');
+        }
+    };
+
+    const handleViewReport = async (seriesId) => {
+        try {
+            const report = await getSeriesReport(userId, seriesId);
+            setSelectedSeriesReport(report);
+        } catch (err) {
+            toast.error('Failed to load series report');
+        }
+    };
+
+    if (selectedSeriesReport) {
         return (
-            <div style={styles.loadingContainer}>
-                <Loader2 size={24} style={{ animation: 'spin 1s linear infinite', color: METAL.cyan }} />
-                <span>LOADING SERIES DATA...</span>
-                <style jsx global>{ANIMATIONS}</style>
-            </div>
+            <TripReport
+                report={selectedSeriesReport}
+                onBack={() => setSelectedSeriesReport(null)}
+            />
         );
     }
 
+    const daysSinceStart = activeSeries
+        ? Math.max(1, Math.ceil((Date.now() - new Date(activeSeries.start_date).getTime()) / (1000 * 60 * 60 * 24)))
+        : 0;
+
     return (
         <div style={styles.container}>
-            {/* LED Strip */}
-            <div style={styles.ledStrip} />
+            {/* --- ACTIVE SERIES BANNER --- */}
+            {activeSeries && (
+                <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    style={styles.activeCard}
+                >
+                    {/* Delete X */}
+                    <button
+                        onClick={() => setConfirmDelete(true)}
+                        style={styles.deleteX}
+                        title="Delete series"
+                    >&#x2715;</button>
 
-            {/* Header */}
-            <div style={styles.header}>
-                <div style={styles.headerTitle}>
-                    <Trophy size={16} style={{ color: METAL.gold }} />
-                    <span>SERIES TRACKER</span>
-                </div>
-                <button onClick={handleAddNew} style={styles.addBtn}>
-                    <Plus size={12} />
-                    ADD SERIES
-                </button>
-            </div>
-
-            {/* Overall Stats */}
-            <div style={styles.statsSection}>
-                <div style={styles.statsGrid}>
-                    <div style={styles.statBox}>
-                        <span style={styles.statValue}>{stats.totalEvents}</span>
-                        <span style={styles.statLabel}>EVENTS</span>
+                    <div style={styles.activeHeader}>
+                        <div style={styles.activeLed} />
+                        <span style={styles.activeLabel}>LIVE SERIES</span>
                     </div>
-                    <div style={styles.statBox}>
-                        <span style={{
-                            ...styles.statValue,
-                            color: stats.netResult >= 0 ? METAL.success : METAL.danger
-                        }}>
-                            ${Math.abs(stats.netResult).toLocaleString()}
-                        </span>
-                        <span style={styles.statLabel}>NET RESULT</span>
-                    </div>
-                    <div style={styles.statBox}>
-                        <span style={{
-                            ...styles.statValue,
-                            color: parseFloat(stats.roi) >= 0 ? METAL.success : METAL.danger
-                        }}>
-                            {stats.roi}%
-                        </span>
-                        <span style={styles.statLabel}>ROI</span>
-                    </div>
-                </div>
-            </div>
 
-            {/* Series List */}
-            <div style={styles.seriesList}>
-                {series.length === 0 ? (
-                    <div style={styles.emptyState}>
-                        <div style={styles.emptyIconContainer}>
-                            <Trophy size={28} style={{ color: METAL.gold }} />
-                        </div>
-                        <p style={styles.emptyTitle}>NO SERIES TRACKED</p>
-                        <p style={styles.emptyHint}>Track WSOP, WPT & tournament series ROI</p>
-                        <button onClick={handleAddNew} style={styles.emptyAddBtn}>
-                            <Plus size={14} /> ADD SERIES
-                        </button>
-                    </div>
-                ) : (
-                    series.map(s => (
-                        <div key={s.id} style={{
-                            ...styles.seriesCard,
-                            ...(isActive(s) ? styles.seriesCardActive : {}),
-                        }}>
-                            {isActive(s) && (
-                                <div style={styles.liveBadge}>
-                                    <span style={styles.liveDot} /> LIVE
-                                </div>
-                            )}
-                            <div style={styles.seriesHeader}>
-                                <span style={styles.seriesType}>
-                                    {SERIES_TYPES[s.type]?.icon} {SERIES_TYPES[s.type]?.label}
-                                </span>
-                                <div style={styles.seriesActions}>
-                                    <button onClick={() => handleEdit(s)} style={styles.iconBtn}>
-                                        <Edit2 size={12} />
-                                    </button>
-                                    <button onClick={() => handleDelete(s.id)} style={{ ...styles.iconBtn, color: METAL.danger }}>
-                                        <Trash2 size={12} />
-                                    </button>
-                                </div>
-                            </div>
-                            <div style={styles.seriesName}>{s.name}</div>
-                            <div style={styles.seriesInfo}>
-                                {s.location && (
-                                    <span><MapPin size={10} /> {s.location}</span>
-                                )}
-                                {s.start_date && (
-                                    <span><Calendar size={10} /> {new Date(s.start_date).toLocaleDateString()}</span>
-                                )}
-                            </div>
-                            <div style={styles.seriesStats}>
-                                <div style={styles.seriesStatItem}>
-                                    <span style={styles.seriesStatValue}>{s.events}</span>
-                                    <span style={styles.seriesStatLabel}>EVENTS</span>
-                                </div>
-                                <div style={styles.seriesStatItem}>
-                                    <span style={{
-                                        ...styles.seriesStatValue,
-                                        color: s.net >= 0 ? METAL.success : METAL.danger
-                                    }}>
-                                        ${Math.abs(s.net).toLocaleString()}
-                                    </span>
-                                    <span style={styles.seriesStatLabel}>NET</span>
-                                </div>
-                                <div style={styles.seriesStatItem}>
-                                    <span style={{
-                                        ...styles.seriesStatValue,
-                                        color: parseFloat(s.roi) >= 0 ? METAL.success : METAL.danger
-                                    }}>
-                                        {s.roi}%
-                                    </span>
-                                    <span style={styles.seriesStatLabel}>ROI</span>
-                                </div>
-                            </div>
-                        </div>
-                    ))
-                )}
-            </div>
-
-            {/* Modal */}
-            {showModal && (
-                <div style={styles.modalOverlay} onClick={() => setShowModal(false)}>
-                    <div style={styles.modal} onClick={e => e.stopPropagation()}>
-                        <div style={styles.modalLed} />
-                        <h3 style={styles.modalTitle}>
-                            {editingSeries ? 'EDIT SERIES' : 'NEW SERIES'}
-                        </h3>
-
-                        <div style={styles.formGroup}>
-                            <label style={styles.formLabel}>SERIES NAME</label>
+                    {/* Series Info (view vs edit) */}
+                    {!editMode ? (
+                        <>
+                            <h2 style={styles.activeName}>{activeSeries.name}</h2>
+                            <p style={styles.activeMeta}>
+                                {activeSeries.location_name && `${activeSeries.location_name} · `}
+                                Started {new Date(activeSeries.start_date + 'T12:00:00').toLocaleDateString()} · Day {daysSinceStart}
+                                {activeSeries.end_date && ` · Ends ${new Date(activeSeries.end_date + 'T12:00:00').toLocaleDateString()}`}
+                            </p>
+                        </>
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, margin: '8px 0 12px' }}>
                             <input
-                                value={form.name}
-                                onChange={e => setForm({ ...form, name: e.target.value })}
-                                placeholder="e.g. WSOP 2026"
+                                type="text"
+                                value={editForm.name}
+                                onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                                placeholder="Series Name"
                                 style={styles.formInput}
+                                autoFocus
                             />
-                        </div>
-
-                        <div style={styles.formRow}>
-                            <div style={styles.formGroup}>
-                                <label style={styles.formLabel}>TYPE</label>
-                                <select
-                                    value={form.type}
-                                    onChange={e => setForm({ ...form, type: e.target.value })}
-                                    style={styles.formInput}
-                                >
-                                    {Object.entries(SERIES_TYPES).map(([key, val]) => (
-                                        <option key={key} value={key}>{val.icon} {val.label}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div style={styles.formGroup}>
-                                <label style={styles.formLabel}>LOCATION</label>
-                                <input
-                                    value={form.location}
-                                    onChange={e => setForm({ ...form, location: e.target.value })}
-                                    placeholder="Las Vegas"
-                                    style={styles.formInput}
-                                />
-                            </div>
-                        </div>
-
-                        <div style={styles.formRow}>
-                            <div style={styles.formGroup}>
-                                <label style={styles.formLabel}>START DATE</label>
-                                <input
-                                    type="date"
-                                    value={form.start_date}
-                                    onChange={e => setForm({ ...form, start_date: e.target.value })}
-                                    style={styles.formInput}
-                                />
-                            </div>
-                            <div style={styles.formGroup}>
-                                <label style={styles.formLabel}>END DATE</label>
-                                <input
-                                    type="date"
-                                    value={form.end_date}
-                                    onChange={e => setForm({ ...form, end_date: e.target.value })}
-                                    style={styles.formInput}
-                                />
-                            </div>
-                        </div>
-
-                        <div style={styles.formGroup}>
-                            <label style={styles.formLabel}>PLANNED BUDGET ($)</label>
-                            <input
-                                type="number"
-                                value={form.planned_budget}
-                                onChange={e => setForm({ ...form, planned_budget: e.target.value })}
-                                placeholder="10000"
+                            <select
+                                value={editForm.location_id || ''}
+                                onChange={e => setEditForm({ ...editForm, location_id: e.target.value || null })}
                                 style={styles.formInput}
-                            />
-                        </div>
-
-                        <div style={styles.modalActions}>
-                            <button onClick={() => setShowModal(false)} style={styles.cancelBtn}>
-                                CANCEL
-                            </button>
-                            <button
-                                onClick={handleSave}
-                                disabled={saving || !form.name}
-                                style={{
-                                    ...styles.saveBtn,
-                                    opacity: (saving || !form.name) ? 0.5 : 1
-                                }}
                             >
-                                {saving ? (
-                                    <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> SAVING...</>
-                                ) : (
-                                    <><Check size={14} /> SAVE</>
-                                )}
-                            </button>
+                                <option value="">-- Select Location --</option>
+                                {locations.map(loc => (
+                                    <option key={loc.id} value={loc.id}>{loc.name}</option>
+                                ))}
+                            </select>
+                            <input
+                                type="text"
+                                value={editForm.purpose}
+                                onChange={e => setEditForm({ ...editForm, purpose: e.target.value })}
+                                placeholder="Purpose (e.g. WSOP Main Event)"
+                                style={styles.formInput}
+                            />
+                            <div style={{ display: 'flex', gap: 8 }}>
+                                <div style={{ flex: 1 }}>
+                                    <label style={{ fontSize: 11, color: '#94a3b8', marginBottom: 4, display: 'block' }}>End Date</label>
+                                    <input
+                                        type="date"
+                                        value={editForm.end_date}
+                                        onChange={e => setEditForm({ ...editForm, end_date: e.target.value })}
+                                        style={styles.formInput}
+                                    />
+                                </div>
+                            </div>
+                            <textarea
+                                value={editForm.notes}
+                                onChange={e => setEditForm({ ...editForm, notes: e.target.value })}
+                                placeholder="Notes"
+                                style={{ ...styles.formInput, minHeight: 60, resize: 'vertical' }}
+                            />
                         </div>
+                    )}
+
+                    {/* Running Totals */}
+                    {!editMode && (
+                        <div style={styles.runningStats}>
+                            <div style={styles.runningStat}>
+                                <span style={styles.runningStatLabel}>Net P/L</span>
+                                <span style={{
+                                    ...styles.runningStatValue,
+                                    color: (activeSeries.totalNet || 0) >= 0 ? '#10b981' : '#ef4444',
+                                }}>
+                                    {formatCurrency(activeSeries.totalNet || 0)}
+                                </span>
+                            </div>
+                            <div style={styles.runningStat}>
+                                <span style={styles.runningStatLabel}>Sessions</span>
+                                <span style={styles.runningStatValue}>{activeSeries.entryCount || 0}</span>
+                            </div>
+                            <div style={styles.runningStat}>
+                                <span style={styles.runningStatLabel}>Expenses</span>
+                                <span style={{ ...styles.runningStatValue, color: '#ef4444' }}>
+                                    {formatCurrency(activeSeries.totalExpenses || 0)}
+                                </span>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Category Breakdown */}
+                    {!editMode && activeSeries.categoryBreakdown && Object.keys(activeSeries.categoryBreakdown).length > 0 && (
+                        <div style={styles.breakdownRow}>
+                            {Object.entries(activeSeries.categoryBreakdown).map(([cat, data]) => (
+                                <span key={cat} style={styles.breakdownTag}>
+                                    {CATEGORY_LABELS[cat] || cat}: {formatCurrency(data.net)}
+                                </span>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Actions */}
+                    <div style={styles.activeActions}>
+                        {editMode ? (
+                            <>
+                                <button onClick={handleSaveEdit} style={styles.completeBtn}>Save Changes</button>
+                                <button onClick={() => setEditMode(false)} style={styles.cancelEditBtn}>Cancel</button>
+                            </>
+                        ) : !confirmComplete ? (
+                            <>
+                                <button onClick={startEditing} style={styles.editBtn}>Edit Series</button>
+                                <button onClick={() => setConfirmComplete(true)} style={styles.completeBtn}>
+                                    Complete Series
+                                </button>
+                            </>
+                        ) : (
+                            <div style={styles.confirmRow}>
+                                <span style={styles.confirmText}>Finalize this series?</span>
+                                <button onClick={handleCompleteSeries} style={styles.confirmYes}>Yes, Complete</button>
+                                <button onClick={() => setConfirmComplete(false)} style={styles.confirmNo}>Cancel</button>
+                            </div>
+                        )}
                     </div>
-                </div>
+
+                    {/* Delete Confirmation */}
+                    <AnimatePresence>
+                        {confirmDelete && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                style={styles.deleteOverlay}
+                            >
+                                <div style={styles.deletePopup}>
+                                    <p style={styles.deletePopupText}>Are you sure you want to delete this series?</p>
+                                    <p style={styles.deletePopupSub}>All entries will be unlinked from this series.</p>
+                                    <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+                                        <button onClick={handleDeleteSeries} style={styles.deleteConfirmBtn}>Yes, Delete</button>
+                                        <button onClick={() => setConfirmDelete(false)} style={styles.deleteCancelBtn}>Cancel</button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </motion.div>
             )}
 
-            <style jsx global>{ANIMATIONS}</style>
+            {/* --- CREATE SERIES --- */}
+            {!activeSeries && !showCreateForm && (
+                <motion.button
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    onClick={() => setShowCreateForm(true)}
+                    style={styles.createBtn}
+                >
+                    <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.4)' }}>No active series</span>
+                    <div>
+                        <div style={styles.createTitle}>Start a New Series</div>
+                        <div style={styles.createSub}>Track multi-day tournament series, WSOP runs, and events</div>
+                    </div>
+                </motion.button>
+            )}
+
+            <AnimatePresence>
+                {showCreateForm && (
+                    <motion.form
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        onSubmit={handleCreateSeries}
+                        style={styles.createForm}
+                    >
+                        <h3 style={styles.formTitle}>New Series</h3>
+
+                        <label style={styles.formLabel}>Series Name *</label>
+                        <input
+                            type="text"
+                            value={newSeries.name}
+                            onChange={e => setNewSeries({ ...newSeries, name: e.target.value })}
+                            placeholder="e.g. WSOP 2026, WPT Venetian"
+                            style={styles.formInput}
+                            autoFocus
+                        />
+
+                        <label style={styles.formLabel}>Location</label>
+                        {newSeries.location_id !== '__new__' ? (
+                            <select
+                                value={newSeries.location_id || ''}
+                                onChange={e => {
+                                    if (e.target.value === '__new__') {
+                                        setNewSeries({ ...newSeries, location_id: '__new__', location_name: '' });
+                                    } else {
+                                        const loc = locations.find(l => l.id === e.target.value);
+                                        setNewSeries({ ...newSeries, location_id: e.target.value || null, location_name: loc?.name || '' });
+                                    }
+                                }}
+                                style={styles.formInput}
+                            >
+                                <option value="">-- Select Location --</option>
+                                {locations.map(loc => (
+                                    <option key={loc.id} value={loc.id}>{loc.name}</option>
+                                ))}
+                                <option value="__new__">+ New Location</option>
+                            </select>
+                        ) : (
+                            <div style={{ display: 'flex', gap: 6 }}>
+                                <input
+                                    type="text"
+                                    value={newSeries.location_name || ''}
+                                    onChange={e => setNewSeries({ ...newSeries, location_name: e.target.value })}
+                                    placeholder="e.g. Horseshoe, Venetian"
+                                    style={{ ...styles.formInput, flex: 1 }}
+                                    autoFocus
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setNewSeries({ ...newSeries, location_id: null, location_name: '' })}
+                                    style={{ ...styles.formInput, flex: 'none', width: 40, cursor: 'pointer', textAlign: 'center', padding: 0 }}
+                                >&#x21A9;</button>
+                            </div>
+                        )}
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                            <div>
+                                <label style={styles.formLabel}>Start Date</label>
+                                <input
+                                    type="date"
+                                    value={newSeries.start_date}
+                                    onChange={e => setNewSeries({ ...newSeries, start_date: e.target.value })}
+                                    style={styles.formInput}
+                                />
+                            </div>
+                            <div>
+                                <label style={styles.formLabel}>End Date</label>
+                                <input
+                                    type="date"
+                                    value={newSeries.end_date}
+                                    onChange={e => setNewSeries({ ...newSeries, end_date: e.target.value })}
+                                    style={styles.formInput}
+                                />
+                            </div>
+                        </div>
+
+                        <label style={styles.formLabel}>Purpose</label>
+                        <input
+                            type="text"
+                            value={newSeries.purpose}
+                            onChange={e => setNewSeries({ ...newSeries, purpose: e.target.value })}
+                            placeholder="e.g. WSOP Main Event, WPT Weekend"
+                            style={styles.formInput}
+                        />
+
+                        <label style={styles.formLabel}>Notes</label>
+                        <textarea
+                            value={newSeries.notes}
+                            onChange={e => setNewSeries({ ...newSeries, notes: e.target.value })}
+                            placeholder="Any notes..."
+                            style={{ ...styles.formInput, minHeight: 60, resize: 'vertical' }}
+                        />
+
+                        <div style={styles.formActions}>
+                            <button type="submit" style={styles.formSubmitBtn}>Start Series</button>
+                            <button type="button" onClick={() => setShowCreateForm(false)} style={styles.formCancelBtn}>Cancel</button>
+                        </div>
+                    </motion.form>
+                )}
+            </AnimatePresence>
+
+            {/* --- COMPLETED SERIES --- */}
+            <div style={styles.historySection}>
+                <h3 style={styles.historyTitle}>Completed Series</h3>
+                {isLoading ? (
+                    <div style={styles.loadingPlaceholder}>Loading series...</div>
+                ) : completedSeries.length === 0 ? (
+                    <div style={styles.emptyState}>No completed series yet. Start your first series above!</div>
+                ) : (
+                    <div style={styles.seriesGrid}>
+                        {completedSeries.map(series => (
+                            <motion.div
+                                key={series.id}
+                                whileHover={{ scale: 1.02 }}
+                                onClick={() => handleViewReport(series.id)}
+                                style={styles.seriesCard}
+                            >
+                                <div style={styles.seriesCardHeader}>
+                                    <h4 style={styles.seriesCardName}>{series.name}</h4>
+                                    <span style={{
+                                        ...styles.seriesCardPL,
+                                        color: (series.totalNet || 0) >= 0 ? '#10b981' : '#ef4444',
+                                    }}>
+                                        {formatCurrency(series.totalNet || 0)}
+                                    </span>
+                                </div>
+                                <div style={styles.seriesCardMeta}>
+                                    {series.location_name && <span>{series.location_name}</span>}
+                                    <span>{new Date(series.start_date + 'T12:00:00').toLocaleDateString()}</span>
+                                    {series.end_date && (
+                                        <span> -- {new Date(series.end_date + 'T12:00:00').toLocaleDateString()}</span>
+                                    )}
+                                </div>
+                                <div style={styles.seriesCardFooter}>
+                                    <span>{series.entryCount || 0} entries</span>
+                                    <span style={styles.viewReportLink}>View Report --&gt;</span>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
 
 const styles = {
     container: {
-        position: 'relative',
-        background: GRADIENTS.darkPanel,
-        border: `1px solid ${METAL.mid}`,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 20,
+    },
+
+    // Active Series
+    activeCard: {
+        background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(59, 130, 246, 0.08) 100%)',
+        border: '1px solid rgba(245, 158, 11, 0.3)',
         borderRadius: 12,
-        overflow: 'hidden',
+        padding: 20,
+        position: 'relative',
     },
-    ledStrip: {
-        position: 'absolute',
-        top: 0,
-        left: '10%',
-        right: '10%',
-        height: 2,
-        background: METAL.gold,
-        boxShadow: `0 0 10px ${METAL.goldGlow}`,
+    activeHeader: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 8,
     },
-    loadingContainer: {
+    activeLed: {
+        width: 8,
+        height: 8,
+        borderRadius: '50%',
+        background: '#f59e0b',
+        boxShadow: '0 0 8px rgba(245, 158, 11, 0.6)',
+        animation: 'pulse 2s infinite',
+    },
+    activeLabel: {
+        fontSize: 11,
+        fontWeight: 700,
+        letterSpacing: 1.5,
+        color: '#f59e0b',
+        textTransform: 'uppercase',
+    },
+    activeName: {
+        fontSize: 22,
+        fontWeight: 700,
+        color: '#fff',
+        margin: '4px 0',
+    },
+    activeMeta: {
+        fontSize: 13,
+        color: '#94a3b8',
+        margin: '0 0 16px',
+    },
+
+    // Running stats
+    runningStats: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gap: 12,
+        marginBottom: 16,
+    },
+    runningStat: {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: 12,
-        padding: 48,
-        background: GRADIENTS.darkPanel,
-        border: `1px solid ${METAL.mid}`,
-        borderRadius: 12,
-        fontFamily: "'Rajdhani', sans-serif",
+        background: 'rgba(0,0,0,0.2)',
+        borderRadius: 8,
+        padding: '10px 8px',
+    },
+    runningStatLabel: {
         fontSize: 11,
-        color: 'rgba(255,255,255,0.5)',
-        letterSpacing: '0.15em',
+        color: '#94a3b8',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+        marginBottom: 4,
     },
-    header: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '14px 16px',
-        borderBottom: `1px solid ${METAL.mid}`,
-    },
-    headerTitle: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        fontFamily: "'Orbitron', sans-serif",
-        fontSize: 12,
-        fontWeight: 700,
-        letterSpacing: '0.15em',
-        color: '#fff',
-    },
-    addBtn: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 6,
-        padding: '8px 14px',
-        background: 'rgba(245,158,11,0.15)',
-        border: `1px solid ${METAL.gold}`,
-        borderRadius: 6,
-        fontFamily: "'Rajdhani', sans-serif",
-        fontSize: 10,
-        fontWeight: 700,
-        letterSpacing: '0.1em',
-        color: METAL.gold,
-        cursor: 'pointer',
-    },
-    statsSection: {
-        padding: 16,
-        borderBottom: `1px solid ${METAL.mid}`,
-    },
-    statsGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: 10,
-    },
-    statBox: {
-        padding: 14,
-        background: 'rgba(0,0,0,0.3)',
-        border: `1px solid ${METAL.mid}`,
-        borderRadius: 10,
-        textAlign: 'center',
-    },
-    statValue: {
-        display: 'block',
-        fontFamily: "'Orbitron', sans-serif",
+    runningStatValue: {
         fontSize: 18,
         fontWeight: 700,
-        color: METAL.gold,
+        color: '#fff',
     },
-    statLabel: {
-        display: 'block',
-        fontFamily: "'Rajdhani', sans-serif",
-        fontSize: 9,
-        fontWeight: 600,
-        color: 'rgba(255,255,255,0.4)',
-        letterSpacing: '0.1em',
-        marginTop: 4,
-    },
-    seriesList: {
-        padding: 16,
-    },
-    emptyState: {
-        padding: 40,
-        textAlign: 'center',
-    },
-    emptyIconContainer: {
+
+    // Breakdown
+    breakdownRow: {
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: 56,
-        height: 56,
-        margin: '0 auto 16px',
-        background: 'rgba(245,158,11,0.15)',
-        border: `1px dashed ${METAL.gold}`,
-        borderRadius: '50%',
-        animation: 'float 3s ease-in-out infinite',
-    },
-    emptyTitle: {
-        fontFamily: "'Rajdhani', sans-serif",
-        fontSize: 13,
-        fontWeight: 600,
-        color: 'rgba(255,255,255,0.5)',
-        textTransform: 'uppercase',
-        letterSpacing: '0.1em',
-        margin: '0 0 6px',
-    },
-    emptyHint: {
-        fontFamily: "'Rajdhani', sans-serif",
-        fontSize: 11,
-        color: 'rgba(255,255,255,0.35)',
-        margin: 0,
-    },
-    emptyAddBtn: {
-        display: 'inline-flex',
-        alignItems: 'center',
+        flexWrap: 'wrap',
         gap: 6,
-        marginTop: 20,
-        padding: '12px 24px',
-        background: GRADIENTS.goldPremium,
-        border: 'none',
+        marginBottom: 16,
+    },
+    breakdownTag: {
+        fontSize: 11,
+        background: 'rgba(255,255,255,0.06)',
+        border: '1px solid rgba(255,255,255,0.1)',
+        borderRadius: 4,
+        padding: '3px 8px',
+        color: '#94a3b8',
+    },
+
+    // Actions
+    activeActions: {
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: 8,
+        alignItems: 'center',
+    },
+    completeBtn: {
+        background: 'rgba(245, 158, 11, 0.15)',
+        color: '#f59e0b',
+        border: '1px solid rgba(245, 158, 11, 0.3)',
         borderRadius: 8,
-        fontFamily: "'Rajdhani', sans-serif",
-        fontSize: 12,
-        fontWeight: 700,
-        letterSpacing: '0.1em',
-        color: '#000',
+        padding: '10px 18px',
+        fontSize: 14,
+        fontWeight: 600,
         cursor: 'pointer',
-        boxShadow: `0 4px 15px ${METAL.goldGlow}`,
-        transition: 'transform 0.2s, box-shadow 0.2s',
     },
-    seriesCard: {
-        position: 'relative',
-        padding: 16,
-        background: 'rgba(0,0,0,0.2)',
-        border: `1px solid ${METAL.mid}`,
-        borderRadius: 10,
-        marginBottom: 12,
+    editBtn: {
+        background: 'rgba(59, 130, 246, 0.15)',
+        color: '#3b82f6',
+        border: '1px solid rgba(59, 130, 246, 0.3)',
+        borderRadius: 8,
+        padding: '10px 18px',
+        fontSize: 14,
+        fontWeight: 600,
+        cursor: 'pointer',
     },
-    seriesCardActive: {
-        borderColor: METAL.success,
-        boxShadow: `0 0 15px ${METAL.successGlow}`,
+    cancelEditBtn: {
+        background: 'transparent',
+        color: '#94a3b8',
+        border: '1px solid rgba(255,255,255,0.15)',
+        borderRadius: 8,
+        padding: '10px 18px',
+        fontSize: 14,
+        cursor: 'pointer',
     },
-    liveBadge: {
+    deleteX: {
         position: 'absolute',
         top: 10,
         right: 10,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 4,
-        padding: '4px 8px',
-        background: 'rgba(34,197,94,0.15)',
-        border: `1px solid ${METAL.success}`,
-        borderRadius: 4,
-        fontFamily: "'Rajdhani', sans-serif",
-        fontSize: 9,
-        fontWeight: 700,
-        color: METAL.success,
-        letterSpacing: '0.1em',
-    },
-    liveDot: {
-        width: 6,
-        height: 6,
-        background: METAL.success,
-        borderRadius: '50%',
-        animation: 'metalGlow 1s ease-in-out infinite',
-    },
-    seriesHeader: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 8,
-    },
-    seriesType: {
-        fontFamily: "'Rajdhani', sans-serif",
-        fontSize: 11,
-        fontWeight: 600,
-        color: METAL.gold,
-        letterSpacing: '0.1em',
-    },
-    seriesActions: {
-        display: 'flex',
-        gap: 6,
-    },
-    iconBtn: {
-        padding: 6,
-        background: 'rgba(255,255,255,0.05)',
-        border: `1px solid ${METAL.mid}`,
-        borderRadius: 4,
-        color: 'rgba(255,255,255,0.5)',
-        cursor: 'pointer',
-    },
-    seriesName: {
-        fontFamily: "'Orbitron', sans-serif",
-        fontSize: 15,
-        fontWeight: 700,
-        color: '#fff',
-        marginBottom: 8,
-    },
-    seriesInfo: {
-        display: 'flex',
-        gap: 16,
-        fontFamily: "'Rajdhani', sans-serif",
-        fontSize: 11,
-        color: 'rgba(255,255,255,0.5)',
-        marginBottom: 12,
-    },
-    seriesStats: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: 8,
-        padding: '10px 0 0',
-        borderTop: `1px solid ${METAL.mid}`,
-    },
-    seriesStatItem: {
-        textAlign: 'center',
-    },
-    seriesStatValue: {
-        display: 'block',
-        fontFamily: "'Orbitron', sans-serif",
-        fontSize: 14,
-        fontWeight: 700,
-        color: '#fff',
-    },
-    seriesStatLabel: {
-        fontFamily: "'Rajdhani', sans-serif",
-        fontSize: 9,
-        color: 'rgba(255,255,255,0.4)',
-        letterSpacing: '0.1em',
-    },
-    modalOverlay: {
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,0.92)',
-        backdropFilter: 'blur(10px)',
+        width: 28,
+        height: 28,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 1000,
-        padding: 16,
+        background: 'rgba(255,255,255,0.05)',
+        border: '1px solid rgba(255,255,255,0.1)',
+        borderRadius: 6,
+        color: '#666',
+        fontSize: 14,
+        cursor: 'pointer',
     },
-    modal: {
-        position: 'relative',
-        width: '100%',
-        maxWidth: 420,
-        background: `linear-gradient(180deg, #1a2a3a 0%, ${METAL.base} 100%)`,
-        border: `2px solid ${METAL.highlight}`,
-        borderRadius: 16,
+    deleteOverlay: {
+        position: 'absolute',
+        inset: 0,
+        background: 'rgba(0,0,0,0.8)',
+        borderRadius: 12,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 10,
+    },
+    deletePopup: {
+        textAlign: 'center',
         padding: 24,
     },
-    modalLed: {
-        position: 'absolute',
-        top: 0,
-        left: '20%',
-        right: '20%',
-        height: 2,
-        background: METAL.gold,
-        boxShadow: `0 0 10px ${METAL.goldGlow}`,
-    },
-    modalTitle: {
-        fontFamily: "'Orbitron', sans-serif",
-        fontSize: 14,
-        fontWeight: 700,
-        letterSpacing: '0.15em',
+    deletePopupText: {
+        fontSize: 16,
+        fontWeight: 600,
         color: '#fff',
-        marginBottom: 20,
-        textAlign: 'center',
+        margin: '0 0 6px',
     },
-    formGroup: {
-        marginBottom: 14,
+    deletePopupSub: {
+        fontSize: 12,
+        color: '#94a3b8',
+        margin: '0 0 20px',
+    },
+    deleteConfirmBtn: {
+        background: '#ef4444',
+        color: '#fff',
+        border: 'none',
+        borderRadius: 8,
+        padding: '10px 20px',
+        fontSize: 14,
+        fontWeight: 600,
+        cursor: 'pointer',
+    },
+    deleteCancelBtn: {
+        background: 'transparent',
+        color: '#94a3b8',
+        border: '1px solid rgba(255,255,255,0.15)',
+        borderRadius: 8,
+        padding: '10px 20px',
+        fontSize: 14,
+        cursor: 'pointer',
+    },
+    confirmRow: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+    },
+    confirmText: {
+        fontSize: 13,
+        color: '#94a3b8',
+    },
+    confirmYes: {
+        background: '#f59e0b',
+        color: '#000',
+        border: 'none',
+        borderRadius: 6,
+        padding: '6px 14px',
+        fontSize: 13,
+        fontWeight: 600,
+        cursor: 'pointer',
+    },
+    confirmNo: {
+        background: 'transparent',
+        color: '#94a3b8',
+        border: '1px solid rgba(255,255,255,0.15)',
+        borderRadius: 6,
+        padding: '6px 14px',
+        fontSize: 13,
+        cursor: 'pointer',
+    },
+
+    // Create Series
+    createBtn: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 14,
+        background: 'rgba(245, 158, 11, 0.08)',
+        border: '2px dashed rgba(245, 158, 11, 0.3)',
+        borderRadius: 12,
+        padding: '20px 24px',
+        cursor: 'pointer',
+        textAlign: 'left',
+        width: '100%',
+    },
+    createTitle: {
+        fontSize: 16,
+        fontWeight: 600,
+        color: '#fff',
+    },
+    createSub: {
+        fontSize: 13,
+        color: '#94a3b8',
+        marginTop: 2,
+    },
+
+    // Form
+    createForm: {
+        background: 'rgba(95, 68, 30, 0.15)',
+        border: '1px solid rgba(245, 158, 11, 0.2)',
+        borderRadius: 12,
+        padding: 20,
+        overflow: 'hidden',
+    },
+    formTitle: {
+        fontSize: 18,
+        fontWeight: 600,
+        color: '#fff',
+        margin: '0 0 16px',
     },
     formLabel: {
         display: 'block',
-        fontFamily: "'Rajdhani', sans-serif",
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: 600,
-        color: 'rgba(255,255,255,0.5)',
-        letterSpacing: '0.15em',
+        color: '#94a3b8',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
         marginBottom: 6,
+        marginTop: 12,
     },
     formInput: {
         width: '100%',
-        padding: '12px 14px',
-        background: METAL.darkest,
-        border: `1px solid ${METAL.mid}`,
+        background: 'rgba(0,0,0,0.2)',
+        border: '1px solid rgba(255,255,255,0.1)',
         borderRadius: 8,
-        fontFamily: "'Rajdhani', sans-serif",
-        fontSize: 14,
+        padding: '10px 12px',
         color: '#fff',
+        fontSize: 14,
+        outline: 'none',
         boxSizing: 'border-box',
     },
-    formRow: {
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: 12,
-    },
-    modalActions: {
+    formActions: {
         display: 'flex',
-        gap: 12,
+        gap: 10,
         marginTop: 20,
     },
-    cancelBtn: {
-        flex: 1,
-        padding: 14,
-        background: GRADIENTS.metalButton,
-        border: `1px solid ${METAL.mid}`,
-        borderRadius: 10,
-        fontFamily: "'Rajdhani', sans-serif",
-        fontSize: 12,
+    formSubmitBtn: {
+        background: '#f59e0b',
+        color: '#000',
+        border: 'none',
+        borderRadius: 8,
+        padding: '10px 24px',
+        fontSize: 14,
         fontWeight: 600,
-        color: 'rgba(255,255,255,0.6)',
-        letterSpacing: '0.1em',
         cursor: 'pointer',
     },
-    saveBtn: {
-        flex: 1,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 6,
-        padding: 14,
-        background: GRADIENTS.goldPremium,
-        border: 'none',
-        borderRadius: 10,
-        fontFamily: "'Rajdhani', sans-serif",
-        fontSize: 12,
-        fontWeight: 700,
-        color: '#000',
-        letterSpacing: '0.1em',
+    formCancelBtn: {
+        background: 'transparent',
+        color: '#94a3b8',
+        border: '1px solid rgba(255,255,255,0.15)',
+        borderRadius: 8,
+        padding: '10px 24px',
+        fontSize: 14,
         cursor: 'pointer',
+    },
+
+    // History
+    historySection: {
+        marginTop: 8,
+    },
+    historyTitle: {
+        fontSize: 16,
+        fontWeight: 600,
+        color: '#fff',
+        margin: '0 0 14px',
+    },
+    loadingPlaceholder: {
+        color: '#64748b',
+        fontSize: 14,
+        textAlign: 'center',
+        padding: 32,
+    },
+    emptyState: {
+        color: '#64748b',
+        fontSize: 14,
+        textAlign: 'center',
+        padding: 32,
+        background: 'rgba(0,0,0,0.1)',
+        borderRadius: 8,
+    },
+
+    // Completed Series Cards
+    seriesGrid: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
+    },
+    seriesCard: {
+        background: 'rgba(95, 68, 30, 0.15)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: 10,
+        padding: 16,
+        cursor: 'pointer',
+        transition: 'border-color 0.2s',
+    },
+    seriesCardHeader: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 6,
+    },
+    seriesCardName: {
+        fontSize: 15,
+        fontWeight: 600,
+        color: '#fff',
+        margin: 0,
+    },
+    seriesCardPL: {
+        fontSize: 16,
+        fontWeight: 700,
+    },
+    seriesCardMeta: {
+        display: 'flex',
+        gap: 8,
+        fontSize: 12,
+        color: '#94a3b8',
+        marginBottom: 8,
+    },
+    seriesCardFooter: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        fontSize: 12,
+        color: '#64748b',
+    },
+    viewReportLink: {
+        color: '#f59e0b',
+        fontWeight: 500,
     },
 };

@@ -55,7 +55,7 @@ export default function PlayerNotes({ userId }) {
     return (
         <div style={styles.container}>
             <div style={styles.header}>
-                <h2 style={styles.title}>🎯 Player Notes</h2>
+                <h2 style={styles.title}>Player Notes</h2>
                 <button onClick={() => setShowAddModal(true)} style={styles.addBtn}>
                     + Add Player
                 </button>
@@ -75,7 +75,7 @@ export default function PlayerNotes({ userId }) {
                 <div style={styles.loading}>Loading players...</div>
             ) : filteredPlayers.length === 0 ? (
                 <div style={styles.empty}>
-                    <span style={{ fontSize: 40, marginBottom: 12 }}>🃏</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.4)' }}>No players yet</span>
                     <p style={{ margin: 0 }}>No players yet</p>
                     <p style={{ margin: '8px 0 0', fontSize: 12, opacity: 0.6 }}>
                         Add notes on opponents you've played against
@@ -315,7 +315,7 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
                                         onClick={() => fileInputRef.current?.click()}
                                         style={styles.changePhotoBtn}
                                     >
-                                        📷 Change Photo
+                                        Change Photo
                                     </button>
                                     <button
                                         type="button"
@@ -333,7 +333,7 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
                                 disabled={isUploading}
                                 style={styles.uploadBtn}
                             >
-                                {isUploading ? 'Uploading...' : '📷 Upload Photo'}
+                                {isUploading ? 'Uploading...' : 'Upload Photo'}
                             </button>
                         )}
                     </div>
@@ -348,13 +348,13 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
                                 style={styles.select}
                             >
                                 <option value="unknown">Unknown</option>
-                                <option value="fish">🐟 Fish</option>
-                                <option value="reg">♠️ Reg</option>
-                                <option value="shark">🦈 Shark</option>
-                                <option value="whale">🐋 Whale</option>
-                                <option value="nit">🐢 Nit</option>
-                                <option value="lag">🔥 LAG</option>
-                                <option value="tag">🎯 TAG</option>
+                                <option value="fish">Fish</option>
+                                <option value="reg">Reg</option>
+                                <option value="shark">Shark</option>
+                                <option value="whale">Whale</option>
+                                <option value="nit">Nit</option>
+                                <option value="lag">LAG</option>
+                                <option value="tag">TAG</option>
                             </select>
                         </div>
                         <div style={styles.formGroup}>
@@ -394,7 +394,7 @@ function PlayerModal({ player, userId, onClose, onSave, onDelete }) {
 
                     {/* Tells */}
                     <div style={styles.formGroup}>
-                        <label style={styles.label}>🎭 Tells</label>
+                        <label style={styles.label}>Tells</label>
                         <textarea
                             value={formData.tells}
                             onChange={e => setFormData({ ...formData, tells: e.target.value })}

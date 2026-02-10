@@ -593,7 +593,7 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
         if (filteredEntries.length === 0) {
             return (
                 <div style={S.emptyState}>
-                    <span style={{ fontSize: 24, opacity: 0.3 }}>📊</span>
+                    <span style={{ fontSize: 24, opacity: 0.3 }}></span>
                     <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>No data for this period</span>
                     <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>Log sessions to see your trend</span>
                 </div>

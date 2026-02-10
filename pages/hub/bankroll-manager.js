@@ -798,7 +798,7 @@ export default function BankrollManagerPage() {
                           {activeTrip.name}
                         </div>
                         <div style={{ fontSize: 12, color: '#94a3b8' }}>
-                          {activeTrip.location_name && `📍 ${activeTrip.location_name} · `}
+                          {activeTrip.location_name && `${activeTrip.location_name} · `}
                           Day {daysSinceStart} · {activeTrip.entryCount || 0} sessions
                         </div>
                       </div>
@@ -1170,7 +1170,7 @@ export default function BankrollManagerPage() {
                     }}
                     style={styles.reportActionBtn}
                   >
-                    <span style={{ fontSize: 24 }}>📥</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>Import</span>
                     <div style={{ flex: 1, textAlign: 'left' }}>
                       <div style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>Export to CSV</div>
                       <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
@@ -1380,7 +1380,7 @@ export default function BankrollManagerPage() {
                     }}
                     style={styles.scannerChoiceBtn}
                   >
-                    <span style={{ fontSize: 22 }}>🆕</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: '#4ade80' }}>NEW</span>
                     <div style={{ textAlign: 'left' }}>
                       <div style={{ fontWeight: 600, color: '#fff', fontSize: 15 }}>Create New Expense</div>
                       <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 2 }}>Log this as a new expense entry</div>
@@ -1390,7 +1390,7 @@ export default function BankrollManagerPage() {
                     onClick={() => setScannerStep('pick-entry')}
                     style={styles.scannerChoiceBtn}
                   >
-                    <span style={{ fontSize: 22 }}>📎</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: '#60a5fa' }}>ATTACH</span>
                     <div style={{ textAlign: 'left' }}>
                       <div style={{ fontWeight: 600, color: '#fff', fontSize: 15 }}>Attach to Existing Entry</div>
                       <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 2 }}>Add this receipt to a recent session or expense</div>
@@ -1609,7 +1609,7 @@ export default function BankrollManagerPage() {
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 20,
                 }}>
-                  {ruleViolations.some(v => v.severity === 'high') ? '⚠️' : ruleViolations.some(v => v.severity === 'info') ? '🎯' : '⚡'}
+                  {ruleViolations.some(v => v.severity === 'high') ? '!' : ruleViolations.some(v => v.severity === 'info') ? '!' : '!'}
                 </div>
                 <div>
                   <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#fff' }}>

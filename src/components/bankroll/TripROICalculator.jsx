@@ -112,7 +112,7 @@ export default function TripROICalculator({ trip, userId, displayEUR = false }) 
                     {Object.entries(expenses).map(([key, value]) => (
                         <div key={key} style={styles.expenseItem}>
                             <span style={styles.expenseLabel}>
-                                {key === 'hotel' ? '🏨' : key === 'flights' ? '✈️' : key === 'food' ? '🍔' : key === 'transport' ? '🚗' : key === 'tips' ? '' : '📦'}
+                                {key === 'hotel' ? 'Hotel' : key === 'flights' ? 'Flights' : key === 'food' ? 'Food' : key === 'transport' ? 'Transport' : key === 'tips' ? '' : 'Other'}
                                 {' '}{key.charAt(0).toUpperCase() + key.slice(1)}
                             </span>
                             {isEditing ? (

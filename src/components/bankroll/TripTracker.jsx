@@ -89,7 +89,7 @@ export default function TripTracker({ userId, onOpenLog }) {
             }
 
             await createTrip(userId, { ...newTrip, location_id: locationId });
-            toast.success('Trip started! 🎒');
+            toast.success('Trip started!');
             setShowCreateForm(false);
             setNewTrip({ name: '', location_id: null, start_date: new Date().toISOString().split('T')[0], purpose: '', notes: '' });
             await loadData();
@@ -102,7 +102,7 @@ export default function TripTracker({ userId, onOpenLog }) {
         if (!activeTrip) return;
         try {
             await completeTrip(userId, activeTrip.id);
-            toast.success('Trip completed! 📊');
+            toast.success('Trip completed!');
             setConfirmComplete(false);
             await loadData();
         } catch (err) {
@@ -141,7 +141,7 @@ export default function TripTracker({ userId, onOpenLog }) {
         }
         try {
             await updateTrip(userId, activeTrip.id, editForm);
-            toast.success('Trip updated! ✏️');
+            toast.success('Trip updated!');
             setEditMode(false);
             await loadData();
         } catch (err) {
@@ -197,7 +197,7 @@ export default function TripTracker({ userId, onOpenLog }) {
                         <>
                             <h2 style={styles.activeTripName}>{activeTrip.name}</h2>
                             <p style={styles.activeTripMeta}>
-                                {activeTrip.location_name && `📍 ${activeTrip.location_name} · `}
+                                {activeTrip.location_name && `${activeTrip.location_name} · `}
                                 Started {new Date(activeTrip.start_date + 'T12:00:00').toLocaleDateString()} · Day {daysSinceStart}
                             </p>
                         </>
@@ -327,7 +327,7 @@ export default function TripTracker({ userId, onOpenLog }) {
                     onClick={() => setShowCreateForm(true)}
                     style={styles.createTripBtn}
                 >
-                    <span style={{ fontSize: 24 }}>🎒</span>
+                    <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.4)' }}>No active trip</span>
                     <div>
                         <div style={styles.createTripTitle}>Start a New Trip</div>
                         <div style={styles.createTripSub}>Track all sessions and expenses in one place</div>
@@ -420,7 +420,7 @@ export default function TripTracker({ userId, onOpenLog }) {
                         />
 
                         <div style={styles.formActions}>
-                            <button type="submit" style={styles.formSubmitBtn}>🚀 Start Trip</button>
+                            <button type="submit" style={styles.formSubmitBtn}>Start Trip</button>
                             <button type="button" onClick={() => setShowCreateForm(false)} style={styles.formCancelBtn}>Cancel</button>
                         </div>
                     </motion.form>
@@ -453,8 +453,8 @@ export default function TripTracker({ userId, onOpenLog }) {
                                     </span>
                                 </div>
                                 <div style={styles.tripCardMeta}>
-                                    {trip.location_name && <span>📍 {trip.location_name}</span>}
-                                    <span>📅 {new Date(trip.start_date + 'T12:00:00').toLocaleDateString()}</span>
+                                    {trip.location_name && <span>{trip.location_name}</span>}
+                                    <span>{new Date(trip.start_date + 'T12:00:00').toLocaleDateString()}</span>
                                     {trip.end_date && (
                                         <span> — {new Date(trip.end_date + 'T12:00:00').toLocaleDateString()}</span>
                                     )}

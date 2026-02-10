@@ -44,6 +44,7 @@ export interface Trip {
   purpose: string | null;
   notes: string | null;
   status: 'active' | 'completed' | 'deleted';
+  trip_type?: 'trip' | 'series';
   totalNet?: number;
   totalExpenses?: number;
   entryCount?: number;
@@ -679,6 +680,187 @@ export async function getTripReport(userId: string, tripId: string) {
     categoryBreakdown,
     dailyBreakdown,
   };
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SERIES FUNCTIONS — mirror trip functions with trip_type='series'
+// ═══════════════════════════════════════════════════════════
+
+export async function fetchSeries(userId: string): Promise<Trip[]> {
+  const { data, error } = await supabase
+    .from('bankroll_trips')
+    .select(`*, bankroll_locations(name)`)
+    .eq('user_id', userId)
+    .eq('trip_type', 'series')
+    .neq('status', 'deleted')
+    .order('start_date', { ascending: false });
+
+  if (error) throw error;
+
+  const trips: Trip[] = [];
+  for (const trip of data || []) {
+    const { data: entries } = await supabase
+      .from('bankroll_ledger')
+      .select('net_result, category')
+      .eq('user_id', userId)
+      .eq('trip_id', trip.id)
+      .eq('is_revision', false);
+
+    let totalNet = 0;
+    let totalExpenses = 0;
+    entries?.forEach((e) => {
+      if (e.category === 'expense') {
+        totalExpenses += Math.abs(e.net_result || 0);
+      } else {
+        totalNet += e.net_result || 0;
+      }
+    });
+
+    trips.push({
+      ...trip,
+      location_name: trip.bankroll_locations?.name || null,
+      totalNet: totalNet - totalExpenses,
+      totalExpenses,
+      entryCount: entries?.length || 0,
+    });
+  }
+  return trips;
+}
+
+export async function getActiveSeries(userId: string): Promise<Trip | null> {
+  const { data, error } = await supabase
+    .from('bankroll_trips')
+    .select(`*, bankroll_locations(name)`)
+    .eq('user_id', userId)
+    .eq('trip_type', 'series')
+    .eq('status', 'active')
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  const { data: entries } = await supabase
+    .from('bankroll_ledger')
+    .select('net_result, category')
+    .eq('user_id', userId)
+    .eq('trip_id', data.id)
+    .eq('is_revision', false);
+
+  let totalNet = 0;
+  let totalExpenses = 0;
+  const categoryBreakdown: Record<string, { count: number; net: number }> = {};
+
+  entries?.forEach((e) => {
+    const cat = e.category || 'other';
+    if (!categoryBreakdown[cat]) categoryBreakdown[cat] = { count: 0, net: 0 };
+    categoryBreakdown[cat].count++;
+    if (cat === 'expense') {
+      totalExpenses += Math.abs(e.net_result || 0);
+      categoryBreakdown[cat].net -= Math.abs(e.net_result || 0);
+    } else {
+      totalNet += e.net_result || 0;
+      categoryBreakdown[cat].net += e.net_result || 0;
+    }
+  });
+
+  return {
+    ...data,
+    location_name: data.bankroll_locations?.name || null,
+    totalNet: totalNet - totalExpenses,
+    totalExpenses,
+    entryCount: entries?.length || 0,
+    categoryBreakdown,
+  };
+}
+
+export async function createSeries(
+  userId: string,
+  series: Partial<Trip>
+): Promise<Trip> {
+  const existing = await getActiveSeries(userId);
+  if (existing) {
+    throw new Error('You already have an active series. Complete or delete it before starting a new one.');
+  }
+
+  const { data, error } = await supabase
+    .from('bankroll_trips')
+    .insert({
+      user_id: userId,
+      name: series.name,
+      location_id: series.location_id,
+      start_date: series.start_date,
+      end_date: series.end_date,
+      purpose: series.purpose,
+      notes: series.notes,
+      status: 'active',
+      trip_type: 'series',
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function updateSeries(
+  userId: string,
+  seriesId: string,
+  updates: Partial<Trip>
+): Promise<Trip> {
+  const { data, error } = await supabase
+    .from('bankroll_trips')
+    .update({
+      name: updates.name,
+      location_id: updates.location_id,
+      purpose: updates.purpose,
+      notes: updates.notes,
+      end_date: updates.end_date,
+    })
+    .eq('user_id', userId)
+    .eq('id', seriesId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function completeSeries(userId: string, seriesId: string): Promise<Trip> {
+  const { data, error } = await supabase
+    .from('bankroll_trips')
+    .update({
+      status: 'completed',
+      end_date: new Date().toISOString().split('T')[0],
+    })
+    .eq('user_id', userId)
+    .eq('id', seriesId)
+    .eq('status', 'active')
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteSeries(userId: string, seriesId: string): Promise<void> {
+  await supabase
+    .from('bankroll_ledger')
+    .update({ trip_id: null })
+    .eq('user_id', userId)
+    .eq('trip_id', seriesId);
+
+  const { error } = await supabase
+    .from('bankroll_trips')
+    .update({ status: 'deleted' })
+    .eq('user_id', userId)
+    .eq('id', seriesId);
+
+  if (error) throw error;
+}
+
+export async function getSeriesReport(userId: string, seriesId: string) {
+  return getTripReport(userId, seriesId);
 }
 
 /**

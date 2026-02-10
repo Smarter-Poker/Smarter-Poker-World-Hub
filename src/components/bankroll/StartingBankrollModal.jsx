@@ -26,7 +26,7 @@ export default function StartingBankrollModal({ userId, onComplete, onClose }) {
         setIsSubmitting(true);
         try {
             await setStartingBankroll(userId, value);
-            toast.success(`Starting bankroll set to $${value.toLocaleString()}! 🎉`);
+            toast.success(`Starting bankroll set to $${value.toLocaleString()}!`);
             onComplete();
         } catch (err) {
             toast.error(err.message || 'Failed to set starting bankroll');
@@ -50,7 +50,7 @@ export default function StartingBankrollModal({ userId, onComplete, onClose }) {
                 style={styles.modal}
                 onClick={(e) => e.stopPropagation()}
             >
-                <div style={styles.iconCircle}>💰</div>
+                <div style={styles.iconCircle}>$</div>
 
                 <h2 style={styles.title}>Set Your Starting Bankroll</h2>
                 <p style={styles.subtitle}>

@@ -464,7 +464,7 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
             {/* ERROR */}
             {cameraError && (
                 <div style={styles.centerView}>
-                    <span style={{ fontSize: 32, marginBottom: 12 }}>📷</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginBottom: 12 }}>Camera Error</span>
                     <p style={{ color: '#fff', fontSize: 14, textAlign: 'center', margin: 0 }}>{cameraError}</p>
                     <button onClick={onClose} style={{ ...styles.retryBtn, marginTop: 16, maxWidth: 160 }}>Close</button>
                 </div>
