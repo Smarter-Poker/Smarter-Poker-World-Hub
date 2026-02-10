@@ -65,9 +65,6 @@ export default function JarvisLeakInsights({ userId, onRefresh }) {
                 <img src="/images/jarvis-avatar.png" alt="Jarvis" style={styles.triggerAvatar} />
                 <div style={styles.triggerText}>
                     <span style={styles.triggerTitle}>Jarvis Insights</span>
-                    <span style={styles.triggerHint}>
-                        {insights ? 'View analysis' : 'Run AI analysis'}
-                    </span>
                 </div>
                 <span style={styles.triggerArrow}>›</span>
             </button>
@@ -232,8 +229,8 @@ const styles = {
         gap: 10,
         width: '100%',
         padding: '12px 14px',
-        background: 'linear-gradient(135deg, rgba(0,0,40,0.95), rgba(30,0,60,0.9))',
-        border: '1px solid rgba(139,92,246,0.3)',
+        background: 'linear-gradient(160deg, rgba(8,16,32,0.95) 0%, rgba(12,24,48,0.92) 50%, rgba(8,20,40,0.90) 100%)',
+        border: '1px solid rgba(139,92,246,0.25)',
         borderRadius: 12,
         cursor: 'pointer',
         marginBottom: 16,
@@ -241,10 +238,11 @@ const styles = {
         transition: 'border-color 0.2s, box-shadow 0.2s',
     },
     triggerAvatar: {
-        width: 28,
-        height: 28,
+        width: 36,
+        height: 36,
         borderRadius: '50%',
         flexShrink: 0,
+        border: '1.5px solid rgba(139,92,246,0.3)',
     },
     triggerText: {
         flex: 1,

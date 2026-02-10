@@ -389,6 +389,7 @@ export const MENU_CONFIGS = {
             createMenuItem.toggle('Auto-Save', state.autoSave !== false, handlers.setAutoSave),
             createMenuItem.toggle('Notifications', state.notifications !== false, handlers.setNotifications),
             createMenuItem.navigation('Bankroll Rules', '/hub/bankroll-manager?view=rules'),
+            createMenuItem.navigation('Goals', '/hub/bankroll-manager?view=goals'),
             createMenuItem.navigation('Export Data', '/hub/bankroll-manager/export')
         ],
         bottomLinks: [

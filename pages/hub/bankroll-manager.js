@@ -217,6 +217,7 @@ export default function BankrollManagerPage() {
   const [locations, setLocations] = useState([]);
   const [leakAnalysis, setLeakAnalysis] = useState(null);
   const [showVenueModal, setShowVenueModal] = useState(false);
+  const [ruleViolations, setRuleViolations] = useState([]);
 
   //  INTRO VIDEO STATE - Video plays while page loads in background
   // Only show once per session (not on every reload)
@@ -294,6 +295,61 @@ export default function BankrollManagerPage() {
     setShowLogModal(false);
     setEditEntry(null);
     await loadData();
+
+    // Check rules for violations after logging
+    if (userId) {
+      try {
+        const rules = await fetchBankrollRules(userId);
+        if (rules && rules.length > 0) {
+          // Refresh stats & entries to get latest data
+          const dateRange = getDateRangeFilter(timeFilter);
+          const [latestStats, latestEntries] = await Promise.all([
+            getBankrollStats(userId, dateRange.startDate, dateRange.endDate, locationFilter),
+            fetchLedgerEntries(userId, { startDate: dateRange.startDate, endDate: dateRange.endDate, includeExpenses: true, limit: 50 }),
+          ]);
+
+          const violations = [];
+          const today = new Date().toISOString().split('T')[0];
+          const todayEntries = latestEntries.filter(e => e.entry_date === today);
+          const todayNet = todayEntries.reduce((sum, e) => sum + ((e.gross_out || 0) - (e.gross_in || 0)), 0);
+          const lastEntry = latestEntries[0];
+          const lastSessionNet = lastEntry ? ((lastEntry.gross_out || 0) - (lastEntry.gross_in || 0)) : 0;
+
+          for (const rule of rules) {
+            const val = rule.value;
+            switch (rule.rule_type) {
+              case 'stop_loss_session':
+                if (lastSessionNet < 0 && Math.abs(lastSessionNet) >= val)
+                  violations.push({ rule: 'Session Stop-Loss', limit: `$${val}`, actual: `-$${Math.abs(lastSessionNet)}`, severity: 'high' });
+                break;
+              case 'stop_loss_day':
+                if (todayNet < 0 && Math.abs(todayNet) >= val)
+                  violations.push({ rule: 'Daily Stop-Loss', limit: `$${val}`, actual: `-$${Math.abs(todayNet)}`, severity: 'high' });
+                break;
+              case 'max_buyin_percent': {
+                const bankroll = latestStats?.totalBankroll || 0;
+                if (bankroll > 0 && lastEntry) {
+                  const buyinPercent = ((lastEntry.gross_in || 0) / bankroll) * 100;
+                  if (buyinPercent > val)
+                    violations.push({ rule: 'Max Buy-In %', limit: `${val}%`, actual: `${buyinPercent.toFixed(1)}%`, severity: 'medium' });
+                }
+                break;
+              }
+              case 'win_goal_session':
+                if (lastSessionNet > 0 && lastSessionNet >= val)
+                  violations.push({ rule: 'Win Goal Reached!', limit: `$${val}`, actual: `+$${lastSessionNet}`, severity: 'info' });
+                break;
+            }
+          }
+
+          if (violations.length > 0) {
+            setRuleViolations(violations);
+          }
+        }
+      } catch (err) {
+        console.error('[RuleCheck] Error:', err);
+      }
+    }
   };
 
   // Gate Log+ behind bankroll check
@@ -874,6 +930,18 @@ export default function BankrollManagerPage() {
               </div>
             )}
 
+            {/* Goals View (from hamburger menu) */}
+            {activeSection === 'goals' && (
+              <div style={styles.activitySection}>
+                <h2 style={styles.sectionTitle}>Bankroll Goals</h2>
+                <BankrollGoals
+                  userId={userId}
+                  currentBankroll={stats?.currentBankroll || 0}
+                  periodPL={stats?.monthlyPL || 0}
+                />
+              </div>
+            )}
+
             {/* Player Notes View */}
             {activeSection === 'players' && (
               <PlayerNotes userId={userId} />
@@ -1111,13 +1179,6 @@ export default function BankrollManagerPage() {
             {/* Jarvis AI Insights */}
             <JarvisLeakInsights userId={userId} onRefresh={loadData} />
 
-            {/* Goals */}
-            <BankrollGoals
-              userId={userId}
-              currentBankroll={stats?.currentBankroll || 0}
-              periodPL={stats?.monthlyPL || 0}
-            />
-
             {/* Historical Comparison */}
             <HistoricalComparison entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} />
 
@@ -1222,6 +1283,103 @@ export default function BankrollManagerPage() {
               </motion.div>
             </motion.div>
           )
+        )}
+      </AnimatePresence>
+
+      {/* Rule Violation Notification Popup */}
+      <AnimatePresence>
+        {ruleViolations.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed', inset: 0,
+              background: 'rgba(0,0,0,0.75)',
+              backdropFilter: 'blur(6px)',
+              zIndex: 10000,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: 20,
+            }}
+            onClick={() => setRuleViolations([])}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 30 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 30 }}
+              transition={{ type: 'spring', damping: 20, stiffness: 250 }}
+              style={{
+                background: 'linear-gradient(160deg, rgba(15,15,30,0.98), rgba(20,10,35,0.98))',
+                borderRadius: 16,
+                border: '1px solid rgba(239,68,68,0.35)',
+                padding: '24px 28px',
+                maxWidth: 420,
+                width: '100%',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.6), 0 0 40px rgba(239,68,68,0.1)',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
+                <div style={{
+                  width: 42, height: 42, borderRadius: '50%',
+                  background: ruleViolations.some(v => v.severity === 'high') ? 'rgba(239,68,68,0.2)' : ruleViolations.some(v => v.severity === 'info') ? 'rgba(34,197,94,0.2)' : 'rgba(245,158,11,0.2)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 20,
+                }}>
+                  {ruleViolations.some(v => v.severity === 'high') ? '⚠️' : ruleViolations.some(v => v.severity === 'info') ? '🎯' : '⚡'}
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#fff' }}>
+                    {ruleViolations.some(v => v.severity === 'info') ? 'Goal Reached!' : 'Rule Violation Alert'}
+                  </h3>
+                  <p style={{ margin: '2px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
+                    {ruleViolations.length} rule{ruleViolations.length > 1 ? 's' : ''} triggered
+                  </p>
+                </div>
+              </div>
+
+              {/* Violations List */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+                {ruleViolations.map((v, i) => (
+                  <div key={i} style={{
+                    background: v.severity === 'high' ? 'rgba(239,68,68,0.08)' : v.severity === 'info' ? 'rgba(34,197,94,0.08)' : 'rgba(245,158,11,0.08)',
+                    border: `1px solid ${v.severity === 'high' ? 'rgba(239,68,68,0.25)' : v.severity === 'info' ? 'rgba(34,197,94,0.25)' : 'rgba(245,158,11,0.25)'}`,
+                    borderRadius: 10,
+                    padding: '12px 14px',
+                  }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: v.severity === 'high' ? '#f87171' : v.severity === 'info' ? '#4ade80' : '#fbbf24', marginBottom: 4 }}>
+                      {v.rule}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>
+                      <span>Limit: {v.limit}</span>
+                      <span style={{ fontWeight: 600, color: v.severity === 'high' ? '#ef4444' : v.severity === 'info' ? '#22c55e' : '#f59e0b' }}>
+                        Actual: {v.actual}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Dismiss */}
+              <button
+                onClick={() => setRuleViolations([])}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  background: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: 10,
+                  color: '#fff',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Got It
+              </button>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
 
