@@ -20,10 +20,10 @@ const CARDS = [
     image: '/images/commander/card-waitlist.jpg',
     glow: '#22D3EE',
     features: [
-      { label: 'Desk View', href: '/commander/waitlist/desk' },
-      { label: 'Player View', href: '/commander/waitlist/player-view' },
-      { label: 'Player Maintenance', href: '/commander/members' },
-      { label: 'Player Kiosk', href: '/commander/waitlist/kiosk' },
+      { label: 'Desk View', href: '/commander/waitlist/desk', icon: '/images/commander/icons/wl-desk-view.png' },
+      { label: 'Player View', href: '/commander/waitlist/player-view', icon: '/images/commander/icons/wl-player-view.png' },
+      { label: 'Player Maintenance', href: '/commander/members', icon: '/images/commander/icons/wl-player-maintenance.png' },
+      { label: 'Player Kiosk', href: '/commander/waitlist/kiosk', icon: '/images/commander/icons/wl-player-kiosk.png' },
     ],
   },
   {
@@ -33,12 +33,12 @@ const CARDS = [
     image: '/images/commander/card-tournaments.jpg',
     glow: '#F59E0B',
     features: [
-      { label: 'Tournament Registration', href: '/commander/tournaments/registration' },
-      { label: 'Tournament Controls', href: '/commander/tournaments/controls' },
-      { label: 'Tournament Clock', href: '/commander/tournaments/clock' },
-      { label: 'Tournament Maintenance', href: '/commander/tournaments/maintenance' },
-      { label: 'Tournament Settings', href: '/commander/tournaments/settings' },
-      { label: 'Tournament Clock Set Up', href: '/commander/tournaments/clock-setup' },
+      { label: 'Tournament Registration', href: '/commander/tournaments/registration', icon: '/images/commander/icons/tn-registration.png' },
+      { label: 'Tournament Controls', href: '/commander/tournaments/controls', icon: '/images/commander/icons/tn-controls.png' },
+      { label: 'Tournament Clock', href: '/commander/tournaments/clock', icon: '/images/commander/icons/tn-clock.png' },
+      { label: 'Tournament Maintenance', href: '/commander/tournaments/maintenance', icon: '/images/commander/icons/tn-maintenance.png' },
+      { label: 'Tournament Settings', href: '/commander/tournaments/settings', icon: '/images/commander/icons/tn-settings.png' },
+      { label: 'Tournament Clock Set Up', href: '/commander/tournaments/clock-setup', icon: '/images/commander/icons/tn-clock-setup.png' },
     ],
   },
   {
@@ -48,8 +48,8 @@ const CARDS = [
     image: '/images/commander/card-management.jpg',
     glow: '#EF4444',
     features: [
-      { label: 'Employee Maintenance', href: '/commander/staff' },
-      { label: 'Poker Room Functions', href: '/commander/management/poker-room' },
+      { label: 'Employee Maintenance', href: '/commander/staff', icon: '/images/commander/icons/mg-employee.png' },
+      { label: 'Poker Room Functions', href: '/commander/management/poker-room', icon: '/images/commander/icons/mg-poker-room.png' },
     ],
   },
   {
@@ -59,14 +59,14 @@ const CARDS = [
     image: '/images/commander/card-reports.jpg',
     glow: '#94A3B8',
     features: [
-      { label: 'Wait List Reports', href: '/commander/reports/waitlist' },
-      { label: 'Player Reports', href: '/commander/reports/players' },
-      { label: 'Tournament Reports', href: '/commander/reports/tournaments' },
-      { label: 'Custom Reports', href: '/commander/reports/custom' },
-      { label: 'Configuration', href: '/commander/settings' },
-      { label: 'Setups', href: '/commander/reports/setups' },
-      { label: 'Activity List', href: '/commander/reports/activity' },
-      { label: 'System Information', href: '/commander/reports/system' },
+      { label: 'Wait List Reports', href: '/commander/reports/waitlist', icon: '/images/commander/icons/rp-waitlist.png' },
+      { label: 'Player Reports', href: '/commander/reports/players', icon: '/images/commander/icons/rp-players.png' },
+      { label: 'Tournament Reports', href: '/commander/reports/tournaments', icon: '/images/commander/icons/rp-tournaments.png' },
+      { label: 'Custom Reports', href: '/commander/reports/custom', icon: '/images/commander/icons/rp-custom.png' },
+      { label: 'Configuration', href: '/commander/settings', icon: '/images/commander/icons/rp-configuration.png' },
+      { label: 'Setups', href: '/commander/reports/setups', icon: '/images/commander/icons/rp-setups.png' },
+      { label: 'Activity List', href: '/commander/reports/activity', icon: '/images/commander/icons/rp-activity.png' },
+      { label: 'System Information', href: '/commander/reports/system', icon: '/images/commander/icons/rp-system.png' },
     ],
   },
 ];
@@ -361,29 +361,29 @@ export default function CommanderDashboard() {
         .cmd-feature-btn {
           position: relative;
           display: flex;
+          flex-direction: column;
           align-items: center;
           justify-content: center;
           text-align: center;
-          padding: 28px 16px;
+          padding: 0;
           border-radius: 14px;
-          font-family: 'Orbitron', sans-serif;
-          font-size: 13px;
-          font-weight: 700;
-          letter-spacing: 1.5px;
-          text-transform: uppercase;
-          color: #fff;
           cursor: pointer;
           transition: all 0.25s;
           border: 2px solid;
-          background: linear-gradient(145deg, #1a1a1a 0%, #111 100%);
-          text-shadow: 0 0 12px var(--glow);
+          overflow: hidden;
+          background: #111;
           box-shadow: 0 0 0 rgba(0,0,0,0), inset 0 1px 0 rgba(255,255,255,0.05);
         }
+        .cmd-feature-btn img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
         .cmd-feature-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 24px var(--glow-dim), inset 0 1px 0 rgba(255,255,255,0.1);
+          transform: translateY(-3px);
+          box-shadow: 0 6px 30px var(--glow-dim), inset 0 1px 0 rgba(255,255,255,0.1);
           border-color: var(--glow);
-          background: linear-gradient(145deg, #1f1f1f 0%, #151515 100%);
         }
         .cmd-feature-btn:active {
           transform: translateY(0);
@@ -473,7 +473,7 @@ export default function CommanderDashboard() {
                   }}
                   onClick={() => router.push(feat.href)}
                 >
-                  {feat.label}
+                  <img src={feat.icon} alt={feat.label} />
                 </button>
               ))}
             </div>
