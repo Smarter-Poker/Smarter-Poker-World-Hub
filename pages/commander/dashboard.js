@@ -1,654 +1,390 @@
 /**
- * Commander Staff Dashboard - Main terminal view
- * Based on PokerAtlas / Bravo Poker patterns
- * Dark industrial sci-fi gaming theme
+ * Commander Staff Dashboard - 4-Card Main Menu
+ * Industrial metal card interface with sub-feature navigation
+ * NO EMOJIS - Lucide icons only
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import {
-  LogOut, RefreshCw, Wifi, WifiOff, Menu, X,
-  Trophy, Gift, BarChart3, Users, Settings, Home, Grid3X3, QrCode, FileText, AlertTriangle, UserCog, Video,
-  Lightbulb, Clock, ArrowRightLeft, ChevronRight, Contact
-} from 'lucide-react';
-import GameGrid from '../../src/components/commander/staff/GameGrid';
-import WaitlistManager from '../../src/components/commander/staff/WaitlistManager';
-import QuickActions from '../../src/components/commander/staff/QuickActions';
-import ActivityFeed, { createActivity } from '../../src/components/commander/staff/ActivityFeed';
-import OpenGameModal from '../../src/components/commander/modals/OpenGameModal';
-import AddWalkInModal from '../../src/components/commander/modals/AddWalkInModal';
-import SeatPlayerModal from '../../src/components/commander/modals/SeatPlayerModal';
-import { useRealtimeUpdates } from '../../src/lib/commander/useRealtimeUpdates';
-import SessionTracker from '../../src/components/commander/staff/SessionTracker';
-import AddBuyinModal from '../../src/components/commander/modals/AddBuyinModal';
-import MustMoveModal from '../../src/components/commander/modals/MustMoveModal';
-import { useCommanderStore } from '../../src/stores/commanderStore';
+import { LogOut, ArrowLeft, X } from 'lucide-react';
+
+/* ─────────────────────────────────────────────────
+   CARD DEFINITIONS — each card has sub-features
+   that link to pages within Club Commander
+   ───────────────────────────────────────────────── */
+const CARDS = [
+  {
+    id: 'waitlist',
+    title: 'Waitlist',
+    subtitle: 'Memberships and Time',
+    image: '/images/commander/card-waitlist.jpg',
+    glow: '#22D3EE',
+    features: [
+      { label: 'Desk View', href: '/commander/waitlist/desk' },
+      { label: 'Player View', href: '/commander/waitlist/player-view' },
+      { label: 'Player Maintenance', href: '/commander/members' },
+      { label: 'Player Kiosk', href: '/commander/waitlist/kiosk' },
+    ],
+  },
+  {
+    id: 'tournaments',
+    title: 'Tournaments',
+    subtitle: 'Registration, Controls, Clock',
+    image: '/images/commander/card-tournaments.jpg',
+    glow: '#F59E0B',
+    features: [
+      { label: 'Tournament Registration', href: '/commander/tournaments/registration' },
+      { label: 'Tournament Controls', href: '/commander/tournaments/controls' },
+      { label: 'Tournament Clock', href: '/commander/tournaments/clock' },
+      { label: 'Tournament Maintenance', href: '/commander/tournaments/maintenance' },
+      { label: 'Tournament Settings', href: '/commander/tournaments/settings' },
+      { label: 'Tournament Clock Set Up', href: '/commander/tournaments/clock-setup' },
+    ],
+  },
+  {
+    id: 'management',
+    title: 'Management',
+    subtitle: 'Staff and Room Operations',
+    image: '/images/commander/card-management.jpg',
+    glow: '#EF4444',
+    features: [
+      { label: 'Employee Maintenance', href: '/commander/staff' },
+      { label: 'Poker Room Functions', href: '/commander/management/poker-room' },
+    ],
+  },
+  {
+    id: 'reports',
+    title: 'Reports and Maintenance',
+    subtitle: 'Analytics, Configuration, System',
+    image: '/images/commander/card-reports.jpg',
+    glow: '#94A3B8',
+    features: [
+      { label: 'Wait List Reports', href: '/commander/reports/waitlist' },
+      { label: 'Player Reports', href: '/commander/reports/players' },
+      { label: 'Tournament Reports', href: '/commander/reports/tournaments' },
+      { label: 'Custom Reports', href: '/commander/reports/custom' },
+      { label: 'Configuration', href: '/commander/settings' },
+      { label: 'Setups', href: '/commander/reports/setups' },
+      { label: 'Activity List', href: '/commander/reports/activity' },
+      { label: 'System Information', href: '/commander/reports/system' },
+    ],
+  },
+];
 
 export default function CommanderDashboard() {
   const router = useRouter();
-  const { setStaffSession, clearStaffSession, addActivity: storeAddActivity } = useCommanderStore();
-
   const [staff, setStaff] = useState(null);
-  const [venueId, setVenueId] = useState(null);
-  const [venue, setVenue] = useState(null);
-  const [games, setGames] = useState([]);
-  const [tables, setTables] = useState([]);
-  const [waitlists, setWaitlists] = useState([]);
-  const [activities, setActivities] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [online, setOnline] = useState(true);
-  const [lastRefresh, setLastRefresh] = useState(null);
-  const [showOpenGameModal, setShowOpenGameModal] = useState(false);
-  const [showAddWalkInModal, setShowAddWalkInModal] = useState(false);
-  const [showSeatPlayerModal, setShowSeatPlayerModal] = useState(false);
-  const [playerToSeat, setPlayerToSeat] = useState(null);
-  const [showNav, setShowNav] = useState(false);
-  const [selectedGame, setSelectedGame] = useState(null);
-  const [aiSuggestions, setAiSuggestions] = useState([]);
-  const [waitTimePredictions, setWaitTimePredictions] = useState([]);
-  const [sessions, setSessions] = useState([]);
-  const [showAddBuyinModal, setShowAddBuyinModal] = useState(false);
-  const [buyinSession, setBuyinSession] = useState(null);
-  const [buyinGame, setBuyinGame] = useState(null);
-  const [showMustMoveModal, setShowMustMoveModal] = useState(false);
-  const [mustMoveGame, setMustMoveGame] = useState(null);
+  const [activeCard, setActiveCard] = useState(null); // which card is "opened"
 
-  const navItems = [
-    { href: '/commander/dashboard', label: 'Dashboard', icon: Home, active: true },
-    { href: '/commander/tables', label: 'Tables', icon: Grid3X3 },
-    { href: '/commander/tournaments', label: 'Tournaments', icon: Trophy },
-    { href: '/commander/promotions', label: 'Promotions', icon: Gift },
-    { href: '/commander/marketplace', label: 'Marketplace', icon: Users },
-    { href: '/commander/analytics', label: 'Analytics', icon: BarChart3 },
-    { href: '/commander/reports', label: 'Daily Reports', icon: FileText },
-    { href: '/commander/incidents', label: 'Incidents', icon: AlertTriangle },
-    { href: '/commander/dealers', label: 'Dealers', icon: UserCog },
-    { href: '/commander/streaming', label: 'Streaming', icon: Video },
-    { href: '/commander/qr-code', label: 'Check-In QR', icon: QrCode },
-    { href: '/commander/members', label: 'Members', icon: Contact },
-    { href: '/commander/staff', label: 'Staff', icon: Users },
-    { href: '/commander/settings', label: 'Settings', icon: Settings },
-  ];
-
-  // Check staff session on mount
+  // Auth guard
   useEffect(() => {
-    const storedStaff = localStorage.getItem('commander_staff');
-    if (!storedStaff) {
-      router.push('/commander/login');
-      return;
-    }
-
+    const stored = localStorage.getItem('commander_staff');
+    if (!stored) { router.push('/commander/login'); return; }
     try {
-      const staffData = JSON.parse(storedStaff);
-      if (!staffData.venue_id) {
-        localStorage.removeItem('commander_staff');
-        router.push('/commander/login');
-        return;
-      }
-
-      setStaff(staffData);
-      setVenueId(staffData.venue_id);
-
-      // Sync staff session into Zustand store for cross-component access
-      setStaffSession(staffData, staffData.venue_name ? { id: staffData.venue_id, name: staffData.venue_name } : null);
-
-      // Set venue name from stored data if available
-      if (staffData.venue_name) {
-        setVenue({ id: staffData.venue_id, name: staffData.venue_name });
-      }
-    } catch (err) {
-      localStorage.removeItem('commander_staff');
-      router.push('/commander/login');
-    }
+      const data = JSON.parse(stored);
+      if (!data.venue_id) { router.push('/commander/login'); return; }
+      setStaff(data);
+    } catch { router.push('/commander/login'); }
   }, [router]);
 
-  // Fetch data
-  const fetchData = useCallback(async (showRefreshing = false) => {
-    if (!venueId) return;
-
-    if (showRefreshing) setRefreshing(true);
-
-    try {
-      const storedStaff = localStorage.getItem('commander_staff');
-      const staffSession = storedStaff || '{}';
-
-      const [venueRes, gamesRes, waitlistRes, tablesRes, balanceRes, waitTimeRes, sessionsRes] = await Promise.all([
-        fetch(`/api/commander/venues/${venueId}`),
-        fetch(`/api/commander/games/venue/${venueId}`),
-        fetch(`/api/commander/waitlist/venue/${venueId}`),
-        fetch(`/api/commander/tables/venue/${venueId}`),
-        fetch(`/api/commander/ai/table-balance/${venueId}`, {
-          headers: { 'x-staff-session': staffSession }
-        }).catch(() => ({ ok: false })),
-        fetch(`/api/commander/ai/wait-time/${venueId}`).catch(() => ({ ok: false })),
-        fetch(`/api/commander/sessions/venue/${venueId}`).catch(() => ({ ok: false }))
-      ]);
-
-      const [venueData, gamesData, waitlistData, tablesData] = await Promise.all([
-        venueRes.json(),
-        gamesRes.json(),
-        waitlistRes.json(),
-        tablesRes.json()
-      ]);
-
-      // Parse AI data separately (non-critical)
-      if (balanceRes.ok) {
-        try {
-          const balanceData = await balanceRes.json();
-          if (balanceData.success) {
-            setAiSuggestions(balanceData.data?.suggestions || []);
-          }
-        } catch (e) { /* ignore */ }
-      }
-
-      if (waitTimeRes.ok) {
-        try {
-          const waitTimeData = await waitTimeRes.json();
-          if (waitTimeData.success) {
-            setWaitTimePredictions(waitTimeData.data?.predictions || []);
-          }
-        } catch (e) { /* ignore */ }
-      }
-
-      if (venueData.success) {
-        setVenue(venueData.data.venue);
-      }
-
-      if (gamesData.success) {
-        setGames(gamesData.data.games || []);
-      }
-
-      if (waitlistData.success) {
-        setWaitlists(waitlistData.data.waitlists || []);
-      }
-
-      if (tablesData.success) {
-        setTables(tablesData.data.tables || []);
-      }
-
-      if (sessionsRes.ok) {
-        try {
-          const sessionsData = await sessionsRes.json();
-          if (sessionsData.success) {
-            setSessions(sessionsData.data?.sessions || []);
-          }
-        } catch (e) { /* ignore */ }
-      }
-
-      setOnline(true);
-      setLastRefresh(new Date());
-    } catch (error) {
-      console.error('Failed to fetch data:', error);
-      setOnline(false);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [venueId]);
-
-  // Initial fetch and auto-refresh
-  useEffect(() => {
-    if (staff && venueId) {
-      fetchData();
-
-      // Auto-refresh every 30 seconds
-      const interval = setInterval(() => fetchData(), 30000);
-      return () => clearInterval(interval);
-    }
-  }, [staff, venueId, fetchData]);
-
-  // Real-time updates
-  const handleRealtimeUpdate = useCallback((type, payload) => {
-    // Add activity for the change
-    if (payload.eventType === 'INSERT') {
-      if (type === 'waitlist') {
-        addActivity('notification_sent', 'New player joined waitlist');
-      } else if (type === 'games') {
-        addActivity('success', 'New game started');
-      }
-    }
-    // Refresh data to get latest state
-    fetchData();
-  }, [fetchData]);
-
-  useRealtimeUpdates(venueId, handleRealtimeUpdate, !!staff);
-
-  // Handle logout
-  function handleLogout() {
-    clearStaffSession();
+  const handleLogout = () => {
     localStorage.removeItem('commander_staff');
+    localStorage.removeItem('commander_venue');
+    localStorage.removeItem('commander_subscription');
     router.push('/commander/login');
-  }
+  };
 
-  // Handle call player
-  async function handleCallPlayer(player) {
-    try {
-      const res = await fetch(`/api/commander/waitlist/${player.id}/call`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notify_sms: true, notify_push: true })
-      });
+  if (!staff) return (
+    <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ color: '#666', fontSize: 14 }}>Loading...</div>
+    </div>
+  );
 
-      const data = await res.json();
-      if (data.success) {
-        addActivity('player_called', `Called ${player.player_name || 'Player'} for seat`);
-        fetchData();
-      }
-    } catch (error) {
-      console.error('Failed to call player:', error);
-    }
-  }
-
-  // Handle seat player - open modal
-  function handleSeatPlayer(player) {
-    setPlayerToSeat(player);
-    setShowSeatPlayerModal(true);
-  }
-
-  // Handle player seated from modal
-  function handlePlayerSeated({ player, game, seat_number }) {
-    addActivity('player_seated', `Seated ${player.player_name || 'Player'} at seat ${seat_number} on ${game.table_name || 'Table ' + game.table_number}`);
-    fetchData();
-  }
-
-  // Handle remove player
-  async function handleRemovePlayer(player) {
-    if (!window.confirm(`Remove ${player.player_name || 'Player'} from waitlist?`)) return;
-
-    try {
-      const res = await fetch(`/api/commander/waitlist/${player.id}`, {
-        method: 'DELETE'
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        addActivity('player_removed', `Removed ${player.player_name || 'Player'} from waitlist`);
-        fetchData();
-      }
-    } catch (error) {
-      console.error('Failed to remove player:', error);
-    }
-  }
-
-  // Add activity to feed
-  function addActivity(type, message, details = null) {
-    setActivities(prev => [
-      createActivity(type, message, details),
-      ...prev
-    ].slice(0, 50));
-  }
-
-  // Handle open game
-  function handleOpenGame() {
-    setShowOpenGameModal(true);
-  }
-
-  // Handle game selection - show game details or navigate to table view
-  function handleGameSelect(game) {
-    setSelectedGame(game);
-    // Navigate to table management view for this game
-    router.push(`/commander/tables?game=${game.id}`);
-  }
-
-  // Handle game opened
-  function handleGameOpened(game) {
-    addActivity('success', `Opened ${game.stakes} ${game.game_type.toUpperCase()} on Table ${game.table_number || game.table_id}`);
-    fetchData();
-  }
-
-  // Handle add walk-in
-  function handleAddWalkIn() {
-    setShowAddWalkInModal(true);
-  }
-
-  // Handle walk-in added
-  function handleWalkInAdded(entry) {
-    addActivity('player_seated', `Added ${entry.player_name || 'Walk-in'} to ${entry.stakes} ${entry.game_type.toUpperCase()} waitlist`);
-    fetchData();
-  }
-
-  // Handle session checkout
-  async function handleCheckoutSession(session) {
-    try {
-      const res = await fetch(`/api/commander/sessions/${session.id}/checkout`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      const data = await res.json();
-      if (data.success) {
-        addActivity('player_removed', `Checked out ${session.player_name || 'Player'}`);
-        fetchData();
-      }
-    } catch (err) {
-      console.error('Checkout failed:', err);
-    }
-  }
-
-  // Handle view session - open buy-in modal
-  function handleViewSession(session) {
-    const game = games.find(g => g.id === session.game_id);
-    setBuyinSession(session);
-    setBuyinGame(game);
-    setShowAddBuyinModal(true);
-  }
-
-  // Handle buy-in submitted
-  function handleBuyinSubmit({ session, amount }) {
-    addActivity('success', `Added $${amount} buy-in for ${session.player_name || 'Player'}`);
-    fetchData();
-  }
-
-  // Handle must-move setup for a game
-  function handleMustMoveSetup(game) {
-    setMustMoveGame(game);
-    setShowMustMoveModal(true);
-  }
-
-  // Handle must-move submitted
-  function handleMustMoveSubmit({ game, action }) {
-    addActivity('success', `Must-move ${action} for ${game.stakes} ${game.game_type?.toUpperCase()}`);
-    fetchData();
-  }
-
-  if (!staff || loading) {
-    return (
-      <div className="cmd-page flex items-center justify-center">
-        <div className="animate-pulse text-[#B0B3B8]">Loading...</div>
-      </div>
-    );
-  }
+  const openCard = CARDS.find(c => c.id === activeCard);
 
   return (
     <>
       <Head>
-        <title>{venue?.name || 'Dashboard'} | Club Commander</title>
+        <title>Club Commander | Dashboard</title>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Head>
 
-      <div className="cmd-page">
-        {/* Header */}
-        <header className="cmd-header-bar sticky top-0 z-50">
-          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div>
-              <h1 className="font-bold text-[#E4E6EB] text-lg">{venue?.name || 'Loading...'}</h1>
-              <p className="text-sm text-[#B0B3B8]">
-                {staff.display_name || staff.role} ({staff.role})
-              </p>
-            </div>
+      <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;500;600;700&display=swap');
 
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 text-sm">
-                {online ? (
-                  <Wifi className="w-4 h-4 text-[#31A24C]" />
-                ) : (
-                  <WifiOff className="w-4 h-4 text-[#EF4444]" />
-                )}
-                {lastRefresh && (
-                  <span className="text-[#B0B3B8] hidden sm:inline">
-                    {lastRefresh.toLocaleTimeString()}
-                  </span>
-                )}
-              </div>
+        .cmd-dashboard {
+          min-height: 100vh;
+          background: #0a0a0a;
+          font-family: 'Inter', sans-serif;
+        }
 
-              <button
-                onClick={() => fetchData(true)}
-                disabled={refreshing}
-                className="p-2 rounded-lg hover:bg-[#18191A] transition-colors min-w-[44px] min-h-[44px] inline-flex items-center justify-center"
-                title="Refresh"
-              >
-                <RefreshCw className={`w-5 h-5 text-[#B0B3B8] ${refreshing ? 'animate-spin' : ''}`} />
-              </button>
+        /* ── TOP BAR ── */
+        .cmd-topbar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 12px 20px;
+          background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%);
+          border-bottom: 1px solid #222;
+        }
+        .cmd-topbar-title {
+          font-family: 'Orbitron', sans-serif;
+          font-size: 16px;
+          font-weight: 700;
+          color: #fff;
+          letter-spacing: 2px;
+          text-transform: uppercase;
+        }
+        .cmd-topbar-venue {
+          font-size: 11px;
+          color: #888;
+          margin-top: 2px;
+        }
+        .cmd-topbar-btn {
+          background: none;
+          border: 1px solid #333;
+          padding: 8px 12px;
+          border-radius: 8px;
+          color: #aaa;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
+          transition: all 0.2s;
+        }
+        .cmd-topbar-btn:hover {
+          border-color: #555;
+          color: #fff;
+        }
 
-              <button
-                onClick={() => setShowNav(true)}
-                className="p-2 rounded-lg hover:bg-[#18191A] transition-colors min-w-[44px] min-h-[44px] inline-flex items-center justify-center"
-                title="Menu"
-              >
-                <Menu className="w-5 h-5 text-[#B0B3B8]" />
-              </button>
-            </div>
+        /* ── 4-CARD GRID ── */
+        .cmd-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+          padding: 16px;
+          max-width: 900px;
+          margin: 0 auto;
+          height: calc(100vh - 65px);
+          grid-template-rows: 1fr 1fr;
+        }
+        @media (max-width: 640px) {
+          .cmd-grid {
+            grid-template-columns: 1fr;
+            grid-template-rows: repeat(4, 1fr);
+            gap: 12px;
+            padding: 12px;
+          }
+        }
+
+        /* ── CARD ── */
+        .cmd-card {
+          position: relative;
+          border-radius: 16px;
+          overflow: hidden;
+          cursor: pointer;
+          transition: transform 0.2s, box-shadow 0.3s;
+          border: 2px solid #222;
+        }
+        .cmd-card:hover {
+          transform: scale(1.02);
+        }
+        .cmd-card img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+        .cmd-card-overlay {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(180deg, rgba(0,0,0,0) 30%, rgba(0,0,0,0.6) 100%);
+          pointer-events: none;
+        }
+
+        /* ── OPENED CARD VIEW ── */
+        .cmd-open {
+          position: fixed;
+          inset: 0;
+          z-index: 100;
+          background: #0a0a0a;
+          display: flex;
+          flex-direction: column;
+          animation: cmdFadeIn 0.3s ease;
+        }
+        @keyframes cmdFadeIn {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        .cmd-open-header {
+          position: relative;
+          width: 100%;
+          height: 200px;
+          overflow: hidden;
+          flex-shrink: 0;
+        }
+        .cmd-open-header img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          object-position: top center;
+        }
+        .cmd-open-header-overlay {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(10,10,10,0.95) 85%);
+        }
+        .cmd-open-back {
+          position: absolute;
+          top: 12px;
+          left: 12px;
+          z-index: 10;
+          background: rgba(0,0,0,0.6);
+          border: 1px solid #444;
+          border-radius: 10px;
+          padding: 8px 14px;
+          color: #fff;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
+          font-weight: 600;
+          transition: all 0.2s;
+          backdrop-filter: blur(8px);
+        }
+        .cmd-open-back:hover {
+          background: rgba(0,0,0,0.8);
+          border-color: #666;
+        }
+        .cmd-open-title {
+          position: absolute;
+          bottom: 20px;
+          left: 20px;
+          z-index: 5;
+          font-family: 'Orbitron', sans-serif;
+          font-size: 28px;
+          font-weight: 900;
+          color: #fff;
+          text-transform: uppercase;
+          letter-spacing: 3px;
+          text-shadow: 0 2px 20px rgba(0,0,0,0.8);
+        }
+
+        /* ── SUB-FEATURE BUTTONS ── */
+        .cmd-features {
+          flex: 1;
+          overflow-y: auto;
+          padding: 24px 20px;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 14px;
+          align-content: start;
+          max-width: 700px;
+          margin: 0 auto;
+          width: 100%;
+        }
+        @media (max-width: 480px) {
+          .cmd-features {
+            grid-template-columns: 1fr;
+            gap: 10px;
+            padding: 16px;
+          }
+        }
+        .cmd-feature-btn {
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          padding: 28px 16px;
+          border-radius: 14px;
+          font-family: 'Orbitron', sans-serif;
+          font-size: 13px;
+          font-weight: 700;
+          letter-spacing: 1.5px;
+          text-transform: uppercase;
+          color: #fff;
+          cursor: pointer;
+          transition: all 0.25s;
+          border: 2px solid;
+          background: linear-gradient(145deg, #1a1a1a 0%, #111 100%);
+          text-shadow: 0 0 12px var(--glow);
+          box-shadow: 0 0 0 rgba(0,0,0,0), inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        .cmd-feature-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 24px var(--glow-dim), inset 0 1px 0 rgba(255,255,255,0.1);
+          border-color: var(--glow);
+          background: linear-gradient(145deg, #1f1f1f 0%, #151515 100%);
+        }
+        .cmd-feature-btn:active {
+          transform: translateY(0);
+        }
+      `}</style>
+
+      <div className="cmd-dashboard">
+        {/* TOP BAR */}
+        <div className="cmd-topbar">
+          <div>
+            <div className="cmd-topbar-title">Club Commander</div>
+            <div className="cmd-topbar-venue">{staff.venue_name || 'Poker Room'}</div>
           </div>
-        </header>
+          <button className="cmd-topbar-btn" onClick={handleLogout}>
+            <LogOut size={16} /> Sign Out
+          </button>
+        </div>
 
-        {/* Main Content */}
-        <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
-          {/* Quick Actions */}
-          <section>
-            <QuickActions
-              onOpenGame={handleOpenGame}
-              onAddWalkIn={handleAddWalkIn}
-              onViewWaitlist={() => document.getElementById('waitlist-section')?.scrollIntoView({ behavior: 'smooth' })}
-              onManageTables={() => router.push('/commander/tables')}
-              onSendAnnouncement={() => router.push('/commander/announcements')}
-              onSettings={() => router.push('/commander/settings')}
-              permissions={staff.permissions}
-            />
-          </section>
-
-          {/* Games and Waitlist */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Games Grid */}
-            <section className="lg:col-span-2">
-              <h2 className="text-lg font-semibold text-[#E4E6EB] mb-4">Active Games</h2>
-              <GameGrid
-                games={games}
-                onGameSelect={handleGameSelect}
-                onOpenGame={handleOpenGame}
-              />
-            </section>
-
-            {/* Activity Feed */}
-            <section className="lg:col-span-1">
-              <h2 className="text-lg font-semibold text-[#E4E6EB] mb-4">Activity</h2>
-              <ActivityFeed activities={activities} />
-            </section>
-          </div>
-
-          {/* Active Sessions */}
-          <section>
-            <h2 className="text-lg font-semibold text-[#E4E6EB] mb-4">Active Sessions</h2>
-            <SessionTracker
-              sessions={sessions}
-              onCheckout={handleCheckoutSession}
-              onViewSession={handleViewSession}
-            />
-          </section>
-
-          {/* AI Insights Panel */}
-          {(aiSuggestions.length > 0 || waitTimePredictions.length > 0) && (
-            <section className="bg-gradient-to-r from-[#1877F2]/5 to-[#1877F2]/5 rounded-xl border border-[#1877F2]/20 p-4">
-              <div className="flex items-center gap-2 mb-4">
-                <Lightbulb className="w-5 h-5 text-[#1877F2]" />
-                <h2 className="text-lg font-semibold text-[#E4E6EB]">AI Insights</h2>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Table Balance Suggestions */}
-                {aiSuggestions.length > 0 && (
-                  <div className="cmd-panel p-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <ArrowRightLeft className="w-4 h-4 text-[#1877F2]" />
-                      <h3 className="font-medium text-[#E4E6EB]">Table Balance</h3>
-                    </div>
-                    <div className="space-y-3">
-                      {aiSuggestions.slice(0, 3).map((suggestion, idx) => (
-                        <div key={idx} className={`p-3 rounded-lg ${suggestion.priority === 'high' ? 'bg-[#EF4444]/10' : 'bg-[#18191A]'
-                          }`}>
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-sm font-medium text-[#E4E6EB]">
-                              Move {suggestion.player?.name || 'player'}
-                            </span>
-                            <span className={`text-xs px-2 py-0.5 rounded-full ${suggestion.priority === 'high'
-                                ? 'bg-[#EF4444]/10 text-[#EF4444]'
-                                : 'bg-[#F59E0B]/10 text-[#F59E0B]'
-                              }`}>
-                              {suggestion.priority}
-                            </span>
-                          </div>
-                          <p className="text-xs text-[#B0B3B8]">
-                            Table {suggestion.fromTable?.number} ({suggestion.fromTable?.current_players}p)
-                            <ChevronRight className="w-3 h-3 inline mx-1" />
-                            Table {suggestion.toTable?.number} ({suggestion.toTable?.current_players}p)
-                          </p>
-                          <p className="text-xs text-[#B0B3B8] mt-1">{suggestion.reason}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Wait Time Predictions */}
-                {waitTimePredictions.length > 0 && (
-                  <div className="cmd-panel p-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Clock className="w-4 h-4 text-[#31A24C]" />
-                      <h3 className="font-medium text-[#E4E6EB]">Wait Time Estimates</h3>
-                    </div>
-                    <div className="space-y-2">
-                      {waitTimePredictions
-                        .filter(p => p.current_waitlist > 0)
-                        .slice(0, 5)
-                        .map((prediction, idx) => (
-                          <div key={idx} className="flex items-center justify-between py-2 border-b border-[#3A3B3C] last:border-0">
-                            <div>
-                              <span className="text-sm font-medium text-[#E4E6EB]">
-                                {prediction.stakes} {prediction.game_type?.toUpperCase()}
-                              </span>
-                              <span className="text-xs text-[#B0B3B8] ml-2">
-                                ({prediction.current_waitlist} waiting)
-                              </span>
-                            </div>
-                            <div className="text-right">
-                              <span className="text-sm font-semibold text-[#E4E6EB]">
-                                ~{prediction.estimated_minutes} min
-                              </span>
-                              <span className="text-xs text-[#B0B3B8] ml-1">
-                                ({Math.round(prediction.confidence * 100)}%)
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      {waitTimePredictions.every(p => p.current_waitlist === 0) && (
-                        <p className="text-sm text-[#B0B3B8] text-center py-2">No players waiting</p>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </section>
-          )}
-
-          {/* Waitlist Manager */}
-          <section id="waitlist-section">
-            <h2 className="text-lg font-semibold text-[#E4E6EB] mb-4">Waitlist</h2>
-            <WaitlistManager
-              waitlists={waitlists}
-              onCallPlayer={handleCallPlayer}
-              onSeatPlayer={handleSeatPlayer}
-              onRemovePlayer={handleRemovePlayer}
-              onAddWalkIn={handleAddWalkIn}
-            />
-          </section>
-        </main>
-      </div>
-
-      {/* Modals */}
-      <OpenGameModal
-        isOpen={showOpenGameModal}
-        onClose={() => setShowOpenGameModal(false)}
-        onSubmit={handleGameOpened}
-        tables={tables}
-        venueId={venueId}
-      />
-
-      <AddWalkInModal
-        isOpen={showAddWalkInModal}
-        onClose={() => setShowAddWalkInModal(false)}
-        onSubmit={handleWalkInAdded}
-        venueId={venueId}
-        activeGames={games}
-      />
-
-      <SeatPlayerModal
-        isOpen={showSeatPlayerModal}
-        onClose={() => {
-          setShowSeatPlayerModal(false);
-          setPlayerToSeat(null);
-        }}
-        onSubmit={handlePlayerSeated}
-        player={playerToSeat}
-        games={games}
-      />
-
-      <AddBuyinModal
-        isOpen={showAddBuyinModal}
-        onClose={() => {
-          setShowAddBuyinModal(false);
-          setBuyinSession(null);
-          setBuyinGame(null);
-        }}
-        onSubmit={handleBuyinSubmit}
-        session={buyinSession}
-        game={buyinGame}
-      />
-
-      <MustMoveModal
-        isOpen={showMustMoveModal}
-        onClose={() => {
-          setShowMustMoveModal(false);
-          setMustMoveGame(null);
-        }}
-        onSubmit={handleMustMoveSubmit}
-        game={mustMoveGame}
-        allGames={games}
-        venueId={venueId}
-      />
-
-      {/* Navigation Drawer */}
-      {showNav && (
-        <div className="fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setShowNav(false)} />
-          <div className="absolute right-0 top-0 h-full w-72 bg-[#242526] shadow-xl">
-            <div className="p-4 border-b border-[#3A3B3C] flex items-center justify-between">
-              <h2 className="font-semibold text-[#E4E6EB]">Menu</h2>
-              <button
-                onClick={() => setShowNav(false)}
-                className="p-2 hover:bg-[#3A3B3C] rounded-lg"
+        {/* ── MAIN: 4-CARD GRID ── */}
+        {!activeCard && (
+          <div className="cmd-grid">
+            {CARDS.map(card => (
+              <div
+                key={card.id}
+                className="cmd-card"
+                style={{ boxShadow: `0 0 20px ${card.glow}30, inset 0 0 1px ${card.glow}40` }}
+                onClick={() => setActiveCard(card.id)}
               >
-                <X className="w-5 h-5 text-[#B0B3B8]" />
+                <img src={card.image} alt={card.title} />
+                <div className="cmd-card-overlay" />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── OPENED CARD: sub-features ── */}
+        {openCard && (
+          <div className="cmd-open">
+            <div className="cmd-open-header">
+              <img src={openCard.image} alt={openCard.title} />
+              <div className="cmd-open-header-overlay" />
+              <button className="cmd-open-back" onClick={() => setActiveCard(null)}>
+                <ArrowLeft size={16} /> Back
               </button>
+              <div className="cmd-open-title" style={{ color: openCard.glow }}>
+                {openCard.title}
+              </div>
             </div>
-            <nav className="p-2">
-              {navItems.map(({ href, label, icon: Icon, active }) => (
+            <div className="cmd-features">
+              {openCard.features.map((feat, i) => (
                 <button
-                  key={href}
-                  onClick={() => {
-                    setShowNav(false);
-                    router.push(href);
+                  key={i}
+                  className="cmd-feature-btn"
+                  style={{
+                    borderColor: `${openCard.glow}50`,
+                    '--glow': openCard.glow,
+                    '--glow-dim': `${openCard.glow}30`,
                   }}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${active
-                      ? 'bg-[#1877F2]/10 text-[#1877F2]'
-                      : 'text-[#B0B3B8] hover:bg-[#3A3B3C]'
-                    }`}
+                  onClick={() => router.push(feat.href)}
                 >
-                  <Icon className="w-5 h-5" />
-                  <span className="font-medium">{label}</span>
+                  {feat.label}
                 </button>
               ))}
-            </nav>
-            <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-[#3A3B3C]">
-              <button
-                onClick={handleLogout}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors"
-              >
-                <LogOut className="w-5 h-5" />
-                <span className="font-medium">Logout</span>
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </>
   );
 }
