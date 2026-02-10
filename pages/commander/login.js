@@ -35,12 +35,15 @@ export default function CommanderLogin() {
       if (authError) throw authError;
 
       // Check if user has a commander subscription
-      const { data: subscription, error: subError } = await supabase
+      const { data: subs, error: subError } = await supabase
         .from('commander_subscriptions')
         .select('*, venue:poker_venues(*)')
         .eq('owner_id', data.user.id)
         .in('status', ['active', 'trialing'])
-        .single();
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      const subscription = subs?.[0] || null;
 
       if (subError || !subscription) {
         setError('No active Club Commander subscription found for this account.');
