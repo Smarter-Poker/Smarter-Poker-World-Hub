@@ -855,8 +855,8 @@ export default function SignUpPage() {
                                         style={{
                                             ...styles.inputSingle,
                                             borderColor: aliasAvailable === false ? '#F02849' :
-                                                aliasAvailable === true ? '#00ff66' :
-                                                    'rgba(0, 212, 255, 0.3)',
+                                                aliasAvailable === true ? '#31A24C' :
+                                                    '#3E4042',
                                         }}
                                         minLength={3}
                                         maxLength={20}
