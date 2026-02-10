@@ -148,7 +148,7 @@ export default function VenueSelector({ value, venueType, onChange, userId }) {
                     }}
                     placeholder={
                         selectedType === 'home_game'
-                            ? 'Enter name or address...'
+                            ? 'Name this location...'
                             : 'Search venues...'
                     }
                     style={styles.input}
@@ -157,20 +157,33 @@ export default function VenueSelector({ value, venueType, onChange, userId }) {
                 {selectedVenue && <span style={styles.linked}>✓ Linked</span>}
             </div>
 
-            {/* Home Game — Use My Location */}
-            {selectedType === 'home_game' && (
+            {/* Home Game — Step 2: Add to Map or Skip (only shows after naming) */}
+            {selectedType === 'home_game' && searchQuery.trim().length > 0 && (
                 <div style={styles.homeRow}>
-                    <button
-                        type="button"
-                        onClick={handleUseMyLocation}
-                        disabled={gettingLocation}
-                        style={styles.locationBtn}
-                    >
-                        {gettingLocation ? 'Getting location...' : '📍 Use My Location'}
-                    </button>
-                    {homeCoords && (
+                    {!homeCoords ? (
+                        <>
+                            <button
+                                type="button"
+                                onClick={handleUseMyLocation}
+                                disabled={gettingLocation}
+                                style={styles.locationBtn}
+                            >
+                                {gettingLocation ? 'Getting location...' : '📍 Add to Map'}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    // Skip map — just confirm the name
+                                    onChange(searchQuery, 'home_game', null, null, null);
+                                }}
+                                style={{ ...styles.locationBtn, color: '#b0b3b8' }}
+                            >
+                                Skip
+                            </button>
+                        </>
+                    ) : (
                         <span style={styles.coordsText}>
-                            {homeCoords.lat.toFixed(4)}, {homeCoords.lng.toFixed(4)}
+                            ✓ Pinned: {homeCoords.lat.toFixed(4)}, {homeCoords.lng.toFixed(4)}
                         </span>
                     )}
                 </div>
