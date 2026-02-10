@@ -80,7 +80,7 @@ const SIDEBAR_SECTIONS = [
   { id: 'projection', label: 'Run Projections', icon: '' },
   { id: 'staking', label: 'Staking Tracker', icon: '' },
   { id: 'tax', label: 'Tax Reports', icon: '' },
-  { id: 'leaks', label: 'Leaks', icon: '' },
+
   { id: 'reports', label: 'Reports', icon: '' },
   { id: 'settings', label: 'Settings', icon: '' },
 ];

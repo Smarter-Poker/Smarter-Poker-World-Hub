@@ -410,6 +410,7 @@ export async function fetchTrips(userId: string): Promise<Trip[]> {
     )
     .eq('user_id', userId)
     .neq('status', 'deleted')
+    .neq('trip_type', 'series')
     .order('start_date', { ascending: false });
 
   if (error) throw error;
@@ -456,6 +457,7 @@ export async function getActiveTrip(userId: string): Promise<Trip | null> {
     .select(`*, bankroll_locations(name)`)
     .eq('user_id', userId)
     .eq('status', 'active')
+    .neq('trip_type', 'series')
     .limit(1)
     .maybeSingle();
 
