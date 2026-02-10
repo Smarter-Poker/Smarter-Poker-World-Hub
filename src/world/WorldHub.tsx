@@ -933,11 +933,8 @@ export default function WorldHub() {
                                             position: 'relative',
                                         }}
                                     >
-                                        {/* Inner border frame */}
-                                        <div style={{ position: 'absolute', top: 4, left: 4, right: 4, height: 1.5, background: 'rgba(255, 255, 255, 0.9)' }} />
-                                        <div style={{ position: 'absolute', bottom: 4, left: 4, right: 4, height: 1.5, background: 'rgba(255, 255, 255, 0.9)' }} />
-                                        <div style={{ position: 'absolute', top: 4, bottom: 4, left: 4, width: 1.5, background: 'rgba(255, 255, 255, 0.9)' }} />
-                                        <div style={{ position: 'absolute', top: 4, bottom: 4, right: 4, width: 1.5, background: 'rgba(255, 255, 255, 0.9)' }} />
+
+
                                     </div>
                                     <div
                                         style={{
