@@ -560,12 +560,7 @@ export default function SignUpPage() {
             </Head>
 
             <div style={styles.container}>
-                {/* Background */}
-                <div style={styles.bgGrid} />
-                <div style={{
-                    ...styles.bgGlow,
-                    opacity: 0.2 + glowPulse * 0.15,
-                }} />
+
 
                 {/* Back to Home */}
                 <button onClick={() => router.push('/')} style={styles.backButton}>
@@ -578,7 +573,7 @@ export default function SignUpPage() {
                 {/* Auth Card */}
                 <div style={styles.authCard}>
                     <div style={styles.logoSection}>
-                        <img src="/smarter-poker-logo.png" alt="Smarter.Poker" style={styles.logoImage} />
+                        <img src="/smarter-poker-logo.jpg" alt="Smarter.Poker" style={styles.logoImage} />
                         <h1 style={styles.title}>
                             {step === 'info' && 'Create Account'}
                             {step === 'email_pending' && 'Verify Your Email'}
@@ -1154,26 +1149,21 @@ export default function SignUpPage() {
                         padding: '20px',
                     }}>
                         <div style={{
-                            background: 'linear-gradient(145deg, #0a1628, #0f1f3a)',
-                            border: '1px solid rgba(0, 212, 255, 0.3)',
-                            borderRadius: '16px',
+                            background: '#242526',
+                            border: '3px solid #555',
+                            borderRadius: '8px',
                             padding: '32px 24px',
                             maxWidth: '360px',
                             width: '100%',
                             textAlign: 'center',
-                            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 212, 255, 0.15)',
+                            boxShadow: '0 2px 12px rgba(0, 0, 0, 0.4)',
                         }}>
-                            {/* Logo */}
-                            <div style={{ marginBottom: '20px' }}>
-                                <BrainIcon size={48} />
-                            </div>
-
                             {/* Title */}
                             <h2 style={{
-                                fontFamily: 'Orbitron, sans-serif',
+                                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                                 fontSize: '22px',
                                 fontWeight: '700',
-                                color: '#00d4ff',
+                                color: '#E4E6EB',
                                 margin: '0 0 8px 0',
                             }}>
                                 Verify Phone
@@ -1181,11 +1171,11 @@ export default function SignUpPage() {
 
                             <p style={{
                                 fontSize: '14px',
-                                color: 'rgba(255,255,255,0.7)',
+                                color: '#B0B3B8',
                                 margin: '0 0 24px 0',
                             }}>
                                 Enter the 6-digit code sent to<br />
-                                <span style={{ color: '#00d4ff', fontWeight: '600' }}>
+                                <span style={{ color: '#1877F2', fontWeight: '600' }}>
                                     +1 {formatPhone(formData.phone)}
                                 </span>
                             </p>
@@ -1206,10 +1196,10 @@ export default function SignUpPage() {
                                     fontWeight: '700',
                                     letterSpacing: '8px',
                                     textAlign: 'center',
-                                    background: 'rgba(0, 0, 0, 0.4)',
-                                    border: phoneOtp.length === 6 ? '2px solid #00ff66' : '2px solid rgba(0, 212, 255, 0.3)',
-                                    borderRadius: '12px',
-                                    color: '#fff',
+                                    background: '#3A3B3C',
+                                    border: phoneOtp.length === 6 ? '2px solid #31A24C' : '1px solid #3E4042',
+                                    borderRadius: '6px',
+                                    color: '#E4E6EB',
                                     outline: 'none',
                                     fontFamily: 'monospace',
                                     boxSizing: 'border-box',
@@ -1220,7 +1210,7 @@ export default function SignUpPage() {
                             {/* Error message */}
                             {phoneError && (
                                 <p style={{
-                                    color: '#ff4d4d',
+                                    color: '#F02849',
                                     fontSize: '13px',
                                     marginTop: '12px',
                                     marginBottom: '0',
@@ -1237,15 +1227,15 @@ export default function SignUpPage() {
                                 style={{
                                     width: '100%',
                                     marginTop: '20px',
-                                    padding: '16px',
-                                    background: phoneOtp.length === 6 ? 'linear-gradient(135deg, #00ff66, #00cc52)' : 'rgba(100, 100, 100, 0.5)',
+                                    padding: '14px',
+                                    background: phoneOtp.length === 6 ? '#1877F2' : 'rgba(100, 100, 100, 0.5)',
                                     border: 'none',
-                                    borderRadius: '12px',
-                                    color: '#fff',
-                                    fontWeight: '700',
-                                    fontSize: '16px',
+                                    borderRadius: '6px',
+                                    color: '#FFFFFF',
+                                    fontWeight: '600',
+                                    fontSize: '15px',
                                     cursor: phoneOtp.length === 6 ? 'pointer' : 'not-allowed',
-                                    fontFamily: 'Inter, sans-serif',
+                                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                                 }}
                             >
                                 {phoneVerifying ? 'Verifying...' : 'Verify Code'}
@@ -1264,10 +1254,10 @@ export default function SignUpPage() {
                                     marginTop: '16px',
                                     background: 'none',
                                     border: 'none',
-                                    color: phoneOtpCooldown > 0 ? 'rgba(255,255,255,0.4)' : '#00d4ff',
+                                    color: phoneOtpCooldown > 0 ? '#B0B3B8' : '#1877F2',
                                     fontSize: '13px',
                                     cursor: phoneOtpCooldown > 0 ? 'not-allowed' : 'pointer',
-                                    fontFamily: 'Inter, sans-serif',
+                                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                                 }}
                             >
                                 {phoneOtpCooldown > 0 ? `Resend code in ${phoneOtpCooldown}s` : "Didn't get the code? Resend"}
@@ -1285,10 +1275,10 @@ export default function SignUpPage() {
                                     marginTop: '8px',
                                     background: 'none',
                                     border: 'none',
-                                    color: 'rgba(255,255,255,0.5)',
+                                    color: '#B0B3B8',
                                     fontSize: '13px',
                                     cursor: 'pointer',
-                                    fontFamily: 'Inter, sans-serif',
+                                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                                 }}
                             >
                                 Cancel
