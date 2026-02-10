@@ -956,6 +956,101 @@ export default function VideoLibraryPage() {
                             0 12px 40px rgba(0, 0, 0, 0.4),
                             0 0 30px rgba(100, 140, 180, 0.15);
                     }
+
+                    /* ═══════ MOBILE RESPONSIVE (Social Media Template) ═══════ */
+                    @media (max-width: 680px) {
+                        .video-library-page {
+                            padding: 8px 8px !important;
+                        }
+                        .vl-header-area {
+                            margin-bottom: 12px !important;
+                        }
+                        .vl-type-toggle-row {
+                            gap: 6px !important;
+                            margin-bottom: 10px !important;
+                            justify-content: center !important;
+                        }
+                        .vl-type-toggle-row .metal-frame-sm {
+                            padding: 7px 14px !important;
+                            font-size: 12px !important;
+                        }
+                        .vl-type-toggle-row .metal-frame-sm span {
+                            font-size: 16px !important;
+                        }
+                        .vl-search-wrap {
+                            width: 100% !important;
+                            margin-left: 0 !important;
+                            margin-top: 4px !important;
+                        }
+                        .vl-source-pills {
+                            gap: 6px !important;
+                            padding: 6px 0 !important;
+                            scrollbar-width: none;
+                        }
+                        .vl-source-pills::-webkit-scrollbar {
+                            display: none;
+                        }
+                        .vl-source-pills button {
+                            padding: 6px 12px !important;
+                            font-size: 12px !important;
+                            gap: 6px !important;
+                        }
+                        .vl-source-pills button > div {
+                            width: 22px !important;
+                            height: 22px !important;
+                        }
+                        .vl-continue-watching {
+                            margin-bottom: 16px !important;
+                        }
+                        .vl-continue-watching h2 {
+                            font-size: 15px !important;
+                            margin-bottom: 10px !important;
+                        }
+                        .vl-continue-watching .vl-cw-scroll {
+                            gap: 10px !important;
+                        }
+                        .vl-continue-watching .metal-frame {
+                            min-width: 160px !important;
+                        }
+                        .vl-video-grid {
+                            grid-template-columns: 1fr !important;
+                            gap: 12px !important;
+                        }
+                        .metal-frame.video-card-metal {
+                            box-shadow: 0 0 0 2px rgba(160, 170, 180, 0.5), 0 4px 12px rgba(0,0,0,0.3) !important;
+                            border-radius: 12px !important;
+                            padding: 3px !important;
+                        }
+                        .video-card-metal:hover {
+                            transform: none !important;
+                        }
+                        .vl-card-info {
+                            padding: 10px 12px !important;
+                        }
+                        .vl-card-info h3 {
+                            font-size: 14px !important;
+                            margin-bottom: 6px !important;
+                        }
+                        .vl-video-count {
+                            margin-top: 16px !important;
+                            font-size: 12px !important;
+                        }
+                        /* Video modal mobile adjustments */
+                        .vl-modal-close {
+                            top: 8px !important;
+                            right: 8px !important;
+                            width: 40px !important;
+                            height: 40px !important;
+                            font-size: 20px !important;
+                        }
+                        .jarvis-button {
+                            top: 8px !important;
+                            right: 56px !important;
+                            height: 40px !important;
+                            padding: 0 12px !important;
+                            font-size: 12px !important;
+                        }
+                    }
                 `}</style>
             </Head>
 
@@ -965,7 +1060,7 @@ export default function VideoLibraryPage() {
                 padding: '20px',
             }}>
                 {/* Header */}
-                <div style={{
+                <div className="vl-header-area" style={{
                     maxWidth: 1400,
                     margin: '0 auto',
                     marginBottom: 24,
@@ -986,7 +1081,7 @@ export default function VideoLibraryPage() {
                     </div>
 
                     {/* Type toggle + Search Row */}
-                    <div style={{
+                    <div className="vl-type-toggle-row" style={{
                         display: 'flex',
                         gap: 12,
                         marginBottom: 16,
@@ -1040,7 +1135,7 @@ export default function VideoLibraryPage() {
                         ))}
 
                         {/* Search Input */}
-                        <div style={{
+                        <div className="vl-search-wrap" style={{
                             position: 'relative',
                             width: 220,
                             marginLeft: 12,
@@ -1078,7 +1173,7 @@ export default function VideoLibraryPage() {
                     </div>
 
                     {/* Source filter pills */}
-                    <div style={{
+                    <div className="vl-source-pills" style={{
                         display: 'flex',
                         gap: 10,
                         overflowX: 'auto',
@@ -1133,7 +1228,7 @@ export default function VideoLibraryPage() {
 
                 {/* Continue Watching / Recently Watched Section */}
                 {recentlyWatched.length > 0 && (
-                    <div style={{
+                    <div className="vl-continue-watching" style={{
                         maxWidth: 1400,
                         margin: '0 auto 30px',
                     }}>
@@ -1148,7 +1243,7 @@ export default function VideoLibraryPage() {
                         }}>
                             <span style={{ color: '#FF4444' }}>▶</span> Continue Watching
                         </h2>
-                        <div style={{
+                        <div className="vl-cw-scroll" style={{
                             display: 'flex',
                             gap: 16,
                             overflowX: 'auto',
@@ -1235,7 +1330,7 @@ export default function VideoLibraryPage() {
                 )}
 
                 {/* Video Grid */}
-                <div style={{
+                <div className="vl-video-grid" style={{
                     maxWidth: 1400,
                     margin: '0 auto',
                     display: 'grid',
@@ -1355,7 +1450,7 @@ export default function VideoLibraryPage() {
                             </div>
 
                             {/* Info */}
-                            <div style={{ padding: 16 }}>
+                            <div className="vl-card-info" style={{ padding: 16 }}>
                                 <h3 style={{
                                     color: C.text,
                                     fontSize: 15,
@@ -1436,7 +1531,7 @@ export default function VideoLibraryPage() {
                 )}
 
                 {/* Video count */}
-                <div style={{
+                <div className="vl-video-count" style={{
                     maxWidth: 1400,
                     margin: '30px auto 0',
                     textAlign: 'center',
@@ -1468,6 +1563,7 @@ export default function VideoLibraryPage() {
                     {/* Close button - always visible */}
                     <button
                         onClick={handleCloseVideo}
+                        className="vl-modal-close"
                         style={{
                             position: 'absolute',
                             top: 16,
