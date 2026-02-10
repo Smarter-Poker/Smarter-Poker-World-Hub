@@ -539,34 +539,33 @@ export default function EndlessModePage() {
             <PageTransition>
                 <div style={{
                     minHeight: '100vh',
-                    background: 'linear-gradient(180deg, #0a1929 0%, #0d2137 100%)',
+                    background: '#18191a',
                     padding: '20px'
                 }}>
                     <div style={{ maxWidth: '700px', margin: '0 auto' }}>
-                        {/* Header */}
-                        <div style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            padding: '16px 20px',
-                            background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(0, 0, 0, 0.3))',
-                            border: '1px solid rgba(139, 92, 246, 0.3)',
-                            borderRadius: '12px',
-                            marginBottom: '20px',
-                            color: 'white'
-                        }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span style={{ fontSize: '24px' }}>∞</span>
-                                <span style={{ color: '#8b5cf6', fontWeight: 'bold', fontSize: '18px' }}>ENDLESS MODE</span>
-                            </div>
-                            {gameState !== 'ready' && (
-                                <div style={{ display: 'flex', gap: '16px', fontSize: '14px' }}>
-                                    <span style={{ color: '#fbbf24' }}>🔥 {streak}</span>
-                                    <span style={{ color: '#00D4FF' }}>💎 {diamondsEarned}</span>
-                                    <span style={{ color: '#22c55e' }}>{multiplier}x</span>
+                        {/* In-game HUD (only visible during gameplay) */}
+                        {gameState !== 'ready' && (
+                            <div style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                padding: '16px 20px',
+                                background: '#242526',
+                                border: '1px solid #4e4f50',
+                                borderRadius: '12px',
+                                marginBottom: '20px',
+                                color: '#e4e6eb'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ color: '#2374e1', fontWeight: 'bold', fontSize: '18px' }}>ENDLESS MODE</span>
                                 </div>
-                            )}
-                        </div>
+                                <div style={{ display: 'flex', gap: '16px', fontSize: '14px' }}>
+                                    <span style={{ color: '#e69500' }}>Streak: {streak}</span>
+                                    <span style={{ color: '#2374e1' }}>Diamonds: {diamondsEarned}</span>
+                                    <span style={{ color: '#31a24c' }}>{multiplier}x</span>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Ready State */}
                         {gameState === 'ready' && (
@@ -579,7 +578,7 @@ export default function EndlessModePage() {
                                     overflow: 'hidden',
                                     transition: 'transform 0.2s, box-shadow 0.2s',
                                 }}
-                                onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.boxShadow = '0 0 40px rgba(139, 92, 246, 0.4)'; }}
+                                onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.boxShadow = '0 0 40px rgba(35, 116, 225, 0.4)'; }}
                                 onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none'; }}
                             >
                                 <img

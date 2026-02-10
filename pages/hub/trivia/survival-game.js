@@ -648,70 +648,69 @@ export default function SurvivalGamePage() {
             <PageTransition>
                 <div style={{
                     minHeight: '100vh',
-                    background: 'linear-gradient(180deg, #0a1929 0%, #0d2137 100%)',
+                    background: '#18191a',
                     padding: '20px'
                 }}>
                     <div style={{ maxWidth: '700px', margin: '0 auto' }}>
-                        {/* Header */}
-                        <div style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            padding: '16px 20px',
-                            background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(0, 0, 0, 0.3))',
-                            border: '1px solid rgba(239, 68, 68, 0.3)',
-                            borderRadius: '12px',
-                            marginBottom: '20px',
-                            color: 'white'
-                        }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span style={{ fontSize: '24px' }}>🎯</span>
-                                <span style={{ color: '#ef4444', fontWeight: 'bold', fontSize: '18px' }}>SURVIVAL MODE</span>
-                            </div>
-                            {gameState === 'playing' && (
-                                <div style={{ display: 'flex', gap: '16px', fontSize: '14px' }}>
-                                    <span style={{ color: '#fbbf24' }}>Level {currentLevel}</span>
-                                    <span style={{ color: '#22c55e' }}>✓ {correctCount}</span>
-                                    <span style={{ color: '#ef4444' }}>✗ {incorrectCount}</span>
-                                    <span style={{ color: '#00D4FF' }}>💎 {totalDiamondsEarned}</span>
+                        {/* In-game HUD (only visible during gameplay) */}
+                        {gameState === 'playing' && (
+                            <div style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                padding: '16px 20px',
+                                background: '#242526',
+                                border: '1px solid #4e4f50',
+                                borderRadius: '12px',
+                                marginBottom: '20px',
+                                color: '#e4e6eb'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ color: '#2374e1', fontWeight: 'bold', fontSize: '18px' }}>SURVIVAL MODE</span>
                                 </div>
-                            )}
-                        </div>
+                                <div style={{ display: 'flex', gap: '16px', fontSize: '14px' }}>
+                                    <span style={{ color: '#e69500' }}>Level {currentLevel}</span>
+                                    <span style={{ color: '#31a24c' }}>Correct: {correctCount}</span>
+                                    <span style={{ color: '#f02849' }}>Wrong: {incorrectCount}</span>
+                                    <span style={{ color: '#2374e1' }}>Diamonds: {totalDiamondsEarned}</span>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Lobby State - Level Select */}
                         {gameState === 'lobby' && (
-                            <div style={{
-                                background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9))',
-                                border: '1px solid rgba(255,255,255,0.1)',
-                                borderRadius: '16px',
-                                padding: '32px'
-                            }}>
-                                <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-                                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚔️</div>
-                                    <h1 style={{ color: 'white', fontSize: '28px', margin: '0 0 8px 0' }}>Survival Mode</h1>
-                                    <p style={{ color: 'rgba(255,255,255,0.6)', margin: 0 }}>
-                                        10 Levels • 20 Questions Each • Increasing Difficulty
-                                    </p>
+                            <div>
+                                {/* Lobby Image */}
+                                <div style={{
+                                    borderRadius: '16px',
+                                    overflow: 'hidden',
+                                    marginBottom: '24px'
+                                }}>
+                                    <img
+                                        src="/images/trivia/lobby-survival.jpg"
+                                        alt="Survival Mode - 10 Levels Progressive Challenge"
+                                        style={{ width: '100%', height: 'auto', display: 'block' }}
+                                    />
                                 </div>
 
-                                {/* Progress Info */}
+                                {/* Accuracy Requirements */}
                                 <div style={{
-                                    background: 'rgba(0, 212, 255, 0.1)',
-                                    border: '1px solid rgba(0, 212, 255, 0.3)',
+                                    background: '#242526',
+                                    border: '1px solid #4e4f50',
                                     borderRadius: '12px',
                                     padding: '16px',
                                     marginBottom: '24px',
                                     textAlign: 'center'
                                 }}>
-                                    <div style={{ color: '#00D4FF', fontSize: '14px', marginBottom: '8px' }}>
+                                    <div style={{ color: '#2374e1', fontSize: '14px', marginBottom: '8px' }}>
                                         Accuracy Required Per Level
                                     </div>
-                                    <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '13px' }}>
+                                    <div style={{ color: '#b0b3b8', fontSize: '13px' }}>
                                         Lvl 1: 85% → Lvl 5: 93% → Lvl 8: 99% → Lvls 9-10: 100%
                                     </div>
                                     {userProgress.highestLevel > 0 && (
-                                        <div style={{ marginTop: '12px', color: '#22c55e' }}>
-                                            🏆 Your Best: Level {userProgress.highestLevel}
+                                        <div style={{ marginTop: '12px', color: '#31a24c' }}>
+                                            Your Best: Level {userProgress.highestLevel}
                                         </div>
                                     )}
                                 </div>
@@ -735,19 +734,19 @@ export default function SurvivalGamePage() {
                                                 style={{
                                                     padding: '16px 12px',
                                                     background: isCompleted
-                                                        ? 'rgba(34, 197, 94, 0.2)'
+                                                        ? 'rgba(49, 162, 76, 0.2)'
                                                         : isUnlocked
-                                                            ? 'rgba(239, 68, 68, 0.2)'
-                                                            : 'rgba(100, 100, 100, 0.2)',
-                                                    border: `2px solid ${isCompleted ? '#22c55e' : isUnlocked ? '#ef4444' : '#444'}`,
+                                                            ? 'rgba(35, 116, 225, 0.2)'
+                                                            : '#3a3b3c',
+                                                    border: `2px solid ${isCompleted ? '#31a24c' : isUnlocked ? '#2374e1' : '#4e4f50'}`,
                                                     borderRadius: '10px',
-                                                    color: isUnlocked ? 'white' : '#666',
+                                                    color: isUnlocked ? '#e4e6eb' : '#65676b',
                                                     cursor: isUnlocked ? 'pointer' : 'not-allowed',
                                                     transition: 'all 0.2s'
                                                 }}
                                             >
                                                 <div style={{ fontSize: '20px', fontWeight: 'bold' }}>
-                                                    {isCompleted ? '✓' : isUnlocked ? lvl.level : '🔒'}
+                                                    {isCompleted ? 'Done' : isUnlocked ? lvl.level : 'Locked'}
                                                 </div>
                                                 <div style={{ fontSize: '11px', opacity: 0.7, marginTop: '4px' }}>
                                                     {lvl.accuracyRequired}%
@@ -763,14 +762,14 @@ export default function SurvivalGamePage() {
                                     style={{
                                         width: '100%',
                                         padding: '16px',
-                                        background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                                        background: '#2374e1',
                                         border: 'none',
                                         borderRadius: '12px',
                                         color: 'white',
                                         fontSize: '18px',
                                         fontWeight: 'bold',
                                         cursor: 'pointer',
-                                        boxShadow: '0 4px 20px rgba(239, 68, 68, 0.4)'
+                                        boxShadow: '0 4px 20px rgba(35, 116, 225, 0.4)'
                                     }}
                                 >
                                     {isLoading ? 'Loading...' : userProgress.highestLevel > 0
