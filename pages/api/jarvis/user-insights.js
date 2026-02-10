@@ -160,7 +160,10 @@ export default async function handler(req, res) {
                 .limit(100);
 
             if (bankrollEntries && bankrollEntries.length > 0) {
-                const totalNet = bankrollEntries.reduce((s, e) => s + (e.net_result || 0), 0);
+                // Accounting-only categories: never count as sessions
+                const ACCT = new Set(['expense', 'deposit', 'withdrawal', 'receipt']);
+                const gamblingEntries = bankrollEntries.filter(e => !ACCT.has(e.category));
+                const totalNet = gamblingEntries.reduce((s, e) => s + (e.net_result || 0), 0);
                 const pokerEntries = bankrollEntries.filter(e =>
                     e.category === 'poker_cash' || e.category === 'poker_mtt'
                 );
@@ -202,7 +205,7 @@ export default async function handler(req, res) {
                 const locArr = Object.values(locMap).sort((a, b) => b.net - a.net);
 
                 bankrollSummary = {
-                    totalSessions: bankrollEntries.length,
+                    totalSessions: gamblingEntries.length,
                     pokerSessions: pokerEntries.length,
                     totalNet,
                     monthlyPL,

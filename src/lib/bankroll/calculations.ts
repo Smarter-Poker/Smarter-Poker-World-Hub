@@ -5,6 +5,9 @@
 
 import { supabase } from '../supabase';
 
+// All gambling categories that count as "sessions" — excludes accounting-only entries
+const SESSION_CATEGORIES = ['poker_cash', 'poker_mtt', 'casino_table', 'slots', 'sports'];
+
 export interface BankrollEntry {
   id: string;
   user_id: string;
@@ -398,13 +401,13 @@ export async function getBankrollStats(
     leakRisk = 'MEDIUM';
   }
 
-  // Get session counts
+  // Get session counts — ALL gambling categories count as sessions
   const { count } = await supabase
     .from('bankroll_ledger')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', userId)
     .eq('is_revision', false)
-    .in('category', ['poker_cash', 'poker_mtt']);
+    .in('category', SESSION_CATEGORIES);
 
   // Get total hours
   const { data: sessions } = await supabase
@@ -437,13 +440,13 @@ export async function getBankrollStats(
     travelROI = tripStats.net;
   }
 
-  // Win rate calculation
+  // Win rate calculation — ALL gambling categories
   const { data: winLoss } = await supabase
     .from('bankroll_ledger')
     .select('net_result')
     .eq('user_id', userId)
     .eq('is_revision', false)
-    .in('category', ['poker_cash', 'poker_mtt']);
+    .in('category', SESSION_CATEGORIES);
 
   const wins = winLoss?.filter((e) => e.net_result > 0).length || 0;
   const winRate = winLoss && winLoss.length > 0 ? (wins / winLoss.length) * 100 : 0;

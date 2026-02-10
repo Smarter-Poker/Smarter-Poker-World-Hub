@@ -75,14 +75,17 @@ const SIDEBAR_SECTIONS = [
   { id: 'trips', label: 'Trip Tracker', icon: '' },
   { id: 'series', label: 'Series Tracker', icon: '' },
   { id: 'players', label: 'Player Notes', icon: '' },
-  { id: 'leaks', label: 'Leaks', icon: '' },
-  { id: 'reports', label: 'Reports', icon: '' },
   { id: 'scan-receipt', label: 'Scan Receipt', icon: '' },
   { id: 'projection', label: 'Run Projections', icon: '' },
   { id: 'staking', label: 'Staking Tracker', icon: '' },
   { id: 'tax', label: 'Tax Reports', icon: '' },
+  { id: 'leaks', label: 'Leaks', icon: '' },
+  { id: 'reports', label: 'Reports', icon: '' },
   { id: 'settings', label: 'Settings', icon: '' },
 ];
+
+// Accounting-only categories: NEVER count as sessions, never affect win rate, projections, or stats
+const ACCOUNTING_CATEGORIES = new Set(['expense', 'deposit', 'withdrawal', 'receipt']);
 
 // Map URL ?type= values to database category IDs
 const TYPE_TO_CATEGORY = {
@@ -1017,9 +1020,9 @@ export default function BankrollManagerPage() {
 
                 {/* Analytics Grid — horizontal slider on mobile */}
                 <div className="bankroll-analytics-slider" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16, alignItems: 'stretch' }}>
-                  <LocationAnalytics entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} isLoading={isLoading} />
-                  <VarianceCalculator entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} />
-                  <HistoricalComparison entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} />
+                  <LocationAnalytics entries={entries.filter(e => !ACCOUNTING_CATEGORIES.has(e.category) && gameTypeFilter.has(e.category))} isLoading={isLoading} />
+                  <VarianceCalculator entries={entries.filter(e => !ACCOUNTING_CATEGORIES.has(e.category) && gameTypeFilter.has(e.category))} />
+                  <HistoricalComparison entries={entries.filter(e => !ACCOUNTING_CATEGORIES.has(e.category) && gameTypeFilter.has(e.category))} />
                 </div>
 
                 {/* Recent Activity Section */}
@@ -1188,14 +1191,12 @@ export default function BankrollManagerPage() {
                 }}>
                   <div style={styles.reportStatBox}>
                     <span style={styles.reportStatLabel}>Total Sessions</span>
-                    <span style={styles.reportStatValue}>{entries?.length || 0}</span>
+                    <span style={styles.reportStatValue}>{(() => { const s = entries?.filter(e => !ACCOUNTING_CATEGORIES.has(e.category)) || []; return s.length; })()}</span>
                   </div>
                   <div style={styles.reportStatBox}>
                     <span style={styles.reportStatLabel}>Win Rate</span>
                     <span style={styles.reportStatValue}>
-                      {entries?.length > 0
-                        ? Math.round((entries.filter(e => (e.gross_out - e.gross_in) > 0).length / entries.length) * 100)
-                        : 0}%
+                      {(() => { const s = entries?.filter(e => !ACCOUNTING_CATEGORIES.has(e.category)) || []; return s.length > 0 ? Math.round((s.filter(e => (e.gross_out - e.gross_in) > 0).length / s.length) * 100) : 0; })()}%
                     </span>
                   </div>
                   <div style={styles.reportStatBox}>
@@ -1210,9 +1211,7 @@ export default function BankrollManagerPage() {
                   <div style={styles.reportStatBox}>
                     <span style={styles.reportStatLabel}>Avg Session</span>
                     <span style={styles.reportStatValue}>
-                      ${entries?.length > 0
-                        ? Math.round(entries.reduce((sum, e) => sum + (e.gross_out - e.gross_in), 0) / entries.length)
-                        : 0}
+                      ${(() => { const s = entries?.filter(e => !ACCOUNTING_CATEGORIES.has(e.category)) || []; return s.length > 0 ? Math.round(s.reduce((sum, e) => sum + (e.gross_out - e.gross_in), 0) / s.length) : 0; })()}
                     </span>
                   </div>
                 </div>
