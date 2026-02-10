@@ -26,38 +26,47 @@ const TIER_PRICES = {
 
 // Robust user lookup — tries multiple methods
 async function findUserByEmail(email) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const normalizedEmail = email.toLowerCase().trim();
 
-  // Method 1: Direct GoTrue REST API with email filter
+  // Method 0 (Most reliable): Look up via profiles table → get auth user ID
   try {
-    const url = `${supabaseUrl}/auth/v1/admin/users?filter=email%20eq%20${encodeURIComponent(email)}`;
-    const resp = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${serviceKey}`,
-        'apikey': serviceKey,
-        'Content-Type': 'application/json',
-      },
-    });
-    if (resp.ok) {
-      const data = await resp.json();
-      const users = data.users || data;
-      if (Array.isArray(users)) {
-        const found = users.find(u => u.email === email);
-        if (found) {
-          console.log('Found user via Method 1 (REST filter)');
-          return found;
-        }
-      }
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id, email')
+      .ilike('email', normalizedEmail)
+      .single();
+    if (profile?.id) {
+      console.log('Found user via Method 0 (profiles table):', profile.id);
+      return { id: profile.id, email: profile.email || normalizedEmail };
+    }
+  } catch (e) {
+    console.log('Method 0 (profiles) failed:', e.message);
+  }
+
+  // Method 1: Supabase admin getUserByEmail (if available in this SDK version)
+  try {
+    const { data, error } = await supabase.auth.admin.getUserById
+      ? await (async () => {
+        // Try listing with a small page and filtering
+        const { data: listData } = await supabase.auth.admin.listUsers({ perPage: 50, page: 1 });
+        const found = listData?.users?.find(u => u.email?.toLowerCase() === normalizedEmail);
+        return { data: found ? { user: found } : null, error: null };
+      })()
+      : { data: null, error: null };
+    if (data?.user) {
+      console.log('Found user via Method 1 (admin listUsers)');
+      return data.user;
     }
   } catch (e) {
     console.log('Method 1 failed:', e.message);
   }
 
-  // Method 2: GoTrue REST API - get all users (paginated)
+  // Method 2: GoTrue REST API - paginated search (up to 5000 users)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   try {
     let page = 1;
-    while (page <= 10) {
+    while (page <= 50) {
       const url = `${supabaseUrl}/auth/v1/admin/users?page=${page}&per_page=100`;
       const resp = await fetch(url, {
         headers: {
@@ -70,7 +79,7 @@ async function findUserByEmail(email) {
       const data = await resp.json();
       const users = data.users || data;
       if (!Array.isArray(users) || users.length === 0) break;
-      const found = users.find(u => u.email === email);
+      const found = users.find(u => u.email?.toLowerCase() === normalizedEmail);
       if (found) {
         console.log(`Found user via Method 2 (REST page ${page})`);
         return found;
@@ -80,20 +89,6 @@ async function findUserByEmail(email) {
     }
   } catch (e) {
     console.log('Method 2 failed:', e.message);
-  }
-
-  // Method 3: Supabase JS admin listUsers
-  try {
-    const { data, error } = await supabase.auth.admin.listUsers({ perPage: 1000 });
-    if (!error && data?.users) {
-      const found = data.users.find(u => u.email === email);
-      if (found) {
-        console.log('Found user via Method 3 (JS listUsers)');
-        return found;
-      }
-    }
-  } catch (e) {
-    console.log('Method 3 failed:', e.message);
   }
 
   return null;
@@ -112,38 +107,20 @@ export default async function handler(req, res) {
   }
 
   try {
-    const email = ownerInfo.email;
+    const email = ownerInfo.email?.toLowerCase().trim();
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
     let userId = null;
 
-    // ─── 1. Always try createUser first ──────────────────────────────
-    // This handles both new users AND tells us if user already exists
-    const password = ownerInfo.password || ('Tmp' + Math.random().toString(36).slice(2) + 'X1!');
-
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: {
-        full_name: ownerInfo.name,
-        phone: ownerInfo.phone,
-        role: 'venue_owner'
-      }
-    });
-
-    if (!authError && authData?.user) {
-      // New user created successfully
-      userId = authData.user.id;
-      console.log('Created new user:', userId);
-    } else {
-      // User likely already exists — find them
-      console.log('createUser failed:', authError?.message, '— looking up existing user');
-
+    if (existingAccount) {
+      // ─── Path A: Existing account — look up user, skip createUser ──
+      console.log('Existing account flow for:', email);
       const existingUser = await findUserByEmail(email);
       if (existingUser) {
         userId = existingUser.id;
         console.log('Found existing user:', userId);
-
-        // Update their metadata
+        // Update their metadata to include venue_owner role
         try {
           await supabase.auth.admin.updateUserById(userId, {
             user_metadata: {
@@ -152,15 +129,58 @@ export default async function handler(req, res) {
               role: 'venue_owner',
             }
           });
-        } catch (e) { /* non-critical */ }
+        } catch (e) { console.log('Metadata update non-critical error:', e.message); }
       } else {
-        // Could not find user by any method — log detailed error for debugging
-        console.error('CRITICAL: Could not find or create user for email:', email);
-        console.error('createUser error was:', authError?.message);
-        console.error('All 3 lookup methods failed');
-
         return res.status(400).json({
-          error: `Registration issue: ${authError?.message || 'Unknown error'}. Please contact support at admin@smarter.poker with your email address and we will set up your account.`
+          error: 'No Smarter.Poker account found with this email. Please uncheck "I already have a Smarter.Poker account" and create a new account instead.'
+        });
+      }
+    } else {
+      // ─── Path B: New account — create user ─────────────────────────
+      const password = ownerInfo.password || ('Tmp' + Math.random().toString(36).slice(2) + 'X1!');
+
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: {
+          full_name: ownerInfo.name,
+          phone: ownerInfo.phone,
+          role: 'venue_owner'
+        }
+      });
+
+      if (!authError && authData?.user) {
+        userId = authData.user.id;
+        console.log('Created new user:', userId);
+      } else if (authError?.message?.toLowerCase().includes('already') ||
+        authError?.message?.toLowerCase().includes('exists') ||
+        authError?.message?.toLowerCase().includes('registered')) {
+        // User already exists — look them up
+        console.log('User already exists, looking up:', authError.message);
+        const existingUser = await findUserByEmail(email);
+        if (existingUser) {
+          userId = existingUser.id;
+          console.log('Found existing user:', userId);
+          try {
+            await supabase.auth.admin.updateUserById(userId, {
+              user_metadata: {
+                full_name: ownerInfo.name,
+                phone: ownerInfo.phone,
+                role: 'venue_owner',
+              }
+            });
+          } catch (e) { /* non-critical */ }
+        } else {
+          return res.status(400).json({
+            error: 'An account with this email already exists. Please check "I already have a Smarter.Poker account" and try again.'
+          });
+        }
+      } else {
+        // Unexpected error
+        console.error('createUser error:', authError?.message);
+        return res.status(400).json({
+          error: `Registration issue: ${authError?.message || 'Unknown error'}. Please contact support at admin@smarter.poker.`
         });
       }
     }
