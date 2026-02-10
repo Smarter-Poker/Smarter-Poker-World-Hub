@@ -275,8 +275,9 @@ export default function CommanderDashboard() {
         .cmd-card img {
           width: 100%;
           height: 100%;
-          object-fit: cover;
+          object-fit: contain;
           display: block;
+          background: #0a0a0a;
         }
         .cmd-card-overlay {
           position: absolute;
