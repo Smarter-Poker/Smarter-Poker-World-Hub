@@ -52,7 +52,7 @@ const LOBBY_IMAGES = {
     mtt: '/images/trivia/lobby-mtt.jpg',
     cash: '/images/trivia/lobby-cash.jpg',
     icm: '/images/trivia/lobby-icm.jpg',
-    gto: null,  // pending
+    gto: '/images/trivia/lobby-gto.jpg',
 };
 
 // Helper functions for GTO analysis generation

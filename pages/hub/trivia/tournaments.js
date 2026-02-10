@@ -317,6 +317,15 @@ export default function TournamentsPage() {
 
                     {gameState === 'lobby' && (
                         <div className="lobby">
+                            {/* Lobby Image Header */}
+                            <div className="lobby-image-wrapper">
+                                <img
+                                    src="/images/trivia/lobby-tournaments.jpg"
+                                    alt="Tournaments - Weekly Competitions Win Big Prizes!"
+                                    className="lobby-image"
+                                />
+                            </div>
+
                             {/* Header */}
                             <div className="page-header">
                                 <Trophy size={32} color="#FFD700" />
@@ -561,6 +570,18 @@ export default function TournamentsPage() {
                     padding: 100px 20px 40px;
                     max-width: 600px;
                     margin: 0 auto;
+                }
+
+                .lobby-image-wrapper {
+                    border-radius: 16px;
+                    overflow: hidden;
+                    margin-bottom: 24px;
+                }
+
+                .lobby-image {
+                    width: 100%;
+                    height: auto;
+                    display: block;
                 }
 
                 .loading {

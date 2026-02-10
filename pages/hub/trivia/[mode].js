@@ -44,8 +44,8 @@ const LOBBY_IMAGES = {
     history: '/images/trivia/lobby-history.jpg',
     rules: '/images/trivia/lobby-rules.jpg',
     pro: '/images/trivia/lobby-pro.jpg',
-    daily: null,     // pending
-    arcade: null,    // pending
+    daily: '/images/trivia/lobby-daily.jpg',
+    arcade: '/images/trivia/lobby-arcade.jpg',
 };
 
 export default function TriviaModePage() {
@@ -60,6 +60,10 @@ export default function TriviaModePage() {
     const [userId, setUserId] = useState(null);
     const [userDiamonds, setUserDiamonds] = useState(0);
     const [error, setError] = useState(null);
+
+    // Daily trivia enhancements
+    const [dailyDiamondsClaimed, setDailyDiamondsClaimed] = useState(false);
+    const [dailyLeaderboard, setDailyLeaderboard] = useState([]);
 
     // Phase 1: Prize wheel and celebration states
     const [showPrizeWheel, setShowPrizeWheel] = useState(false);
@@ -118,6 +122,22 @@ export default function TriviaModePage() {
                         setGameState('error');
                         return;
                     }
+                }
+
+                // Check if daily diamonds already claimed today
+                if (mode === 'daily' && user) {
+                    const today = getTodayCST();
+                    const { data: existingPlay } = await supabase
+                        .from('daily_trivia_plays')
+                        .select('id')
+                        .eq('user_id', user.id)
+                        .eq('played_date', today)
+                        .limit(1);
+                    if (existingPlay && existingPlay.length > 0) {
+                        setDailyDiamondsClaimed(true);
+                    }
+                    // Load daily leaderboard
+                    await loadDailyLeaderboard();
                 }
 
                 // Load questions
@@ -251,6 +271,55 @@ export default function TriviaModePage() {
         setLeaderboard(data || []);
     }
 
+    async function loadDailyLeaderboard() {
+        try {
+            // Get top streakers (users with best daily trivia streaks)
+            const { data: streakData } = await supabase
+                .from('trivia_streaks')
+                .select('user_id, current_streak, best_streak, profiles(username)')
+                .order('current_streak', { ascending: false })
+                .limit(10);
+
+            if (streakData && streakData.length > 0) {
+                // Also get accuracy stats from daily trivia scores
+                const userIds = streakData.map(s => s.user_id);
+                const { data: scoreData } = await supabase
+                    .from('trivia_scores')
+                    .select('user_id, correct_count, total_questions')
+                    .eq('mode', 'daily')
+                    .in('user_id', userIds);
+
+                // Aggregate accuracy per user
+                const accuracyMap = {};
+                const gamesMap = {};
+                (scoreData || []).forEach(s => {
+                    if (!accuracyMap[s.user_id]) {
+                        accuracyMap[s.user_id] = { correct: 0, total: 0 };
+                        gamesMap[s.user_id] = 0;
+                    }
+                    accuracyMap[s.user_id].correct += s.correct_count || 0;
+                    accuracyMap[s.user_id].total += s.total_questions || 0;
+                    gamesMap[s.user_id]++;
+                });
+
+                const lb = streakData.map(s => ({
+                    userId: s.user_id,
+                    username: s.profiles?.username || 'Player',
+                    streak: s.current_streak || 0,
+                    bestStreak: s.best_streak || 0,
+                    accuracy: accuracyMap[s.user_id]
+                        ? Math.round((accuracyMap[s.user_id].correct / accuracyMap[s.user_id].total) * 100)
+                        : 0,
+                    gamesPlayed: gamesMap[s.user_id] || 0
+                }));
+
+                setDailyLeaderboard(lb);
+            }
+        } catch (err) {
+            console.error('[Daily Trivia] Error loading leaderboard:', err);
+        }
+    }
+
     function getFallbackQuestions(count) {
         const fallbacks = [
             {
@@ -363,6 +432,13 @@ export default function TriviaModePage() {
             newStreak = 0;
         }
 
+        // Daily trivia: award 10 diamonds for finishing all 20 questions (once per day)
+        let dailyBonusDiamonds = 0;
+        if (mode === 'daily' && !dailyDiamondsClaimed && totalQuestions >= 20) {
+            dailyBonusDiamonds = 10;
+            setDailyDiamondsClaimed(true);
+        }
+
         // Save results to database
         if (userId) {
             try {
@@ -380,8 +456,9 @@ export default function TriviaModePage() {
                     play_date: today
                 });
 
-                // Update profile with diamonds
-                if (diamondsEarned > 0) {
+                // Update profile with diamonds (base + daily bonus)
+                const totalDiamondsToAward = diamondsEarned + dailyBonusDiamonds;
+                if (totalDiamondsToAward > 0) {
                     const { data: profile } = await supabase
                         .from('profiles')
                         .select('diamonds')
@@ -392,7 +469,7 @@ export default function TriviaModePage() {
                         await supabase
                             .from('profiles')
                             .update({
-                                diamonds: (profile.diamonds || 0) + diamondsEarned
+                                diamonds: (profile.diamonds || 0) + totalDiamondsToAward
                             })
                             .eq('id', userId);
                     }
@@ -495,10 +572,16 @@ export default function TriviaModePage() {
             timeSpent,
             timeRemaining: timeRemaining || 0,
             diamondsEarned,
+            dailyBonusDiamonds,
             streak: newStreak
         });
 
         setGameState('results');
+
+        // Reload daily leaderboard after completion
+        if (mode === 'daily') {
+            await loadDailyLeaderboard();
+        }
 
         // Reload leaderboard for arcade
         if (mode === 'arcade') {
@@ -646,6 +729,43 @@ export default function TriviaModePage() {
                             {mode === 'arcade' && leaderboard.length > 0 && (
                                 <div className="leaderboard-section">
                                     <LeaderboardDisplay entries={leaderboard} currentUserId={userId} />
+                                </div>
+                            )}
+
+                            {/* Daily Trivia Bonus + Leaderboard */}
+                            {mode === 'daily' && (
+                                <div className="daily-results-section">
+                                    {result.dailyBonusDiamonds > 0 && (
+                                        <div className="daily-bonus-callout">
+                                            <span className="bonus-icon">💎</span>
+                                            <span>+{result.dailyBonusDiamonds} Daily Completion Bonus!</span>
+                                        </div>
+                                    )}
+
+                                    {dailyLeaderboard.length > 0 && (
+                                        <div className="daily-leaderboard">
+                                            <h3>Daily Trivia Leaderboard</h3>
+                                            <div className="daily-lb-header">
+                                                <span className="lb-col rank">#</span>
+                                                <span className="lb-col name">Player</span>
+                                                <span className="lb-col streak">Streak</span>
+                                                <span className="lb-col accuracy">Acc%</span>
+                                                <span className="lb-col games">Games</span>
+                                            </div>
+                                            {dailyLeaderboard.map((entry, idx) => (
+                                                <div
+                                                    key={entry.userId}
+                                                    className={`daily-lb-row ${entry.userId === userId ? 'you' : ''}`}
+                                                >
+                                                    <span className="lb-col rank">{idx + 1}</span>
+                                                    <span className="lb-col name">{entry.username}</span>
+                                                    <span className="lb-col streak">{entry.streak}d</span>
+                                                    <span className="lb-col accuracy">{entry.accuracy}%</span>
+                                                    <span className="lb-col games">{entry.gamesPlayed}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -896,6 +1016,88 @@ export default function TriviaModePage() {
                     max-width: 600px;
                     margin: 0 auto;
                 }
+
+                /* Daily Trivia Leaderboard */
+                .daily-results-section {
+                    margin-top: 24px;
+                }
+
+                .daily-bonus-callout {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    padding: 14px 20px;
+                    background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(16, 185, 129, 0.15));
+                    border: 1px solid rgba(34, 197, 94, 0.4);
+                    border-radius: 12px;
+                    color: #22c55e;
+                    font-size: 16px;
+                    font-weight: 700;
+                    margin-bottom: 20px;
+                    animation: bonusPulse 2s ease-in-out;
+                }
+
+                .bonus-icon {
+                    font-size: 24px;
+                }
+
+                @keyframes bonusPulse {
+                    0% { transform: scale(0.95); opacity: 0; }
+                    50% { transform: scale(1.02); }
+                    100% { transform: scale(1); opacity: 1; }
+                }
+
+                .daily-leaderboard {
+                    background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    border-radius: 12px;
+                    padding: 20px;
+                }
+
+                .daily-leaderboard h3 {
+                    font-family: 'Orbitron', sans-serif;
+                    font-size: 14px;
+                    color: rgba(255, 255, 255, 0.6);
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
+                    margin: 0 0 16px;
+                }
+
+                .daily-lb-header,
+                .daily-lb-row {
+                    display: flex;
+                    align-items: center;
+                    padding: 8px 0;
+                }
+
+                .daily-lb-header {
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+                    font-size: 11px;
+                    color: rgba(255, 255, 255, 0.4);
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                }
+
+                .daily-lb-row {
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                    font-size: 14px;
+                    color: rgba(255, 255, 255, 0.8);
+                }
+
+                .daily-lb-row.you {
+                    background: rgba(0, 212, 255, 0.1);
+                    margin: 0 -12px;
+                    padding: 8px 12px;
+                    border-radius: 6px;
+                    color: #00D4FF;
+                    font-weight: 600;
+                }
+
+                .lb-col.rank { width: 30px; font-weight: 700; color: #FFD700; }
+                .lb-col.name { flex: 1; }
+                .lb-col.streak { width: 55px; text-align: center; color: #f97316; }
+                .lb-col.accuracy { width: 50px; text-align: center; color: #22c55e; }
+                .lb-col.games { width: 50px; text-align: center; color: rgba(255,255,255,0.5); }
             `}</style>
         </PageTransition>
     );
