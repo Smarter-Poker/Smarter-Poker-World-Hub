@@ -23,13 +23,19 @@ body.world-bankroll-manager {
    EXCLUDES: Global header (.universal-header) and hamburger menu
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ── MASTER RULE: Every div with a border-radius (= every card/box/container) ── */
+/* ── EXTERIOR: Every div with a border-radius (= every card/box/container) — 2px ── */
 .bankroll-page div[style*="border-radius"]:not(.universal-header *):not(.hamburger-menu *),
 .bankroll-page section[style*="border-radius"]:not(.universal-header *):not(.hamburger-menu *) {
     border: 2px solid #9ca3af !important;
 }
 
-/* ── MASTER RULE: Every button everywhere (except header/hamburger) ── */
+/* ── INTERIOR: Nested boxes inside an outer bordered container — 1px ── */
+.bankroll-page div[style*="border-radius"] div[style*="border-radius"]:not(.universal-header *):not(.hamburger-menu *),
+.bankroll-page section[style*="border-radius"] div[style*="border-radius"]:not(.universal-header *):not(.hamburger-menu *) {
+    border: 1px solid #9ca3af !important;
+}
+
+/* ── EXTERIOR: Every button everywhere (except header/hamburger) — 2px ── */
 .bankroll-page button:not(.universal-header *):not(.universal-header button):not(.hamburger-menu *):not(.hamburger-menu button) {
     border: 2px solid #9ca3af !important;
 }
@@ -38,11 +44,23 @@ body.world-bankroll-manager {
     border-color: #d1d5db !important;
 }
 
-/* ── MASTER RULE: Every form element (except header/hamburger) ── */
+/* ── INTERIOR: Buttons inside a bordered container — 1px ── */
+.bankroll-page div[style*="border-radius"] button:not(.universal-header *):not(.hamburger-menu *) {
+    border: 1px solid #9ca3af !important;
+}
+
+/* ── EXTERIOR: Every form element (except header/hamburger) — 2px ── */
 .bankroll-page input:not(.universal-header *):not(.hamburger-menu *),
 .bankroll-page select:not(.universal-header *):not(.hamburger-menu *),
 .bankroll-page textarea:not(.universal-header *):not(.hamburger-menu *) {
     border: 2px solid #9ca3af !important;
+}
+
+/* ── INTERIOR: Form elements inside a bordered container — 1px ── */
+.bankroll-page div[style*="border-radius"] input:not(.universal-header *):not(.hamburger-menu *),
+.bankroll-page div[style*="border-radius"] select:not(.universal-header *):not(.hamburger-menu *),
+.bankroll-page div[style*="border-radius"] textarea:not(.universal-header *):not(.hamburger-menu *) {
+    border: 1px solid #9ca3af !important;
 }
 
 .bankroll-page input:not(.universal-header *):not(.hamburger-menu *):focus,
@@ -64,14 +82,18 @@ body.world-bankroll-manager {
     border: 2px solid #9ca3af !important;
 }
 
-/* ── Dropdown menus ── */
+/* ── Dropdown menus (outer = 2px) ── */
 .bankroll-page .bankroll-dropdown-menu {
     border: 2px solid #9ca3af !important;
 }
 
-/* ── Modal overlays (LogEntryModal, AdjustBankroll, Projection, etc.) ── */
-.bankroll-page div[style*="z-index"] div[style*="border-radius"]:not(.universal-header *) {
+/* ── Modal overlays — outer modal container = 2px, interior elements = 1px ── */
+.bankroll-page div[style*="z-index"]>div[style*="border-radius"]:not(.universal-header *) {
     border: 2px solid #9ca3af !important;
+}
+
+.bankroll-page div[style*="z-index"] div[style*="border-radius"] div[style*="border-radius"]:not(.universal-header *) {
+    border: 1px solid #9ca3af !important;
 }
 
 /* ── Sidebar items ── */
