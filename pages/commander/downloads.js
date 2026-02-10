@@ -21,7 +21,7 @@ export default function DownloadsPage() {
   const platforms = {
     windows: {
       name: 'Windows',
-      icon: '🪟',
+      icon: '',
       filename: 'Club.Commander.Setup.1.0.0.exe',
       size: '72.9 MB',
       downloadUrl: 'https://github.com/Smarter-Poker/club-commander-desktop/releases/download/v1.0.0/Club.Commander.Setup.1.0.0.exe',
@@ -34,7 +34,7 @@ export default function DownloadsPage() {
     },
     mac: {
       name: 'macOS',
-      icon: '🍎',
+      icon: '',
       filename: 'Club.Commander-1.0.0-arm64.dmg',
       size: '89.8 MB',
       downloadUrl: 'https://github.com/Smarter-Poker/club-commander-desktop/releases/download/v1.0.0/Club.Commander-1.0.0-arm64.dmg',
@@ -47,7 +47,7 @@ export default function DownloadsPage() {
     },
     linux: {
       name: 'Linux',
-      icon: '🐧',
+      icon: '',
       filename: 'Club.Commander-1.0.0.AppImage',
       size: '99.6 MB',
       downloadUrl: 'https://github.com/Smarter-Poker/club-commander-desktop/releases/download/v1.0.0/Club.Commander-1.0.0.AppImage',
@@ -85,7 +85,7 @@ export default function DownloadsPage() {
         {/* Header */}
         <div className="text-center mb-12">
           <div className="flex justify-center mb-4">
-            <div className="w-20 h-20 bg-[#1877F2] rounded-2xl flex items-center justify-center text-4xl text-white">&#9824;</div>
+            <div className="w-20 h-20 bg-[#1877F2] rounded-2xl flex items-center justify-center text-4xl text-white">CC</div>
           </div>
           <h1 className="text-4xl font-bold text-[#E4E6EB] mb-3">Club Commander Desktop</h1>
           <p className="text-[#B0B3B8] text-lg">The fastest way to manage your poker room</p>
@@ -106,7 +106,7 @@ export default function DownloadsPage() {
                     : 'bg-[#3A3B3C] text-[#B0B3B8] hover:bg-[#4E4F50]'
                 }`}
               >
-                <span className="mr-2">{p.icon}</span>
+                
                 {p.name}
               </button>
             ))}
