@@ -7,6 +7,7 @@
 require('dotenv').config({ path: '.env.local' });
 
 const { createClient } = require('@supabase/supabase-js');
+const { validateBatch } = require('./trivia-qa-validator');
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -96,15 +97,26 @@ async function seedQuestions() {
             created_at: new Date().toISOString()
         }));
 
-        const { data, error } = await supabase
-            .from('trivia_questions')
-            .insert(questions)
-            .select();
+        // ═══ QA VALIDATION GATE ═══
+        const { valid: validQuestions, rejected } = validateBatch(questions);
+        if (rejected.length > 0) {
+            console.log(`   🛡️ QA: ${rejected.length}/${questions.length} rejected`);
+            rejected.forEach(r => r.errors.forEach(e => console.log(`     → ${e}`)));
+        }
 
-        if (error) {
-            console.log(`   ❌ Error: ${error.message}`);
+        if (validQuestions.length > 0) {
+            const { data, error } = await supabase
+                .from('trivia_questions')
+                .insert(validQuestions)
+                .select();
+
+            if (error) {
+                console.log(`   ❌ Error: ${error.message}`);
+            } else {
+                console.log(`   ✅ Inserted ${data.length} questions\n`);
+            }
         } else {
-            console.log(`   ✅ Inserted ${data.length} questions\n`);
+            console.log(`   ⚠️ No questions passed QA\n`);
         }
     }
 

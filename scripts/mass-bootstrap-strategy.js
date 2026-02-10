@@ -9,6 +9,7 @@ require('dotenv').config({ path: '.env.local' });
 
 const { createClient } = require('@supabase/supabase-js');
 const OpenAI = require('openai');
+const { validateBatch } = require('./trivia-qa-validator');
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -180,16 +181,25 @@ async function main() {
             const questions = await generateBatch(category, topic, diff, toGenerate);
 
             if (questions.length > 0) {
-                const { data, error } = await supabase
-                    .from('trivia_questions')
-                    .insert(questions)
-                    .select();
+                // ═══ QA VALIDATION GATE ═══
+                const { valid: validQuestions, rejected } = validateBatch(questions);
+                if (rejected.length > 0) {
+                    console.log(`🛡️ QA: ${rejected.length}/${questions.length} rejected`);
+                    rejected.forEach(r => r.errors.forEach(e => console.log(`  → ${e}`)));
+                }
 
-                if (!error && data) {
-                    generated += data.length;
-                    console.log(`✅ +${data.length} (total: ${(existing || 0) + generated})`);
-                } else {
-                    console.log(`❌ ${error?.message}`);
+                if (validQuestions.length > 0) {
+                    const { data, error } = await supabase
+                        .from('trivia_questions')
+                        .insert(validQuestions)
+                        .select();
+
+                    if (!error && data) {
+                        generated += data.length;
+                        console.log(`✅ +${data.length} (total: ${(existing || 0) + generated})`);
+                    } else {
+                        console.log(`❌ ${error?.message}`);
+                    }
                 }
             } else {
                 console.log(`⚠️ No valid questions`);
