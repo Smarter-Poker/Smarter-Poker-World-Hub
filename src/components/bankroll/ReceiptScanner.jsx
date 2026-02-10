@@ -9,6 +9,7 @@ import { Camera, Upload, X, Loader2, Check, RefreshCw, Scan, Zap } from 'lucide-
 import { supabase } from '../../lib/supabase';
 import { formatCurrency } from '../../lib/bankroll/currencyUtils';
 import { METAL, GRADIENTS, GLOWS, ANIMATIONS } from './metalStyles';
+import DocumentCropper from './DocumentCropper';
 
 // No emoji icons - use labels only for clean Facebook-style UI
 const EXPENSE_ICONS = {
@@ -28,6 +29,8 @@ export default function ReceiptScanner({ onScanComplete, displayEUR = false, tri
     const [scanResult, setScanResult] = useState(null);
     const [error, setError] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
+    const [showCropper, setShowCropper] = useState(false);
+    const [rawImage, setRawImage] = useState(null);
     const fileInputRef = useRef(null);
 
     const handleFileSelect = useCallback(async (e) => {
@@ -35,11 +38,33 @@ export default function ReceiptScanner({ onScanComplete, displayEUR = false, tri
         if (!file) return;
 
         const reader = new FileReader();
-        reader.onload = (e) => setImagePreview(e.target.result);
+        reader.onload = (ev) => {
+            setRawImage(ev.target.result);
+            setShowCropper(true);
+        };
         reader.readAsDataURL(file);
+    }, []);
 
+    const handleCropConfirm = useCallback(async (croppedBase64) => {
+        setShowCropper(false);
+        setImagePreview(croppedBase64);
+        // Convert cropped base64 to file-like blob for scanning
+        const res = await fetch(croppedBase64);
+        const blob = await res.blob();
+        const file = new File([blob], 'receipt-cropped.jpg', { type: 'image/jpeg' });
         await scanReceipt(file);
     }, []);
+
+    const handleCropSkip = useCallback(async () => {
+        setShowCropper(false);
+        if (rawImage) {
+            setImagePreview(rawImage);
+            const res = await fetch(rawImage);
+            const blob = await res.blob();
+            const file = new File([blob], 'receipt-original.jpg', { type: 'image/jpeg' });
+            await scanReceipt(file);
+        }
+    }, [rawImage]);
 
     const scanReceipt = async (file) => {
         setIsScanning(true);
@@ -94,6 +119,8 @@ export default function ReceiptScanner({ onScanComplete, displayEUR = false, tri
     const resetScanner = () => {
         setScanResult(null);
         setImagePreview(null);
+        setRawImage(null);
+        setShowCropper(false);
         setError(null);
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
@@ -273,6 +300,15 @@ export default function ReceiptScanner({ onScanComplete, displayEUR = false, tri
             )}
 
             <style jsx global>{ANIMATIONS}</style>
+
+            {/* Document Cropper Overlay */}
+            {showCropper && rawImage && (
+                <DocumentCropper
+                    imageSrc={rawImage}
+                    onConfirm={handleCropConfirm}
+                    onCancel={handleCropSkip}
+                />
+            )}
         </div>
     );
 }

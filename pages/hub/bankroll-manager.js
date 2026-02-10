@@ -218,6 +218,7 @@ export default function BankrollManagerPage() {
   const [locations, setLocations] = useState([]);
   const [leakAnalysis, setLeakAnalysis] = useState(null);
   const [showVenueModal, setShowVenueModal] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
   const [ruleViolations, setRuleViolations] = useState([]);
 
   //  INTRO VIDEO STATE - Video plays while page loads in background
@@ -396,8 +397,7 @@ export default function BankrollManagerPage() {
 
   const handleSidebarClick = (sectionId) => {
     if (sectionId === 'scan-receipt') {
-      // TODO: Open scan receipt flow
-      handleLogClick();
+      setShowScanner(true);
     } else if (sectionId === 'series') {
       router.push('/hub/bankroll-manager?view=series');
     } else {
@@ -1191,6 +1191,30 @@ export default function BankrollManagerPage() {
         </div>
       </div>
 
+      {/* Receipt Scanner Modal */}
+      {showScanner && (
+        <div style={styles.scannerModal}>
+          <div style={styles.scannerModalContent}>
+            <div style={styles.scannerModalHeader}>
+              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: '#fff' }}>Scan Receipt</h2>
+              <button
+                onClick={() => setShowScanner(false)}
+                style={styles.scannerCloseBtn}
+              >
+                ✕
+              </button>
+            </div>
+            <ReceiptScanner
+              userId={userId}
+              onScanComplete={(data) => {
+                loadData();
+                setShowScanner(false);
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Manage Venues Modal */}
       {showVenueModal && userId && (
         <ManageVenuesModal
@@ -1734,6 +1758,40 @@ const styles = {
     color: 'rgba(255, 255, 255, 0.3)',
   },
   // assistantPanel removed - right panel eliminated
+  scannerModal: {
+    position: 'fixed',
+    inset: 0,
+    background: 'rgba(0, 0, 0, 0.85)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 9000,
+    padding: 16,
+  },
+  scannerModalContent: {
+    background: '#1a1b1e',
+    borderRadius: 16,
+    maxWidth: 500,
+    width: '100%',
+    maxHeight: '90vh',
+    overflowY: 'auto',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+  },
+  scannerModalHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '16px 20px',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+  },
+  scannerCloseBtn: {
+    background: 'none',
+    border: 'none',
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 20,
+    cursor: 'pointer',
+    padding: 4,
+  },
   logTodayButton: {
     display: 'flex',
     justifyContent: 'space-between',
