@@ -8,6 +8,12 @@
     "background_color": "#0a0a15",
     "theme_color": "#0a0a15",
     "orientation": "portrait-primary",
+    "categories": [
+        "games",
+        "social",
+        "entertainment"
+    ],
+    "prefer_related_applications": false,
     "icons": [
         {
             "src": "/icons/icon-192.png",
@@ -21,5 +27,9 @@
             "type": "image/png",
             "purpose": "any maskable"
         }
+    ],
+    "permissions": [
+        "geolocation",
+        "notifications"
     ]
 }

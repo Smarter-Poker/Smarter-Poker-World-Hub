@@ -69,6 +69,7 @@ import AdjustBankrollModal from '../../src/components/bankroll/AdjustBankrollMod
 import { getActiveTrip, hasStartingBankroll } from '../../src/lib/bankroll/bankrollSelectors';
 import GeofenceService from '../../src/lib/geofence';
 import { requestPermission, showVenueAlert } from '../../src/lib/pushAlerts';
+import { sendGeofenceNotification } from '../../src/lib/geofencePush';
 
 // Clean Facebook-style navigation (no emojis)
 const SIDEBAR_SECTIONS = [
@@ -328,8 +329,10 @@ export default function BankrollManagerPage() {
           gf.start(data.venues, async (venue) => {
             // Request permission on first trigger
             await requestPermission();
-            // Show browser notification
+            // Show browser notification (foreground, current tab)
             showVenueAlert(venue, 'checkin');
+            // Send server-side OneSignal push (all devices, background-capable)
+            sendGeofenceNotification(venue, userId);
             // Also open log modal pre-filled with this venue
             toast.show(`📍 You're near ${venue.name}! Tap to log a session.`);
           });

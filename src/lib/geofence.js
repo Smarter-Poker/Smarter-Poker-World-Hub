@@ -41,12 +41,36 @@ function haversineDistance(lat1, lng1, lat2, lng2) {
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(toRad(lat1)) *
-      Math.cos(toRad(lat2)) *
-      Math.sin(dLng / 2) *
-      Math.sin(dLng / 2);
+    Math.cos(toRad(lat2)) *
+    Math.sin(dLng / 2) *
+    Math.sin(dLng / 2);
 
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
+}
+
+/**
+ * Convert a venue to the payload format expected by native mobile
+ * geofencing SDKs (e.g. Capacitor BackgroundGeolocation, React Native).
+ *
+ * @param {Object} venue - Venue with id, latitude, longitude, venue_type, name
+ * @returns {Object} { id, identifier, latitude, longitude, radius, notifyOnEntry, notifyOnExit, extras }
+ */
+export function toNativePayload(venue) {
+  return {
+    id: `geofence-${venue.id}`,
+    identifier: venue.id,
+    latitude: parseFloat(venue.latitude),
+    longitude: parseFloat(venue.longitude),
+    radius: getRadiusForType(venue.venue_type),
+    notifyOnEntry: true,
+    notifyOnExit: false,
+    extras: {
+      venueName: venue.name,
+      venueType: venue.venue_type,
+      venueId: venue.id,
+    },
+  };
 }
 
 export default class GeofenceService {
