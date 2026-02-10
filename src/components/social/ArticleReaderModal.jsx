@@ -46,6 +46,24 @@ export default function ArticleReaderModal({ url, title, onClose }) {
         }
     })();
 
+    // Detect YouTube URLs and extract video ID
+    const youtubeVideoId = (() => {
+        if (!url) return null;
+        try {
+            const shortsMatch = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/);
+            if (shortsMatch) return shortsMatch[1];
+            const watchMatch = url.match(/youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/);
+            if (watchMatch) return watchMatch[1];
+            const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
+            if (shortMatch) return shortMatch[1];
+            const embedMatch = url.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]+)/);
+            if (embedMatch) return embedMatch[1];
+        } catch { }
+        return null;
+    })();
+
+    const isYouTube = !!youtubeVideoId;
+
     return (
         <AnimatePresence>
             <motion.div
@@ -118,8 +136,8 @@ export default function ArticleReaderModal({ url, title, onClose }) {
                         color: C.text,
                         textAlign: 'center',
                     }}>
-                        <div style={{ fontSize: 32, marginBottom: 16 }}>📰</div>
-                        <div>Loading article...</div>
+                        <div style={{ fontSize: 32, marginBottom: 16 }}>{isYouTube ? '▶' : '📰'}</div>
+                        <div>{isYouTube ? 'Loading video...' : 'Loading article...'}</div>
                     </div>
                 )}
 
@@ -136,10 +154,10 @@ export default function ArticleReaderModal({ url, title, onClose }) {
                     }}>
                         <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
                         <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>
-                            Cannot embed this article
+                            Cannot embed this content
                         </div>
                         <div style={{ fontSize: 14, color: C.textSec, marginBottom: 20 }}>
-                            Some sites block embedding. Click below to read in a new tab.
+                            Some sites block embedding. Click below to view in a new tab.
                         </div>
                         <button
                             onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}
@@ -154,30 +172,61 @@ export default function ArticleReaderModal({ url, title, onClose }) {
                                 fontWeight: 600,
                             }}
                         >
-                            Open Article ↗
+                            Open in New Tab ↗
                         </button>
                     </div>
                 )}
 
-                {/* Article iframe - Served through our proxy to bypass X-Frame-Options */}
-                <iframe
-                    src={`/api/proxy?url=${encodeURIComponent(url)}`}
-                    style={{
+                {/* YouTube Embed - uses official YouTube embed which always works */}
+                {isYouTube ? (
+                    <div style={{
                         flex: 1,
-                        width: '100%',
-                        border: 'none',
-                        background: '#FFF',
-                        opacity: loading ? 0 : 1,
-                        transition: 'opacity 0.3s',
-                    }}
-                    onLoad={() => setLoading(false)}
-                    onError={() => {
-                        setLoading(false);
-                        setError(true);
-                    }}
-                    // No sandbox restrictions needed since content comes from our proxy
-                    referrerPolicy="no-referrer"
-                />
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '16px',
+                    }}>
+                        <iframe
+                            src={`https://www.youtube.com/embed/${youtubeVideoId}?autoplay=1&rel=0&modestbranding=1`}
+                            style={{
+                                width: '100%',
+                                maxWidth: '960px',
+                                aspectRatio: '16/9',
+                                border: 'none',
+                                borderRadius: 12,
+                                opacity: loading ? 0 : 1,
+                                transition: 'opacity 0.3s',
+                            }}
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            allowFullScreen
+                            onLoad={() => setLoading(false)}
+                            onError={() => {
+                                setLoading(false);
+                                setError(true);
+                            }}
+                        />
+                    </div>
+                ) : (
+                    /* Article iframe - Served through our proxy to bypass X-Frame-Options */
+                    <iframe
+                        src={`/api/proxy?url=${encodeURIComponent(url)}`}
+                        style={{
+                            flex: 1,
+                            width: '100%',
+                            border: 'none',
+                            background: '#FFF',
+                            opacity: loading ? 0 : 1,
+                            transition: 'opacity 0.3s',
+                        }}
+                        onLoad={() => setLoading(false)}
+                        onError={() => {
+                            setLoading(false);
+                            setError(true);
+                        }}
+                        // No sandbox restrictions needed since content comes from our proxy
+                        referrerPolicy="no-referrer"
+                    />
+                )}
 
                 {/* Bottom Bar with source info */}
                 <div style={{
@@ -190,7 +239,7 @@ export default function ArticleReaderModal({ url, title, onClose }) {
                     gap: 8,
                 }}>
                     <span style={{ color: C.textSec, fontSize: 12 }}>
-                        📍 {domain}
+                        {isYouTube ? '▶ YouTube' : `📍 ${domain}`}
                     </span>
                 </div>
             </motion.div>
