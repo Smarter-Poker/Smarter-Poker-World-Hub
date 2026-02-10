@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
+import { Check } from 'lucide-react';
 
 const TIERS = {
   starter: {
@@ -229,7 +230,7 @@ export default function RegisterPage() {
                     {tier.popular && <span className="absolute -top-3 left-4 px-3 py-1 bg-[#1877F2] text-white text-xs rounded-full">Most Popular</span>}
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedTier === key ? 'border-[#1877F2] bg-[#1877F2]' : 'border-[#8A8D91]'}`}>{selectedTier === key && <span className="text-white text-xs">✓</span>}</div>
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedTier === key ? 'border-[#1877F2] bg-[#1877F2]' : 'border-[#8A8D91]'}`}>{selectedTier === key && <Check className="w-3 h-3 text-white" />}</div>
                         <div><div className="font-semibold text-[#E4E6EB]">{tier.name}</div><div className="text-sm text-[#B0B3B8]">{tier.tables} tables, {tier.staff} staff</div></div>
                       </div>
                       <div className="text-right"><span className="text-2xl font-bold text-[#E4E6EB]">${tier.price}</span><span className="text-[#8A8D91]">/mo</span></div>
@@ -245,7 +246,7 @@ export default function RegisterPage() {
           {/* Step 3: Complete */}
           {step === 3 && (
             <div className="text-center space-y-6">
-              <div className="w-20 h-20 bg-[#31A24C] rounded-full flex items-center justify-center mx-auto text-4xl text-white">✓</div>
+              <div className="w-20 h-20 bg-[#31A24C] rounded-full flex items-center justify-center mx-auto"><Check className="w-10 h-10 text-white" /></div>
               <h2 className="text-2xl font-bold text-[#E4E6EB]">Welcome to Club Commander!</h2>
               <p className="text-[#B0B3B8]">Your account has been created. Your 14-day trial starts now.</p>
               {registrationResult && <div className="bg-[#3A3B3C] rounded-xl p-5 text-left"><div className="flex justify-between mb-2"><span className="text-[#8A8D91]">Venue ID:</span><span className="text-[#E4E6EB] font-mono">{registrationResult.venueId}</span></div><div className="flex justify-between"><span className="text-[#8A8D91]">Plan:</span><span className="text-[#E4E6EB]">{selectedTier} (14-day trial)</span></div></div>}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import { Check } from 'lucide-react';
 
 export default function DownloadsPage() {
   const [platform, setPlatform] = useState('windows');
@@ -90,7 +91,7 @@ export default function DownloadsPage() {
           </div>
           <h1 className="text-4xl font-bold text-[#E4E6EB] mb-3">Club Commander Desktop</h1>
           <p className="text-[#B0B3B8] text-lg">The fastest way to manage your poker room</p>
-          <p className="text-[#31A24C] text-sm mt-2">✓ Version 1.0.6 - Released February 2026</p>
+          <p className="text-[#31A24C] text-sm mt-2 flex items-center justify-center gap-1"><Check className="w-4 h-4" /> Version 1.0.6 - Released February 2026</p>
         </div>
 
         {/* Main Download Card */}
@@ -155,7 +156,7 @@ export default function DownloadsPage() {
             <ul className="text-[#B0B3B8] text-sm space-y-1">
               {currentPlatform.requirements.map((req, i) => (
                 <li key={i} className="flex items-center gap-2">
-                  <span className="text-[#31A24C]">✓</span> {req}
+                  <Check className="w-4 h-4 text-[#31A24C] flex-shrink-0" /> {req}
                 </li>
               ))}
             </ul>
