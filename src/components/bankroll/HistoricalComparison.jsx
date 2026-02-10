@@ -99,12 +99,6 @@ export default function HistoricalComparison({ entries = [] }) {
                     <span style={styles.label}>Net Result</span>
                     <div style={styles.values}>
                         <span style={styles.current}>${comparison.current.netResult.toLocaleString()}</span>
-                        <span style={{
-                            ...styles.delta,
-                            color: comparison.delta.netResult >= 0 ? '#22c55e' : '#ef4444'
-                        }}>
-                            {formatDelta(comparison.delta.netResult)}
-                        </span>
                     </div>
                 </div>
 
@@ -112,12 +106,6 @@ export default function HistoricalComparison({ entries = [] }) {
                     <span style={styles.label}>Sessions</span>
                     <div style={styles.values}>
                         <span style={styles.current}>{comparison.current.sessions}</span>
-                        <span style={{
-                            ...styles.delta,
-                            color: comparison.delta.sessions >= 0 ? '#22c55e' : '#ef4444'
-                        }}>
-                            {comparison.delta.sessions >= 0 ? '+' : ''}{comparison.delta.sessions}
-                        </span>
                     </div>
                 </div>
 
@@ -125,12 +113,6 @@ export default function HistoricalComparison({ entries = [] }) {
                     <span style={styles.label}>Win Rate</span>
                     <div style={styles.values}>
                         <span style={styles.current}>{comparison.current.winRate.toFixed(1)}%</span>
-                        <span style={{
-                            ...styles.delta,
-                            color: comparison.delta.winRate >= 0 ? '#22c55e' : '#ef4444'
-                        }}>
-                            {formatDelta(comparison.delta.winRate, true)}
-                        </span>
                     </div>
                 </div>
             </div>
@@ -143,8 +125,8 @@ export default function HistoricalComparison({ entries = [] }) {
 const styles = {
     container: {
         padding: 16,
-        background: 'rgba(255, 255, 255, 0.02)',
-        border: '1px solid rgba(255, 255, 255, 0.06)',
+        background: 'linear-gradient(135deg, rgba(0,30,60,0.95), rgba(0,20,40,0.9))',
+        border: '1px solid rgba(0,212,255,0.2)',
         borderRadius: 12,
     },
     loading: {
@@ -162,7 +144,7 @@ const styles = {
     title: {
         fontSize: 14,
         fontWeight: 600,
-        color: '#fff',
+        color: '#2374e1',
         margin: 0,
     },
     periodToggle: {

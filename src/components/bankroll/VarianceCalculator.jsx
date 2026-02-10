@@ -60,25 +60,19 @@ export default function VarianceCalculator({ entries = [] }) {
             <h3 style={styles.title}>Variance Analysis</h3>
             <div style={styles.grid}>
                 <div style={styles.statBox}>
-                    <div style={styles.statLabel}>Avg Session</div>
+                    <div style={styles.statLabel}>Average Session</div>
                     <div style={{ ...styles.statValue, color: stats.mean >= 0 ? '#22c55e' : '#ef4444' }}>
                         ${stats.mean.toFixed(0)}
                     </div>
                 </div>
                 <div style={styles.statBox}>
-                    <div style={styles.statLabel}>Std Dev</div>
+                    <div style={styles.statLabel}>Standard Deviation</div>
                     <div style={styles.statValue}>${stats.stdDev.toFixed(0)}</div>
                 </div>
                 <div style={styles.statBox}>
                     <div style={styles.statLabel}>Hourly Rate</div>
                     <div style={{ ...styles.statValue, color: stats.hourlyRate >= 0 ? '#22c55e' : '#ef4444' }}>
                         ${stats.hourlyRate.toFixed(0)}/hr
-                    </div>
-                </div>
-                <div style={styles.statBox}>
-                    <div style={styles.statLabel}>95% CI</div>
-                    <div style={styles.statValueSmall}>
-                        ${stats.confidenceInterval.lower.toFixed(0)} to ${stats.confidenceInterval.upper.toFixed(0)}
                     </div>
                 </div>
             </div>
@@ -104,8 +98,8 @@ export default function VarianceCalculator({ entries = [] }) {
 const styles = {
     container: {
         padding: 16,
-        background: 'rgba(255, 255, 255, 0.02)',
-        border: '1px solid rgba(255, 255, 255, 0.06)',
+        background: 'linear-gradient(135deg, rgba(0,30,60,0.95), rgba(0,20,40,0.9))',
+        border: '1px solid rgba(0,212,255,0.2)',
         borderRadius: 12,
     },
     empty: {
@@ -119,12 +113,12 @@ const styles = {
     title: {
         fontSize: 14,
         fontWeight: 600,
-        color: '#fff',
+        color: '#2374e1',
         margin: '0 0 14px',
     },
     grid: {
         display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
+        gridTemplateColumns: '1fr 1fr 1fr',
         gap: 10,
         marginBottom: 14,
     },

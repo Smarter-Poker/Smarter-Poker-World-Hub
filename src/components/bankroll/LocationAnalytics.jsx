@@ -246,10 +246,6 @@ const styles = {
         fontSize: 12,
         color: '#fff',
         fontWeight: 500,
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        whiteSpace: 'nowrap',
-        maxWidth: '60%',
     },
     sessionCount: {
         fontSize: 10,

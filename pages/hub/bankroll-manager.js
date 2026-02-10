@@ -978,9 +978,9 @@ export default function BankrollManagerPage() {
 
                 {/* Analytics Grid — horizontal slider on mobile */}
                 <div className="bankroll-analytics-slider" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
-                  <HistoricalComparison entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} />
-                  <VarianceCalculator entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} />
                   <LocationAnalytics entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} isLoading={isLoading} />
+                  <VarianceCalculator entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} />
+                  <HistoricalComparison entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} />
                 </div>
 
                 {/* Recent Activity Section */}
@@ -1017,32 +1017,7 @@ export default function BankrollManagerPage() {
                     onDelete={handleDeleteEntry}
                   />
 
-                  {/* Trip Expenses Section */}
-                  {trips.length > 0 && (
-                    <div style={styles.tripSection}>
-                      <h3 style={styles.tripTitle}>Trip Expenses</h3>
-                      {trips.slice(0, 3).map((trip) => (
-                        <div key={trip.id} style={styles.tripCard}>
-                          <div style={styles.tripInfo}>
-                            <span style={styles.tripName}>{trip.name}:</span>
-                            <span
-                              style={{
-                                ...styles.tripNet,
-                                color: (trip.totalNet || 0) >= 0 ? '#22c55e' : '#ef4444',
-                              }}
-                            >
-                              {(trip.totalNet || 0) >= 0 ? '+' : '~-'}$
-                              {Math.abs(trip.totalNet || 0).toLocaleString()}
-                            </span>
-                            <span style={styles.tripExpenses}>
-                              Net / ${(trip.totalExpenses || 0).toLocaleString()} Expenses
-                            </span>
-                          </div>
-                          <span style={styles.tripArrow}>›</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+
                 </div>
               </>
             )}
