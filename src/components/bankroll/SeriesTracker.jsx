@@ -57,7 +57,10 @@ export default function SeriesTracker({ userId, onOpenLog }) {
     const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
 
     const loadData = useCallback(async () => {
-        if (!userId) return;
+        if (!userId) {
+            setIsLoading(false);
+            return;
+        }
         setIsLoading(true);
         try {
             const [active, all, locs] = await Promise.all([
