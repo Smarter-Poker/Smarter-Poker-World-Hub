@@ -150,17 +150,37 @@ function ExternalLinkModal({ url, title, onClose }) {
     const [blocked, setBlocked] = useState(false);
     const [copied, setCopied] = useState(false);
 
+    // Detect YouTube URLs and extract video ID
+    const youtubeVideoId = (() => {
+        if (!url) return null;
+        try {
+            const shortsMatch = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/);
+            if (shortsMatch) return shortsMatch[1];
+            const watchMatch = url.match(/youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/);
+            if (watchMatch) return watchMatch[1];
+            const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
+            if (shortMatch) return shortMatch[1];
+            const embedMatch = url.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]+)/);
+            if (embedMatch) return embedMatch[1];
+        } catch { }
+        return null;
+    })();
 
-    // Show blocked state after 3 seconds - iframe detection is unreliable
-    // Most external sites block embedding, so we show the message proactively
+    const isYouTube = !!youtubeVideoId;
+
+    // Show blocked state after 3 seconds - but NOT for YouTube (YouTube embed always works)
     useEffect(() => {
+        if (isYouTube) {
+            // YouTube embeds load reliably — don't show blocked state
+            return;
+        }
         const timeout = setTimeout(() => {
             setLoading(false);
             setBlocked(true);
         }, 3000);
 
         return () => clearTimeout(timeout);
-    }, [url]);
+    }, [url, isYouTube]);
 
     const copyLink = async () => {
         try {
@@ -186,32 +206,40 @@ function ExternalLinkModal({ url, title, onClose }) {
                 {/* Header */}
                 <div style={styles.header}>
                     <div style={styles.headerLeft}>
-                        <span style={styles.lockIcon}>🔒</span>
+                        <span style={styles.lockIcon}>{isYouTube ? '▶' : '🔒'}</span>
                         <div style={styles.headerInfo}>
                             <span style={styles.title}>{title}</span>
-                            <span style={styles.url}>{url}</span>
+                            <span style={styles.url}>{isYouTube ? 'YouTube' : url}</span>
                         </div>
                     </div>
                     <div style={styles.headerActions}>
-                        <button onClick={copyLink} style={styles.copyBtn}>
-                            {copied ? '✓ Copied!' : '📋 Copy Link'}
-                        </button>
+                        {!isYouTube && (
+                            <button onClick={copyLink} style={styles.copyBtn}>
+                                {copied ? '✓ Copied!' : '📋 Copy Link'}
+                            </button>
+                        )}
                         <button onClick={onClose} style={styles.closeBtn}>✕</button>
                     </div>
                 </div>
 
                 {/* Content */}
-                <div style={styles.content}>
+                <div style={{
+                    ...styles.content,
+                    background: isYouTube ? '#000' : '#fff',
+                }}>
                     {/* Loading state */}
                     {loading && (
-                        <div style={styles.loader}>
+                        <div style={{
+                            ...styles.loader,
+                            color: isYouTube ? '#fff' : '#0a1628',
+                        }}>
                             <div style={styles.spinner} />
-                            <span>Loading content...</span>
+                            <span>{isYouTube ? 'Loading video...' : 'Loading content...'}</span>
                         </div>
                     )}
 
-                    {/* Blocked state - shown inside the modal */}
-                    {blocked && (
+                    {/* Blocked state - only for non-YouTube */}
+                    {blocked && !isYouTube && (
                         <div style={styles.blockedState}>
                             <span style={styles.blockedIcon}>🔐</span>
                             <h3 style={styles.blockedTitle}>Content Preview Unavailable</h3>
@@ -229,18 +257,48 @@ function ExternalLinkModal({ url, title, onClose }) {
                         </div>
                     )}
 
-                    {/* Iframe - only shown during loading, hidden when blocked */}
-                    {!blocked && (
-                        <iframe
-                            src={url}
-                            style={{
-                                ...styles.iframe,
-                                opacity: loading ? 0 : 1
-                            }}
-                            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-                            referrerPolicy="no-referrer"
-                            title={title}
-                        />
+                    {/* YouTube Embed — uses official YouTube embed, always works */}
+                    {isYouTube ? (
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '100%',
+                            height: '100%',
+                        }}>
+                            <iframe
+                                src={`https://www.youtube.com/embed/${youtubeVideoId}?autoplay=1&rel=0&modestbranding=1`}
+                                style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    border: 'none',
+                                    opacity: loading ? 0 : 1,
+                                    transition: 'opacity 0.3s ease',
+                                }}
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                allowFullScreen
+                                onLoad={() => setLoading(false)}
+                                onError={() => {
+                                    setLoading(false);
+                                    setBlocked(true);
+                                }}
+                                title={title}
+                            />
+                        </div>
+                    ) : (
+                        /* Regular iframe for non-YouTube content */
+                        !blocked && (
+                            <iframe
+                                src={url}
+                                style={{
+                                    ...styles.iframe,
+                                    opacity: loading ? 0 : 1
+                                }}
+                                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                                referrerPolicy="no-referrer"
+                                title={title}
+                            />
+                        )
                     )}
                 </div>
 
