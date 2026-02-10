@@ -219,6 +219,8 @@ export default function BankrollManagerPage() {
   const [leakAnalysis, setLeakAnalysis] = useState(null);
   const [showVenueModal, setShowVenueModal] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  const [scannerStep, setScannerStep] = useState('choice'); // 'choice' | 'pick-entry' | 'scan'
+  const [scannerEntryId, setScannerEntryId] = useState(null);
   const [ruleViolations, setRuleViolations] = useState([]);
 
   //  INTRO VIDEO STATE - Video plays while page loads in background
@@ -398,6 +400,8 @@ export default function BankrollManagerPage() {
   const handleSidebarClick = (sectionId) => {
     if (sectionId === 'scan-receipt') {
       setShowScanner(true);
+      setScannerStep('choice');
+      setScannerEntryId(null);
     } else if (sectionId === 'series') {
       router.push('/hub/bankroll-manager?view=series');
     } else {
@@ -1196,21 +1200,121 @@ export default function BankrollManagerPage() {
         <div style={styles.scannerModal}>
           <div style={styles.scannerModalContent}>
             <div style={styles.scannerModalHeader}>
-              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: '#fff' }}>Scan Receipt</h2>
+              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: '#fff' }}>
+                {scannerStep === 'choice' && 'Scan Receipt'}
+                {scannerStep === 'pick-entry' && 'Select Entry'}
+                {scannerStep === 'scan' && (scannerEntryId ? 'Add to Entry' : 'New Expense')}
+              </h2>
               <button
-                onClick={() => setShowScanner(false)}
+                onClick={() => { setShowScanner(false); setScannerStep('choice'); setScannerEntryId(null); }}
                 style={styles.scannerCloseBtn}
               >
                 ✕
               </button>
             </div>
-            <ReceiptScanner
-              userId={userId}
-              onScanComplete={(data) => {
-                loadData();
-                setShowScanner(false);
-              }}
-            />
+
+            {/* Step 1: Choice */}
+            {scannerStep === 'choice' && (
+              <div style={{ padding: 20 }}>
+                <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, marginTop: 0, marginBottom: 20, textAlign: 'center' }}>
+                  What would you like to do?
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <button
+                    onClick={() => setScannerStep('pick-entry')}
+                    style={styles.scannerChoiceBtn}
+                  >
+                    <span style={{ fontSize: 22 }}>📎</span>
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{ fontWeight: 600, color: '#fff', fontSize: 15 }}>Add to Existing Entry</div>
+                      <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 2 }}>Attach receipt to a recent session or expense</div>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => { setScannerEntryId(null); setScannerStep('scan'); }}
+                    style={styles.scannerChoiceBtn}
+                  >
+                    <span style={{ fontSize: 22 }}>🆕</span>
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{ fontWeight: 600, color: '#fff', fontSize: 15 }}>Create New Expense</div>
+                      <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 2 }}>Scan as a standalone expense entry</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Pick existing entry */}
+            {scannerStep === 'pick-entry' && (
+              <div style={{ padding: '0 16px 16px' }}>
+                <button
+                  onClick={() => setScannerStep('choice')}
+                  style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: 13, cursor: 'pointer', padding: '12px 4px', fontWeight: 500 }}
+                >
+                  ← Back
+                </button>
+                {entries.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '32px 0', color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>
+                    No entries yet. Create a new expense instead.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 400, overflowY: 'auto' }}>
+                    {entries.slice(0, 20).map((entry) => {
+                      const isPositive = entry.net_result >= 0;
+                      const dateStr = entry.entry_date
+                        ? new Date(entry.entry_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                        : '';
+                      const LABELS = { cash: 'Cash Game', tournament: 'Tournament', expense: 'Expense', deposit: 'Deposit', withdrawal: 'Withdrawal', sports_bet: 'Sports Bet' };
+                      return (
+                        <button
+                          key={entry.id}
+                          onClick={() => { setScannerEntryId(entry.id); setScannerStep('scan'); }}
+                          style={styles.scannerEntryBtn}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
+                            <div style={{ width: 36, height: 36, borderRadius: 8, background: isPositive ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>
+                              {isPositive ? '✓' : '−'}
+                            </div>
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <div style={{ fontSize: 14, fontWeight: 500, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {LABELS[entry.category] || entry.category}
+                              </div>
+                              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>
+                                {dateStr}{entry.location_name ? ` · ${entry.location_name}` : ''}
+                              </div>
+                            </div>
+                          </div>
+                          <span style={{ fontSize: 15, fontWeight: 600, color: isPositive ? '#22c55e' : '#ef4444', flexShrink: 0, marginLeft: 8 }}>
+                            {isPositive ? '+' : '-'}${Math.abs(entry.net_result).toLocaleString()}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Step 3: Scanner */}
+            {scannerStep === 'scan' && (
+              <div>
+                {scannerEntryId && (
+                  <div style={{ padding: '8px 16px', background: 'rgba(59,130,246,0.1)', borderBottom: '1px solid rgba(59,130,246,0.2)', fontSize: 12, color: '#3b82f6' }}>
+                    Attaching to entry #{scannerEntryId.slice(0, 8)}...
+                  </div>
+                )}
+                <ReceiptScanner
+                  userId={userId}
+                  tripId={scannerEntryId}
+                  onScanComplete={(data) => {
+                    loadData();
+                    setShowScanner(false);
+                    setScannerStep('choice');
+                    setScannerEntryId(null);
+                  }}
+                />
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1791,6 +1895,29 @@ const styles = {
     fontSize: 20,
     cursor: 'pointer',
     padding: 4,
+  },
+  scannerChoiceBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 14,
+    padding: '16px 18px',
+    background: 'rgba(255, 255, 255, 0.04)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    cursor: 'pointer',
+    transition: 'all 0.15s ease',
+    textAlign: 'left',
+  },
+  scannerEntryBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '10px 14px',
+    background: 'rgba(255, 255, 255, 0.03)',
+    border: '1px solid rgba(255, 255, 255, 0.06)',
+    borderRadius: 10,
+    cursor: 'pointer',
+    transition: 'all 0.15s ease',
   },
   logTodayButton: {
     display: 'flex',
