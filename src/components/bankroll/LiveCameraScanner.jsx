@@ -1,281 +1,156 @@
 /**
- * LIVE CAMERA SCANNER — v3
- * Real-time document tracking with dynamic quad overlay
+ * LIVE CAMERA SCANNER — v4 (OpenCV.js)
+ * Real-time document detection using OpenCV contour detection
  *
- * Flow:
- *   1. Live camera feed — runs edge detection every frame at low res
- *   2. Detected quad morphs in real-time to wrap around the receipt
- *   3. When quad is stable for ~2s → auto-captures
- *   4. Post-capture: perspective warp using detected corners → cropped result
- *   5. Preview: "Use Image" / "Try Again"
+ * Pipeline (same as jscanify / iOS Notes / CamScanner):
+ *   1. cv.Canny → edge detection
+ *   2. cv.GaussianBlur → smooth edges
+ *   3. cv.threshold (OTSU) → binary
+ *   4. cv.findContours → find all closed shapes
+ *   5. Largest contour = document
+ *   6. Corner extraction from contour points
+ *   7. cv.getPerspectiveTransform + cv.warpPerspective → crop & flatten
  *
- * Detection pipeline (optimized for real-time at ~160px):
- *   Sobel edges → threshold → Hough Line Transform → line grouping →
- *   best quadrilateral from intersections → smooth interpolation
+ * UX: camera w/ morphing quad → auto-capture → cropped preview → Use / Retry
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 
 // ═══════════════════════════════════════════════════════════════════
-// DETECTION ENGINE (optimized for real-time ~15fps)
+// OPENCV HELPERS
 // ═══════════════════════════════════════════════════════════════════
 
-function detectQuad(video, detectW, detectH) {
-    const canvas = document.createElement('canvas');
-    canvas.width = detectW;
-    canvas.height = detectH;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, detectW, detectH);
-    const imageData = ctx.getImageData(0, 0, detectW, detectH);
-    const d = imageData.data;
-    const len = detectW * detectH;
-
-    // 1. Grayscale
-    const gray = new Uint8Array(len);
-    for (let i = 0; i < len; i++) {
-        const idx = i * 4;
-        gray[i] = (d[idx] * 77 + d[idx + 1] * 150 + d[idx + 2] * 29) >> 8;
-    }
-
-    // 2. Simple 3x3 blur
-    const blurred = new Uint8Array(len);
-    for (let y = 1; y < detectH - 1; y++) {
-        for (let x = 1; x < detectW - 1; x++) {
-            const i = y * detectW + x;
-            blurred[i] = (
-                gray[i - detectW - 1] + gray[i - detectW] * 2 + gray[i - detectW + 1] +
-                gray[i - 1] * 2 + gray[i] * 4 + gray[i + 1] * 2 +
-                gray[i + detectW - 1] + gray[i + detectW] * 2 + gray[i + detectW + 1]
-            ) >> 4;
-        }
-    }
-
-    // 3. Sobel edges
-    const edges = new Uint8Array(len);
-    for (let y = 1; y < detectH - 1; y++) {
-        for (let x = 1; x < detectW - 1; x++) {
-            const i = y * detectW + x;
-            const gx = Math.abs(
-                -blurred[i - detectW - 1] + blurred[i - detectW + 1]
-                - 2 * blurred[i - 1] + 2 * blurred[i + 1]
-                - blurred[i + detectW - 1] + blurred[i + detectW + 1]
-            );
-            const gy = Math.abs(
-                -blurred[i - detectW - 1] - 2 * blurred[i - detectW] - blurred[i - detectW + 1]
-                + blurred[i + detectW - 1] + 2 * blurred[i + detectW] + blurred[i + detectW + 1]
-            );
-            const m = gx + gy;
-            edges[i] = m > 60 ? 255 : 0;
-        }
-    }
-
-    // 4. Hough Line Transform (90 angle steps for speed)
-    const rhoMax = Math.ceil(Math.sqrt(detectW * detectW + detectH * detectH));
-    const thetaSteps = 90;
-    const accum = new Int32Array(2 * rhoMax * thetaSteps);
-
-    const cosT = new Float32Array(thetaSteps);
-    const sinT = new Float32Array(thetaSteps);
-    for (let t = 0; t < thetaSteps; t++) {
-        const theta = (t * Math.PI) / thetaSteps;
-        cosT[t] = Math.cos(theta);
-        sinT[t] = Math.sin(theta);
-    }
-
-    for (let y = 0; y < detectH; y++) {
-        for (let x = 0; x < detectW; x++) {
-            if (edges[y * detectW + x] === 0) continue;
-            for (let t = 0; t < thetaSteps; t++) {
-                const rho = Math.round(x * cosT[t] + y * sinT[t]) + rhoMax;
-                accum[rho * thetaSteps + t]++;
-            }
-        }
-    }
-
-    // 5. Find peaks
-    const minVotes = Math.max(15, Math.min(detectW, detectH) * 0.12);
-    const lines = [];
-    for (let r = 0; r < 2 * rhoMax; r++) {
-        for (let t = 0; t < thetaSteps; t++) {
-            const votes = accum[r * thetaSteps + t];
-            if (votes < minVotes) continue;
-            let isMax = true;
-            for (let dr = -2; dr <= 2 && isMax; dr++) {
-                for (let dt = -2; dt <= 2 && isMax; dt++) {
-                    if (dr === 0 && dt === 0) continue;
-                    const nr = r + dr, nt = t + dt;
-                    if (nr >= 0 && nr < 2 * rhoMax && nt >= 0 && nt < thetaSteps) {
-                        if (accum[nr * thetaSteps + nt] > votes) isMax = false;
-                    }
-                }
-            }
-            if (isMax) lines.push({ rho: r - rhoMax, theta: (t * Math.PI) / thetaSteps, votes });
-        }
-    }
-    lines.sort((a, b) => b.votes - a.votes);
-
-    // 6. Group into horizontal/vertical
-    const horizontal = [], vertical = [];
-    for (const line of lines.slice(0, 30)) {
-        const deg = (line.theta * 180) / Math.PI;
-        if (deg > 30 && deg < 150) horizontal.push(line);
-        else vertical.push(line);
-    }
-    if (horizontal.length < 2 || vertical.length < 2) return null;
-
-    // Merge similar lines
-    const merge = (arr) => {
-        const out = [];
-        const used = new Set();
-        for (let i = 0; i < arr.length; i++) {
-            if (used.has(i)) continue;
-            let rS = arr[i].rho, tS = arr[i].theta, vS = arr[i].votes, n = 1;
-            for (let j = i + 1; j < arr.length; j++) {
-                if (used.has(j)) continue;
-                if (Math.abs(arr[i].rho - arr[j].rho) < 12 && Math.abs(arr[i].theta - arr[j].theta) < 0.1) {
-                    rS += arr[j].rho; tS += arr[j].theta; vS += arr[j].votes; n++; used.add(j);
-                }
-            }
-            out.push({ rho: rS / n, theta: tS / n, votes: vS });
-            used.add(i);
-        }
-        return out;
-    };
-
-    const hm = merge(horizontal);
-    const vm = merge(vertical);
-    if (hm.length < 2 || vm.length < 2) return null;
-    hm.sort((a, b) => a.rho - b.rho);
-    vm.sort((a, b) => a.rho - b.rho);
-
-    // 7. Find best quadrilateral from line intersections
-    const intersect = (l1, l2) => {
-        const c1 = Math.cos(l1.theta), s1 = Math.sin(l1.theta);
-        const c2 = Math.cos(l2.theta), s2 = Math.sin(l2.theta);
-        const det = c1 * s2 - c2 * s1;
-        if (Math.abs(det) < 1e-6) return null;
-        return { x: (l1.rho * s2 - l2.rho * s1) / det, y: (l2.rho * c1 - l1.rho * c2) / det };
-    };
-
-    let bestQuad = null, bestArea = 0;
-    const hN = Math.min(hm.length, 4), vN = Math.min(vm.length, 4);
-
-    for (let h1 = 0; h1 < hN; h1++) {
-        for (let h2 = h1 + 1; h2 < hN; h2++) {
-            for (let v1 = 0; v1 < vN; v1++) {
-                for (let v2 = v1 + 1; v2 < vN; v2++) {
-                    const tl = intersect(hm[h1], vm[v1]);
-                    const tr = intersect(hm[h1], vm[v2]);
-                    const br = intersect(hm[h2], vm[v2]);
-                    const bl = intersect(hm[h2], vm[v1]);
-                    if (!tl || !tr || !br || !bl) continue;
-
-                    const corners = [tl, tr, br, bl];
-                    const m = -detectW * 0.1;
-                    if (!corners.every(c => c.x >= m && c.x <= detectW * 1.1 && c.y >= m && c.y <= detectH * 1.1)) continue;
-
-                    // Area
-                    const area = 0.5 * Math.abs(
-                        (tr.x - tl.x) * (br.y - tl.y) - (br.x - tl.x) * (tr.y - tl.y) +
-                        (br.x - tl.x) * (bl.y - tl.y) - (bl.x - tl.x) * (br.y - tl.y)
-                    );
-                    if (area < detectW * detectH * 0.05) continue;
-                    if (area > detectW * detectH * 0.98) continue;
-
-                    // Angle check
-                    const ab = (a, b, c) => {
-                        const dx1 = a.x - b.x, dy1 = a.y - b.y, dx2 = c.x - b.x, dy2 = c.y - b.y;
-                        return Math.abs(Math.atan2(dx1 * dy2 - dy1 * dx2, dx1 * dx2 + dy1 * dy2)) * (180 / Math.PI);
-                    };
-                    const angles = [ab(bl, tl, tr), ab(tl, tr, br), ab(tr, br, bl), ab(br, bl, tl)];
-                    if (!angles.every(a => a > 50 && a < 130)) continue;
-
-                    if (area > bestArea) { bestArea = area; bestQuad = corners; }
-                }
-            }
-        }
-    }
-
-    return bestQuad; // [TL, TR, BR, BL] in detection coords, or null
+function isOpenCvReady() {
+    return typeof cv !== 'undefined' && cv.Mat;
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// PERSPECTIVE WARP
-// ═══════════════════════════════════════════════════════════════════
-
-function perspectiveCrop(video, corners) {
-    // corners in VIDEO coordinates [TL, TR, BR, BL]
-    const vw = video.videoWidth, vh = video.videoHeight;
-
-    // Full-res source
-    const srcCanvas = document.createElement('canvas');
-    srcCanvas.width = vw; srcCanvas.height = vh;
-    const srcCtx = srcCanvas.getContext('2d');
-    srcCtx.drawImage(video, 0, 0, vw, vh);
-
-    const dist = (a, b) => Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
-    const outW = Math.round(Math.max(dist(corners[0], corners[1]), dist(corners[3], corners[2])));
-    const outH = Math.round(Math.max(dist(corners[0], corners[3]), dist(corners[1], corners[2])));
-
-    // Homography: dst → src
-    const dst = [{ x: 0, y: 0 }, { x: outW, y: 0 }, { x: outW, y: outH }, { x: 0, y: outH }];
-
-    const A = [];
-    for (let i = 0; i < 4; i++) {
-        const sx = corners[i].x, sy = corners[i].y, dx = dst[i].x, dy = dst[i].y;
-        A.push([-sx, -sy, -1, 0, 0, 0, sx * dx, sy * dx, dx]);
-        A.push([0, 0, 0, -sx, -sy, -1, sx * dy, sy * dy, dy]);
-    }
-    const n = 8, M = A.map(r => [...r]);
-    for (let col = 0; col < n; col++) {
-        let mr = col;
-        for (let row = col + 1; row < n; row++) if (Math.abs(M[row][col]) > Math.abs(M[mr][col])) mr = row;
-        [M[col], M[mr]] = [M[mr], M[col]];
-        if (Math.abs(M[col][col]) < 1e-10) continue;
-        for (let row = 0; row < n; row++) {
-            if (row === col) continue;
-            const f = M[row][col] / M[col][col];
-            for (let j = col; j <= n; j++) M[row][j] -= f * M[col][j];
-        }
-    }
-    const h = [];
-    for (let i = 0; i < n; i++) h.push(-M[i][n] / M[i][i]);
-    h.push(1);
-
-    // Inverse warp
-    const dstCanvas = document.createElement('canvas');
-    dstCanvas.width = outW; dstCanvas.height = outH;
-    const dstCtx = dstCanvas.getContext('2d');
-    const srcData = srcCtx.getImageData(0, 0, vw, vh);
-    const dstData = dstCtx.createImageData(outW, outH);
-    const sd = srcData.data, dd = dstData.data;
-
-    for (let dy = 0; dy < outH; dy++) {
-        for (let dx = 0; dx < outW; dx++) {
-            const w = h[6] * dx + h[7] * dy + h[8];
-            const sx = Math.round((h[0] * dx + h[1] * dy + h[2]) / w);
-            const sy = Math.round((h[3] * dx + h[4] * dy + h[5]) / w);
-            if (sx >= 0 && sx < vw && sy >= 0 && sy < vh) {
-                const si = (sy * vw + sx) * 4, di = (dy * outW + dx) * 4;
-                dd[di] = sd[si]; dd[di + 1] = sd[si + 1]; dd[di + 2] = sd[si + 2]; dd[di + 3] = 255;
-            }
-        }
-    }
-    dstCtx.putImageData(dstData, 0, 0);
-    return dstCanvas.toDataURL('image/jpeg', 0.92);
+function waitForOpenCv(timeout = 15000) {
+    return new Promise((resolve, reject) => {
+        if (isOpenCvReady()) return resolve();
+        const start = Date.now();
+        const check = setInterval(() => {
+            if (isOpenCvReady()) { clearInterval(check); resolve(); }
+            else if (Date.now() - start > timeout) { clearInterval(check); reject(new Error('OpenCV timeout')); }
+        }, 100);
+    });
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// SMOOTH INTERPOLATION FOR QUAD CORNERS
-// ═══════════════════════════════════════════════════════════════════
+// ─── Distance helper ──────────────────────────────────────────────
+function dist(p1, p2) {
+    return Math.hypot(p1.x - p2.x, p1.y - p2.y);
+}
 
-function lerpCorners(prev, next, t) {
+// ─── Find document contour (Canny → blur → threshold → findContours) ──
+function findDocumentContour(src) {
+    const edges = new cv.Mat();
+    cv.Canny(src, edges, 50, 200);
+
+    const blurred = new cv.Mat();
+    cv.GaussianBlur(edges, blurred, new cv.Size(3, 3), 0, 0, cv.BORDER_DEFAULT);
+
+    const thresh = new cv.Mat();
+    cv.threshold(blurred, thresh, 0, 255, cv.THRESH_OTSU);
+
+    const contours = new cv.MatVector();
+    const hierarchy = new cv.Mat();
+    cv.findContours(thresh, contours, hierarchy, cv.RETR_CCOMP, cv.CHAIN_APPROX_SIMPLE);
+
+    // Find largest contour
+    let maxArea = 0;
+    let maxIdx = -1;
+    for (let i = 0; i < contours.size(); i++) {
+        const area = cv.contourArea(contours.get(i));
+        if (area > maxArea) { maxArea = area; maxIdx = i; }
+    }
+
+    let result = null;
+    if (maxIdx >= 0) {
+        const contour = contours.get(maxIdx);
+        // Only accept if area is > 5% of image
+        const imgArea = src.rows * src.cols;
+        if (maxArea > imgArea * 0.05) {
+            result = getCornerPoints(contour);
+        }
+    }
+
+    // Cleanup OpenCV mats
+    edges.delete(); blurred.delete(); thresh.delete();
+    hierarchy.delete();
+    // Don't delete contours individually — delete the vector
+    contours.delete();
+
+    return result; // { tl, tr, bl, br } or null
+}
+
+// ─── Extract corner points from contour ───────────────────────────
+function getCornerPoints(contour) {
+    const rect = cv.minAreaRect(contour);
+    const center = rect.center;
+
+    let tl = null, tr = null, bl = null, br = null;
+    let tlDist = 0, trDist = 0, blDist = 0, brDist = 0;
+
+    const data = contour.data32S;
+    for (let i = 0; i < data.length; i += 2) {
+        const point = { x: data[i], y: data[i + 1] };
+        const d = dist(point, center);
+
+        if (point.x < center.x && point.y < center.y) {
+            if (d > tlDist) { tl = point; tlDist = d; }
+        } else if (point.x > center.x && point.y < center.y) {
+            if (d > trDist) { tr = point; trDist = d; }
+        } else if (point.x < center.x && point.y > center.y) {
+            if (d > blDist) { bl = point; blDist = d; }
+        } else if (point.x > center.x && point.y > center.y) {
+            if (d > brDist) { br = point; brDist = d; }
+        }
+    }
+
+    if (!tl || !tr || !bl || !br) return null;
+    return { tl, tr, bl, br };
+}
+
+// ─── Perspective warp using OpenCV ────────────────────────────────
+function perspectiveCropCV(srcMat, corners, outW, outH) {
+    const srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
+        corners.tl.x, corners.tl.y,
+        corners.tr.x, corners.tr.y,
+        corners.bl.x, corners.bl.y,
+        corners.br.x, corners.br.y,
+    ]);
+    const dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
+        0, 0,
+        outW, 0,
+        0, outH,
+        outW, outH,
+    ]);
+    const M = cv.getPerspectiveTransform(srcTri, dstTri);
+    const warped = new cv.Mat();
+    cv.warpPerspective(srcMat, warped, M, new cv.Size(outW, outH),
+        cv.INTER_LINEAR, cv.BORDER_CONSTANT, new cv.Scalar());
+
+    // Convert to canvas
+    const outCanvas = document.createElement('canvas');
+    outCanvas.width = outW;
+    outCanvas.height = outH;
+    cv.imshow(outCanvas, warped);
+
+    // Cleanup
+    srcTri.delete(); dstTri.delete(); M.delete(); warped.delete();
+    return outCanvas.toDataURL('image/jpeg', 0.92);
+}
+
+// ─── Smooth interpolation for quad corners ────────────────────────
+function lerpPoints(prev, next, t) {
     if (!prev) return next;
-    return next.map((c, i) => ({
-        x: prev[i].x + (c.x - prev[i].x) * t,
-        y: prev[i].y + (c.y - prev[i].y) * t,
-    }));
+    return {
+        tl: { x: prev.tl.x + (next.tl.x - prev.tl.x) * t, y: prev.tl.y + (next.tl.y - prev.tl.y) * t },
+        tr: { x: prev.tr.x + (next.tr.x - prev.tr.x) * t, y: prev.tr.y + (next.tr.y - prev.tr.y) * t },
+        bl: { x: prev.bl.x + (next.bl.x - prev.bl.x) * t, y: prev.bl.y + (next.bl.y - prev.bl.y) * t },
+        br: { x: prev.br.x + (next.br.x - prev.br.x) * t, y: prev.br.y + (next.br.y - prev.br.y) * t },
+    };
 }
+
 
 // ═══════════════════════════════════════════════════════════════════
 // COMPONENT
@@ -287,25 +162,33 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
     const streamRef = useRef(null);
     const rafRef = useRef(null);
     const stableRef = useRef(0);
-    const smoothCornersRef = useRef(null);
-    const lastDetectRef = useRef(null);
-    const detectIntervalRef = useRef(0);
+    const smoothRef = useRef(null);
+    const frameCountRef = useRef(0);
+    const lastCornersRef = useRef(null);
+    const capturingRef = useRef(false);
 
-    const [phase, setPhase] = useState('camera'); // camera | processing | preview
-    const [cameraReady, setCameraReady] = useState(false);
+    const [phase, setPhase] = useState('loading'); // loading | camera | processing | preview
     const [cameraError, setCameraError] = useState(null);
     const [detected, setDetected] = useState(false);
     const [progress, setProgress] = useState(0);
     const [croppedImage, setCroppedImage] = useState(null);
+    const [cvStatus, setCvStatus] = useState('loading');
 
     const STABLE_NEEDED = 45; // ~1.5s at 30fps
-    const DETECT_RES = 160;  // Detection resolution width
 
-    // ─── Start camera ───────────────────────────────────────────────
+    // ─── Load OpenCV + start camera ─────────────────────────────────
     useEffect(() => {
         let mounted = true;
-        async function start() {
+
+        async function init() {
             try {
+                // Wait for OpenCV.js WASM to load
+                setCvStatus('loading');
+                await waitForOpenCv(20000);
+                if (!mounted) return;
+                setCvStatus('ready');
+
+                // Start camera
                 const stream = await navigator.mediaDevices.getUserMedia({
                     video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
                     audio: false,
@@ -314,17 +197,26 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
                 streamRef.current = stream;
                 if (videoRef.current) {
                     videoRef.current.srcObject = stream;
-                    videoRef.current.onloadedmetadata = () => { videoRef.current.play(); setCameraReady(true); };
+                    videoRef.current.onloadedmetadata = () => {
+                        videoRef.current.play();
+                        if (mounted) setPhase('camera');
+                    };
                 }
             } catch (err) {
-                if (mounted) setCameraError(
-                    err.name === 'NotAllowedError' ? 'Camera permission denied.'
-                        : err.name === 'NotFoundError' ? 'No camera found.'
-                            : 'Could not access camera.'
-                );
+                if (!mounted) return;
+                if (err.message === 'OpenCV timeout') {
+                    setCameraError('OpenCV failed to load. Check your connection.');
+                } else if (err.name === 'NotAllowedError') {
+                    setCameraError('Camera permission denied.');
+                } else if (err.name === 'NotFoundError') {
+                    setCameraError('No camera found.');
+                } else {
+                    setCameraError('Could not start scanner.');
+                }
             }
         }
-        start();
+
+        init();
         return () => {
             mounted = false;
             streamRef.current?.getTracks().forEach(t => t.stop());
@@ -332,13 +224,14 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
         };
     }, []);
 
-    // ─── Real-time detection & overlay loop ─────────────────────────
+    // ─── Real-time detection loop ───────────────────────────────────
     useEffect(() => {
-        if (!cameraReady || phase !== 'camera') return;
+        if (phase !== 'camera' || !isOpenCvReady()) return;
 
-        // 1.5s warmup before detection starts
+        // 1s warmup
         const warmup = setTimeout(() => {
             const processFrame = () => {
+                if (capturingRef.current) return;
                 const video = videoRef.current;
                 const overlay = overlayRef.current;
                 if (!video || !overlay || !video.videoWidth) {
@@ -348,178 +241,190 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
 
                 const vw = video.videoWidth, vh = video.videoHeight;
 
-                // Size overlay to match displayed video
+                // Size overlay canvas to match displayed video
                 const rect = video.getBoundingClientRect();
                 if (overlay.width !== rect.width) overlay.width = rect.width;
                 if (overlay.height !== rect.height) overlay.height = rect.height;
-
-                // Run detection every 2nd frame for performance
-                detectIntervalRef.current++;
-                let rawCorners = lastDetectRef.current;
-                if (detectIntervalRef.current % 2 === 0) {
-                    const dw = DETECT_RES;
-                    const dh = Math.round(vh * (dw / vw));
-                    rawCorners = detectQuad(video, dw, dh);
-                    lastDetectRef.current = rawCorners;
-                }
-
-                // Draw overlay
                 const oCtx = overlay.getContext('2d');
                 oCtx.clearRect(0, 0, overlay.width, overlay.height);
 
-                if (rawCorners) {
-                    // Scale from detect coords to video coords
-                    const dw = DETECT_RES;
-                    const dh = Math.round(vh * (dw / vw));
-                    const videoCorners = rawCorners.map(c => ({
-                        x: (c.x / dw) * vw,
-                        y: (c.y / dh) * vh,
-                    }));
+                // Run detection every 3rd frame for performance
+                frameCountRef.current++;
+                if (frameCountRef.current % 3 === 0) {
+                    // Read video frame into temp canvas, then into cv.Mat
+                    const tmpCanvas = document.createElement('canvas');
+                    // Process at reduced resolution for speed
+                    const scale = Math.min(1, 400 / Math.max(vw, vh));
+                    const procW = Math.round(vw * scale);
+                    const procH = Math.round(vh * scale);
+                    tmpCanvas.width = procW;
+                    tmpCanvas.height = procH;
+                    const tmpCtx = tmpCanvas.getContext('2d');
+                    tmpCtx.drawImage(video, 0, 0, procW, procH);
 
-                    // Smooth interpolation
-                    smoothCornersRef.current = lerpCorners(smoothCornersRef.current, videoCorners, 0.3);
-                    const smooth = smoothCornersRef.current;
+                    let src = null;
+                    try {
+                        src = cv.imread(tmpCanvas);
+                        const rawCorners = findDocumentContour(src);
 
-                    // Scale from video coords to display coords
-                    // Handle object-fit: cover — video might be cropped
+                        if (rawCorners) {
+                            // Scale corners back to full video coords
+                            const fullCorners = {
+                                tl: { x: rawCorners.tl.x / scale, y: rawCorners.tl.y / scale },
+                                tr: { x: rawCorners.tr.x / scale, y: rawCorners.tr.y / scale },
+                                bl: { x: rawCorners.bl.x / scale, y: rawCorners.bl.y / scale },
+                                br: { x: rawCorners.br.x / scale, y: rawCorners.br.y / scale },
+                            };
+                            lastCornersRef.current = fullCorners;
+                            smoothRef.current = lerpPoints(smoothRef.current, fullCorners, 0.35);
+                            stableRef.current = Math.min(stableRef.current + 1, STABLE_NEEDED);
+                            setDetected(true);
+                        } else {
+                            stableRef.current = Math.max(0, stableRef.current - 3);
+                            if (stableRef.current === 0) { smoothRef.current = null; lastCornersRef.current = null; }
+                            setDetected(false);
+                        }
+                    } catch (e) {
+                        console.warn('Detection error:', e);
+                    } finally {
+                        if (src) src.delete();
+                    }
+                }
+
+                // Draw overlay quad from smoothed corners
+                const smooth = smoothRef.current;
+                if (smooth) {
+                    // Map video coords → display coords (accounting for object-fit: cover)
                     const videoAspect = vw / vh;
                     const displayAspect = rect.width / rect.height;
                     let scaleX, scaleY, offsetX = 0, offsetY = 0;
-
                     if (videoAspect > displayAspect) {
-                        // Video wider than display — cropped horizontally
-                        scaleY = rect.height / vh;
-                        scaleX = scaleY;
+                        scaleY = rect.height / vh; scaleX = scaleY;
                         offsetX = (rect.width - vw * scaleX) / 2;
                     } else {
-                        // Video taller than display — cropped vertically
-                        scaleX = rect.width / vw;
-                        scaleY = scaleX;
+                        scaleX = rect.width / vw; scaleY = scaleX;
                         offsetY = (rect.height - vh * scaleY) / 2;
                     }
+                    const toDisplay = (p) => ({ x: p.x * scaleX + offsetX, y: p.y * scaleY + offsetY });
 
-                    const displayCorners = smooth.map(c => ({
-                        x: c.x * scaleX + offsetX,
-                        y: c.y * scaleY + offsetY,
-                    }));
+                    const dtl = toDisplay(smooth.tl);
+                    const dtr = toDisplay(smooth.tr);
+                    const dbr = toDisplay(smooth.br);
+                    const dbl = toDisplay(smooth.bl);
 
-                    // Check stability
-                    const prev = smoothCornersRef.current;
-                    if (prev) {
-                        const maxDrift = Math.max(...displayCorners.map((c, i) => {
-                            const p = displayCorners[i]; // comparing to self after lerp — stable = small changes
-                            return 0; // drift is handled by lerp smoothing
-                        }));
-                    }
-
-                    // Stability: check if detection is consistent
-                    stableRef.current++;
                     const stableRatio = Math.min(1, stableRef.current / STABLE_NEEDED);
                     setProgress(stableRatio);
-                    setDetected(true);
-
-                    // Draw the morphing quad
                     const isReady = stableRatio >= 1;
-                    oCtx.strokeStyle = isReady ? '#22c55e' : `rgba(0, 212, 255, ${0.5 + stableRatio * 0.5})`;
-                    oCtx.lineWidth = isReady ? 3 : 2;
+
+                    // Draw quad
+                    oCtx.strokeStyle = isReady ? '#22c55e' : `rgba(0, 180, 255, ${0.5 + stableRatio * 0.5})`;
+                    oCtx.lineWidth = isReady ? 3.5 : 2.5;
+                    oCtx.lineJoin = 'round';
                     oCtx.beginPath();
-                    oCtx.moveTo(displayCorners[0].x, displayCorners[0].y);
-                    oCtx.lineTo(displayCorners[1].x, displayCorners[1].y);
-                    oCtx.lineTo(displayCorners[2].x, displayCorners[2].y);
-                    oCtx.lineTo(displayCorners[3].x, displayCorners[3].y);
+                    oCtx.moveTo(dtl.x, dtl.y);
+                    oCtx.lineTo(dtr.x, dtr.y);
+                    oCtx.lineTo(dbr.x, dbr.y);
+                    oCtx.lineTo(dbl.x, dbl.y);
                     oCtx.closePath();
                     oCtx.stroke();
 
-                    // Semi-transparent fill inside detected area
-                    oCtx.fillStyle = isReady ? 'rgba(34, 197, 94, 0.08)' : 'rgba(0, 212, 255, 0.05)';
+                    // Fill
+                    oCtx.fillStyle = isReady ? 'rgba(34, 197, 94, 0.08)' : 'rgba(0, 180, 255, 0.04)';
                     oCtx.fill();
 
                     // Corner dots
-                    const dotR = isReady ? 7 : 5;
-                    for (const c of displayCorners) {
+                    const dotR = isReady ? 6 : 4;
+                    for (const c of [dtl, dtr, dbr, dbl]) {
                         oCtx.beginPath();
                         oCtx.arc(c.x, c.y, dotR, 0, Math.PI * 2);
-                        oCtx.fillStyle = isReady ? '#22c55e' : '#00d4ff';
+                        oCtx.fillStyle = isReady ? '#22c55e' : '#00b4ff';
                         oCtx.fill();
                     }
 
-                    // Auto-capture when stable
-                    if (stableRef.current >= STABLE_NEEDED) {
-                        setPhase('processing');
-                        // Use the smooth video-coord corners for cropping
-                        const cropCorners = smooth;
-                        streamRef.current?.getTracks().forEach(t => t.stop());
-
-                        try {
-                            const cropped = perspectiveCrop(video, cropCorners);
-                            setCroppedImage(cropped);
-                            setPhase('preview');
-                        } catch (err) {
-                            console.error('Crop error:', err);
-                            // Fallback: capture full frame
-                            const fc = document.createElement('canvas');
-                            fc.width = vw; fc.height = vh;
-                            fc.getContext('2d').drawImage(video, 0, 0);
-                            setCroppedImage(fc.toDataURL('image/jpeg', 0.92));
-                            setPhase('preview');
-                        }
+                    // Auto-capture
+                    if (stableRef.current >= STABLE_NEEDED && !capturingRef.current) {
+                        capturingRef.current = true;
+                        doCapture(smooth);
                         return;
                     }
                 } else {
-                    // No detection — decay stability
-                    stableRef.current = Math.max(0, stableRef.current - 3);
-                    if (stableRef.current === 0) smoothCornersRef.current = null;
-                    setDetected(false);
-                    setProgress(Math.min(1, stableRef.current / STABLE_NEEDED));
+                    setProgress(0);
                 }
 
                 rafRef.current = requestAnimationFrame(processFrame);
             };
 
             rafRef.current = requestAnimationFrame(processFrame);
-        }, 1200); // 1.2s warmup
+        }, 1000);
 
         return () => {
             clearTimeout(warmup);
             if (rafRef.current) cancelAnimationFrame(rafRef.current);
         };
-    }, [cameraReady, phase, onCapture]);
+    }, [phase]);
+
+    // ─── Capture & crop ─────────────────────────────────────────────
+    const doCapture = useCallback((corners) => {
+        const video = videoRef.current;
+        if (!video) return;
+
+        setPhase('processing');
+
+        // Capture full-res frame
+        const fullCanvas = document.createElement('canvas');
+        fullCanvas.width = video.videoWidth;
+        fullCanvas.height = video.videoHeight;
+        fullCanvas.getContext('2d').drawImage(video, 0, 0);
+
+        // Stop camera
+        streamRef.current?.getTracks().forEach(t => t.stop());
+
+        try {
+            const src = cv.imread(fullCanvas);
+            const outW = Math.round(Math.max(dist(corners.tl, corners.tr), dist(corners.bl, corners.br)));
+            const outH = Math.round(Math.max(dist(corners.tl, corners.bl), dist(corners.tr, corners.br)));
+            const cropped = perspectiveCropCV(src, corners, outW, outH);
+            src.delete();
+            setCroppedImage(cropped);
+            setPhase('preview');
+        } catch (err) {
+            console.error('Crop failed:', err);
+            // Fallback to full frame
+            setCroppedImage(fullCanvas.toDataURL('image/jpeg', 0.92));
+            setPhase('preview');
+        }
+    }, []);
 
     // ─── Manual capture ─────────────────────────────────────────────
     const handleManualCapture = useCallback(() => {
-        const video = videoRef.current;
-        if (!video || phase !== 'camera') return;
-
-        setPhase('processing');
-        streamRef.current?.getTracks().forEach(t => t.stop());
-
-        if (smoothCornersRef.current) {
-            // Use detected corners
-            try {
-                const cropped = perspectiveCrop(video, smoothCornersRef.current);
-                setCroppedImage(cropped);
-                setPhase('preview');
-                return;
-            } catch (e) { /* fall through */ }
+        if (phase !== 'camera') return;
+        capturingRef.current = true;
+        const corners = smoothRef.current || lastCornersRef.current;
+        if (corners) {
+            doCapture(corners);
+        } else {
+            // No detection — capture full frame
+            const video = videoRef.current;
+            if (!video) return;
+            setPhase('processing');
+            streamRef.current?.getTracks().forEach(t => t.stop());
+            const fc = document.createElement('canvas');
+            fc.width = video.videoWidth; fc.height = video.videoHeight;
+            fc.getContext('2d').drawImage(video, 0, 0);
+            setCroppedImage(fc.toDataURL('image/jpeg', 0.92));
+            setPhase('preview');
         }
-
-        // No detection — capture full frame
-        const fc = document.createElement('canvas');
-        fc.width = video.videoWidth; fc.height = video.videoHeight;
-        fc.getContext('2d').drawImage(video, 0, 0);
-        setCroppedImage(fc.toDataURL('image/jpeg', 0.92));
-        setPhase('preview');
-    }, [phase]);
+    }, [phase, doCapture]);
 
     // ─── Retry ──────────────────────────────────────────────────────
     const handleRetry = useCallback(() => {
         setCroppedImage(null);
         setProgress(0);
         stableRef.current = 0;
-        smoothCornersRef.current = null;
-        lastDetectRef.current = null;
+        smoothRef.current = null;
+        lastCornersRef.current = null;
+        capturingRef.current = false;
         setDetected(false);
-        setPhase('camera');
 
         navigator.mediaDevices.getUserMedia({
             video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
@@ -528,7 +433,10 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
             streamRef.current = stream;
             if (videoRef.current) {
                 videoRef.current.srcObject = stream;
-                videoRef.current.onloadedmetadata = () => { videoRef.current.play(); setCameraReady(true); };
+                videoRef.current.onloadedmetadata = () => {
+                    videoRef.current.play();
+                    setPhase('camera');
+                };
             }
         }).catch(() => setCameraError('Could not restart camera.'));
     }, []);
@@ -543,86 +451,90 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
     // ═══════════════════════════════════════════════════════════════
     return (
         <div style={styles.container}>
-            {/* === CAMERA PHASE === */}
-            {phase === 'camera' && (
-                <>
-                    <div style={styles.viewfinder}>
-                        <video ref={videoRef} playsInline muted style={styles.video} />
-                        <canvas ref={overlayRef} style={styles.overlay} />
+            {/* LOADING */}
+            {phase === 'loading' && !cameraError && (
+                <div style={styles.centerView}>
+                    <div style={styles.spinner} />
+                    <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, marginTop: 12 }}>
+                        {cvStatus === 'loading' ? 'Loading scanner engine...' : 'Starting camera...'}
+                    </span>
+                </div>
+            )}
 
-                        {/* Status pill */}
-                        {cameraReady && (
-                            <div style={styles.statusBar}>
-                                <div style={{
-                                    ...styles.statusDot,
-                                    background: detected
-                                        ? progress >= 1 ? '#22c55e' : '#00d4ff'
-                                        : 'rgba(255,255,255,0.3)',
-                                }} />
-                                <span style={styles.statusText}>
-                                    {detected
-                                        ? progress >= 1 ? 'Capturing...' : 'Hold steady...'
-                                        : 'Point at receipt'}
-                                </span>
-                            </div>
-                        )}
+            {/* ERROR */}
+            {cameraError && (
+                <div style={styles.centerView}>
+                    <span style={{ fontSize: 32, marginBottom: 12 }}>📷</span>
+                    <p style={{ color: '#fff', fontSize: 14, textAlign: 'center', margin: 0 }}>{cameraError}</p>
+                    <button onClick={onClose} style={{ ...styles.retryBtn, marginTop: 16, maxWidth: 160 }}>Close</button>
+                </div>
+            )}
 
-                        {/* Progress ring */}
-                        {cameraReady && detected && progress > 0 && progress < 1 && (
-                            <div style={styles.progressRing}>
-                                <svg width="52" height="52" viewBox="0 0 52 52">
-                                    <circle cx="26" cy="26" r="22" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="3" />
-                                    <circle cx="26" cy="26" r="22" fill="none" stroke="#00d4ff" strokeWidth="3"
-                                        strokeDasharray={`${2 * Math.PI * 22}`}
-                                        strokeDashoffset={`${2 * Math.PI * 22 * (1 - progress)}`}
-                                        strokeLinecap="round" transform="rotate(-90 26 26)"
-                                        style={{ transition: 'stroke-dashoffset 0.15s ease' }}
-                                    />
-                                </svg>
-                            </div>
-                        )}
+            {/* CAMERA */}
+            {(phase === 'camera' || phase === 'loading') && (
+                <div style={{ ...styles.viewfinder, display: phase === 'loading' ? 'none' : 'block' }}>
+                    <video ref={videoRef} playsInline muted style={styles.video} />
+                    <canvas ref={overlayRef} style={styles.overlay} />
 
-                        {cameraError && (
-                            <div style={styles.errorState}>
-                                <span style={{ fontSize: 32, marginBottom: 12 }}>📷</span>
-                                <p style={{ color: '#fff', fontSize: 14, textAlign: 'center' }}>{cameraError}</p>
-                            </div>
-                        )}
-
-                        {!cameraReady && !cameraError && (
-                            <div style={styles.loadingState}>
-                                <div style={styles.spinner} />
-                                <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13 }}>Starting camera...</span>
-                            </div>
-                        )}
+                    {/* Status pill */}
+                    <div style={styles.statusBar}>
+                        <div style={{
+                            ...styles.statusDot,
+                            background: detected
+                                ? progress >= 1 ? '#22c55e' : '#00b4ff'
+                                : 'rgba(255,255,255,0.3)',
+                        }} />
+                        <span style={styles.statusText}>
+                            {detected
+                                ? progress >= 1 ? 'Capturing...' : 'Hold steady...'
+                                : 'Point at receipt'}
+                        </span>
                     </div>
 
-                    {/* Controls bar */}
+                    {/* Progress ring */}
+                    {detected && progress > 0 && progress < 1 && (
+                        <div style={styles.progressRing}>
+                            <svg width="50" height="50" viewBox="0 0 50 50">
+                                <circle cx="25" cy="25" r="21" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="3" />
+                                <circle cx="25" cy="25" r="21" fill="none" stroke="#00b4ff" strokeWidth="3"
+                                    strokeDasharray={`${2 * Math.PI * 21}`}
+                                    strokeDashoffset={`${2 * Math.PI * 21 * (1 - progress)}`}
+                                    strokeLinecap="round" transform="rotate(-90 25 25)"
+                                    style={{ transition: 'stroke-dashoffset 0.15s ease' }}
+                                />
+                            </svg>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Camera controls */}
+            {phase === 'camera' && (
+                <>
                     <div style={styles.controls}>
                         <button onClick={onClose} style={styles.cancelBtn}>Cancel</button>
-                        <button onClick={handleManualCapture} disabled={!cameraReady}
-                            style={{ ...styles.captureBtn, opacity: !cameraReady ? 0.4 : 1 }}>
+                        <button onClick={handleManualCapture} style={styles.captureBtn}>
                             <div style={styles.captureBtnInner} />
                         </button>
                         <div style={{ width: 60 }} />
                     </div>
                     <div style={styles.hint}>
                         <p style={{ margin: 0, color: 'rgba(255,255,255,0.4)', fontSize: 11, textAlign: 'center' }}>
-                            Box wraps around receipt · Auto-captures when stable
+                            Outline wraps around receipt · Auto-captures when stable
                         </p>
                     </div>
                 </>
             )}
 
-            {/* === PROCESSING === */}
+            {/* PROCESSING */}
             {phase === 'processing' && (
-                <div style={styles.processingView}>
+                <div style={styles.centerView}>
                     <div style={styles.spinner} />
                     <span style={{ color: '#fff', fontSize: 14, marginTop: 12 }}>Cropping receipt...</span>
                 </div>
             )}
 
-            {/* === PREVIEW === */}
+            {/* PREVIEW */}
             {phase === 'preview' && croppedImage && (
                 <>
                     <div style={styles.previewHeader}>
@@ -639,8 +551,7 @@ export default function LiveCameraScanner({ onCapture, onClose }) {
             )}
 
             <style jsx global>{`
-        @keyframes lcsFlash { 0% { opacity: 0.8; } 100% { opacity: 0; } }
-        @keyframes lcsSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes lcsSpinner { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
         </div>
     );
@@ -660,6 +571,10 @@ const styles = {
     },
     video: { width: '100%', height: '100%', objectFit: 'cover' },
     overlay: { position: 'absolute', inset: 0, pointerEvents: 'none' },
+    centerView: {
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        padding: '80px 24px', background: '#111', minHeight: 200,
+    },
     statusBar: {
         position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
         display: 'flex', alignItems: 'center', gap: 8,
@@ -669,18 +584,10 @@ const styles = {
     statusDot: { width: 8, height: 8, borderRadius: '50%', transition: 'background 0.2s' },
     statusText: { color: '#fff', fontSize: 13, fontWeight: 500, fontFamily: 'Inter, -apple-system, sans-serif' },
     progressRing: { position: 'absolute', bottom: 16, right: 16 },
-    errorState: {
-        position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center', background: '#111', padding: 24,
-    },
-    loadingState: {
-        position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center', gap: 12, background: '#111',
-    },
     spinner: {
         width: 28, height: 28,
-        border: '2px solid rgba(255,255,255,0.1)', borderTopColor: '#00d4ff',
-        borderRadius: '50%', animation: 'lcsSpin 0.8s linear infinite',
+        border: '2px solid rgba(255,255,255,0.1)', borderTopColor: '#00b4ff',
+        borderRadius: '50%', animation: 'lcsSpinner 0.8s linear infinite',
     },
     controls: {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -697,10 +604,6 @@ const styles = {
     },
     captureBtnInner: { width: 52, height: 52, borderRadius: '50%', background: '#fff' },
     hint: { padding: '4px 16px 14px', background: '#000' },
-    processingView: {
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        padding: '80px 24px', background: '#111',
-    },
     previewHeader: {
         padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', background: '#1a1b1e',
     },

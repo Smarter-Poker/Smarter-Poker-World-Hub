@@ -26,6 +26,9 @@ export default function Document() {
 
                 {/* Theme color for mobile browsers */}
                 <meta name="theme-color" content="#0a0a15" />
+
+                {/* OpenCV.js — WASM for document detection (receipt scanner) */}
+                <script async src="https://docs.opencv.org/4.9.0/opencv.js" />
             </Head>
             <body>
                 <Main />

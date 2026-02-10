@@ -87,12 +87,13 @@ export default function SignUpPage() {
 
     // Override global html/body background for Facebook Dark theme
     useEffect(() => {
-        const originalBg = document.documentElement.style.background;
-        document.documentElement.style.background = '#18191A';
-        document.body.style.background = '#18191A';
+        const style = document.createElement('style');
+        style.id = 'signup-bg-override';
+        style.textContent = 'html, body { background: #18191A !important; }';
+        document.head.appendChild(style);
         return () => {
-            document.documentElement.style.background = originalBg;
-            document.body.style.background = '';
+            const el = document.getElementById('signup-bg-override');
+            if (el) el.remove();
         };
     }, []);
 

@@ -31,8 +31,12 @@ const CATEGORY_MAP = {
     history: ['poker_history', 'famous_hands', 'player_profiles'],
     rules: ['rule_knowledge'],
     pro: ['gto_theory', 'tournament_facts'],
-    arcade: null
-    // survival mode temporarily disabled - TODO: create separate page
+    arcade: null,
+    mtt: ['mtt_situations'],
+    cash: ['cash_game_situations'],
+    icm: ['icm_chip_ev'],
+    gto: ['gto_theory', 'gto_scenarios', 'mtt_situations', 'cash_game_situations', 'icm_chip_ev']
+    // survival mode has separate page
 };
 
 export default function TriviaModePage() {

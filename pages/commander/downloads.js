@@ -22,26 +22,26 @@ export default function DownloadsPage() {
     windows: {
       name: 'Windows',
       icon: '',
-      filename: 'Club.Commander.Setup.1.0.4.exe',
+      filename: 'Club.Commander.Setup.1.0.5.exe',
       size: '72.9 MB',
-      downloadUrl: 'https://github.com/Smarter-Poker/club-commander-desktop/releases/download/v1.0.4/Club.Commander.Setup.1.0.4.exe',
+      downloadUrl: 'https://github.com/Smarter-Poker/club-commander-desktop/releases/download/v1.0.5/Club.Commander.Setup.1.0.5.exe',
       altDownload: {
         name: 'Portable Version',
-        filename: 'Club.Commander.1.0.4.exe',
-        url: 'https://github.com/Smarter-Poker/club-commander-desktop/releases/download/v1.0.4/Club.Commander.1.0.4.exe'
+        filename: 'Club.Commander.1.0.5.exe',
+        url: 'https://github.com/Smarter-Poker/club-commander-desktop/releases/download/v1.0.5/Club.Commander.1.0.5.exe'
       },
       requirements: ['Windows 10 or later', '4GB RAM minimum', '200MB disk space']
     },
     mac: {
       name: 'macOS',
       icon: '',
-      filename: 'Club.Commander-1.0.4-arm64.dmg',
+      filename: 'Club.Commander-1.0.5-arm64.dmg',
       size: '89.8 MB',
-      downloadUrl: 'https://github.com/Smarter-Poker/club-commander-desktop/releases/download/v1.0.4/Club.Commander-1.0.4-arm64.dmg',
+      downloadUrl: 'https://github.com/Smarter-Poker/club-commander-desktop/releases/download/v1.0.5/Club.Commander-1.0.5-arm64.dmg',
       altDownload: {
         name: 'ZIP Archive',
-        filename: 'Club.Commander-1.0.4-arm64-mac.zip',
-        url: 'https://github.com/Smarter-Poker/club-commander-desktop/releases/download/v1.0.4/Club.Commander-1.0.4-arm64-mac.zip'
+        filename: 'Club.Commander-1.0.5-arm64-mac.zip',
+        url: 'https://github.com/Smarter-Poker/club-commander-desktop/releases/download/v1.0.5/Club.Commander-1.0.5-arm64-mac.zip'
       },
       requirements: ['macOS 11 (Big Sur) or later', 'Apple Silicon (M1/M2/M3)', '4GB RAM minimum', '200MB disk space'],
       installNote: 'After downloading, right-click the app and select "Open", then click "Open" in the dialog. Or go to System Settings → Privacy & Security and click "Open Anyway".'
@@ -49,13 +49,13 @@ export default function DownloadsPage() {
     linux: {
       name: 'Linux',
       icon: '',
-      filename: 'Club.Commander-1.0.4.AppImage',
+      filename: 'Club.Commander-1.0.5.AppImage',
       size: '99.6 MB',
-      downloadUrl: 'https://github.com/Smarter-Poker/club-commander-desktop/releases/download/v1.0.4/Club.Commander-1.0.4.AppImage',
+      downloadUrl: 'https://github.com/Smarter-Poker/club-commander-desktop/releases/download/v1.0.5/Club.Commander-1.0.5.AppImage',
       altDownload: {
         name: 'Debian Package',
-        filename: 'club-commander_1.0.4_amd64.deb',
-        url: 'https://github.com/Smarter-Poker/club-commander-desktop/releases/download/v1.0.4/club-commander_1.0.4_amd64.deb'
+        filename: 'club-commander_1.0.5_amd64.deb',
+        url: 'https://github.com/Smarter-Poker/club-commander-desktop/releases/download/v1.0.5/club-commander_1.0.5_amd64.deb'
       },
       requirements: ['Ubuntu 20.04+ or equivalent', '4GB RAM minimum', '200MB disk space']
     }
@@ -90,7 +90,7 @@ export default function DownloadsPage() {
           </div>
           <h1 className="text-4xl font-bold text-[#E4E6EB] mb-3">Club Commander Desktop</h1>
           <p className="text-[#B0B3B8] text-lg">The fastest way to manage your poker room</p>
-          <p className="text-[#31A24C] text-sm mt-2">✓ Version 1.0.4 - Released February 2026</p>
+          <p className="text-[#31A24C] text-sm mt-2">✓ Version 1.0.5 - Released February 2026</p>
         </div>
 
         {/* Main Download Card */}
