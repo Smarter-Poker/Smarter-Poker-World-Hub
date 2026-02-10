@@ -75,7 +75,9 @@ function CategoryIcon({ category }) {
 }
 
 function formatDate(dateStr) {
-  const date = new Date(dateStr);
+  // Append T12:00:00 to avoid UTC midnight shifting to previous day in local timezone
+  const safe = dateStr?.includes('T') ? dateStr : `${dateStr}T12:00:00`;
+  const date = new Date(safe);
   const today = new Date();
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
@@ -139,7 +141,8 @@ function EntryRow({ entry, index, onEdit, onDelete }) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.03 }}
-      style={styles.entryRow}
+      style={{ ...styles.entryRow, cursor: onEdit ? 'pointer' : 'default' }}
+      onClick={() => onEdit?.(entry)}
     >
       <div style={styles.entryIcon}>
         <CategoryIcon category={entry.category} />

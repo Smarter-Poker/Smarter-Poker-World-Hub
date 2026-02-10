@@ -513,7 +513,7 @@ export default function BankrollManagerPage() {
               <div style={styles.headerActions}>
                 {activeSection !== 'notes' && categoryFilter === 'all' && (
                   <button style={styles.logButton} onClick={handleLogClick}>
-                    + Log
+                    Add +
                   </button>
                 )}
               </div>

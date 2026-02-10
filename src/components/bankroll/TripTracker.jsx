@@ -198,7 +198,7 @@ export default function TripTracker({ userId, onOpenLog }) {
                             <h2 style={styles.activeTripName}>{activeTrip.name}</h2>
                             <p style={styles.activeTripMeta}>
                                 {activeTrip.location_name && `📍 ${activeTrip.location_name} · `}
-                                Started {new Date(activeTrip.start_date).toLocaleDateString()} · Day {daysSinceStart}
+                                Started {new Date(activeTrip.start_date + 'T12:00:00').toLocaleDateString()} · Day {daysSinceStart}
                             </p>
                         </>
                     ) : (
@@ -454,9 +454,9 @@ export default function TripTracker({ userId, onOpenLog }) {
                                 </div>
                                 <div style={styles.tripCardMeta}>
                                     {trip.location_name && <span>📍 {trip.location_name}</span>}
-                                    <span>📅 {new Date(trip.start_date).toLocaleDateString()}</span>
+                                    <span>📅 {new Date(trip.start_date + 'T12:00:00').toLocaleDateString()}</span>
                                     {trip.end_date && (
-                                        <span> — {new Date(trip.end_date).toLocaleDateString()}</span>
+                                        <span> — {new Date(trip.end_date + 'T12:00:00').toLocaleDateString()}</span>
                                     )}
                                 </div>
                                 <div style={styles.tripCardFooter}>
