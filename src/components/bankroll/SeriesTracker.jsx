@@ -53,6 +53,7 @@ export default function SeriesTracker({ userId, onOpenLog }) {
     });
     const [showSeriesSuggestions, setShowSeriesSuggestions] = useState(false);
     const [dbSeriesNames, setDbSeriesNames] = useState([]);
+    const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
 
     const loadData = useCallback(async () => {
         if (!userId) return;
@@ -433,43 +434,49 @@ export default function SeriesTracker({ userId, onOpenLog }) {
                             })()}
                         </div>
 
-                        <label style={styles.formLabel}>Location</label>
-                        {newSeries.location_id !== '__new__' ? (
-                            <select
-                                value={newSeries.location_id || ''}
+                        <label style={styles.formLabel}>Location / Venue</label>
+                        <div style={{ position: 'relative' }}>
+                            <input
+                                type="text"
+                                value={newSeries.location_name || ''}
                                 onChange={e => {
-                                    if (e.target.value === '__new__') {
-                                        setNewSeries({ ...newSeries, location_id: '__new__', location_name: '' });
-                                    } else {
-                                        const loc = locations.find(l => l.id === e.target.value);
-                                        setNewSeries({ ...newSeries, location_id: e.target.value || null, location_name: loc?.name || '' });
-                                    }
+                                    const val = e.target.value;
+                                    const match = locations.find(l => l.name.toLowerCase() === val.toLowerCase());
+                                    setNewSeries({ ...newSeries, location_name: val, location_id: match ? match.id : '__new__' });
+                                    setShowLocationSuggestions(true);
                                 }}
+                                onFocus={() => setShowLocationSuggestions(true)}
+                                onBlur={() => setTimeout(() => setShowLocationSuggestions(false), 200)}
+                                placeholder="Type venue name..."
                                 style={styles.formInput}
-                            >
-                                <option value="">-- Select Location --</option>
-                                {locations.map(loc => (
-                                    <option key={loc.id} value={loc.id}>{loc.name}</option>
-                                ))}
-                                <option value="__new__">+ New Location</option>
-                            </select>
-                        ) : (
-                            <div style={{ display: 'flex', gap: 6 }}>
-                                <input
-                                    type="text"
-                                    value={newSeries.location_name || ''}
-                                    onChange={e => setNewSeries({ ...newSeries, location_name: e.target.value })}
-                                    placeholder=""
-                                    style={{ ...styles.formInput, flex: 1 }}
-                                    autoFocus
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setNewSeries({ ...newSeries, location_id: null, location_name: '' })}
-                                    style={{ ...styles.formInput, flex: 'none', width: 40, cursor: 'pointer', textAlign: 'center', padding: 0 }}
-                                >&#x21A9;</button>
-                            </div>
-                        )}
+                            />
+                            {showLocationSuggestions && (() => {
+                                const q = (newSeries.location_name || '').toLowerCase();
+                                const filtered = q.length > 0
+                                    ? locations.filter(l => l.name.toLowerCase().includes(q))
+                                    : locations;
+                                if (filtered.length === 0) return null;
+                                return (
+                                    <div style={{
+                                        position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4,
+                                        background: '#242526', border: '1px solid rgba(255,255,255,0.15)',
+                                        borderRadius: 8, maxHeight: 180, overflowY: 'auto', zIndex: 50,
+                                        boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+                                    }}>
+                                        {filtered.map(loc => (
+                                            <button key={loc.id} type="button"
+                                                onMouseDown={e => {
+                                                    e.preventDefault();
+                                                    setNewSeries({ ...newSeries, location_id: loc.id, location_name: loc.name });
+                                                    setShowLocationSuggestions(false);
+                                                }}
+                                                style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', color: '#e4e6eb', fontSize: 13, textAlign: 'left', cursor: 'pointer' }}
+                                            >{loc.name}</button>
+                                        ))}
+                                    </div>
+                                );
+                            })()}
+                        </div>
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                             <div>
