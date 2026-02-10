@@ -1138,52 +1138,7 @@ export default function BankrollManagerPage() {
 
                 </div>
 
-                {/* Quick Links */}
-                <div style={{ marginTop: 16, marginBottom: 16 }}>
-                  <h3 style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.6)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Quick Links</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <button onClick={() => setActiveSection('players')} style={styles.reportActionBtn}>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>Notes</span>
-                      <div style={{ flex: 1, textAlign: 'left' }}>
-                        <div style={{ fontWeight: 600, color: '#fff' }}>Player Notes</div>
-                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Track opponents and tendencies</div>
-                      </div>
-                      <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
-                    </button>
-                    <button onClick={() => setShowProjection(true)} style={styles.reportActionBtn}>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>Projection</span>
-                      <div style={{ flex: 1, textAlign: 'left' }}>
-                        <div style={{ fontWeight: 600, color: '#fff' }}>Run Projection</div>
-                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Monte Carlo simulation for bankroll growth</div>
-                      </div>
-                      <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
-                    </button>
-                    <button onClick={() => setActiveSection('pro')} style={styles.reportActionBtn}>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>Staking</span>
-                      <div style={{ flex: 1, textAlign: 'left' }}>
-                        <div style={{ fontWeight: 600, color: '#fff' }}>Staking Tracker</div>
-                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Track staking deals and swaps</div>
-                      </div>
-                      <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
-                    </button>
-                    <button onClick={() => setActiveSection('pro')} style={styles.reportActionBtn}>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>Tax</span>
-                      <div style={{ flex: 1, textAlign: 'left' }}>
-                        <div style={{ fontWeight: 600, color: '#fff' }}>Tax Report Generator</div>
-                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Generate tax-ready reports</div>
-                      </div>
-                      <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
-                    </button>
-                    <button onClick={() => { setShowScanner(true); setScannerStep('scan'); }} style={styles.reportActionBtn}>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>Receipt</span>
-                      <div style={{ flex: 1, textAlign: 'left' }}>
-                        <div style={{ fontWeight: 600, color: '#fff' }}>Scan Receipt</div>
-                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Upload and scan receipts</div>
-                      </div>
-                      <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
-                    </button>
-                  </div>
-                </div>
+
               </>
             )}
 
