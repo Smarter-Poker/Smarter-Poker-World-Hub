@@ -14,6 +14,10 @@ const ACRONYMS = new Set([
     'USA', 'US', 'UK', 'TV', 'UIGEA', 'DOJ', 'IRS', 'LV', 'LA', 'NYC'
 ]);
 
+// Regex for poker card notation: e.g., QhJh, A♠K♦, 9♣9♦, AKs, AKo, T♠9♣2♦
+// Matches rank(suit) patterns — ranks are A,K,Q,J,T,2-9, suits are h,d,c,s or ♥♦♣♠
+const CARD_PATTERN = /^[AKQJT2-9][hdcs♥♦♣♠]?[AKQJT2-9]?[hdcs♥♦♣♠]?[AKQJT2-9]?[hdcs♥♦♣♠]?[AKQJT2-9]?[hdcs♥♦♣♠]?[so]?$/i;
+
 /**
  * Convert text to Title Case (first letter of each word capitalized)
  * Preserves poker acronyms in uppercase
@@ -44,6 +48,13 @@ export function toTitleCase(text, strict = true) {
             const coreWord = word.slice(leadingPunct.length, word.length - (trailingPunct.length || 0) || undefined);
 
             if (!coreWord) return word;
+
+            // Check if core word is a card notation (e.g., QhJh, AKs, T9s)
+            if (CARD_PATTERN.test(coreWord)) {
+                // Uppercase all rank letters (A,K,Q,J,T) in card notation
+                const fixedCards = coreWord.replace(/[akqjt]/gi, m => m.toUpperCase());
+                return leadingPunct + fixedCards + trailingPunct;
+            }
 
             // Check if core word is an acronym
             const upperCore = coreWord.toUpperCase();

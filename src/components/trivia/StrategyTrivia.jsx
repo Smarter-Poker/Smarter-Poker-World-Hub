@@ -547,10 +547,6 @@ export default function StrategyTrivia({ mode }) {
                                 <div className="progress">
                                     Q{currentQuestionIndex + 1} / {questions.length}
                                 </div>
-                                <div className="timer" style={{ color: timeLeft <= 5 ? '#ef4444' : config.color }}>
-                                    <Clock size={18} />
-                                    {timeLeft}s
-                                </div>
                                 <div className="diamonds">
                                     <Gem size={16} /> {userDiamonds}
                                 </div>
