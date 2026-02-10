@@ -55,7 +55,7 @@ export default function SignUpPage() {
     const [aliasError, setAliasError] = useState('');
     const [aliasChecking, setAliasChecking] = useState(false);
     const [aliasAvailable, setAliasAvailable] = useState(null);
-    const [glowPulse, setGlowPulse] = useState(0);
+
     const [oauthLoading, setOauthLoading] = useState('');
 
     // Password visibility toggles
@@ -85,17 +85,15 @@ export default function SignUpPage() {
     const [phoneOtpCooldown, setPhoneOtpCooldown] = useState(0);
     const [showPhoneModal, setShowPhoneModal] = useState(false);
 
-    // Animated glow effect
+    // Override global html/body background for Facebook Dark theme
     useEffect(() => {
-        let frame;
-        const start = Date.now();
-        const animate = () => {
-            const elapsed = (Date.now() - start) / 1000;
-            setGlowPulse((Math.sin(elapsed * 2) + 1) / 2);
-            frame = requestAnimationFrame(animate);
+        const originalBg = document.documentElement.style.background;
+        document.documentElement.style.background = '#18191A';
+        document.body.style.background = '#18191A';
+        return () => {
+            document.documentElement.style.background = originalBg;
+            document.body.style.background = '';
         };
-        animate();
-        return () => cancelAnimationFrame(frame);
     }, []);
 
     // Check alias availability with debounce (3-20 characters allowed)

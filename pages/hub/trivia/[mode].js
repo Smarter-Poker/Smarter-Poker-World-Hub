@@ -145,84 +145,60 @@ export default function TriviaModePage() {
 
     async function loadQuestions(mode, count) {
         const today = getTodayCST();
-        const sixtyDaysAgo = new Date();
-        sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
-        const sixtyDaysAgoStr = sixtyDaysAgo.toISOString();
 
-        // Get user's recently seen question IDs (60-day exclusion)
-        let excludeIds = [];
-        if (userId) {
-            const { data: recentHistory } = await supabase
-                .from('trivia_user_question_history')
-                .select('question_id')
-                .eq('user_id', userId)
-                .gte('seen_at', sixtyDaysAgoStr);
-
-            if (recentHistory) {
-                excludeIds = recentHistory.map(h => h.question_id);
-            }
-        }
-
-        // For daily mode, get today's 10 questions (deterministic by date)
-        if (mode === 'daily') {
-            // First try to get pre-assigned daily questions
-            let query = supabase
-                .from('trivia_questions')
-                .select('*')
-                .eq('daily_date', today)
-                .order('order_index')
-                .limit(10);
-
-            const { data } = await query;
-
-            if (data && data.length >= 10) {
-                return data;
-            }
-
-            // Fallback: get all questions, exclude recently seen, use date-seeded shuffle
-            let allQuery = supabase.from('trivia_questions').select('*');
-            const { data: allQuestions } = await allQuery;
-
-            if (allQuestions && allQuestions.length > 0) {
-                // Filter out recently seen questions
-                let available = allQuestions.filter(q => !excludeIds.includes(q.id));
-
-                // If not enough unseen, include some older ones
-                if (available.length < count) {
-                    available = allQuestions;
-                }
-
-                return seededShuffle(available, today).slice(0, count);
-            }
-
-            return getFallbackQuestions(count);
-        }
-
-        // For category modes - use date-seeded shuffle for daily consistency
+        // Determine which categories this mode uses
         const categories = CATEGORY_MAP[mode];
-        let query = supabase.from('trivia_questions').select('*');
 
+        // ═══════════════════════════════════════════════════════════════
+        // STEP 1: Try to load today's daily-tagged questions
+        // All users get the same 20 questions per category per day
+        // ═══════════════════════════════════════════════════════════════
+        let dailyQuery = supabase
+            .from('trivia_questions')
+            .select('*')
+            .eq('daily_date', today);
+
+        // Filter by categories if mode is category-specific
         if (categories && categories.length > 0) {
-            query = query.in('category', categories);
+            dailyQuery = dailyQuery.in('category', categories);
         }
 
-        const { data } = await query;
+        const { data: dailyQuestions } = await dailyQuery;
 
-        if (!data || data.length === 0) {
+        if (dailyQuestions && dailyQuestions.length >= count) {
+            // Shuffle daily questions so order isn't predictable by category
+            return shuffleArray(dailyQuestions).slice(0, count);
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // STEP 2: Fallback — seeded shuffle from full pool
+        // Used when daily questions haven't been rotated yet
+        // ═══════════════════════════════════════════════════════════════
+        console.log(`[Trivia] No daily questions for ${mode} on ${today}, falling back to seeded shuffle`);
+
+        let poolQuery = supabase.from('trivia_questions').select('*');
+        if (categories && categories.length > 0) {
+            poolQuery = poolQuery.in('category', categories);
+        }
+
+        const { data: poolQuestions } = await poolQuery;
+
+        if (!poolQuestions || poolQuestions.length === 0) {
             return getFallbackQuestions(count);
-        }
-
-        // Filter out recently seen questions (60-day exclusion)
-        let available = data.filter(q => !excludeIds.includes(q.id));
-
-        // If not enough unseen questions, use all questions
-        if (available.length < count) {
-            console.log(`Not enough unseen questions (${available.length}/${count}), using all available`);
-            available = data;
         }
 
         // Use date-seeded shuffle for daily-consistent question selection
-        return seededShuffle(available, today).slice(0, count);
+        return seededShuffle(poolQuestions, today).slice(0, count);
+    }
+
+    // Simple Fisher-Yates shuffle
+    function shuffleArray(array) {
+        const arr = [...array];
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
     }
 
     // Date-seeded shuffle for consistent daily questions
