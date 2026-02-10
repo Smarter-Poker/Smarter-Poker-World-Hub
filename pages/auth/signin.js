@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    SMARTER.POKER — SIGN IN ACCESS NODE
-   Email/Password Authentication (Simplified for testing)
-   Cyan/Electric Blue Aesthetic | Deep Navy Background
+   Email/Password Authentication
+   Facebook Dark Theme
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useEffect } from 'react';
@@ -18,20 +18,18 @@ export default function SignInPage() {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [glowPulse, setGlowPulse] = useState(0);
     const [oauthLoading, setOauthLoading] = useState('');
 
-    // Animated glow effect
+    // Override global html/body background for Facebook Dark theme
     useEffect(() => {
-        let frame;
-        const start = Date.now();
-        const animate = () => {
-            const elapsed = (Date.now() - start) / 1000;
-            setGlowPulse((Math.sin(elapsed * 2) + 1) / 2);
-            frame = requestAnimationFrame(animate);
+        const style = document.createElement('style');
+        style.id = 'signin-bg-override';
+        style.textContent = 'html, body { background: #18191A !important; }';
+        document.head.appendChild(style);
+        return () => {
+            const el = document.getElementById('signin-bg-override');
+            if (el) el.remove();
         };
-        animate();
-        return () => cancelAnimationFrame(frame);
     }, []);
 
     // Handle sign in
@@ -83,17 +81,9 @@ export default function SignInPage() {
             <Head>
                 <title>Sign In — Smarter.Poker</title>
                 <meta name="description" content="Sign in to your Smarter.Poker account" />
-                <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
             </Head>
 
             <div style={styles.container}>
-                {/* Background */}
-                <div style={styles.bgGrid} />
-                <div style={{
-                    ...styles.bgGlow,
-                    opacity: 0.2 + glowPulse * 0.15,
-                }} />
-
                 {/* Back to Home */}
                 <button onClick={() => router.push('/')} style={styles.backButton}>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -103,12 +93,18 @@ export default function SignInPage() {
                 </button>
 
                 {/* Auth Card */}
-                <div style={{
-                    ...styles.authCard,
-                    boxShadow: `0 0 60px rgba(0, 212, 255, ${0.1 + glowPulse * 0.1})`,
-                }}>
+                <div style={styles.authCard}>
                     <div style={styles.logoSection}>
-                        <BrainIcon size={48} />
+                        <img
+                            src="/smarter-poker-logo.jpg"
+                            alt="Smarter.Poker"
+                            style={{
+                                width: '300px',
+                                height: 'auto',
+                                borderRadius: '8px',
+                                marginBottom: '8px',
+                            }}
+                        />
                         <h1 style={styles.title}>Welcome Back</h1>
                         <p style={styles.subtitle}>Sign in to continue your training</p>
                     </div>
@@ -217,7 +213,7 @@ export default function SignInPage() {
                         onClick={() => router.push('/auth/signup')}
                         style={styles.signupLink}
                     >
-                        Don't have an account? <span style={styles.cyanText}>Sign Up</span>
+                        Don't have an account? <span style={styles.accentText}>Sign Up</span>
                     </button>
                 </div>
             </div>
@@ -226,31 +222,7 @@ export default function SignInPage() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 🧠 BRAIN ICON
-// ─────────────────────────────────────────────────────────────────────────────
-function BrainIcon({ size = 24 }) {
-    return (
-        <div style={{
-            width: size,
-            height: size,
-            borderRadius: '8px',
-            background: 'linear-gradient(135deg, #0a1628, #1a2a4a)',
-            border: '2px solid #00D4FF',
-            boxShadow: `0 0 ${size / 2}px rgba(0, 212, 255, 0.6)`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-        }}>
-            <svg width={size * 0.6} height={size * 0.6} viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2">
-                <path d="M12 2a4 4 0 014 4c0 1.5-.8 2.8-2 3.5V12h2a4 4 0 110 8h-8a4 4 0 110-8h2V9.5A4 4 0 018 6a4 4 0 014-4z" />
-            </svg>
-        </div>
-    );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 🎨 STYLES — CYAN/ELECTRIC BLUE THEME
+// 🎨 STYLES — FACEBOOK DARK THEME
 // ─────────────────────────────────────────────────────────────────────────────
 const styles = {
     container: {
@@ -258,33 +230,10 @@ const styles = {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: '#0a1628',
-        fontFamily: 'Inter, -apple-system, sans-serif',
+        background: '#18191A',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
         position: 'relative',
         padding: '40px 20px',
-    },
-    bgGrid: {
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundImage: `
-            linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px)
-        `,
-        backgroundSize: '60px 60px',
-        pointerEvents: 'none',
-    },
-    bgGlow: {
-        position: 'fixed',
-        top: '50%',
-        left: '50%',
-        width: '100%',
-        height: '100%',
-        background: 'radial-gradient(ellipse at center, rgba(0, 212, 255, 0.2), transparent 60%)',
-        transform: 'translate(-50%, -50%)',
-        pointerEvents: 'none',
     },
     backButton: {
         position: 'fixed',
@@ -294,25 +243,24 @@ const styles = {
         alignItems: 'center',
         gap: '8px',
         padding: '10px 16px',
-        background: 'rgba(0, 212, 255, 0.1)',
-        border: '1px solid rgba(0, 212, 255, 0.3)',
+        background: '#3A3B3C',
+        border: '1px solid #3E4042',
         borderRadius: '8px',
-        color: '#ffffff',
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: '12px',
+        color: '#E4E6EB',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontSize: '13px',
         fontWeight: 600,
         cursor: 'pointer',
-        transition: 'all 0.3s ease',
+        transition: 'all 0.2s ease',
         zIndex: 10,
     },
     authCard: {
         width: '100%',
-        maxWidth: '420px',
+        maxWidth: '480px',
         padding: '40px',
-        background: 'linear-gradient(180deg, rgba(10, 22, 40, 0.95), rgba(5, 15, 30, 0.98))',
-        borderRadius: '24px',
-        border: '1px solid rgba(0, 212, 255, 0.2)',
-        backdropFilter: 'blur(20px)',
+        background: '#242526',
+        borderRadius: '8px',
+        border: '3px solid #555',
         position: 'relative',
         zIndex: 5,
     },
@@ -320,27 +268,27 @@ const styles = {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        marginBottom: '32px',
+        marginBottom: '24px',
     },
     title: {
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: '28px',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontSize: '24px',
         fontWeight: 700,
-        marginTop: '16px',
+        marginTop: '8px',
         marginBottom: '8px',
-        color: '#ffffff',
+        color: '#E4E6EB',
     },
     subtitle: {
         fontSize: '14px',
-        color: 'rgba(255, 255, 255, 0.6)',
+        color: '#B0B3B8',
         textAlign: 'center',
     },
     errorBox: {
         padding: '12px 16px',
-        background: 'rgba(255, 77, 77, 0.1)',
-        border: '1px solid rgba(255, 77, 77, 0.3)',
-        borderRadius: '8px',
-        color: '#ff4d4d',
+        background: 'rgba(240, 40, 73, 0.1)',
+        border: '1px solid rgba(240, 40, 73, 0.3)',
+        borderRadius: '6px',
+        color: '#F02849',
         fontSize: '13px',
         marginBottom: '20px',
         textAlign: 'center',
@@ -348,42 +296,41 @@ const styles = {
     form: {
         display: 'flex',
         flexDirection: 'column',
-        gap: '20px',
+        gap: '16px',
     },
     inputGroup: {
         display: 'flex',
         flexDirection: 'column',
-        gap: '8px',
+        gap: '6px',
     },
     label: {
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: '11px',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontSize: '13px',
         fontWeight: 600,
-        color: 'rgba(255, 255, 255, 0.5)',
-        textTransform: 'uppercase',
-        letterSpacing: '1px',
+        color: '#B0B3B8',
     },
     inputSingle: {
-        padding: '16px',
-        background: 'rgba(0, 0, 0, 0.3)',
-        border: '2px solid rgba(0, 212, 255, 0.3)',
-        borderRadius: '12px',
-        fontFamily: 'Inter, sans-serif',
+        padding: '14px 16px',
+        background: '#3A3B3C',
+        border: '1px solid #3E4042',
+        borderRadius: '6px',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
         fontSize: '16px',
-        color: '#ffffff',
+        color: '#E4E6EB',
         outline: 'none',
     },
     submitButton: {
-        padding: '16px',
-        background: 'linear-gradient(135deg, #00D4FF, #0066FF)',
+        padding: '14px',
+        background: '#1877F2',
         border: 'none',
-        borderRadius: '12px',
-        color: '#000000',
-        fontFamily: 'Orbitron, sans-serif',
-        fontSize: '14px',
-        fontWeight: 700,
+        borderRadius: '6px',
+        color: '#FFFFFF',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontSize: '15px',
+        fontWeight: 600,
         cursor: 'pointer',
-        transition: 'all 0.3s ease',
+        transition: 'background 0.2s ease',
+        marginTop: '4px',
     },
     divider: {
         display: 'flex',
@@ -394,12 +341,12 @@ const styles = {
     dividerLine: {
         flex: 1,
         height: '1px',
-        background: 'rgba(255, 255, 255, 0.1)',
+        background: '#3E4042',
     },
     dividerText: {
-        color: 'rgba(255, 255, 255, 0.35)',
+        color: '#B0B3B8',
         fontSize: '12px',
-        fontFamily: 'Inter, sans-serif',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
         whiteSpace: 'nowrap',
     },
     socialButtons: {
@@ -415,12 +362,12 @@ const styles = {
         gap: '10px',
         width: '100%',
         padding: '14px',
-        borderRadius: '12px',
+        borderRadius: '6px',
         fontSize: '14px',
-        fontFamily: 'Inter, sans-serif',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
         fontWeight: 600,
         cursor: 'pointer',
-        transition: 'all 0.3s ease',
+        transition: 'all 0.2s ease',
         border: 'none',
     },
     googleButton: {
@@ -440,16 +387,16 @@ const styles = {
         width: '100%',
         padding: '12px',
         background: 'transparent',
-        border: '1px solid rgba(0, 212, 255, 0.2)',
-        borderRadius: '12px',
-        color: 'rgba(255, 255, 255, 0.6)',
-        fontFamily: 'Inter, sans-serif',
+        border: '1px solid #3E4042',
+        borderRadius: '6px',
+        color: '#B0B3B8',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
         fontSize: '14px',
         cursor: 'pointer',
-        transition: 'all 0.3s ease',
+        transition: 'all 0.2s ease',
     },
-    cyanText: {
-        color: '#00D4FF',
+    accentText: {
+        color: '#1877F2',
         fontWeight: 600,
     },
 };
