@@ -43,7 +43,7 @@ const CATEGORY_MAP = {
 const LOBBY_IMAGES = {
     history: '/images/trivia/lobby-history.jpg',
     rules: '/images/trivia/lobby-rules.jpg',
-    pro: null,      // pending
+    pro: '/images/trivia/lobby-pro.jpg',
     daily: null,     // pending
     arcade: null,    // pending
 };

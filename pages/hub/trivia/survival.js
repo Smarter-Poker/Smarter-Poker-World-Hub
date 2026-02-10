@@ -177,48 +177,18 @@ export default function SurvivalModePage() {
                 <div className="content">
                     {gameState === 'lobby' && (
                         <div className="lobby">
-                            <MetalFrame padding="32px" showBolts={true} showNeonStrips={true}>
-                                <div className="lobby-header">
-                                    <Flame size={48} className="mode-icon" />
-                                    <h1>SURVIVAL MODE</h1>
-                                    <p>Answer questions until you miss. How long can you survive?</p>
-                                </div>
-
-                                <div className="stats-row">
-                                    <div className="stat-box">
-                                        <Trophy size={24} />
-                                        <span className="stat-value">{personalBest}</span>
-                                        <span className="stat-label">Personal Best</span>
-                                    </div>
-                                    <div className="stat-box">
-                                        <Gem size={24} />
-                                        <span className="stat-value">{dailyDiamondsEarned}/{DAILY_DIAMOND_CAP}</span>
-                                        <span className="stat-label">Today's Diamonds</span>
-                                    </div>
-                                </div>
-
-                                <div className="rewards-info">
-                                    <h3>Rewards</h3>
-                                    <ul>
-                                        <li>+1💎 for every 5 correct answers</li>
-                                        <li>Max {DAILY_DIAMOND_CAP}💎 per day</li>
-                                        <li>Compete for leaderboard glory!</li>
-                                    </ul>
-                                </div>
-
-                                <HexButton
-                                    label="Start Survival"
-                                    icon={Play}
-                                    onClick={handleStart}
-                                    variant="primary"
-                                    size="lg"
-                                    fullWidth
+                            {/* Full-bleed image lobby */}
+                            <div className="lobby-image-wrapper" onClick={handleStart}>
+                                <img
+                                    src="/images/trivia/lobby-survival.jpg"
+                                    alt="Survival Mode - Start Challenge"
+                                    className="lobby-image"
                                 />
-                            </MetalFrame>
+                            </div>
 
                             {leaderboard.length > 0 && (
                                 <div className="leaderboard-section">
-                                    <h2>🏆 Top Survivors</h2>
+                                    <h2>Top Survivors</h2>
                                     <div className="leaderboard">
                                         {leaderboard.map((entry) => (
                                             <div key={entry.rank} className="lb-row" data-rank={entry.rank}>
@@ -303,6 +273,29 @@ export default function SurvivalModePage() {
                     padding: 100px 20px 40px;
                     max-width: 600px;
                     margin: 0 auto;
+                }
+
+                .lobby-image-wrapper {
+                    cursor: pointer;
+                    border-radius: 16px;
+                    overflow: hidden;
+                    transition: transform 0.2s, box-shadow 0.2s;
+                    margin-bottom: 24px;
+                }
+
+                .lobby-image-wrapper:hover {
+                    transform: scale(1.02);
+                    box-shadow: 0 0 40px rgba(239, 68, 68, 0.4);
+                }
+
+                .lobby-image-wrapper:active {
+                    transform: scale(0.98);
+                }
+
+                .lobby-image {
+                    width: 100%;
+                    height: auto;
+                    display: block;
                 }
 
                 .lobby-header {

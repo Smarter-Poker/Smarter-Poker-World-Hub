@@ -613,41 +613,24 @@ export default function PvPPage() {
                     {/* Lobby */}
                     {gameState === 'lobby' && (
                         <div className="lobby">
-                            <MetalFrame padding="32px" showBolts={true}>
-                                <div className="lobby-header">
-                                    <Swords size={48} color="#ef4444" />
-                                    <h1>PVP BATTLE</h1>
-                                    <p>Challenge real players for diamonds</p>
-                                </div>
-
-                                <div className="stake-selection">
-                                    <h3>Select Your Stake</h3>
-                                    <div className="stake-grid">
-                                        {STAKE_OPTIONS.map(stake => (
-                                            <button
-                                                key={stake}
-                                                className={`stake-btn ${userDiamonds < stake ? 'disabled' : ''}`}
-                                                onClick={() => handleFindMatch(stake)}
-                                                disabled={userDiamonds < stake}
-                                            >
-                                                <Gem size={20} />
-                                                <span className="stake-amount">{stake}</span>
-                                                <span className="stake-win">Win {Math.floor(stake * 1.8)}</span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                    <p className="rake-notice">10% house rake on winnings</p>
-                                </div>
-
-                                <div className="how-it-works">
-                                    <h4>How It Works</h4>
-                                    <ul>
-                                        <li>🎯 5 questions, 15 seconds each</li>
-                                        <li>⚔️ You and opponent answer the same questions</li>
-                                        <li>🏆 Highest score wins the pot!</li>
-                                    </ul>
-                                </div>
-                            </MetalFrame>
+                            <div
+                                className="lobby-image-wrapper"
+                                onClick={() => handleFindMatch(STAKE_OPTIONS[0])}
+                                style={{
+                                    cursor: 'pointer',
+                                    borderRadius: '16px',
+                                    overflow: 'hidden',
+                                    transition: 'transform 0.2s, box-shadow 0.2s',
+                                }}
+                                onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.boxShadow = '0 0 40px rgba(0, 212, 255, 0.4)'; }}
+                                onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none'; }}
+                            >
+                                <img
+                                    src="/images/trivia/lobby-pvp.jpg"
+                                    alt="1v1 Battle - Start Challenge"
+                                    style={{ width: '100%', height: 'auto', display: 'block' }}
+                                />
+                            </div>
                         </div>
                     )}
 

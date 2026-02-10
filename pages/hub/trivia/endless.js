@@ -570,69 +570,23 @@ export default function EndlessModePage() {
 
                         {/* Ready State */}
                         {gameState === 'ready' && (
-                            <div style={{
-                                background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9))',
-                                border: '1px solid rgba(255,255,255,0.1)',
-                                borderRadius: '16px',
-                                padding: '48px',
-                                textAlign: 'center'
-                            }}>
-                                <div style={{ fontSize: '64px', marginBottom: '20px' }}>∞</div>
-                                <h1 style={{ color: 'white', fontSize: '28px', marginBottom: '12px' }}>
-                                    Endless Mode
-                                </h1>
-                                <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '24px' }}>
-                                    All trivia questions, completely random.<br />
-                                    Answer until you miss!
-                                </p>
-
-                                {highScore > 0 && (
-                                    <div style={{
-                                        display: 'inline-block',
-                                        padding: '12px 24px',
-                                        background: 'rgba(234, 179, 8, 0.1)',
-                                        border: '1px solid rgba(234, 179, 8, 0.3)',
-                                        borderRadius: '8px',
-                                        color: '#eab308',
-                                        marginBottom: '24px'
-                                    }}>
-                                        🏆 Your Best: {highScore} streak
-                                    </div>
-                                )}
-
-                                <div style={{
-                                    background: 'rgba(139, 92, 246, 0.1)',
-                                    border: '1px solid rgba(139, 92, 246, 0.3)',
-                                    borderRadius: '12px',
-                                    padding: '16px',
-                                    marginBottom: '24px'
-                                }}>
-                                    <div style={{ color: '#8b5cf6', fontWeight: 'bold', marginBottom: '8px' }}>
-                                        Multiplier System
-                                    </div>
-                                    <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px' }}>
-                                        Every 5 correct answers increases your multiplier!<br />
-                                        1x → 2x → 3x → 4x → 5x...
-                                    </div>
-                                </div>
-
-                                <button
-                                    onClick={startGame}
-                                    disabled={isLoading}
-                                    style={{
-                                        padding: '16px 48px',
-                                        background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
-                                        border: 'none',
-                                        borderRadius: '12px',
-                                        color: 'white',
-                                        fontSize: '18px',
-                                        fontWeight: 'bold',
-                                        cursor: 'pointer',
-                                        boxShadow: '0 4px 20px rgba(139, 92, 246, 0.4)'
-                                    }}
-                                >
-                                    {isLoading ? 'Loading...' : 'START ENDLESS'}
-                                </button>
+                            <div
+                                className="lobby-image-wrapper"
+                                onClick={startGame}
+                                style={{
+                                    cursor: 'pointer',
+                                    borderRadius: '16px',
+                                    overflow: 'hidden',
+                                    transition: 'transform 0.2s, box-shadow 0.2s',
+                                }}
+                                onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.boxShadow = '0 0 40px rgba(139, 92, 246, 0.4)'; }}
+                                onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none'; }}
+                            >
+                                <img
+                                    src="/images/trivia/lobby-endless.jpg"
+                                    alt="Endless Mode - Start Challenge"
+                                    style={{ width: '100%', height: 'auto', display: 'block' }}
+                                />
                             </div>
                         )}
 

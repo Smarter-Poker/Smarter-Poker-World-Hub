@@ -373,37 +373,23 @@ export default function MixedModePage() {
                     )}
 
                     {gameState === 'ready' && (
-                        <div className="ready-screen">
-                            <MetalFrame padding="32px" showBolts={true}>
-                                <div className="mode-header">
-                                    <Shuffle size={48} color="#00D4FF" />
-                                    <h1>MIXED MODE</h1>
-                                    <p>Rotating categories test all your knowledge</p>
-                                </div>
-
-                                <div className="mode-info">
-                                    <div className="info-item">
-                                        <span className="label">Questions</span>
-                                        <span className="value">{QUESTIONS_PER_SESSION}</span>
-                                    </div>
-                                    <div className="info-item">
-                                        <span className="label">Categories</span>
-                                        <span className="value">History • Rules • Pro</span>
-                                    </div>
-                                    <div className="info-item">
-                                        <span className="label">Reward</span>
-                                        <span className="value">1💎 per correct</span>
-                                    </div>
-                                </div>
-
-                                <HexButton
-                                    onClick={startGame}
-                                    variant="primary"
-                                    size="lg"
-                                >
-                                    START MIXED MODE
-                                </HexButton>
-                            </MetalFrame>
+                        <div
+                            className="lobby-image-wrapper"
+                            onClick={startGame}
+                            style={{
+                                cursor: 'pointer',
+                                borderRadius: '16px',
+                                overflow: 'hidden',
+                                transition: 'transform 0.2s, box-shadow 0.2s',
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.boxShadow = '0 0 40px rgba(0, 212, 255, 0.4)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none'; }}
+                        >
+                            <img
+                                src="/images/trivia/lobby-mixed.jpg"
+                                alt="Mixed Mode - Start Challenge"
+                                style={{ width: '100%', height: 'auto', display: 'block' }}
+                            />
                         </div>
                     )}
 
