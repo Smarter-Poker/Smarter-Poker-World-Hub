@@ -246,6 +246,63 @@ async function fetchOgImageViaProxy(url) {
     }
 }
 
+// Extract og:image via noembed.com proxy (secondary fallback for sites like CardPlayer)
+async function fetchOgImageViaNoEmbed(url) {
+    try {
+        const proxyUrl = `https://noembed.com/embed?url=${encodeURIComponent(url)}`;
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), CONFIG.REQUEST_TIMEOUT);
+
+        const response = await fetch(proxyUrl, {
+            signal: controller.signal,
+            headers: { 'Accept': 'application/json' }
+        });
+        clearTimeout(timeout);
+
+        if (!response.ok) return null;
+
+        const data = await response.json();
+        const imageUrl = data?.thumbnail_url || data?.url;
+        if (imageUrl && (imageUrl.endsWith('.jpg') || imageUrl.endsWith('.jpeg') || imageUrl.endsWith('.png') || imageUrl.endsWith('.webp') || imageUrl.includes('cardplayer.com'))) {
+            console.log(`   ✓ Got image via noembed: ${imageUrl.substring(0, 60)}...`);
+            return imageUrl;
+        }
+        return null;
+    } catch (error) {
+        console.log(`   Noembed image fetch failed: ${error.message}`);
+        return null;
+    }
+}
+
+// Extract og:image via Google's web cache (tertiary fallback)
+async function fetchOgImageViaGoogleCache(url) {
+    try {
+        const cacheUrl = `https://webcache.googleusercontent.com/search?q=cache:${encodeURIComponent(url)}`;
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), CONFIG.REQUEST_TIMEOUT);
+
+        const response = await fetch(cacheUrl, {
+            signal: controller.signal,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html'
+            }
+        });
+        clearTimeout(timeout);
+
+        if (!response.ok) return null;
+
+        const html = await response.text();
+        const image = extractArticleImage(html, url);
+        if (image) {
+            console.log(`   ✓ Got image via Google cache: ${image.substring(0, 60)}...`);
+        }
+        return image;
+    } catch (error) {
+        return null;
+    }
+}
+
 function cleanText(text) {
     if (!text) return '';
     return text
@@ -498,6 +555,16 @@ async function scrapeRSS(source) {
                 image = await fetchOgImageViaProxy(item.link);
             }
 
+            // Try noembed.com proxy (secondary fallback, especially useful for CardPlayer)
+            if (!image && item.link) {
+                image = await fetchOgImageViaNoEmbed(item.link);
+            }
+
+            // Try Google's web cache (tertiary fallback)
+            if (!image && item.link) {
+                image = await fetchOgImageViaGoogleCache(item.link);
+            }
+
             // Use source fallback if no image found
             if (!image) {
                 image = getContextualFallbackImage(title);
@@ -529,58 +596,98 @@ async function scrapeMSPT(html, source) {
     const articles = [];
     const seen = new Set();
 
-    // MSPT uses multiple URL formats:
-    // - Absolute: href="https://msptpoker.com/Magazine/event-name~1590.aspx"
-    // - Relative from /pages/: href="../Magazine/title~ID.aspx"
-    // - Relative from root: href="./Magazine/title~ID.aspx"
-    const patterns = [
-        // Absolute URLs (most common on live site)
-        /href=["'](https?:\/\/(?:www\.)?msptpoker\.com\/Magazine\/[^"']+\.aspx)["'][^>]*>([^<]+)/gi,
-        // Relative with ../
-        /href=["'](?:\.\.\/)(Magazine\/[^"']+\.aspx)["'][^>]*>([^<]+)/gi,
-        // Relative with ./
-        /href=["'](?:\.\/)(Magazine\/[^"']+\.aspx)["'][^>]*>([^<]+)/gi,
-        // Just Magazine/ path
-        /href=["'](Magazine\/[^"']+\.aspx)["'][^>]*>([^<]+)/gi,
-        // Also match /Magazine/ with leading slash
-        /href=["'](\/Magazine\/[^"']+\.aspx)["'][^>]*>([^<]+)/gi
-    ];
+    // ═══════════════════════════════════════════════════════════════════
+    // MSPT Magazine.aspx uses card containers with this structure:
+    //   <div class="item-2 card card2">
+    //     <div class="thumb" style="background-image: url('https://msptpoker.com/images/...');"></div>
+    //     <article>
+    //       <h1><a href="../Magazine/slug~ID.aspx">Title</a></h1>
+    //       <span>Date</span>
+    //       <div>Summary</div>
+    //     </article>
+    //   </div>
+    //
+    // Strategy: Parse each card container to extract both the thumbnail
+    // (from background-image CSS) and the article link+title in one pass.
+    // This avoids fetching individual article pages which lack og:image.
+    // ═══════════════════════════════════════════════════════════════════
 
-    for (const pattern of patterns) {
+    // Step 1: Extract all card containers — match thumb background-image followed by article link
+    // This regex captures: (1) thumbnail URL from background-image, (2) article href, (3) title text
+    const cardPattern = /class="thumb"\s*style="background-image:\s*url\('([^']+)'\)[^"]*"[\s\S]*?<h1>\s*<a\s+href=["']([^"']+)["'][^>]*>([^<]+)<\/a>/gi;
+    const cardMatches = html.matchAll(cardPattern);
+
+    for (const match of cardMatches) {
         if (articles.length >= CONFIG.MAX_ARTICLES_PER_SOURCE) break;
-        const matches = html.matchAll(pattern);
 
-        for (const match of matches) {
+        let image = match[1]?.trim();
+        let url = match[2]?.trim();
+        const title = cleanText(match[3]);
+
+        if (!title || title.length < 10) continue;
+        if (!url || url.includes('javascript:') || url.includes('#')) continue;
+
+        // Build full URL if relative (../Magazine/slug~ID.aspx -> https://msptpoker.com/Magazine/slug~ID.aspx)
+        if (!url.startsWith('http')) {
+            url = url.replace(/^\.\.\//, '').replace(/^\.\//, '').replace(/^\//, '');
+            url = source.baseUrl + '/' + url;
+        }
+
+        // Ensure image URL is absolute
+        if (image && !image.startsWith('http')) {
+            image = source.baseUrl + '/' + image.replace(/^\//, '');
+        }
+
+        if (seen.has(url)) continue;
+        seen.add(url);
+        console.log(`   ✓ MSPT card: ${title.substring(0, 40)}... [img: ${image ? 'YES' : 'NO'}]`);
+
+        // Use contextual fallback only if no thumbnail found in listing
+        if (!image) {
+            image = getContextualFallbackImage(title);
+            console.log(`   Using fallback image for MSPT: ${title.substring(0, 30)}...`);
+        }
+
+        if (image) {
+            articles.push({ url, title, image, source });
+        }
+    }
+
+    // Fallback: If card pattern didn't match (page structure changed), try the old link-based approach
+    if (articles.length === 0) {
+        console.log('   ⚠ MSPT card pattern failed, falling back to link-based extraction...');
+        const linkPatterns = [
+            /href=["']((?:\.\.\/)?Magazine\/[^"']+\.aspx)["'][^>]*>([^<]+)/gi,
+            /href=["'](https?:\/\/(?:www\.)?msptpoker\.com\/Magazine\/[^"']+\.aspx)["'][^>]*>([^<]+)/gi
+        ];
+
+        for (const pattern of linkPatterns) {
             if (articles.length >= CONFIG.MAX_ARTICLES_PER_SOURCE) break;
+            const matches = html.matchAll(pattern);
 
-            let url = match[1];
-            const title = cleanText(match[2]);
+            for (const match of matches) {
+                if (articles.length >= CONFIG.MAX_ARTICLES_PER_SOURCE) break;
 
-            if (!title || title.length < 10) continue;
-            if (url.includes('javascript:') || url.includes('#')) continue;
+                let url = match[1];
+                const title = cleanText(match[2]);
+                if (!title || title.length < 10 || seen.has(url)) continue;
 
-            // Build full URL if relative
-            if (!url.startsWith('http')) {
-                url = url.replace(/^\.\.\//, '').replace(/^\.\//, '').replace(/^\//, '');
-                url = source.baseUrl + '/' + url;
-            }
+                if (!url.startsWith('http')) {
+                    url = url.replace(/^\.\.\//, '').replace(/^\.\//, '').replace(/^\//, '');
+                    url = source.baseUrl + '/' + url;
+                }
+                if (seen.has(url)) continue;
+                seen.add(url);
 
-            if (seen.has(url)) continue;
-            seen.add(url);
-            console.log(`   Checking MSPT: ${title.substring(0, 40)}...`);
-
-            const articleHtml = await fetchPage(url);
-            let image = extractArticleImage(articleHtml, url);
-
-            // Use source fallback if no image found
-            if (!image) {
-                image = getContextualFallbackImage(title);
-                console.log(`   Using fallback image for MSPT: ${title.substring(0, 30)}...`);
-            }
-
-            // Save articles with images (including fallbacks)
-            if (image) {
-                articles.push({ url, title, image, source });
+                // Try fetching article page for og:image as last resort
+                const articleHtml = await fetchPage(url);
+                let image = extractArticleImage(articleHtml, url);
+                if (!image) {
+                    image = getContextualFallbackImage(title);
+                }
+                if (image) {
+                    articles.push({ url, title, image, source });
+                }
             }
         }
     }
