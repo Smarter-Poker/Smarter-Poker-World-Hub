@@ -1402,7 +1402,6 @@ export default function BankrollManagerPage() {
             {/* Bankroll Rules View */}
             {activeSection === 'rules' && (
               <div style={styles.activitySection}>
-                <h2 style={styles.sectionTitle}>Bankroll Rules</h2>
                 <BankrollRulesCard userId={userId} />
               </div>
             )}
