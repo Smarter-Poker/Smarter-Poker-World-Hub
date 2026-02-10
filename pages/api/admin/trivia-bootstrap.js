@@ -6,6 +6,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { getGrokClient } from '../../../src/lib/grokClient';
+import { validateBatch } from '../../../src/lib/triviaValidator';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -286,16 +287,25 @@ export default async function handler(req, res) {
             const questions = await generateBatch(category, topic, difficulty, batchNeeded);
 
             if (questions.length > 0) {
-                const { data, error } = await supabase
-                    .from('trivia_questions')
-                    .insert(questions)
-                    .select();
+                // ═══ QA VALIDATION GATE ═══
+                const { valid: validQuestions, rejected } = validateBatch(questions);
+                if (rejected.length > 0) {
+                    console.log(`[Bootstrap] 🛡️ QA GATE: ${rejected.length}/${questions.length} REJECTED`);
+                    rejected.forEach(r => r.errors.forEach(e => console.log(`  → ${e}`)));
+                }
 
-                if (!error && data) {
-                    generated += data.length;
-                    console.log(`[Bootstrap] Inserted ${data.length} questions (total: ${generated})`);
-                } else if (error) {
-                    console.error(`[Bootstrap] Insert error:`, error.message);
+                if (validQuestions.length > 0) {
+                    const { data, error } = await supabase
+                        .from('trivia_questions')
+                        .insert(validQuestions)
+                        .select();
+
+                    if (!error && data) {
+                        generated += data.length;
+                        console.log(`[Bootstrap] Inserted ${data.length} questions (total: ${generated})`);
+                    } else if (error) {
+                        console.error(`[Bootstrap] Insert error:`, error.message);
+                    }
                 }
             }
 

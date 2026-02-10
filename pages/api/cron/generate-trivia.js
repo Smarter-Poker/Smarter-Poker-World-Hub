@@ -17,6 +17,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { getGrokClient } from '../../../src/lib/grokClient';
+import { validateBatch } from '../../../src/lib/triviaValidator';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -215,24 +216,36 @@ async function generateDailyQuestions() {
         await new Promise(resolve => setTimeout(resolve, 500));
     }
 
-    // Insert all questions
+    // ═══ QA VALIDATION GATE — NO QUESTION ENTERS DB WITHOUT PASSING ═══
+    let insertedCount = 0;
     if (questions.length > 0) {
-        const { error } = await supabase
-            .from('trivia_questions')
-            .insert(questions);
+        const { valid: validQuestions, rejected } = validateBatch(questions);
+        if (rejected.length > 0) {
+            console.log(`[Trivia] 🛡️ QA GATE: ${rejected.length}/${questions.length} REJECTED:`);
+            rejected.forEach(r => {
+                r.errors.forEach(e => console.log(`  → ${e}`));
+            });
+        }
 
-        if (error) {
-            console.error('[Trivia] Insert error:', error);
-            return { success: false, error: error.message };
+        if (validQuestions.length > 0) {
+            const { error } = await supabase
+                .from('trivia_questions')
+                .insert(validQuestions);
+
+            if (error) {
+                console.error('[Trivia] Insert error:', error);
+                return { success: false, error: error.message };
+            }
+            insertedCount = validQuestions.length;
         }
     }
 
-    console.log(`[Trivia] Successfully generated ${questions.length} questions for ${today}`);
+    console.log(`[Trivia] Successfully generated ${insertedCount} questions for ${today}`);
 
     return {
         success: true,
         date: today,
-        count: questions.length,
+        count: insertedCount,
         categories: [...new Set(questions.map(q => q.category))]
     };
 }

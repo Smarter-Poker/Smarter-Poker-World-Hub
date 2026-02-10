@@ -6,6 +6,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { getGrokClient } from '../../../src/lib/grokClient';
+import { validateBatch } from '../../../src/lib/triviaValidator';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -181,13 +182,22 @@ export default async function handler(req, res) {
             const questions = await generateBatch(cat, subcat, diff, BATCH_SIZE);
 
             if (questions.length > 0) {
-                const { data, error } = await supabase
-                    .from('trivia_questions')
-                    .insert(questions)
-                    .select();
+                // ═══ QA VALIDATION GATE ═══
+                const { valid: validQuestions, rejected } = validateBatch(questions);
+                if (rejected.length > 0) {
+                    console.log(`[Bootstrap-Strategy] 🛡️ QA GATE: ${rejected.length}/${questions.length} REJECTED`);
+                    rejected.forEach(r => r.errors.forEach(e => console.log(`  → ${e}`)));
+                }
 
-                if (!error && data) {
-                    catGenerated += data.length;
+                if (validQuestions.length > 0) {
+                    const { data, error } = await supabase
+                        .from('trivia_questions')
+                        .insert(validQuestions)
+                        .select();
+
+                    if (!error && data) {
+                        catGenerated += data.length;
+                    }
                 }
             }
 

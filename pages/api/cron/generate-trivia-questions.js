@@ -2,6 +2,8 @@
  * TRIVIA QUESTION POOL MANAGER
  * Ensures sufficient pre-generated questions for seamless gameplay
  * 
+ * QA GATE: All questions pass through 5-layer validation before DB insert.
+ * 
  * Requirements Analysis:
  * - Survival Mode: 200 questions per complete run (10 levels × 20)
  * - Mixed Mode: 15 questions per session
@@ -20,6 +22,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { getGrokClient } from '../../../src/lib/grokClient';
+import { validateBatch } from '../../../src/lib/triviaValidator';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -495,21 +498,32 @@ export default async function handler(req, res) {
                 }
 
                 if (uniqueQuestions.length > 0) {
-                    const { data, error } = await supabase
-                        .from('trivia_questions')
-                        .insert(uniqueQuestions)
-                        .select();
-
-                    if (error) {
-                        console.error('[Question Pool] Insert error:', error);
-                    } else {
-                        generated += data.length;
-                        results.push({
-                            category: need.category.name,
-                            subcategory,
-                            difficulty: need.difficulty,
-                            generated: data.length
+                    // ═══ QA VALIDATION GATE — NO QUESTION ENTERS DB WITHOUT PASSING ═══
+                    const { valid: validQuestions, rejected } = validateBatch(uniqueQuestions);
+                    if (rejected.length > 0) {
+                        console.log(`[Question Pool] 🛡️ QA GATE: ${rejected.length}/${uniqueQuestions.length} REJECTED:`);
+                        rejected.forEach(r => {
+                            r.errors.forEach(e => console.log(`  → ${e}`));
                         });
+                    }
+
+                    if (validQuestions.length > 0) {
+                        const { data, error } = await supabase
+                            .from('trivia_questions')
+                            .insert(validQuestions)
+                            .select();
+
+                        if (error) {
+                            console.error('[Question Pool] Insert error:', error);
+                        } else {
+                            generated += data.length;
+                            results.push({
+                                category: need.category.name,
+                                subcategory,
+                                difficulty: need.difficulty,
+                                generated: data.length
+                            });
+                        }
                     }
                 }
             }
