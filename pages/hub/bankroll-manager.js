@@ -453,7 +453,7 @@ export default function BankrollManagerPage() {
     } else if (sectionId === 'projection') {
       setShowProjection(true);
     } else if (sectionId === 'staking') {
-      setActiveSection('pro');
+      setActiveSection('staking');
     } else if (sectionId === 'tax') {
       setActiveSection('tax');
     } else if (sectionId === 'receipts') {
@@ -773,6 +773,7 @@ export default function BankrollManagerPage() {
                 {activeSection === 'pro' && 'Pro Tools'}
                 {activeSection === 'settings' && 'Settings'}
                 {activeSection === 'rules' && 'Bankroll Rules'}
+                {activeSection === 'staking' && 'Staking Tracker'}
               </h1>
               <div style={styles.headerActions}>
                 {activeSection === 'dashboard' && categoryFilter === 'all' && (
@@ -1423,6 +1424,15 @@ export default function BankrollManagerPage() {
                   <div style={{ padding: 16 }}>
                     <TaxReportPanel userId={userId} />
                   </div>
+                </BankrollProGate>
+              </div>
+            )}
+
+            {/* Staking Tracker — dedicated standalone view */}
+            {activeSection === 'staking' && (
+              <div style={styles.activitySection}>
+                <BankrollProGate userId={userId}>
+                  <StakingTracker userId={userId} />
                 </BankrollProGate>
               </div>
             )}

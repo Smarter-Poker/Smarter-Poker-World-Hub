@@ -29,11 +29,15 @@ export default async function handler(req, res) {
         const ninetyDaysAgo = new Date();
         ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
+        // Accounting categories that should NEVER be counted as sessions
+        const ACCOUNTING_CATEGORIES = ['expense', 'deposit', 'withdrawal', 'receipt'];
+
         const { data: entries, error: entriesError } = await supabase
             .from('bankroll_ledger')
             .select('*')
             .eq('user_id', userId)
             .gte('entry_date', ninetyDaysAgo.toISOString().split('T')[0])
+            .not('category', 'in', `(${ACCOUNTING_CATEGORIES.join(',')})`)
             .order('entry_date', { ascending: false });
 
         if (entriesError) {
