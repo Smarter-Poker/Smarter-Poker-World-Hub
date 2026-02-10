@@ -788,11 +788,11 @@ export async function createSeries(
     .insert({
       user_id: userId,
       name: series.name,
-      location_id: series.location_id,
-      start_date: series.start_date,
-      end_date: series.end_date,
-      purpose: series.purpose,
-      notes: series.notes,
+      location_id: series.location_id || null,
+      start_date: series.start_date || null,
+      end_date: series.end_date || null,
+      purpose: series.purpose || null,
+      notes: series.notes || null,
       status: 'active',
       trip_type: 'series',
     })

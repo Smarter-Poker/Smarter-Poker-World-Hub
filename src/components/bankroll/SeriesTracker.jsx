@@ -47,7 +47,7 @@ export default function SeriesTracker({ userId, onOpenLog }) {
         name: '',
         location_id: null,
         start_date: new Date().toISOString().split('T')[0],
-        end_date: '',
+        end_date: null,
         purpose: '',
         notes: '',
     });
@@ -127,10 +127,14 @@ export default function SeriesTracker({ userId, onOpenLog }) {
                 locationId = null;
             }
 
-            await createSeries(userId, { ...newSeries, location_id: locationId });
+            // Sanitize: convert empty strings to null for date fields
+            const seriesData = { ...newSeries, location_id: locationId };
+            if (!seriesData.end_date) seriesData.end_date = null;
+            if (!seriesData.start_date) seriesData.start_date = null;
+            await createSeries(userId, seriesData);
             toast.success('Series started!');
             setShowCreateForm(false);
-            setNewSeries({ name: '', location_id: null, start_date: new Date().toISOString().split('T')[0], end_date: '', purpose: '', notes: '' });
+            setNewSeries({ name: '', location_id: null, start_date: new Date().toISOString().split('T')[0], end_date: null, purpose: '', notes: '' });
             await loadData();
         } catch (err) {
             toast.error(err.message || 'Failed to create series');
