@@ -194,6 +194,12 @@ export default function TriviaHubPage() {
                     padding: 15px 0 40px;
                 }
 
+                @media (max-width: 680px) {
+                    .content {
+                        padding: 8px 0 24px;
+                    }
+                }
+
                 .loading {
                     display: flex;
                     flex-direction: column;

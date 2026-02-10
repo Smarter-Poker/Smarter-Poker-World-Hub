@@ -435,20 +435,35 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
                     gap: 12px;
                 }
 
-                @media (max-width: 900px) {
-                    .modes-grid {
-                        grid-template-columns: repeat(2, 1fr);
+                @media (max-width: 680px) {
+                    .trivia-lobby {
+                        padding: 0 8px 16px !important;
                     }
-                }
-
-                @media (max-width: 500px) {
-                    .modes-grid {
-                        grid-template-columns: 1fr;
+                    .daily-trivia-banner {
+                        margin-bottom: 6px;
                     }
-                    
-                    .daily-hero__layout {
-                        flex-direction: column;
-                        text-align: center;
+                    .daily-trivia-banner__completed span {
+                        font-size: 20px;
+                    }
+                    .modes-section {
+                        margin-top: 4px;
+                    }
+                    .modes-grid {
+                        grid-template-columns: repeat(2, 1fr) !important;
+                        gap: 8px !important;
+                    }
+                    .mode-image-card__img {
+                        aspect-ratio: 1 !important;
+                        border-radius: 6px !important;
+                    }
+                    .mode-image-card {
+                        border-radius: 8px !important;
+                    }
+                    .quick-stakes-section {
+                        margin-top: 12px !important;
+                    }
+                    .quick-stakes-banner__img {
+                        border-radius: 6px !important;
                     }
                 }
 
