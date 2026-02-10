@@ -846,7 +846,7 @@ export default function TriviaModePage() {
             <style jsx>{`
                 .trivia-mode-page {
                     min-height: 100vh;
-                    background: url('/images/trivia/starfield-bg.png') center center / cover no-repeat;
+                    background: url('/images/trivia/starfield-bg.jpg') center center / cover no-repeat;
                     background-color: #000000;
                     font-family: 'Inter', -apple-system, sans-serif;
                     position: relative;

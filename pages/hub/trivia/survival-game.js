@@ -648,7 +648,7 @@ export default function SurvivalGamePage() {
             <PageTransition>
                 <div style={{
                     minHeight: '100vh',
-                    background: "url('/images/trivia/starfield-bg.png') center center / cover no-repeat",
+                    background: "url('/images/trivia/starfield-bg.jpg') center center / cover no-repeat",
                     backgroundColor: '#000000',
                     padding: '20px'
                 }}>

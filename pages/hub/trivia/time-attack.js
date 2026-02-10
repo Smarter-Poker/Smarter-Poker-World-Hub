@@ -335,7 +335,7 @@ export default function TimeAttackPage() {
             <style jsx>{`
                 .time-attack-page {
                     min-height: 100vh;
-                    background: url('/images/trivia/starfield-bg.png') center center / cover no-repeat;
+                    background: url('/images/trivia/starfield-bg.jpg') center center / cover no-repeat;
                     background-color: #000000;
                     font-family: 'Inter', -apple-system, sans-serif;
                 }
