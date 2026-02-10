@@ -61,13 +61,14 @@ export default async function handler(req, res) {
                 article = byName;
             }
 
-            // MSPT Cross-Source Fallback: If MSPT's own articles are stale (>3 days old),
-            // search for any recent article mentioning "MSPT" in the title from ANY source
-            // (e.g., PokerNews covering MSPT events). This mirrors the "MSPT News & Updates" bar.
+            // MSPT Cross-Source Fallback: Every 2 hours (matching cron cycle),
+            // if MSPT's own article is stale, auto-populate Box 2 from any source
+            // covering MSPT (e.g., PokerNews, CardPlayer). When MSPT publishes
+            // new stories directly, they'll naturally be fresher and take precedence.
             if (box.box === 2 && article) {
                 const articleAge = Date.now() - new Date(article.published_at).getTime();
-                const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
-                if (articleAge > threeDaysMs) {
+                const twoHoursMs = 2 * 60 * 60 * 1000;
+                if (articleAge > twoHoursMs) {
                     const { data: crossSource } = await supabase
                         .from('poker_news')
                         .select('*')
