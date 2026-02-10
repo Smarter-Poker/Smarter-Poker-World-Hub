@@ -1,7 +1,7 @@
 /**
  * BANKROLL RULES CARD
- * Displays pre-made bankroll rules that users can toggle on/off
- * NO default rules — all rules start disabled until user enables them
+ * Displays pre-made + custom bankroll rules that users can toggle on/off
+ * Includes "Add Custom Rule" functionality
  */
 
 import { useState, useEffect } from 'react';
@@ -60,10 +60,19 @@ const PREMADE_RULES = [
 ];
 
 export default function BankrollRulesCard({ userId }) {
-  const [rules, setRules] = useState({}); // { rule_type: { id, value, is_active } }
+  const [rules, setRules] = useState({}); // { rule_type: { id, value, is_active, label, description, unit } }
+  const [customRules, setCustomRules] = useState([]); // custom rules from DB
   const [isLoading, setIsLoading] = useState(true);
   const [editingRule, setEditingRule] = useState(null);
   const [editValue, setEditValue] = useState('');
+
+  // "Add Custom Rule" form state
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newLabel, setNewLabel] = useState('');
+  const [newDescription, setNewDescription] = useState('');
+  const [newValue, setNewValue] = useState('');
+  const [newUnit, setNewUnit] = useState('$');
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     loadRules();
@@ -79,10 +88,16 @@ export default function BankrollRulesCard({ userId }) {
         .eq('user_id', userId);
       if (error) throw error;
       const ruleMap = {};
+      const customs = [];
       (data || []).forEach(r => {
-        ruleMap[r.rule_type] = r;
+        if (r.rule_type?.startsWith('custom_')) {
+          customs.push(r);
+        } else {
+          ruleMap[r.rule_type] = r;
+        }
       });
       setRules(ruleMap);
+      setCustomRules(customs);
     } catch (err) {
       // Table may not exist
     } finally {
@@ -94,7 +109,6 @@ export default function BankrollRulesCard({ userId }) {
     const existing = rules[premadeRule.rule_type];
     try {
       if (existing) {
-        // Toggle is_active
         const newActive = !existing.is_active;
         const { error } = await supabase
           .from('bankroll_rules')
@@ -107,7 +121,6 @@ export default function BankrollRulesCard({ userId }) {
         }));
         toast.success(newActive ? `${premadeRule.label} enabled` : `${premadeRule.label} disabled`);
       } else {
-        // Create new rule (enabled)
         const { data, error } = await supabase
           .from('bankroll_rules')
           .insert({
@@ -125,6 +138,23 @@ export default function BankrollRulesCard({ userId }) {
       }
     } catch (err) {
       console.error('[BankrollRules] Toggle error:', err);
+      toast.error('Failed to update rule');
+    }
+  };
+
+  const handleToggleCustom = async (customRule) => {
+    try {
+      const newActive = !customRule.is_active;
+      const { error } = await supabase
+        .from('bankroll_rules')
+        .update({ is_active: newActive, updated_at: new Date().toISOString() })
+        .eq('id', customRule.id);
+      if (error) throw error;
+      setCustomRules(prev => prev.map(r =>
+        r.id === customRule.id ? { ...r, is_active: newActive } : r
+      ));
+      toast.success(newActive ? 'Rule enabled' : 'Rule disabled');
+    } catch (err) {
       toast.error('Failed to update rule');
     }
   };
@@ -168,6 +198,93 @@ export default function BankrollRulesCard({ userId }) {
     } catch (err) {
       toast.error('Failed to save');
     }
+  };
+
+  const handleSaveCustomValue = async (customRule) => {
+    const val = parseFloat(editValue);
+    if (isNaN(val) || val <= 0) {
+      toast.error('Enter a valid number');
+      return;
+    }
+    try {
+      const { error } = await supabase
+        .from('bankroll_rules')
+        .update({ value: val, updated_at: new Date().toISOString() })
+        .eq('id', customRule.id);
+      if (error) throw error;
+      setCustomRules(prev => prev.map(r =>
+        r.id === customRule.id ? { ...r, value: val } : r
+      ));
+      toast.success('Value updated');
+      setEditingRule(null);
+      setEditValue('');
+    } catch (err) {
+      toast.error('Failed to save');
+    }
+  };
+
+  const handleAddCustomRule = async () => {
+    if (!newLabel.trim()) {
+      toast.error('Rule name is required');
+      return;
+    }
+    const val = parseFloat(newValue);
+    if (isNaN(val) || val <= 0) {
+      toast.error('Enter a valid threshold value');
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const ruleType = `custom_${Date.now()}`;
+      const { data, error } = await supabase
+        .from('bankroll_rules')
+        .insert({
+          user_id: userId,
+          rule_type: ruleType,
+          value: val,
+          is_active: true,
+          is_strict: false,
+          label: newLabel.trim(),
+          description: newDescription.trim() || null,
+          unit: newUnit,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      setCustomRules(prev => [...prev, data]);
+      setNewLabel('');
+      setNewDescription('');
+      setNewValue('');
+      setNewUnit('$');
+      setShowAddForm(false);
+      toast.success('Custom rule created!');
+    } catch (err) {
+      console.error('[BankrollRules] Add custom error:', err);
+      toast.error('Failed to create rule');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteCustom = async (customRule) => {
+    try {
+      const { error } = await supabase
+        .from('bankroll_rules')
+        .delete()
+        .eq('id', customRule.id);
+      if (error) throw error;
+      setCustomRules(prev => prev.filter(r => r.id !== customRule.id));
+      toast.success('Rule deleted');
+    } catch (err) {
+      toast.error('Failed to delete rule');
+    }
+  };
+
+  const formatCustomValue = (rule) => {
+    const u = rule.unit || '$';
+    if (u === '%') return `${rule.value}%`;
+    if (u === 'hrs') return `${rule.value} hrs`;
+    return `$${Number(rule.value).toLocaleString()}`;
   };
 
   if (isLoading) {
@@ -244,7 +361,145 @@ export default function BankrollRulesCard({ userId }) {
             </div>
           );
         })}
+
+        {/* Custom Rules */}
+        {customRules.length > 0 && (
+          <>
+            <div style={{ margin: '12px 0 4px', borderTop: '1px solid #4a4b4c', paddingTop: 12 }}>
+              <span style={{ fontSize: 11, fontWeight: 600, color: '#b0b3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>Custom Rules</span>
+            </div>
+            {customRules.map((cr) => {
+              const isEditing = editingRule === cr.id;
+              return (
+                <div key={cr.id} style={{
+                  ...styles.ruleItem,
+                  opacity: cr.is_active ? 1 : 0.5,
+                }}>
+                  <div style={styles.ruleTop}>
+                    <div style={styles.ruleInfo}>
+                      <span style={styles.ruleLabel}>{cr.label || cr.rule_type}</span>
+                      {cr.description && <span style={styles.ruleDesc}>{cr.description}</span>}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <button
+                        onClick={() => handleDeleteCustom(cr)}
+                        style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: 14, cursor: 'pointer', padding: '2px 4px' }}
+                        title="Delete rule"
+                      >
+                        🗑
+                      </button>
+                      <button
+                        onClick={() => handleToggleCustom(cr)}
+                        style={{
+                          ...styles.toggle,
+                          background: cr.is_active ? '#2374e1' : 'rgba(255,255,255,0.1)',
+                        }}
+                      >
+                        <div style={{
+                          ...styles.toggleKnob,
+                          transform: cr.is_active ? 'translateX(16px)' : 'translateX(0)',
+                        }} />
+                      </button>
+                    </div>
+                  </div>
+                  {cr.is_active && (
+                    <div style={styles.ruleValueRow}>
+                      {isEditing ? (
+                        <div style={styles.editRow}>
+                          <input
+                            type="number"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            style={styles.editInput}
+                            autoFocus
+                            placeholder={String(cr.value)}
+                          />
+                          <span style={styles.editUnit}>{cr.unit || '$'}</span>
+                          <button style={styles.saveBtn} onClick={() => handleSaveCustomValue(cr)}>Save</button>
+                          <button style={styles.cancelBtn} onClick={() => { setEditingRule(null); setEditValue(''); }}>✕</button>
+                        </div>
+                      ) : (
+                        <button
+                          style={styles.valueBtn}
+                          onClick={() => { setEditingRule(cr.id); setEditValue(String(cr.value)); }}
+                        >
+                          {formatCustomValue(cr)} ✎
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </>
+        )}
       </div>
+
+      {/* Add Custom Rule Button / Form */}
+      {!showAddForm ? (
+        <button
+          onClick={() => setShowAddForm(true)}
+          style={styles.addRuleBtn}
+        >
+          + Add Custom Rule
+        </button>
+      ) : (
+        <div style={styles.addForm}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: '#e4e6eb' }}>New Custom Rule</span>
+            <button
+              onClick={() => { setShowAddForm(false); setNewLabel(''); setNewDescription(''); setNewValue(''); setNewUnit('$'); }}
+              style={{ background: 'none', border: 'none', color: '#b0b3b8', fontSize: 16, cursor: 'pointer' }}
+            >✕</button>
+          </div>
+          <input
+            type="text"
+            value={newLabel}
+            onChange={(e) => setNewLabel(e.target.value)}
+            placeholder="Rule name (e.g. Weekly Loss Limit)"
+            style={styles.formInput}
+          />
+          <input
+            type="text"
+            value={newDescription}
+            onChange={(e) => setNewDescription(e.target.value)}
+            placeholder="Description (optional)"
+            style={{ ...styles.formInput, marginTop: 8 }}
+          />
+          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+            <input
+              type="number"
+              value={newValue}
+              onChange={(e) => setNewValue(e.target.value)}
+              placeholder="Threshold value"
+              style={{ ...styles.formInput, flex: 1 }}
+            />
+            <select
+              value={newUnit}
+              onChange={(e) => setNewUnit(e.target.value)}
+              style={styles.formSelect}
+            >
+              <option value="$">$</option>
+              <option value="%">%</option>
+              <option value="hrs">Hours</option>
+            </select>
+          </div>
+          <button
+            onClick={handleAddCustomRule}
+            disabled={isSaving}
+            style={{
+              ...styles.saveBtn,
+              width: '100%',
+              marginTop: 12,
+              padding: '10px 16px',
+              fontSize: 13,
+              opacity: isSaving ? 0.6 : 1,
+            }}
+          >
+            {isSaving ? 'Saving...' : 'Create Rule'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -368,5 +623,46 @@ const styles = {
     fontSize: 14,
     cursor: 'pointer',
     padding: '2px 4px',
+  },
+  addRuleBtn: {
+    width: '100%',
+    marginTop: 12,
+    padding: '12px 16px',
+    background: 'transparent',
+    border: '1px dashed #4a4b4c',
+    borderRadius: 8,
+    color: '#2374e1',
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: 'pointer',
+    transition: 'background 0.15s, border-color 0.15s',
+  },
+  addForm: {
+    marginTop: 12,
+    padding: 14,
+    background: '#3a3b3c',
+    border: '1px solid #4a4b4c',
+    borderRadius: 8,
+  },
+  formInput: {
+    width: '100%',
+    padding: '10px 12px',
+    background: '#18191a',
+    border: '1px solid #4a4b4c',
+    borderRadius: 6,
+    color: '#e4e6eb',
+    fontSize: 13,
+    outline: 'none',
+    boxSizing: 'border-box',
+  },
+  formSelect: {
+    padding: '10px 12px',
+    background: '#18191a',
+    border: '1px solid #4a4b4c',
+    borderRadius: 6,
+    color: '#e4e6eb',
+    fontSize: 13,
+    outline: 'none',
+    minWidth: 80,
   },
 };
