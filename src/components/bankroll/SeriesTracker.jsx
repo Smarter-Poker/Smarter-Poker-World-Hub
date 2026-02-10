@@ -68,40 +68,6 @@ export default function SeriesTracker({ userId, onOpenLog }) {
             setActiveSeries(active);
             setCompletedSeries(all.filter(s => s.status === 'completed'));
             setLocations(locs || []);
-
-            // Fetch tournament series from Poker Near Me database
-            try {
-                const seriesRes = await fetch('/api/poker/series?limit=200');
-                const seriesData = await seriesRes.json();
-                if (seriesData.success && seriesData.data) {
-                    // Extract unique tour names (e.g. WSOP, WPT, MSPT) — not venue-specific stops
-                    const tourSet = new Set();
-                    seriesData.data.forEach(s => {
-                        // Use short_name as the tour brand (e.g. "MSPT", "WSOP", "WPT")
-                        if (s.short_name) tourSet.add(s.short_name);
-                        // Also add the full name for major unique series (e.g. "Venetian DeepStack Championship")
-                        if (s.series_type === 'major' && s.name) tourSet.add(s.name);
-                    });
-                    setDbSeriesNames([...tourSet].sort());
-                }
-            } catch (seriesErr) {
-                console.warn('Could not load tournament series for suggestions:', seriesErr);
-            }
-
-            // Fetch poker venues from Poker Near Me database (483 venues)
-            try {
-                const venuesRes = await fetch('/api/poker/venues?limit=500');
-                const venuesData = await venuesRes.json();
-                if (venuesData.success && venuesData.data) {
-                    setDbVenues(venuesData.data.map(v => ({
-                        name: v.name,
-                        city: v.city || '',
-                        state: v.state || '',
-                    })).sort((a, b) => a.name.localeCompare(b.name)));
-                }
-            } catch (venueErr) {
-                console.warn('Could not load venues for suggestions:', venueErr);
-            }
         } catch (err) {
             console.error('Error loading series data:', err);
         } finally {
@@ -110,6 +76,38 @@ export default function SeriesTracker({ userId, onOpenLog }) {
     }, [userId]);
 
     useEffect(() => { loadData(); }, [loadData]);
+
+    // Fetch DB series + venues on mount (independent of userId)
+    useEffect(() => {
+        // Fetch tournament series (tour names)
+        fetch('/api/poker/series?limit=200')
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.data) {
+                    const tourSet = new Set();
+                    data.data.forEach(s => {
+                        if (s.short_name) tourSet.add(s.short_name);
+                        if (s.series_type === 'major' && s.name) tourSet.add(s.name);
+                    });
+                    setDbSeriesNames([...tourSet].sort());
+                }
+            })
+            .catch(err => console.warn('Could not load series:', err));
+
+        // Fetch all 483 poker venues
+        fetch('/api/poker/venues?limit=500')
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.data) {
+                    setDbVenues(data.data.map(v => ({
+                        name: v.name,
+                        city: v.city || '',
+                        state: v.state || '',
+                    })).sort((a, b) => a.name.localeCompare(b.name)));
+                }
+            })
+            .catch(err => console.warn('Could not load venues:', err));
+    }, []);
 
     const handleCreateSeries = async (e) => {
         e.preventDefault();
@@ -508,26 +506,13 @@ export default function SeriesTracker({ userId, onOpenLog }) {
                             })()}
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                            <div>
-                                <label style={styles.formLabel}>Start Date</label>
-                                <input
-                                    type="date"
-                                    value={newSeries.start_date}
-                                    onChange={e => setNewSeries({ ...newSeries, start_date: e.target.value })}
-                                    style={styles.formInput}
-                                />
-                            </div>
-                            <div>
-                                <label style={styles.formLabel}>End Date</label>
-                                <input
-                                    type="date"
-                                    value={newSeries.end_date}
-                                    onChange={e => setNewSeries({ ...newSeries, end_date: e.target.value })}
-                                    style={styles.formInput}
-                                />
-                            </div>
-                        </div>
+                        <label style={styles.formLabel}>Start Date</label>
+                        <input
+                            type="date"
+                            value={newSeries.start_date}
+                            onChange={e => setNewSeries({ ...newSeries, start_date: e.target.value })}
+                            style={styles.formInput}
+                        />
 
                         <label style={styles.formLabel}>Purpose</label>
                         <input
