@@ -28,6 +28,7 @@ import {
   initializeUserBankroll,
   updateLedgerEntry,
   deleteLedgerEntry,
+  getActiveSeries,
 } from '../../src/lib/bankroll/bankrollSelectors';
 import toast from '../../src/stores/toastStore';
 import { formatCurrency, formatCurrencyWithSign } from '../../src/lib/bankroll/currencyUtils';
@@ -223,6 +224,7 @@ export default function BankrollManagerPage() {
   const [stats, setStats] = useState(null);
   const [entries, setEntries] = useState([]);
   const [trips, setTrips] = useState([]);
+  const [activeSeries, setActiveSeries] = useState(null);
   const [locations, setLocations] = useState([]);
   const [leakAnalysis, setLeakAnalysis] = useState(null);
   const [showVenueModal, setShowVenueModal] = useState(false);
@@ -295,6 +297,14 @@ export default function BankrollManagerPage() {
       setTrips(tripsData);
       setLocations(locationsData);
       setLeakAnalysis(leakData);
+
+      // Fetch active series for dashboard banner
+      try {
+        const seriesData = await getActiveSeries(userId);
+        setActiveSeries(seriesData);
+      } catch (e) {
+        console.warn('Could not load active series:', e);
+      }
     } catch (error) {
       console.error('Error loading bankroll data:', error);
     } finally {
@@ -804,7 +814,7 @@ export default function BankrollManagerPage() {
 
                 {/* Active Trip Featured Banner */}
                 {(() => {
-                  const activeTrip = trips.find(t => t.status === 'active');
+                  const activeTrip = trips.find(t => t.status === 'active' && t.trip_type !== 'series');
                   if (!activeTrip) return null;
                   const daysSinceStart = Math.max(1, Math.ceil((Date.now() - new Date(activeTrip.start_date + 'T12:00:00').getTime()) / (1000 * 60 * 60 * 24)));
                   return (
@@ -865,6 +875,72 @@ export default function BankrollManagerPage() {
                         }}
                       >
                         + Add Entry
+                      </button>
+                    </div>
+                  );
+                })()}
+
+                {/* Active Series Featured Banner */}
+                {activeSeries && (() => {
+                  const daysSinceStart = Math.max(1, Math.ceil((Date.now() - new Date(activeSeries.start_date + 'T12:00:00').getTime()) / (1000 * 60 * 60 * 24)));
+                  return (
+                    <div
+                      style={{
+                        background: 'linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(168,85,247,0.08) 100%)',
+                        border: '1px solid rgba(59,130,246,0.3)',
+                        borderRadius: 12,
+                        padding: '14px 16px',
+                        marginBottom: 12,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 14,
+                        cursor: 'pointer',
+                      }}
+                      onClick={() => setActiveSection('series')}
+                    >
+                      <div style={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: '50%',
+                        background: '#3b82f6',
+                        boxShadow: '0 0 8px rgba(59,130,246,0.6)',
+                        flexShrink: 0,
+                        animation: 'metalGlow 2s infinite',
+                      }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginBottom: 2 }}>
+                          {activeSeries.name}
+                        </div>
+                        <div style={{ fontSize: 12, color: '#94a3b8' }}>
+                          {activeSeries.location_name && `${activeSeries.location_name} · `}
+                          Day {daysSinceStart} · {activeSeries.entryCount || 0} sessions
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <div style={{
+                          fontSize: 16,
+                          fontWeight: 700,
+                          color: (activeSeries.totalNet || 0) >= 0 ? '#10b981' : '#ef4444',
+                        }}>
+                          {(activeSeries.totalNet || 0) >= 0 ? '+' : ''}${Math.abs(activeSeries.totalNet || 0).toLocaleString()}
+                        </div>
+                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setActiveSection('series'); }}
+                        style={{
+                          background: '#6366f1',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: 8,
+                          padding: '8px 14px',
+                          fontSize: 12,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          flexShrink: 0,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        View Series
                       </button>
                     </div>
                   );

@@ -438,7 +438,7 @@ export default function SeriesTracker({ userId, onOpenLog }) {
                                         {filtered.filter(n => pastNames.includes(n)).map((name, i) => (
                                             <button key={`p-${i}`} type="button"
                                                 onMouseDown={e => { e.preventDefault(); setNewSeries({ ...newSeries, name }); setShowSeriesSuggestions(false); }}
-                                                style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', color: '#22c55e', fontSize: 13, textAlign: 'left', cursor: 'pointer' }}
+                                                style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', color: '#e4e6eb', fontSize: 13, textAlign: 'left', cursor: 'pointer' }}
                                             >{name}</button>
                                         ))}
                                         {dbSeriesNames.length > 0 && filtered.some(n => dbSeriesNames.includes(n) && !pastNames.includes(n)) && (
@@ -496,7 +496,7 @@ export default function SeriesTracker({ userId, onOpenLog }) {
                                         {savedFiltered.map(loc => (
                                             <button key={`s-${loc.id}`} type="button"
                                                 onMouseDown={e => { e.preventDefault(); setNewSeries({ ...newSeries, location_id: loc.id, location_name: loc.name }); setShowLocationSuggestions(false); }}
-                                                style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', color: '#22c55e', fontSize: 13, textAlign: 'left', cursor: 'pointer' }}
+                                                style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)', color: '#e4e6eb', fontSize: 13, textAlign: 'left', cursor: 'pointer' }}
                                             >{loc.name}</button>
                                         ))}
                                         {dbFiltered.length > 0 && (
