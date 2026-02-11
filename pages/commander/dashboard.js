@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { LogOut, ArrowLeft, X, Menu, Settings, Download, Users, QrCode } from 'lucide-react';
+import { LogOut, ArrowLeft, X, Menu, Settings, Download, Users, QrCode, Clock, Layout, Trophy, Monitor, Gift, Tv, BarChart3, AlertTriangle } from 'lucide-react';
 
 /* ─────────────────────────────────────────────────
    CARD DEFINITIONS — each card has sub-features
@@ -21,9 +21,9 @@ const CARDS = [
     glow: '#22D3EE',
     features: [
       { label: 'Desk View', href: '/commander/waitlist/desk', icon: '/images/commander/icons/wl-desk-view.png' },
-      { label: 'Player View', href: '/commander/waitlist/player-view', icon: '/images/commander/icons/wl-player-view.png' },
+      { label: 'Player Waitlist', href: '/commander/displays/waitlist', icon: '/images/commander/icons/wl-player-view.png' },
       { label: 'Player Maintenance', href: '/commander/members', icon: '/images/commander/icons/wl-player-maintenance.png' },
-      { label: 'Player Kiosk', href: '/commander/waitlist/kiosk', icon: '/images/commander/icons/wl-player-kiosk.png' },
+      { label: 'Player Kiosk', href: '/commander/kiosk', icon: '/images/commander/icons/wl-player-kiosk.png' },
     ],
   },
   {
@@ -33,40 +33,52 @@ const CARDS = [
     image: '/images/commander/card-tournaments.jpg',
     glow: '#F59E0B',
     features: [
-      { label: 'Tournament Registration', href: '/commander/tournaments/registration', icon: '/images/commander/icons/tn-registration.png' },
-      { label: 'Tournament Controls', href: '/commander/tournaments/controls', icon: '/images/commander/icons/tn-controls.png' },
-      { label: 'Tournament Clock', href: '/commander/tournaments/clock', icon: '/images/commander/icons/tn-clock.png' },
-      { label: 'Tournament Maintenance', href: '/commander/tournaments/maintenance', icon: '/images/commander/icons/tn-maintenance.png' },
-      { label: 'Tournament Settings', href: '/commander/tournaments/settings', icon: '/images/commander/icons/tn-settings.png' },
-      { label: 'Tournament Clock Set Up', href: '/commander/tournaments/clock-setup', icon: '/images/commander/icons/tn-clock-setup.png' },
+      { label: 'Tournament List', href: '/commander/tournaments', icon: '/images/commander/icons/tn-registration.png' },
+      { label: 'TD Tablet', href: '/commander/tournaments', icon: '/images/commander/icons/tn-controls.png' },
+      { label: 'Tournament Clock', href: '/commander/tournaments', icon: '/images/commander/icons/tn-clock.png' },
+      { label: 'Tournament Reports', href: '/commander/reports/tournament-results', icon: '/images/commander/icons/tn-maintenance.png' },
+    ],
+  },
+  {
+    id: 'tables',
+    title: 'Tables & Dealers',
+    subtitle: 'Floor, Seating, Time Tracking',
+    image: '/images/commander/card-management.jpg',
+    glow: '#31A24C',
+    features: [
+      { label: 'Table Management', href: '/commander/tables', icon: '/images/commander/icons/mg-poker-room.png' },
+      { label: 'Dealer Management', href: '/commander/dealers', icon: '/images/commander/icons/mg-employee.png' },
+      { label: 'Time Billing', href: '/commander/time-billing', icon: '/images/commander/icons/wl-desk-view.png' },
+      { label: 'Poker Room', href: '/commander/poker-room', icon: '/images/commander/icons/mg-poker-room.png' },
     ],
   },
   {
     id: 'management',
     title: 'Management',
-    subtitle: 'Staff and Room Operations',
+    subtitle: 'Staff, Displays, Promotions',
     image: '/images/commander/card-management.jpg',
     glow: '#EF4444',
     features: [
-      { label: 'Employee Maintenance', href: '/commander/staff', icon: '/images/commander/icons/mg-employee.png' },
-      { label: 'Poker Room Functions', href: '/commander/management/poker-room', icon: '/images/commander/icons/mg-poker-room.png' },
+      { label: 'Staff Management', href: '/commander/staff', icon: '/images/commander/icons/mg-employee.png' },
+      { label: 'TV Displays', href: '/commander/displays', icon: '/images/commander/icons/rp-config.png' },
+      { label: 'Promotions', href: '/commander/promotions', icon: '/images/commander/icons/tn-registration.png' },
+      { label: 'Incidents', href: '/commander/incidents', icon: '/images/commander/icons/rp-activity.png' },
+      { label: 'Announcements', href: '/commander/announcements', icon: '/images/commander/icons/wl-player-view.png' },
     ],
   },
   {
     id: 'reports',
-    title: 'Reports and Maintenance',
-    subtitle: 'Analytics, Configuration, System',
+    title: 'Reports & Settings',
+    subtitle: 'Analytics, Reports, Configuration',
     image: '/images/commander/card-reports.jpg',
     glow: '#94A3B8',
     features: [
-      { label: 'Wait List Reports', href: '/commander/reports/waitlist', icon: '/images/commander/icons/rp-waitlist.png' },
-      { label: 'Player Reports', href: '/commander/reports/players', icon: '/images/commander/icons/rp-player.png' },
-      { label: 'Tournament Reports', href: '/commander/reports/tournaments', icon: '/images/commander/icons/rp-tournament.png' },
-      { label: 'Custom Reports', href: '/commander/reports/custom', icon: '/images/commander/icons/rp-custom.png' },
-      { label: 'Configuration', href: '/commander/settings', icon: '/images/commander/icons/rp-config.png' },
-      { label: 'Setups', href: '/commander/reports/setups', icon: '/images/commander/icons/rp-setups.png' },
-      { label: 'Activity List', href: '/commander/reports/activity', icon: '/images/commander/icons/rp-activity.png' },
-      { label: 'System Information', href: '/commander/reports/system', icon: '/images/commander/icons/rp-system.png' },
+      { label: 'Reports Hub', href: '/commander/reports', icon: '/images/commander/icons/rp-waitlist.png' },
+      { label: 'Daily Summary', href: '/commander/reports/daily-summary', icon: '/images/commander/icons/rp-custom.png' },
+      { label: 'Revenue Report', href: '/commander/reports/revenue', icon: '/images/commander/icons/rp-player.png' },
+      { label: 'Analytics', href: '/commander/analytics', icon: '/images/commander/icons/rp-tournament.png' },
+      { label: 'Settings', href: '/commander/settings', icon: '/images/commander/icons/rp-config.png' },
+      { label: 'Staff Activity', href: '/commander/reports/staff-activity', icon: '/images/commander/icons/rp-activity.png' },
     ],
   },
 ];
@@ -433,11 +445,37 @@ export default function CommanderDashboard() {
               <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/members'); }}>
                 <Users size={18} /> Members
               </button>
+              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/waitlist/desk'); }}>
+                <Clock size={18} /> Waitlist Desk
+              </button>
+              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/tables'); }}>
+                <Layout size={18} /> Tables
+              </button>
+              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/tournaments'); }}>
+                <Trophy size={18} /> Tournaments
+              </button>
+              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/dealers'); }}>
+                <Users size={18} /> Dealers
+              </button>
+              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/kiosk'); }}>
+                <Monitor size={18} /> Kiosk
+              </button>
+              <div className="cmd-menu-divider" />
+              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/promotions'); }}>
+                <Gift size={18} /> Promotions
+              </button>
+              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/displays'); }}>
+                <Tv size={18} /> TV Displays
+              </button>
+              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/reports'); }}>
+                <BarChart3 size={18} /> Reports
+              </button>
+              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/incidents'); }}>
+                <AlertTriangle size={18} /> Incidents
+              </button>
+              <div className="cmd-menu-divider" />
               <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/qr-code'); }}>
                 <QrCode size={18} /> QR Code
-              </button>
-              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/downloads'); }}>
-                <Download size={18} /> Downloads
               </button>
               <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/settings'); }}>
                 <Settings size={18} /> Settings
