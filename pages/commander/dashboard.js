@@ -369,10 +369,10 @@ export default function CommanderDashboard() {
           border-radius: 14px;
           cursor: pointer;
           transition: all 0.25s;
-          border: 2px solid;
+          border: none;
           overflow: hidden;
-          background: #111;
-          box-shadow: 0 0 0 rgba(0,0,0,0), inset 0 1px 0 rgba(255,255,255,0.05);
+          background: transparent;
+          box-shadow: none;
         }
         .cmd-feature-btn img {
           width: 100%;
