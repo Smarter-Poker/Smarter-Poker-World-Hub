@@ -238,11 +238,12 @@ const styles = {
         transition: 'border-color 0.2s, box-shadow 0.2s',
     },
     triggerAvatar: {
-        width: 36,
-        height: 36,
+        width: 52,
+        height: 52,
         borderRadius: '50%',
         flexShrink: 0,
-        border: '1.5px solid rgba(139,92,246,0.3)',
+        border: '2px solid rgba(139,92,246,0.4)',
+        boxShadow: '0 0 12px rgba(139,92,246,0.2)',
     },
     triggerText: {
         flex: 1,
@@ -303,8 +304,8 @@ const styles = {
         gap: 12,
     },
     modalAvatar: {
-        width: 36,
-        height: 36,
+        width: 48,
+        height: 48,
         borderRadius: '50%',
         border: '2px solid rgba(139,92,246,0.5)',
     },

@@ -1269,17 +1269,23 @@ export default function BankrollManagerPage() {
                           body: JSON.stringify({ userId, format: 'csv' })
                         });
                         const data = await res.json();
-                        if (data.success && data.csv) {
-                          const blob = new Blob([data.csv], { type: 'text/csv' });
+                        if (data.success && data.content) {
+                          const blob = new Blob([data.content], { type: 'text/csv' });
                           const url = URL.createObjectURL(blob);
                           const a = document.createElement('a');
                           a.href = url;
-                          a.download = `bankroll_export_${new Date().toISOString().split('T')[0]}.csv`;
+                          a.download = data.filename || `bankroll_export_${new Date().toISOString().split('T')[0]}.csv`;
+                          document.body.appendChild(a);
                           a.click();
+                          document.body.removeChild(a);
                           URL.revokeObjectURL(url);
+                          toast.success(`Exported ${data.summary?.sessions || 0} sessions to CSV`);
+                        } else {
+                          toast.error(data.message || 'No entries to export');
                         }
                       } catch (err) {
                         console.error('Export failed:', err);
+                        toast.error('CSV export failed');
                       }
                     }}
                     style={styles.reportActionBtn}
@@ -1305,17 +1311,24 @@ export default function BankrollManagerPage() {
                           body: JSON.stringify({ userId, format: 'json' })
                         });
                         const data = await res.json();
-                        if (data.success) {
-                          const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                        if (data.success && data.data) {
+                          const exportPayload = { entries: data.data, summary: data.summary };
+                          const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
                           const url = URL.createObjectURL(blob);
                           const a = document.createElement('a');
                           a.href = url;
-                          a.download = `bankroll_export_${new Date().toISOString().split('T')[0]}.json`;
+                          a.download = data.filename || `bankroll_export_${new Date().toISOString().split('T')[0]}.json`;
+                          document.body.appendChild(a);
                           a.click();
+                          document.body.removeChild(a);
                           URL.revokeObjectURL(url);
+                          toast.success(`Exported ${data.summary?.sessions || 0} sessions to JSON`);
+                        } else {
+                          toast.error(data.message || 'No entries to export');
                         }
                       } catch (err) {
                         console.error('Export failed:', err);
+                        toast.error('JSON export failed');
                       }
                     }}
                     style={styles.reportActionBtn}
