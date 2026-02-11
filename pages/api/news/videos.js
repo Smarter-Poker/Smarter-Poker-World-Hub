@@ -1,6 +1,7 @@
 /**
  * Videos API - Get Poker Videos
- * Auto-scraped from YouTube poker channels every 2 hours
+ * Reads from social_reels table (populated by pokernews-videos cron)
+ * Transforms reels data into video-card-compatible format
  */
 import { createClient } from '@supabase/supabase-js';
 
@@ -21,30 +22,37 @@ const FALLBACK_VIDEOS = [
     { id: 8, title: "Online Poker Tips 2025", youtube_id: "dQw4w9WgXcQ", thumbnail_url: "https://images.unsplash.com/photo-1517232115160-ff93364542dd?w=400&q=80", duration: "14:55", views: 42000, channel: "Upswing Poker" }
 ];
 
+// Extract YouTube video ID from various URL formats
+function extractYouTubeId(url) {
+    if (!url) return null;
+    const patterns = [
+        /youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/,
+        /youtu\.be\/([a-zA-Z0-9_-]+)/,
+        /youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/,
+        /youtube\.com\/embed\/([a-zA-Z0-9_-]+)/
+    ];
+    for (const pattern of patterns) {
+        const match = url.match(pattern);
+        if (match) return match[1];
+    }
+    return null;
+}
+
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
     try {
-        const { limit = 20, featured, channel } = req.query;
+        const { limit = 20, channel } = req.query;
 
+        // Read from social_reels — the table pokernews-videos cron populates
         let query = supabase
-            .from('poker_videos')
+            .from('social_reels')
             .select('*')
-            .order('scraped_at', { ascending: false })
-            .order('published_at', { ascending: false })
+            .eq('is_public', true)
+            .order('created_at', { ascending: false })
             .limit(parseInt(limit));
-
-        // Filter by channel if specified
-        if (channel) {
-            query = query.ilike('channel', `%${channel}%`);
-        }
-
-        // Filter featured videos if specified
-        if (featured === 'true') {
-            query = query.eq('is_featured', true);
-        }
 
         const { data, error } = await query;
 
@@ -57,7 +65,32 @@ export default async function handler(req, res) {
             return res.status(200).json({ success: true, data: FALLBACK_VIDEOS.slice(0, parseInt(limit)) });
         }
 
-        return res.status(200).json({ success: true, data });
+        // Transform social_reels rows into video-card-compatible format
+        const videos = data.map(reel => {
+            const youtubeId = extractYouTubeId(reel.video_url);
+            const thumbnailUrl = reel.thumbnail_url ||
+                (youtubeId ? `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg` : null);
+
+            return {
+                id: reel.id,
+                title: reel.caption?.split('\n')[0]?.replace(/^🎬\s*/, '') || 'Poker Video',
+                youtube_id: youtubeId,
+                video_url: reel.video_url,
+                thumbnail_url: thumbnailUrl,
+                duration: reel.duration || '',
+                views: reel.view_count || 0,
+                channel: 'PokerNews',
+                published_at: reel.created_at,
+                scraped_at: reel.created_at
+            };
+        });
+
+        // Filter by channel if specified
+        const filtered = channel
+            ? videos.filter(v => v.channel?.toLowerCase().includes(channel.toLowerCase()))
+            : videos;
+
+        return res.status(200).json({ success: true, data: filtered });
     } catch (error) {
         console.error('Videos API exception:', error.message);
         return res.status(200).json({ success: true, data: FALLBACK_VIDEOS });

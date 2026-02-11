@@ -159,6 +159,18 @@
     {
       "path": "/api/cron/refresh-venue-json",
       "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/cron/news-scraper",
+      "schedule": "0 */2 * * *"
+    },
+    {
+      "path": "/api/cron/pokernews-videos",
+      "schedule": "30 */3 * * *"
+    },
+    {
+      "path": "/api/cron/poker-news",
+      "schedule": "15 */4 * * *"
     }
   ]
 }
