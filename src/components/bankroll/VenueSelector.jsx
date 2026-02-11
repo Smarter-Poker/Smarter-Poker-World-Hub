@@ -16,7 +16,7 @@
  *   userId       - for bankroll_locations linkage
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import LocationMapPicker from './LocationMapPicker';
 
 const VENUE_TYPES = [
@@ -35,8 +35,30 @@ export default function VenueSelector({ value, venueType, onChange, userId }) {
     const [showMapPicker, setShowMapPicker] = useState(false);
     const [homeCoords, setHomeCoords] = useState(null);
     const [homeAddress, setHomeAddress] = useState('');
+    const [savedLocations, setSavedLocations] = useState([]); // user's saved bankroll_locations
     const debounceRef = useRef(null);
     const containerRef = useRef(null);
+
+    // Load user's saved locations from bankroll_locations on mount
+    useEffect(() => {
+        if (!userId) return;
+        const loadSavedLocations = async () => {
+            try {
+                const { supabase } = await import('../../lib/supabase');
+                const { data, error } = await supabase
+                    .from('bankroll_locations')
+                    .select('id, name, venue_type, latitude, longitude')
+                    .eq('user_id', userId)
+                    .order('name');
+                if (!error && data) {
+                    setSavedLocations(data);
+                }
+            } catch (err) {
+                console.error('[VenueSelector] Failed to load saved locations:', err);
+            }
+        };
+        loadSavedLocations();
+    }, [userId]);
 
     // Close suggestions on outside click
     useEffect(() => {
@@ -48,6 +70,20 @@ export default function VenueSelector({ value, venueType, onChange, userId }) {
         document.addEventListener('mousedown', handleClick);
         return () => document.removeEventListener('mousedown', handleClick);
     }, []);
+
+    // Filter saved locations by type and search query for suggestion display
+    const filteredSavedLocations = useMemo(() => {
+        if (!savedLocations.length) return [];
+        // For home_game, show home_game saved locations; for others, show matching type
+        const typeFiltered = savedLocations.filter(loc => {
+            if (selectedType === 'home_game') return loc.venue_type === 'home_game';
+            if (selectedType === 'poker_club') return loc.venue_type === 'poker_club';
+            return loc.venue_type === 'casino' || !loc.venue_type;
+        });
+        if (!searchQuery.trim()) return typeFiltered;
+        const q = searchQuery.toLowerCase();
+        return typeFiltered.filter(loc => loc.name.toLowerCase().includes(q));
+    }, [savedLocations, selectedType, searchQuery]);
 
     // Debounced search against /api/poker/venues
     const searchVenues = useCallback(async (query) => {
@@ -95,6 +131,16 @@ export default function VenueSelector({ value, venueType, onChange, userId }) {
         onChange(venue.name, selectedType, venue.id, lat, lng);
     };
 
+    // Select a saved location (from bankroll_locations)
+    const handleSelectSavedLocation = (loc) => {
+        setSearchQuery(loc.name);
+        setShowSuggestions(false);
+        if (loc.latitude && loc.longitude) {
+            setHomeCoords({ lat: loc.latitude, lng: loc.longitude });
+        }
+        onChange(loc.name, selectedType, null, loc.latitude || null, loc.longitude || null);
+    };
+
     const handleTypeChange = (type) => {
         setSelectedType(type);
         setSearchQuery('');
@@ -131,6 +177,25 @@ export default function VenueSelector({ value, venueType, onChange, userId }) {
                     </button>
                 ))}
             </div>
+
+            {/* Saved Location Quick Picks (for home games and all types) */}
+            {filteredSavedLocations.length > 0 && !searchQuery.trim() && (
+                <div style={styles.savedRow}>
+                    <span style={styles.savedLabel}>Recent:</span>
+                    <div style={styles.savedChips}>
+                        {filteredSavedLocations.slice(0, 5).map((loc) => (
+                            <button
+                                key={loc.id}
+                                type="button"
+                                onClick={() => handleSelectSavedLocation(loc)}
+                                style={styles.savedChip}
+                            >
+                                {loc.name}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Search / Input Field */}
             <div style={styles.inputRow}>
@@ -386,6 +451,36 @@ const styles = {
     },
     venueType: {
         color: '#65676b',
+    },
+    savedRow: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 8,
+        flexWrap: 'wrap',
+    },
+    savedLabel: {
+        fontSize: 11,
+        color: 'rgba(255,255,255,0.4)',
+        fontWeight: 500,
+        flexShrink: 0,
+    },
+    savedChips: {
+        display: 'flex',
+        gap: 6,
+        flexWrap: 'wrap',
+    },
+    savedChip: {
+        padding: '5px 12px',
+        fontSize: 12,
+        fontWeight: 500,
+        background: 'rgba(35,116,225,0.15)',
+        border: '1px solid rgba(35,116,225,0.3)',
+        borderRadius: 16,
+        color: '#60a5fa',
+        cursor: 'pointer',
+        transition: 'all 0.15s ease',
+        whiteSpace: 'nowrap',
     },
 };
 
