@@ -4,11 +4,23 @@
  * Creates a Stripe checkout session for diamonds, VIP, or merchandise
  */
 import { createClient } from '@supabase/supabase-js';
+import Stripe from 'stripe';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+// Initialize Stripe at module level (not inside handler)
+// This ensures proper bundling in Vercel's serverless runtime
+const stripe = process.env.STRIPE_SECRET_KEY
+    ? new Stripe(process.env.STRIPE_SECRET_KEY, {
+        apiVersion: '2023-10-16',
+        timeout: 15000,
+        maxNetworkRetries: 2,
+        telemetry: false
+    })
+    : null;
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -22,9 +34,9 @@ export default async function handler(req, res) {
     const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
     const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 
-    if (!stripeSecretKey || !stripePublishableKey) {
+    if (!stripe || !stripePublishableKey) {
         console.error('[Checkout] Missing Stripe keys:', {
-            hasSecret: !!stripeSecretKey,
+            hasStripe: !!stripe,
             hasPublishable: !!stripePublishableKey
         });
         return res.status(503).json({
@@ -69,11 +81,7 @@ export default async function handler(req, res) {
             });
         }
 
-        // Initialize Stripe with explicit config
-        const stripe = require('stripe')(stripeSecretKey, {
-            timeout: 10000, // 10 second timeout
-            maxNetworkRetries: 2
-        });
+        // Stripe is initialized at module level above
 
         // Get or create Stripe customer
         let customerId;
