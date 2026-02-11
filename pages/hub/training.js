@@ -26,6 +26,7 @@ import useTrainingProgress from '../../src/hooks/useTrainingProgress';
 import { getAuthUser } from '../../src/lib/authUtils';
 import { getGameImage } from '../../src/data/GAME_IMAGES';
 import DiamondEngine from '../../src/services/DiamondEngine';
+import GameCostPopup from '../../src/components/gates/GameCostPopup';
 import GameIntroSplash from '../../src/components/training/GameIntroSplash';
 import LeakFixerIntercept from '../../src/components/training/LeakFixerIntercept';
 import dynamic from 'next/dynamic';
@@ -885,6 +886,13 @@ export default function TrainingPage() {
 
     return (
         <PageTransition>
+            {/* One-time diamond cost popup for non-VIP users */}
+            <GameCostPopup
+                userId={userId}
+                pageKey="training"
+                isVip={isVIP}
+                cost={10}
+            />
             {/*  INTRO VIDEO OVERLAY - Plays while page loads behind it */}
             {showPageIntro && (
                 <div style={{
