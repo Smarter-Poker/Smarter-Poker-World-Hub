@@ -5,6 +5,9 @@
 
 import { useState, useMemo } from 'react';
 
+// Non-gaming categories that should NOT count as "sessions"
+const NON_SESSION_CATEGORIES = new Set(['expense', 'withdrawal', 'deposit']);
+
 export default function HistoricalComparison({ entries = [] }) {
     const [period, setPeriod] = useState('month');
 
@@ -35,16 +38,18 @@ export default function HistoricalComparison({ entries = [] }) {
         });
 
         const calc = (arr) => {
+            // Only count actual gaming sessions — exclude expense/withdrawal/deposit
+            const sessions = arr.filter(e => !NON_SESSION_CATEGORIES.has(e.category));
             let totalIn = 0, totalOut = 0, wins = 0;
-            arr.forEach(e => {
+            sessions.forEach(e => {
                 totalIn += e.gross_in || 0;
                 totalOut += e.gross_out || 0;
                 if ((e.gross_out - e.gross_in) > 0) wins++;
             });
             return {
-                sessions: arr.length,
+                sessions: sessions.length,
                 netResult: totalOut - totalIn,
-                winRate: arr.length > 0 ? (wins / arr.length) * 100 : 0,
+                winRate: sessions.length > 0 ? (wins / sessions.length) * 100 : 0,
             };
         };
 

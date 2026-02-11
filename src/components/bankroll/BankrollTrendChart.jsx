@@ -38,6 +38,9 @@ const CATEGORY_LABELS = {
     expense: 'Expenses',
 };
 
+// Non-gaming categories that should NOT count as "sessions"
+const NON_SESSION_CATEGORIES = new Set(['expense', 'withdrawal', 'deposit']);
+
 /** Compute the start date for a given time-filter string */
 function getFilterStartDate(timeFilter) {
     const now = new Date();
@@ -199,11 +202,13 @@ export default function BankrollTrendChart({ entries = [], isLoading = false, ch
     const stats = useMemo(() => {
         if (lineData.length === 0) return { current: 0, high: 0, low: 0, sessions: 0 };
         const values = lineData.map(d => d.value);
+        // Only count actual gaming sessions — exclude expense/withdrawal/deposit
+        const gamingSessions = filteredEntries.filter(e => !NON_SESSION_CATEGORIES.has(e.category));
         return {
             current: values[values.length - 1] || 0,
             high: Math.max(...values),
             low: Math.min(...values),
-            sessions: filteredEntries.length,
+            sessions: gamingSessions.length,
         };
     }, [lineData, filteredEntries]);
 
