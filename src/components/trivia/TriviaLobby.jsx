@@ -525,13 +525,14 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
                     pointer-events: none;
                 }
 
-                /* Quick Stakes Banner - landscape format */
+                /* Quick Stakes Banner - landscape format, matching Daily Trivia size */
                 .quick-stakes-banner {
                     position: relative;
                     border-radius: 0;
-                    overflow: visible;
+                    overflow: hidden;
                     cursor: pointer;
                     transition: transform 0.2s ease, box-shadow 0.2s ease;
+                    aspect-ratio: 918 / 333;
                 }
 
                 .quick-stakes-banner:hover {
@@ -541,9 +542,11 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
 
                 .quick-stakes-banner__img {
                     width: 100%;
-                    height: auto;
+                    height: 100%;
                     display: block;
                     pointer-events: none;
+                    object-fit: cover;
+                    object-position: center;
                 }
 
                 .mode-image-card__lock {

@@ -620,7 +620,7 @@ export default function TriviaModePage() {
 
                 <UniversalHeader pageDepth={2} />
 
-                <div className="content">
+                <div className="content" style={{ padding: '80px 0 40px' }}>
                     {gameState === 'loading' && (
                         <div className="loading">
                             <div className="spinner" />
