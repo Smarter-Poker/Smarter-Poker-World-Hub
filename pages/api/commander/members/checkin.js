@@ -1,0 +1,50 @@
+/**
+ * Member Check-In API
+ * POST /api/commander/members/checkin
+ * Records a member check-in with timestamp
+ */
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
+
+  try {
+    const { member_id } = req.body;
+    if (!member_id) return res.status(400).json({ success: false, error: 'member_id required' });
+
+    // Update last check-in timestamp on member record
+    const { data: member, error: memberError } = await supabase
+      .from('commander_members')
+      .update({
+        last_checkin: new Date().toISOString(),
+        visit_count: supabase.raw('COALESCE(visit_count, 0) + 1')
+      })
+      .eq('id', member_id)
+      .select()
+      .single();
+
+    // Also log the check-in event
+    await supabase.from('commander_checkins').insert({
+      member_id,
+      venue_id: member?.venue_id,
+      checked_in_at: new Date().toISOString()
+    }).catch(() => {}); // Non-fatal if table doesn't exist
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        member_id,
+        checked_in_at: new Date().toISOString(),
+        member_name: member?.name || `${member?.first_name} ${member?.last_name}`
+      }
+    });
+  } catch (err) {
+    console.error('Check-in error:', err);
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}

@@ -9,6 +9,18 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 
+/**
+ * Designed for wireless HDMI transmitter -> TV
+ * - Auto-hides cursor
+ * - Wake lock prevents screen sleep
+ * - Click anywhere for fullscreen
+ * - Auto-refreshes every 3 seconds
+ * - 180px countdown readable from across the room
+ * 
+ * Setup: Open this URL in Chrome on the HDMI source device
+ * URL: /commander/tournaments/[id]/clock-display
+ */
+
 function formatTime(seconds) {
   if (!seconds && seconds !== 0) return '--:--';
   const m = Math.floor(seconds / 60);
@@ -29,6 +41,23 @@ export default function ClockDisplay() {
   const [data, setData] = useState(null);
   const [seconds, setSeconds] = useState(null);
   const timerRef = useRef(null);
+  const wakeLockRef = useRef(null);
+
+  // Prevent screen sleep
+  useEffect(() => {
+    const requestWakeLock = async () => {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLockRef.current = await navigator.wakeLock.request('screen');
+        }
+      } catch (err) { console.log('Wake lock not available'); }
+    };
+    requestWakeLock();
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') requestWakeLock();
+    });
+    return () => { wakeLockRef.current?.release(); };
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -85,6 +114,10 @@ export default function ClockDisplay() {
       <Head>
         <title>{tournament.name} | Tournament Clock</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <style>{`
+          * { cursor: none !important; }
+          body { overflow: hidden; }
+        `}</style>
       </Head>
       <div onClick={goFullscreen}
         className="min-h-screen bg-black text-white font-['Inter'] flex flex-col items-center justify-center cursor-pointer select-none overflow-hidden">
@@ -153,6 +186,11 @@ export default function ClockDisplay() {
           <span>Avg: <strong className="text-white">{formatChips(stats.average_stack)}</strong></span>
           <span>Prize Pool: <strong className="text-white">${(stats.prize_pool || 0).toLocaleString()}</strong></span>
           {stats.total_rebuys > 0 && <span>Rebuys: <strong className="text-white">{stats.total_rebuys}</strong></span>}
+        </div>
+
+        {/* Powered by branding */}
+        <div className="absolute bottom-4 right-6">
+          <p className="text-white/15 text-xs tracking-wider">Powered by Smarter.Poker</p>
         </div>
       </div>
     </>
