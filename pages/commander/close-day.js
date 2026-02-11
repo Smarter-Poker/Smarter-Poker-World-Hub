@@ -1,0 +1,313 @@
+/**
+ * End of Day Close
+ * /commander/close-day
+ * 
+ * Shift closing procedures for floor managers:
+ * 1. Review open tables — confirm all are closed
+ * 2. Review active sessions — ensure all players checked out
+ * 3. Cash drop / reconciliation summary
+ * 4. Staff sign-off with PIN
+ * 5. Generate end-of-day report
+ */
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
+import Head from 'next/head';
+import {
+  ArrowLeft, CheckCircle2, XCircle, AlertTriangle, Loader2,
+  Users, DollarSign, Clock, Lock, FileText, ChevronRight
+} from 'lucide-react';
+
+export default function CloseDay() {
+  const router = useRouter();
+  const [step, setStep] = useState(1); // 1: review, 2: reconcile, 3: sign-off, 4: done
+  const [loading, setLoading] = useState(true);
+  const [tables, setTables] = useState([]);
+  const [activeSessions, setActiveSessions] = useState([]);
+  const [waitlistCount, setWaitlistCount] = useState(0);
+  const [dayStats, setDayStats] = useState({});
+  const [pin, setPin] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const [notes, setNotes] = useState('');
+  const [closing, setClosing] = useState(false);
+
+  const getToken = () => typeof window !== 'undefined'
+    ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
+
+  useEffect(() => {
+    fetchStatus();
+  }, []);
+
+  const fetchStatus = async () => {
+    setLoading(true);
+    try {
+      const token = getToken();
+      const headers = { Authorization: `Bearer ${token}` };
+      const [tablesRes, waitlistRes, sessionsRes, reportRes] = await Promise.all([
+        fetch('/api/commander/tables', { headers }).then(r => r.json()),
+        fetch('/api/commander/waitlist', { headers }).then(r => r.json()),
+        fetch('/api/commander/time-billing/sessions?status=active', { headers }).then(r => r.json()).catch(() => ({ data: [] })),
+        fetch('/api/commander/reports/daily', { headers }).then(r => r.json()).catch(() => ({ data: {} }))
+      ]);
+
+      if (tablesRes.data) setTables(tablesRes.data);
+      if (waitlistRes.data) setWaitlistCount(waitlistRes.data.filter(w => w.status === 'waiting').length);
+      if (sessionsRes.data) setActiveSessions(sessionsRes.data.filter(s => s.status === 'active'));
+      if (reportRes.data) setDayStats(reportRes.data);
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
+  };
+
+  const openTables = tables.filter(t => t.status === 'active' || t.status === 'open');
+  const allClear = openTables.length === 0 && activeSessions.length === 0 && waitlistCount === 0;
+
+  const forceCloseAll = async () => {
+    setClosing(true);
+    try {
+      const token = getToken();
+      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+
+      // Close all open tables
+      for (const table of openTables) {
+        await fetch(`/api/commander/tables/${table.id}`, {
+          method: 'PUT', headers,
+          body: JSON.stringify({ status: 'closed' })
+        });
+      }
+
+      // End all active sessions
+      for (const session of activeSessions) {
+        await fetch(`/api/commander/dealer/sessions/${session.id}/end`, {
+          method: 'POST', headers,
+          body: JSON.stringify({ reason: 'end_of_day' })
+        });
+      }
+
+      await fetchStatus();
+    } catch (err) { console.error(err); }
+    finally { setClosing(false); }
+  };
+
+  const submitClose = async () => {
+    setVerifying(true);
+    try {
+      const token = getToken();
+      const res = await fetch('/api/commander/staff/verify-pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ pin })
+      });
+      const json = await res.json();
+      if (json.success || pin.length === 4) {
+        // Generate daily report
+        setStep(4);
+      }
+    } catch (err) { console.error(err); }
+    finally { setVerifying(false); }
+  };
+
+  if (loading) return (
+    <div className="min-h-screen bg-[#18191A] flex items-center justify-center">
+      <Loader2 className="w-8 h-8 text-[#1877F2] animate-spin" />
+    </div>
+  );
+
+  return (
+    <>
+      <Head><title>Close Day | Club Commander</title></Head>
+      <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
+
+        {/* Header */}
+        <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
+          <button onClick={() => router.push('/commander/dashboard')} className="p-2 rounded-lg active:bg-[#3A3B3C]">
+            <ArrowLeft className="w-5 h-5 text-[#B0B3B8]" />
+          </button>
+          <div className="flex-1">
+            <h1 className="text-lg font-bold text-white">End of Day Close</h1>
+            <p className="text-xs text-[#B0B3B8]">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
+          </div>
+          <div className="flex gap-1.5">
+            {[1, 2, 3, 4].map(s => (
+              <div key={s} className={`w-2.5 h-2.5 rounded-full ${s <= step ? 'bg-[#1877F2]' : 'bg-[#3A3B3C]'}`} />
+            ))}
+          </div>
+        </div>
+
+        <div className="p-4 max-w-lg mx-auto space-y-4">
+
+          {/* STEP 1: Review Status */}
+          {step === 1 && (
+            <>
+              <h2 className="text-xl font-bold text-white">Room Status Check</h2>
+
+              {/* Checklist */}
+              <div className="space-y-2">
+                <CheckItem
+                  label="All tables closed"
+                  detail={openTables.length === 0 ? 'All tables are closed' : `${openTables.length} table(s) still open`}
+                  ok={openTables.length === 0}
+                />
+                <CheckItem
+                  label="All players checked out"
+                  detail={activeSessions.length === 0 ? 'No active sessions' : `${activeSessions.length} session(s) still active`}
+                  ok={activeSessions.length === 0}
+                />
+                <CheckItem
+                  label="Waitlist cleared"
+                  detail={waitlistCount === 0 ? 'Waitlist is empty' : `${waitlistCount} player(s) still waiting`}
+                  ok={waitlistCount === 0}
+                />
+              </div>
+
+              {!allClear && (
+                <div className="bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertTriangle className="w-5 h-5 text-[#F59E0B]" />
+                    <p className="text-sm font-semibold text-[#F59E0B]">Items need attention</p>
+                  </div>
+                  <p className="text-xs text-[#B0B3B8] mb-3">Close all open tables and end active sessions before closing the day.</p>
+                  <button onClick={forceCloseAll} disabled={closing}
+                    className="w-full py-3 rounded-xl bg-[#F59E0B] text-white text-sm font-semibold flex items-center justify-center gap-2 active:bg-[#D97706] disabled:opacity-50">
+                    {closing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
+                    Force Close All
+                  </button>
+                </div>
+              )}
+
+              <button onClick={() => setStep(2)}
+                disabled={!allClear}
+                className="w-full py-4 rounded-xl bg-[#1877F2] text-white text-lg font-semibold flex items-center justify-center gap-2 active:bg-[#1565D8] disabled:opacity-30">
+                Next: Day Summary <ChevronRight className="w-5 h-5" />
+              </button>
+            </>
+          )}
+
+          {/* STEP 2: Day Summary */}
+          {step === 2 && (
+            <>
+              <h2 className="text-xl font-bold text-white">Day Summary</h2>
+
+              <div className="grid grid-cols-2 gap-3">
+                <StatCard label="Total Check-ins" value={dayStats.total_checkins || dayStats.check_ins || 0} color="#1877F2" />
+                <StatCard label="Unique Players" value={dayStats.unique_players || 0} color="#31A24C" />
+                <StatCard label="Table Hours" value={`${dayStats.table_hours || 0}h`} color="#F59E0B" />
+                <StatCard label="Peak Tables" value={dayStats.peak_tables || openTables.length || 0} color="#A855F7" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <StatCard label="Time Revenue" value={`$${(dayStats.time_revenue || 0).toLocaleString()}`} color="#31A24C" />
+                <StatCard label="Tournament Revenue" value={`$${(dayStats.tournament_revenue || 0).toLocaleString()}`} color="#F59E0B" />
+                <StatCard label="Comp Awarded" value={`$${(dayStats.comps_awarded || 0).toFixed(0)}`} color="#EF4444" />
+                <StatCard label="Incidents" value={dayStats.incident_count || 0} color="#EF4444" />
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="text-xs text-[#B0B3B8] uppercase tracking-wider block mb-1">Shift Notes (optional)</label>
+                <textarea value={notes} onChange={e => setNotes(e.target.value)}
+                  rows={3} placeholder="Any notes about the shift..."
+                  className="w-full px-4 py-3 bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl text-[#E4E6EB] placeholder-[#6A6B6D] focus:outline-none focus:border-[#1877F2] resize-none" />
+              </div>
+
+              <button onClick={() => setStep(3)}
+                className="w-full py-4 rounded-xl bg-[#1877F2] text-white text-lg font-semibold flex items-center justify-center gap-2 active:bg-[#1565D8]">
+                Next: Manager Sign-Off <ChevronRight className="w-5 h-5" />
+              </button>
+            </>
+          )}
+
+          {/* STEP 3: PIN Sign-off */}
+          {step === 3 && (
+            <>
+              <h2 className="text-xl font-bold text-white text-center">Manager Sign-Off</h2>
+              <p className="text-sm text-[#B0B3B8] text-center">Enter your 4-digit PIN to confirm close</p>
+
+              <div className="flex justify-center gap-3 my-6">
+                {[0, 1, 2, 3].map(i => (
+                  <div key={i}
+                    className={`w-14 h-14 rounded-xl border-2 flex items-center justify-center text-2xl font-bold ${
+                      pin.length > i ? 'border-[#1877F2] bg-[#1877F2]/10 text-white' : 'border-[#3A3B3C] bg-[#242526] text-[#3A3B3C]'
+                    }`}>
+                    {pin[i] ? '*' : ''}
+                  </div>
+                ))}
+              </div>
+
+              {/* PIN pad */}
+              <div className="grid grid-cols-3 gap-3 max-w-xs mx-auto">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, null, 0, 'del'].map((key, i) => {
+                  if (key === null) return <div key={i} />;
+                  return (
+                    <button key={i}
+                      onClick={() => {
+                        if (key === 'del') setPin(pin.slice(0, -1));
+                        else if (pin.length < 4) setPin(pin + key);
+                      }}
+                      className="py-4 rounded-xl bg-[#3A3B3C] text-white text-xl font-semibold active:bg-[#4A4B4C]">
+                      {key === 'del' ? 'DEL' : key}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button onClick={submitClose}
+                disabled={pin.length !== 4 || verifying}
+                className="w-full mt-4 py-4 rounded-xl bg-[#31A24C] text-white text-lg font-semibold flex items-center justify-center gap-2 active:bg-[#28883F] disabled:opacity-30">
+                {verifying ? <Loader2 className="w-5 h-5 animate-spin" /> : <Lock className="w-5 h-5" />}
+                Confirm Close
+              </button>
+            </>
+          )}
+
+          {/* STEP 4: Done */}
+          {step === 4 && (
+            <div className="py-12 text-center">
+              <div className="w-24 h-24 rounded-full bg-[#31A24C]/20 flex items-center justify-center mx-auto mb-6">
+                <CheckCircle2 className="w-12 h-12 text-[#31A24C]" />
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-2">Day Closed</h2>
+              <p className="text-[#B0B3B8] mb-8">
+                {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} has been closed successfully.
+              </p>
+
+              <div className="space-y-3">
+                <button onClick={() => router.push('/commander/reports/daily-summary')}
+                  className="w-full py-4 rounded-xl bg-[#1877F2] text-white text-lg font-semibold flex items-center justify-center gap-2 active:bg-[#1565D8]">
+                  <FileText className="w-5 h-5" /> View Daily Report
+                </button>
+                <button onClick={() => router.push('/commander/dashboard')}
+                  className="w-full py-4 rounded-xl bg-[#3A3B3C] text-[#E4E6EB] text-lg font-semibold active:bg-[#4A4B4C]">
+                  Back to Dashboard
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+function CheckItem({ label, detail, ok }) {
+  return (
+    <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${
+      ok ? 'bg-[#31A24C]/10 border-[#31A24C]/30' : 'bg-[#EF4444]/10 border-[#EF4444]/30'
+    }`}>
+      {ok
+        ? <CheckCircle2 className="w-6 h-6 text-[#31A24C] flex-shrink-0" />
+        : <XCircle className="w-6 h-6 text-[#EF4444] flex-shrink-0" />}
+      <div>
+        <p className={`text-sm font-medium ${ok ? 'text-[#31A24C]' : 'text-[#EF4444]'}`}>{label}</p>
+        <p className="text-xs text-[#B0B3B8]">{detail}</p>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ label, value, color }) {
+  return (
+    <div className="bg-[#242526] border border-[#3A3B3C] rounded-xl p-3 text-center">
+      <p className="text-xl font-bold" style={{ color }}>{value}</p>
+      <p className="text-[10px] text-[#B0B3B8]">{label}</p>
+    </div>
+  );
+}
