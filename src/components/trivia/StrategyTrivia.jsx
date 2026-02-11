@@ -836,8 +836,8 @@ export default function StrategyTrivia({ mode }) {
                 }
 
                 .content {
-                    padding: 100px 20px 40px;
-                    max-width: 700px;
+                    padding: 80px 0 40px;
+                    max-width: 100%;
                     margin: 0 auto;
                 }
 
@@ -845,10 +845,9 @@ export default function StrategyTrivia({ mode }) {
                 .lobby-image-wrapper {
                     position: relative;
                     cursor: pointer;
-                    border-radius: 16px;
                     overflow: hidden;
                     transition: transform 0.3s ease, box-shadow 0.3s ease;
-                    max-width: 500px;
+                    max-width: 100%;
                     margin: 0 auto;
                 }
 
@@ -865,7 +864,6 @@ export default function StrategyTrivia({ mode }) {
                     width: 100%;
                     height: auto;
                     display: block;
-                    border-radius: 16px;
                 }
 
                 .lobby-loading-overlay {
