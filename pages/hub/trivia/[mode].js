@@ -906,7 +906,7 @@ export default function TriviaModePage() {
                 }
 
                 .ready-screen {
-                    max-width: 600px;
+                    max-width: 100%;
                     margin: 0 auto;
                 }
 

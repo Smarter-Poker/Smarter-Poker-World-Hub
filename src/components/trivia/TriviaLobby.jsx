@@ -528,8 +528,8 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
                 /* Quick Stakes Banner - landscape format */
                 .quick-stakes-banner {
                     position: relative;
-                    border-radius: 12px;
-                    overflow: hidden;
+                    border-radius: 0;
+                    overflow: visible;
                     cursor: pointer;
                     transition: transform 0.2s ease, box-shadow 0.2s ease;
                 }
@@ -543,7 +543,6 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
                     width: 100%;
                     height: auto;
                     display: block;
-                    border-radius: 8px;
                     pointer-events: none;
                 }
 
@@ -581,7 +580,7 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
 
                 /* Quick Stakes Section */
                 .quick-stakes-section {
-                    margin-top: 32px;
+                    margin-top: 8px;
                 }
 
                 .qs-header {
