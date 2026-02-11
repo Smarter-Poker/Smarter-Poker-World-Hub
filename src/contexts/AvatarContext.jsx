@@ -28,24 +28,25 @@ export function AvatarProvider({ children }) {
     // This stays true until INITIAL_SESSION event fires from Supabase
     const [initializing, setInitializing] = useState(true);
 
-    // Fetch VIP status directly from database (not cached session)
+    // Fetch VIP status from server-side API bridge (with fallbacks)
     async function fetchVipStatus(userId) {
         if (!userId) {
             setIsVip(false);
             return;
         }
         try {
-            // Set a 5 second timeout for the RPC call
-            const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('VIP status check timeout')), 5000)
-            );
+            // Set a 5 second timeout for the API call
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-            const rpcPromise = supabase.rpc('get_user_vip_status', { p_user_id: userId });
+            const response = await fetch(`/api/vip/check-status?userId=${userId}`, {
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
 
-            const { data, error } = await Promise.race([rpcPromise, timeoutPromise]);
-
-            if (!error && data !== null) {
-                setIsVip(data === true);
+            if (response.ok) {
+                const data = await response.json();
+                setIsVip(data.isVip === true);
             } else {
                 // 🛡️ BULLETPROOF: Fallback to localStorage instead of getUser()
                 const localUser = getAuthUser();

@@ -96,25 +96,19 @@ class DiamondEngineSupabase {
 
         try {
             const { data, error } = await this.supabase
-                .from('vip_subscriptions')
-                .select('status, current_period_end')
-                .eq('user_id', this.userId)
-                .eq('status', 'active')
+                .from('profiles')
+                .select('is_vip')
+                .eq('id', this.userId)
                 .single();
 
-            if (error && error.code !== 'PGRST116') {
+            if (error) {
                 console.error('Error checking VIP:', error);
                 return this._getLocalVIP();
             }
 
-            // Check if subscription is still valid
-            if (data && new Date(data.current_period_end) > new Date()) {
-                this._cachedVIP = true;
-                return true;
-            }
-
-            this._cachedVIP = false;
-            return false;
+            const isVip = data?.is_vip === true;
+            this._cachedVIP = isVip;
+            return isVip;
         } catch (err) {
             console.error('VIP check failed:', err);
             return this._getLocalVIP();

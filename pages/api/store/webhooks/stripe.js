@@ -132,6 +132,34 @@ async function handleCheckoutCompleted(session) {
 
             console.log(`📦 Merchandise order ${metadata.order_id} is processing`);
         }
+    } else if (mode === 'subscription') {
+        // VIP subscription checkout completed
+        console.log(`👑 VIP subscription checkout: ${id}`);
+
+        try {
+            const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+            const subscription = await stripe.subscriptions.retrieve(session.subscription);
+
+            // Set VIP on profile and link Stripe customer
+            if (metadata.user_id) {
+                await supabase
+                    .from('profiles')
+                    .update({
+                        stripe_customer_id: customer,
+                        is_vip: true,
+                        vip_tier: metadata.vip_tier || 'monthly',
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', metadata.user_id);
+
+                console.log(`💎 Set VIP status for user ${metadata.user_id}`);
+            }
+
+            // Create/update vip_subscriptions record
+            await handleSubscriptionUpdate(subscription);
+        } catch (subErr) {
+            console.error('Error processing VIP subscription checkout:', subErr);
+        }
     }
 }
 
@@ -174,7 +202,7 @@ async function handleSubscriptionUpdate(subscription) {
 }
 
 async function handleSubscriptionCanceled(subscription) {
-    const { id, canceled_at } = subscription;
+    const { id, customer, canceled_at } = subscription;
 
     console.log(`❌ Subscription canceled: ${id}`);
 
@@ -186,6 +214,21 @@ async function handleSubscriptionCanceled(subscription) {
             updated_at: new Date().toISOString()
         })
         .eq('stripe_subscription_id', id);
+
+    // Also clear VIP status on profile
+    if (customer) {
+        await supabase
+            .from('profiles')
+            .update({
+                is_vip: false,
+                vip_tier: null,
+                vip_canceled_at: new Date(canceled_at * 1000).toISOString(),
+                updated_at: new Date().toISOString()
+            })
+            .eq('stripe_customer_id', customer);
+
+        console.log(`👤 Cleared VIP status for customer ${customer}`);
+    }
 }
 
 async function handleInvoicePaymentSucceeded(invoice) {

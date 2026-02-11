@@ -51,7 +51,7 @@ export default function DealerTablet() {
     if (!tableNumber) return;
     try {
       const token = getToken();
-      const res = await fetch(`/api/commander/tables/${tableNumber}`, {
+      const res = await fetch(`/api/commander/tables/by-number?tableNumber=${tableNumber}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const json = await res.json();
@@ -93,7 +93,7 @@ export default function DealerTablet() {
   const markSeatAction = async (seatNum, action) => {
     try {
       const token = getToken();
-      await fetch(`/api/commander/tables/${tableNumber}/seats/${seatNum}`, {
+      await fetch(`/api/commander/tables/${tableNumber}/seats/${seatNum}`, { // TODO: wire up seats API
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ action })
@@ -164,12 +164,11 @@ export default function DealerTablet() {
                   onClick={() => setSelectedSeat(isSelected ? null : pos.seat)}
                   className="absolute flex flex-col items-center"
                   style={{ left: `${pos.x}%`, top: `${pos.y}%`, transform: 'translate(-50%, -50%)' }}>
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold border-2 ${
-                    isSelected ? 'border-[#1877F2] ring-2 ring-[#1877F2]/30' :
-                    occupied ? 'bg-[#1877F2]/20 border-[#1877F2]/50 text-[#1877F2]' :
-                    away ? 'bg-[#F59E0B]/20 border-[#F59E0B]/50 text-[#F59E0B]' :
-                    'bg-[#3A3B3C]/50 border-[#3A3B3C] text-[#B0B3B8]'
-                  }`}>
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold border-2 ${isSelected ? 'border-[#1877F2] ring-2 ring-[#1877F2]/30' :
+                      occupied ? 'bg-[#1877F2]/20 border-[#1877F2]/50 text-[#1877F2]' :
+                        away ? 'bg-[#F59E0B]/20 border-[#F59E0B]/50 text-[#F59E0B]' :
+                          'bg-[#3A3B3C]/50 border-[#3A3B3C] text-[#B0B3B8]'
+                    }`}>
                     {pos.seat}
                   </div>
                   {occupied && seatData?.player_name && (
@@ -216,20 +215,18 @@ export default function DealerTablet() {
               <Hash className="w-5 h-5" /> Hand +1
             </button>
             <button onClick={requestFloor} disabled={floorRequested}
-              className={`py-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 ${
-                floorRequested
+              className={`py-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 ${floorRequested
                   ? 'bg-[#F59E0B] text-white animate-pulse'
                   : 'bg-[#EF4444] text-white active:bg-[#DC2626]'
-              }`}>
+                }`}>
               <Bell className="w-5 h-5" />
               {floorRequested ? 'Called' : 'Floor!'}
             </button>
             <button onClick={() => setBreakTimer(breakTimer ? null : Date.now())}
-              className={`py-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 ${
-                breakTimer
+              className={`py-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 ${breakTimer
                   ? 'bg-[#F59E0B] text-white'
                   : 'bg-[#3A3B3C] text-[#E4E6EB] active:bg-[#4A4B4C]'
-              }`}>
+                }`}>
               <Coffee className="w-5 h-5" />
               {breakTimer ? 'On Break' : 'Break'}
             </button>
