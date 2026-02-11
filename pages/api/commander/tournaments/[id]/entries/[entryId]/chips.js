@@ -1,0 +1,91 @@
+/**
+ * Update Chips API
+ * PUT /api/commander/tournaments/[id]/entries/[entryId]/chips
+ * Updates a player's current chip count
+ * Used by TD for chip count updates at breaks or manual corrections
+ */
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+export default async function handler(req, res) {
+  if (req.method !== 'PUT') {
+    res.setHeader('Allow', ['PUT']);
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
+  }
+
+  const { id: tournamentId, entryId } = req.query;
+  if (!tournamentId || !entryId) {
+    return res.status(400).json({ success: false, error: 'Tournament ID and Entry ID required' });
+  }
+
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ success: false, error: 'Authorization required' });
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+
+    const { data: tournament } = await supabase
+      .from('commander_tournaments')
+      .select('id, venue_id')
+      .eq('id', tournamentId)
+      .single();
+    if (!tournament) return res.status(404).json({ success: false, error: 'Tournament not found' });
+
+    const { data: staff } = await supabase
+      .from('commander_staff')
+      .select('id')
+      .eq('venue_id', tournament.venue_id)
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+      .single();
+    if (!staff) return res.status(403).json({ success: false, error: 'Staff access required' });
+
+    const { chips } = req.body;
+    if (chips === undefined || chips < 0) {
+      return res.status(400).json({ success: false, error: 'Valid chip count required (>= 0)' });
+    }
+
+    const { data: entry } = await supabase
+      .from('commander_tournament_entries')
+      .select('id, player_name, current_chips, status')
+      .eq('id', entryId)
+      .eq('tournament_id', tournamentId)
+      .single();
+    if (!entry) return res.status(404).json({ success: false, error: 'Entry not found' });
+
+    const previousChips = entry.current_chips || 0;
+
+    const { data: updated, error: uErr } = await supabase
+      .from('commander_tournament_entries')
+      .update({
+        current_chips: chips,
+        metadata: {
+          chip_updated_at: new Date().toISOString(),
+          previous_chips: previousChips
+        }
+      })
+      .eq('id', entryId)
+      .select()
+      .single();
+
+    if (uErr) return res.status(500).json({ success: false, error: 'Failed to update chips' });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        entry_id: entryId,
+        player_name: entry.player_name,
+        previous_chips: previousChips,
+        current_chips: chips
+      }
+    });
+  } catch (err) {
+    console.error('Update chips error:', err);
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
