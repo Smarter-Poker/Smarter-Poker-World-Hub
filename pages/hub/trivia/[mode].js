@@ -640,11 +640,12 @@ export default function TriviaModePage() {
                     {gameState === 'ready' && (
                         LOBBY_IMAGES[mode] ? (
                             /* Full-bleed image lobby */
-                            <div className="lobby-image-wrapper" onClick={startGame}>
+                            <div className="lobby-image-wrapper" onClick={startGame} style={{ borderRadius: 0 }}>
                                 <img
                                     src={LOBBY_IMAGES[mode]}
                                     alt={`${modeConfig.name} - Start Challenge`}
                                     className="lobby-image"
+                                    style={{ borderRadius: 0, width: '100%' }}
                                 />
                             </div>
                         ) : (
