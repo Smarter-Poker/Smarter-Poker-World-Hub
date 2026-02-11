@@ -5,6 +5,9 @@ export default async function handler(req, res) {
     // Allow CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET');
+    // Cache link preview responses for 1 hour (browser) / 24 hours (CDN)
+    // This prevents N+1 API calls when the same URLs appear across page loads
+    res.setHeader('Cache-Control', 'public, s-maxage=86400, max-age=3600, stale-while-revalidate=86400');
 
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method not allowed' });

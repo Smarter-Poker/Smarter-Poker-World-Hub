@@ -365,6 +365,9 @@ function VideoPostWrapper({ url, onValidVideoClick, children }) {
 // - decodeHtmlEntities for title/description (fixes &#039; display)
 // ═══════════════════════════════════════════════════════════════════════════
 
+// Module-level cache to deduplicate link preview fetches across all cards in a session
+const linkPreviewCache = new Map();
+
 function LinkPreviewCard({ url }) {
     const { openExternal } = useExternalLink();
     const [metadata, setMetadata] = useState(null);
@@ -373,10 +376,18 @@ function LinkPreviewCard({ url }) {
     useEffect(() => {
         if (!url) return;
 
+        // Check in-memory cache first to avoid duplicate network requests
+        if (linkPreviewCache.has(url)) {
+            setMetadata(linkPreviewCache.get(url));
+            setLoading(false);
+            return;
+        }
+
         const fetchMetadata = async () => {
             try {
                 const response = await fetch(`/api/link-preview?url=${encodeURIComponent(url)}`);
                 const data = await response.json();
+                linkPreviewCache.set(url, data);
                 setMetadata(data);
             } catch (error) {
                 console.error('Failed to fetch link metadata:', error);
