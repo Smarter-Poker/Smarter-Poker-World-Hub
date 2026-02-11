@@ -360,12 +360,19 @@ export default function CommanderDashboard() {
         }
         .cmd-features-stacked {
           grid-template-columns: 1fr !important;
-          max-width: 500px !important;
-          gap: 20px !important;
+          max-width: 90% !important;
+          gap: 24px !important;
+          justify-items: center;
+        }
+        .cmd-features-stacked .cmd-feature-btn {
+          width: 100%;
+          max-width: 600px;
+          min-height: 200px;
         }
         .cmd-features-stacked .cmd-feature-btn img {
           width: 100%;
-          max-width: 500px;
+          height: 100%;
+          object-fit: contain;
         }
         .cmd-feature-btn {
           position: relative;
