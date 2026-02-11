@@ -15,6 +15,7 @@ import { getPokerNearMePreferences, updatePokerNearMePreferences } from '../../s
 import { getVenueFavorites, addVenueFavorite, removeVenueFavorite } from '../../src/services/pokerNearMeFavorites';
 import { addSearchHistory as addSearchHistoryToDb, getSearchHistory as getSearchHistoryFromDb, clearSearchHistory as clearSearchHistoryFromDb } from '../../src/services/pokerNearMeSearchHistory';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import FeatureGate from '../../src/components/gates/FeatureGate';
 const VenueCard = dynamic(() => import('../../src/components/poker-near-me/VenueCard'), { ssr: false });
 const TourCard = dynamic(() => import('../../src/components/poker-near-me/TourCard'), { ssr: false });
 const SeriesCard = dynamic(() => import('../../src/components/poker-near-me/SeriesCard'), { ssr: false });
@@ -1762,280 +1763,290 @@ export default function PokerNearMePage() {
                     bottomLinks={menuConfig.bottomLinks}
                 />
 
-                {/* Page Header */}
-                <div className="pnm-header">
-                    <h1><span className="white">POKER</span> <span className="gold">NEAR</span> <span className="white">ME</span></h1>
-                    <span className="subtitle">VENUES | TOURS | SERIES | DAILY EVENTS | LIVE GAMES | MAP</span>
-                </div>
+                {/* 25💎 day-pass gate for non-VIP users */}
+                <FeatureGate
+                    featureKey="poker_near_me"
+                    userId={userId}
+                    cost={25}
+                    duration={24}
+                    title="Poker Near Me"
+                    description="Access 483+ live poker venues, tournament schedules, and daily events worldwide."
+                >
 
-                {/* Search Section */}
-                <div className="pnm-search-section">
-                    <div className="search-container">
-                        <form className="search-form" onSubmit={handleSearch}>
-                            <svg className="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
-                            </svg>
-                            <div className="search-input-wrapper">
-                                <input
-                                    type="text"
-                                    placeholder="Search venues, tours, series, or events..."
-                                    value={searchQuery}
-                                    onChange={handleSearchInputChange}
-                                    onFocus={() => { if (searchHistory.length > 0) setShowSearchHistory(true); }}
-                                    onBlur={() => setTimeout(() => setShowSearchHistory(false), 200)}
-                                />
-                                {showSearchHistory && searchHistory.length > 0 && (
-                                    <div className="search-history-dropdown">
-                                        <div className="search-history-header">
-                                            <span>Recent Searches</span>
-                                            <button type="button" onClick={() => { setSearchHistory([]); localStorage.removeItem('sp-search-history'); if (userId) clearSearchHistoryFromDb(userId).catch(() => { }); setShowSearchHistory(false); }}>Clear</button>
-                                        </div>
-                                        {searchHistory.map((item, i) => (
-                                            <button key={i} type="button" className="search-history-item"
-                                                onClick={() => { setSearchQuery(item); setShowSearchHistory(false); setHasSearched(true); setTimeout(() => fetchAllData({ includeVenues: true }), 0); }}>
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-                                                {item}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                            <button type="submit" className="search-btn">Search</button>
-                        </form>
-
-                        <div className="search-controls">
-                            <div className="search-buttons">
-                                <button className={'btn-gps' + (userLocation ? ' active' : '')} onClick={requestGpsLocation} disabled={gpsLoading}>
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <polygon points="3 11 22 2 13 21 11 13 3 11" />
-                                    </svg>
-                                    {gpsLoading ? 'Locating...' : 'Use GPS'}
-                                </button>
-                                <button className={'btn-filters' + (showFilters ? ' active' : '')} onClick={() => setShowFilters(!showFilters)}>
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" />
-                                        <line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" />
-                                        <line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" />
-                                    </svg>
-                                    Filters
-                                </button>
-                            </div>
-
-                            {/* Popular Cities */}
-                            <div className="city-chips">
-                                {POPULAR_CITIES.map(city => (
-                                    <button key={city.name} className={'city-chip' + (selectedCity && selectedCity.name === city.name ? ' active' : '')}
-                                        onClick={() => handleCityClick(city)}>
-                                        {city.name}
-                                    </button>
-                                ))}
-                                {selectedCity && (
-                                    <button className="city-chip clear" onClick={() => setSelectedCity(null)}>Clear</button>
-                                )}
-                            </div>
-
-                            {(userLocation || nearestDistance) && (
-                                <div className="distance-display">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <polygon points="3 11 22 2 13 21 11 13 3 11" />
-                                    </svg>
-                                    <span>Nearest: ~{nearestDistance || '0'} miles</span>
-                                </div>
-                            )}
-                            {geofenceStatus === 'denied' && (
-                                <div className="geofence-notice denied">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
-                                    </svg>
-                                    <span>Notifications blocked - venue alerts will show in-app only</span>
-                                </div>
-                            )}
-                            {geofenceStatus === 'error' && (
-                                <div className="geofence-notice error">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
-                                    </svg>
-                                    <span>Geofence service unavailable</span>
-                                </div>
-                            )}
-                        </div>
+                    {/* Page Header */}
+                    <div className="pnm-header">
+                        <h1><span className="white">POKER</span> <span className="gold">NEAR</span> <span className="white">ME</span></h1>
+                        <span className="subtitle">VENUES | TOURS | SERIES | DAILY EVENTS | LIVE GAMES | MAP</span>
                     </div>
-                </div>
 
-                {/* Filter Panel */}
-                {showFilters && (
-                    <div className="filter-panel">
-                        {activeTab === 'venues' && (
-                            <>
-                                <div className="filter-group">
-                                    <label>Venue Type</label>
-                                    <div className="filter-chips">
-                                        {['all', 'casino', 'card_room', 'poker_club', 'charity'].map(type => (
-                                            <button key={type} className={'chip' + (filters.venueType === type ? ' active' : '')}
-                                                onClick={() => setFilters({ ...filters, venueType: type })}>
-                                                {type === 'all' ? 'All' : VENUE_TYPE_LABELS[type]}
-                                            </button>
-                                        ))}
-                                    </div>
+                    {/* Search Section */}
+                    <div className="pnm-search-section">
+                        <div className="search-container">
+                            <form className="search-form" onSubmit={handleSearch}>
+                                <svg className="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+                                </svg>
+                                <div className="search-input-wrapper">
+                                    <input
+                                        type="text"
+                                        placeholder="Search venues, tours, series, or events..."
+                                        value={searchQuery}
+                                        onChange={handleSearchInputChange}
+                                        onFocus={() => { if (searchHistory.length > 0) setShowSearchHistory(true); }}
+                                        onBlur={() => setTimeout(() => setShowSearchHistory(false), 200)}
+                                    />
+                                    {showSearchHistory && searchHistory.length > 0 && (
+                                        <div className="search-history-dropdown">
+                                            <div className="search-history-header">
+                                                <span>Recent Searches</span>
+                                                <button type="button" onClick={() => { setSearchHistory([]); localStorage.removeItem('sp-search-history'); if (userId) clearSearchHistoryFromDb(userId).catch(() => { }); setShowSearchHistory(false); }}>Clear</button>
+                                            </div>
+                                            {searchHistory.map((item, i) => (
+                                                <button key={i} type="button" className="search-history-item"
+                                                    onClick={() => { setSearchQuery(item); setShowSearchHistory(false); setHasSearched(true); setTimeout(() => fetchAllData({ includeVenues: true }), 0); }}>
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                                                    {item}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
-                                <div className="filter-group">
-                                    <label>Games</label>
-                                    <div className="filter-chips">
-                                        <button className={'chip' + (filters.hasNLH ? ' active' : '')}
-                                            onClick={() => setFilters({ ...filters, hasNLH: !filters.hasNLH })}>NLH</button>
-                                        <button className={'chip' + (filters.hasPLO ? ' active' : '')}
-                                            onClick={() => setFilters({ ...filters, hasPLO: !filters.hasPLO })}>PLO</button>
-                                        <button className={'chip' + (filters.hasMixed ? ' active' : '')}
-                                            onClick={() => setFilters({ ...filters, hasMixed: !filters.hasMixed })}>Mixed</button>
-                                    </div>
-                                </div>
-                            </>
-                        )}
+                                <button type="submit" className="search-btn">Search</button>
+                            </form>
 
-                        {activeTab === 'tours' && (
-                            <div className="filter-group">
-                                <label>Tour Type</label>
-                                <div className="filter-chips">
-                                    {['all', 'major', 'circuit', 'high_roller', 'regional'].map(type => (
-                                        <button key={type} className={'chip' + (filters.tourType === type ? ' active' : '')}
-                                            onClick={() => setFilters({ ...filters, tourType: type })}>
-                                            {type === 'all' ? 'All' : TOUR_TYPE_LABELS[type]}
+                            <div className="search-controls">
+                                <div className="search-buttons">
+                                    <button className={'btn-gps' + (userLocation ? ' active' : '')} onClick={requestGpsLocation} disabled={gpsLoading}>
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <polygon points="3 11 22 2 13 21 11 13 3 11" />
+                                        </svg>
+                                        {gpsLoading ? 'Locating...' : 'Use GPS'}
+                                    </button>
+                                    <button className={'btn-filters' + (showFilters ? ' active' : '')} onClick={() => setShowFilters(!showFilters)}>
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" />
+                                            <line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" />
+                                            <line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" />
+                                        </svg>
+                                        Filters
+                                    </button>
+                                </div>
+
+                                {/* Popular Cities */}
+                                <div className="city-chips">
+                                    {POPULAR_CITIES.map(city => (
+                                        <button key={city.name} className={'city-chip' + (selectedCity && selectedCity.name === city.name ? ' active' : '')}
+                                            onClick={() => handleCityClick(city)}>
+                                            {city.name}
                                         </button>
                                     ))}
+                                    {selectedCity && (
+                                        <button className="city-chip clear" onClick={() => setSelectedCity(null)}>Clear</button>
+                                    )}
                                 </div>
-                            </div>
-                        )}
 
-                        {activeTab === 'series' && (
-                            <>
+                                {(userLocation || nearestDistance) && (
+                                    <div className="distance-display">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <polygon points="3 11 22 2 13 21 11 13 3 11" />
+                                        </svg>
+                                        <span>Nearest: ~{nearestDistance || '0'} miles</span>
+                                    </div>
+                                )}
+                                {geofenceStatus === 'denied' && (
+                                    <div className="geofence-notice denied">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
+                                        </svg>
+                                        <span>Notifications blocked - venue alerts will show in-app only</span>
+                                    </div>
+                                )}
+                                {geofenceStatus === 'error' && (
+                                    <div className="geofence-notice error">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+                                        </svg>
+                                        <span>Geofence service unavailable</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Filter Panel */}
+                    {showFilters && (
+                        <div className="filter-panel">
+                            {activeTab === 'venues' && (
+                                <>
+                                    <div className="filter-group">
+                                        <label>Venue Type</label>
+                                        <div className="filter-chips">
+                                            {['all', 'casino', 'card_room', 'poker_club', 'charity'].map(type => (
+                                                <button key={type} className={'chip' + (filters.venueType === type ? ' active' : '')}
+                                                    onClick={() => setFilters({ ...filters, venueType: type })}>
+                                                    {type === 'all' ? 'All' : VENUE_TYPE_LABELS[type]}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="filter-group">
+                                        <label>Games</label>
+                                        <div className="filter-chips">
+                                            <button className={'chip' + (filters.hasNLH ? ' active' : '')}
+                                                onClick={() => setFilters({ ...filters, hasNLH: !filters.hasNLH })}>NLH</button>
+                                            <button className={'chip' + (filters.hasPLO ? ' active' : '')}
+                                                onClick={() => setFilters({ ...filters, hasPLO: !filters.hasPLO })}>PLO</button>
+                                            <button className={'chip' + (filters.hasMixed ? ' active' : '')}
+                                                onClick={() => setFilters({ ...filters, hasMixed: !filters.hasMixed })}>Mixed</button>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
+                            {activeTab === 'tours' && (
                                 <div className="filter-group">
-                                    <label>Timeframe</label>
+                                    <label>Tour Type</label>
                                     <div className="filter-chips">
-                                        {[30, 60, 90, 180].map(days => (
-                                            <button key={days} className={'chip' + (filters.seriesTimeframe === days ? ' active' : '')}
-                                                onClick={() => setFilters({ ...filters, seriesTimeframe: days })}>
-                                                {days} Days
+                                        {['all', 'major', 'circuit', 'high_roller', 'regional'].map(type => (
+                                            <button key={type} className={'chip' + (filters.tourType === type ? ' active' : '')}
+                                                onClick={() => setFilters({ ...filters, tourType: type })}>
+                                                {type === 'all' ? 'All' : TOUR_TYPE_LABELS[type]}
                                             </button>
                                         ))}
                                     </div>
                                 </div>
+                            )}
+
+                            {activeTab === 'series' && (
+                                <>
+                                    <div className="filter-group">
+                                        <label>Timeframe</label>
+                                        <div className="filter-chips">
+                                            {[30, 60, 90, 180].map(days => (
+                                                <button key={days} className={'chip' + (filters.seriesTimeframe === days ? ' active' : '')}
+                                                    onClick={() => setFilters({ ...filters, seriesTimeframe: days })}>
+                                                    {days} Days
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="filter-group">
+                                        <label>Series Type</label>
+                                        <div className="filter-chips">
+                                            {['all', 'major', 'circuit', 'regional'].map(type => (
+                                                <button key={type} className={'chip' + (filters.seriesType === type ? ' active' : '')}
+                                                    onClick={() => setFilters({ ...filters, seriesType: type })}>
+                                                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
+                            {activeTab === 'daily' && (
                                 <div className="filter-group">
-                                    <label>Series Type</label>
-                                    <div className="filter-chips">
-                                        {['all', 'major', 'circuit', 'regional'].map(type => (
-                                            <button key={type} className={'chip' + (filters.seriesType === type ? ' active' : '')}
-                                                onClick={() => setFilters({ ...filters, seriesType: type })}>
-                                                {type.charAt(0).toUpperCase() + type.slice(1)}
-                                            </button>
-                                        ))}
+                                    <label>Buy-in Range</label>
+                                    <div className="filter-inputs">
+                                        <input
+                                            type="number"
+                                            placeholder="Min $"
+                                            value={filters.minBuyin}
+                                            onChange={(e) => setFilters({ ...filters, minBuyin: e.target.value })}
+                                        />
+                                        <span>to</span>
+                                        <input
+                                            type="number"
+                                            placeholder="Max $"
+                                            value={filters.maxBuyin}
+                                            onChange={(e) => setFilters({ ...filters, maxBuyin: e.target.value })}
+                                        />
                                     </div>
                                 </div>
-                            </>
-                        )}
+                            )}
 
-                        {activeTab === 'daily' && (
-                            <div className="filter-group">
-                                <label>Buy-in Range</label>
-                                <div className="filter-inputs">
-                                    <input
-                                        type="number"
-                                        placeholder="Min $"
-                                        value={filters.minBuyin}
-                                        onChange={(e) => setFilters({ ...filters, minBuyin: e.target.value })}
-                                    />
-                                    <span>to</span>
-                                    <input
-                                        type="number"
-                                        placeholder="Max $"
-                                        value={filters.maxBuyin}
-                                        onChange={(e) => setFilters({ ...filters, maxBuyin: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-                        )}
+                            <button className="btn-apply" onClick={() => { fetchAllData({ includeVenues: hasSearched }); setShowFilters(false); }}>
+                                Apply Filters
+                            </button>
+                        </div>
+                    )}
 
-                        <button className="btn-apply" onClick={() => { fetchAllData({ includeVenues: hasSearched }); setShowFilters(false); }}>
-                            Apply Filters
+                    {/* Tab Navigation */}
+                    <div className="tab-navigation">
+                        <button className={'tab' + (activeTab === 'venues' ? ' active' : '')} onClick={() => setActiveTab('venues')}>
+                            <span className="tab-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
+                                </svg>
+                            </span>
+                            Venues <span className="tab-count">{hasSearched ? counts.venues : TOTAL_VENUES}</span>
+                        </button>
+                        <button className={'tab' + (activeTab === 'tours' ? ' active' : '')} onClick={() => setActiveTab('tours')}>
+                            <span className="tab-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
+                                </svg>
+                            </span>
+                            Tours <span className="tab-count">{counts.tours}</span>
+                        </button>
+                        <button className={'tab' + (activeTab === 'series' ? ' active' : '')} onClick={() => setActiveTab('series')}>
+                            <span className="tab-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+                                </svg>
+                            </span>
+                            Series <span className="tab-count">{counts.series}</span>
+                        </button>
+                        <button className={'tab' + (activeTab === 'daily' ? ' active' : '')} onClick={() => setActiveTab('daily')}>
+                            <span className="tab-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                                </svg>
+                            </span>
+                            Daily <span className="tab-count">{counts.daily}</span>
+                        </button>
+                        <button className={'tab' + (activeTab === 'live' ? ' active' : '')} onClick={() => setActiveTab('live')}>
+                            <span className="tab-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <circle cx="12" cy="12" r="10" /><polygon points="10 8 16 12 10 16 10 8" />
+                                </svg>
+                            </span>
+                            Live <span className="tab-count live-count">{counts.live}</span>
+                        </button>
+                        <button className={'tab' + (activeTab === 'map' ? ' active' : '')} onClick={() => setActiveTab('map')}>
+                            <span className="tab-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+                                    <line x1="8" y1="2" x2="8" y2="18" />
+                                    <line x1="16" y1="6" x2="16" y2="22" />
+                                </svg>
+                            </span>
+                            Map <span className="tab-count">{allVenuesForMap.length}</span>
                         </button>
                     </div>
-                )}
 
-                {/* Tab Navigation */}
-                <div className="tab-navigation">
-                    <button className={'tab' + (activeTab === 'venues' ? ' active' : '')} onClick={() => setActiveTab('venues')}>
-                        <span className="tab-icon">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
-                            </svg>
-                        </span>
-                        Venues <span className="tab-count">{hasSearched ? counts.venues : TOTAL_VENUES}</span>
-                    </button>
-                    <button className={'tab' + (activeTab === 'tours' ? ' active' : '')} onClick={() => setActiveTab('tours')}>
-                        <span className="tab-icon">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
-                            </svg>
-                        </span>
-                        Tours <span className="tab-count">{counts.tours}</span>
-                    </button>
-                    <button className={'tab' + (activeTab === 'series' ? ' active' : '')} onClick={() => setActiveTab('series')}>
-                        <span className="tab-icon">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
-                            </svg>
-                        </span>
-                        Series <span className="tab-count">{counts.series}</span>
-                    </button>
-                    <button className={'tab' + (activeTab === 'daily' ? ' active' : '')} onClick={() => setActiveTab('daily')}>
-                        <span className="tab-icon">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-                            </svg>
-                        </span>
-                        Daily <span className="tab-count">{counts.daily}</span>
-                    </button>
-                    <button className={'tab' + (activeTab === 'live' ? ' active' : '')} onClick={() => setActiveTab('live')}>
-                        <span className="tab-icon">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="12" cy="12" r="10" /><polygon points="10 8 16 12 10 16 10 8" />
-                            </svg>
-                        </span>
-                        Live <span className="tab-count live-count">{counts.live}</span>
-                    </button>
-                    <button className={'tab' + (activeTab === 'map' ? ' active' : '')} onClick={() => setActiveTab('map')}>
-                        <span className="tab-icon">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
-                                <line x1="8" y1="2" x2="8" y2="18" />
-                                <line x1="16" y1="6" x2="16" y2="22" />
-                            </svg>
-                        </span>
-                        Map <span className="tab-count">{allVenuesForMap.length}</span>
-                    </button>
-                </div>
+                    {/* Main Content */}
+                    <main className="pnm-content">
+                        {renderContent()}
+                    </main>
 
-                {/* Main Content */}
-                <main className="pnm-content">
-                    {renderContent()}
-                </main>
+                    {/* Geofence Alert Banner */}
+                    {geofenceAlert && (
+                        <GeofenceAlertBanner
+                            venue={geofenceAlert}
+                            onCheckin={() => {
+                                router.push('/hub/venues/' + geofenceAlert.id + '?action=checkin');
+                                setGeofenceAlert(null);
+                            }}
+                            onReview={() => {
+                                router.push('/hub/venues/' + geofenceAlert.id + '?action=review');
+                                setGeofenceAlert(null);
+                            }}
+                            onDismiss={() => setGeofenceAlert(null)}
+                        />
+                    )}
 
-                {/* Geofence Alert Banner */}
-                {geofenceAlert && (
-                    <GeofenceAlertBanner
-                        venue={geofenceAlert}
-                        onCheckin={() => {
-                            router.push('/hub/venues/' + geofenceAlert.id + '?action=checkin');
-                            setGeofenceAlert(null);
-                        }}
-                        onReview={() => {
-                            router.push('/hub/venues/' + geofenceAlert.id + '?action=review');
-                            setGeofenceAlert(null);
-                        }}
-                        onDismiss={() => setGeofenceAlert(null)}
-                    />
-                )}
-
-                <style jsx>{`
+                    <style jsx>{`
                     .pnm-page {
                         min-height: 100vh;
                         position: relative;
@@ -3134,8 +3145,8 @@ export default function PokerNearMePage() {
                     }
                 `}</style>
 
-                {/* Global styles for Leaflet overrides and user pulse animation */}
-                <style jsx global>{`
+                    {/* Global styles for Leaflet overrides and user pulse animation */}
+                    <style jsx global>{`
                     @keyframes userPulse {
                         0% { transform: scale(1); opacity: 0.6; }
                         50% { transform: scale(2.2); opacity: 0; }
@@ -3463,6 +3474,7 @@ export default function PokerNearMePage() {
                         cursor: pointer;
                     }
                 `}</style>
+                </FeatureGate>
             </div>
         </>
     );

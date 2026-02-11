@@ -14,6 +14,10 @@ import { calculateDiamonds, TRIVIA_MODES, getCategoryName } from '../../../src/l
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 import { Zap, SkipForward, Shield, Clock, CheckCircle, XCircle, ArrowRight, Trophy, Gem, Target, DollarSign, BarChart3, Brain } from 'lucide-react';
 import GTOScenarioDisplay from './GTOScenarioDisplay';
+import GameCostPopup from '../gates/GameCostPopup';
+import DiamondEngine from '../../services/DiamondEngine';
+
+const GAME_DIAMOND_COST = 10;
 
 // Strategy mode configuration
 const STRATEGY_MODES = {
@@ -130,6 +134,7 @@ export default function StrategyTrivia({ mode }) {
     // User data
     const [userId, setUserId] = useState(null);
     const [userDiamonds, setUserDiamonds] = useState(0);
+    const [isVip, setIsVip] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
     // Timer
@@ -149,6 +154,9 @@ export default function StrategyTrivia({ mode }) {
         if (user) {
             setUserId(user.id);
             loadUserDiamonds(user.id);
+            // Check VIP status
+            const engine = DiamondEngine.getInstance(null, user.id);
+            engine.isVIP().then(vip => setIsVip(vip));
         }
         setIsLoading(false);
         // Preload questions in background
@@ -385,7 +393,18 @@ export default function StrategyTrivia({ mode }) {
         return fallbacks[mode] || fallbacks.gto;
     }
 
-    function startGame() {
+    async function startGame() {
+        // Per-game diamond cost for non-VIP users
+        if (!isVip && userId) {
+            const engine = DiamondEngine.getInstance(null, userId);
+            const result = await engine.deduct(GAME_DIAMOND_COST, 'game_cost', { mode, game: 'trivia' });
+            if (!result.success) {
+                alert(`Not enough diamonds! You need ${GAME_DIAMOND_COST}💎 to play. Visit the Diamond Store to get more.`);
+                return;
+            }
+            if (result.balance !== undefined) setUserDiamonds(result.balance);
+        }
+
         // Use preloaded questions if available, otherwise load fresh
         if (preloadedQuestions && preloadedQuestions.length > 0) {
             setQuestions(preloadedQuestions);
@@ -585,6 +604,14 @@ export default function StrategyTrivia({ mode }) {
 
             <div className="strategy-trivia">
                 <UniversalHeader pageDepth={2} />
+
+                {/* One-time diamond cost popup for non-VIP users */}
+                <GameCostPopup
+                    userId={userId}
+                    pageKey={`trivia_${mode}`}
+                    isVip={isVip}
+                    cost={GAME_DIAMOND_COST}
+                />
 
                 <div className="content">
                     {/* LOBBY STATE */}
