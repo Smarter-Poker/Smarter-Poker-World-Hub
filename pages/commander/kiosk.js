@@ -13,12 +13,12 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import {
   UserCheck, Users, Search, Phone, ChevronRight, Loader2,
-  CheckCircle2, AlertTriangle, Clock, Plus, ArrowLeft
+  CheckCircle2, AlertTriangle, Clock, Plus, ArrowLeft, Timer, DollarSign
 } from 'lucide-react';
 
 export default function MembershipKiosk() {
   const router = useRouter();
-  const [mode, setMode] = useState('home'); // home, lookup, register, waitlist, success
+  const [mode, setMode] = useState('home'); // home, lookup, register, waitlist, buy_time, success
   const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -27,6 +27,8 @@ export default function MembershipKiosk() {
   const [gameType, setGameType] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
+  const [selectedTimePackage, setSelectedTimePackage] = useState(null);
+  const [purchasingTime, setPurchasingTime] = useState(false);
 
   // New member fields
   const [newFirst, setNewFirst] = useState('');
@@ -147,6 +149,11 @@ export default function MembershipKiosk() {
               className="w-full py-6 rounded-2xl bg-[#3A3B3C] text-[#E4E6EB] text-xl font-semibold flex items-center justify-center gap-3 active:bg-[#4A4B4C]">
               <Plus className="w-7 h-7" /> New Member
             </button>
+
+            <button onClick={() => { setMode('lookup'); }}
+              className="w-full py-6 rounded-2xl bg-[#F59E0B]/10 border-2 border-[#F59E0B]/40 text-[#F59E0B] text-xl font-semibold flex items-center justify-center gap-3 active:bg-[#F59E0B]/20">
+              <Timer className="w-7 h-7" /> Buy Play Time
+            </button>
           </div>
         )}
 
@@ -227,6 +234,14 @@ export default function MembershipKiosk() {
                 {selectedMember.name || `${selectedMember.first_name} ${selectedMember.last_name}`}
               </h2>
               {selectedMember.phone && <p className="text-[#B0B3B8] mt-1">{selectedMember.phone}</p>}
+              {selectedMember.time_balance_minutes !== undefined && (
+                <div className={`mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-full ${
+                  (selectedMember.time_balance_minutes || 0) > 0 ? 'bg-[#31A24C]/10 text-[#31A24C]' : 'bg-[#EF4444]/10 text-[#EF4444]'
+                }`}>
+                  <Timer className="w-4 h-4" />
+                  <span className="text-sm font-bold">{selectedMember.time_balance_minutes || 0} min on card</span>
+                </div>
+              )}
             </div>
 
             <button onClick={() => checkIn(selectedMember)} disabled={submitting}
@@ -254,6 +269,88 @@ export default function MembershipKiosk() {
                 </button>
               )}
             </div>
+
+            <button onClick={() => setMode('buy_time')}
+              className="w-full py-5 rounded-2xl bg-[#F59E0B]/10 border-2 border-[#F59E0B]/40 text-[#F59E0B] text-xl font-semibold flex items-center justify-center gap-3 active:bg-[#F59E0B]/20">
+              <Timer className="w-6 h-6" /> Buy Play Time
+            </button>
+          </div>
+        )}
+
+        {/* ===== BUY TIME ===== */}
+        {mode === 'buy_time' && selectedMember && (
+          <div className="w-full max-w-md space-y-4">
+            <button onClick={() => setMode('lookup')} className="flex items-center gap-2 text-[#B0B3B8] mb-2">
+              <ArrowLeft className="w-5 h-5" /> Back
+            </button>
+
+            <div className="bg-[#242526] rounded-2xl p-4 border border-[#3A3B3C] flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-[#1877F2]/20 flex items-center justify-center">
+                <UserCheck className="w-6 h-6 text-[#1877F2]" />
+              </div>
+              <div className="flex-1">
+                <p className="text-lg font-bold text-white">
+                  {selectedMember.first_name} {selectedMember.last_name}
+                </p>
+                <p className="text-sm text-[#B0B3B8]">
+                  Current balance: <span className="font-bold text-[#31A24C]">{selectedMember.time_balance_minutes || 0} min</span>
+                </p>
+              </div>
+            </div>
+
+            <h3 className="text-xl font-bold text-white text-center">Select Time Package</h3>
+
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { minutes: 30, price: 5, label: '30 min' },
+                { minutes: 60, price: 10, label: '1 hour' },
+                { minutes: 120, price: 18, label: '2 hours' },
+                { minutes: 180, price: 25, label: '3 hours' },
+                { minutes: 300, price: 35, label: '5 hours' },
+                { minutes: 480, price: 50, label: '8 hours' }
+              ].map(pkg => (
+                <button key={pkg.minutes}
+                  onClick={() => setSelectedTimePackage(pkg)}
+                  className={`py-5 rounded-2xl text-center space-y-1 border-2 ${
+                    selectedTimePackage?.minutes === pkg.minutes
+                      ? 'bg-[#F59E0B]/20 border-[#F59E0B] text-[#F59E0B]'
+                      : 'bg-[#242526] border-[#3A3B3C] text-[#E4E6EB] active:border-[#F59E0B]'
+                  }`}>
+                  <p className="text-2xl font-bold">{pkg.label}</p>
+                  <p className="text-lg font-semibold">${pkg.price}</p>
+                </button>
+              ))}
+            </div>
+
+            {selectedTimePackage && (
+              <button
+                onClick={async () => {
+                  setPurchasingTime(true);
+                  try {
+                    const res = await fetch('/api/commander/kiosk/buy-time', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        member_id: selectedMember.id,
+                        minutes: selectedTimePackage.minutes,
+                        amount: selectedTimePackage.price,
+                        payment_method: 'kiosk'
+                      })
+                    });
+                    const json = await res.json();
+                    if (json.success) {
+                      setSuccessMsg(`${selectedTimePackage.label} added! New balance: ${json.data.new_balance} min`);
+                      setMode('success');
+                    }
+                  } catch (err) { console.error(err); }
+                  finally { setPurchasingTime(false); }
+                }}
+                disabled={purchasingTime}
+                className="w-full py-5 rounded-2xl bg-[#F59E0B] text-white text-xl font-semibold flex items-center justify-center gap-3 active:bg-[#D97706] disabled:opacity-50">
+                {purchasingTime ? <Loader2 className="w-6 h-6 animate-spin" /> : <DollarSign className="w-6 h-6" />}
+                Buy {selectedTimePackage.label} — ${selectedTimePackage.price}
+              </button>
+            )}
           </div>
         )}
 

@@ -272,18 +272,44 @@ export default function CommanderSettingsPage() {
 
           {/* Navigation Links */}
           <section className="cmd-panel divide-y divide-[#3A3B3C]">
-            <button
-              onClick={() => router.push('/commander/tables')}
-              className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors"
-            >
+            <button onClick={() => router.push('/commander/tables')}
+              className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
               <span className="font-medium text-white">Manage Tables</span>
               <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
             </button>
-            <button
-              onClick={() => router.push('/commander/staff')}
-              className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors"
-            >
+            <button onClick={() => router.push('/commander/staff')}
+              className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
               <span className="font-medium text-white">Manage Staff</span>
+              <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
+            </button>
+            <button onClick={() => router.push('/commander/dealers')}
+              className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
+              <span className="font-medium text-white">Manage Dealers</span>
+              <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
+            </button>
+            <button onClick={() => router.push('/commander/members')}
+              className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
+              <span className="font-medium text-white">Members</span>
+              <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
+            </button>
+            <button onClick={() => router.push('/commander/promotions')}
+              className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
+              <span className="font-medium text-white">Promotions</span>
+              <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
+            </button>
+            <button onClick={() => router.push('/commander/displays')}
+              className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
+              <span className="font-medium text-white">TV Displays</span>
+              <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
+            </button>
+            <button onClick={() => router.push('/commander/reports')}
+              className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
+              <span className="font-medium text-white">Reports</span>
+              <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
+            </button>
+            <button onClick={() => router.push('/commander/time-billing')}
+              className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
+              <span className="font-medium text-white">Time Billing</span>
               <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
             </button>
           </section>
