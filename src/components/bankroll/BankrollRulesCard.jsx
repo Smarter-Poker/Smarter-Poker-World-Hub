@@ -643,7 +643,7 @@ const styles = {
     background: '#3a3b3c',
     border: '1px solid rgba(255,255,255,0.15)',
     borderRadius: 8,
-    outline: '2px solid rgba(255,255,255,0.25)',
+    outline: '3px solid rgba(255,255,255,0.3)',
     outlineOffset: '2px',
   },
   formInput: {
