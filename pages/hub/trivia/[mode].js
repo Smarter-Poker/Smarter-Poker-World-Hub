@@ -47,6 +47,10 @@ const LOBBY_IMAGES = {
     pro: '/images/trivia/lobby-pro.jpg',
     daily: '/images/trivia/lobby-daily.jpg',
     arcade: '/images/trivia/lobby-arcade.jpg',
+    mtt: '/images/trivia/lobby-mtt.jpg',
+    cash: '/images/trivia/lobby-cash.jpg',
+    icm: '/images/trivia/lobby-icm.jpg',
+    gto: '/images/trivia/lobby-gto.jpg',
 };
 
 export default function TriviaModePage() {
@@ -913,7 +917,6 @@ export default function TriviaModePage() {
                 .lobby-image-wrapper {
                     position: relative;
                     cursor: pointer;
-                    border-radius: 16px;
                     overflow: hidden;
                     transition: transform 0.3s ease, box-shadow 0.3s ease;
                     max-width: 100%;
@@ -933,7 +936,6 @@ export default function TriviaModePage() {
                     width: 100%;
                     height: auto;
                     display: block;
-                    border-radius: 16px;
                 }
 
                 .mode-info {
