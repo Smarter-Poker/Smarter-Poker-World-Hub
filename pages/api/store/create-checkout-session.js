@@ -23,6 +23,10 @@ export default async function handler(req, res) {
     const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 
     if (!stripeSecretKey || !stripePublishableKey) {
+        console.error('[Checkout] Missing Stripe keys:', {
+            hasSecret: !!stripeSecretKey,
+            hasPublishable: !!stripePublishableKey
+        });
         return res.status(503).json({
             success: false,
             error: {
@@ -32,6 +36,10 @@ export default async function handler(req, res) {
             }
         });
     }
+
+    // Validate key format
+    const keyPrefix = stripeSecretKey.substring(0, 7);
+    console.log('[Checkout] Stripe key prefix:', keyPrefix, 'length:', stripeSecretKey.length);
 
     try {
         const authHeader = req.headers.authorization;
@@ -61,8 +69,11 @@ export default async function handler(req, res) {
             });
         }
 
-        // Initialize Stripe
-        const stripe = require('stripe')(stripeSecretKey);
+        // Initialize Stripe with explicit config
+        const stripe = require('stripe')(stripeSecretKey, {
+            timeout: 10000, // 10 second timeout
+            maxNetworkRetries: 2
+        });
 
         // Get or create Stripe customer
         let customerId;
@@ -74,21 +85,34 @@ export default async function handler(req, res) {
 
         if (profile?.stripe_customer_id) {
             customerId = profile.stripe_customer_id;
+            console.log('[Checkout] Using existing Stripe customer:', customerId);
         } else {
-            const customer = await stripe.customers.create({
-                email: profile?.email || user.email,
-                metadata: {
-                    smarter_poker_id: user.id,
-                    username: profile?.username
-                }
-            });
-            customerId = customer.id;
+            console.log('[Checkout] Creating new Stripe customer for:', user.email);
+            try {
+                const customer = await stripe.customers.create({
+                    email: profile?.email || user.email,
+                    metadata: {
+                        smarter_poker_id: user.id,
+                        username: profile?.username
+                    }
+                });
+                customerId = customer.id;
+                console.log('[Checkout] Created Stripe customer:', customerId);
 
-            // Save customer ID to profile
-            await supabase
-                .from('profiles')
-                .update({ stripe_customer_id: customerId })
-                .eq('id', user.id);
+                // Save customer ID to profile
+                await supabase
+                    .from('profiles')
+                    .update({ stripe_customer_id: customerId })
+                    .eq('id', user.id);
+            } catch (customerError) {
+                console.error('[Checkout] Failed to create Stripe customer:', {
+                    type: customerError.type,
+                    code: customerError.code,
+                    statusCode: customerError.statusCode,
+                    message: customerError.message
+                });
+                throw customerError;
+            }
         }
 
         let sessionConfig = {
@@ -132,7 +156,9 @@ export default async function handler(req, res) {
                 .select()
                 .single();
 
-            sessionConfig.metadata.purchase_id = purchase.id;
+            if (purchase) {
+                sessionConfig.metadata.purchase_id = purchase.id;
+            }
 
         } else if (type === 'subscription') {
             // VIP subscription
@@ -181,14 +207,18 @@ export default async function handler(req, res) {
                 .select()
                 .single();
 
-            sessionConfig.metadata.order_id = order.id;
+            if (order) {
+                sessionConfig.metadata.order_id = order.id;
+            }
             sessionConfig.shipping_address_collection = {
                 allowed_countries: ['US', 'CA']
             };
         }
 
         // Create checkout session
+        console.log('[Checkout] Creating Stripe session for type:', type);
         const session = await stripe.checkout.sessions.create(sessionConfig);
+        console.log('[Checkout] Session created:', session.id);
 
         return res.status(200).json({
             success: true,
@@ -199,12 +229,35 @@ export default async function handler(req, res) {
         });
 
     } catch (error) {
-        console.error('Checkout session error:', error);
+        console.error('[Checkout] FATAL ERROR:', {
+            type: error.type,
+            code: error.code,
+            statusCode: error.statusCode,
+            message: error.message,
+            rawType: error.rawType,
+            detail: error.detail
+        });
+
+        // Provide user-friendly error messages based on Stripe error type
+        let userMessage = error.message || 'Failed to create checkout session';
+        let errorCode = 'CHECKOUT_ERROR';
+
+        if (error.type === 'StripeConnectionError') {
+            userMessage = 'Unable to connect to payment processor. Please try again in a moment.';
+            errorCode = 'STRIPE_CONNECTION_ERROR';
+        } else if (error.type === 'StripeAuthenticationError') {
+            userMessage = 'Payment system configuration error. Please contact support.';
+            errorCode = 'STRIPE_AUTH_ERROR';
+        } else if (error.type === 'StripeInvalidRequestError') {
+            userMessage = 'Invalid checkout configuration. Please contact support.';
+            errorCode = 'STRIPE_INVALID_REQUEST';
+        }
+
         return res.status(500).json({
             success: false,
             error: {
-                code: 'CHECKOUT_ERROR',
-                message: error.message || 'Failed to create checkout session'
+                code: errorCode,
+                message: userMessage
             }
         });
     }

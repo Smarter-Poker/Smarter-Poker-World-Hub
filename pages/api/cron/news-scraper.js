@@ -31,7 +31,8 @@ const rssParser = new Parser({
 const CONFIG = {
     MAX_ARTICLES_PER_SOURCE: 5,
     RETENTION_DAYS: 3,
-    REQUEST_TIMEOUT: 10000
+    REQUEST_TIMEOUT: 8000,
+    IMAGE_PROXY_TIMEOUT: 5000
 };
 
 // Contextual fallback images based on article keywords (using reliable Pexels poker images)
@@ -303,6 +304,28 @@ async function fetchOgImageViaGoogleCache(url) {
     }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// FAST-FAIL IMAGE PROXY (Promise.race with 5s hard timeout)
+// Runs microlink, noembed, and Google Cache concurrently — first success wins.
+// If none respond within 5s, returns null immediately.
+// ═══════════════════════════════════════════════════════════════════════════
+async function fastFailImageProxy(url) {
+    if (!url) return null;
+
+    const timeoutPromise = new Promise((resolve) =>
+        setTimeout(() => resolve(null), CONFIG.IMAGE_PROXY_TIMEOUT)
+    );
+
+    // Run all three proxies concurrently; first non-null result wins
+    const proxyRace = Promise.any([
+        fetchOgImageViaProxy(url),
+        fetchOgImageViaNoEmbed(url),
+        fetchOgImageViaGoogleCache(url)
+    ]).catch(() => null); // If ALL reject, return null
+
+    return Promise.race([proxyRace, timeoutPromise]);
+}
+
 function cleanText(text) {
     if (!text) return '';
     return text
@@ -550,19 +573,9 @@ async function scrapeRSS(source) {
                 image = extractArticleImage(articleHtml, item.link);
             }
 
-            // If still no image (site blocks ALL automated access), try microlink.io proxy
+            // Fast-fail proxy chain: microlink + noembed + Google Cache race (5s hard timeout)
             if (!image && item.link) {
-                image = await fetchOgImageViaProxy(item.link);
-            }
-
-            // Try noembed.com proxy (secondary fallback, especially useful for CardPlayer)
-            if (!image && item.link) {
-                image = await fetchOgImageViaNoEmbed(item.link);
-            }
-
-            // Try Google's web cache (tertiary fallback)
-            if (!image && item.link) {
-                image = await fetchOgImageViaGoogleCache(item.link);
+                image = await fastFailImageProxy(item.link);
             }
 
             // Use source fallback if no image found
@@ -1241,41 +1254,60 @@ export default async function handler(req, res) {
         const newsPosterId = await getNewsPosterId();
         console.log(`📢 News poster ID: ${newsPosterId || 'NOT FOUND'}`);
 
-        for (const source of NEWS_SOURCES) {
-            try {
-                let articles = await scrapeSource(source);
-                results.sources[source.name] = { found: articles.length, saved: 0 };
+        // ═══════════════════════════════════════════════════════════════
+        // PARALLEL EXECUTION: All 6 sources scraped concurrently
+        // Promise.allSettled ensures one source failure doesn't kill others
+        // ═══════════════════════════════════════════════════════════════
+        const sourceResults = await Promise.allSettled(
+            NEWS_SOURCES.map(async (source) => {
+                try {
+                    let articles = await scrapeSource(source);
+                    const sourceStats = { found: articles.length, saved: 0 };
 
-                for (const article of articles) {
-                    const saved = await saveArticle(article, newsPosterId);
-                    if (saved) {
-                        results.sources[source.name].saved++;
-                        results.totalSaved++;
-                        console.log(`   ✓ Saved: ${article.title.substring(0, 50)}...`);
+                    for (const article of articles) {
+                        const saved = await saveArticle(article, newsPosterId);
+                        if (saved) {
+                            sourceStats.saved++;
+                            console.log(`   ✓ Saved: ${article.title.substring(0, 50)}...`);
+                        }
                     }
-                }
 
-                // PokerNews fallback: try videos if all articles were duplicates
-                if (source.name === 'PokerNews' && source.videoUrl && results.sources[source.name].saved === 0) {
-                    console.log(`   📹 No new articles, trying PokerNews videos...`);
-                    const videoHtml = await fetchPage(source.videoUrl);
-                    if (videoHtml) {
-                        const videoArticles = await scrapePokerNewsVideos(videoHtml, source);
-                        results.sources[source.name].found += videoArticles.length;
+                    // PokerNews fallback: try videos if all articles were duplicates
+                    if (source.name === 'PokerNews' && source.videoUrl && sourceStats.saved === 0) {
+                        console.log(`   📹 No new articles, trying PokerNews videos...`);
+                        const videoHtml = await fetchPage(source.videoUrl);
+                        if (videoHtml) {
+                            const videoArticles = await scrapePokerNewsVideos(videoHtml, source);
+                            sourceStats.found += videoArticles.length;
 
-                        for (const video of videoArticles) {
-                            const saved = await saveArticle(video, newsPosterId);
-                            if (saved) {
-                                results.sources[source.name].saved++;
-                                results.totalSaved++;
-                                console.log(`   ✓ Saved video: ${video.title.substring(0, 50)}...`);
+                            for (const video of videoArticles) {
+                                const saved = await saveArticle(video, newsPosterId);
+                                if (saved) {
+                                    sourceStats.saved++;
+                                    console.log(`   ✓ Saved video: ${video.title.substring(0, 50)}...`);
+                                }
                             }
                         }
                     }
+
+                    return { name: source.name, stats: sourceStats };
+                } catch (error) {
+                    console.error(`   ✗ ${source.name} error: ${error.message}`);
+                    throw { name: source.name, message: error.message };
                 }
-            } catch (error) {
-                results.errors.push(`${source.name}: ${error.message}`);
-                console.error(`   ✗ ${source.name} error: ${error.message}`);
+            })
+        );
+
+        // Aggregate results from all parallel sources
+        for (const result of sourceResults) {
+            if (result.status === 'fulfilled') {
+                const { name, stats } = result.value;
+                results.sources[name] = stats;
+                results.totalSaved += stats.saved;
+            } else {
+                const reason = result.reason;
+                results.sources[reason.name] = { found: 0, saved: 0, error: reason.message };
+                results.errors.push(`${reason.name}: ${reason.message}`);
             }
         }
 
@@ -1301,3 +1333,8 @@ export default async function handler(req, res) {
         return res.status(500).json({ success: false, error: error.message, results });
     }
 }
+
+// Vercel config — maxDuration for Pro plan (60s hard limit)
+export const config = {
+    maxDuration: 60
+};

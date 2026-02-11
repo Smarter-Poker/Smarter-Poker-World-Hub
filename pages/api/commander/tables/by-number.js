@@ -1,7 +1,7 @@
 /**
- * Table Detail API
- * GET /api/commander/tables/[tableNumber] - Get table with seats/players
- * Also supports PUT for seat actions from dealer tablet
+ * Table Detail API (by table number)
+ * GET /api/commander/tables/by-number?tableNumber=N - Get table with seats/players
+ * Moved from [tableNumber].js to avoid slug conflict with [id].js
  */
 import { createClient } from '@supabase/supabase-js';
 
@@ -27,6 +27,7 @@ export default async function handler(req, res) {
     if (!staff) return res.status(403).json({ success: false, error: 'Staff access required' });
 
     const { tableNumber } = req.query;
+
 
     if (req.method === 'GET') {
       // Get table
