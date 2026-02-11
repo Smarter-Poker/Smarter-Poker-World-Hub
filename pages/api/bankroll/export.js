@@ -1,8 +1,6 @@
 /**
- * 📊 BANKROLL EXPORT API
- * ═══════════════════════════════════════════════════════════════════════════
+ * BANKROLL EXPORT API
  * Generate CSV or JSON export of ledger data (on-demand, user-initiated only)
- * ═══════════════════════════════════════════════════════════════════════════
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -24,24 +22,12 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Build query
+        // Build query — use select('*') to match working selectors pattern
         let query = supabase
             .from('bankroll_ledger')
-            .select(`
-                id,
-                entry_date,
-                category,
-                gross_in,
-                gross_out,
-                tips,
-                comps,
-                notes,
-                location_id,
-                start_time,
-                end_time,
-                created_at
-            `)
+            .select('*')
             .eq('user_id', userId)
+            .eq('is_revision', false)
             .order('entry_date', { ascending: false });
 
         // Apply date range filter
@@ -55,8 +41,8 @@ export default async function handler(req, res) {
         const { data: entries, error } = await query;
 
         if (error) {
-            console.error('[Export] Error:', error);
-            return res.status(500).json({ error: error.message });
+            console.error('[Export] Supabase error:', error);
+            return res.status(500).json({ success: false, error: error.message });
         }
 
         if (!entries || entries.length === 0) {
@@ -66,7 +52,7 @@ export default async function handler(req, res) {
             });
         }
 
-        // Transform entries
+        // Transform entries — use only columns that exist in the table
         const exportData = entries.map(entry => {
             const netPL = (entry.gross_out || 0) - (entry.gross_in || 0);
             return {
@@ -75,10 +61,12 @@ export default async function handler(req, res) {
                 buy_in: entry.gross_in || 0,
                 cash_out: entry.gross_out || 0,
                 net_pl: netPL,
-                tips: entry.tips || 0,
-                comps: entry.comps || 0,
+                stakes: entry.stakes || '',
+                game_type: entry.game_type || '',
+                tournament_name: entry.tournament_name || '',
                 start_time: entry.start_time || '',
                 end_time: entry.end_time || '',
+                emotional_tag: entry.emotional_tag || '',
                 notes: entry.notes || ''
             };
         });
@@ -87,8 +75,6 @@ export default async function handler(req, res) {
         const totalIn = exportData.reduce((sum, e) => sum + e.buy_in, 0);
         const totalOut = exportData.reduce((sum, e) => sum + e.cash_out, 0);
         const netPL = totalOut - totalIn;
-        const totalTips = exportData.reduce((sum, e) => sum + e.tips, 0);
-        const totalComps = exportData.reduce((sum, e) => sum + e.comps, 0);
 
         if (format === 'csv') {
             // Generate CSV
@@ -98,10 +84,12 @@ export default async function handler(req, res) {
                 'Buy-In',
                 'Cash-Out',
                 'Net P/L',
-                'Tips',
-                'Comps',
+                'Stakes',
+                'Game Type',
+                'Tournament',
                 'Start Time',
                 'End Time',
+                'Mood',
                 'Notes'
             ];
 
@@ -111,10 +99,12 @@ export default async function handler(req, res) {
                 e.buy_in,
                 e.cash_out,
                 e.net_pl,
-                e.tips,
-                e.comps,
+                e.stakes,
+                e.game_type,
+                e.tournament_name,
                 e.start_time,
                 e.end_time,
+                e.emotional_tag,
                 `"${(e.notes || '').replace(/"/g, '""')}"`
             ]);
 
@@ -125,8 +115,6 @@ export default async function handler(req, res) {
             rows.push(['Total Buy-Ins', totalIn]);
             rows.push(['Total Cash-Outs', totalOut]);
             rows.push(['Net P/L', netPL]);
-            rows.push(['Total Tips', totalTips]);
-            rows.push(['Total Comps', totalComps]);
 
             const csvContent = [
                 headers.join(','),
@@ -142,9 +130,7 @@ export default async function handler(req, res) {
                     sessions: entries.length,
                     totalIn,
                     totalOut,
-                    netPL,
-                    tips: totalTips,
-                    comps: totalComps
+                    netPL
                 }
             });
         }
@@ -160,8 +146,6 @@ export default async function handler(req, res) {
                 totalIn,
                 totalOut,
                 netPL,
-                tips: totalTips,
-                comps: totalComps,
                 dateRange: {
                     earliest: entries[entries.length - 1]?.entry_date,
                     latest: entries[0]?.entry_date
@@ -171,6 +155,6 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('[Export] Server error:', error);
-        return res.status(500).json({ error: 'Export failed' });
+        return res.status(500).json({ success: false, error: 'Export failed' });
     }
 }
