@@ -358,6 +358,15 @@ export default function CommanderDashboard() {
             padding: 16px;
           }
         }
+        .cmd-features-stacked {
+          grid-template-columns: 1fr !important;
+          max-width: 500px !important;
+          gap: 20px !important;
+        }
+        .cmd-features-stacked .cmd-feature-btn img {
+          width: 100%;
+          max-width: 500px;
+        }
         .cmd-feature-btn {
           position: relative;
           display: flex;
@@ -461,7 +470,7 @@ export default function CommanderDashboard() {
                 {openCard.title}
               </div>
             </div>
-            <div className="cmd-features">
+            <div className={`cmd-features${openCard.id === 'management' ? ' cmd-features-stacked' : ''}`}>
               {openCard.features.map((feat, i) => (
                 <button
                   key={i}
