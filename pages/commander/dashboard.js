@@ -467,7 +467,6 @@ export default function CommanderDashboard() {
                   key={i}
                   className="cmd-feature-btn"
                   style={{
-                    borderColor: `${openCard.glow}50`,
                     '--glow': openCard.glow,
                     '--glow-dim': `${openCard.glow}30`,
                   }}
