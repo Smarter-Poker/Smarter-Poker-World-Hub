@@ -641,8 +641,10 @@ const styles = {
     marginTop: 12,
     padding: 14,
     background: '#3a3b3c',
-    border: '1px solid #4a4b4c',
+    border: '1px solid rgba(255,255,255,0.15)',
     borderRadius: 8,
+    outline: '2px solid rgba(255,255,255,0.25)',
+    outlineOffset: '2px',
   },
   formInput: {
     width: '100%',
