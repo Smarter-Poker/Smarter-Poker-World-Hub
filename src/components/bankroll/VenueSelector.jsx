@@ -71,19 +71,13 @@ export default function VenueSelector({ value, venueType, onChange, userId }) {
         return () => document.removeEventListener('mousedown', handleClick);
     }, []);
 
-    // Filter saved locations by type and search query for suggestion display
+    // Filter saved locations by search query — show ALL saved locations regardless of venue type
     const filteredSavedLocations = useMemo(() => {
         if (!savedLocations.length) return [];
-        // For home_game, show home_game saved locations; for others, show matching type
-        const typeFiltered = savedLocations.filter(loc => {
-            if (selectedType === 'home_game') return loc.venue_type === 'home_game';
-            if (selectedType === 'poker_club') return loc.venue_type === 'poker_club';
-            return loc.venue_type === 'casino' || !loc.venue_type;
-        });
-        if (!searchQuery.trim()) return typeFiltered;
+        if (!searchQuery.trim()) return savedLocations;
         const q = searchQuery.toLowerCase();
-        return typeFiltered.filter(loc => loc.name.toLowerCase().includes(q));
-    }, [savedLocations, selectedType, searchQuery]);
+        return savedLocations.filter(loc => loc.name.toLowerCase().includes(q));
+    }, [savedLocations, searchQuery]);
 
     // Debounced search against /api/poker/venues
     const searchVenues = useCallback(async (query) => {
