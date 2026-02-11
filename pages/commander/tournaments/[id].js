@@ -236,6 +236,18 @@ export default function TournamentDetailPage() {
                 <ExternalLink className="w-4 h-4 text-[#64748B]" />
                 <span className="text-sm font-medium text-white">Public Clock</span>
               </button>
+              <button
+                onClick={() => router.push(`/commander/tournaments/${tournament.id}/settings`)}
+                className="flex items-center gap-2 px-3 py-2 border border-[#4A5E78] rounded-lg hover:bg-[#132240] transition-colors"
+              >
+                <span className="text-sm font-medium text-white">Settings</span>
+              </button>
+              <button
+                onClick={() => router.push(`/commander/td/${tournament.id}`)}
+                className="flex items-center gap-2 px-3 py-2 bg-[#1877F2] rounded-lg hover:bg-[#1565D8] transition-colors"
+              >
+                <span className="text-sm font-medium text-white">TD Tablet</span>
+              </button>
             </div>
           </div>
         </header>
