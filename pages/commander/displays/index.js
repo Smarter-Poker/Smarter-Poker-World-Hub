@@ -16,7 +16,7 @@ import Head from 'next/head';
 import {
   ArrowLeft, Monitor, Tv, ExternalLink, Copy, CheckCircle2,
   Clock, Users, Trophy, Megaphone, Settings, Plus,
-  Loader2, RefreshCw, Wifi
+  Loader2, RefreshCw, Wifi, Timer
 } from 'lucide-react';
 
 export default function DisplayManagement() {
@@ -189,6 +189,32 @@ export default function DisplayManagement() {
               onOpen={openDisplay}
               color="#1877F2"
             />
+          </div>
+        </div>
+
+        {/* Player / Table Displays */}
+        <div className="px-4 pb-3">
+          <h2 className="text-sm font-semibold text-[#B0B3B8] uppercase tracking-wider mb-2">
+            Player Table Displays
+          </h2>
+          <p className="text-xs text-[#B0B3B8] mb-2">
+            Mount at each table — players see their time counting down. URL per table.
+          </p>
+          <div className="space-y-2">
+            {[1,2,3,4,5,6,7,8,9,10].map(t => (
+              <DisplayCard
+                key={t}
+                icon={Timer}
+                title={`Table ${t} — Player View`}
+                description={`Live countdown timers for all seated players at Table ${t}`}
+                url={`${getBaseUrl()}/commander/player/${t}`}
+                path={`/commander/player/${t}`}
+                copied={copied}
+                onCopy={copyUrl}
+                onOpen={openDisplay}
+                color="#31A24C"
+              />
+            ))}
           </div>
         </div>
 
