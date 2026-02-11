@@ -92,6 +92,7 @@ export default function CommanderDashboard() {
     localStorage.removeItem('commander_staff');
     localStorage.removeItem('commander_venue');
     localStorage.removeItem('commander_subscription');
+    localStorage.removeItem('commander_remember');
     router.push('/commander/login');
   };
 
