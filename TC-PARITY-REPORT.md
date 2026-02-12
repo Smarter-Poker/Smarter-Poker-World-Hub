@@ -122,42 +122,39 @@ Every TC (PokerAtlas) feature verified against Club Commander codebase.
 
 ---
 
-## 🔴 GAPS FOUND — BROKEN OR MISSING
+## ✅ ALL GAPS FOUND AND FIXED
 
-### GAP 1: Staff Add Form — BROKEN (Critical)
+### GAP 1: Staff Add Form — ✅ FIXED
 **TC Behavior:** Manager types employee name, assigns role and PIN. Employee doesn't need an app account.
 **CC Problem:** StaffModal only has role + PIN fields. No name, email, or phone field. API requires user_id (existing account) but form never sends one. Adding an employee is completely non-functional.
 **Fix:** Add name/email/phone fields to StaffModal. Update API to accept name-based staff without requiring user_id. Add migration for display_name/email/phone columns on commander_staff.
 
-### GAP 2: Waitlist Pass Button — MISSING UI (Critical)
+### GAP 2: Waitlist Pass Button — ✅ FIXED
 **TC Behavior:** Brush calls player → player declines → brush hits "Pass" → player moves to bottom of list.
 **CC Problem:** Pass API exists (`/api/commander/waitlist/[id]/pass`) but desk view has no Pass button.
 **Fix:** Add Pass button (SkipForward icon) to each waitlist entry in desk.js.
 
-### GAP 3: Waitlist Remove Button — MISSING UI (Critical)
+### GAP 3: Waitlist Remove Button — ✅ FIXED
 **TC Behavior:** Brush removes player who left or is no-show.
 **CC Problem:** Delete API exists (`DELETE /api/commander/waitlist/[id]`) but desk view has no Remove button.
 **Fix:** Add Remove button (Trash2 icon) to each waitlist entry in desk.js.
 
-### GAP 4: Add Walk-In to Waitlist from Desk — UNWIRED (Critical)
+### GAP 4: Add Walk-In to Waitlist from Desk — ✅ FIXED
 **TC Behavior:** Walk-in player approaches podium → brush adds them to waitlist right from the desk.
 **CC Problem:** AddWalkInModal component exists (243L) but is never imported or rendered on the desk page. The "Add" button currently links to a different page.
 **Fix:** Import AddWalkInModal into desk.js and render it when "Add Player" is clicked.
 
-### GAP 5: Stakes Not Shown on Waitlist Desk (Medium)
+### GAP 5: Stakes Not Shown on Waitlist Desk — ✅ FIXED
 **TC Behavior:** Waitlist shows "NLH 1/2" or "PLO 2/5" — game type AND stakes together.
-**CC Problem:** Desk groups waitlist by `game_type` only (e.g., "NLH"). Stakes are stored in the data but not displayed. Two players waiting for NLH 1/2 and NLH 2/5 would be grouped together.
-**Fix:** Change grouping key to `${game_type} ${stakes}` and display stakes in entry rows.
+**Fix Applied:** Changed grouping key to `${game_type} ${stakes}`. Now groups correctly as "NLH 1/3", "NLH 2/5", etc.
 
-### GAP 6: Close/Break Individual Game — NO UI (Medium)
+### GAP 6: Close/Break Individual Game — ✅ FIXED
 **TC Behavior:** Floor manager can close a specific running game (break the table).
-**CC Problem:** Game API supports DELETE and status changes (waiting/running/breaking/closed), but there is no button in any UI to close a running game. The poker room page only has a room-wide open/close toggle.
-**Fix:** Add "Close Game" action to the tables page for running games, or add per-game controls in the poker room page.
+**Fix Applied:** Added "Close Game" button to table cards when a game is running. Calls PATCH /api/commander/games/[id] with status: 'closed'.
 
-### GAP 7: Tournament History Per Member — MISSING (Low)
+### GAP 7: Tournament History Per Member — ✅ FIXED
 **TC Behavior:** Player profile shows their tournament results history.
-**CC Problem:** Member detail page (`members/[id].js`) shows visits, hours, comps — but no tournament results section.
-**Fix:** Add tournament results tab/section to member detail page querying tournament entries by user.
+**Fix Applied:** Added "tournaments" tab to member detail page. New API /api/commander/tournaments/player-results returns finish position, payouts, rebuys matched by member name.
 
 ---
 
@@ -167,16 +164,16 @@ Every TC (PokerAtlas) feature verified against Club Commander codebase.
 |---|---|
 | TC features fully matched | **68** |
 | CC features that exceed TC | **9** |
-| Critical gaps (broken/missing) | **4** |
-| Medium gaps | **2** |
-| Low gaps | **1** |
-| **Total TC parity** | **~91%** |
+| Gaps found during audit | **7** |
+| Gaps fixed | **7** ✅ |
+| Remaining gaps | **0** |
+| **TC parity** | **100%** |
 
-### Critical Fix Priority:
-1. Staff Add Form (completely broken — can't add employees)
-2. Waitlist Pass button (core brush operation)
-3. Waitlist Remove button (core brush operation)  
-4. Add Walk-In from desk (core brush operation)
-5. Stakes on waitlist grouping (display gap)
-6. Close individual game UI (operations gap)
-7. Tournament history per member (profile gap)
+### All 7 Gaps Fixed:
+1. ✅ Staff Add Form — name/email/phone fields + API accepts name-only employees
+2. ✅ Waitlist Pass button — SkipForward icon on every entry
+3. ✅ Waitlist Remove button — Trash2 icon on every entry
+4. ✅ Add Walk-In from desk — inline WalkInForm modal
+5. ✅ Stakes on waitlist grouping — groups by "NLH 1/3" not just "NLH"
+6. ✅ Close individual game UI — Close Game button on table cards
+7. ✅ Tournament history per member — new tournaments tab + API
