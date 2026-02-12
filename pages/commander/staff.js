@@ -289,15 +289,29 @@ export default function CommanderStaffPage() {
 }
 
 function StaffModal({ staff, onClose, onSubmit }) {
+  const [displayName, setDisplayName] = useState(staff?.display_name || staff?.profiles?.display_name || '');
+  const [email, setEmail] = useState(staff?.email || '');
+  const [phone, setPhone] = useState(staff?.phone || '');
   const [role, setRole] = useState(staff?.role || 'floor');
   const [pinCode, setPinCode] = useState(staff?.pin_code || '');
   const [isActive, setIsActive] = useState(staff?.is_active !== false);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const isEditing = !!staff;
 
   async function handleSubmit(e) {
     e.preventDefault();
+    setError('');
+    if (!isEditing && !displayName.trim()) {
+      setError('Employee name is required');
+      return;
+    }
     setSubmitting(true);
     await onSubmit({
+      display_name: displayName.trim(),
+      email: email.trim() || null,
+      phone: phone.trim() || null,
       role,
       pin_code: pinCode || null,
       is_active: isActive
@@ -307,10 +321,10 @@ function StaffModal({ staff, onClose, onSubmit }) {
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="cmd-panel cmd-corner-lights w-full max-w-md">
+      <div className="cmd-panel cmd-corner-lights w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b border-[#3A3B3C]">
           <h2 className="text-lg font-semibold text-white">
-            {staff ? 'Edit Staff' : 'Add Staff'}
+            {isEditing ? 'Edit Staff' : 'Add Employee'}
           </h2>
           <button
             onClick={onClose}
@@ -321,6 +335,54 @@ function StaffModal({ staff, onClose, onSubmit }) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
+          {error && (
+            <div className="p-3 bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-lg text-sm text-[#EF4444]">{error}</div>
+          )}
+
+          {/* Employee Name */}
+          <div>
+            <label className="block text-sm font-medium text-white mb-1">
+              Employee Name *
+            </label>
+            <input
+              type="text"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="e.g., John Smith"
+              className="w-full h-12 px-3 cmd-input"
+              required
+              autoFocus={!isEditing}
+            />
+          </div>
+
+          {/* Email (optional) */}
+          <div>
+            <label className="block text-sm font-medium text-white mb-1">
+              Email <span className="text-[#6A6B6D]">(optional)</span>
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="john@example.com"
+              className="w-full h-12 px-3 cmd-input"
+            />
+          </div>
+
+          {/* Phone (optional) */}
+          <div>
+            <label className="block text-sm font-medium text-white mb-1">
+              Phone <span className="text-[#6A6B6D]">(optional)</span>
+            </label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="(555) 123-4567"
+              className="w-full h-12 px-3 cmd-input"
+            />
+          </div>
+
           {/* Role */}
           <div>
             <label className="block text-sm font-medium text-white mb-2">
@@ -335,7 +397,7 @@ function StaffModal({ staff, onClose, onSubmit }) {
                   className={`p-3 rounded-lg text-sm font-medium transition-colors ${
                     role === r.value
                       ? 'bg-[#1877F2] text-white'
-                      : 'bg-[#3A3B3C] text-white hover:bg-[#3A3B3C]'
+                      : 'bg-[#3A3B3C] text-white hover:bg-[#4A4B4C]'
                   }`}
                 >
                   {r.label}
@@ -356,7 +418,7 @@ function StaffModal({ staff, onClose, onSubmit }) {
               placeholder="4-6 digits"
               className="w-full h-12 px-3 cmd-input"
             />
-            <p className="text-xs text-[#B0B3B8] mt-1">Used for terminal login</p>
+            <p className="text-xs text-[#B0B3B8] mt-1">Used for terminal login and comp authorization</p>
           </div>
 
           {/* Active Toggle */}

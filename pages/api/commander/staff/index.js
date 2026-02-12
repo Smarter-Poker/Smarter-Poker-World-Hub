@@ -98,18 +98,31 @@ async function handlePost(req, res) {
     const {
       venue_id,
       user_id,
+      display_name,
+      email,
+      phone,
       role,
       permissions = {},
       pin_code
     } = req.body;
 
-    // Validation
-    if (!venue_id || !user_id || !role) {
+    // Validation — require venue_id, role, and either user_id or display_name
+    if (!venue_id || !role) {
       return res.status(400).json({
         success: false,
         error: {
           code: 'VALIDATION_ERROR',
-          message: 'venue_id, user_id, and role are required'
+          message: 'venue_id and role are required'
+        }
+      });
+    }
+
+    if (!user_id && !display_name) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Either user_id or display_name is required'
         }
       });
     }
@@ -138,46 +151,54 @@ async function handlePost(req, res) {
       });
     }
 
-    // Verify user exists
-    const { data: user, error: userError } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('id', user_id)
-      .single();
+    // If user_id provided, verify user exists and check for duplicates
+    if (user_id) {
+      const { data: user, error: userError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', user_id)
+        .single();
 
-    if (userError || !user) {
-      return res.status(404).json({
-        success: false,
-        error: { code: 'NOT_FOUND', message: 'User not found' }
-      });
+      if (userError || !user) {
+        return res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'User not found' }
+        });
+      }
+
+      const { data: existing } = await supabase
+        .from('commander_staff')
+        .select('id')
+        .eq('venue_id', venue_id)
+        .eq('user_id', user_id)
+        .single();
+
+      if (existing) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: 'User is already staff at this venue' }
+        });
+      }
     }
 
-    // Check if already staff at this venue
-    const { data: existing } = await supabase
-      .from('commander_staff')
-      .select('id')
-      .eq('venue_id', venue_id)
-      .eq('user_id', user_id)
-      .single();
-
-    if (existing) {
-      return res.status(400).json({
-        success: false,
-        error: { code: 'VALIDATION_ERROR', message: 'User is already staff at this venue' }
-      });
+    // Create staff record — user_id is optional for name-only employees
+    const staffRecord = {
+      venue_id,
+      role,
+      permissions,
+      pin_code: pin_code || null,
+      is_active: true,
+      display_name: display_name || null,
+      email: email || null,
+      phone: phone || null
+    };
+    if (user_id) {
+      staffRecord.user_id = user_id;
     }
 
-    // Create staff record
     const { data: staff, error: insertError } = await supabase
       .from('commander_staff')
-      .insert({
-        venue_id,
-        user_id,
-        role,
-        permissions,
-        pin_code: pin_code || null,
-        is_active: true
-      })
+      .insert(staffRecord)
       .select()
       .single();
 

@@ -12,7 +12,7 @@ import { useRealtimeUpdates } from '../../../src/lib/commander/useRealtimeUpdate
 import {
   ArrowLeft, RefreshCw, Loader2, Users, Phone, UserPlus,
   ChevronRight, Clock, CheckCircle2, X, AlertTriangle,
-  Armchair, PhoneCall, MessageSquare, ChevronDown
+  Armchair, PhoneCall, MessageSquare, ChevronDown, SkipForward, Trash2
 } from 'lucide-react';
 
 function getSeatPositions(count) {
@@ -67,6 +67,7 @@ export default function WaitlistDesk() {
   useRealtimeUpdates(venueId, () => fetchData(), !!venueId);
 
   const [smsStatus, setSmsStatus] = useState(null);
+  const [showAddWalkIn, setShowAddWalkIn] = useState(false);
 
   const handleCall = async (waitlistEntry) => {
     setCallLoading(waitlistEntry.id);
@@ -109,6 +110,53 @@ export default function WaitlistDesk() {
     } catch (err) { console.error(err); }
   };
 
+  const handlePass = async (waitlistEntry) => {
+    try {
+      const token = getToken();
+      await fetch(`/api/commander/waitlist/${waitlistEntry.id}/pass`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+      });
+      await fetchData();
+    } catch (err) { console.error(err); }
+  };
+
+  const handleRemove = async (waitlistEntry) => {
+    try {
+      const token = getToken();
+      await fetch(`/api/commander/waitlist/${waitlistEntry.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      await fetchData();
+    } catch (err) { console.error(err); }
+  };
+
+  const handleAddWalkIn = async (playerData) => {
+    try {
+      const token = getToken();
+      const staffData = JSON.parse(localStorage.getItem('commander_staff') || '{}');
+      const res = await fetch('/api/commander/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          venue_id: staffData.venue_id,
+          player_name: playerData.player_name,
+          game_type: playerData.game_type?.split(' ')[0] || 'NLH',
+          stakes: playerData.game_type?.split(' ').slice(1).join(' ') || '1/3',
+          player_phone: playerData.phone || null,
+          party_size: playerData.party_size || 1,
+          signup_method: 'staff'
+        })
+      });
+      const json = await res.json();
+      if (json.success) {
+        setShowAddWalkIn(false);
+        await fetchData();
+      }
+    } catch (err) { console.error(err); }
+  };
+
   // Group waitlists by game type
   const waitlistByGame = {};
   waitlists.filter(w => w.status === 'waiting' || w.status === 'called').forEach(w => {
@@ -140,9 +188,9 @@ export default function WaitlistDesk() {
               {activeTables.length} tables — {waitlists.filter(w => w.status === 'waiting').length} waiting
             </p>
           </div>
-          <button onClick={() => router.push('/commander/waitlist')}
+          <button onClick={() => setShowAddWalkIn(true)}
             className="px-3 py-2 rounded-lg bg-[#1877F2] text-white text-sm font-medium flex items-center gap-1.5 active:bg-[#1565D8]">
-            <UserPlus className="w-4 h-4" /> Add
+            <UserPlus className="w-4 h-4" /> Add Player
           </button>
           <button onClick={fetchData} className="p-2 rounded-lg active:bg-[#3A3B3C]">
             <RefreshCw className="w-5 h-5 text-[#B0B3B8]" />
@@ -255,6 +303,16 @@ export default function WaitlistDesk() {
                               title="Seat player">
                               <Armchair className="w-4 h-4 text-[#31A24C]" />
                             </button>
+                            <button onClick={() => handlePass(entry)}
+                              className="w-9 h-9 rounded-lg bg-[#6B7280]/10 flex items-center justify-center active:bg-[#6B7280]/20"
+                              title="Pass">
+                              <SkipForward className="w-4 h-4 text-[#6B7280]" />
+                            </button>
+                            <button onClick={() => handleRemove(entry)}
+                              className="w-9 h-9 rounded-lg bg-[#EF4444]/10 flex items-center justify-center active:bg-[#EF4444]/20"
+                              title="Remove from list">
+                              <Trash2 className="w-4 h-4 text-[#EF4444]" />
+                            </button>
                           </div>
                         </div>
                       ))}
@@ -316,7 +374,78 @@ export default function WaitlistDesk() {
             </div>
           </div>
         )}
+
+        {/* Add Walk-In Modal */}
+        {showAddWalkIn && (
+          <div className="fixed inset-0 z-50 bg-black/60 flex items-end lg:items-center justify-center p-4"
+            onClick={() => setShowAddWalkIn(false)}>
+            <div className="bg-[#242526] rounded-2xl w-full max-w-md p-5" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-white">Add Player to Waitlist</h3>
+                <button onClick={() => setShowAddWalkIn(false)}
+                  className="w-8 h-8 rounded-full bg-[#3A3B3C] flex items-center justify-center">
+                  <X className="w-4 h-4 text-[#B0B3B8]" />
+                </button>
+              </div>
+              <WalkInForm
+                onSubmit={handleAddWalkIn}
+                activeTables={activeTables}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </>
+  );
+}
+
+function WalkInForm({ onSubmit, activeTables }) {
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [gameType, setGameType] = useState('NLH 1/3');
+  const [submitting, setSubmitting] = useState(false);
+
+  // Derive game types from active tables
+  const gameTypes = [...new Set(activeTables.map(t => t.game_type).filter(Boolean))];
+  if (gameTypes.length === 0) gameTypes.push('NLH 1/3', 'NLH 2/5', 'PLO 1/3');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setSubmitting(true);
+    await onSubmit({ player_name: name.trim(), phone: phone.trim(), game_type: gameType });
+    setSubmitting(false);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-white mb-1">Player Name *</label>
+        <input type="text" value={name} onChange={e => setName(e.target.value)}
+          placeholder="e.g., Mike S." autoFocus required
+          className="w-full h-12 px-3 bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl text-white placeholder-[#6A6B6D] focus:border-[#1877F2] outline-none" />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-white mb-1">Phone <span className="text-[#6A6B6D]">(for SMS)</span></label>
+        <input type="tel" value={phone} onChange={e => setPhone(e.target.value)}
+          placeholder="(555) 123-4567"
+          className="w-full h-12 px-3 bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl text-white placeholder-[#6A6B6D] focus:border-[#1877F2] outline-none" />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-white mb-1">Game</label>
+        <div className="flex flex-wrap gap-2">
+          {gameTypes.map(g => (
+            <button key={g} type="button" onClick={() => setGameType(g)}
+              className={`px-4 py-2 rounded-full text-sm font-medium ${gameType === g ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'}`}>
+              {g}
+            </button>
+          ))}
+        </div>
+      </div>
+      <button type="submit" disabled={!name.trim() || submitting}
+        className="w-full h-12 bg-[#1877F2] text-white rounded-xl font-semibold disabled:opacity-50">
+        {submitting ? 'Adding...' : 'Add to Waitlist'}
+      </button>
+    </form>
   );
 }
