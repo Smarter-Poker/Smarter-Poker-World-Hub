@@ -4,6 +4,7 @@
  * Handles Stripe webhook events for purchases and subscriptions
  */
 import { createClient } from '@supabase/supabase-js';
+import Stripe from 'stripe';
 
 // Helper to read raw body from request stream
 async function getRawBody(req) {
@@ -20,6 +21,16 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// Initialize Stripe at module level
+const stripe = process.env.STRIPE_SECRET_KEY
+    ? new Stripe(process.env.STRIPE_SECRET_KEY, {
+        apiVersion: '2023-10-16',
+        timeout: 15000,
+        maxNetworkRetries: 2,
+        telemetry: false
+    })
+    : null;
+
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
@@ -35,8 +46,7 @@ export default async function handler(req, res) {
         const rawBody = await getRawBody(req);
 
         // If Stripe is configured, verify signature
-        if (endpointSecret && sig) {
-            const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+        if (endpointSecret && sig && stripe) {
             event = stripe.webhooks.constructEvent(rawBody, sig, endpointSecret);
         } else {
             // For testing without signature verification
@@ -137,7 +147,6 @@ async function handleCheckoutCompleted(session) {
         console.log(`👑 VIP subscription checkout: ${id}`);
 
         try {
-            const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
             const subscription = await stripe.subscriptions.retrieve(session.subscription);
 
             // Set VIP on profile and link Stripe customer
