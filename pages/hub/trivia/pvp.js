@@ -707,19 +707,18 @@ export default function PvPPage() {
                     {/* Searching for opponent */}
                     {gameState === 'searching' && (
                         <div className="result-panel-overlay">
-                            <div className="result-panel-container">
+                            <div className="finding-panel-container">
                                 <img
                                     src="/trivia/panels/panel-finding.jpg"
                                     alt=""
                                     className="result-panel-bg"
                                 />
-                                <div className="result-panel-content">
+                                <div className="finding-panel-content">
                                     {opponent ? (
-                                        <>
-                                            <h1 className="panel-title win">{'Opponent\nFound!'}</h1>
+                                        <div className="finding-opp-found">
                                             <div className="panel-stats">
                                                 <div className="panel-stat-row">
-                                                    <span className="panel-stat-label">PLAYER</span>
+                                                    <span className="panel-stat-label">OPPONENT</span>
                                                     <span className="panel-stat-value cyan">{opponent.username}</span>
                                                 </div>
                                                 <div className="panel-stat-row">
@@ -732,27 +731,20 @@ export default function PvPPage() {
                                                     <span className="panel-stat-value gold">{stakeAmount} 💎</span>
                                                 </div>
                                             </div>
-                                        </>
+                                        </div>
                                     ) : (
-                                        <>
-                                            <h1 className="panel-title win finding-text">
-                                                Finding Opponent<span className="ellipsis-pulse">...</span>
-                                            </h1>
+                                        <div className="finding-stake-info">
                                             <div className="panel-stats">
                                                 <div className="panel-stat-row">
                                                     <span className="panel-stat-label">STAKE</span>
                                                     <span className="panel-stat-value gold">{stakeAmount} 💎</span>
                                                 </div>
                                             </div>
-                                        </>
+                                        </div>
                                     )}
-
-                                    <div className="panel-buttons">
-                                        <button className="panel-cancel" onClick={handleCancelSearch}>
-                                            Cancel
-                                        </button>
-                                    </div>
                                 </div>
+                                {/* Invisible clickable cancel button positioned over the image's baked-in CANCEL button */}
+                                <button className="finding-cancel-hitbox" onClick={handleCancelSearch} aria-label="Cancel search" />
                             </div>
                         </div>
                     )}
@@ -1033,39 +1025,55 @@ export default function PvPPage() {
                 }
 
                 /* Searching — Finding Opponent Panel */
-                .finding-text {
-                    font-size: clamp(1.6rem, 4.5vw, 3rem);
+                .finding-panel-container {
+                    position: relative;
+                    width: 90vw;
+                    max-width: 700px;
+                    aspect-ratio: 4 / 3;
                 }
 
-                .ellipsis-pulse {
-                    animation: ellipsisPulse 1.5s infinite;
+                .finding-panel-content {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 30% 15% 20%;
                 }
 
-                @keyframes ellipsisPulse {
-                    0%, 100% { opacity: 1; }
-                    50% { opacity: 0.2; }
+                .finding-stake-info,
+                .finding-opp-found {
+                    width: 100%;
                 }
 
-                .panel-cancel {
-                    font-family: 'Orbitron', sans-serif;
-                    font-weight: 700;
-                    font-size: clamp(0.75rem, 1.8vw, 1rem);
-                    letter-spacing: 0.06em;
-                    text-transform: uppercase;
-                    color: #c8a96e;
-                    background: linear-gradient(to bottom, #3a3530, #2a2520);
-                    border: 1px solid rgba(200, 169, 110, 0.4);
-                    border-radius: 6px;
-                    padding: 10px 36px;
+                .finding-opp-found .panel-stats {
+                    width: 100%;
+                    max-width: 300px;
+                    margin: 0 auto;
+                }
+
+                .finding-stake-info .panel-stats {
+                    width: 60%;
+                    max-width: 260px;
+                    margin: 0 auto;
+                }
+
+                /* Invisible clickable button over baked-in CANCEL */
+                .finding-cancel-hitbox {
+                    position: absolute;
+                    bottom: 2%;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    width: 30%;
+                    height: 8%;
+                    background: transparent;
+                    border: none;
                     cursor: pointer;
-                    transition: all 0.2s ease;
-                    text-shadow: 0 0 8px rgba(200, 169, 110, 0.3);
-                }
-
-                .panel-cancel:hover {
-                    background: linear-gradient(to bottom, #4a4540, #3a3530);
-                    box-shadow: 0 0 15px rgba(200, 169, 110, 0.2);
-                    transform: translateY(-1px);
+                    z-index: 10;
                 }
 
                 /* Battle */
