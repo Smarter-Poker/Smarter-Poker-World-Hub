@@ -55,6 +55,7 @@ const CARDS = [
       { label: 'Dealer Management', href: '/commander/dealers', icon: '/images/commander/icons/mg-employee.png' },
       { label: 'Time Billing', href: '/commander/time-billing', icon: '/images/commander/icons/wl-desk-view.png' },
       { label: 'Floor Calls', href: '/commander/floor-calls', icon: '/images/commander/icons/rp-activity.png' },
+      { label: 'Table Vibes', href: '/commander/table-vibes', icon: '/images/commander/icons/rp-custom.png' },
     ],
   },
   {
@@ -87,6 +88,7 @@ const CARDS = [
       { label: 'Revenue Report', href: '/commander/reports/revenue', icon: '/images/commander/icons/rp-player.png' },
       { label: 'Activity Feed', href: '/commander/activity', icon: '/images/commander/icons/rp-activity.png' },
       { label: 'Analytics', href: '/commander/analytics', icon: '/images/commander/icons/rp-tournament.png' },
+      { label: 'Churn Prediction', href: '/commander/churn-prediction', icon: '/images/commander/icons/rp-custom.png' },
       { label: 'Close Day', href: '/commander/close-day', icon: '/images/commander/icons/rp-config.png' },
       { label: 'Member Import', href: '/commander/member-import', icon: '/images/commander/icons/wl-player-maintenance.png' },
       { label: 'Settings', href: '/commander/settings', icon: '/images/commander/icons/rp-config.png' },

@@ -15,6 +15,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import { useRealtimeUpdates } from '../../src/lib/commander/useRealtimeUpdates';
 import {
   ArrowLeft, RefreshCw, Users, Clock, AlertTriangle,
   ChevronRight, Loader2, Filter, Maximize2
@@ -50,10 +51,16 @@ export default function FloorMap() {
 
   useEffect(() => {
     fetchAll();
-    const poll = setInterval(fetchAll, 5000);
+    const poll = setInterval(fetchAll, 30000); // 30s fallback — realtime handles instant updates
     const clock = setInterval(() => setNow(new Date()), 1000);
     return () => { clearInterval(poll); clearInterval(clock); };
   }, []);
+
+  // Realtime: instant table/game updates
+  const [venueId] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
+  });
+  useRealtimeUpdates(venueId, () => fetchAll(), !!venueId);
 
   const fetchAll = async () => {
     try {

@@ -68,7 +68,7 @@ export default function CombinedDisplay() {
       setNow(new Date());
     };
     fetchData();
-    const poll = setInterval(fetchData, 5000);
+    const poll = setInterval(fetchData, 10000); // 10s refresh for TV display
     const clock = setInterval(() => {
       setNow(new Date());
       setClockSeconds(s => s !== null && s > 0 ? s - 1 : s);

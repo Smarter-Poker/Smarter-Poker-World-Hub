@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import { useRealtimeUpdates } from '../../../src/lib/commander/useRealtimeUpdates';
 import {
   ArrowLeft, RefreshCw, Loader2, Users, Phone, UserPlus,
   ChevronRight, Clock, CheckCircle2, X, AlertTriangle,
@@ -55,9 +56,15 @@ export default function WaitlistDesk() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 5000);
+    const interval = setInterval(fetchData, 30000); // 30s fallback — realtime handles instant updates
     return () => clearInterval(interval);
   }, [fetchData]);
+
+  // Realtime: instant updates when waitlist/tables change
+  const [venueId] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
+  });
+  useRealtimeUpdates(venueId, () => fetchData(), !!venueId);
 
   const [smsStatus, setSmsStatus] = useState(null);
 

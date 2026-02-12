@@ -42,7 +42,7 @@ export default function WaitlistDisplay() {
     };
 
     fetchData();
-    const poll = setInterval(fetchData, 5000);
+    const poll = setInterval(fetchData, 10000); // 10s refresh for TV display
     const clock = setInterval(() => setNow(new Date()), 1000);
     return () => { clearInterval(poll); clearInterval(clock); };
   }, []);

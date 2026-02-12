@@ -13,6 +13,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import { useRealtimeUpdates } from '../../src/lib/commander/useRealtimeUpdates';
 import {
   ArrowLeft, AlertTriangle, Check, Clock, Loader2,
   RefreshCw, ChevronRight, Bell, XCircle
@@ -53,10 +54,16 @@ export default function FloorCalls() {
 
   useEffect(() => {
     fetchCalls();
-    const poll = setInterval(fetchCalls, 3000);
+    const poll = setInterval(fetchCalls, 15000); // 15s fallback — realtime handles instant updates
     const clock = setInterval(() => setNow(new Date()), 1000);
     return () => { clearInterval(poll); clearInterval(clock); };
   }, []);
+
+  // Realtime: instant floor call updates
+  const [venueId] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
+  });
+  useRealtimeUpdates(venueId, () => fetchCalls(), !!venueId);
 
   const fetchCalls = async () => {
     try {
