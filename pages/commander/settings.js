@@ -272,6 +272,22 @@ export default function CommanderSettingsPage() {
 
           {/* Navigation Links */}
           <section className="cmd-panel divide-y divide-[#3A3B3C]">
+            <button onClick={() => router.push('/commander/game-types')}
+              className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
+              <div>
+                <span className="font-medium text-white">Game Types</span>
+                <p className="text-xs text-[#B0B3B8]">Configure games, stakes, buy-ins, rake</p>
+              </div>
+              <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
+            </button>
+            <button onClick={() => router.push('/commander/room-presets')}
+              className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
+              <div>
+                <span className="font-medium text-white">Room Presets</span>
+                <p className="text-xs text-[#B0B3B8]">Saved room configurations for quick setup</p>
+              </div>
+              <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
+            </button>
             <button onClick={() => router.push('/commander/tables')}
               className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
               <span className="font-medium text-white">Manage Tables</span>
@@ -310,6 +326,14 @@ export default function CommanderSettingsPage() {
             <button onClick={() => router.push('/commander/time-billing')}
               className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
               <span className="font-medium text-white">Time Billing</span>
+              <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
+            </button>
+            <button onClick={() => router.push('/commander/system-info')}
+              className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
+              <div>
+                <span className="font-medium text-white">System Information</span>
+                <p className="text-xs text-[#B0B3B8]">Version, diagnostics, health checks</p>
+              </div>
               <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
             </button>
           </section>

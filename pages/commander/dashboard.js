@@ -76,6 +76,8 @@ const CARDS = [
       { label: 'Game Start AI', href: '/commander/game-start', icon: '/images/commander/icons/rp-tournament.png' },
       { label: 'Leagues', href: '/commander/leagues', icon: '/images/commander/icons/tn-registration.png' },
       { label: 'Reputation', href: '/commander/reputation', icon: '/images/commander/icons/rp-custom.png' },
+      { label: 'Game Types', href: '/commander/game-types', icon: '/images/commander/icons/rp-configuration.png' },
+      { label: 'Room Presets', href: '/commander/room-presets', icon: '/images/commander/icons/rp-setups.png' },
     ],
   },
   {
@@ -97,6 +99,7 @@ const CARDS = [
       { label: 'Staff Activity', href: '/commander/reports/staff-activity', icon: '/images/commander/icons/rp-activity.png' },
       { label: 'Analytics Daily', href: '/commander/reports/analytics-daily', icon: '/images/commander/icons/rp-tournament.png' },
       { label: 'Tax / W-2G', href: '/commander/reports/tax-compliance', icon: '/images/commander/icons/rp-custom.png' },
+      { label: 'System Info', href: '/commander/system-info', icon: '/images/commander/icons/rp-system.png' },
     ],
   },
 ];
