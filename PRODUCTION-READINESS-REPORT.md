@@ -9,10 +9,10 @@
 ### API Authentication (FIXED)
 | Metric | Before | After |
 |--------|--------|-------|
-| Total API endpoints | 201 | 201 |
-| Protected endpoints | 72 | 156 |
+| Total API endpoints | 201 | 208 |
+| Protected endpoints | 72 | 162 (78%) |
 | Unprotected write endpoints | 72 | 0 |
-| Read-only public endpoints | — | 35 |
+| Read-only public endpoints | — | 36 |
 | Intentionally public (auth/webhooks/devices) | — | 10 |
 
 **Guards Applied:**
@@ -54,6 +54,24 @@
 | `supabase.raw('visit_count + 1')` in checkin.js | Visit counter never incremented | Read-then-update pattern |
 | `supabase.raw('bounties_collected + 1')` in eliminate.js | Bounty tracker never incremented | Read-then-update pattern |
 | `guardManager` on leads.js | Public lead form required manager auth (broken) | Replaced with rate limiting |
+
+### Missing APIs Created (11 endpoints)
+Pages were fetching APIs that didn't exist — all now created with auth guards:
+- `dealers/index.js` + `dealers/[id].js` — Dealer CRUD
+- `admin/api-keys.js` + `admin/api-keys/[id].js` — API key management
+- `admin/audit-logs.js` — Audit log viewer
+- `admin/leads.js` — Lead management
+- `admin/venues.js` + `admin/venues/[id]/settings.js` — Admin venue ops
+- `announcements.js` — Club announcements
+- `home-games/rsvps/[id].js` — RSVP management
+- `leagues/my.js` — Player league standings
+- `squads/[id]/members/[memberId].js` — Squad member removal
+
+### Duplicate Routes Removed
+3 files conflicted (both `foo.js` and `foo/index.js` resolve to same route):
+- `incidents/index.js` (kept `incidents.js`)
+- `settings/index.js` (kept `settings.js`)
+- `waitlist/[id]/index.js` (kept `waitlist/[id].js`)
 
 ---
 
