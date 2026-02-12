@@ -86,7 +86,7 @@ export default function TDTablesMap() {
 
   useEffect(() => {
     fetchFloor();
-    const interval = setInterval(fetchFloor, 5000);
+    const interval = setInterval(fetchFloor, 30000);
     return () => clearInterval(interval);
   }, [fetchFloor]);
 

@@ -52,7 +52,7 @@ export default function BreakManager() {
     finally { setLoading(false); }
   }, [tournamentId]);
 
-  useEffect(() => { checkBreak(); const i = setInterval(checkBreak, 10000); return () => clearInterval(i); }, [checkBreak]);
+  useEffect(() => { checkBreak(); const i = setInterval(checkBreak, 30000); return () => clearInterval(i); }, [checkBreak]);
 
   const executeBreak = async () => {
     if (!breakData?.break_table || assignments.length === 0) return;
