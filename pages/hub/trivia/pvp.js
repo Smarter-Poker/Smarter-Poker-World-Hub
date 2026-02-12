@@ -706,32 +706,54 @@ export default function PvPPage() {
 
                     {/* Searching for opponent */}
                     {gameState === 'searching' && (
-                        <div className="searching">
-                            <MetalFrame padding="32px" showBolts={true}>
-                                <div className="search-content">
-                                    <Users size={48} className="pulse-icon" />
-                                    <h2>Finding Opponent...</h2>
-                                    <p>Stake: {stakeAmount} 💎</p>
-
+                        <div className="result-panel-overlay">
+                            <div className="result-panel-container">
+                                <img
+                                    src="/trivia/panels/panel-finding.jpg"
+                                    alt=""
+                                    className="result-panel-bg"
+                                />
+                                <div className="result-panel-content">
                                     {opponent ? (
-                                        <div className="opponent-found">
-                                            <Zap size={24} color="#22c55e" />
-                                            <span>Opponent Found!</span>
-                                            <strong>{opponent.username}</strong>
-                                            <span className="opp-stats">{opponent.wins}W - {opponent.losses}L</span>
-                                        </div>
+                                        <>
+                                            <h1 className="panel-title win">{'Opponent\nFound!'}</h1>
+                                            <div className="panel-stats">
+                                                <div className="panel-stat-row">
+                                                    <span className="panel-stat-label">PLAYER</span>
+                                                    <span className="panel-stat-value cyan">{opponent.username}</span>
+                                                </div>
+                                                <div className="panel-stat-row">
+                                                    <span className="panel-stat-label">RECORD</span>
+                                                    <span className="panel-stat-value white">{opponent.wins}W - {opponent.losses}L</span>
+                                                </div>
+                                                <div className="panel-stat-divider" />
+                                                <div className="panel-stat-row">
+                                                    <span className="panel-stat-label">STAKE</span>
+                                                    <span className="panel-stat-value gold">{stakeAmount} 💎</span>
+                                                </div>
+                                            </div>
+                                        </>
                                     ) : (
-                                        <div className="search-spinner">
-                                            <div className="spinner" />
-                                            <span>Looking for players at {stakeAmount}💎 stake...</span>
-                                        </div>
+                                        <>
+                                            <h1 className="panel-title win finding-text">
+                                                Finding Opponent<span className="ellipsis-pulse">...</span>
+                                            </h1>
+                                            <div className="panel-stats">
+                                                <div className="panel-stat-row">
+                                                    <span className="panel-stat-label">STAKE</span>
+                                                    <span className="panel-stat-value gold">{stakeAmount} 💎</span>
+                                                </div>
+                                            </div>
+                                        </>
                                     )}
 
-                                    <HexButton onClick={handleCancelSearch} variant="secondary" size="md">
-                                        Cancel
-                                    </HexButton>
+                                    <div className="panel-buttons">
+                                        <button className="panel-cancel" onClick={handleCancelSearch}>
+                                            Cancel
+                                        </button>
+                                    </div>
                                 </div>
-                            </MetalFrame>
+                            </div>
                         </div>
                     )}
 
@@ -1010,69 +1032,40 @@ export default function PvPPage() {
                     margin-bottom: 8px;
                 }
 
-                /* Searching */
-                .search-content {
-                    text-align: center;
+                /* Searching — Finding Opponent Panel */
+                .finding-text {
+                    font-size: clamp(1.6rem, 4.5vw, 3rem);
                 }
 
-                .search-content h2 {
-                    color: #fff;
-                    margin: 16px 0 8px;
+                .ellipsis-pulse {
+                    animation: ellipsisPulse 1.5s infinite;
                 }
 
-                .search-content p {
-                    color: rgba(255, 255, 255, 0.6);
-                    margin: 0 0 24px;
+                @keyframes ellipsisPulse {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.2; }
                 }
 
-                .pulse-icon {
-                    color: #00d4ff;
-                    animation: pulse 1.5s infinite;
+                .panel-cancel {
+                    font-family: 'Orbitron', sans-serif;
+                    font-weight: 700;
+                    font-size: clamp(0.75rem, 1.8vw, 1rem);
+                    letter-spacing: 0.06em;
+                    text-transform: uppercase;
+                    color: #c8a96e;
+                    background: linear-gradient(to bottom, #3a3530, #2a2520);
+                    border: 1px solid rgba(200, 169, 110, 0.4);
+                    border-radius: 6px;
+                    padding: 10px 36px;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    text-shadow: 0 0 8px rgba(200, 169, 110, 0.3);
                 }
 
-                @keyframes pulse {
-                    0%, 100% { opacity: 1; transform: scale(1); }
-                    50% { opacity: 0.5; transform: scale(1.1); }
-                }
-
-                .search-spinner, .waiting-spinner {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    gap: 12px;
-                    margin: 24px 0;
-                }
-
-                .spinner {
-                    width: 40px;
-                    height: 40px;
-                    border: 3px solid rgba(255, 255, 255, 0.1);
-                    border-top-color: #00d4ff;
-                    border-radius: 50%;
-                    animation: spin 1s linear infinite;
-                }
-
-                @keyframes spin { to { transform: rotate(360deg); } }
-
-                .opponent-found {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    gap: 8px;
-                    padding: 24px;
-                    background: rgba(34, 197, 94, 0.1);
-                    border-radius: 12px;
-                    margin: 24px 0;
-                }
-
-                .opponent-found strong {
-                    font-size: 20px;
-                    color: #fff;
-                }
-
-                .opp-stats {
-                    font-size: 14px;
-                    color: rgba(255, 255, 255, 0.5);
+                .panel-cancel:hover {
+                    background: linear-gradient(to bottom, #4a4540, #3a3530);
+                    box-shadow: 0 0 15px rgba(200, 169, 110, 0.2);
+                    transform: translateY(-1px);
                 }
 
                 /* Battle */
