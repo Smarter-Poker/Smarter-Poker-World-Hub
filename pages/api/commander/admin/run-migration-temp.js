@@ -27,6 +27,18 @@ export default async function handler(req, res) {
 
   // Try multiple connection methods
   const connectionConfigs = [
+    // Method 0: DATABASE_URL (most common on Vercel)
+    process.env.DATABASE_URL ? {
+      name: 'DATABASE_URL',
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false }
+    } : null,
+    // Method 0b: POSTGRES_URL (Vercel Postgres)
+    process.env.POSTGRES_URL ? {
+      name: 'POSTGRES_URL',
+      connectionString: process.env.POSTGRES_URL,
+      ssl: { rejectUnauthorized: false }
+    } : null,
     // Method 1: Direct connection with DB password
     process.env.SUPABASE_DB_PASSWORD ? {
       name: 'direct+db_password',
@@ -35,30 +47,30 @@ export default async function handler(req, res) {
       password: process.env.SUPABASE_DB_PASSWORD,
       ssl: { rejectUnauthorized: false }
     } : null,
-    // Method 2: Supavisor pooler (transaction mode)
+    // Method 2: Pooler port 6543 (transaction mode)
+    process.env.SUPABASE_DB_PASSWORD ? {
+      name: 'pooler_6543+db_password',
+      host: `aws-0-us-east-1.pooler.supabase.com`,
+      port: 6543, database: 'postgres',
+      user: `postgres.${supabaseRef}`,
+      password: process.env.SUPABASE_DB_PASSWORD,
+      ssl: { rejectUnauthorized: false }
+    } : null,
+    // Method 3: Supavisor pooler with service key
     {
       name: 'pooler+service_key',
       host: `aws-0-us-east-1.pooler.supabase.com`,
-      port: 5432, database: 'postgres',
+      port: 6543, database: 'postgres',
       user: `postgres.${supabaseRef}`,
       password: process.env.SUPABASE_SERVICE_ROLE_KEY,
       ssl: { rejectUnauthorized: false }
     },
-    // Method 3: Direct connection with service role key
+    // Method 4: Direct with service role key
     {
       name: 'direct+service_key',
       host: `db.${supabaseRef}.supabase.co`,
       port: 5432, database: 'postgres', user: 'postgres',
       password: process.env.SUPABASE_SERVICE_ROLE_KEY,
-      ssl: { rejectUnauthorized: false }
-    },
-    // Method 4: Pooler session mode (port 5432)
-    {
-      name: 'pooler_session+service_key',
-      host: `aws-0-us-east-1.pooler.supabase.com`,
-      port: 5432, database: 'postgres',
-      user: `postgres.${supabaseRef}`,
-      password: process.env.SUPABASE_DB_PASSWORD || process.env.SUPABASE_SERVICE_ROLE_KEY,
       ssl: { rejectUnauthorized: false }
     },
   ].filter(Boolean);
@@ -86,7 +98,10 @@ export default async function handler(req, res) {
       success: false,
       error: 'Could not connect to database with any method',
       connectionErrors,
-      hint: 'Set SUPABASE_DB_PASSWORD env var in Vercel with your Supabase database password'
+      availableEnvVars: Object.keys(process.env).filter(k => 
+        k.includes('SUPABASE') || k.includes('DATABASE') || k.includes('POSTGRES') || k.includes('PG')
+      ),
+      hint: 'Set DATABASE_URL or SUPABASE_DB_PASSWORD in Vercel env vars. Find your DB password in Supabase Dashboard > Settings > Database > Connection String'
     });
   }
 
