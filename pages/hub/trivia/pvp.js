@@ -156,34 +156,39 @@ export default function PvPPage() {
             .eq('id', userId);
         setUserDiamonds(prev => prev - stake);
 
-        // Join the matchmaking queue
-        const { data: queueEntry } = await joinMatchmakingQueue(userId, stake);
+        // Always set 5-second horse fallback as safety net
+        // This fires regardless of whether the queue join or real match succeeds
+        searchTimeout.current = setTimeout(() => {
+            handleHorseMatch(stake);
+        }, 5000);
 
-        if (!queueEntry) {
-            setGameState('lobby');
-            return;
-        }
+        // Try to join the matchmaking queue (best-effort for real matches)
+        try {
+            const { data: queueEntry } = await joinMatchmakingQueue(userId, stake);
 
-        // Subscribe to queue changes to detect new opponents
-        queueSubscription.current = subscribeToQueue(stake, async (newPlayer) => {
-            if (newPlayer.user_id !== userId) {
-                // New player joined! Try to match
+            if (queueEntry) {
+                // Subscribe to queue changes to detect new opponents
+                queueSubscription.current = subscribeToQueue(stake, async (newPlayer) => {
+                    if (newPlayer.user_id !== userId) {
+                        const matchData = await findMatch(userId, stake);
+                        if (matchData) {
+                            // Cancel horse fallback — real match found
+                            if (searchTimeout.current) clearTimeout(searchTimeout.current);
+                            handleMatchFound(matchData);
+                        }
+                    }
+                });
+
+                // Also immediately try to find an existing opponent
                 const matchData = await findMatch(userId, stake);
                 if (matchData) {
+                    // Cancel horse fallback — real match found
+                    if (searchTimeout.current) clearTimeout(searchTimeout.current);
                     handleMatchFound(matchData);
                 }
             }
-        });
-
-        // Also immediately try to find an existing opponent
-        const matchData = await findMatch(userId, stake);
-        if (matchData) {
-            handleMatchFound(matchData);
-        } else {
-            // Fallback to horse opponent after 5 seconds if no real match found
-            searchTimeout.current = setTimeout(() => {
-                handleHorseMatch(stake);
-            }, 5000);
+        } catch (err) {
+            console.warn('[PvP] Queue join failed, horse fallback will handle it:', err);
         }
     }
 
