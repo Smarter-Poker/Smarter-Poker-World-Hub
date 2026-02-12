@@ -305,12 +305,12 @@ export default function PvPPage() {
             .limit(100);
 
         let matchQuestions = [];
-        if (questions && questions.length >= 5) {
+        if (questions && questions.length >= 20) {
             let available = excludeIds.length > 0
                 ? questions.filter(q => !excludeIds.includes(q.id))
                 : questions;
-            if (available.length < 5) available = questions;
-            matchQuestions = available.sort(() => Math.random() - 0.5).slice(0, 5);
+            if (available.length < 20) available = questions;
+            matchQuestions = available.sort(() => Math.random() - 0.5).slice(0, 20);
         }
 
         // Pre-calculate horse answers based on stake-dependent accuracy

@@ -113,15 +113,15 @@ export async function findMatch(userId, stakeAmount) {
             .neq('winner_id', opponent.user_id)
             .not('winner_id', 'is', null);
 
-        // Load questions for the match
+        // Load 20 random questions for the match (all categories)
         const { data: questions } = await supabase
             .from('trivia_questions')
             .select('*')
-            .limit(20);
+            .limit(100);
 
         const matchQuestions = questions
             .sort(() => Math.random() - 0.5)
-            .slice(0, 5);
+            .slice(0, 20);
 
         // Create the match
         const { data: match, error: matchError } = await supabase

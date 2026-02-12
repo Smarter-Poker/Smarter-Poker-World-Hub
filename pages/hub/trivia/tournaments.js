@@ -278,8 +278,8 @@ export default function TournamentsPage() {
             return;
         }
 
-        // Use 10 questions per round
-        setQuestions(activeTournament.questions.slice(0, 10));
+        // Use 20 questions per round (random from all categories)
+        setQuestions(activeTournament.questions.slice(0, 20));
         setCurrentQuestionIndex(0);
         setScore(0);
         setSelectedAnswer(null);

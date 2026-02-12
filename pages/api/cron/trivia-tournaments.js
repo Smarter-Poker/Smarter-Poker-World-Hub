@@ -84,7 +84,7 @@ export default async function handler(req, res) {
 
             const tournamentQuestions = questions
                 ?.sort(() => Math.random() - 0.5)
-                .slice(0, 10) || []; // 10 questions per round
+                .slice(0, 20) || []; // 20 questions per round (all categories)
 
             const { data: newTournament, error } = await supabase
                 .from('trivia_tournaments')
