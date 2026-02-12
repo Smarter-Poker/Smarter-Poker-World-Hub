@@ -1,7 +1,10 @@
 /**
  * Commander Verify PIN API - POST /api/commander/staff/verify-pin
  * Verify staff PIN for terminal login
- * Reference: API_REFERENCE.md - Staff Management section
+ * 
+ * SECURITY:
+ * - Rate limited: 5 attempts per minute per IP
+ * - Lockout after 10 consecutive failures (5 min cooldown)
  */
 import { createClient } from '@supabase/supabase-js';
 import { DEFAULT_PERMISSIONS } from '../../../../src/lib/commander/auth';
@@ -11,72 +14,81 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
+// In-memory rate limit store (resets on deploy — acceptable for PIN auth)
+const attempts = new Map();
+const MAX_PER_MINUTE = 5;
+const LOCKOUT_AFTER = 10;
+const LOCKOUT_MS = 5 * 60 * 1000;
+
+function getKey(req, venueId) {
+  const fwd = req.headers['x-forwarded-for'];
+  const ip = fwd ? fwd.split(',')[0].trim() : req.socket?.remoteAddress || '0';
+  return `${ip}:${venueId}`;
+}
+
+function checkRate(key) {
+  const now = Date.now();
+  let e = attempts.get(key);
+  if (!e) { e = { count: 0, start: now, fails: 0, lockUntil: 0 }; attempts.set(key, e); }
+  if (e.lockUntil > now) return { ok: false, retry: Math.ceil((e.lockUntil - now) / 1000), reason: 'LOCKED_OUT' };
+  if (now - e.start > 60000) { e.count = 0; e.start = now; }
+  if (e.count >= MAX_PER_MINUTE) return { ok: false, retry: Math.ceil((e.start + 60000 - now) / 1000), reason: 'RATE_LIMITED' };
+  e.count++;
+  return { ok: true };
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res.status(405).json({
-      success: false,
-      error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' }
-    });
+    return res.status(405).json({ success: false, error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' } });
   }
 
   try {
     const { venue_id, pin_code } = req.body;
-
-    // Validation
     if (!venue_id || !pin_code) {
-      return res.status(400).json({
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'venue_id and pin_code are required' } });
+    }
+
+    const key = getKey(req, venue_id);
+    const rl = checkRate(key);
+    if (!rl.ok) {
+      res.setHeader('Retry-After', rl.retry);
+      return res.status(429).json({
         success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'venue_id and pin_code are required'
-        }
+        error: { code: rl.reason, message: `Too many attempts. Try again in ${rl.retry}s.` }
       });
     }
 
-    // Find staff member with this PIN at this venue
     const { data: staff, error } = await supabase
       .from('commander_staff')
-      .select('*')
+      .select('id, venue_id, role, is_active, display_name, profiles ( id, display_name, avatar_url )')
       .eq('venue_id', venue_id)
       .eq('pin_code', pin_code)
       .eq('is_active', true)
       .single();
 
     if (error || !staff) {
-      return res.status(200).json({
-        success: true,
-        data: {
-          valid: false,
-          staff: null,
-          permissions: null
-        }
-      });
+      const e = attempts.get(key);
+      if (e) { e.fails++; if (e.fails >= LOCKOUT_AFTER) { e.lockUntil = Date.now() + LOCKOUT_MS; e.fails = 0; } }
+      return res.status(200).json({ success: true, data: { valid: false, staff: null, permissions: null } });
     }
 
-    // Merge custom permissions with default permissions for role
-    const permissions = {
-      ...DEFAULT_PERMISSIONS[staff.role],
-      ...(staff.permissions || {})
-    };
+    // Success — reset failures
+    const e = attempts.get(key);
+    if (e) e.fails = 0;
+
+    const permissions = { ...DEFAULT_PERMISSIONS[staff.role], ...(staff.permissions || {}) };
+    const name = staff.profiles?.display_name || staff.display_name || staff.role.charAt(0).toUpperCase() + staff.role.slice(1);
 
     return res.status(200).json({
       success: true,
       data: {
         valid: true,
-        staff: {
-          id: staff.id,
-          role: staff.role,
-          user_id: staff.user_id,
-          display_name: staff.role.charAt(0).toUpperCase() + staff.role.slice(1)
-        },
+        staff: { id: staff.id, role: staff.role, user_id: staff.profiles?.id || null, display_name: name, avatar_url: staff.profiles?.avatar_url || null },
         permissions
       }
     });
   } catch (error) {
     console.error('Commander verify PIN error:', error);
-    return res.status(500).json({
-      success: false,
-      error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }
-    });
+    return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
   }
 }

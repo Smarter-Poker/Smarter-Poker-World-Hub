@@ -5,6 +5,7 @@
  */
 import { createClient } from '@supabase/supabase-js';
 import { guardUser } from '../../../../src/lib/commander/auth';
+import { checkMemoryRateLimit } from '../../../../src/lib/commander/rateLimit';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -13,6 +14,12 @@ const supabase = createClient(
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') { const _u = await guardUser(req, res); if (!_u) return; }
+
+  // Rate limit: 3 onboarding requests per minute per IP
+  const fwd = req.headers['x-forwarded-for'];
+  const ip = fwd ? fwd.split(',')[0].trim() : req.socket?.remoteAddress || '0';
+  const rl = checkMemoryRateLimit(`onboard:${ip}`, 3, 60000);
+  if (!rl.allowed) { return res.status(429).json({ success: false, error: { code: 'RATE_LIMITED', message: 'Too many requests' } }); }
 
   if (req.method !== 'POST') {
     return res.status(405).json({

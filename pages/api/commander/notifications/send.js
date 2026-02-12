@@ -8,6 +8,7 @@ import { normalizePhoneNumber, isSmsConfigured } from '../../../../src/lib/comma
 import { sendSMS as twilioSendSMS, isTwilioConfigured } from '../../../../src/lib/commander/twilio';
 import { isOneSignalConfigured, sendPushNotification as pushNotifySend } from '../../../../src/lib/commander/pushNotifications';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
+import { checkMemoryRateLimit } from '../../../../src/lib/commander/rateLimit';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -19,6 +20,12 @@ const VALID_CHANNELS = ['sms', 'push', 'email', 'in_app'];
 
 export default async function handler(req, res) {
   const _g = await guardWriteStaff(req, res); if (!_g) return;
+
+  // Rate limit: 20 notifications per minute per IP
+  const fwd = req.headers["x-forwarded-for"];
+  const ip = fwd ? fwd.split(",")[0].trim() : req.socket?.remoteAddress || "0";
+  const rl = checkMemoryRateLimit(`notif:${ip}`, 20, 60000);
+  if (!rl.allowed) { return res.status(429).json({ success: false, error: { code: "RATE_LIMITED", message: `Rate limited. Retry in ${rl.retryAfter}s.` } }); }
 
   if (req.method !== 'POST') {
     return res.status(405).json({

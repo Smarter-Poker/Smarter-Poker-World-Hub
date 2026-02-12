@@ -8,6 +8,7 @@
  * Body: { member_id, minutes, amount, payment_method }
  */
 import { createClient } from '@supabase/supabase-js';
+import { checkMemoryRateLimit } from '../../../../src/lib/commander/rateLimit';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -18,6 +19,12 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+
+  // Rate limit: 10 purchases per minute per IP (kiosk device)
+  const fwd = req.headers['x-forwarded-for'];
+  const ip = fwd ? fwd.split(',')[0].trim() : req.socket?.remoteAddress || '0';
+  const rl = checkMemoryRateLimit(`kiosk:${ip}`, 10, 60000);
+  if (!rl.allowed) { return res.status(429).json({ error: 'Too many requests' }); }
 
   const { member_id, minutes, amount, payment_method } = req.body;
 

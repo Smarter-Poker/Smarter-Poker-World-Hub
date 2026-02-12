@@ -1,6 +1,7 @@
 // pages/api/commander/create-subscription.js
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
+import { checkMemoryRateLimit } from '../../../src/lib/commander/rateLimit';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -98,6 +99,12 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+
+  // Rate limit: 3 subscription attempts per minute per IP
+  const fwd = req.headers['x-forwarded-for'];
+  const ip = fwd ? fwd.split(',')[0].trim() : req.socket?.remoteAddress || '0';
+  const rl = checkMemoryRateLimit(`sub:${ip}`, 3, 60000);
+  if (!rl.allowed) { return res.status(429).json({ error: 'Too many requests. Please try again shortly.' }); }
 
   const { paymentMethodId, selectedTier, clubInfo, ownerInfo, existingAccount, skipPayment } = req.body;
   const tier = selectedTier || req.body.tier;

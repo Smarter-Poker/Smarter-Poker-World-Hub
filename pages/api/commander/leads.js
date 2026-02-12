@@ -3,7 +3,7 @@
  * POST /api/commander/leads - Capture lead from landing page
  */
 import { createClient } from '@supabase/supabase-js';
-import { guardManager } from '../../../src/lib/commander/auth';
+import { checkMemoryRateLimit } from '../../../src/lib/commander/rateLimit';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -11,9 +11,11 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  // Auth guard: require manager auth
-  const _staff = await guardManager(req, res);
-  if (!_staff) return;
+  // Rate limit: 5 leads per minute per IP (public endpoint)
+  const fwd = req.headers['x-forwarded-for'];
+  const ip = fwd ? fwd.split(',')[0].trim() : req.socket?.remoteAddress || '0';
+  const rl = checkMemoryRateLimit(`leads:${ip}`, 5, 60000);
+  if (!rl.allowed) { return res.status(429).json({ error: 'Too many requests' }); }
 
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST']);
