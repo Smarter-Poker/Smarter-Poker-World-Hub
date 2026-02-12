@@ -14,7 +14,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import {
   ArrowLeft, Gift, DollarSign, Users, Clock, Search,
-  Plus, Loader2, RefreshCw, Check, Star, TrendingUp
+  Plus, Loader2, RefreshCw, Check, Star, TrendingUp, Lock, X, Shield
 } from 'lucide-react';
 
 export default function CompSystem() {
@@ -34,8 +34,17 @@ export default function CompSystem() {
   const [awarding, setAwarding] = useState(false);
   const [awarded, setAwarded] = useState(false);
 
+  // PIN authorization state
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pinCode, setPinCode] = useState('');
+  const [pinError, setPinError] = useState('');
+  const [verifying, setVerifying] = useState(false);
+
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
+  const getVenueId = () => {
+    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
+  };
 
   useEffect(() => { fetchData(); }, [tab]);
 
@@ -72,10 +81,42 @@ export default function CompSystem() {
     finally { setSearching(false); }
   };
 
-  const awardComp = async () => {
+  // Step 1: User clicks "Award" → show PIN modal
+  const requestComp = () => {
     if (!selectedMember || !compAmount) return;
-    setAwarding(true);
+    setPinCode('');
+    setPinError('');
+    setShowPinModal(true);
+  };
+
+  // Step 2: Verify PIN, then award
+  const verifyPinAndAward = async () => {
+    if (!pinCode || pinCode.length < 4) {
+      setPinError('Enter your 4+ digit staff PIN');
+      return;
+    }
+    setVerifying(true);
+    setPinError('');
     try {
+      const venueId = getVenueId();
+      // Verify PIN
+      const pinRes = await fetch('/api/commander/staff/verify-pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ venue_id: venueId, pin_code: pinCode })
+      });
+      const pinData = await pinRes.json();
+      if (!pinRes.ok || !pinData.success) {
+        setPinError(pinData.error?.message || 'Invalid PIN');
+        setVerifying(false);
+        return;
+      }
+
+      const authorizer = pinData.data?.staff;
+
+      // PIN valid → award comp
+      setShowPinModal(false);
+      setAwarding(true);
       const token = getToken();
       const res = await fetch('/api/commander/comps/balances', {
         method: 'POST',
@@ -84,7 +125,9 @@ export default function CompSystem() {
           member_id: selectedMember.id,
           amount: parseFloat(compAmount),
           reason: compReason || 'Manual comp award',
-          type: 'award'
+          type: 'award',
+          authorized_by: authorizer?.display_name || authorizer?.id || 'Staff',
+          authorized_pin: true
         })
       });
       const json = await res.json();
@@ -117,6 +160,51 @@ export default function CompSystem() {
     <>
       <Head><title>Comp System | Club Commander</title></Head>
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
+
+        {/* PIN Authorization Modal */}
+        {showPinModal && (
+          <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center px-4">
+            <div className="bg-[#242526] rounded-2xl w-full max-w-sm border border-[#3A3B3C] shadow-2xl">
+              <div className="p-5 text-center border-b border-[#3A3B3C]">
+                <div className="w-14 h-14 rounded-full bg-[#F59E0B]/10 flex items-center justify-center mx-auto mb-3">
+                  <Shield className="w-7 h-7 text-[#F59E0B]" />
+                </div>
+                <h3 className="text-lg font-bold text-white">Staff Authorization</h3>
+                <p className="text-sm text-[#B0B3B8] mt-1">
+                  Enter your staff PIN to award <span className="text-[#31A24C] font-bold">${compAmount}</span> comp
+                  to <span className="text-white font-medium">{selectedMember?.first_name} {selectedMember?.last_name}</span>
+                </p>
+              </div>
+              <div className="p-5 space-y-4">
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={8}
+                  value={pinCode}
+                  onChange={e => { setPinCode(e.target.value.replace(/\D/g, '')); setPinError(''); }}
+                  onKeyDown={e => e.key === 'Enter' && verifyPinAndAward()}
+                  placeholder="Enter 4+ digit PIN"
+                  autoFocus
+                  className="w-full px-4 py-4 bg-[#18191A] border border-[#4A4B4C] rounded-xl text-white text-center text-2xl tracking-[0.5em] placeholder:text-[#6A6B6D] placeholder:tracking-normal placeholder:text-base focus:outline-none focus:border-[#1877F2]"
+                />
+                {pinError && (
+                  <p className="text-sm text-[#EF4444] text-center">{pinError}</p>
+                )}
+                <div className="flex gap-3">
+                  <button onClick={() => { setShowPinModal(false); setPinCode(''); setPinError(''); }}
+                    className="flex-1 py-3 rounded-xl bg-[#3A3B3C] text-white font-medium active:bg-[#4A4B4C]">
+                    Cancel
+                  </button>
+                  <button onClick={verifyPinAndAward} disabled={verifying || pinCode.length < 4}
+                    className="flex-1 py-3 rounded-xl bg-[#31A24C] text-white font-medium flex items-center justify-center gap-2 disabled:opacity-50 active:bg-[#28883F]">
+                    {verifying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                    {verifying ? 'Verifying...' : 'Authorize'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Header */}
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center justify-between">
@@ -244,7 +332,7 @@ export default function CompSystem() {
                   </div>
 
                   {/* Award button */}
-                  <button onClick={awardComp} disabled={awarding || !compAmount}
+                  <button onClick={requestComp} disabled={awarding || !compAmount}
                     className="w-full py-4 rounded-xl bg-[#31A24C] text-white text-lg font-semibold flex items-center justify-center gap-2 active:bg-[#28883F] disabled:opacity-50">
                     {awarding ? <Loader2 className="w-5 h-5 animate-spin" /> : <Gift className="w-5 h-5" />}
                     Award ${compAmount || '0'} Comp
