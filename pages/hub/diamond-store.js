@@ -167,22 +167,6 @@ const EASTER_EGGS = {
 // ═══════════════════════════════════════════════════════════════════════════
 const DIAMOND_PACKAGES = [
     {
-        id: 'micro',
-        name: 'Micro',
-        diamonds: 100,
-        price: 1.00,
-        popular: false,
-        bonus: 0,
-    },
-    {
-        id: 'small',
-        name: 'Small',
-        diamonds: 500,
-        price: 5.00,
-        popular: false,
-        bonus: 0,
-    },
-    {
         id: 'medium',
         name: 'Medium',
         diamonds: 1000,
@@ -1133,14 +1117,7 @@ export default function DiamondStorePage() {
                         {/* ═══════════════════════════════════════════════════════════════════ */}
                         {activeTab === 'diamonds' && (
                             <>
-                                {/* Intro */}
-                                <div style={styles.intro}>
-                                    <p style={styles.introText}>
-                                        Use Diamonds For Cash Games & Tournaments, Premium Training, Access To Special Features & Upgrades For Smarter.Poker And More! <span style={{ color: '#00ff88' }}>5% Bonus On $100+ Purchases!</span>
-                                    </p>
-                                </div>
-
-                                {/* Package Grid — Image-based layout */}
+                                {/* Full Diamond Store Layout — CART PAGE V2 */}
                                 <div style={{
                                     position: 'relative',
                                     width: '100%',
@@ -1148,20 +1125,26 @@ export default function DiamondStorePage() {
                                     margin: '0 auto 40px auto',
                                 }}>
                                     <img
-                                        src="/images/diamond-packages-grid.jpg"
-                                        alt="Diamond Packages"
+                                        src="/images/diamond-store-full.jpg"
+                                        alt="Diamond Store Packages"
                                         style={{ width: '100%', height: 'auto', display: 'block', borderRadius: 12 }}
                                         draggable={false}
                                     />
-                                    {/* Transparent clickable zones over each card */}
-                                    {DIAMOND_PACKAGES.map((pkg, index) => {
-                                        const col = index % 2;
-                                        const row = Math.floor(index / 2);
-                                        // Card zones are mapped to the image grid positions
+                                    {/* 6 clickable zones over the card areas */}
+                                    {[
+                                        { pkgIndex: 0, col: 0, row: 0 }, // 1,000 — Medium
+                                        { pkgIndex: 1, col: 1, row: 0 }, // 2,500 — Standard
+                                        { pkgIndex: 2, col: 0, row: 1 }, // 5,000 — Large
+                                        { pkgIndex: 3, col: 1, row: 1 }, // 10,500 — Value
+                                        { pkgIndex: 4, col: 0, row: 2 }, // 26,250 — Premium
+                                        { pkgIndex: 5, col: 1, row: 2 }, // 52,500 — Whale
+                                    ].map(({ pkgIndex, col, row }) => {
+                                        const pkg = DIAMOND_PACKAGES[pkgIndex];
+                                        if (!pkg) return null;
                                         const zoneLeft = col === 0 ? '2.5%' : '51.5%';
                                         const zoneWidth = '46%';
-                                        const zoneTop = `${3 + row * 24.5}%`;
-                                        const zoneHeight = '22%';
+                                        const zoneTop = `${19 + row * 27}%`;
+                                        const zoneHeight = '25%';
                                         return (
                                             <div
                                                 key={pkg.id}
@@ -1176,13 +1159,6 @@ export default function DiamondStorePage() {
                                                     cursor: 'pointer',
                                                     background: 'transparent',
                                                     borderRadius: 8,
-                                                    transition: 'background 0.15s ease',
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                    e.currentTarget.style.background = 'rgba(0, 212, 255, 0.12)';
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    e.currentTarget.style.background = 'transparent';
                                                 }}
                                             />
                                         );
