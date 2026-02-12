@@ -438,12 +438,13 @@ export default function PvPPage() {
         const won = playerFinalScore > horseScore;
         const tied = playerFinalScore === horseScore;
 
-        // Calculate winnings
-        const rakeAmount = Math.floor(stakeAmount * 0.1);
+        // Calculate winnings — 10% rake on total pot
+        const totalPot = stakeAmount * 2;
+        const rakeAmount = Math.floor(totalPot * 0.1);
         let winnings = 0;
 
         if (won) {
-            winnings = (stakeAmount * 2) - rakeAmount;
+            winnings = totalPot - rakeAmount;
             // Award winnings to player
             const { data: profile } = await supabase
                 .from('profiles')
@@ -541,9 +542,10 @@ export default function PvPPage() {
             if (profile) setUserDiamonds(profile.diamonds);
         }
 
-        // Calculate winnings
-        const rakeAmount = Math.floor(stakeAmount * 0.1);
-        const winnings = won ? (stakeAmount * 2) - rakeAmount : 0;
+        // Calculate winnings — 10% rake on total pot
+        const totalPot = stakeAmount * 2;
+        const rakeAmount = Math.floor(totalPot * 0.1);
+        const winnings = won ? totalPot - rakeAmount : 0;
 
         setResult({
             won,
