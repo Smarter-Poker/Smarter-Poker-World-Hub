@@ -855,8 +855,17 @@ export default function PvPPage() {
                                     alt=""
                                     className="result-panel-bg"
                                 />
-                                {/* Scores in the top header box */}
+                                {/* Win/Loss record in the top header bar */}
                                 <div className="result-score-zone">
+                                    <div className="panel-stats">
+                                        <div className="panel-stat-row">
+                                            <span className="panel-stat-label">RECORD</span>
+                                            <span className="panel-stat-value white">{stats.wins}W - {stats.losses}L</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                {/* Game stats inside the main box, below the baked-in title */}
+                                <div className="result-stats-zone">
                                     <div className="panel-stats">
                                         <div className="panel-stat-row">
                                             <span className="panel-stat-label">YOUR SCORE</span>
@@ -865,15 +874,6 @@ export default function PvPPage() {
                                         <div className="panel-stat-row">
                                             <span className="panel-stat-label">{result.opponent?.username || 'OPPONENT'}</span>
                                             <span className="panel-stat-value red">{result.opponentScore}/{questions.length}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                {/* Stats positioned below the baked-in title */}
-                                <div className="result-stats-zone">
-                                    <div className="panel-stats">
-                                        <div className="panel-stat-row">
-                                            <span className="panel-stat-label">RECORD</span>
-                                            <span className="panel-stat-value white">{stats.wins}W - {stats.losses}L</span>
                                         </div>
                                         <div className="panel-stat-row">
                                             <span className="panel-stat-label">WIN STREAK</span>
