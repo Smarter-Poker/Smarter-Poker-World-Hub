@@ -123,11 +123,14 @@ export default async function handler(req, res) {
             }
         }
 
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://smarter.poker';
+        console.log('[Checkout] Using base URL:', baseUrl);
+
         let sessionConfig = {
             customer: customerId,
             mode: type === 'subscription' ? 'subscription' : 'payment',
-            success_url: successUrl || `${process.env.NEXT_PUBLIC_BASE_URL}/hub/diamond-store?success=true&session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: cancelUrl || `${process.env.NEXT_PUBLIC_BASE_URL}/hub/diamond-store?canceled=true`,
+            success_url: successUrl || `${baseUrl}/hub/diamond-store?success=true&session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: cancelUrl || `${baseUrl}/hub/diamond-store?canceled=true`,
             metadata: {
                 user_id: user.id,
                 type: type
