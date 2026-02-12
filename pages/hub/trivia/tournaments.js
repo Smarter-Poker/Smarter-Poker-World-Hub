@@ -165,11 +165,12 @@ export default function TournamentsPage() {
             .select()
             .single();
 
-        // Update prize pool
+        // Update prize pool (net of 10% house rake)
+        const netEntryFee = tournament.entry_fee - Math.floor(tournament.entry_fee * 0.1);
         await supabase
             .from('trivia_tournaments')
             .update({
-                prize_pool: (tournament.prize_pool || 0) + tournament.entry_fee
+                prize_pool: (tournament.prize_pool || 0) + netEntryFee
             })
             .eq('id', tournament.id);
 

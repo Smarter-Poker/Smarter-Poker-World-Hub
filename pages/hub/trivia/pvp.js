@@ -336,7 +336,7 @@ export default function PvPPage() {
         alert('Unable to start match. Please try again!');
     }
 
-    function handleCancelSearch() {
+    async function handleCancelSearch() {
         if (queueSubscription.current) {
             supabase.removeChannel(queueSubscription.current);
         }
@@ -346,12 +346,21 @@ export default function PvPPage() {
 
         leaveMatchmakingQueue(userId);
 
-        // Refund stake
-        supabase
+        // Refund stake — fetch fresh balance from DB to avoid stale state
+        const { data: profile } = await supabase
             .from('profiles')
-            .update({ diamonds: userDiamonds + stakeAmount })
-            .eq('id', userId);
-        setUserDiamonds(prev => prev + stakeAmount);
+            .select('diamonds')
+            .eq('id', userId)
+            .single();
+
+        if (profile) {
+            const refundedBalance = (profile.diamonds || 0) + stakeAmount;
+            await supabase
+                .from('profiles')
+                .update({ diamonds: refundedBalance })
+                .eq('id', userId);
+            setUserDiamonds(refundedBalance);
+        }
 
         setGameState('lobby');
         setOpponent(null);

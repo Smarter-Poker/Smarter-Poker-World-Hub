@@ -264,30 +264,26 @@ export async function submitMatchScore(matchId, playerId, score, isPlayer1) {
  */
 export async function processMatchReward(winnerId, loserId, stakeAmount) {
     try {
-        // 10% house rake
-        const rakeAmount = Math.floor(stakeAmount * 0.1);
-        const winnerPayout = stakeAmount - rakeAmount;
+        // 10% house rake on total pot (both stakes combined)
+        const totalPot = stakeAmount * 2;
+        const rakeAmount = Math.floor(totalPot * 0.1);
+        const winnerPayout = totalPot - rakeAmount;
 
-        // Get current balances
+        // Get winner's current balance
         const { data: winner } = await supabase
             .from('profiles')
             .select('diamonds')
             .eq('id', winnerId)
             .single();
 
-        const { data: loser } = await supabase
-            .from('profiles')
-            .select('diamonds')
-            .eq('id', loserId)
-            .single();
-
-        // Update winner (gets their stake back + opponent's stake minus rake)
+        // Award winner the pot minus rake
+        // Both players already had stakes deducted when joining
         await supabase
             .from('profiles')
-            .update({ diamonds: (winner?.diamonds || 0) + stakeAmount + winnerPayout })
+            .update({ diamonds: (winner?.diamonds || 0) + winnerPayout })
             .eq('id', winnerId);
 
-        // Loser already had their stake deducted when joining
+        // Loser already had their stake deducted when joining — nothing to do
 
         return { success: true, winnerPayout, rakeAmount };
     } catch (error) {
