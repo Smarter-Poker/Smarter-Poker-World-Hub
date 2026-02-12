@@ -369,6 +369,11 @@ export default function DealerTablet() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {table?.game?.is_must_move && (
+              <div className="bg-[#F59E0B]/15 border border-[#F59E0B]/30 rounded-lg px-2.5 py-1.5">
+                <span className="text-xs font-bold text-[#F59E0B]">MUST-MOVE</span>
+              </div>
+            )}
             {tournamentMode && (
               <div className="bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-lg px-2.5 py-1.5">
                 <span className="text-xs font-bold text-[#F59E0B]">{tournamentMode.players_remaining} left</span>

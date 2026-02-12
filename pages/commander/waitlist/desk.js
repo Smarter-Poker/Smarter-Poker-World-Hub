@@ -59,16 +59,28 @@ export default function WaitlistDesk() {
     return () => clearInterval(interval);
   }, [fetchData]);
 
+  const [smsStatus, setSmsStatus] = useState(null);
+
   const handleCall = async (waitlistEntry) => {
     setCallLoading(waitlistEntry.id);
+    setSmsStatus(null);
     try {
       const token = getToken();
-      await fetch(`/api/commander/waitlist/call`, {
+      const res = await fetch(`/api/commander/waitlist/call`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ waitlist_id: waitlistEntry.id })
       });
+      const json = await res.json();
+      if (json.data?.sms_sent) {
+        setSmsStatus({ id: waitlistEntry.id, type: 'sent', text: `SMS sent to ${waitlistEntry.player_name}` });
+      } else if (json.data?.sms_status === 'no_phone') {
+        setSmsStatus({ id: waitlistEntry.id, type: 'none', text: 'No phone — verbal page only' });
+      } else {
+        setSmsStatus({ id: waitlistEntry.id, type: 'none', text: 'Called — SMS unavailable' });
+      }
       await fetchData();
+      setTimeout(() => setSmsStatus(null), 3000);
     } catch (err) { console.error(err); }
     finally { setCallLoading(null); }
   };
@@ -129,6 +141,16 @@ export default function WaitlistDesk() {
             <RefreshCw className="w-5 h-5 text-[#B0B3B8]" />
           </button>
         </div>
+
+        {/* SMS notification toast */}
+        {smsStatus && (
+          <div className={`mx-4 mt-2 px-4 py-2.5 rounded-xl flex items-center gap-2 text-sm font-medium transition-all ${
+            smsStatus.type === 'sent' ? 'bg-[#31A24C]/15 text-[#31A24C]' : 'bg-[#F59E0B]/15 text-[#F59E0B]'
+          }`}>
+            {smsStatus.type === 'sent' ? <MessageSquare className="w-4 h-4" /> : <Phone className="w-4 h-4" />}
+            {smsStatus.text}
+          </div>
+        )}
 
         <div className="flex flex-col lg:flex-row">
           {/* LEFT: Table Grid */}

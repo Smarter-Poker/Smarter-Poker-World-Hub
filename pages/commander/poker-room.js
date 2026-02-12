@@ -16,7 +16,7 @@ import {
   ArrowLeft, Power, PowerOff, Trophy, Clock, Users, DollarSign,
   Settings, FileText, Shield, ChevronRight, Loader2, RefreshCw,
   LayoutGrid, UserCheck, Wifi, WifiOff, AlertTriangle, CheckCircle2,
-  Play, Pause, Tablet
+  Play, Pause, Tablet, ArrowRightLeft
 } from 'lucide-react';
 
 const STATUS_COLORS = {
@@ -226,6 +226,7 @@ export default function PokerRoomFunctions() {
           </h3>
           <div className="grid grid-cols-2 gap-2">
             <QuickLink icon={LayoutGrid} label="Tables & Seats" path="/commander/tables" router={router} />
+            <QuickLink icon={ArrowRightLeft} label="Must-Move" path="/commander/must-move" router={router} />
             <QuickLink icon={Users} label="Waitlist" path="/commander/waitlist" router={router} />
             <QuickLink icon={UserCheck} label="Members" path="/commander/members" router={router} />
             <QuickLink icon={Trophy} label="Tournaments" path="/commander/tournaments" router={router} />

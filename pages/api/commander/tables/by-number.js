@@ -59,12 +59,27 @@ export default async function handler(req, res) {
         tournament = t;
       }
 
+      // If cash mode, fetch active game info (must-move status)
+      let game = null;
+      if (table.mode === 'cash') {
+        const { data: g } = await supabase
+          .from('commander_games')
+          .select('id, game_type, stakes, status, is_must_move, parent_game_id')
+          .eq('table_id', table.id)
+          .in('status', ['waiting', 'running'])
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+        game = g || null;
+      }
+
       return res.status(200).json({
         success: true,
         data: {
           ...table,
           seats: seats || [],
-          tournament: tournament || null
+          tournament: tournament || null,
+          game: game || null
         }
       });
     }
