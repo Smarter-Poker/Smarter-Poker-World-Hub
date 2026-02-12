@@ -557,8 +557,8 @@ export default function EndlessModePage() {
                 <GameCostPopup
                     userId={userId}
                     featureKey="trivia_endless"
+                    isVip={isVip}
                     cost={10}
-                    featureName="Endless Mode"
                 />
             )}
 

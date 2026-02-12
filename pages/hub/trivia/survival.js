@@ -193,7 +193,7 @@ export default function SurvivalModePage() {
 
                 {/* Per-game cost popup (one-time) */}
                 {userId && !isVip && (
-                    <GameCostPopup userId={userId} featureKey="trivia_survival" cost={10} featureName="Survival Mode" />
+                    <GameCostPopup userId={userId} featureKey="trivia_survival" isVip={isVip} cost={10} />
                 )}
 
                 {/* Out of diamonds modal */}

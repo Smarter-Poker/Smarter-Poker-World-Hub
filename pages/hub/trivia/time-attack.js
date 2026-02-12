@@ -242,7 +242,7 @@ export default function TimeAttackPage() {
 
                 {/* Per-game cost popup (one-time) */}
                 {userId && !isVip && (
-                    <GameCostPopup userId={userId} featureKey="trivia_timeattack" cost={10} featureName="Time Attack" />
+                    <GameCostPopup userId={userId} featureKey="trivia_timeattack" isVip={isVip} cost={10} />
                 )}
 
                 {/* Out of diamonds modal */}

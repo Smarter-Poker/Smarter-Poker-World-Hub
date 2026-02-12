@@ -383,7 +383,7 @@ export default function MixedModePage() {
 
                 {/* Per-game cost popup (one-time) */}
                 {userId && !isVip && (
-                    <GameCostPopup userId={userId} featureKey="trivia_mixed" cost={10} featureName="Mixed Mode" />
+                    <GameCostPopup userId={userId} featureKey="trivia_mixed" isVip={isVip} cost={10} />
                 )}
 
                 {/* Out of diamonds modal */}

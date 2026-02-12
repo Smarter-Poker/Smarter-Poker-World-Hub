@@ -22,7 +22,9 @@ const M = {
  * @param {number} [props.cost] - Override default GAME_COST
  * @param {Function} [props.onDismiss] - Callback when popup is dismissed
  */
-export default function GameCostPopup({ userId, pageKey, isVip, cost = GAME_COST, onDismiss }) {
+export default function GameCostPopup({ userId, pageKey, featureKey, isVip, cost = GAME_COST, onDismiss }) {
+    // Accept featureKey as alias for pageKey (backward compat)
+    const key = pageKey || featureKey;
     const [show, setShow] = useState(false);
     const [dismissed, setDismissed] = useState(true);
 
@@ -31,7 +33,7 @@ export default function GameCostPopup({ userId, pageKey, isVip, cost = GAME_COST
         if (isVip) return;
 
         async function checkDismissal() {
-            const isDismissed = await checkPopupDismissed(userId, pageKey);
+            const isDismissed = await checkPopupDismissed(userId, key);
             if (!isDismissed) {
                 setDismissed(false);
                 // Small delay for better UX (let page load first)
@@ -39,12 +41,12 @@ export default function GameCostPopup({ userId, pageKey, isVip, cost = GAME_COST
             }
         }
         checkDismissal();
-    }, [userId, pageKey, isVip]);
+    }, [userId, key, isVip]);
 
     const handleDismiss = async () => {
         setShow(false);
         setDismissed(true);
-        await dismissPopup(userId, pageKey);
+        await dismissPopup(userId, key);
         onDismiss?.();
     };
 

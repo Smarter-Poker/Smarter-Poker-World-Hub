@@ -665,7 +665,7 @@ export default function SurvivalGamePage() {
 
             {/* Per-game cost popup (one-time) */}
             {userId && !isVip && (
-                <GameCostPopup userId={userId} featureKey="trivia_survival_game" cost={10} featureName="Survival Game" />
+                <GameCostPopup userId={userId} featureKey="trivia_survival_game" isVip={isVip} cost={10} />
             )}
 
             {/* Out of diamonds modal */}

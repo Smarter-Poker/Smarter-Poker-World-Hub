@@ -2715,7 +2715,7 @@ export default function MemoryGamesPage() {
 
                 {/* Per-game cost popup (one-time) */}
                 {userId && !isVIP && (
-                    <GameCostPopup userId={userId} featureKey="memory_games" cost={10} featureName="Memory Games" />
+                    <GameCostPopup userId={userId} featureKey="memory_games" isVip={isVIP} cost={10} />
                 )}
 
                 {/* Hamburger Menu */}
