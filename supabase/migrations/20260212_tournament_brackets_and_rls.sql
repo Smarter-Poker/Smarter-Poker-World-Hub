@@ -5,6 +5,8 @@ ALTER TABLE trivia_tournaments ADD COLUMN IF NOT EXISTS tournament_type TEXT DEF
 ALTER TABLE trivia_tournaments ADD COLUMN IF NOT EXISTS current_round INTEGER DEFAULT 0;
 ALTER TABLE trivia_tournaments ADD COLUMN IF NOT EXISTS total_rounds INTEGER;
 ALTER TABLE trivia_tournaments ADD COLUMN IF NOT EXISTS round_deadline TIMESTAMPTZ;
+ALTER TABLE trivia_tournaments ADD COLUMN IF NOT EXISTS winners JSONB DEFAULT NULL;
+ALTER TABLE trivia_tournaments ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ DEFAULT NULL;
 
 -- Tournament rounds table for bracket tracking
 CREATE TABLE IF NOT EXISTS trivia_tournament_rounds (

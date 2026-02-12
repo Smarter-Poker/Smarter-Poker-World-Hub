@@ -89,18 +89,13 @@ export default async function handler(req, res) {
 async function refundPlayer(playerId, amount) {
     if (!playerId) return;
 
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('diamonds')
-        .eq('id', playerId)
-        .single();
-
-    if (profile) {
-        await supabase
-            .from('profiles')
-            .update({ diamonds: (profile.diamonds || 0) + amount })
-            .eq('id', playerId);
-    }
+    await supabase.rpc('add_diamonds_to_balance', {
+        p_user_id: playerId,
+        p_amount: amount,
+        p_type: 'pvp_refund',
+        p_description: `PvP match abandoned — ${amount}💎 refund`,
+        p_reference_id: null
+    });
 }
 
 async function awardForfeitWin(winnerId, loserId, stakeAmount, matchId) {
@@ -109,19 +104,14 @@ async function awardForfeitWin(winnerId, loserId, stakeAmount, matchId) {
     const rakeAmount = Math.floor(totalPot * 0.1);
     const winnerPayout = totalPot - rakeAmount;
 
-    // Award winner
-    const { data: winner } = await supabase
-        .from('profiles')
-        .select('diamonds')
-        .eq('id', winnerId)
-        .single();
-
-    if (winner) {
-        await supabase
-            .from('profiles')
-            .update({ diamonds: (winner.diamonds || 0) + winnerPayout })
-            .eq('id', winnerId);
-    }
+    // Award winner via logging RPC
+    await supabase.rpc('add_diamonds_to_balance', {
+        p_user_id: winnerId,
+        p_amount: winnerPayout,
+        p_type: 'pvp_win',
+        p_description: `PvP forfeit win — ${winnerPayout}💎 payout`,
+        p_reference_id: matchId
+    });
 
     // Update match
     await supabase

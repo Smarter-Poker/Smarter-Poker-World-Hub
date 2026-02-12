@@ -99,10 +99,14 @@ export default async function handler(req, res) {
             // Remove from queue
             await supabase.from('arcade_duel_queue').delete().eq('id', waiting.id);
 
-            // Deduct diamonds from both players
-            if (profile) {
-                await supabase.from('profiles').update({ diamonds: Math.max(0, (profile.diamonds || 0) - cost) }).eq('id', user_id);
-            }
+            // Deduct diamonds from joining player via logging RPC
+            await supabase.rpc('add_diamonds_to_balance', {
+                p_user_id: user_id,
+                p_amount: -cost,
+                p_type: 'arcade_entry',
+                p_description: `Duel entry fee — ${duel_type} (${cost}💎)`,
+                p_reference_id: match?.id || null
+            });
 
             return res.status(200).json({
                 status: 'matched',
@@ -132,10 +136,14 @@ export default async function handler(req, res) {
             });
         }
 
-        // Deduct entry fee when queued
-        if (profile) {
-            await supabase.from('profiles').update({ diamonds: Math.max(0, (profile.diamonds || 0) - cost) }).eq('id', user_id);
-        }
+        // Deduct entry fee when queued via logging RPC
+        await supabase.rpc('add_diamonds_to_balance', {
+            p_user_id: user_id,
+            p_amount: -cost,
+            p_type: 'arcade_entry',
+            p_description: `Duel queue entry — ${duel_type} (${cost}💎)`,
+            p_reference_id: null
+        });
 
         return res.status(200).json({
             status: 'queued',

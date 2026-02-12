@@ -161,11 +161,14 @@ export default async function handler(req, res) {
                             progress: def.threshold
                         });
 
-                    // Award diamonds
+                    // Award diamonds via logging RPC
                     if (def.diamond_reward > 0) {
-                        await supabase.rpc('increment_diamonds', {
+                        await supabase.rpc('add_diamonds_to_balance', {
                             p_user_id: userId,
-                            p_amount: def.diamond_reward
+                            p_amount: def.diamond_reward,
+                            p_type: 'achievement',
+                            p_description: `${def.name} achievement — ${def.diamond_reward}💎`,
+                            p_reference_id: def.id
                         });
                     }
 

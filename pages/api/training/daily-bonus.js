@@ -142,10 +142,15 @@ export default async function handler(req, res) {
                     streak_bonus: streakBonus
                 });
 
-            // Award diamonds
-            await supabase.rpc('increment_diamonds', {
+            // Award diamonds via logging RPC
+            await supabase.rpc('add_diamonds_to_balance', {
                 p_user_id: userId,
-                p_amount: totalBonus
+                p_amount: totalBonus,
+                p_type: 'daily_bonus',
+                p_description: streakBonus > 0
+                    ? `Daily bonus (${BASE_DAILY_BONUS}💎) + ${currentStreak}-day streak bonus (${streakBonus}💎)`
+                    : `Daily training bonus — ${totalBonus}💎`,
+                p_reference_id: null
             });
 
             // Send push notification if not called during session

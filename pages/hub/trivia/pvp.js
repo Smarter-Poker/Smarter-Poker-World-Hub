@@ -305,12 +305,12 @@ export default function PvPPage() {
             .limit(100);
 
         let matchQuestions = [];
-        if (questions && questions.length >= 5) {
+        if (questions && questions.length >= 20) {
             let available = excludeIds.length > 0
                 ? questions.filter(q => !excludeIds.includes(q.id))
                 : questions;
-            if (available.length < 5) available = questions;
-            matchQuestions = available.sort(() => Math.random() - 0.5).slice(0, 5);
+            if (available.length < 20) available = questions;
+            matchQuestions = available.sort(() => Math.random() - 0.5).slice(0, 20);
         }
 
         // Pre-calculate horse answers based on stake-dependent accuracy
@@ -368,7 +368,7 @@ export default function PvPPage() {
             setPlayerScore(0);
             setSelectedAnswer(null);
             setShowResult(false);
-            setTimeLeft(15);
+            setTimeLeft(40);
             setIsTimerRunning(true);
         }, 2000);
     }
@@ -658,6 +658,7 @@ export default function PvPPage() {
             <Head>
                 <title>1v1 Battle - Smarter.Poker Trivia</title>
                 <meta name="description" content="Challenge players to 1v1 trivia battles!" />
+                <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet" />
             </Head>
 
             <div className="pvp-page">
@@ -705,32 +706,46 @@ export default function PvPPage() {
 
                     {/* Searching for opponent */}
                     {gameState === 'searching' && (
-                        <div className="searching">
-                            <MetalFrame padding="32px" showBolts={true}>
-                                <div className="search-content">
-                                    <Users size={48} className="pulse-icon" />
-                                    <h2>Finding Opponent...</h2>
-                                    <p>Stake: {stakeAmount} 💎</p>
-
+                        <div className="result-panel-overlay">
+                            <div className="finding-panel-container">
+                                <img
+                                    src="/trivia/panels/panel-finding.jpg"
+                                    alt=""
+                                    className="result-panel-bg"
+                                />
+                                <div className="finding-panel-content">
                                     {opponent ? (
-                                        <div className="opponent-found">
-                                            <Zap size={24} color="#22c55e" />
-                                            <span>Opponent Found!</span>
-                                            <strong>{opponent.username}</strong>
-                                            <span className="opp-stats">{opponent.wins}W - {opponent.losses}L</span>
+                                        <div className="finding-opp-found">
+                                            <div className="panel-stats">
+                                                <div className="panel-stat-row">
+                                                    <span className="panel-stat-label">OPPONENT</span>
+                                                    <span className="panel-stat-value cyan">{opponent.username}</span>
+                                                </div>
+                                                <div className="panel-stat-row">
+                                                    <span className="panel-stat-label">RECORD</span>
+                                                    <span className="panel-stat-value white">{opponent.wins}W - {opponent.losses}L</span>
+                                                </div>
+                                                <div className="panel-stat-divider" />
+                                                <div className="panel-stat-row">
+                                                    <span className="panel-stat-label">STAKE</span>
+                                                    <span className="panel-stat-value gold">{stakeAmount} 💎</span>
+                                                </div>
+                                            </div>
                                         </div>
                                     ) : (
-                                        <div className="search-spinner">
-                                            <div className="spinner" />
-                                            <span>Looking for players at {stakeAmount}💎 stake...</span>
+                                        <div className="finding-stake-info">
+                                            <div className="panel-stats">
+                                                <div className="panel-stat-row">
+                                                    <span className="panel-stat-label">STAKE</span>
+                                                    <span className="panel-stat-value gold">{stakeAmount} 💎</span>
+                                                </div>
+                                            </div>
                                         </div>
                                     )}
-
-                                    <HexButton onClick={handleCancelSearch} variant="secondary" size="md">
-                                        Cancel
-                                    </HexButton>
                                 </div>
-                            </MetalFrame>
+                                {/* Invisible clickable cancel button positioned over the image's baked-in CANCEL button */}
+                                <button className="finding-cancel-hitbox" onClick={handleCancelSearch} aria-label="Cancel search" />
+                            </div>
                         </div>
                     )}
 
@@ -817,45 +832,54 @@ export default function PvPPage() {
 
                     {/* Results */}
                     {gameState === 'result' && result && (
-                        <div className="result-screen">
-                            <MetalFrame padding="32px" showBolts={true}>
-                                <div className={`result-header ${result.won ? 'win' : 'lose'}`}>
-                                    <Swords size={48} />
-                                    <h1>{result.won ? 'VICTORY!' : result.playerScore === result.opponentScore ? 'TIE!' : 'DEFEAT'}</h1>
-                                </div>
+                        <div className="result-panel-overlay">
+                            <div className="result-panel-container">
+                                <img
+                                    src={result.won || result.tied ? '/trivia/panels/panel-win.jpg' : '/trivia/panels/panel-defeat.jpg'}
+                                    alt=""
+                                    className="result-panel-bg"
+                                />
+                                <div className="result-panel-content">
+                                    <h1 className={`panel-title ${result.won ? 'win' : result.tied ? 'tie' : 'lose'}`}>
+                                        {result.won ? 'Congratulations\nYou Won!' : result.tied ? 'It\'s a\nTie!' : 'You Have Been\nDefeated'}
+                                    </h1>
 
-                                <div className="result-summary">
-                                    <div className="score-comparison">
-                                        <div className="player-result you">
-                                            <span className="name">You</span>
-                                            <span className="final-score">{result.playerScore}</span>
+                                    <div className="panel-stats">
+                                        <div className="panel-stat-row">
+                                            <span className="panel-stat-label">YOUR SCORE</span>
+                                            <span className="panel-stat-value cyan">{result.playerScore}/{questions.length}</span>
                                         </div>
-                                        <span className="vs-small">vs</span>
-                                        <div className="player-result opp">
-                                            <span className="name">{result.opponent?.username}</span>
-                                            <span className="final-score">{result.opponentScore}</span>
+                                        <div className="panel-stat-row">
+                                            <span className="panel-stat-label">{result.opponent?.username || 'OPPONENT'}</span>
+                                            <span className="panel-stat-value red">{result.opponentScore}/{questions.length}</span>
+                                        </div>
+                                        <div className="panel-stat-divider" />
+                                        <div className="panel-stat-row">
+                                            <span className="panel-stat-label">RECORD</span>
+                                            <span className="panel-stat-value white">{stats.wins}W - {stats.losses}L</span>
+                                        </div>
+                                        <div className="panel-stat-row">
+                                            <span className="panel-stat-label">WIN STREAK</span>
+                                            <span className="panel-stat-value gold">{stats.winStreak || 0} 🔥</span>
+                                        </div>
+                                        <div className="panel-stat-row">
+                                            <span className="panel-stat-label">DIAMONDS</span>
+                                            <span className={`panel-stat-value ${result.won ? 'green' : result.tied ? 'white' : 'red'}`}>
+                                                {result.won ? `+${result.winnings}` : result.tied ? `+${stakeAmount}` : `-${stakeAmount}`} 💎
+                                            </span>
                                         </div>
                                     </div>
 
-                                    <div className={`diamond-change ${result.won ? 'win' : 'lose'}`}>
-                                        <Gem size={24} />
-                                        <span>{result.won ? '+' : ''}{result.won ? result.winnings : -stakeAmount}</span>
+                                    <div className="panel-buttons">
+                                        <button className="panel-play-again" onClick={handlePlayAgain}>
+                                            Play Again
+                                        </button>
+                                        <button className="panel-back" onClick={() => router.push('/hub/trivia')}>
+                                            Back to Trivia
+                                        </button>
                                     </div>
                                 </div>
-
-                                <div className="result-actions">
-                                    <HexButton
-                                        label="Battle Again"
-                                        onClick={handlePlayAgain}
-                                        variant="primary"
-                                    />
-                                    <HexButton
-                                        label="Back to Trivia"
-                                        onClick={() => router.push('/hub/trivia')}
-                                        variant="secondary"
-                                    />
-                                </div>
-                            </MetalFrame>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -1000,69 +1024,56 @@ export default function PvPPage() {
                     margin-bottom: 8px;
                 }
 
-                /* Searching */
-                .search-content {
-                    text-align: center;
+                /* Searching — Finding Opponent Panel */
+                .finding-panel-container {
+                    position: relative;
+                    width: 90vw;
+                    max-width: 700px;
+                    aspect-ratio: 4 / 3;
                 }
 
-                .search-content h2 {
-                    color: #fff;
-                    margin: 16px 0 8px;
-                }
-
-                .search-content p {
-                    color: rgba(255, 255, 255, 0.6);
-                    margin: 0 0 24px;
-                }
-
-                .pulse-icon {
-                    color: #00d4ff;
-                    animation: pulse 1.5s infinite;
-                }
-
-                @keyframes pulse {
-                    0%, 100% { opacity: 1; transform: scale(1); }
-                    50% { opacity: 0.5; transform: scale(1.1); }
-                }
-
-                .search-spinner, .waiting-spinner {
+                .finding-panel-content {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
                     display: flex;
                     flex-direction: column;
                     align-items: center;
-                    gap: 12px;
-                    margin: 24px 0;
+                    justify-content: center;
+                    padding: 30% 15% 20%;
                 }
 
-                .spinner {
-                    width: 40px;
-                    height: 40px;
-                    border: 3px solid rgba(255, 255, 255, 0.1);
-                    border-top-color: #00d4ff;
-                    border-radius: 50%;
-                    animation: spin 1s linear infinite;
+                .finding-stake-info,
+                .finding-opp-found {
+                    width: 100%;
                 }
 
-                @keyframes spin { to { transform: rotate(360deg); } }
-
-                .opponent-found {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    gap: 8px;
-                    padding: 24px;
-                    background: rgba(34, 197, 94, 0.1);
-                    border-radius: 12px;
-                    margin: 24px 0;
+                .finding-opp-found .panel-stats {
+                    width: 100%;
+                    max-width: 300px;
+                    margin: 0 auto;
                 }
 
-                .opponent-found strong {
-                    font-size: 20px;
-                    color: #fff;
+                .finding-stake-info .panel-stats {
+                    width: 60%;
+                    max-width: 260px;
+                    margin: 0 auto;
                 }
 
-                .opp-stats {
-                    font-size: 14px;
-                    color: rgba(255, 255, 255, 0.5);
+                /* Invisible clickable button over baked-in CANCEL */
+                .finding-cancel-hitbox {
+                    position: absolute;
+                    bottom: 2%;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    width: 30%;
+                    height: 8%;
+                    background: transparent;
+                    border: none;
+                    cursor: pointer;
+                    z-index: 10;
                 }
 
                 /* Battle */
@@ -1190,77 +1201,171 @@ export default function PvPPage() {
                 .waiting h2 { color: #fff; margin: 0 0 12px; }
                 .waiting p { color: rgba(255, 255, 255, 0.7); }
 
-                /* Results */
-                .result-screen { text-align: center; }
-
-                .result-header { margin-bottom: 24px; }
-                .result-header.win { color: #22c55e; }
-                .result-header.lose { color: #ef4444; }
-
-                .result-header h1 {
-                    font-size: 32px;
-                    margin: 12px 0 0 0;
-                }
-
-                .result-summary { margin-bottom: 24px; }
-
-                .score-comparison {
+                /* Result Panel Overlay */
+                .result-panel-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    z-index: 1000;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    gap: 24px;
-                    margin-bottom: 16px;
+                    background: rgba(0, 0, 0, 0.85);
+                    animation: panelFadeIn 0.4s ease;
                 }
 
-                .player-result {
+                @keyframes panelFadeIn {
+                    from { opacity: 0; transform: scale(0.9); }
+                    to { opacity: 1; transform: scale(1); }
+                }
+
+                .result-panel-container {
+                    position: relative;
+                    width: 90vw;
+                    max-width: 700px;
+                    aspect-ratio: 4 / 3;
+                }
+
+                .result-panel-bg {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                    border-radius: 8px;
+                    display: block;
+                }
+
+                .result-panel-content {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
                     display: flex;
                     flex-direction: column;
                     align-items: center;
+                    justify-content: center;
+                    padding: 12% 10% 10%;
                 }
 
-                .player-result .name {
-                    font-size: 14px;
-                    color: rgba(255, 255, 255, 0.6);
+                .panel-title {
+                    font-family: 'Orbitron', 'Exo 2', sans-serif;
+                    font-weight: 900;
+                    font-size: clamp(1.8rem, 5vw, 3.5rem);
+                    letter-spacing: 0.06em;
+                    text-transform: uppercase;
+                    color: #ffffff;
+                    text-shadow:
+                        0 0 10px #00ffff88,
+                        0 0 20px #00ffff44,
+                        2px 2px 4px #000000cc;
+                    line-height: 1.15;
+                    text-align: center;
+                    white-space: pre-line;
+                    margin: 0 0 6% 0;
                 }
 
-                .player-result .final-score {
-                    font-size: 36px;
-                    font-weight: 700;
+                .panel-title.lose {
+                    text-shadow:
+                        0 0 10px #ff444488,
+                        0 0 20px #ff444444,
+                        2px 2px 4px #000000cc;
                 }
 
-                .player-result.you .final-score { color: #00d4ff; }
-                .player-result.opp .final-score { color: #ef4444; }
-
-                .vs-small {
-                    font-size: 16px;
-                    color: rgba(255, 255, 255, 0.3);
+                .panel-title.tie {
+                    text-shadow:
+                        0 0 10px #ffd70088,
+                        0 0 20px #ffd70044,
+                        2px 2px 4px #000000cc;
                 }
 
-                .diamond-change {
+                .panel-stats {
+                    width: 70%;
+                    max-width: 360px;
                     display: flex;
+                    flex-direction: column;
+                    gap: 6px;
+                    margin-bottom: 5%;
+                }
+
+                .panel-stat-row {
+                    display: flex;
+                    justify-content: space-between;
                     align-items: center;
-                    justify-content: center;
-                    gap: 10px;
-                    font-size: 32px;
+                    font-family: 'Orbitron', sans-serif;
+                    font-size: clamp(0.6rem, 1.5vw, 0.85rem);
+                    letter-spacing: 0.04em;
+                }
+
+                .panel-stat-label {
+                    color: rgba(255, 255, 255, 0.55);
                     font-weight: 700;
-                    padding: 16px;
-                    border-radius: 12px;
+                    text-transform: uppercase;
                 }
 
-                .diamond-change.win {
-                    background: rgba(34, 197, 94, 0.15);
-                    color: #22c55e;
+                .panel-stat-value {
+                    font-weight: 900;
                 }
 
-                .diamond-change.lose {
-                    background: rgba(239, 68, 68, 0.15);
-                    color: #ef4444;
+                .panel-stat-value.cyan { color: #00f0ff; }
+                .panel-stat-value.red { color: #ef4444; }
+                .panel-stat-value.green { color: #22c55e; }
+                .panel-stat-value.gold { color: #ffd700; }
+                .panel-stat-value.white { color: #e8e8e8; }
+
+                .panel-stat-divider {
+                    height: 1px;
+                    background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.3), transparent);
+                    margin: 4px 0;
                 }
 
-                .result-actions {
+                .panel-buttons {
                     display: flex;
-                    gap: 12px;
-                    justify-content: center;
+                    gap: 16px;
+                    align-items: center;
+                }
+
+                .panel-play-again {
+                    font-family: 'Orbitron', sans-serif;
+                    font-weight: 700;
+                    font-size: clamp(0.75rem, 1.8vw, 1rem);
+                    letter-spacing: 0.06em;
+                    text-transform: uppercase;
+                    color: #00f0ff;
+                    background: linear-gradient(to bottom, #3a3e4a, #2a2e3a);
+                    border: 1px solid rgba(0, 240, 255, 0.3);
+                    border-radius: 6px;
+                    padding: 10px 28px;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    text-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
+                }
+
+                .panel-play-again:hover {
+                    background: linear-gradient(to bottom, #4a4e5a, #3a3e4a);
+                    box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+                    transform: translateY(-1px);
+                }
+
+                .panel-back {
+                    font-family: 'Orbitron', sans-serif;
+                    font-weight: 700;
+                    font-size: clamp(0.65rem, 1.4vw, 0.85rem);
+                    letter-spacing: 0.04em;
+                    text-transform: uppercase;
+                    color: rgba(255, 255, 255, 0.5);
+                    background: transparent;
+                    border: 1px solid rgba(255, 255, 255, 0.15);
+                    border-radius: 6px;
+                    padding: 10px 20px;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                }
+
+                .panel-back:hover {
+                    color: rgba(255, 255, 255, 0.8);
+                    border-color: rgba(255, 255, 255, 0.3);
                 }
             `}</style>
         </PageTransition>
