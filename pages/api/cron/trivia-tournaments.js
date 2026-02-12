@@ -214,18 +214,13 @@ async function generateBracket(tournament, entries) {
  */
 async function cancelAndRefund(tournament, entries) {
     for (const entry of entries) {
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('diamonds')
-            .eq('id', entry.user_id)
-            .single();
-
-        if (profile) {
-            await supabase
-                .from('profiles')
-                .update({ diamonds: (profile.diamonds || 0) + tournament.entry_fee })
-                .eq('id', entry.user_id);
-        }
+        await supabase.rpc('add_diamonds_to_balance', {
+            p_user_id: entry.user_id,
+            p_amount: tournament.entry_fee,
+            p_type: 'tournament_refund',
+            p_description: `Tournament cancelled — ${tournament.name} (${tournament.entry_fee}💎 refund)`,
+            p_reference_id: tournament.id
+        });
 
         // Notify player
         await supabase

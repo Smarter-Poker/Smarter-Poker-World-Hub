@@ -149,9 +149,12 @@ export default async function handler(req, res) {
                         return res.status(400).json({ error: 'Insufficient diamonds' });
                     }
 
-                    await supabase.rpc('increment_diamonds', {
+                    await supabase.rpc('add_diamonds_to_balance', {
                         p_user_id: userId,
-                        p_amount: -tournament.entry_fee_diamonds
+                        p_amount: -tournament.entry_fee_diamonds,
+                        p_type: 'arcade_entry',
+                        p_description: `Tournament entry fee — ${tournament.entry_fee_diamonds}💎`,
+                        p_reference_id: tournamentId
                     });
                 }
 

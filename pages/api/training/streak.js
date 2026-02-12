@@ -219,10 +219,13 @@ export default async function handler(req, res) {
                 .update({ milestones_claimed: newClaimed })
                 .eq('user_id', userId);
 
-            // Award diamonds
-            await supabase.rpc('increment_diamonds', {
+            // Award diamonds via logging RPC
+            await supabase.rpc('add_diamonds_to_balance', {
                 p_user_id: userId,
-                p_amount: milestone.diamonds
+                p_amount: milestone.diamonds,
+                p_type: 'streak_reward',
+                p_description: `${milestone.name} — ${milestone.diamonds}💎 reward`,
+                p_reference_id: null
             });
 
             return res.status(200).json({

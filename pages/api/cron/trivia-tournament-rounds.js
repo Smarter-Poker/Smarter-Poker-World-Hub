@@ -312,19 +312,14 @@ async function completeTournament(tournament, winnerId, finalRound) {
         const entry = uniqueRanked[i];
         const prizeAmount = Math.floor(prizePool * prizes[i].percent / 100);
 
-        // Award diamonds
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('diamonds')
-            .eq('id', entry.user_id)
-            .single();
-
-        if (profile) {
-            await supabase
-                .from('profiles')
-                .update({ diamonds: (profile.diamonds || 0) + prizeAmount })
-                .eq('id', entry.user_id);
-        }
+        // Award diamonds via logging RPC
+        await supabase.rpc('add_diamonds_to_balance', {
+            p_user_id: entry.user_id,
+            p_amount: prizeAmount,
+            p_type: 'tournament_prize',
+            p_description: `#${i + 1} place — ${tournament.name} (${prizeAmount}💎)`,
+            p_reference_id: tournament.id
+        });
 
         // Update entry
         await supabase
