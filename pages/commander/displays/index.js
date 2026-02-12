@@ -238,6 +238,75 @@ export default function DisplayManagement() {
           </div>
         </div>
 
+        {/* Lobby & Leaderboard */}
+        <div className="px-4 pb-3">
+          <h2 className="text-sm font-semibold text-[#B0B3B8] uppercase tracking-wider mb-2">
+            Lobby & Leaderboard
+          </h2>
+          <div className="space-y-2">
+            <DisplayCard
+              icon={Monitor}
+              title="Lobby Display"
+              description="Walk-in player view: running games, open seats, waitlist counts, upcoming tournaments"
+              url={`${getBaseUrl()}/commander/lobby`}
+              path="/commander/lobby"
+              copied={copied}
+              onCopy={copyUrl}
+              onOpen={openDisplay}
+              color="#1877F2"
+            />
+            <DisplayCard
+              icon={Trophy}
+              title="Leaderboard"
+              description="Player rankings, points leaders, tournament wins — auto-rotates between boards"
+              url={`${getBaseUrl()}/commander/displays/leaderboard`}
+              path="/commander/displays/leaderboard"
+              copied={copied}
+              onCopy={copyUrl}
+              onOpen={openDisplay}
+              color="#F59E0B"
+            />
+          </div>
+        </div>
+
+        {/* Tournament Displays */}
+        {activeTournaments.length > 0 && (
+          <div className="px-4 pb-3">
+            <h2 className="text-sm font-semibold text-[#B0B3B8] uppercase tracking-wider mb-2">
+              Tournament Displays
+            </h2>
+            <div className="space-y-2">
+              {activeTournaments.map(t => (
+                <div key={`td-${t.id}`}>
+                  <DisplayCard
+                    icon={Tv}
+                    title={`${t.name} — Structure`}
+                    description="Full blind schedule with current level highlighted and auto-scroll"
+                    url={`${getBaseUrl()}/commander/tournaments/${t.id}/structure-display`}
+                    path={`/commander/tournaments/${t.id}/structure-display`}
+                    copied={copied}
+                    onCopy={copyUrl}
+                    onOpen={openDisplay}
+                    color="#A855F7"
+                  />
+                  <div className="h-2" />
+                  <DisplayCard
+                    icon={Users}
+                    title={`${t.name} — Seating Chart`}
+                    description="All tables with player seat assignments, chip counts"
+                    url={`${getBaseUrl()}/commander/tournaments/${t.id}/seating-display`}
+                    path={`/commander/tournaments/${t.id}/seating-display`}
+                    copied={copied}
+                    onCopy={copyUrl}
+                    onOpen={openDisplay}
+                    color="#EF4444"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Combined Displays */}
         <div className="px-4 pb-4">
           <h2 className="text-sm font-semibold text-[#B0B3B8] uppercase tracking-wider mb-2">
