@@ -5,6 +5,7 @@
  * DELETE /api/commander/venues/[id]/posts/[postId] - Delete a post
  */
 import { createClient } from '@supabase/supabase-js';
+import { guardManager } from '../../../../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -12,6 +13,10 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+  // Auth guard: require manager auth
+  const _staff = await guardManager(req, res);
+  if (!_staff) return;
+
   try {
     const { id, postId } = req.query;
     const staffSession = req.headers['x-staff-session'];

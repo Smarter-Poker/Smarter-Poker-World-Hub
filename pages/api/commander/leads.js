@@ -3,6 +3,7 @@
  * POST /api/commander/leads - Capture lead from landing page
  */
 import { createClient } from '@supabase/supabase-js';
+import { guardManager } from '../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -10,6 +11,10 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+  // Auth guard: require manager auth
+  const _staff = await guardManager(req, res);
+  if (!_staff) return;
+
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST']);
     return res.status(405).json({ error: 'Method not allowed' });

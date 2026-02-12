@@ -4,6 +4,7 @@
  * PUT /api/commander/settings - Update venue settings (room_open, etc)
  */
 import { createClient } from '@supabase/supabase-js';
+import { guardManager } from '../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -11,6 +12,8 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+  const _g = await guardManager(req, res); if (!_g) return;
+
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) return res.status(401).json({ success: false, error: 'Authorization required' });

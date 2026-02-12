@@ -4,6 +4,7 @@
  * POST: Create a new member (auto-generates member_number + qr_code)
  */
 import { createClient } from '@supabase/supabase-js';
+import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -11,6 +12,10 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+  // Auth guard: require staff auth for write operations
+  const _authResult = await guardWriteStaff(req, res);
+  if (!_authResult) return;
+
     if (req.method === 'GET') {
         return handleList(req, res);
     } else if (req.method === 'POST') {

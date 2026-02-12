@@ -5,6 +5,7 @@
  * GET /api/commander/venues/[id]/follow - Check follow status
  */
 import { createClient } from '@supabase/supabase-js';
+import { guardUser } from '../../../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -12,6 +13,8 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+  if (req.method !== 'GET') { const _u = await guardUser(req, res); if (!_u) return; }
+
   try {
     const { id } = req.query;
     const authHeader = req.headers.authorization;

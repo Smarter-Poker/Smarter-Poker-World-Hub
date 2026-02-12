@@ -4,6 +4,7 @@
  * POST /api/commander/seat-preferences — Save/update preferences
  */
 import { createClient } from '@supabase/supabase-js';
+import { guardUser } from '../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -11,6 +12,8 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+  // Auth guard: require user auth for writes
+  if (req.method !== "GET") { const _user = await guardUser(req, res); if (!_user) return; }
   if (req.method === 'GET') return getPreferences(req, res);
   if (req.method === 'POST') return savePreferences(req, res);
   return res.status(405).json({ success: false, error: { code: 'METHOD_NOT_ALLOWED' } });

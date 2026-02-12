@@ -8,6 +8,7 @@
  * Federal withholding: 24% on reportable gambling winnings
  */
 import { createClient } from '@supabase/supabase-js';
+import { guardStaff } from '../../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -17,6 +18,10 @@ const supabase = createClient(
 const FEDERAL_WITHHOLDING_RATE = 0.24;
 
 export default async function handler(req, res) {
+  // Auth guard: require staff auth
+  const _staff = await guardStaff(req, res);
+  if (!_staff) return;
+
   if (req.method === 'GET') return listTaxEvents(req, res);
   if (req.method === 'POST') return generateW2G(req, res);
   if (req.method === 'PATCH') return updateTaxEvent(req, res);

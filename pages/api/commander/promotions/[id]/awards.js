@@ -5,6 +5,7 @@
  * POST /api/commander/promotions/[id]/awards - Create award
  */
 import { createClient } from '@supabase/supabase-js';
+import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -12,6 +13,8 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+  const _g = await guardWriteStaff(req, res); if (!_g) return;
+
   const { id: promotionId } = req.query;
 
   if (!promotionId) {

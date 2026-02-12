@@ -7,6 +7,7 @@ import { createClient } from '@supabase/supabase-js';
 import { normalizePhoneNumber, isSmsConfigured } from '../../../../src/lib/commander/notifications';
 import { sendSMS as twilioSendSMS, isTwilioConfigured } from '../../../../src/lib/commander/twilio';
 import { isOneSignalConfigured, sendPushNotification as pushNotifySend } from '../../../../src/lib/commander/pushNotifications';
+import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -17,6 +18,8 @@ const VALID_TYPES = ['seat_available', 'tournament_starting', 'called_for_seat',
 const VALID_CHANNELS = ['sms', 'push', 'email', 'in_app'];
 
 export default async function handler(req, res) {
+  const _g = await guardWriteStaff(req, res); if (!_g) return;
+
   if (req.method !== 'POST') {
     return res.status(405).json({
       success: false,

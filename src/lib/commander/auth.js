@@ -293,3 +293,50 @@ export function getEffectivePermissions(staff) {
     ...(staff.permissions || {})
   };
 }
+
+/**
+ * Guard: require staff auth or send 401. Returns staff or null.
+ * Usage: const staff = await guardStaff(req, res); if (!staff) return;
+ */
+export async function guardStaff(req, res) {
+  const result = await verifyStaffSession(req);
+  if (result.error) {
+    res.status(result.error.status || 401).json({ success: false, error: result.error });
+    return null;
+  }
+  return result.staff;
+}
+
+/**
+ * Guard: require manager auth or send 401/403. Returns staff or null.
+ */
+export async function guardManager(req, res) {
+  const result = await verifyManagerSession(req);
+  if (result.error) {
+    res.status(result.error.status || 401).json({ success: false, error: result.error });
+    return null;
+  }
+  return result.staff;
+}
+
+/**
+ * Guard: require Supabase user auth or send 401. Returns user or null.
+ * For player-facing endpoints (not staff).
+ */
+export async function guardUser(req, res) {
+  const user = await getUser(req, res);
+  if (!user) {
+    res.status(401).json({ success: false, error: { code: 'AUTH_REQUIRED', message: 'Authentication required' } });
+    return null;
+  }
+  return user;
+}
+
+/**
+ * Guard: require staff auth only for write methods (POST/PUT/PATCH/DELETE).
+ * GET requests pass through. Returns staff for writes, true for reads.
+ */
+export async function guardWriteStaff(req, res) {
+  if (req.method === 'GET') return true;
+  return guardStaff(req, res);
+}

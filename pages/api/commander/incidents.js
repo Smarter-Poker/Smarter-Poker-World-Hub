@@ -4,6 +4,7 @@
  * POST /api/commander/incidents - Create incident (floor call, dispute, etc)
  */
 import { createClient } from '@supabase/supabase-js';
+import { guardWriteStaff } from '../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -11,6 +12,8 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+  const _g = await guardWriteStaff(req, res); if (!_g) return;
+
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) return res.status(401).json({ success: false, error: 'Authorization required' });

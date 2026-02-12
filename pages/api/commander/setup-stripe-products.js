@@ -3,6 +3,7 @@
 // Access: /api/commander/setup-stripe-products?secret=YOUR_ADMIN_SECRET
 
 import Stripe from 'stripe';
+import { guardManager } from '../../../src/lib/commander/auth';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -28,6 +29,10 @@ const PRODUCTS = [
 ];
 
 export default async function handler(req, res) {
+  // Auth guard: require manager auth
+  const _staff = await guardManager(req, res);
+  if (!_staff) return;
+
   // Simple secret check (in production, use proper auth)
   const { secret } = req.query;
   if (secret !== process.env.ADMIN_SETUP_SECRET && secret !== 'commander-setup-2026') {

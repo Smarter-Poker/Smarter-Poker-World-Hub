@@ -3,6 +3,7 @@
  * POST /api/commander/marketplace/dealers/[id]/book - Book a freelance dealer
  */
 import { createClient } from '@supabase/supabase-js';
+import { guardWriteStaff } from '../../../../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -10,6 +11,8 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+  const _g = await guardWriteStaff(req, res); if (!_g) return;
+
   if (req.method !== 'POST') {
     return res.status(405).json({
       success: false,

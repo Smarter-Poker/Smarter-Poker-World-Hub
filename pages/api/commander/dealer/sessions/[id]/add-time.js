@@ -9,6 +9,7 @@
  * Body: { minutes: 60 }
  */
 import { createClient } from '@supabase/supabase-js';
+import { guardStaff } from '../../../../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -16,6 +17,10 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+  // Auth guard: require staff auth
+  const _staff = await guardStaff(req, res);
+  if (!_staff) return;
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }

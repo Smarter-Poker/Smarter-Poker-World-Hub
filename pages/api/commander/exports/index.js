@@ -7,6 +7,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { withRateLimit } from '../../../../src/lib/commander/rateLimit';
 import { logAction, AuditActions } from '../../../../src/lib/commander/audit';
+import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -14,6 +15,8 @@ const supabase = createClient(
 );
 
 async function handler(req, res) {
+  const _g = await guardWriteStaff(req, res); if (!_g) return;
+
   if (req.method === 'GET') {
     return listExports(req, res);
   }

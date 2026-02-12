@@ -3,6 +3,7 @@
  * GET: Returns member data needed for card generation (client-side rendering)
  */
 import { createClient } from '@supabase/supabase-js';
+import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -10,6 +11,10 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+  // Auth guard: require staff auth for write operations
+  const _authResult = await guardWriteStaff(req, res);
+  if (!_authResult) return;
+
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method not allowed' });
     }

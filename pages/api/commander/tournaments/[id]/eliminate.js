@@ -4,6 +4,7 @@
  * POST /api/commander/tournaments/[id]/eliminate - Eliminate a player
  */
 import { createClient } from '@supabase/supabase-js';
+import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -11,6 +12,8 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+  const _g = await guardWriteStaff(req, res); if (!_g) return;
+
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST']);
     return res.status(405).json({ error: 'Method not allowed' });

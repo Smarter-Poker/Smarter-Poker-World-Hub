@@ -4,6 +4,7 @@
  * PATCH /api/commander/profile - Update profile
  */
 import { createClient } from '@supabase/supabase-js';
+import { guardUser } from '../../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -11,6 +12,8 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+  if (req.method !== 'GET') { const _u = await guardUser(req, res); if (!_u) return; }
+
   const authHeader = req.headers.authorization;
   if (!authHeader) {
     return res.status(401).json({

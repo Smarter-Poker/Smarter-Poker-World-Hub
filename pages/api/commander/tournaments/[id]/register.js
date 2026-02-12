@@ -4,6 +4,7 @@
  * DELETE /api/commander/tournaments/:id/register
  */
 import { createClient } from '@supabase/supabase-js';
+import { guardStaff } from '../../../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -11,6 +12,10 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+  // Auth guard: require staff auth
+  const _staff = await guardStaff(req, res);
+  if (!_staff) return;
+
   const { id } = req.query;
 
   if (req.method === 'POST') {

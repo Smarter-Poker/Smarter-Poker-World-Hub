@@ -5,6 +5,7 @@
  * PUT  /api/commander/floor-calls - Acknowledge/resolve a floor call
  */
 import { createClient } from '@supabase/supabase-js';
+import { guardWriteStaff } from '../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -12,6 +13,10 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+  // Auth guard: require staff auth for write operations
+  const _authResult = await guardWriteStaff(req, res);
+  if (!_authResult) return;
+
   try {
     // GET - List floor calls
     if (req.method === 'GET') {
