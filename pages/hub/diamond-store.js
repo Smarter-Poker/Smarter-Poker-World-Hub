@@ -1140,17 +1140,53 @@ export default function DiamondStorePage() {
                                     </p>
                                 </div>
 
-                                {/* Package Grid */}
-                                <div style={styles.packageGrid}>
-                                    {DIAMOND_PACKAGES.map(pkg => (
-                                        <PackageCard
-                                            key={pkg.id}
-                                            pkg={pkg}
-                                            isSelected={selectedPackage === pkg.id}
-                                            onSelect={setSelectedPackage}
-                                            onAddToCart={handleAddToCart}
-                                        />
-                                    ))}
+                                {/* Package Grid — Image-based layout */}
+                                <div style={{
+                                    position: 'relative',
+                                    width: '100%',
+                                    maxWidth: 700,
+                                    margin: '0 auto 40px auto',
+                                }}>
+                                    <img
+                                        src="/images/diamond-packages-grid.jpg"
+                                        alt="Diamond Packages"
+                                        style={{ width: '100%', height: 'auto', display: 'block', borderRadius: 12 }}
+                                        draggable={false}
+                                    />
+                                    {/* Transparent clickable zones over each card */}
+                                    {DIAMOND_PACKAGES.map((pkg, index) => {
+                                        const col = index % 2;
+                                        const row = Math.floor(index / 2);
+                                        // Card zones are mapped to the image grid positions
+                                        const zoneLeft = col === 0 ? '2.5%' : '51.5%';
+                                        const zoneWidth = '46%';
+                                        const zoneTop = `${3 + row * 24.5}%`;
+                                        const zoneHeight = '22%';
+                                        return (
+                                            <div
+                                                key={pkg.id}
+                                                onClick={() => handleAddToCart(pkg)}
+                                                title={`${pkg.name} — $${pkg.price.toFixed(2)} — Click to add to cart`}
+                                                style={{
+                                                    position: 'absolute',
+                                                    left: zoneLeft,
+                                                    top: zoneTop,
+                                                    width: zoneWidth,
+                                                    height: zoneHeight,
+                                                    cursor: 'pointer',
+                                                    background: 'transparent',
+                                                    borderRadius: 8,
+                                                    transition: 'background 0.15s ease',
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.background = 'rgba(0, 212, 255, 0.12)';
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.background = 'transparent';
+                                                }}
+                                            />
+                                        );
+                                    })}
                                 </div>
 
                                 {/* Purchase Section */}
