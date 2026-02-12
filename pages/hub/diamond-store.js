@@ -419,7 +419,7 @@ function PackageCard({ pkg, onSelect, isSelected, onAddToCart }) {
                 alignItems: 'center',
                 marginBottom: 12,
             }}>
-                <span style={{ fontSize: 32 }}>💎</span>
+                <span style={{ fontSize: 32 }}>Diamonds</span>
                 <div style={{
                     fontFamily: 'Orbitron, sans-serif',
                     fontSize: 24,
