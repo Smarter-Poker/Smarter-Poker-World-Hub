@@ -1165,31 +1165,7 @@ export default function DiamondStorePage() {
                                     })}
                                 </div>
 
-                                {/* Purchase Section */}
-                                <div style={styles.purchaseSection}>
-                                    <div style={styles.selectedInfo}>
-                                        {selectedPkg && (
-                                            <>
-                                                <span style={styles.selectedLabel}>Selected:</span>
-                                                <span style={styles.selectedName}>{selectedPkg.name}</span>
-                                                <span style={styles.selectedDiamonds}>
-                                                    Diamonds {(selectedPkg.diamonds + selectedPkg.bonus).toLocaleString()}
-                                                </span>
-                                            </>
-                                        )}
-                                    </div>
 
-                                    <button
-                                        onClick={() => handleDiamondPurchase(selectedPkg)}
-                                        disabled={!selectedPackage || isProcessing}
-                                        style={{
-                                            ...styles.purchaseButton,
-                                            opacity: (!selectedPackage || isProcessing) ? 0.6 : 1,
-                                        }}
-                                    >
-                                        {isProcessing ? 'Processing...' : `Purchase for $${selectedPkg?.price.toFixed(2) || '0.00'}`}
-                                    </button>
-                                </div>
                             </>
                         )}
 
