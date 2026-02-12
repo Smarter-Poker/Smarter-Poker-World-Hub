@@ -67,6 +67,10 @@ export default function DealerTablet() {
   const [addTimePlayer, setAddTimePlayer] = useState(null);
   const [addTimeMinutes, setAddTimeMinutes] = useState('60');
   const [addingTime, setAddingTime] = useState(false);
+  const [tournamentMode, setTournamentMode] = useState(null); // null = cash, or { tournament_id, ... }
+  const [bustingOut, setBustingOut] = useState(null); // player being busted
+  const [confirmRemoveAll, setConfirmRemoveAll] = useState(false);
+  const [removingAll, setRemovingAll] = useState(false);
 
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
@@ -82,7 +86,40 @@ export default function DealerTablet() {
       ]);
       const tableJson = await tableRes.json();
       const sessionsJson = await sessionsRes.json();
-      if (tableJson.success) setTable(tableJson.data);
+      if (tableJson.success) {
+        setTable(tableJson.data);
+        // Check if this table is assigned to a tournament
+        if (tableJson.data?.tournament_id) {
+          try {
+            const tRes = await fetch(`/api/commander/tournaments/${tableJson.data.tournament_id}/floor-view`, { headers });
+            const tJson = await tRes.json();
+            if (tJson.success) {
+              const tData = tJson.data;
+              setTournamentMode({
+                tournament_id: tableJson.data.tournament_id,
+                name: tData?.tournament?.name || 'Tournament',
+                players_remaining: tData?.stats?.players_remaining || 0,
+                tables: tData?.tables || []
+              });
+              // In tournament mode, populate seats from floor-view data (has entry_id, chips, etc)
+              const thisTable = (tData?.tables || []).find(t => String(t.table_number) === String(tableNumber));
+              if (thisTable) {
+                setSeatedPlayers((thisTable.players || []).map(p => ({
+                  ...p,
+                  session_id: p.entry_id, // use entry_id as session reference
+                  player_name: p.player_name,
+                  seat_number: p.seat_number,
+                  current_chips: p.current_chips,
+                  time_remaining: null // no time in tournaments
+                })));
+              }
+              return; // skip cash game session fetch for seated players
+            }
+          } catch (e) { console.error('Tournament fetch error:', e); }
+        } else {
+          setTournamentMode(null);
+        }
+      }
       if (sessionsJson.success) setSeatedPlayers(sessionsJson.data || []);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
@@ -217,6 +254,55 @@ export default function DealerTablet() {
     finally { setAddingTime(false); }
   };
 
+  // Tournament: Bust out a player
+  const bustOutPlayer = async (player) => {
+    setBustingOut(player);
+    try {
+      const token = getToken();
+      // Use the tournament eliminate API
+      const res = await fetch(`/api/commander/tournaments/${tournamentMode.tournament_id}/eliminate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          entry_id: player.entry_id || player.id,
+          finish_position: tournamentMode.players_remaining || 0,
+          table_number: parseInt(tableNumber),
+          seat_number: player.seat_number
+        })
+      });
+      const json = await res.json();
+      if (!json.success && json.error) console.error('Bust out error:', json.error);
+      // Also remove from table session if applicable
+      if (player.session_id) {
+        await fetch(`/api/commander/dealer/sessions/${player.session_id}/end`, {
+          method: 'POST', headers: { Authorization: `Bearer ${token}` }
+        }).catch(() => {});
+      }
+      await fetchTable();
+    } catch (err) { console.error(err); }
+    finally { setBustingOut(null); }
+  };
+
+  // Cash Game: Remove ALL players from this table
+  const removeAllPlayers = async () => {
+    setRemovingAll(true);
+    try {
+      const token = getToken();
+      const headers = { Authorization: `Bearer ${token}` };
+      // End all active sessions for this table
+      await Promise.all(
+        seatedPlayers.map(player =>
+          fetch(`/api/commander/dealer/sessions/${player.session_id}/end`, {
+            method: 'POST', headers
+          }).catch(() => {})
+        )
+      );
+      setConfirmRemoveAll(false);
+      await fetchTable();
+    } catch (err) { console.error(err); }
+    finally { setRemovingAll(false); }
+  };
+
   const requestFloor = async () => {
     setFloorRequested(true);
     try {
@@ -248,9 +334,19 @@ export default function DealerTablet() {
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center justify-between flex-shrink-0">
           <div>
             <h1 className="text-xl font-bold text-white">Table {tableNumber}</h1>
-            <p className="text-xs text-[#B0B3B8]">{table?.game_type || 'NLH'} — {table?.stakes || '$1/$2'} — {seatedPlayers.length}/{maxSeats}</p>
+            <p className="text-xs text-[#B0B3B8]">
+              {tournamentMode
+                ? <><span className="text-[#F59E0B] font-semibold">{tournamentMode.name}</span> — {seatedPlayers.length}/{maxSeats}</>
+                : <>{table?.game_type || 'NLH'} — {table?.stakes || '$1/$2'} — {seatedPlayers.length}/{maxSeats}</>
+              }
+            </p>
           </div>
           <div className="flex items-center gap-2">
+            {tournamentMode && (
+              <div className="bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-lg px-2.5 py-1.5">
+                <span className="text-xs font-bold text-[#F59E0B]">{tournamentMode.players_remaining} left</span>
+              </div>
+            )}
             <div className="bg-[#3A3B3C] rounded-lg px-3 py-1.5 flex items-center gap-1.5">
               <Hash className="w-4 h-4 text-[#B0B3B8]" />
               <span className="text-sm font-mono font-bold text-white">{handCount}</span>
@@ -288,31 +384,45 @@ export default function DealerTablet() {
                 <div key={pos.seat} className="absolute flex flex-col items-center"
                   style={{ left: `${pos.x}%`, top: `${pos.y}%`, transform: 'translate(-50%, -50%)' }}>
                   {isEmpty ? (
-                    <button onClick={() => openScanner(pos.seat)}
-                      className="w-14 h-14 rounded-full bg-[#3A3B3C]/50 border-2 border-dashed border-[#3A3B3C] flex items-center justify-center active:bg-[#3A3B3C]">
-                      <ScanLine className="w-5 h-5 text-[#B0B3B8]" />
+                    <button onClick={() => !tournamentMode && openScanner(pos.seat)}
+                      className={`w-14 h-14 rounded-full border-2 border-dashed flex items-center justify-center ${
+                        tournamentMode ? 'bg-[#3A3B3C]/20 border-[#3A3B3C]/40' : 'bg-[#3A3B3C]/50 border-[#3A3B3C] active:bg-[#3A3B3C]'
+                      }`}>
+                      {tournamentMode
+                        ? <span className="text-xs text-[#6A6B6D]">{pos.seat}</span>
+                        : <ScanLine className="w-5 h-5 text-[#B0B3B8]" />
+                      }
                     </button>
                   ) : (
-                    <button onClick={() => setAddTimePlayer(player)}
+                    <button onClick={() => tournamentMode ? bustOutPlayer(player) : setAddTimePlayer(player)}
                       className={`w-14 h-14 rounded-full flex items-center justify-center border-2 ${
-                        isExpired ? 'bg-[#EF4444]/20 border-[#EF4444]/60 time-warn' :
-                        isCritical ? 'bg-[#EF4444]/15 border-[#EF4444]/40 time-warn' :
-                        isLow ? 'bg-[#F59E0B]/15 border-[#F59E0B]/40' :
-                        'bg-[#1877F2]/20 border-[#1877F2]/40'
+                        tournamentMode
+                          ? 'bg-[#F59E0B]/15 border-[#F59E0B]/40 active:bg-[#EF4444]/30'
+                          : isExpired ? 'bg-[#EF4444]/20 border-[#EF4444]/60 time-warn'
+                          : isCritical ? 'bg-[#EF4444]/15 border-[#EF4444]/40 time-warn'
+                          : isLow ? 'bg-[#F59E0B]/15 border-[#F59E0B]/40'
+                          : 'bg-[#1877F2]/20 border-[#1877F2]/40'
                       }`}>
                       <span className="text-sm font-bold text-white">{pos.seat}</span>
                     </button>
                   )}
                   {player && <span className="text-[9px] text-[#B0B3B8] mt-0.5 max-w-[70px] truncate text-center font-medium">{player.player_name?.split(' ')[0]}</span>}
-                  {player && t !== null && t !== undefined && (
+                  {/* Cash mode: time remaining */}
+                  {!tournamentMode && player && t !== null && t !== undefined && (
                     <span className={`text-[10px] font-mono font-bold ${isExpired ? 'text-[#EF4444] time-warn' : isCritical ? 'text-[#EF4444]' : isLow ? 'text-[#F59E0B]' : 'text-[#31A24C]'}`}>
                       {isExpired ? 'EXPIRED' : formatCountdown(t)}
                     </span>
                   )}
-                  {player?.membership_tier && player.membership_tier !== 'standard' && (
+                  {/* Tournament mode: chip count */}
+                  {tournamentMode && player && (
+                    <span className="text-[9px] font-mono text-[#F59E0B]">
+                      {player.current_chips ? (player.current_chips >= 1000 ? `${(player.current_chips/1000).toFixed(0)}K` : player.current_chips) : ''}
+                    </span>
+                  )}
+                  {!tournamentMode && player?.membership_tier && player.membership_tier !== 'standard' && (
                     <div className="w-2 h-2 rounded-full absolute -top-0.5 -right-0.5" style={{ backgroundColor: TIER_COLORS[player.membership_tier] || '#B0B3B8' }} />
                   )}
-                  {isEmpty && <span className="text-[9px] text-[#B0B3B8]/50 mt-0.5">{pos.seat}</span>}
+                  {isEmpty && !tournamentMode && <span className="text-[9px] text-[#B0B3B8]/50 mt-0.5">{pos.seat}</span>}
                 </div>
               );
             })}
@@ -321,35 +431,61 @@ export default function DealerTablet() {
 
         {/* Seated Players List */}
         {seatedPlayers.length > 0 && (
-          <div className="bg-[#242526] border-t border-[#3A3B3C] px-4 py-2 max-h-36 overflow-y-auto">
+          <div className="bg-[#242526] border-t border-[#3A3B3C] px-4 py-2 max-h-44 overflow-y-auto">
             <div className="space-y-1">
-              {seatedPlayers.sort((a, b) => (a.time_remaining ?? Infinity) - (b.time_remaining ?? Infinity)).map(player => {
+              {seatedPlayers.sort((a, b) => tournamentMode
+                ? (a.seat_number - b.seat_number)
+                : (a.time_remaining ?? Infinity) - (b.time_remaining ?? Infinity)
+              ).map(player => {
                 const t = player.time_remaining;
                 const isLow = t !== null && t !== undefined && t <= 900 && t > 0;
                 const isCritical = t !== null && t !== undefined && t <= 300 && t > 0;
                 const isExpired = t !== null && t !== undefined && t <= 0;
+                const isBusting = bustingOut?.seat_number === player.seat_number;
                 return (
                   <div key={player.session_id || player.seat_number}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${isExpired ? 'bg-[#EF4444]/10' : isCritical ? 'bg-[#EF4444]/5' : isLow ? 'bg-[#F59E0B]/5' : 'bg-[#3A3B3C]/30'}`}>
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${
+                      isBusting ? 'bg-[#EF4444]/20' :
+                      isExpired ? 'bg-[#EF4444]/10' : isCritical ? 'bg-[#EF4444]/5' : isLow ? 'bg-[#F59E0B]/5' : 'bg-[#3A3B3C]/30'
+                    }`}>
                     <span className="text-xs text-[#B0B3B8] w-6">S{player.seat_number}</span>
                     <span className="text-sm text-white flex-1 truncate">{player.player_name}</span>
-                    {player.membership_tier && (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded-full"
-                        style={{ backgroundColor: (TIER_COLORS[player.membership_tier] || '#B0B3B8') + '20', color: TIER_COLORS[player.membership_tier] }}>
-                        {player.membership_tier?.toUpperCase()}
-                      </span>
+                    {/* Tournament mode: show chips + bust-out */}
+                    {tournamentMode ? (
+                      <>
+                        {player.current_chips && (
+                          <span className="text-xs font-mono text-[#B0B3B8]">{player.current_chips >= 1000 ? `${(player.current_chips/1000).toFixed(1)}K` : player.current_chips}</span>
+                        )}
+                        <button onClick={(e) => { e.stopPropagation(); bustOutPlayer(player); }}
+                          disabled={isBusting}
+                          className="px-3 py-1.5 rounded-lg bg-[#EF4444] text-white text-xs font-bold active:bg-[#DC2626] disabled:opacity-50 flex items-center gap-1">
+                          {isBusting ? <Loader2 className="w-3 h-3 animate-spin" /> : <UserX className="w-3 h-3" />}
+                          BUST
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        {/* Cash mode: tier badge */}
+                        {player.membership_tier && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded-full"
+                            style={{ backgroundColor: (TIER_COLORS[player.membership_tier] || '#B0B3B8') + '20', color: TIER_COLORS[player.membership_tier] }}>
+                            {player.membership_tier?.toUpperCase()}
+                          </span>
+                        )}
+                        {/* Cash mode: time countdown */}
+                        <span className={`text-sm font-mono font-bold w-16 text-right ${isExpired ? 'text-[#EF4444] time-warn' : isCritical ? 'text-[#EF4444]' : isLow ? 'text-[#F59E0B]' : 'text-[#31A24C]'}`}>
+                          {t === null || t === undefined ? '--:--' : isExpired ? 'OUT' : formatCountdown(t)}
+                        </span>
+                        <button onClick={(e) => { e.stopPropagation(); setAddTimePlayer(player); }}
+                          className="w-7 h-7 rounded-full bg-[#31A24C]/10 flex items-center justify-center active:bg-[#31A24C]/20">
+                          <Plus className="w-3.5 h-3.5 text-[#31A24C]" />
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); removePlayer(player.session_id); }}
+                          className="w-7 h-7 rounded-full bg-[#EF4444]/10 flex items-center justify-center active:bg-[#EF4444]/20">
+                          <UserX className="w-3.5 h-3.5 text-[#EF4444]" />
+                        </button>
+                      </>
                     )}
-                    <span className={`text-sm font-mono font-bold w-16 text-right ${isExpired ? 'text-[#EF4444] time-warn' : isCritical ? 'text-[#EF4444]' : isLow ? 'text-[#F59E0B]' : 'text-[#31A24C]'}`}>
-                      {t === null || t === undefined ? '--:--' : isExpired ? 'OUT' : formatCountdown(t)}
-                    </span>
-                    <button onClick={(e) => { e.stopPropagation(); setAddTimePlayer(player); }}
-                      className="w-7 h-7 rounded-full bg-[#31A24C]/10 flex items-center justify-center active:bg-[#31A24C]/20">
-                      <Plus className="w-3.5 h-3.5 text-[#31A24C]" />
-                    </button>
-                    <button onClick={(e) => { e.stopPropagation(); removePlayer(player.session_id); }}
-                      className="w-7 h-7 rounded-full bg-[#EF4444]/10 flex items-center justify-center active:bg-[#EF4444]/20">
-                      <UserX className="w-3.5 h-3.5 text-[#EF4444]" />
-                    </button>
                   </div>
                 );
               })}
@@ -370,11 +506,44 @@ export default function DealerTablet() {
               <Coffee className="w-5 h-5" /> {breakTimer ? 'On Break' : 'Break'}
             </button>
           </div>
+
+          {/* Remove All Players (cash game) / Table context row */}
+          {seatedPlayers.length > 0 && !tournamentMode && (
+            <button onClick={() => setConfirmRemoveAll(true)}
+              className="w-full py-3 rounded-xl bg-[#EF4444]/10 border border-[#EF4444]/30 text-[#EF4444] text-sm font-semibold flex items-center justify-center gap-2 active:bg-[#EF4444]/20">
+              <UserX className="w-4 h-4" /> Remove All Players (Table Break)
+            </button>
+          )}
+
           <div className="flex gap-2">
             <button onClick={() => setHandCount(0)} className="flex-1 py-2.5 rounded-lg bg-[#3A3B3C] text-[#B0B3B8] text-xs font-medium flex items-center justify-center gap-1 active:bg-[#4A4B4C]"><RotateCcw className="w-3.5 h-3.5" /> Reset</button>
             <button onClick={() => router.push('/commander/poker-room')} className="flex-1 py-2.5 rounded-lg bg-[#3A3B3C] text-[#B0B3B8] text-xs font-medium active:bg-[#4A4B4C]">Exit</button>
           </div>
         </div>
+
+        {/* ===== REMOVE ALL CONFIRMATION ===== */}
+        {confirmRemoveAll && (
+          <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center px-4" onClick={() => setConfirmRemoveAll(false)}>
+            <div className="bg-[#242526] rounded-2xl w-full max-w-sm p-6 text-center" onClick={e => e.stopPropagation()}>
+              <div className="w-16 h-16 rounded-full bg-[#EF4444]/10 flex items-center justify-center mx-auto mb-4">
+                <UserX className="w-8 h-8 text-[#EF4444]" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Remove All Players?</h3>
+              <p className="text-sm text-[#B0B3B8] mb-6">
+                This will end sessions for all {seatedPlayers.length} player{seatedPlayers.length !== 1 ? 's' : ''} at Table {tableNumber}. Their time will stop counting down.
+              </p>
+              <div className="flex gap-3">
+                <button onClick={() => setConfirmRemoveAll(false)}
+                  className="flex-1 py-3 rounded-xl bg-[#3A3B3C] text-[#E4E6EB] font-semibold active:bg-[#4A4B4C]">Cancel</button>
+                <button onClick={removeAllPlayers} disabled={removingAll}
+                  className="flex-1 py-3 rounded-xl bg-[#EF4444] text-white font-semibold active:bg-[#DC2626] disabled:opacity-50 flex items-center justify-center gap-2">
+                  {removingAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserX className="w-4 h-4" />}
+                  {removingAll ? 'Removing...' : 'Remove All'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* QR SCANNER MODAL */}
         {scannerOpen && (

@@ -271,6 +271,48 @@ export default function TDTablesMap() {
                       </div>
                     ))}
                 </div>
+
+                {/* Break Table button */}
+                {selectedTable.players.length > 0 && (
+                  <div className="px-5 pb-5">
+                    <button
+                      onClick={async () => {
+                        if (!confirm(`Break Table ${selectedTable.table_number}? All ${selectedTable.players.length} players will need to be moved to other tables.`)) return;
+                        setActionLoading('break');
+                        try {
+                          // Eliminate/remove all players from this table
+                          for (const player of selectedTable.players) {
+                            await fetch(`/api/commander/tournaments/${tournamentId}/move-player`, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+                              body: JSON.stringify({
+                                entry_id: player.entry_id,
+                                from_table: selectedTable.table_number,
+                                status: 'needs_seat'
+                              })
+                            }).catch(() => {});
+                          }
+                          // Mark table as broken
+                          await fetch(`/api/commander/tables/${selectedTable.table_number || selectedTable.id}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+                            body: JSON.stringify({ status: 'closed' })
+                          }).catch(() => {});
+                          setSelectedTable(null);
+                          await fetchFloor();
+                        } catch (err) { console.error(err); }
+                        finally { setActionLoading(null); }
+                      }}
+                      disabled={actionLoading === 'break'}
+                      className="w-full py-4 rounded-xl bg-[#EF4444]/10 border border-[#EF4444]/30 text-[#EF4444] text-base font-semibold active:bg-[#EF4444]/20 disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {actionLoading === 'break'
+                        ? <><Loader2 className="w-5 h-5 animate-spin" /> Breaking Table...</>
+                        : <><UserX className="w-5 h-5" /> Break Table ({selectedTable.players.length} players)</>
+                      }
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
