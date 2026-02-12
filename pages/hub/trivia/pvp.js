@@ -327,10 +327,13 @@ export default function PvPPage() {
             matchQuestions = available.sort(() => Math.random() - 0.5).slice(0, 20);
         }
 
+        // Shuffle options FIRST so correct_index is updated before horse answer calc
+        const shuffledQuestions = shuffleOptions(matchQuestions);
+
         // Pre-calculate horse answers based on stake-dependent accuracy
         // Higher stakes = smarter horse (60-85% accuracy)
         const horseAccuracy = 0.60 + (Math.min(stake, 100) / 100) * 0.25;
-        const horseAnswers = matchQuestions.map(q => {
+        const horseAnswers = shuffledQuestions.map(q => {
             if (Math.random() < horseAccuracy) {
                 return q.correct_index; // Correct answer
             } else {
@@ -343,7 +346,7 @@ export default function PvPPage() {
 
         setIsHorseMatch(true);
         setOpponent(horseOpponent);
-        setQuestions(shuffleOptions(matchQuestions));
+        setQuestions(shuffledQuestions);
         setMatchId(`horse-match-${Date.now()}`);
         setIsPlayer1(true);
 
@@ -843,17 +846,17 @@ export default function PvPPage() {
                         </div>
                     )}
 
-                    {/* Results */}
+                    {/* Results — title + buttons are baked into panel image, only overlay stats */}
                     {gameState === 'result' && result && (
                         <div className="result-panel-overlay">
-                            <button className="panel-back-top" onClick={() => router.push('/hub/trivia')}>← Back to Trivia</button>
                             <div className="result-panel-container">
                                 <img
                                     src={result.won || result.tied ? '/trivia/panels/panel-win.jpg' : '/trivia/panels/panel-defeat.jpg'}
                                     alt=""
                                     className="result-panel-bg"
                                 />
-                                <div className="result-panel-content">
+                                {/* Scores in the top header box */}
+                                <div className="result-score-zone">
                                     <div className="panel-stats">
                                         <div className="panel-stat-row">
                                             <span className="panel-stat-label">YOUR SCORE</span>
@@ -863,7 +866,11 @@ export default function PvPPage() {
                                             <span className="panel-stat-label">{result.opponent?.username || 'OPPONENT'}</span>
                                             <span className="panel-stat-value red">{result.opponentScore}/{questions.length}</span>
                                         </div>
-                                        <div className="panel-stat-divider" />
+                                    </div>
+                                </div>
+                                {/* Stats positioned below the baked-in title */}
+                                <div className="result-stats-zone">
+                                    <div className="panel-stats">
                                         <div className="panel-stat-row">
                                             <span className="panel-stat-label">RECORD</span>
                                             <span className="panel-stat-value white">{stats.wins}W - {stats.losses}L</span>
@@ -880,6 +887,9 @@ export default function PvPPage() {
                                         </div>
                                     </div>
                                 </div>
+                                {/* Invisible hitboxes over baked-in PLAY AGAIN and BACK TO TRIVIA buttons */}
+                                <button className="result-play-again-hitbox" onClick={() => { setGameState('lobby'); setResult(null); }} aria-label="Play Again" />
+                                <button className="result-back-hitbox" onClick={() => router.push('/hub/trivia')} aria-label="Back to Trivia" />
                             </div>
                         </div>
                     )}
@@ -1335,17 +1345,77 @@ export default function PvPPage() {
                     border-radius: 4px;
                 }
 
-                .result-panel-content {
+                /* Score zone - positioned in the top header box */
+                .result-score-zone {
                     position: absolute;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    padding: 8% 10% 6%;
+                    top: 5%;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    z-index: 2;
+                    width: 70%;
+                }
+
+                .result-score-zone .panel-stats {
+                    width: 100%;
+                    max-width: none;
+                    gap: 2px;
+                }
+
+                .result-score-zone .panel-stat-label {
+                    font-size: 0.95rem;
+                }
+
+                .result-score-zone .panel-stat-value {
+                    font-size: 1.1rem;
+                }
+
+                /* Stats zone - positioned below the baked-in title area */
+                .result-stats-zone {
+                    position: absolute;
+                    top: 58%;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    z-index: 2;
+                    width: 75%;
+                }
+
+                .result-stats-zone .panel-stats {
+                    width: 100%;
+                    max-width: none;
+                    gap: 4px;
+                }
+
+                .result-stats-zone .panel-stat-label {
+                    font-size: 1.1rem;
+                }
+
+                .result-stats-zone .panel-stat-value {
+                    font-size: 1.3rem;
+                }
+
+                /* Invisible hitboxes over baked-in buttons */
+                .result-play-again-hitbox {
+                    position: absolute;
+                    bottom: 8%;
+                    left: 5%;
+                    width: 45%;
+                    height: 9%;
+                    background: transparent;
+                    border: none;
+                    cursor: pointer;
+                    z-index: 10;
+                }
+
+                .result-back-hitbox {
+                    position: absolute;
+                    bottom: 8%;
+                    right: 5%;
+                    width: 45%;
+                    height: 9%;
+                    background: transparent;
+                    border: none;
+                    cursor: pointer;
+                    z-index: 10;
                 }
 
                 /* ===== PANEL TITLE — User's exact Orbitron spec ===== */
