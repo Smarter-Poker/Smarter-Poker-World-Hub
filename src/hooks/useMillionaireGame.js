@@ -10,9 +10,9 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { getAuthUser } from '../lib/authUtils';
-import TRAINING_CONFIG, { checkLevelPassed, getRequiredCorrect } from '../config/trainingConfig';
+import TRAINING_CONFIG, { checkLevelPassed, getXPReward, getRequiredCorrect } from '../config/trainingConfig';
 
-const QUESTIONS_PER_LEVEL = 25; // 25 questions per level
+const QUESTIONS_PER_LEVEL = TRAINING_CONFIG.questionsPerLevel; // 25 questions per level
 
 export default function useMillionaireGame(gameId, engineType = 'PIO', initialLevel = 1) {
     // Game state
@@ -30,6 +30,7 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
     const [correctCount, setCorrectCount] = useState(0);
     const [streak, setStreak] = useState(0);
     const [bestStreak, setBestStreak] = useState(0);
+    const [totalXP, setTotalXP] = useState(0);
 
     // Feedback state
     const [showFeedback, setShowFeedback] = useState(false);
@@ -40,24 +41,8 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
     const [gameComplete, setGameComplete] = useState(false);
     const [levelPassed, setLevelPassed] = useState(false);
 
-    // ⏱️ Time tracking
-    const [sessionStartTime, setSessionStartTime] = useState(Date.now());
-
     // Get user ID for no-repeat tracking
     const userId = getAuthUser()?.id;
-
-    /**
-     * 💎 Calculate diamond reward based on level and performance
-     * Higher levels = more diamonds, accuracy bonus
-     */
-    const calculateDiamondReward = (lvl, accuracy, passed) => {
-        if (!passed) return 0;
-        // Base reward: 5 diamonds per level
-        const baseReward = lvl * 5;
-        // Accuracy bonus: +50% at 90%+, +25% at 80%+
-        const accuracyMultiplier = accuracy >= 90 ? 1.5 : accuracy >= 80 ? 1.25 : 1;
-        return Math.round(baseReward * accuracyMultiplier);
-    };
 
     /**
      * 🚀 BATCH PRE-LOAD ALL QUESTIONS AT ONCE
@@ -208,10 +193,6 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
     const saveProgress = useCallback(async (passed, accuracy) => {
         if (!userId || !gameId) return;
 
-        // Calculate time spent and diamond rewards
-        const timeSpentSeconds = Math.round((Date.now() - sessionStartTime) / 1000);
-        const diamondsEarned = calculateDiamondReward(level, accuracy, passed);
-
         try {
             await fetch('/api/training/save-progress', {
                 method: 'POST',
@@ -225,14 +206,15 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
                     accuracy,
                     passed,
                     streak: bestStreak,
-                    diamondsEarned,
-                    timeSpentSeconds,
+                    xpEarned: totalXP,
+                    diamondsEarned: 0, // TODO: Calculate diamond rewards
+                    timeSpentSeconds: 0, // TODO: Track time
                 }),
             });
         } catch (err) {
             console.warn('[MillionaireGame] Save progress error:', err);
         }
-    }, [userId, gameId, level, correctCount, bestStreak, sessionStartTime]);
+    }, [userId, gameId, level, correctCount, bestStreak, totalXP]);
 
     /**
      * Advance to next question or complete level
@@ -279,7 +261,6 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
         setGameComplete(false);
         setLevelPassed(false);
         setPreloadComplete(false);
-        setSessionStartTime(Date.now()); // Reset timer for new level
         preloadAllQuestions();
     }, [levelPassed, level, preloadAllQuestions]);
 
@@ -294,7 +275,6 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
         setGameComplete(false);
         setLevelPassed(false);
         setPreloadComplete(false);
-        setSessionStartTime(Date.now()); // Reset timer for retry
         preloadAllQuestions();
     }, [preloadAllQuestions]);
 
@@ -308,6 +288,7 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
         setCorrectCount(0);
         setStreak(0);
         setBestStreak(0);
+        setTotalXP(0);
         setGameComplete(false);
         setLevelPassed(false);
         setPreloadComplete(false);
@@ -337,6 +318,7 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
         correctCount,
         streak,
         bestStreak,
+        totalXP,
         requiredCorrect: getRequiredCorrect(level),
         passThreshold: TRAINING_CONFIG.passThresholds[level],
 
