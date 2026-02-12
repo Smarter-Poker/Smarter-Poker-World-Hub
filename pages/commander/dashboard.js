@@ -75,6 +75,7 @@ const CARDS = [
       { label: 'Shift Handoff', href: '/commander/shift-handoff', icon: '/images/commander/icons/mg-employee.png' },
       { label: 'Game Start AI', href: '/commander/game-start', icon: '/images/commander/icons/rp-tournament.png' },
       { label: 'Leagues', href: '/commander/leagues', icon: '/images/commander/icons/tn-registration.png' },
+      { label: 'Reputation', href: '/commander/reputation', icon: '/images/commander/icons/rp-custom.png' },
     ],
   },
   {
