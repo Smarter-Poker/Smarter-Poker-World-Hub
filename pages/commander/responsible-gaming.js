@@ -1,0 +1,212 @@
+/**
+ * Responsible Gaming Manager
+ * /commander/responsible-gaming
+ * Staff view: check player exclusion status, view active exclusions, venue compliance
+ */
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/router';
+import Head from 'next/head';
+import {
+  ArrowLeft, Shield, Search, Loader2, RefreshCw, AlertTriangle,
+  CheckCircle2, Clock, Ban, UserX, Users
+} from 'lucide-react';
+
+export default function ResponsibleGaming() {
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResult, setSearchResult] = useState(null);
+  const [searching, setSearching] = useState(false);
+  const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [venueId, setVenueId] = useState(null);
+
+  useEffect(() => {
+    try { const s = JSON.parse(localStorage.getItem('commander_staff') || '{}'); if (s.venue_id) setVenueId(s.venue_id); } catch {}
+  }, []);
+
+  const getToken = () => localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
+
+  // Load members to check exclusion status
+  const fetchMembers = useCallback(async () => {
+    if (!venueId) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/commander/members?venue_id=${venueId}&limit=200`, {
+        headers: { Authorization: `Bearer ${getToken()}` }
+      });
+      const json = await res.json();
+      if (json.success) setMembers(json.data || []);
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
+  }, [venueId]);
+
+  useEffect(() => { fetchMembers(); }, [fetchMembers]);
+
+  // Search/check specific player
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+    setSearching(true);
+    setSearchResult(null);
+    try {
+      // Search members first
+      const res = await fetch(`/api/commander/members/search?q=${encodeURIComponent(searchQuery)}&venue_id=${venueId}`, {
+        headers: { Authorization: `Bearer ${getToken()}` }
+      });
+      const json = await res.json();
+      const players = json.data || json.members || [];
+
+      if (players.length === 0) {
+        setSearchResult({ found: false, query: searchQuery });
+        return;
+      }
+
+      // Check exclusion status for each found player
+      const results = [];
+      for (const player of players.slice(0, 5)) {
+        try {
+          const checkRes = await fetch(`/api/commander/responsible-gaming/check/${player.user_id || player.id}?venue_id=${venueId}`, {
+            headers: { Authorization: `Bearer ${getToken()}` }
+          });
+          const checkJson = await checkRes.json();
+          results.push({
+            ...player,
+            exclusion: checkJson.data || checkJson,
+            is_excluded: checkJson.data?.is_excluded || checkJson.is_excluded || false,
+          });
+        } catch {
+          results.push({ ...player, exclusion: null, is_excluded: false });
+        }
+      }
+      setSearchResult({ found: true, players: results });
+    } catch (err) {
+      console.error(err);
+      setSearchResult({ found: false, error: true });
+    }
+    finally { setSearching(false); }
+  };
+
+  // Stats
+  const totalMembers = members.length;
+  const excludedMembers = members.filter(m => m.is_excluded || m.self_excluded).length;
+
+  return (
+    <>
+      <Head><title>Responsible Gaming | Club Commander</title></Head>
+      <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
+        <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
+          <button onClick={() => router.push('/commander/dashboard')} className="p-2 rounded-lg active:bg-[#3A3B3C]">
+            <ArrowLeft className="w-5 h-5 text-[#B0B3B8]" />
+          </button>
+          <div className="flex-1">
+            <h1 className="text-lg font-bold text-white">Responsible Gaming</h1>
+            <p className="text-xs text-[#B0B3B8]">Player protection & compliance</p>
+          </div>
+          <button onClick={fetchMembers} className="p-2 rounded-lg active:bg-[#3A3B3C]"><RefreshCw className="w-5 h-5 text-[#B0B3B8]" /></button>
+        </div>
+
+        <div className="px-4 py-4 space-y-4">
+          {/* Info banner */}
+          <div className="bg-[#1877F2]/10 border border-[#1877F2]/30 rounded-2xl p-4 flex items-start gap-3">
+            <Shield className="w-5 h-5 text-[#1877F2] mt-0.5 shrink-0" />
+            <div>
+              <p className="text-sm text-white font-medium">Player Safety First</p>
+              <p className="text-xs text-[#B0B3B8] mt-1">Check player exclusion status before seating. Self-excluded players must not be allowed to play. Contact management for enforcement questions.</p>
+            </div>
+          </div>
+
+          {/* Quick Stats */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-[#242526] border border-[#3A3B3C] rounded-2xl p-4 text-center">
+              <Users className="w-6 h-6 text-[#1877F2] mx-auto mb-1" />
+              <p className="text-2xl font-bold text-white">{totalMembers}</p>
+              <p className="text-xs text-[#B0B3B8]">Total Members</p>
+            </div>
+            <div className="bg-[#242526] border border-[#3A3B3C] rounded-2xl p-4 text-center">
+              <Ban className="w-6 h-6 text-[#EF4444] mx-auto mb-1" />
+              <p className="text-2xl font-bold text-[#EF4444]">{excludedMembers}</p>
+              <p className="text-xs text-[#B0B3B8]">Active Exclusions</p>
+            </div>
+          </div>
+
+          {/* Player Check */}
+          <div className="bg-[#242526] border border-[#3A3B3C] rounded-2xl p-4">
+            <h3 className="text-sm font-bold text-white mb-3">Check Player Status</h3>
+            <div className="flex gap-2">
+              <input type="text" value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                className="flex-1 px-4 py-3 bg-[#3A3B3C] border border-[#4E4F50] rounded-xl text-white text-sm focus:border-[#1877F2] focus:outline-none"
+                placeholder="Search by name, phone, or member #" />
+              <button onClick={handleSearch} disabled={searching || !searchQuery.trim()}
+                className="px-4 py-3 rounded-xl bg-[#1877F2] text-white font-medium flex items-center gap-1.5 active:bg-[#1565D8] disabled:opacity-50">
+                {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+              </button>
+            </div>
+
+            {/* Search Results */}
+            {searchResult && (
+              <div className="mt-3 space-y-2">
+                {!searchResult.found ? (
+                  <div className="py-4 text-center text-[#6A6B6D] text-sm">No players found for &quot;{searchResult.query}&quot;</div>
+                ) : (
+                  searchResult.players.map((p, i) => (
+                    <div key={i} className={`rounded-xl p-3 flex items-center gap-3 ${
+                      p.is_excluded ? 'bg-[#EF4444]/10 border border-[#EF4444]/30' : 'bg-[#31A24C]/10 border border-[#31A24C]/30'
+                    }`}>
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        p.is_excluded ? 'bg-[#EF4444]/20' : 'bg-[#31A24C]/20'
+                      }`}>
+                        {p.is_excluded ? <UserX className="w-5 h-5 text-[#EF4444]" /> : <CheckCircle2 className="w-5 h-5 text-[#31A24C]" />}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-white">
+                          {p.name || `${p.first_name || ''} ${p.last_name || ''}`.trim() || 'Unknown'}
+                        </p>
+                        {p.is_excluded ? (
+                          <p className="text-xs text-[#EF4444] font-medium">
+                            EXCLUDED — Do not seat this player
+                            {p.exclusion?.expires_at && ` (until ${new Date(p.exclusion.expires_at).toLocaleDateString()})`}
+                          </p>
+                        ) : (
+                          <p className="text-xs text-[#31A24C]">Clear — OK to seat</p>
+                        )}
+                      </div>
+                      {p.is_excluded && (
+                        <AlertTriangle className="w-6 h-6 text-[#EF4444] shrink-0" />
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Guidelines */}
+          <div className="bg-[#242526] border border-[#3A3B3C] rounded-2xl p-4">
+            <h3 className="text-sm font-bold text-white mb-3">Staff Guidelines</h3>
+            <div className="space-y-3">
+              {[
+                { icon: Search, text: 'Always check new players before seating', color: '#1877F2' },
+                { icon: Ban, text: 'Self-excluded players must be denied entry to gaming areas', color: '#EF4444' },
+                { icon: Clock, text: 'Monitor for signs of problem gambling (chasing losses, extended sessions)', color: '#F59E0B' },
+                { icon: Shield, text: 'Offer responsible gaming resources when asked', color: '#31A24C' },
+              ].map((g, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <g.icon className="w-4 h-4 mt-0.5 shrink-0" style={{ color: g.color }} />
+                  <p className="text-sm text-[#B0B3B8]">{g.text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Resources */}
+          <div className="bg-[#242526] border border-[#3A3B3C] rounded-2xl p-4">
+            <h3 className="text-sm font-bold text-white mb-2">Resources</h3>
+            <p className="text-xs text-[#B0B3B8]">National Problem Gambling Helpline: <span className="text-[#1877F2] font-mono">1-800-522-4700</span></p>
+            <p className="text-xs text-[#B0B3B8] mt-1">Available 24/7 • Confidential</p>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}

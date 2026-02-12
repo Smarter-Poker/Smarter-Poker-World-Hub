@@ -51,6 +51,7 @@ const CARDS = [
       { label: 'Floor Map', href: '/commander/floor', icon: '/images/commander/icons/mg-poker-room.png' },
       { label: 'Open Cash Game', href: '/commander/open-game', icon: '/images/commander/icons/mg-poker-room.png' },
       { label: 'Must-Move Games', href: '/commander/must-move', icon: '/images/commander/icons/mg-poker-room.png' },
+      { label: 'Cashier', href: '/commander/cashier', icon: '/images/commander/icons/mg-time-billing.png' },
       { label: 'Dealer Management', href: '/commander/dealers', icon: '/images/commander/icons/mg-employee.png' },
       { label: 'Time Billing', href: '/commander/time-billing', icon: '/images/commander/icons/wl-desk-view.png' },
       { label: 'Floor Calls', href: '/commander/floor-calls', icon: '/images/commander/icons/rp-activity.png' },

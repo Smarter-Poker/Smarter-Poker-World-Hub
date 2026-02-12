@@ -340,6 +340,13 @@ export default function MembershipKiosk() {
                     const json = await res.json();
                     if (json.success) {
                       setSuccessMsg(`${selectedTimePackage.label} added! New balance: ${json.data.new_balance} min`);
+                      // Print receipt
+                      const pw = window.open('', '_blank', 'width=400,height=600');
+                      if (pw) {
+                        pw.document.write(`<!DOCTYPE html><html><head><title>Receipt</title><style>@page{margin:0;size:80mm auto}body{font-family:'Courier New',monospace;margin:0;padding:0}.r{width:72mm;padding:4mm;margin:0 auto}.c{text-align:center}.b{font-weight:bold}.big{font-size:24px}.med{font-size:14px}.sm{font-size:11px}.d{border-top:1px dashed #000;margin:3mm 0}.row{display:flex;justify-content:space-between}</style></head><body><div class="r"><div class="c b med">SMARTER.POKER</div><div class="c sm">Time Purchase Receipt</div><div class="d"></div><div class="row sm"><span>Player:</span><span class="b">${selectedMember.name || selectedMember.first_name || 'Player'}</span></div><div class="d"></div><div class="row sm"><span>Package:</span><span class="b">${selectedTimePackage.label}</span></div><div class="row sm"><span>Minutes:</span><span class="b">${selectedTimePackage.minutes}</span></div><div class="d"></div><div class="c b big">$${selectedTimePackage.price}</div><div class="c sm">PAID - KIOSK</div><div class="d"></div><div class="sm c" style="opacity:.6">${new Date().toLocaleString()}</div><div class="sm c" style="opacity:.4;margin-top:1mm">Smarter.Poker</div></div></body></html>`);
+                        pw.document.close();
+                        setTimeout(() => { pw.print(); pw.close(); }, 500);
+                      }
                       setMode('success');
                     }
                   } catch (err) { console.error(err); }

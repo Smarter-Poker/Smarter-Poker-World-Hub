@@ -98,13 +98,57 @@ export default function TimeBilling() {
     setStopping(sessionId);
     try {
       const token = getToken();
-      await fetch(`/api/commander/time-billing/sessions/${sessionId}/stop`, {
+      const res = await fetch(`/api/commander/time-billing/sessions/${sessionId}/stop`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });
+      const json = await res.json();
+      // Print time billing receipt
+      if (json.success && json.data) {
+        printTimeBillingReceipt(json.data);
+      }
       await fetchData();
     } catch (err) { console.error(err); }
     finally { setStopping(null); }
+  };
+
+  const printTimeBillingReceipt = (session) => {
+    const printWindow = window.open('', '_blank', 'width=400,height=600');
+    if (!printWindow) return;
+    const hours = session.duration_minutes ? (session.duration_minutes / 60).toFixed(1) : '0';
+    const charge = parseFloat(session.total_charge || 0);
+    const html = `<!DOCTYPE html><html><head><title>Receipt</title>
+<style>
+  @page { margin: 0; size: 80mm auto; }
+  body { font-family: 'Courier New', monospace; margin: 0; padding: 0; }
+  .receipt { width: 72mm; padding: 4mm; margin: 0 auto; }
+  .center { text-align: center; }
+  .bold { font-weight: bold; }
+  .big { font-size: 24px; }
+  .med { font-size: 14px; }
+  .sm { font-size: 11px; }
+  .divider { border-top: 1px dashed #000; margin: 3mm 0; }
+  .row { display: flex; justify-content: space-between; }
+</style></head><body>
+<div class="receipt">
+  <div class="center bold med">SMARTER.POKER</div>
+  <div class="center sm">Time Billing Receipt</div>
+  <div class="divider"></div>
+  <div class="row sm"><span>Player:</span><span class="bold">${session.player_name}</span></div>
+  <div class="row sm"><span>Table/Seat:</span><span class="bold">T${session.table_number || '-'} S${session.seat_number || '-'}</span></div>
+  <div class="divider"></div>
+  <div class="row sm"><span>Duration:</span><span class="bold">${hours} hrs</span></div>
+  <div class="row sm"><span>Rate:</span><span>$${parseFloat(session.rate_per_hour || 12).toFixed(2)}/hr</span></div>
+  <div class="divider"></div>
+  <div class="center bold big">$${charge.toFixed(2)}</div>
+  <div class="center sm">AMOUNT DUE</div>
+  <div class="divider"></div>
+  <div class="sm center" style="opacity:0.6">${new Date().toLocaleString()}</div>
+  <div class="sm center" style="opacity:0.4;margin-top:1mm">Smarter.Poker</div>
+</div></body></html>`;
+    printWindow.document.write(html);
+    printWindow.document.close();
+    setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
   };
 
   const recordPayment = async () => {
