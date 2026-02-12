@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
-import { MapPin, Search, RefreshCw, AlertCircle, Trophy, FileText, Shield, Zap, Radio, DollarSign, Users, Clock } from 'lucide-react';
+import { MapPin, Search, RefreshCw, AlertCircle, Trophy, FileText, Shield, Zap, Radio, DollarSign, Users, Clock, CreditCard } from 'lucide-react';
 import VenueCard from '../../../src/components/commander/player/VenueCard';
 import WaitlistCard from '../../../src/components/commander/player/WaitlistCard';
 import PushNotificationProvider from '../../../src/components/commander/shared/PushNotificationProvider';
@@ -130,6 +130,7 @@ export default function CommanderHub() {
           {/* Quick Links - Metallic framed panels */}
           <section className="grid grid-cols-3 gap-4">
             {[
+              { href: '/hub/commander/player-card', icon: CreditCard, label: 'My Card', sub: 'Check In' },
               { href: '/hub/commander/leagues', icon: Trophy, label: 'Leagues', sub: 'Compete' },
               { href: '/hub/commander/hand-history', icon: FileText, label: 'Hands', sub: 'Review' },
               { href: '/hub/commander/responsible-gaming', icon: Shield, label: 'Limits', sub: 'Settings' },

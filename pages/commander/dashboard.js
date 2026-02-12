@@ -73,6 +73,7 @@ const CARDS = [
       { label: 'Incidents', href: '/commander/incidents', icon: '/images/commander/icons/rp-activity.png' },
       { label: 'Announcements', href: '/commander/announcements', icon: '/images/commander/icons/wl-player-view.png' },
       { label: 'Shift Handoff', href: '/commander/shift-handoff', icon: '/images/commander/icons/mg-employee.png' },
+      { label: 'Game Start AI', href: '/commander/game-start', icon: '/images/commander/icons/rp-tournament.png' },
       { label: 'Leagues', href: '/commander/leagues', icon: '/images/commander/icons/tn-registration.png' },
     ],
   },

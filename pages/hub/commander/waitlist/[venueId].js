@@ -28,6 +28,8 @@ export default function PlayerWaitlistPage() {
   const [joining, setJoining] = useState(null);
   const [success, setSuccess] = useState(null);
   const [error, setError] = useState(null);
+  const [seatPrefs, setSeatPrefs] = useState({ preferred_seats: '', left_handed: false, notes: '' });
+  const [showPrefs, setShowPrefs] = useState(false);
 
   // Fetch venue data
   useEffect(() => {
@@ -104,7 +106,12 @@ export default function PlayerWaitlistPage() {
           venue_id: parseInt(venueId),
           game_type: gameType,
           stakes: stakes,
-          source: 'app'
+          source: 'app',
+          seat_preferences: seatPrefs.preferred_seats || seatPrefs.left_handed || seatPrefs.notes ? {
+            preferred_seats: seatPrefs.preferred_seats ? seatPrefs.preferred_seats.split(',').map(s => parseInt(s.trim())).filter(Boolean) : [],
+            left_handed: seatPrefs.left_handed,
+            notes: seatPrefs.notes || null
+          } : undefined
         })
       });
 
@@ -354,20 +361,57 @@ export default function PlayerWaitlistPage() {
                             </button>
                           </div>
                         ) : (
-                          <button
-                            onClick={() => handleJoinWaitlist(option.gameType, option.stakes)}
-                            disabled={isJoining}
-                            className="cmd-btn cmd-btn-primary"
-                          >
-                            {isJoining ? (
-                              <Loader2 className="w-5 h-5 animate-spin" />
-                            ) : (
-                              <>
-                                Join
-                                <ChevronRight className="w-5 h-5" />
-                              </>
+                          <div className="space-y-2 w-full">
+                            <button
+                              onClick={() => setShowPrefs(!showPrefs)}
+                              className="text-xs text-[#22D3EE] font-medium hover:underline"
+                            >
+                              {showPrefs ? '▾ Hide seat preferences' : '▸ Seat preferences'}
+                            </button>
+                            {showPrefs && (
+                              <div className="bg-[#0D1117] rounded-lg p-3 space-y-2 border border-[#1E293B]">
+                                <div className="flex gap-2">
+                                  <input
+                                    type="text"
+                                    placeholder="Preferred seats (e.g. 1, 9)"
+                                    value={seatPrefs.preferred_seats}
+                                    onChange={e => setSeatPrefs(p => ({...p, preferred_seats: e.target.value}))}
+                                    className="flex-1 bg-[#161B22] border border-[#30363D] rounded-md px-3 py-2 text-sm text-white placeholder-[#484F58] focus:border-[#22D3EE] outline-none"
+                                  />
+                                </div>
+                                <label className="flex items-center gap-2 text-xs text-[#8B949E] cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={seatPrefs.left_handed}
+                                    onChange={e => setSeatPrefs(p => ({...p, left_handed: e.target.checked}))}
+                                    className="rounded border-[#30363D]"
+                                  />
+                                  Left-handed seating
+                                </label>
+                                <input
+                                  type="text"
+                                  placeholder="Other notes..."
+                                  value={seatPrefs.notes}
+                                  onChange={e => setSeatPrefs(p => ({...p, notes: e.target.value}))}
+                                  className="w-full bg-[#161B22] border border-[#30363D] rounded-md px-3 py-2 text-sm text-white placeholder-[#484F58] focus:border-[#22D3EE] outline-none"
+                                />
+                              </div>
                             )}
-                          </button>
+                            <button
+                              onClick={() => handleJoinWaitlist(option.gameType, option.stakes)}
+                              disabled={isJoining}
+                              className="cmd-btn cmd-btn-primary w-full"
+                            >
+                              {isJoining ? (
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                              ) : (
+                                <>
+                                  Join
+                                  <ChevronRight className="w-5 h-5" />
+                                </>
+                              )}
+                            </button>
+                          </div>
                         )}
                       </div>
                     </div>
