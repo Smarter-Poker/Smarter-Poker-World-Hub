@@ -5,11 +5,16 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { Zap, Trophy, BookOpen, GraduationCap, Gem, Lock, ChevronRight, Flame, Heart, Skull, Infinity, Shuffle, Swords, Calendar, Target, Banknote, Calculator, Brain } from 'lucide-react';
+import { Zap, Trophy, BookOpen, GraduationCap, Gem, Lock, ChevronRight, Flame, Heart, Skull, Infinity, Shuffle, Swords, Calendar, Target, Banknote, Calculator, Brain, AlertTriangle } from 'lucide-react';
 import MetalFrame from '../ui/MetalFrame';
 import HexButton from '../ui/HexButton';
 import PortholeIcon from '../ui/PortholeIcon';
 import StreakBadge from './StreakBadge';
+import { supabase } from '../../lib/supabase';
+import { getAuthUser } from '../../lib/authUtils';
+
+const GAME_COST = 10; // diamonds per game for non-VIP
+const ACKNOWLEDGED_KEY = 'trivia_charge_acknowledged';
 
 const MODE_CARDS = [
     // TOP ROW - Strategy Modes (MTT, Cash, GTO)
@@ -151,44 +156,115 @@ const MODE_CARDS = [
 ];
 
 
-export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, currentStreak = 0 }) {
+export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyCompleted = false, currentStreak = 0, onDiamondsChange }) {
     const router = useRouter();
     const [hoveredCard, setHoveredCard] = useState(null);
 
-    const startMode = (modeId) => {
-        if (modeId === 'arcade' && userDiamonds < 10) {
+    // VIP Gating state
+    const [showChargePopup, setShowChargePopup] = useState(false);
+    const [showTopUpPopup, setShowTopUpPopup] = useState(false);
+    const [pendingMode, setPendingMode] = useState(null);
+    const [isDeducting, setIsDeducting] = useState(false);
+
+    // Route to the correct page for a mode
+    const routeToMode = (modeId) => {
+        const standaloneRoutes = {
+            survival: '/hub/trivia/survival-game',
+            endless: '/hub/trivia/endless',
+            mixed: '/hub/trivia/mixed',
+            pvp: '/hub/trivia/pvp',
+            tournaments: '/hub/trivia/tournaments',
+        };
+        router.push(standaloneRoutes[modeId] || `/hub/trivia/${modeId}`);
+    };
+
+    // Deduct diamonds via Supabase
+    const deductDiamonds = async () => {
+        const user = getAuthUser();
+        if (!user) return false;
+        try {
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('diamonds')
+                .eq('id', user.id)
+                .single();
+            if (!profile || (profile.diamonds || 0) < GAME_COST) return false;
+            await supabase
+                .from('profiles')
+                .update({ diamonds: profile.diamonds - GAME_COST })
+                .eq('id', user.id);
+            onDiamondsChange?.(-GAME_COST);
+            return true;
+        } catch (err) {
+            console.error('Diamond deduction failed:', err);
+            return false;
+        }
+    };
+
+    // Handle charge popup acceptance
+    const handleChargeAccept = async () => {
+        setIsDeducting(true);
+        const success = await deductDiamonds();
+        setIsDeducting(false);
+        if (success) {
+            // Mark as acknowledged — popup never shows again
+            try { localStorage.setItem(ACKNOWLEDGED_KEY, 'true'); } catch (e) { }
+            setShowChargePopup(false);
+            routeToMode(pendingMode);
+            setPendingMode(null);
+        } else {
+            // Deduction failed (insufficient) — show top-up
+            setShowChargePopup(false);
+            setShowTopUpPopup(true);
+        }
+    };
+
+    const startMode = async (modeId) => {
+        // Block daily if already completed
+        if (modeId === 'daily' && dailyCompleted) return;
+
+        // === VIP members: free access to everything ===
+        if (isVip) {
+            routeToMode(modeId);
             return;
         }
-        if (modeId === 'daily' && dailyCompleted) {
+
+        // === Non-VIP: Daily trivia is free (once/day) ===
+        if (modeId === 'daily') {
+            routeToMode(modeId);
             return;
         }
-        // Standalone pages for specialized modes
-        if (modeId === 'survival') {
-            router.push('/hub/trivia/survival-game');
+
+        // === Non-VIP: All other modes cost 10 diamonds ===
+        // Check if user has previously acknowledged the charge popup
+        let acknowledged = false;
+        try { acknowledged = localStorage.getItem(ACKNOWLEDGED_KEY) === 'true'; } catch (e) { }
+
+        if (!acknowledged) {
+            // FIRST TIME: Show confirmation popup
+            if (userDiamonds < GAME_COST) {
+                setShowTopUpPopup(true);
+                return;
+            }
+            setPendingMode(modeId);
+            setShowChargePopup(true);
             return;
         }
-        if (modeId === 'endless') {
-            router.push('/hub/trivia/endless');
+
+        // RETURNING USER: Auto-deduct silently
+        if (userDiamonds < GAME_COST) {
+            setShowTopUpPopup(true);
             return;
         }
-        if (modeId === 'mixed') {
-            router.push('/hub/trivia/mixed');
-            return;
+
+        setIsDeducting(true);
+        const success = await deductDiamonds();
+        setIsDeducting(false);
+        if (success) {
+            routeToMode(modeId);
+        } else {
+            setShowTopUpPopup(true);
         }
-        if (modeId === 'pvp') {
-            router.push('/hub/trivia/pvp');
-            return;
-        }
-        if (modeId === 'tournaments') {
-            router.push('/hub/trivia/tournaments');
-            return;
-        }
-        // New strategy modes
-        if (['mtt', 'cash', 'icm', 'gto'].includes(modeId)) {
-            router.push(`/hub/trivia/${modeId}`);
-            return;
-        }
-        router.push(`/hub/trivia/${modeId}`);
     };
 
     return (
@@ -229,7 +305,6 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
                 <div className="modes-grid">
                     {MODE_CARDS.map((mode) => {
                         const Icon = mode.icon;
-                        const isLocked = mode.id === 'arcade' && userDiamonds < 10;
                         const isHovered = hoveredCard === mode.id;
 
                         // Use image-based card if mode has an image
@@ -237,25 +312,17 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
                             return (
                                 <div
                                     key={mode.id}
-                                    className={`mode-image-card ${isLocked ? 'mode-image-card--locked' : ''}`}
+                                    className="mode-image-card"
                                     onMouseEnter={() => setHoveredCard(mode.id)}
                                     onMouseLeave={() => setHoveredCard(null)}
-                                    onClick={() => !isLocked && startMode(mode.id)}
-                                    style={{
-                                        opacity: isLocked ? 0.6 : 1,
-                                        cursor: isLocked ? 'not-allowed' : 'pointer'
-                                    }}
+                                    onClick={() => startMode(mode.id)}
+                                    style={{ cursor: 'pointer' }}
                                 >
                                     <img
                                         src={mode.image}
                                         alt={mode.name}
                                         className="mode-image-card__img"
                                     />
-                                    {isLocked && (
-                                        <div className="mode-image-card__lock">
-                                            <Lock size={32} />
-                                        </div>
-                                    )}
                                 </div>
                             );
                         }
@@ -268,18 +335,17 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
                                 showBolts={true}
                                 showNeonStrips={false}
                                 variant={isHovered ? 'elevated' : 'flat'}
-                                className={`mode-card ${isLocked ? 'mode-card--locked' : ''}`}
+                                className="mode-card"
                                 style={{
                                     '--mode-color': mode.color,
-                                    opacity: isLocked ? 0.6 : 1,
-                                    cursor: isLocked ? 'not-allowed' : 'pointer'
+                                    cursor: 'pointer'
                                 }}
                             >
                                 <div
                                     className="mode-card__inner"
                                     onMouseEnter={() => setHoveredCard(mode.id)}
                                     onMouseLeave={() => setHoveredCard(null)}
-                                    onClick={() => !isLocked && startMode(mode.id)}
+                                    onClick={() => startMode(mode.id)}
                                 >
                                     {/* Left neon strip accent */}
                                     <div
@@ -291,7 +357,7 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
                                         icon={Icon}
                                         size={60}
                                         glowColor={mode.glowColor}
-                                        animated={isHovered && !isLocked}
+                                        animated={isHovered}
                                     />
 
                                     <h3 className="mode-name" style={{ color: mode.color }}>
@@ -303,15 +369,13 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
                                     <HexButton
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            if (!isLocked) startMode(mode.id);
+                                            startMode(mode.id);
                                         }}
-                                        disabled={isLocked}
-                                        variant={isLocked ? 'secondary' : 'primary'}
+                                        variant="primary"
                                         size="sm"
                                         fullWidth
-                                        icon={isLocked ? <Lock size={14} /> : mode.id === 'arcade' ? <ChevronRight size={14} /> : null}
                                     >
-                                        {isLocked ? 'LOCKED' : mode.id === 'arcade' ? 'PLAY' : 'START'}
+                                        START
                                     </HexButton>
                                 </div>
                             </MetalFrame>
@@ -327,22 +391,14 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
             <div className="quick-stakes-section">
                 <div
                     className="quick-stakes-banner"
-                    onClick={() => userDiamonds >= 10 && startMode('arcade')}
-                    style={{
-                        opacity: userDiamonds >= 10 ? 1 : 0.6,
-                        cursor: userDiamonds >= 10 ? 'pointer' : 'not-allowed'
-                    }}
+                    onClick={() => startMode('arcade')}
+                    style={{ cursor: 'pointer' }}
                 >
                     <img
                         src="/images/trivia/quick-stakes.png?v=rembg2"
                         alt="Quick Stakes - 10 Questions in 60 Seconds"
                         className="quick-stakes-banner__img"
                     />
-                    {userDiamonds < 10 && (
-                        <div className="mode-image-card__lock">
-                            <Lock size={32} />
-                        </div>
-                    )}
                 </div>
             </div>
 
@@ -589,13 +645,226 @@ export default function TriviaLobby({ userDiamonds = 0, dailyCompleted = false, 
                 .qs-header {
                     display: flex;
                     align-items: baseline;
+                }
+
                 @media (max-width: 600px) {
                     .daily-hero__layout {
                         flex-direction: column;
                     }
                 }
+
+                /* ═══════ VIP GATING POPUPS ═══════ */
+                .gate-overlay {
+                    position: fixed;
+                    inset: 0;
+                    z-index: 9999;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: rgba(0, 0, 0, 0.75);
+                    backdrop-filter: blur(6px);
+                    animation: gateFadeIn 0.2s ease;
+                }
+                @keyframes gateFadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                .gate-card {
+                    background: linear-gradient(145deg, #1a1f2e, #0d1117);
+                    border: 1px solid rgba(0, 212, 255, 0.3);
+                    border-radius: 16px;
+                    padding: 32px 28px;
+                    max-width: 360px;
+                    width: 90%;
+                    text-align: center;
+                    box-shadow: 0 0 40px rgba(0, 212, 255, 0.15), inset 0 1px 0 rgba(255,255,255,0.05);
+                }
+                .gate-icon {
+                    font-size: 48px;
+                    margin-bottom: 12px;
+                }
+                .gate-title {
+                    font-size: 20px;
+                    font-weight: 700;
+                    color: #fff;
+                    margin-bottom: 8px;
+                }
+                .gate-desc {
+                    font-size: 14px;
+                    color: rgba(255,255,255,0.65);
+                    line-height: 1.5;
+                    margin-bottom: 24px;
+                }
+                .gate-cost {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 8px;
+                    background: rgba(0, 212, 255, 0.1);
+                    border: 1px solid rgba(0, 212, 255, 0.25);
+                    border-radius: 12px;
+                    padding: 10px 20px;
+                    margin-bottom: 24px;
+                    font-size: 22px;
+                    font-weight: 700;
+                    color: #00d4ff;
+                }
+                .gate-cost svg {
+                    width: 22px;
+                    height: 22px;
+                }
+                .gate-buttons {
+                    display: flex;
+                    gap: 12px;
+                    justify-content: center;
+                }
+                .gate-btn {
+                    flex: 1;
+                    padding: 12px 20px;
+                    border-radius: 10px;
+                    border: none;
+                    font-size: 15px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    font-family: inherit;
+                }
+                .gate-btn--accept {
+                    background: linear-gradient(135deg, #00d4ff, #0099cc);
+                    color: #000;
+                }
+                .gate-btn--accept:hover {
+                    transform: scale(1.03);
+                    box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+                }
+                .gate-btn--accept:disabled {
+                    opacity: 0.6;
+                    cursor: wait;
+                }
+                .gate-btn--cancel {
+                    background: rgba(255, 255, 255, 0.08);
+                    color: rgba(255, 255, 255, 0.7);
+                    border: 1px solid rgba(255, 255, 255, 0.15);
+                }
+                .gate-btn--cancel:hover {
+                    background: rgba(255, 255, 255, 0.12);
+                }
+                .gate-btn--store {
+                    background: linear-gradient(135deg, #f97316, #ea580c);
+                    color: #fff;
+                    flex: unset;
+                    padding: 12px 28px;
+                }
+                .gate-btn--store:hover {
+                    transform: scale(1.03);
+                    box-shadow: 0 0 20px rgba(249, 115, 22, 0.4);
+                }
+                .gate-balance {
+                    margin-top: 12px;
+                    font-size: 13px;
+                    color: rgba(255,255,255,0.4);
+                }
+
+                /* Deducting overlay */
+                .deducting-overlay {
+                    position: fixed;
+                    inset: 0;
+                    z-index: 9998;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: rgba(0,0,0,0.5);
+                    backdrop-filter: blur(3px);
+                }
+                .deducting-spinner {
+                    width: 36px;
+                    height: 36px;
+                    border: 3px solid rgba(0,212,255,0.2);
+                    border-top-color: #00d4ff;
+                    border-radius: 50%;
+                    animation: spin 0.8s linear infinite;
+                }
+                @keyframes spin {
+                    to { transform: rotate(360deg); }
+                }
             `}</style>
-        </div>
+
+            {/* ═══════ DIAMOND CHARGE POPUP (first-time only) ═══════ */}
+            {
+                showChargePopup && (
+                    <div className="gate-overlay" onClick={() => { setShowChargePopup(false); setPendingMode(null); }}>
+                        <div className="gate-card" onClick={e => e.stopPropagation()}>
+                            <div className="gate-icon">💎</div>
+                            <div className="gate-title">Diamond Entry Fee</div>
+                            <div className="gate-desc">
+                                This game mode costs diamonds to play. Your diamonds will be automatically deducted for future games.
+                            </div>
+                            <div className="gate-cost">
+                                <Gem size={22} /> {GAME_COST} Diamonds
+                            </div>
+                            <div className="gate-buttons">
+                                <button
+                                    className="gate-btn gate-btn--cancel"
+                                    onClick={() => { setShowChargePopup(false); setPendingMode(null); }}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    className="gate-btn gate-btn--accept"
+                                    onClick={handleChargeAccept}
+                                    disabled={isDeducting}
+                                >
+                                    {isDeducting ? 'Processing...' : 'Accept & Play'}
+                                </button>
+                            </div>
+                            <div className="gate-balance">
+                                Your balance: {userDiamonds} 💎
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* ═══════ TOP-UP POPUP (insufficient diamonds) ═══════ */}
+            {
+                showTopUpPopup && (
+                    <div className="gate-overlay" onClick={() => setShowTopUpPopup(false)}>
+                        <div className="gate-card" onClick={e => e.stopPropagation()}>
+                            <div className="gate-icon">⚠️</div>
+                            <div className="gate-title">Not Enough Diamonds</div>
+                            <div className="gate-desc">
+                                You need at least <strong>{GAME_COST} 💎</strong> to play this mode.
+                                Visit the Diamond Store to top up your balance.
+                            </div>
+                            <div className="gate-cost" style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.1)' }}>
+                                <Gem size={22} /> Balance: {userDiamonds} 💎
+                            </div>
+                            <div className="gate-buttons">
+                                <button
+                                    className="gate-btn gate-btn--cancel"
+                                    onClick={() => setShowTopUpPopup(false)}
+                                >
+                                    Close
+                                </button>
+                                <button
+                                    className="gate-btn gate-btn--store"
+                                    onClick={() => router.push('/hub/diamond-store')}
+                                >
+                                    💎 Get Diamonds
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* Deducting spinner overlay */}
+            {
+                isDeducting && !showChargePopup && (
+                    <div className="deducting-overlay">
+                        <div className="deducting-spinner" />
+                    </div>
+                )
+            }
+        </div >
     );
 }
-/* Cache bust: 1770343799 */

@@ -20,6 +20,7 @@ export default function TriviaHubPage() {
     const { user } = useAvatar();
     const userId = user?.id;
     const [userDiamonds, setUserDiamonds] = useState(0);
+    const [isVip, setIsVip] = useState(false);
     const [dailyCompleted, setDailyCompleted] = useState(false);
     const [currentStreak, setCurrentStreak] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
@@ -68,12 +69,13 @@ export default function TriviaHubPage() {
                     // Get user profile for diamonds
                     const { data: profile } = await supabase
                         .from('profiles')
-                        .select('diamonds')
+                        .select('diamonds, is_vip')
                         .eq('id', user.id)
                         .single();
 
                     if (profile) {
                         setUserDiamonds(profile.diamonds || 0);
+                        setIsVip(profile.is_vip === true);
                     }
 
                     // Check if daily trivia completed today
@@ -151,8 +153,10 @@ export default function TriviaHubPage() {
                     ) : (
                         <TriviaLobby
                             userDiamonds={userDiamonds}
+                            isVip={isVip}
                             dailyCompleted={dailyCompleted}
                             currentStreak={currentStreak}
+                            onDiamondsChange={(delta) => setUserDiamonds(prev => prev + delta)}
                         />
                     )}
                 </div>

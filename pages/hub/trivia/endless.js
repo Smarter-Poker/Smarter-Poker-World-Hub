@@ -14,6 +14,8 @@ import { getAuthUser } from '../../../src/lib/authUtils';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
+import DiamondEngine from '../../../src/services/DiamondEngine';
+import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 
 export default function EndlessModePage() {
     const router = useRouter();
@@ -29,6 +31,8 @@ export default function EndlessModePage() {
     const [userId, setUserId] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [highScore, setHighScore] = useState(0);
+    const [isVip, setIsVip] = useState(false);
+    const [showOutOfDiamonds, setShowOutOfDiamonds] = useState(false);
 
     // 50/50 Lifeline State
     const [fiftyFiftyUsedFree, setFiftyFiftyUsedFree] = useState(false); // One free per game
@@ -81,6 +85,10 @@ export default function EndlessModePage() {
             const user = getAuthUser();
             if (user) {
                 setUserId(user.id);
+                // Check VIP status
+                await DiamondEngine.init(user.id);
+                const vipStatus = await DiamondEngine.isVIP();
+                setIsVip(vipStatus);
                 // Load high score (ignore errors - table may not exist)
                 try {
                     const { data } = await supabase
@@ -187,7 +195,15 @@ export default function EndlessModePage() {
         }
     }
 
-    function startGame() {
+    async function startGame() {
+        // Per-game diamond gate (VIP bypass)
+        if (!isVip && userId) {
+            const result = await DiamondEngine.deduct(10, 'trivia_endless');
+            if (!result.success) {
+                setShowOutOfDiamonds(true);
+                return;
+            }
+        }
         setGameState('playing');
         setStreak(0);
         setDiamondsEarned(0);
@@ -535,6 +551,31 @@ export default function EndlessModePage() {
             </Head>
 
             <UniversalHeader pageDepth={2} />
+
+            {/* Per-game cost popup (one-time) */}
+            {userId && !isVip && (
+                <GameCostPopup
+                    userId={userId}
+                    featureKey="trivia_endless"
+                    cost={10}
+                    featureName="Endless Mode"
+                />
+            )}
+
+            {/* Out of diamonds modal */}
+            {showOutOfDiamonds && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}>
+                    <div style={{ background: '#1a1a2e', border: '1px solid rgba(0,212,255,0.3)', borderRadius: 16, padding: 32, textAlign: 'center', maxWidth: 360 }}>
+                        <div style={{ fontSize: 48, marginBottom: 16 }}>💎</div>
+                        <h3 style={{ color: '#fff', marginBottom: 8 }}>Not Enough Diamonds</h3>
+                        <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: 20 }}>Each game costs 10💎. Get more diamonds or upgrade to VIP for unlimited access!</p>
+                        <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+                            <button onClick={() => router.push('/hub/diamond-store')} style={{ padding: '10px 20px', background: 'linear-gradient(135deg, #00D4FF, #0088FF)', border: 'none', borderRadius: 8, color: '#fff', fontWeight: 600, cursor: 'pointer' }}>Get Diamonds</button>
+                            <button onClick={() => setShowOutOfDiamonds(false)} style={{ padding: '10px 20px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, color: '#fff', cursor: 'pointer' }}>Close</button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <PageTransition>
                 <div style={{

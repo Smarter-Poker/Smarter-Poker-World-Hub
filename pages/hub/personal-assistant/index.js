@@ -21,6 +21,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { useAssistantStats, useRecentSessions } from '../../../src/hooks/useAssistant';
 import JarvisChatWidget from '../../../src/components/jarvis/JarvisChatWidget';
 import DashboardOverview from '../../../src/components/jarvis/DashboardOverview';
+import FeatureGate from '../../../src/components/gates/FeatureGate';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // STRATEGY HUB — Main Landing Page
@@ -233,217 +234,219 @@ export default function PersonalAssistantPage() {
           </>
         )}
 
-        {/* Main Content */}
-        <main style={styles.main}>
-          {/* Page Title */}
-          <div style={styles.titleSection}>
-            <h1 style={styles.pageTitle}>Strategy Hub</h1>
-            <p style={styles.pageSubtitle}>Safe, data-driven tools to refine your poker game the right way.</p>
-          </div>
-
-          {/* Dashboard Overview */}
-          <DashboardOverview stats={stats} isLoading={isLoading} />
-
-          {/* Two Main Tool Cards */}
-          <div style={styles.toolCardsContainer}>
-            {/* Virtual Sandbox Card */}
-            <motion.div
-              style={styles.toolCard}
-              whileHover={{ scale: 1.02, y: -4 }}
-              transition={{ duration: 0.2 }}
-              onClick={() => router.push('/hub/personal-assistant/sandbox')}
-            >
-              <div style={styles.toolIconContainer}>
-                <div style={styles.sandboxIcon}>
-                  <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                    <path d="M24 4L8 14v20l16 10 16-10V14L24 4z" stroke="#64b5f6" strokeWidth="2" fill="none" />
-                    <path d="M24 24V44M8 14l16 10 16-10" stroke="#64b5f6" strokeWidth="2" />
-                    <circle cx="24" cy="24" r="4" fill="#64b5f6" />
-                  </svg>
-                </div>
-              </div>
-              <h2 style={styles.toolTitle}>Virtual Sandbox</h2>
-              <p style={styles.toolDescription}>Explore Theoretical Hands</p>
-              <ul style={styles.toolFeatures}>
-                <li style={styles.featureItem}>
-                  <span style={styles.checkmark}>&#10003;</span>
-                  Run any poker scenario
-                </li>
-                <li style={styles.featureItem}>
-                  <span style={styles.checkmark}>&#10003;</span>
-                  Test complex hands vs Villain types
-                </li>
-                <li style={styles.featureItem}>
-                  <span style={styles.checkmark}>&#10003;</span>
-                  See solver-verified GTO results
-                </li>
-              </ul>
-              <button style={styles.toolButton}>
-                Enter Sandbox
-              </button>
-              <span style={styles.toolFooter}>Not live play - Experiment freely</span>
-            </motion.div>
-
-            {/* Leak Finder Card */}
-            <motion.div
-              style={styles.toolCard}
-              whileHover={{ scale: 1.02, y: -4 }}
-              transition={{ duration: 0.2 }}
-              onClick={() => router.push('/hub/personal-assistant/leaks')}
-            >
-              <div style={styles.toolIconContainer}>
-                <div style={styles.leakIcon}>
-                  <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                    <circle cx="24" cy="24" r="18" stroke="#90caf9" strokeWidth="2" fill="none" />
-                    <circle cx="24" cy="24" r="12" stroke="#90caf9" strokeWidth="2" fill="none" />
-                    <circle cx="24" cy="24" r="6" stroke="#90caf9" strokeWidth="2" fill="none" />
-                    <line x1="24" y1="6" x2="24" y2="2" stroke="#90caf9" strokeWidth="2" />
-                    <line x1="24" y1="46" x2="24" y2="42" stroke="#90caf9" strokeWidth="2" />
-                    <line x1="6" y1="24" x2="2" y2="24" stroke="#90caf9" strokeWidth="2" />
-                    <line x1="46" y1="24" x2="42" y2="24" stroke="#90caf9" strokeWidth="2" />
-                  </svg>
-                </div>
-              </div>
-              <h2 style={styles.toolTitle}>Leak Finder</h2>
-              <p style={styles.toolDescription}>Track & Improve Your Game</p>
-              <ul style={styles.toolFeatures}>
-                <li style={styles.featureItem}>
-                  <span style={styles.checkmark}>&#10003;</span>
-                  Detect statistical leaks
-                </li>
-                <li style={styles.featureItem}>
-                  <span style={styles.checkmark}>&#10003;</span>
-                  Track progress over time
-                </li>
-                <li style={styles.featureItem}>
-                  <span style={styles.checkmark}>&#10003;</span>
-                  Get targeted training
-                </li>
-              </ul>
-              <button style={styles.toolButton}>
-                View Leaks
-              </button>
-              <span style={styles.toolFooter}>Post-play review only - Track and improve</span>
-            </motion.div>
-          </div>
-
-          {/* Trust Pillars Section */}
-          <div style={styles.trustSection}>
-            <h3 style={styles.trustTitle}>Honest, Regulator-Ready Poker Study</h3>
-            <p style={styles.trustSubtitle}>
-              <span style={styles.trustCheck}>&#10003;</span> Non-Exploitative
-              <span style={styles.trustDot}> - </span>
-              <span style={styles.trustCheck}>&#10003;</span> No Live Advice
-              <span style={styles.trustDot}> - </span>
-              <span style={styles.trustCheck}>&#10003;</span> Regulator-Safe
-            </p>
-
-            <div style={styles.trustPillars}>
-              <div style={styles.pillar}>
-                <div style={styles.pillarIcon}>
-                  <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                    <path d="M16 2L4 8v8c0 7.18 5.12 13.89 12 16 6.88-2.11 12-8.82 12-16V8L16 2z" stroke="#64b5f6" strokeWidth="2" fill="none" />
-                    <path d="M12 16l3 3 6-6" stroke="#64b5f6" strokeWidth="2" strokeLinecap="round" />
-                  </svg>
-                </div>
-                <h4 style={styles.pillarTitle}>GTO Anchored</h4>
-                <p style={styles.pillarText}>Tied to solver analysis<br />AI fill-in clearly labeled</p>
-              </div>
-
-              <div style={styles.pillar}>
-                <div style={styles.pillarIcon}>
-                  <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                    <circle cx="16" cy="16" r="14" stroke="#64b5f6" strokeWidth="2" fill="none" />
-                    <path d="M12 16l3 3 6-6" stroke="#64b5f6" strokeWidth="2" strokeLinecap="round" />
-                  </svg>
-                </div>
-                <h4 style={styles.pillarTitle}>Safe & Fair</h4>
-                <p style={styles.pillarText}>No live assist - No exploit hunting<br />Test in peace</p>
-              </div>
-
-              <div style={styles.pillar}>
-                <div style={styles.pillarIcon}>
-                  <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                    <path d="M4 24V12l6-6h12l6 6v12l-6 6H10l-6-6z" stroke="#64b5f6" strokeWidth="2" fill="none" />
-                    <path d="M10 20l4-8 4 6 4-4" stroke="#64b5f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </div>
-                <h4 style={styles.pillarTitle}>Results-Driven</h4>
-                <p style={styles.pillarText}>Identify leaks - Track improvement<br />Train smarter</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Recent Sessions */}
-          <div style={styles.recentSection}>
-            <div style={styles.recentHeader}>
-              <h3 style={styles.recentTitle}>Recent Sessions</h3>
-              <select style={styles.recentFilter}>
-                <option>My Sessions</option>
-                <option>All Sessions</option>
-              </select>
+        {/* Main Content — Gated behind 100💎 day pass */}
+        <FeatureGate featureKey="personal_assistant" userId={user?.id} cost={100} duration={24} featureName="Strategy Hub" description="Access Virtual Sandbox, Leak Finder, and Jarvis coaching tools for 24 hours.">
+          <main style={styles.main}>
+            {/* Page Title */}
+            <div style={styles.titleSection}>
+              <h1 style={styles.pageTitle}>Strategy Hub</h1>
+              <p style={styles.pageSubtitle}>Safe, data-driven tools to refine your poker game the right way.</p>
             </div>
 
-            {isLoading ? (
-              <div style={styles.loadingState}>Loading sessions...</div>
-            ) : recentSessions.length === 0 ? (
-              <div style={styles.emptyState}>
-                <p>No sessions yet. Start exploring in the Virtual Sandbox!</p>
-              </div>
-            ) : (
-              <div style={styles.sessionsList}>
-                {recentSessions.map((session) => (
-                  <div key={session.id} style={styles.sessionCard}>
-                    <div style={styles.sessionLeft}>
-                      <div style={styles.sessionIcon}>
-                        {session.type === 'sandbox' ? (
-                          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                            <rect x="2" y="2" width="16" height="16" rx="2" stroke="#64b5f6" strokeWidth="1.5" fill="none" />
-                          </svg>
-                        ) : (
-                          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                            <circle cx="10" cy="10" r="8" stroke="#f59e0b" strokeWidth="1.5" fill="none" />
-                          </svg>
-                        )}
-                      </div>
-                      <div style={styles.sessionInfo}>
-                        <span style={styles.sessionTitle}>{session.title}</span>
-                        {session.stack && <span style={styles.sessionMeta}> - {session.stack}</span>}
-                      </div>
-                    </div>
-                    <div style={styles.sessionRight}>
-                      <span style={{
-                        ...styles.sessionEv,
-                        color: session.evLoss < 0 ? '#ef4444' : '#22c55e'
-                      }}>
-                        {session.evLoss < 0 ? '' : '+'}{session.evLoss.toFixed(2)} BB
-                        {session.type === 'leak' ? '/Hand Leakage' : ' of EV Loss'}
-                      </span>
-                      <span style={styles.sessionLink}>
-                        {session.type === 'sandbox' ? 'Analyze in Sandbox >' : 'View Details >'}
-                      </span>
-                    </div>
+            {/* Dashboard Overview */}
+            <DashboardOverview stats={stats} isLoading={isLoading} />
+
+            {/* Two Main Tool Cards */}
+            <div style={styles.toolCardsContainer}>
+              {/* Virtual Sandbox Card */}
+              <motion.div
+                style={styles.toolCard}
+                whileHover={{ scale: 1.02, y: -4 }}
+                transition={{ duration: 0.2 }}
+                onClick={() => router.push('/hub/personal-assistant/sandbox')}
+              >
+                <div style={styles.toolIconContainer}>
+                  <div style={styles.sandboxIcon}>
+                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                      <path d="M24 4L8 14v20l16 10 16-10V14L24 4z" stroke="#64b5f6" strokeWidth="2" fill="none" />
+                      <path d="M24 24V44M8 14l16 10 16-10" stroke="#64b5f6" strokeWidth="2" />
+                      <circle cx="24" cy="24" r="4" fill="#64b5f6" />
+                    </svg>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                </div>
+                <h2 style={styles.toolTitle}>Virtual Sandbox</h2>
+                <p style={styles.toolDescription}>Explore Theoretical Hands</p>
+                <ul style={styles.toolFeatures}>
+                  <li style={styles.featureItem}>
+                    <span style={styles.checkmark}>&#10003;</span>
+                    Run any poker scenario
+                  </li>
+                  <li style={styles.featureItem}>
+                    <span style={styles.checkmark}>&#10003;</span>
+                    Test complex hands vs Villain types
+                  </li>
+                  <li style={styles.featureItem}>
+                    <span style={styles.checkmark}>&#10003;</span>
+                    See solver-verified GTO results
+                  </li>
+                </ul>
+                <button style={styles.toolButton}>
+                  Enter Sandbox
+                </button>
+                <span style={styles.toolFooter}>Not live play - Experiment freely</span>
+              </motion.div>
 
-          {/* Footer */}
-          <footer style={styles.footer}>
-            <div style={styles.footerBrand}>
-              <img src="/smarter-poker-logo-transparent.png" alt="Smarter.Poker" style={styles.footerLogo} />
+              {/* Leak Finder Card */}
+              <motion.div
+                style={styles.toolCard}
+                whileHover={{ scale: 1.02, y: -4 }}
+                transition={{ duration: 0.2 }}
+                onClick={() => router.push('/hub/personal-assistant/leaks')}
+              >
+                <div style={styles.toolIconContainer}>
+                  <div style={styles.leakIcon}>
+                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                      <circle cx="24" cy="24" r="18" stroke="#90caf9" strokeWidth="2" fill="none" />
+                      <circle cx="24" cy="24" r="12" stroke="#90caf9" strokeWidth="2" fill="none" />
+                      <circle cx="24" cy="24" r="6" stroke="#90caf9" strokeWidth="2" fill="none" />
+                      <line x1="24" y1="6" x2="24" y2="2" stroke="#90caf9" strokeWidth="2" />
+                      <line x1="24" y1="46" x2="24" y2="42" stroke="#90caf9" strokeWidth="2" />
+                      <line x1="6" y1="24" x2="2" y2="24" stroke="#90caf9" strokeWidth="2" />
+                      <line x1="46" y1="24" x2="42" y2="24" stroke="#90caf9" strokeWidth="2" />
+                    </svg>
+                  </div>
+                </div>
+                <h2 style={styles.toolTitle}>Leak Finder</h2>
+                <p style={styles.toolDescription}>Track & Improve Your Game</p>
+                <ul style={styles.toolFeatures}>
+                  <li style={styles.featureItem}>
+                    <span style={styles.checkmark}>&#10003;</span>
+                    Detect statistical leaks
+                  </li>
+                  <li style={styles.featureItem}>
+                    <span style={styles.checkmark}>&#10003;</span>
+                    Track progress over time
+                  </li>
+                  <li style={styles.featureItem}>
+                    <span style={styles.checkmark}>&#10003;</span>
+                    Get targeted training
+                  </li>
+                </ul>
+                <button style={styles.toolButton}>
+                  View Leaks
+                </button>
+                <span style={styles.toolFooter}>Post-play review only - Track and improve</span>
+              </motion.div>
             </div>
-            <div style={styles.footerLinks}>
-              <a href="/about" style={styles.footerLink}>About</a>
-              <a href="/features" style={styles.footerLink}>Features</a>
-              <a href="/security" style={styles.footerLink}>Security</a>
-              <a href="/terms" style={styles.footerLink}>Terms</a>
-              <a href="/privacy" style={styles.footerLink}>Privacy</a>
+
+            {/* Trust Pillars Section */}
+            <div style={styles.trustSection}>
+              <h3 style={styles.trustTitle}>Honest, Regulator-Ready Poker Study</h3>
+              <p style={styles.trustSubtitle}>
+                <span style={styles.trustCheck}>&#10003;</span> Non-Exploitative
+                <span style={styles.trustDot}> - </span>
+                <span style={styles.trustCheck}>&#10003;</span> No Live Advice
+                <span style={styles.trustDot}> - </span>
+                <span style={styles.trustCheck}>&#10003;</span> Regulator-Safe
+              </p>
+
+              <div style={styles.trustPillars}>
+                <div style={styles.pillar}>
+                  <div style={styles.pillarIcon}>
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                      <path d="M16 2L4 8v8c0 7.18 5.12 13.89 12 16 6.88-2.11 12-8.82 12-16V8L16 2z" stroke="#64b5f6" strokeWidth="2" fill="none" />
+                      <path d="M12 16l3 3 6-6" stroke="#64b5f6" strokeWidth="2" strokeLinecap="round" />
+                    </svg>
+                  </div>
+                  <h4 style={styles.pillarTitle}>GTO Anchored</h4>
+                  <p style={styles.pillarText}>Tied to solver analysis<br />AI fill-in clearly labeled</p>
+                </div>
+
+                <div style={styles.pillar}>
+                  <div style={styles.pillarIcon}>
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                      <circle cx="16" cy="16" r="14" stroke="#64b5f6" strokeWidth="2" fill="none" />
+                      <path d="M12 16l3 3 6-6" stroke="#64b5f6" strokeWidth="2" strokeLinecap="round" />
+                    </svg>
+                  </div>
+                  <h4 style={styles.pillarTitle}>Safe & Fair</h4>
+                  <p style={styles.pillarText}>No live assist - No exploit hunting<br />Test in peace</p>
+                </div>
+
+                <div style={styles.pillar}>
+                  <div style={styles.pillarIcon}>
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                      <path d="M4 24V12l6-6h12l6 6v12l-6 6H10l-6-6z" stroke="#64b5f6" strokeWidth="2" fill="none" />
+                      <path d="M10 20l4-8 4 6 4-4" stroke="#64b5f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                  <h4 style={styles.pillarTitle}>Results-Driven</h4>
+                  <p style={styles.pillarText}>Identify leaks - Track improvement<br />Train smarter</p>
+                </div>
+              </div>
             </div>
-            <p style={styles.footerCopyright}>2024 Smarter.Poker. All rights reserved.</p>
-          </footer>
-        </main>
+
+            {/* Recent Sessions */}
+            <div style={styles.recentSection}>
+              <div style={styles.recentHeader}>
+                <h3 style={styles.recentTitle}>Recent Sessions</h3>
+                <select style={styles.recentFilter}>
+                  <option>My Sessions</option>
+                  <option>All Sessions</option>
+                </select>
+              </div>
+
+              {isLoading ? (
+                <div style={styles.loadingState}>Loading sessions...</div>
+              ) : recentSessions.length === 0 ? (
+                <div style={styles.emptyState}>
+                  <p>No sessions yet. Start exploring in the Virtual Sandbox!</p>
+                </div>
+              ) : (
+                <div style={styles.sessionsList}>
+                  {recentSessions.map((session) => (
+                    <div key={session.id} style={styles.sessionCard}>
+                      <div style={styles.sessionLeft}>
+                        <div style={styles.sessionIcon}>
+                          {session.type === 'sandbox' ? (
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                              <rect x="2" y="2" width="16" height="16" rx="2" stroke="#64b5f6" strokeWidth="1.5" fill="none" />
+                            </svg>
+                          ) : (
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                              <circle cx="10" cy="10" r="8" stroke="#f59e0b" strokeWidth="1.5" fill="none" />
+                            </svg>
+                          )}
+                        </div>
+                        <div style={styles.sessionInfo}>
+                          <span style={styles.sessionTitle}>{session.title}</span>
+                          {session.stack && <span style={styles.sessionMeta}> - {session.stack}</span>}
+                        </div>
+                      </div>
+                      <div style={styles.sessionRight}>
+                        <span style={{
+                          ...styles.sessionEv,
+                          color: session.evLoss < 0 ? '#ef4444' : '#22c55e'
+                        }}>
+                          {session.evLoss < 0 ? '' : '+'}{session.evLoss.toFixed(2)} BB
+                          {session.type === 'leak' ? '/Hand Leakage' : ' of EV Loss'}
+                        </span>
+                        <span style={styles.sessionLink}>
+                          {session.type === 'sandbox' ? 'Analyze in Sandbox >' : 'View Details >'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <footer style={styles.footer}>
+              <div style={styles.footerBrand}>
+                <img src="/smarter-poker-logo-transparent.png" alt="Smarter.Poker" style={styles.footerLogo} />
+              </div>
+              <div style={styles.footerLinks}>
+                <a href="/about" style={styles.footerLink}>About</a>
+                <a href="/features" style={styles.footerLink}>Features</a>
+                <a href="/security" style={styles.footerLink}>Security</a>
+                <a href="/terms" style={styles.footerLink}>Terms</a>
+                <a href="/privacy" style={styles.footerLink}>Privacy</a>
+              </div>
+              <p style={styles.footerCopyright}>2024 Smarter.Poker. All rights reserved.</p>
+            </footer>
+          </main>
+        </FeatureGate>
 
         {/* Jarvis Chat Widget */}
         <JarvisChatWidget user={user} />

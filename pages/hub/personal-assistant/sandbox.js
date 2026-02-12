@@ -15,6 +15,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { useSandboxAnalysis, useArchetypes } from '../../../src/hooks/useAssistant';
+import FeatureGate from '../../../src/components/gates/FeatureGate';
+import { getAuthUser } from '../../../src/lib/authUtils';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -718,6 +720,13 @@ const resultsStyles = {
 export default function VirtualSandboxPage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const [userId, setUserId] = useState(null);
+
+  // Get auth user for FeatureGate
+  useEffect(() => {
+    const user = getAuthUser();
+    if (user) setUserId(user.id);
+  }, []);
 
   // Hero state
   const [heroCard1, setHeroCard1] = useState('As');
@@ -864,392 +873,394 @@ export default function VirtualSandboxPage() {
         <div style={styles.bgGrid} />
         <UniversalHeader pageDepth={2} />
 
-        {/* Top Bar */}
-        <div style={styles.topBar}>
-          <div style={styles.topBarLeft}>
-            <span style={styles.brandText}>Smarter.Poker</span>
-            <span style={styles.divider}>|</span>
-            <span style={styles.pageLabel}>Virtual Sandbox</span>
-            <span style={styles.pageSublabel}>— Theoretical Exploration</span>
-          </div>
-          <div style={styles.topBarRight}>
-            <div style={styles.integrityBadge}>
-              <span style={styles.lockIcon}>&#128274;</span>
-              Not Live Play - No Real-Time Advice
+        <FeatureGate featureKey="personal_assistant" userId={userId} cost={100} duration={24} featureName="Virtual Sandbox" description="Access Virtual Sandbox, Leak Finder, and Jarvis coaching tools for 24 hours.">
+          {/* Top Bar */}
+          <div style={styles.topBar}>
+            <div style={styles.topBarLeft}>
+              <span style={styles.brandText}>Smarter.Poker</span>
+              <span style={styles.divider}>|</span>
+              <span style={styles.pageLabel}>Virtual Sandbox</span>
+              <span style={styles.pageSublabel}>— Theoretical Exploration</span>
+            </div>
+            <div style={styles.topBarRight}>
+              <div style={styles.integrityBadge}>
+                <span style={styles.lockIcon}>&#128274;</span>
+                Not Live Play - No Real-Time Advice
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Game Type Confirmation Modal (Masterplan Section VIII) */}
-        <AnimatePresence>
-          {showGameTypeModal && (
-            <motion.div
-              style={styles.modalOverlay}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowGameTypeModal(false)}
-            >
+          {/* Game Type Confirmation Modal (Masterplan Section VIII) */}
+          <AnimatePresence>
+            {showGameTypeModal && (
               <motion.div
-                style={styles.modal}
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                onClick={(e) => e.stopPropagation()}
+                style={styles.modalOverlay}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowGameTypeModal(false)}
               >
-                <h3 style={styles.modalTitle}>Switch Game Type?</h3>
-                <p style={styles.modalText}>
-                  Switching from <strong>{gameType === 'cash' ? 'Cash (ChipEV)' : 'Tournament (ICM)'}</strong> to{' '}
-                  <strong>{pendingGameType === 'cash' ? 'Cash (ChipEV)' : 'Tournament (ICM)'}</strong> will
-                  change how optimal play is calculated.
-                </p>
-                <p style={styles.modalSubtext}>
-                  {pendingGameType === 'tournament'
-                    ? 'ICM considerations will affect decisions near bubble/final table spots.'
-                    : 'ChipEV focuses purely on chip accumulation without tournament equity adjustments.'}
-                </p>
-                <div style={styles.modalButtons}>
-                  <button
-                    style={styles.modalBtnCancel}
-                    onClick={() => setShowGameTypeModal(false)}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    style={styles.modalBtnConfirm}
-                    onClick={() => {
-                      setGameType(pendingGameType);
-                      setShowGameTypeModal(false);
-                    }}
-                  >
-                    Switch to {pendingGameType === 'cash' ? 'Cash' : 'Tournament'}
-                  </button>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Unrealistic Setup Warning Banner (Masterplan Section VIII) */}
-        <AnimatePresence>
-          {showWarningBanner && (
-            <motion.div
-              style={styles.warningBanner}
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-            >
-              <span style={styles.warningIcon}></span>
-              {showWarningBanner}
-              <button
-                style={styles.warningClose}
-                onClick={() => setShowWarningBanner(null)}
-              >
-                ×
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Main Layout */}
-        <div style={styles.mainLayout}>
-          {/* Left Panel - Controls */}
-          <div style={styles.leftPanel}>
-            <h3 style={styles.sectionTitle}>Sandbox Setup</h3>
-
-            {/* Hero Settings */}
-            <div style={styles.controlSection}>
-              <h4 style={styles.controlTitle}>Hero Settings</h4>
-
-              <div style={styles.controlRow}>
-                <label style={styles.controlLabel}>Hand:</label>
-                <div style={styles.cardRow}>
-                  <CardPicker
-                    value={heroCard1}
-                    onChange={setHeroCard1}
-                    usedCards={getUsedCards().filter(c => c !== heroCard1)}
-                  />
-                  <CardPicker
-                    value={heroCard2}
-                    onChange={setHeroCard2}
-                    usedCards={getUsedCards().filter(c => c !== heroCard2)}
-                  />
-                </div>
-              </div>
-
-              <div style={styles.controlRow}>
-                <label style={styles.controlLabel}>Position:</label>
-                <select
-                  style={styles.select}
-                  value={heroPosition}
-                  onChange={(e) => setHeroPosition(e.target.value)}
+                <motion.div
+                  style={styles.modal}
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  {POSITIONS.map(pos => (
-                    <option key={pos} value={pos}>{pos}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={styles.controlRow}>
-                <label style={styles.controlLabel}>Stack:</label>
-                <div style={styles.stackInput}>
-                  <input
-                    type="number"
-                    style={styles.numberInput}
-                    value={heroStack}
-                    onChange={(e) => setHeroStack(parseInt(e.target.value) || 0)}
-                    min={1}
-                    max={500}
-                  />
-                  <span style={styles.stackSuffix}>BB</span>
-                </div>
-              </div>
-
-              <div style={styles.controlRow}>
-                <label style={styles.controlLabel}>Game Type:</label>
-                <div style={styles.toggleGroup}>
-                  <button
-                    style={{
-                      ...styles.toggleBtn,
-                      ...(gameType === 'cash' ? styles.toggleBtnActive : {}),
-                    }}
-                    onClick={() => {
-                      if (gameType !== 'cash') {
-                        setPendingGameType('cash');
-                        setShowGameTypeModal(true);
-                      }
-                    }}
-                  >
-                    Cash (ChpEV)
-                  </button>
-                  <button
-                    style={{
-                      ...styles.toggleBtn,
-                      ...(gameType === 'tournament' ? styles.toggleBtnActive : {}),
-                    }}
-                    onClick={() => {
-                      if (gameType !== 'tournament') {
-                        setPendingGameType('tournament');
-                        setShowGameTypeModal(true);
-                      }
-                    }}
-                  >
-                    Tournament (ICM)
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Table Setup */}
-            <div style={styles.controlSection}>
-              <h4 style={styles.controlTitle}>Table Setup</h4>
-
-              <div style={styles.controlRow}>
-                <label style={styles.controlLabel}>Opponents:</label>
-                <select
-                  style={styles.select}
-                  value={numOpponents}
-                  onChange={(e) => {
-                    const num = parseInt(e.target.value);
-                    setNumOpponents(num);
-                    // Adjust villains array
-                    if (num > villains.length) {
-                      const newVillains = [...villains];
-                      for (let i = villains.length; i < num; i++) {
-                        newVillains.push({
-                          seat: i + 1,
-                          archetype: VILLAIN_ARCHETYPES[0],
-                          stack: 100,
-                        });
-                      }
-                      setVillains(newVillains);
-                    } else {
-                      setVillains(villains.slice(0, num));
-                    }
-                  }}
-                >
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => (
-                    <option key={n} value={n}>{n}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={styles.controlRow}>
-                <label style={styles.controlLabel}>Villains:</label>
-                <div style={styles.villainList}>
-                  {villains.slice(0, 4).map((villain, index) => (
-                    <select
-                      key={villain.seat}
-                      style={styles.villainSelect}
-                      value={villain.archetype?.id || 'gto_neutral'}
-                      onChange={(e) => updateVillainArchetype(villain.seat, e.target.value)}
+                  <h3 style={styles.modalTitle}>Switch Game Type?</h3>
+                  <p style={styles.modalText}>
+                    Switching from <strong>{gameType === 'cash' ? 'Cash (ChipEV)' : 'Tournament (ICM)'}</strong> to{' '}
+                    <strong>{pendingGameType === 'cash' ? 'Cash (ChipEV)' : 'Tournament (ICM)'}</strong> will
+                    change how optimal play is calculated.
+                  </p>
+                  <p style={styles.modalSubtext}>
+                    {pendingGameType === 'tournament'
+                      ? 'ICM considerations will affect decisions near bubble/final table spots.'
+                      : 'ChipEV focuses purely on chip accumulation without tournament equity adjustments.'}
+                  </p>
+                  <div style={styles.modalButtons}>
+                    <button
+                      style={styles.modalBtnCancel}
+                      onClick={() => setShowGameTypeModal(false)}
                     >
-                      {VILLAIN_ARCHETYPES.map(arch => (
-                        <option key={arch.id} value={arch.id}>{arch.name}</option>
-                      ))}
-                    </select>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Board */}
-            <div style={styles.controlSection}>
-              <h4 style={styles.controlTitle}>Board:</h4>
-              <div style={styles.boardLinks}>
-                <button style={styles.linkBtn} onClick={() => {
-                  setBoardFlop([null, null, null]);
-                  setBoardTurn(null);
-                  setBoardRiver(null);
-                }}>Clear</button>
-                <span style={styles.linkDivider}>|</span>
-                <button style={styles.linkBtn}>Set Flop</button>
-                <span style={styles.linkDivider}>,</span>
-                <button style={styles.linkBtn}>Turn</button>
-                <span style={styles.linkDivider}>,</span>
-                <button style={styles.linkBtn}>River</button>
-              </div>
-
-              <div style={styles.boardCards}>
-                <div style={styles.boardRow}>
-                  <span style={styles.boardLabel}>Flop:</span>
-                  {[0, 1, 2].map(i => (
-                    <CardPicker
-                      key={`flop-${i}`}
-                      value={boardFlop[i]}
-                      onChange={(val) => {
-                        const newFlop = [...boardFlop];
-                        newFlop[i] = val;
-                        setBoardFlop(newFlop);
+                      Cancel
+                    </button>
+                    <button
+                      style={styles.modalBtnConfirm}
+                      onClick={() => {
+                        setGameType(pendingGameType);
+                        setShowGameTypeModal(false);
                       }}
-                      usedCards={getUsedCards().filter(c => c !== boardFlop[i])}
-                    />
-                  ))}
-                </div>
-                <div style={styles.boardRow}>
-                  <span style={styles.boardLabel}>Turn:</span>
-                  <CardPicker
-                    value={boardTurn}
-                    onChange={setBoardTurn}
-                    usedCards={getUsedCards().filter(c => c !== boardTurn)}
-                  />
-                </div>
-                <div style={styles.boardRow}>
-                  <span style={styles.boardLabel}>River:</span>
-                  <CardPicker
-                    value={boardRiver}
-                    onChange={setBoardRiver}
-                    usedCards={getUsedCards().filter(c => c !== boardRiver)}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Bet Sizing */}
-            <div style={styles.controlSection}>
-              <h4 style={styles.controlTitle}>Bet Sizing:</h4>
-              <div style={styles.sizingLinks}>
-                <button
-                  style={{
-                    ...styles.linkBtn,
-                    color: betSizing === 'standard' ? '#64b5f6' : 'inherit',
-                    textDecoration: betSizing === 'standard' ? 'underline' : 'none',
-                  }}
-                  onClick={() => setBetSizing('standard')}
-                >
-                  Standard
-                </button>
-                <span style={styles.linkDivider}>|</span>
-                <button
-                  style={{
-                    ...styles.linkBtn,
-                    color: betSizing === 'custom' ? '#64b5f6' : 'inherit',
-                  }}
-                  onClick={() => setBetSizing('custom')}
-                >
-                  Customize
-                </button>
-              </div>
-            </div>
-
-            {/* Run Button */}
-            <button
-              style={styles.runButton}
-              onClick={runAnalysis}
-              disabled={isAnalyzing}
-            >
-              {isAnalyzing ? 'Analyzing...' : 'Run Theoretical Analysis'}
-            </button>
-          </div>
-
-          {/* Right Panel - Table & Results */}
-          <div style={styles.rightPanel}>
-            {/* Poker Table */}
-            <PokerTableCanvas
-              heroHand={{ card1: heroCard1, card2: heroCard2 }}
-              heroPosition={heroPosition}
-              heroStack={heroStack}
-              villains={villains}
-              board={{
-                flop: boardFlop.filter(Boolean),
-                turn: boardTurn,
-                river: boardRiver,
-              }}
-              potSize={22}
-            />
-
-            {/* GTO Results */}
-            <GTOResultsPanel results={results} isLoading={isAnalyzing} />
-
-            {/* Explore Further */}
-            {results && (
-              <div style={styles.explorePanel}>
-                <h4 style={styles.exploreTitle}>Explore Further?</h4>
-                <div style={styles.exploreButtons}>
-                  <button
-                    style={styles.exploreBtn}
-                    onClick={() => {
-                      setHeroStack(40);
-                      // Update all villain stacks proportionally
-                      setVillains(villains.map(v => ({ ...v, stack: Math.round(v.stack * 0.4) })));
-                      setTimeout(runAnalysis, 100);
-                    }}
-                  >
-                    Try at 40 BB Stacks
-                    <span style={styles.exploreArrow}>&#8250;</span>
-                  </button>
-                  <button
-                    style={styles.exploreBtn}
-                    onClick={() => {
-                      setGameType(gameType === 'cash' ? 'tournament' : 'cash');
-                      setTimeout(runAnalysis, 100);
-                    }}
-                  >
-                    {gameType === 'cash' ? 'Switch to ICM Mode' : 'Switch to Cash Mode'}
-                    <span style={styles.exploreArrow}>&#8250;</span>
-                  </button>
-                  <button
-                    style={styles.exploreBtn}
-                    onClick={() => {
-                      // Find a villain that isn't already loose-passive and change them
-                      const loosePassiveId = 'loose_passive';
-                      const updated = villains.map((v, i) =>
-                        i === 0 ? { ...v, archetype: VILLAIN_ARCHETYPES.find(a => a.id === loosePassiveId) } : v
-                      );
-                      setVillains(updated);
-                      setTimeout(runAnalysis, 100);
-                    }}
-                  >
-                    Test vs Calling Station
-                    <span style={styles.exploreArrow}>&#8250;</span>
-                  </button>
-                </div>
-              </div>
+                    >
+                      Switch to {pendingGameType === 'cash' ? 'Cash' : 'Tournament'}
+                    </button>
+                  </div>
+                </motion.div>
+              </motion.div>
             )}
+          </AnimatePresence>
+
+          {/* Unrealistic Setup Warning Banner (Masterplan Section VIII) */}
+          <AnimatePresence>
+            {showWarningBanner && (
+              <motion.div
+                style={styles.warningBanner}
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+              >
+                <span style={styles.warningIcon}></span>
+                {showWarningBanner}
+                <button
+                  style={styles.warningClose}
+                  onClick={() => setShowWarningBanner(null)}
+                >
+                  ×
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Main Layout */}
+          <div style={styles.mainLayout}>
+            {/* Left Panel - Controls */}
+            <div style={styles.leftPanel}>
+              <h3 style={styles.sectionTitle}>Sandbox Setup</h3>
+
+              {/* Hero Settings */}
+              <div style={styles.controlSection}>
+                <h4 style={styles.controlTitle}>Hero Settings</h4>
+
+                <div style={styles.controlRow}>
+                  <label style={styles.controlLabel}>Hand:</label>
+                  <div style={styles.cardRow}>
+                    <CardPicker
+                      value={heroCard1}
+                      onChange={setHeroCard1}
+                      usedCards={getUsedCards().filter(c => c !== heroCard1)}
+                    />
+                    <CardPicker
+                      value={heroCard2}
+                      onChange={setHeroCard2}
+                      usedCards={getUsedCards().filter(c => c !== heroCard2)}
+                    />
+                  </div>
+                </div>
+
+                <div style={styles.controlRow}>
+                  <label style={styles.controlLabel}>Position:</label>
+                  <select
+                    style={styles.select}
+                    value={heroPosition}
+                    onChange={(e) => setHeroPosition(e.target.value)}
+                  >
+                    {POSITIONS.map(pos => (
+                      <option key={pos} value={pos}>{pos}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={styles.controlRow}>
+                  <label style={styles.controlLabel}>Stack:</label>
+                  <div style={styles.stackInput}>
+                    <input
+                      type="number"
+                      style={styles.numberInput}
+                      value={heroStack}
+                      onChange={(e) => setHeroStack(parseInt(e.target.value) || 0)}
+                      min={1}
+                      max={500}
+                    />
+                    <span style={styles.stackSuffix}>BB</span>
+                  </div>
+                </div>
+
+                <div style={styles.controlRow}>
+                  <label style={styles.controlLabel}>Game Type:</label>
+                  <div style={styles.toggleGroup}>
+                    <button
+                      style={{
+                        ...styles.toggleBtn,
+                        ...(gameType === 'cash' ? styles.toggleBtnActive : {}),
+                      }}
+                      onClick={() => {
+                        if (gameType !== 'cash') {
+                          setPendingGameType('cash');
+                          setShowGameTypeModal(true);
+                        }
+                      }}
+                    >
+                      Cash (ChpEV)
+                    </button>
+                    <button
+                      style={{
+                        ...styles.toggleBtn,
+                        ...(gameType === 'tournament' ? styles.toggleBtnActive : {}),
+                      }}
+                      onClick={() => {
+                        if (gameType !== 'tournament') {
+                          setPendingGameType('tournament');
+                          setShowGameTypeModal(true);
+                        }
+                      }}
+                    >
+                      Tournament (ICM)
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Table Setup */}
+              <div style={styles.controlSection}>
+                <h4 style={styles.controlTitle}>Table Setup</h4>
+
+                <div style={styles.controlRow}>
+                  <label style={styles.controlLabel}>Opponents:</label>
+                  <select
+                    style={styles.select}
+                    value={numOpponents}
+                    onChange={(e) => {
+                      const num = parseInt(e.target.value);
+                      setNumOpponents(num);
+                      // Adjust villains array
+                      if (num > villains.length) {
+                        const newVillains = [...villains];
+                        for (let i = villains.length; i < num; i++) {
+                          newVillains.push({
+                            seat: i + 1,
+                            archetype: VILLAIN_ARCHETYPES[0],
+                            stack: 100,
+                          });
+                        }
+                        setVillains(newVillains);
+                      } else {
+                        setVillains(villains.slice(0, num));
+                      }
+                    }}
+                  >
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => (
+                      <option key={n} value={n}>{n}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={styles.controlRow}>
+                  <label style={styles.controlLabel}>Villains:</label>
+                  <div style={styles.villainList}>
+                    {villains.slice(0, 4).map((villain, index) => (
+                      <select
+                        key={villain.seat}
+                        style={styles.villainSelect}
+                        value={villain.archetype?.id || 'gto_neutral'}
+                        onChange={(e) => updateVillainArchetype(villain.seat, e.target.value)}
+                      >
+                        {VILLAIN_ARCHETYPES.map(arch => (
+                          <option key={arch.id} value={arch.id}>{arch.name}</option>
+                        ))}
+                      </select>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Board */}
+              <div style={styles.controlSection}>
+                <h4 style={styles.controlTitle}>Board:</h4>
+                <div style={styles.boardLinks}>
+                  <button style={styles.linkBtn} onClick={() => {
+                    setBoardFlop([null, null, null]);
+                    setBoardTurn(null);
+                    setBoardRiver(null);
+                  }}>Clear</button>
+                  <span style={styles.linkDivider}>|</span>
+                  <button style={styles.linkBtn}>Set Flop</button>
+                  <span style={styles.linkDivider}>,</span>
+                  <button style={styles.linkBtn}>Turn</button>
+                  <span style={styles.linkDivider}>,</span>
+                  <button style={styles.linkBtn}>River</button>
+                </div>
+
+                <div style={styles.boardCards}>
+                  <div style={styles.boardRow}>
+                    <span style={styles.boardLabel}>Flop:</span>
+                    {[0, 1, 2].map(i => (
+                      <CardPicker
+                        key={`flop-${i}`}
+                        value={boardFlop[i]}
+                        onChange={(val) => {
+                          const newFlop = [...boardFlop];
+                          newFlop[i] = val;
+                          setBoardFlop(newFlop);
+                        }}
+                        usedCards={getUsedCards().filter(c => c !== boardFlop[i])}
+                      />
+                    ))}
+                  </div>
+                  <div style={styles.boardRow}>
+                    <span style={styles.boardLabel}>Turn:</span>
+                    <CardPicker
+                      value={boardTurn}
+                      onChange={setBoardTurn}
+                      usedCards={getUsedCards().filter(c => c !== boardTurn)}
+                    />
+                  </div>
+                  <div style={styles.boardRow}>
+                    <span style={styles.boardLabel}>River:</span>
+                    <CardPicker
+                      value={boardRiver}
+                      onChange={setBoardRiver}
+                      usedCards={getUsedCards().filter(c => c !== boardRiver)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Bet Sizing */}
+              <div style={styles.controlSection}>
+                <h4 style={styles.controlTitle}>Bet Sizing:</h4>
+                <div style={styles.sizingLinks}>
+                  <button
+                    style={{
+                      ...styles.linkBtn,
+                      color: betSizing === 'standard' ? '#64b5f6' : 'inherit',
+                      textDecoration: betSizing === 'standard' ? 'underline' : 'none',
+                    }}
+                    onClick={() => setBetSizing('standard')}
+                  >
+                    Standard
+                  </button>
+                  <span style={styles.linkDivider}>|</span>
+                  <button
+                    style={{
+                      ...styles.linkBtn,
+                      color: betSizing === 'custom' ? '#64b5f6' : 'inherit',
+                    }}
+                    onClick={() => setBetSizing('custom')}
+                  >
+                    Customize
+                  </button>
+                </div>
+              </div>
+
+              {/* Run Button */}
+              <button
+                style={styles.runButton}
+                onClick={runAnalysis}
+                disabled={isAnalyzing}
+              >
+                {isAnalyzing ? 'Analyzing...' : 'Run Theoretical Analysis'}
+              </button>
+            </div>
+
+            {/* Right Panel - Table & Results */}
+            <div style={styles.rightPanel}>
+              {/* Poker Table */}
+              <PokerTableCanvas
+                heroHand={{ card1: heroCard1, card2: heroCard2 }}
+                heroPosition={heroPosition}
+                heroStack={heroStack}
+                villains={villains}
+                board={{
+                  flop: boardFlop.filter(Boolean),
+                  turn: boardTurn,
+                  river: boardRiver,
+                }}
+                potSize={22}
+              />
+
+              {/* GTO Results */}
+              <GTOResultsPanel results={results} isLoading={isAnalyzing} />
+
+              {/* Explore Further */}
+              {results && (
+                <div style={styles.explorePanel}>
+                  <h4 style={styles.exploreTitle}>Explore Further?</h4>
+                  <div style={styles.exploreButtons}>
+                    <button
+                      style={styles.exploreBtn}
+                      onClick={() => {
+                        setHeroStack(40);
+                        // Update all villain stacks proportionally
+                        setVillains(villains.map(v => ({ ...v, stack: Math.round(v.stack * 0.4) })));
+                        setTimeout(runAnalysis, 100);
+                      }}
+                    >
+                      Try at 40 BB Stacks
+                      <span style={styles.exploreArrow}>&#8250;</span>
+                    </button>
+                    <button
+                      style={styles.exploreBtn}
+                      onClick={() => {
+                        setGameType(gameType === 'cash' ? 'tournament' : 'cash');
+                        setTimeout(runAnalysis, 100);
+                      }}
+                    >
+                      {gameType === 'cash' ? 'Switch to ICM Mode' : 'Switch to Cash Mode'}
+                      <span style={styles.exploreArrow}>&#8250;</span>
+                    </button>
+                    <button
+                      style={styles.exploreBtn}
+                      onClick={() => {
+                        // Find a villain that isn't already loose-passive and change them
+                        const loosePassiveId = 'loose_passive';
+                        const updated = villains.map((v, i) =>
+                          i === 0 ? { ...v, archetype: VILLAIN_ARCHETYPES.find(a => a.id === loosePassiveId) } : v
+                        );
+                        setVillains(updated);
+                        setTimeout(runAnalysis, 100);
+                      }}
+                    >
+                      Test vs Calling Station
+                      <span style={styles.exploreArrow}>&#8250;</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        </FeatureGate>
       </div>
-    </PageTransition>
+    </PageTransition >
   );
 }
 

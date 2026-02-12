@@ -15,6 +15,7 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import { supabase } from '../../src/lib/supabase';
 import { getAuthUser } from '../../src/lib/authUtils';
+import { purchaseVipWithDiamonds, VIP_DIAMOND_COST } from '../../src/lib/gates/premiumFeatureGate';
 
 const C = {
     bg: '#0a0a0a',
@@ -155,6 +156,10 @@ export default function VipPage() {
     const [currentTier, setCurrentTier] = useState('free');
     const [expandedFaq, setExpandedFaq] = useState(null);
     const [user, setUser] = useState(null);
+    const [diamonds, setDiamonds] = useState(0);
+    const [isPurchasing, setIsPurchasing] = useState(false);
+    const [purchaseResult, setPurchaseResult] = useState(null);
+    const [showConfirm, setShowConfirm] = useState(false);
 
     const menuConfig = getMenuConfig('vip', user, {}, {});
 
@@ -175,16 +180,18 @@ export default function VipPage() {
                 try {
                     const { data, error } = await supabase
                         .from('profiles')
-                        .select('vip_tier')
+                        .select('vip_tier, diamonds, is_vip')
                         .eq('id', authUser.id)
                         .single();
 
-                    if (!error && data?.vip_tier) {
-                        setCurrentTier(data.vip_tier);
-                        // Update localStorage for future quick loads
-                        if (typeof window !== 'undefined') {
-                            localStorage.setItem('sp-vip-tier', data.vip_tier);
+                    if (!error && data) {
+                        if (data.vip_tier) {
+                            setCurrentTier(data.vip_tier);
+                            if (typeof window !== 'undefined') {
+                                localStorage.setItem('sp-vip-tier', data.vip_tier);
+                            }
                         }
+                        setDiamonds(data.diamonds || 0);
                     }
                 } catch (e) {
                     console.warn('[VIP] Failed to load VIP status from Supabase:', e);
@@ -196,10 +203,23 @@ export default function VipPage() {
 
     const handleSubscribe = async (tierId) => {
         if (tierId === 'free') return;
-
-        // Route to diamond store for Stripe checkout
-        // VIP status will be set by the Stripe webhook on payment completion
         router.push('/hub/diamond-store?vip=' + tierId + '&cycle=' + billingCycle);
+    };
+
+    const handleDiamondPurchase = async () => {
+        if (!user?.id) { router.push('/auth/login'); return; }
+        setIsPurchasing(true);
+        setPurchaseResult(null);
+        const result = await purchaseVipWithDiamonds(user.id);
+        setIsPurchasing(false);
+        if (result.success) {
+            setPurchaseResult({ success: true, expiresAt: result.expiresAt });
+            setDiamonds(result.newBalance);
+            setCurrentTier('diamond');
+            setShowConfirm(false);
+        } else {
+            setPurchaseResult({ success: false, error: result.error });
+        }
     };
 
 
@@ -436,6 +456,157 @@ export default function VipPage() {
                                 );
                             })}
                         </div>
+
+                        {/* ═══ Diamond VIP Purchase Option ═══ */}
+                        {currentTier === 'free' && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.5 }}
+                                style={{
+                                    marginBottom: 48, padding: 32, borderRadius: 20,
+                                    background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+                                    border: '2px solid rgba(0,212,255,0.3)',
+                                    boxShadow: '0 0 40px rgba(0,212,255,0.1)',
+                                    textAlign: 'center', position: 'relative', overflow: 'hidden'
+                                }}
+                            >
+                                {/* Shimmer effect */}
+                                <div style={{
+                                    position: 'absolute', top: 0, left: '-100%', width: '200%', height: '100%',
+                                    background: 'linear-gradient(90deg, transparent, rgba(0,212,255,0.05), transparent)',
+                                    animation: 'premium-shimmer 3s infinite',
+                                    pointerEvents: 'none'
+                                }} />
+
+                                <div style={{
+                                    fontSize: 40, marginBottom: 12
+                                }}>💎</div>
+
+                                <h3 style={{
+                                    fontSize: 22, fontWeight: 800, color: '#fff',
+                                    margin: '0 0 8px', letterSpacing: '-0.01em'
+                                }}>Buy VIP with Diamonds</h3>
+
+                                <p style={{
+                                    fontSize: 15, color: 'rgba(255,255,255,0.7)', margin: '0 0 6px',
+                                    lineHeight: 1.6
+                                }}>
+                                    Unlock <strong style={{ color: '#FFD700' }}>full VIP benefits</strong> for 30 days
+                                    using your diamond balance.
+                                </p>
+
+                                <div style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                                    fontSize: 13, color: 'rgba(255,255,255,0.5)', marginBottom: 20
+                                }}>
+                                    Your balance: <span style={{ color: '#00D4FF', fontWeight: 700 }}>{diamonds.toLocaleString()} 💎</span>
+                                </div>
+
+                                <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+                                    <button
+                                        onClick={() => setShowConfirm(true)}
+                                        disabled={diamonds < VIP_DIAMOND_COST || isPurchasing}
+                                        style={{
+                                            padding: '14px 32px', border: 'none', borderRadius: 12,
+                                            background: diamonds >= VIP_DIAMOND_COST
+                                                ? 'linear-gradient(135deg, #00D4FF, #0084FF)'
+                                                : '#333',
+                                            color: diamonds >= VIP_DIAMOND_COST ? '#000' : '#666',
+                                            fontSize: 16, fontWeight: 800, cursor: diamonds >= VIP_DIAMOND_COST ? 'pointer' : 'not-allowed',
+                                            letterSpacing: '0.02em',
+                                            boxShadow: diamonds >= VIP_DIAMOND_COST ? '0 0 20px rgba(0,212,255,0.3)' : 'none',
+                                            transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        💎 {VIP_DIAMOND_COST.toLocaleString()} — Buy 30 Days VIP
+                                    </button>
+                                </div>
+
+                                {diamonds < VIP_DIAMOND_COST && (
+                                    <p style={{ fontSize: 12, color: '#ef4444', marginTop: 10 }}>
+                                        You need {(VIP_DIAMOND_COST - diamonds).toLocaleString()} more diamonds
+                                    </p>
+                                )}
+
+                                {/* Success banner */}
+                                {purchaseResult?.success && (
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        style={{
+                                            marginTop: 20, padding: '16px 24px', borderRadius: 12,
+                                            background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.4)',
+                                            color: '#22c55e', fontSize: 14, fontWeight: 600
+                                        }}
+                                    >
+                                        🎉 VIP Activated! Expires {purchaseResult.expiresAt?.toLocaleDateString()}
+                                    </motion.div>
+                                )}
+
+                                {/* Error banner */}
+                                {purchaseResult && !purchaseResult.success && (
+                                    <div style={{
+                                        marginTop: 12, padding: '10px 16px', borderRadius: 8,
+                                        background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
+                                        color: '#ef4444', fontSize: 13
+                                    }}>{purchaseResult.error}</div>
+                                )}
+                            </motion.div>
+                        )}
+
+                        {/* Confirmation modal */}
+                        {showConfirm && (
+                            <div style={{
+                                position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)',
+                                backdropFilter: 'blur(8px)', display: 'flex',
+                                alignItems: 'center', justifyContent: 'center',
+                                zIndex: 10000, padding: 16
+                            }}>
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    style={{
+                                        width: '100%', maxWidth: 400, background: '#1a1a2e',
+                                        border: '2px solid rgba(0,212,255,0.3)', borderRadius: 20,
+                                        padding: 32, textAlign: 'center'
+                                    }}
+                                >
+                                    <div style={{ fontSize: 48, marginBottom: 16 }}>👑</div>
+                                    <h3 style={{
+                                        fontSize: 20, fontWeight: 700, color: '#fff', margin: '0 0 12px'
+                                    }}>Confirm VIP Purchase</h3>
+                                    <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6, margin: '0 0 8px' }}>
+                                        You are about to spend <strong style={{ color: '#00D4FF' }}>{VIP_DIAMOND_COST.toLocaleString()} 💎</strong> for
+                                        30 days of VIP membership.
+                                    </p>
+                                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', margin: '0 0 24px' }}>
+                                        Remaining balance: {(diamonds - VIP_DIAMOND_COST).toLocaleString()} 💎
+                                    </p>
+                                    <div style={{ display: 'flex', gap: 12 }}>
+                                        <button
+                                            onClick={() => { setShowConfirm(false); setPurchaseResult(null); }}
+                                            style={{
+                                                flex: 1, padding: '12px 20px', background: '#333',
+                                                border: '1px solid #555', borderRadius: 10,
+                                                color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer'
+                                            }}
+                                        >Cancel</button>
+                                        <button
+                                            onClick={handleDiamondPurchase}
+                                            disabled={isPurchasing}
+                                            style={{
+                                                flex: 1, padding: '12px 20px',
+                                                background: 'linear-gradient(135deg, #00D4FF, #0084FF)',
+                                                border: 'none', borderRadius: 10,
+                                                color: '#000', fontSize: 14, fontWeight: 800, cursor: 'pointer',
+                                                opacity: isPurchasing ? 0.6 : 1
+                                            }}
+                                        >{isPurchasing ? 'Processing...' : 'Confirm Purchase'}</button>
+                                    </div>
+                                </motion.div>
+                            </div>
+                        )}
 
                         {/* Testimonials */}
                         <div style={{ marginBottom: 48 }}>

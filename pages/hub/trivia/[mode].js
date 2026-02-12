@@ -8,6 +8,8 @@ import { useRouter } from 'next/router';
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
+import DiamondEngine from '../../../src/services/DiamondEngine';
+import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -65,6 +67,8 @@ export default function TriviaModePage() {
     const [userId, setUserId] = useState(null);
     const [userDiamonds, setUserDiamonds] = useState(0);
     const [error, setError] = useState(null);
+    const [isVIP, setIsVIP] = useState(false);
+    const [showOutOfDiamonds, setShowOutOfDiamonds] = useState(false);
 
     // Daily trivia enhancements
     const [dailyDiamondsClaimed, setDailyDiamondsClaimed] = useState(false);
@@ -95,6 +99,11 @@ export default function TriviaModePage() {
                 const user = getAuthUser();
                 if (user) {
                     setUserId(user.id);
+
+                    // Check VIP status
+                    await DiamondEngine.init(user.id);
+                    const vipStatus = await DiamondEngine.isVIP();
+                    setIsVIP(vipStatus);
 
                     // Get diamonds
                     const { data: profile } = await supabase
@@ -393,15 +402,15 @@ export default function TriviaModePage() {
     }
 
     const startGame = async () => {
-        // Deduct diamonds for arcade mode
-        if (mode === 'arcade' && userId) {
-            const { error } = await supabase
-                .from('profiles')
-                .update({ diamonds: userDiamonds - 10 })
-                .eq('id', userId);
+        // Free modes: daily trivia is always free
+        const isFreeMode = mode === 'daily';
 
-            if (error) {
-                console.error('Error deducting diamonds:', error);
+        // Per-game diamond deduction for non-VIP, non-free modes
+        if (!isFreeMode && userId && !isVIP) {
+            const de = new DiamondEngine(supabase, userId);
+            const result = await de.deduct(10, `trivia_${mode}`);
+            if (!result.success) {
+                setShowOutOfDiamonds(true);
                 return;
             }
             setUserDiamonds(prev => prev - 10);
@@ -619,6 +628,22 @@ export default function TriviaModePage() {
                 <div className="bg-overlay" />
 
                 <UniversalHeader pageDepth={2} />
+                <GameCostPopup userId={userId} featureKey="trivia_mode" cost={10} featureName="Trivia Game" />
+
+                {/* Out of Diamonds Modal */}
+                {showOutOfDiamonds && (
+                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ background: '#1a1a2e', borderRadius: 16, padding: 32, maxWidth: 340, textAlign: 'center', border: '1px solid rgba(255,255,255,0.1)' }}>
+                            <div style={{ fontSize: 48, marginBottom: 16 }}>💎</div>
+                            <h3 style={{ color: '#fff', margin: '0 0 12px' }}>Out of Diamonds</h3>
+                            <p style={{ color: 'rgba(255,255,255,0.7)', margin: '0 0 20px', fontSize: 14 }}>You need 10💎 to play this mode. Visit the Diamond Store to get more!</p>
+                            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+                                <button onClick={() => setShowOutOfDiamonds(false)} style={{ padding: '10px 20px', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer' }}>Close</button>
+                                <button onClick={() => router.push('/hub/diamond-store')} style={{ padding: '10px 20px', background: 'linear-gradient(135deg, #00D4FF, #7B2FFF)', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', fontWeight: 600 }}>Get Diamonds</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <div className="content" style={{ padding: '80px 0 40px' }}>
                     {gameState === 'loading' && (

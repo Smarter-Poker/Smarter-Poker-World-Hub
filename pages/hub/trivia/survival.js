@@ -15,6 +15,8 @@ import SurvivalGame from '../../../src/components/trivia/SurvivalGame';
 import MetalFrame from '../../../src/components/ui/MetalFrame';
 import HexButton from '../../../src/components/ui/HexButton';
 import { Flame, Trophy, Gem, Target, Play } from 'lucide-react';
+import DiamondEngine from '../../../src/services/DiamondEngine';
+import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 
 const DAILY_DIAMOND_CAP = 10;
 
@@ -27,6 +29,8 @@ export default function SurvivalModePage() {
     const [leaderboard, setLeaderboard] = useState([]);
     const [personalBest, setPersonalBest] = useState(0);
     const [result, setResult] = useState(null);
+    const [isVip, setIsVip] = useState(false);
+    const [showOutOfDiamonds, setShowOutOfDiamonds] = useState(false);
 
     useEffect(() => {
         loadUserData();
@@ -38,6 +42,11 @@ export default function SurvivalModePage() {
         if (!user) return;
 
         setUserId(user.id);
+
+        // Check VIP status
+        await DiamondEngine.init(user.id);
+        const vipStatus = await DiamondEngine.isVIP();
+        setIsVip(vipStatus);
 
         // Get today's survival diamonds
         const today = new Date().toISOString().split('T')[0];
@@ -117,6 +126,14 @@ export default function SurvivalModePage() {
     }
 
     async function handleStart() {
+        // Per-game diamond gate (VIP bypass)
+        if (!isVip && userId) {
+            const result = await DiamondEngine.deduct(10, 'trivia_survival');
+            if (!result.success) {
+                setShowOutOfDiamonds(true);
+                return;
+            }
+        }
         const qs = await loadQuestions();
         if (qs.length > 0) {
             setGameState('playing');
@@ -173,6 +190,26 @@ export default function SurvivalModePage() {
             <div className="survival-page">
                 <div className="bg-overlay" />
                 <UniversalHeader pageDepth={2} />
+
+                {/* Per-game cost popup (one-time) */}
+                {userId && !isVip && (
+                    <GameCostPopup userId={userId} featureKey="trivia_survival" cost={10} featureName="Survival Mode" />
+                )}
+
+                {/* Out of diamonds modal */}
+                {showOutOfDiamonds && (
+                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}>
+                        <div style={{ background: '#1a1a2e', border: '1px solid rgba(0,212,255,0.3)', borderRadius: 16, padding: 32, textAlign: 'center', maxWidth: 360 }}>
+                            <div style={{ fontSize: 48, marginBottom: 16 }}>💎</div>
+                            <h3 style={{ color: '#fff', marginBottom: 8 }}>Not Enough Diamonds</h3>
+                            <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: 20 }}>Each game costs 10💎. Get more diamonds or upgrade to VIP for unlimited access!</p>
+                            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+                                <button onClick={() => router.push('/hub/diamond-store')} style={{ padding: '10px 20px', background: 'linear-gradient(135deg, #00D4FF, #0088FF)', border: 'none', borderRadius: 8, color: '#fff', fontWeight: 600, cursor: 'pointer' }}>Get Diamonds</button>
+                                <button onClick={() => setShowOutOfDiamonds(false)} style={{ padding: '10px 20px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, color: '#fff', cursor: 'pointer' }}>Close</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <div className="content">
                     {gameState === 'lobby' && (

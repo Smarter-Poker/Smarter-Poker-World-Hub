@@ -15,6 +15,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { useLeaks, useAssistantStats } from '../../../src/hooks/useAssistant';
+import FeatureGate from '../../../src/components/gates/FeatureGate';
+import { getAuthUser } from '../../../src/lib/authUtils';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MOCK DATA
@@ -344,8 +346,8 @@ function LeakDetailView({ leak, onPracticeSandbox, onTrainDrills }) {
             <h4 style={detailStyles.fixTitle}>Suggested Fixes</h4>
             <div style={detailStyles.fixIcon}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="#64b5f6" strokeWidth="2" fill="none"/>
-                <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="#64b5f6" strokeWidth="2" fill="none"/>
+                <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="#64b5f6" strokeWidth="2" fill="none" />
+                <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="#64b5f6" strokeWidth="2" fill="none" />
               </svg>
             </div>
             <h5 style={detailStyles.fixSubtitle}>Practice in Sandbox</h5>
@@ -362,8 +364,8 @@ function LeakDetailView({ leak, onPracticeSandbox, onTrainDrills }) {
             <h4 style={detailStyles.fixTitle}>Specialized Training</h4>
             <div style={detailStyles.fixIcon}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="10" stroke="#f59e0b" strokeWidth="2" fill="none"/>
-                <path d="M12 6v6l4 2" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round"/>
+                <circle cx="12" cy="12" r="10" stroke="#f59e0b" strokeWidth="2" fill="none" />
+                <path d="M12 6v6l4 2" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" />
               </svg>
             </div>
             <h5 style={detailStyles.fixSubtitle}>Specialized Training</h5>
@@ -526,6 +528,13 @@ const detailStyles = {
 export default function LeakFinderPage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const [userId, setUserId] = useState(null);
+
+  // Get auth user for FeatureGate
+  useEffect(() => {
+    const user = getAuthUser();
+    if (user) setUserId(user.id);
+  }, []);
   const [selectedLeak, setSelectedLeak] = useState(null);
 
   // Use real hooks for data
@@ -592,114 +601,116 @@ export default function LeakFinderPage() {
         <div style={styles.bgGrid} />
         <UniversalHeader pageDepth={2} />
 
-        {/* Top Bar */}
-        <div style={styles.topBar}>
-          <div style={styles.topBarLeft}>
-            <span style={styles.brandText}>Smarter.Poker</span>
-            <span style={styles.divider}>|</span>
-            <span style={styles.pageLabel}>Personal Assistant</span>
-            <span style={styles.pageSublabel}>Leak Finder & Improvement Hub</span>
-          </div>
-          <div style={styles.topBarRight}>
-            <div style={styles.integrityBadge}>
-              <span style={styles.lockIcon}>&#128274;</span>
-              Not Live Play - Post-Session Review Only
+        <FeatureGate featureKey="personal_assistant" userId={userId} cost={100} duration={24} featureName="Leak Finder" description="Access Virtual Sandbox, Leak Finder, and Jarvis coaching tools for 24 hours.">
+          {/* Top Bar */}
+          <div style={styles.topBar}>
+            <div style={styles.topBarLeft}>
+              <span style={styles.brandText}>Smarter.Poker</span>
+              <span style={styles.divider}>|</span>
+              <span style={styles.pageLabel}>Personal Assistant</span>
+              <span style={styles.pageSublabel}>Leak Finder & Improvement Hub</span>
             </div>
-          </div>
-        </div>
-
-        {/* Stats Bar */}
-        <div style={styles.statsBar}>
-          <div style={styles.statItem}>
-            <span style={styles.statLabel}>Sessions Reviewed:</span>
-            <span style={styles.statValue}>{stats.sessionsReviewed}</span>
-          </div>
-          <div style={styles.statDivider}>|</div>
-          <div style={styles.statItem}>
-            <span style={styles.statLabel}>Hands Analyzed:</span>
-            <span style={styles.statValue}>{stats.handsAnalyzed.toLocaleString()}</span>
-          </div>
-          <div style={styles.statDivider}>|</div>
-          <div style={styles.statItem}>
-            <span style={styles.statLabel}>Leaks Found:</span>
-            <span style={styles.statValue}>{stats.leaksFound}</span>
-          </div>
-          <div style={styles.statDivider}>|</div>
-          <div style={styles.statItem}>
-            <span style={styles.statLabel}>Avg EV Loss:</span>
-            <span style={{ ...styles.statValue, color: '#ef4444' }}>
-              <span style={styles.trendIcon}>~</span>
-              {stats.avgEvLoss.toFixed(2)} BB/Occurrence
-            </span>
-          </div>
-        </div>
-
-        {/* Main Layout */}
-        <div style={styles.mainLayout}>
-          {/* Left Panel - Leak Index */}
-          <div style={styles.leftPanel}>
-            <div style={styles.indexHeader}>
-              <h3 style={styles.indexTitle}>Leak Index</h3>
-              <button style={styles.expandBtn}>&#8250;</button>
-            </div>
-
-            {/* Active Leaks */}
-            <div style={styles.leakList}>
-              {activeLeaks.map((leak) => (
-                <div
-                  key={leak.id}
-                  style={{
-                    ...styles.leakCard,
-                    ...(selectedLeak?.id === leak.id ? styles.leakCardSelected : {}),
-                  }}
-                  onClick={() => setSelectedLeak(leak)}
-                >
-                  <div style={styles.leakCardHeader}>
-                    <span style={styles.leakCardTitle}>{leak.title}</span>
-                    <span style={styles.leakCardArrow}>&#8250;</span>
-                  </div>
-                  <div style={styles.leakCardMeta}>
-                    <LeakStatusBadge status={leak.status} />
-                    <span style={styles.leakCardConfidence}>
-                      {'*'.repeat(leak.confidence === 'high' ? 3 : leak.confidence === 'medium' ? 2 : 1)}
-                      {leak.confidence === 'high' ? 'HiConfide' : leak.confidence === 'medium' ? 'VxMedium' : 'Low'}
-                    </span>
-                  </div>
-                  <div style={styles.leakCardSituation}>
-                    Period Analyzed:<br />
-                    {leak.situationClass}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Past Leaks */}
-            <div style={styles.pastLeaksSection}>
-              <h4 style={styles.pastLeaksTitle}>Leak Past Poit</h4>
-              {pastLeaks.map((leak) => (
-                <div key={leak.id} style={styles.pastLeakCard}>
-                  <div style={styles.pastLeakHeader}>
-                    <LeakStatusBadge status={leak.status} />
-                    <span style={styles.pastLeakTitle}>{leak.title}</span>
-                    <span style={styles.pastLeakArrow}>&#8250;</span>
-                  </div>
-                  <div style={styles.pastLeakMeta}>
-                    Period Analyzed: {leak.situationClass}
-                  </div>
-                </div>
-              ))}
+            <div style={styles.topBarRight}>
+              <div style={styles.integrityBadge}>
+                <span style={styles.lockIcon}>&#128274;</span>
+                Not Live Play - Post-Session Review Only
+              </div>
             </div>
           </div>
 
-          {/* Right Panel - Leak Detail */}
-          <LeakDetailView
-            leak={selectedLeak}
-            onPracticeSandbox={handlePracticeSandbox}
-            onTrainDrills={handleTrainDrills}
-          />
-        </div>
+          {/* Stats Bar */}
+          <div style={styles.statsBar}>
+            <div style={styles.statItem}>
+              <span style={styles.statLabel}>Sessions Reviewed:</span>
+              <span style={styles.statValue}>{stats.sessionsReviewed}</span>
+            </div>
+            <div style={styles.statDivider}>|</div>
+            <div style={styles.statItem}>
+              <span style={styles.statLabel}>Hands Analyzed:</span>
+              <span style={styles.statValue}>{stats.handsAnalyzed.toLocaleString()}</span>
+            </div>
+            <div style={styles.statDivider}>|</div>
+            <div style={styles.statItem}>
+              <span style={styles.statLabel}>Leaks Found:</span>
+              <span style={styles.statValue}>{stats.leaksFound}</span>
+            </div>
+            <div style={styles.statDivider}>|</div>
+            <div style={styles.statItem}>
+              <span style={styles.statLabel}>Avg EV Loss:</span>
+              <span style={{ ...styles.statValue, color: '#ef4444' }}>
+                <span style={styles.trendIcon}>~</span>
+                {stats.avgEvLoss.toFixed(2)} BB/Occurrence
+              </span>
+            </div>
+          </div>
+
+          {/* Main Layout */}
+          <div style={styles.mainLayout}>
+            {/* Left Panel - Leak Index */}
+            <div style={styles.leftPanel}>
+              <div style={styles.indexHeader}>
+                <h3 style={styles.indexTitle}>Leak Index</h3>
+                <button style={styles.expandBtn}>&#8250;</button>
+              </div>
+
+              {/* Active Leaks */}
+              <div style={styles.leakList}>
+                {activeLeaks.map((leak) => (
+                  <div
+                    key={leak.id}
+                    style={{
+                      ...styles.leakCard,
+                      ...(selectedLeak?.id === leak.id ? styles.leakCardSelected : {}),
+                    }}
+                    onClick={() => setSelectedLeak(leak)}
+                  >
+                    <div style={styles.leakCardHeader}>
+                      <span style={styles.leakCardTitle}>{leak.title}</span>
+                      <span style={styles.leakCardArrow}>&#8250;</span>
+                    </div>
+                    <div style={styles.leakCardMeta}>
+                      <LeakStatusBadge status={leak.status} />
+                      <span style={styles.leakCardConfidence}>
+                        {'*'.repeat(leak.confidence === 'high' ? 3 : leak.confidence === 'medium' ? 2 : 1)}
+                        {leak.confidence === 'high' ? 'HiConfide' : leak.confidence === 'medium' ? 'VxMedium' : 'Low'}
+                      </span>
+                    </div>
+                    <div style={styles.leakCardSituation}>
+                      Period Analyzed:<br />
+                      {leak.situationClass}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Past Leaks */}
+              <div style={styles.pastLeaksSection}>
+                <h4 style={styles.pastLeaksTitle}>Leak Past Poit</h4>
+                {pastLeaks.map((leak) => (
+                  <div key={leak.id} style={styles.pastLeakCard}>
+                    <div style={styles.pastLeakHeader}>
+                      <LeakStatusBadge status={leak.status} />
+                      <span style={styles.pastLeakTitle}>{leak.title}</span>
+                      <span style={styles.pastLeakArrow}>&#8250;</span>
+                    </div>
+                    <div style={styles.pastLeakMeta}>
+                      Period Analyzed: {leak.situationClass}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right Panel - Leak Detail */}
+            <LeakDetailView
+              leak={selectedLeak}
+              onPracticeSandbox={handlePracticeSandbox}
+              onTrainDrills={handleTrainDrills}
+            />
+          </div>
+        </FeatureGate>
       </div>
-    </PageTransition>
+    </PageTransition >
   );
 }
 
