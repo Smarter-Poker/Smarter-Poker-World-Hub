@@ -447,6 +447,7 @@ export default function TournamentsPage() {
             <Head>
                 <title>Tournaments - Smarter.Poker Trivia</title>
                 <meta name="description" content="Daily bracket tournaments at 7PM CST! Compete for diamond prizes!" />
+                <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet" />
             </Head>
 
             <div className="tournaments-page">
@@ -750,28 +751,48 @@ export default function TournamentsPage() {
 
                     {/* Round Complete */}
                     {gameState === 'complete' && (
-                        <div className="complete">
-                            <MetalFrame padding="32px" showBolts={true}>
-                                <Trophy size={48} color="#FFD700" />
-                                <h1>Round Complete!</h1>
+                        <div className="result-panel-overlay">
+                            <div className="result-panel-container">
+                                <img
+                                    src="/trivia/panels/panel-win.jpg"
+                                    alt=""
+                                    className="result-panel-bg"
+                                />
+                                <div className="result-panel-content">
+                                    <h1 className="panel-title win">
+                                        {'Round\nComplete!'}
+                                    </h1>
 
-                                <div className="final-score">
-                                    <span className="score-value">{score}</span>
-                                    <span className="score-label">Points</span>
+                                    <div className="panel-stats">
+                                        <div className="panel-stat-row">
+                                            <span className="panel-stat-label">YOUR SCORE</span>
+                                            <span className="panel-stat-value cyan">{score}/{questions.length}</span>
+                                        </div>
+                                        <div className="panel-stat-row">
+                                            <span className="panel-stat-label">CORRECT</span>
+                                            <span className="panel-stat-value green">{score} Questions</span>
+                                        </div>
+                                        <div className="panel-stat-divider" />
+                                        <div className="panel-stat-row">
+                                            <span className="panel-stat-label">TOURNAMENT</span>
+                                            <span className="panel-stat-value white">{activeTournament?.name?.slice(0, 20) || 'Championship'}</span>
+                                        </div>
+                                        <div className="panel-stat-row">
+                                            <span className="panel-stat-label">ROUND</span>
+                                            <span className="panel-stat-value gold">{activeTournament?.current_round || 1} / {activeTournament?.total_rounds || '?'}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="panel-buttons">
+                                        <button className="panel-play-again" onClick={() => { setGameState('lobby'); loadData(); }}>
+                                            View Bracket
+                                        </button>
+                                        <button className="panel-back" onClick={() => router.push('/hub/trivia')}>
+                                            Back to Trivia
+                                        </button>
+                                    </div>
                                 </div>
-
-                                <p className="prize-note">
-                                    Your score has been submitted. The round ends when all matches are played or the deadline passes.
-                                </p>
-
-                                <HexButton
-                                    onClick={() => { setGameState('lobby'); loadData(); }}
-                                    variant="primary"
-                                    size="md"
-                                >
-                                    View Bracket
-                                </HexButton>
-                            </MetalFrame>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -1310,33 +1331,157 @@ export default function TournamentsPage() {
                 .correct-icon { color: #22c55e; margin-left: auto; }
                 .wrong-icon { color: #ef4444; margin-left: auto; }
 
-                /* Complete */
-                .complete { text-align: center; }
-
-                .complete h1 {
-                    font-size: 24px;
-                    color: #FFD700;
-                    margin: 16px 0;
+                /* Result Panel Overlay */
+                .result-panel-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    z-index: 1000;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: rgba(0, 0, 0, 0.85);
+                    animation: panelFadeIn 0.4s ease;
                 }
 
-                .final-score { margin: 24px 0; }
+                @keyframes panelFadeIn {
+                    from { opacity: 0; transform: scale(0.9); }
+                    to { opacity: 1; transform: scale(1); }
+                }
 
-                .score-value {
+                .result-panel-container {
+                    position: relative;
+                    width: 90vw;
+                    max-width: 700px;
+                    aspect-ratio: 4 / 3;
+                }
+
+                .result-panel-bg {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                    border-radius: 8px;
                     display: block;
-                    font-size: 56px;
+                }
+
+                .result-panel-content {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 12% 10% 10%;
+                }
+
+                .panel-title {
+                    font-family: 'Orbitron', 'Exo 2', sans-serif;
+                    font-weight: 900;
+                    font-size: clamp(1.8rem, 5vw, 3.5rem);
+                    letter-spacing: 0.06em;
+                    text-transform: uppercase;
+                    color: #ffffff;
+                    text-shadow:
+                        0 0 10px #00ffff88,
+                        0 0 20px #00ffff44,
+                        2px 2px 4px #000000cc;
+                    line-height: 1.15;
+                    text-align: center;
+                    white-space: pre-line;
+                    margin: 0 0 6% 0;
+                }
+
+                .panel-stats {
+                    width: 70%;
+                    max-width: 360px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 6px;
+                    margin-bottom: 5%;
+                }
+
+                .panel-stat-row {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    font-family: 'Orbitron', sans-serif;
+                    font-size: clamp(0.6rem, 1.5vw, 0.85rem);
+                    letter-spacing: 0.04em;
+                }
+
+                .panel-stat-label {
+                    color: rgba(255, 255, 255, 0.55);
                     font-weight: 700;
-                    color: #fff;
+                    text-transform: uppercase;
                 }
 
-                .score-label {
-                    font-size: 14px;
-                    color: rgba(255, 255, 255, 0.5);
+                .panel-stat-value {
+                    font-weight: 900;
                 }
 
-                .prize-note {
-                    font-size: 14px;
+                .panel-stat-value.cyan { color: #00f0ff; }
+                .panel-stat-value.red { color: #ef4444; }
+                .panel-stat-value.green { color: #22c55e; }
+                .panel-stat-value.gold { color: #ffd700; }
+                .panel-stat-value.white { color: #e8e8e8; }
+
+                .panel-stat-divider {
+                    height: 1px;
+                    background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.3), transparent);
+                    margin: 4px 0;
+                }
+
+                .panel-buttons {
+                    display: flex;
+                    gap: 16px;
+                    align-items: center;
+                }
+
+                .panel-play-again {
+                    font-family: 'Orbitron', sans-serif;
+                    font-weight: 700;
+                    font-size: clamp(0.75rem, 1.8vw, 1rem);
+                    letter-spacing: 0.06em;
+                    text-transform: uppercase;
+                    color: #00f0ff;
+                    background: linear-gradient(to bottom, #3a3e4a, #2a2e3a);
+                    border: 1px solid rgba(0, 240, 255, 0.3);
+                    border-radius: 6px;
+                    padding: 10px 28px;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    text-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
+                }
+
+                .panel-play-again:hover {
+                    background: linear-gradient(to bottom, #4a4e5a, #3a3e4a);
+                    box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+                    transform: translateY(-1px);
+                }
+
+                .panel-back {
+                    font-family: 'Orbitron', sans-serif;
+                    font-weight: 700;
+                    font-size: clamp(0.65rem, 1.4vw, 0.85rem);
+                    letter-spacing: 0.04em;
+                    text-transform: uppercase;
                     color: rgba(255, 255, 255, 0.5);
-                    margin-bottom: 24px;
+                    background: transparent;
+                    border: 1px solid rgba(255, 255, 255, 0.15);
+                    border-radius: 6px;
+                    padding: 10px 20px;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                }
+
+                .panel-back:hover {
+                    color: rgba(255, 255, 255, 0.8);
+                    border-color: rgba(255, 255, 255, 0.3);
                 }
             `}</style>
         </PageTransition>
