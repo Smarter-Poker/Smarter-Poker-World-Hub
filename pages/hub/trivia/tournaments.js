@@ -1,6 +1,7 @@
 /**
  * TOURNAMENTS PAGE — Route: /hub/trivia/tournaments
- * Weekly tournament hub with registration, live leaderboard, and results
+ * Daily bracket tournament with registration, bracket view, and round play
+ * Tournaments start daily at 7PM CST, each round lasts 24 hours
  */
 
 import Head from 'next/head';
@@ -12,7 +13,7 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MetalFrame from '../../../src/components/ui/MetalFrame';
 import HexButton from '../../../src/components/ui/HexButton';
-import { Trophy, Calendar, Clock, Gem, Users, CheckCircle, XCircle, Medal, Award } from 'lucide-react';
+import { Trophy, Calendar, Clock, Gem, Users, CheckCircle, XCircle, Medal, Award, Bell, Swords, AlertTriangle } from 'lucide-react';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 
 export default function TournamentsPage() {
@@ -22,9 +23,15 @@ export default function TournamentsPage() {
     const [tournaments, setTournaments] = useState([]);
     const [activeTournament, setActiveTournament] = useState(null);
     const [userEntry, setUserEntry] = useState(null);
-    const [leaderboard, setLeaderboard] = useState([]);
     const [pastResults, setPastResults] = useState([]);
-    const [gameState, setGameState] = useState('loading'); // loading, lobby, playing, complete
+    const [gameState, setGameState] = useState('loading');
+    const [notifications, setNotifications] = useState([]);
+
+    // Bracket state
+    const [rounds, setRounds] = useState([]);
+    const [currentRoundData, setCurrentRoundData] = useState(null);
+    const [myMatchup, setMyMatchup] = useState(null);
+    const [opponentInfo, setOpponentInfo] = useState(null);
 
     // Playing state
     const [questions, setQuestions] = useState([]);
@@ -33,14 +40,13 @@ export default function TournamentsPage() {
     const [showResult, setShowResult] = useState(false);
     const [score, setScore] = useState(0);
     const [startTime, setStartTime] = useState(null);
-    const [timeLeft, setTimeLeft] = useState(30);
+    const [timeLeft, setTimeLeft] = useState(40);
     const [isTimerRunning, setIsTimerRunning] = useState(false);
 
     const timerRef = useRef(null);
 
     useEffect(() => {
         loadData();
-
         return () => {
             if (timerRef.current) clearInterval(timerRef.current);
         };
@@ -69,6 +75,51 @@ export default function TournamentsPage() {
         };
     }, [isTimerRunning, showResult, currentQuestionIndex]);
 
+    // Request browser notification permission
+    useEffect(() => {
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+    }, []);
+
+    // Poll for notifications every 30 seconds
+    useEffect(() => {
+        if (!userId) return;
+        const interval = setInterval(loadNotifications, 30000);
+        return () => clearInterval(interval);
+    }, [userId]);
+
+    async function loadNotifications() {
+        if (!userId) return;
+        const { data } = await supabase
+            .from('trivia_tournament_notifications')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('read', false)
+            .order('created_at', { ascending: false })
+            .limit(10);
+
+        if (data && data.length > 0) {
+            setNotifications(data);
+            // Show browser notification for unread items
+            if ('Notification' in window && Notification.permission === 'granted') {
+                const latest = data[0];
+                new Notification('Smarter Poker Tournament', {
+                    body: latest.message,
+                    icon: '/images/trivia/lobby-tournaments.jpg'
+                });
+            }
+        }
+    }
+
+    async function dismissNotification(id) {
+        await supabase
+            .from('trivia_tournament_notifications')
+            .update({ read: true })
+            .eq('id', id);
+        setNotifications(prev => prev.filter(n => n.id !== id));
+    }
+
     async function loadData() {
         const user = getAuthUser();
         if (!user) {
@@ -96,13 +147,13 @@ export default function TournamentsPage() {
 
         setTournaments(tournamentData || []);
 
-        // Find active tournament
+        // Find active tournament and load bracket data
         const active = tournamentData?.find(t => t.status === 'active');
         if (active) {
             setActiveTournament(active);
-            await loadLeaderboard(active.id);
+            await loadBracketData(active, user.id);
 
-            // Check if user already played
+            // Check if user is registered
             const { data: entry } = await supabase
                 .from('trivia_tournament_entries')
                 .select('*')
@@ -110,34 +161,73 @@ export default function TournamentsPage() {
                 .eq('user_id', user.id)
                 .single();
 
-            if (entry?.completed_at) {
-                setUserEntry(entry);
-            }
+            setUserEntry(entry);
         }
 
         // Load past results
         const { data: past } = await supabase
             .from('trivia_tournaments')
             .select('*')
-            .eq('status', 'completed')
+            .in('status', ['completed', 'cancelled'])
             .order('completed_at', { ascending: false })
             .limit(5);
 
         setPastResults(past || []);
+
+        // Load notifications
+        await loadNotifications();
+
         setGameState('lobby');
     }
 
-    async function loadLeaderboard(tournamentId) {
-        const { data } = await supabase
-            .from('trivia_tournament_entries')
-            .select('*, profiles(username)')
-            .eq('tournament_id', tournamentId)
-            .not('completed_at', 'is', null)
-            .order('score', { ascending: false })
-            .order('time_spent', { ascending: true })
-            .limit(50);
+    async function loadBracketData(tournament, uid) {
+        // Load all rounds for this tournament
+        const { data: roundsData } = await supabase
+            .from('trivia_tournament_rounds')
+            .select('*')
+            .eq('tournament_id', tournament.id)
+            .order('round_number', { ascending: true });
 
-        setLeaderboard(data || []);
+        setRounds(roundsData || []);
+
+        // Find the current active round
+        const activeRound = roundsData?.find(r => r.status === 'active');
+        setCurrentRoundData(activeRound);
+
+        // Find user's matchup in the current round
+        if (activeRound && uid) {
+            const matchups = activeRound.matchups || [];
+            const myMatch = matchups.find(m =>
+                m.player1_id === uid || m.player2_id === uid
+            );
+            setMyMatchup(myMatch);
+
+            // Load opponent info
+            if (myMatch) {
+                const opponentId = myMatch.player1_id === uid ? myMatch.player2_id : myMatch.player1_id;
+                if (opponentId) {
+                    const { data: oppProfile } = await supabase
+                        .from('profiles')
+                        .select('username, avatar_url')
+                        .eq('id', opponentId)
+                        .single();
+
+                    const { data: oppStats } = await supabase
+                        .from('trivia_pvp_stats')
+                        .select('wins, losses')
+                        .eq('user_id', opponentId)
+                        .single();
+
+                    setOpponentInfo({
+                        id: opponentId,
+                        username: oppProfile?.username || 'Player',
+                        avatar_url: oppProfile?.avatar_url,
+                        wins: oppStats?.wins || 0,
+                        losses: oppStats?.losses || 0
+                    });
+                }
+            }
+        }
     }
 
     async function handleRegister(tournament) {
@@ -147,11 +237,13 @@ export default function TournamentsPage() {
         }
 
         // Deduct entry fee
+        const newBalance = userDiamonds - tournament.entry_fee;
         await supabase
             .from('profiles')
-            .update({ diamonds: userDiamonds - tournament.entry_fee })
+            .update({ diamonds: newBalance })
             .eq('id', userId);
-        setUserDiamonds(prev => prev - tournament.entry_fee);
+
+        setUserDiamonds(newBalance);
 
         // Create entry
         const { data: entry } = await supabase
@@ -160,10 +252,12 @@ export default function TournamentsPage() {
                 tournament_id: tournament.id,
                 user_id: userId,
                 score: 0,
-                time_spent: 0
+                created_at: new Date().toISOString()
             })
             .select()
             .single();
+
+        setUserEntry(entry);
 
         // Update prize pool (net of 10% house rake)
         const netEntryFee = tournament.entry_fee - Math.floor(tournament.entry_fee * 0.1);
@@ -174,30 +268,31 @@ export default function TournamentsPage() {
             })
             .eq('id', tournament.id);
 
-        setUserEntry(entry);
-        setActiveTournament(tournament);
-
-        // Start playing immediately if tournament is active
-        if (tournament.status === 'active') {
-            startTournamentPlay(tournament);
-        }
+        // Refresh tournament data
+        await loadData();
     }
 
-    function startTournamentPlay(tournament) {
-        setQuestions(tournament.questions || []);
+    async function startRoundPlay() {
+        if (!activeTournament?.questions || activeTournament.questions.length === 0) {
+            alert('No questions available for this round.');
+            return;
+        }
+
+        // Use 10 questions per round
+        setQuestions(activeTournament.questions.slice(0, 10));
         setCurrentQuestionIndex(0);
         setScore(0);
         setSelectedAnswer(null);
         setShowResult(false);
+        setTimeLeft(40);
         setStartTime(Date.now());
-        setTimeLeft(30);
         setIsTimerRunning(true);
         setGameState('playing');
     }
 
     function handleTimeout() {
         setIsTimerRunning(false);
-        selectAnswer(-1);
+        selectAnswer(-1); // Wrong answer on timeout
     }
 
     function selectAnswer(index) {
@@ -214,46 +309,72 @@ export default function TournamentsPage() {
             setScore(prev => prev + 100);
         }
 
+        // Advance quickly — no GTO explanations in tournaments
         setTimeout(() => {
             if (currentQuestionIndex + 1 >= questions.length) {
-                finishTournament();
+                finishRoundPlay();
             } else {
                 setCurrentQuestionIndex(prev => prev + 1);
                 setSelectedAnswer(null);
                 setShowResult(false);
-                setTimeLeft(30);
+                setTimeLeft(40);
                 setIsTimerRunning(true);
             }
-        }, 1000);
+        }, 500);
     }
 
-    async function finishTournament() {
+    async function finishRoundPlay() {
         setIsTimerRunning(false);
         const totalTime = Math.round((Date.now() - startTime) / 1000);
 
-        // Update entry
-        await supabase
-            .from('trivia_tournament_entries')
-            .update({
-                score,
-                time_spent: totalTime,
-                completed_at: new Date().toISOString()
-            })
-            .eq('tournament_id', activeTournament.id)
-            .eq('user_id', userId);
+        // Submit score for bracket matchup
+        if (currentRoundData && myMatchup) {
+            const isPlayer1 = myMatchup.player1_id === userId;
+            const scoreField = isPlayer1 ? 'player1_score' : 'player2_score';
 
-        setUserEntry(prev => ({
-            ...prev,
-            score,
-            time_spent: totalTime,
-            completed_at: new Date().toISOString()
-        }));
+            // Update the matchup in the round
+            const updatedMatchups = currentRoundData.matchups.map(m => {
+                if (m.match_index === myMatchup.match_index) {
+                    return { ...m, [scoreField]: score };
+                }
+                return m;
+            });
 
-        // Record question history for 60-day non-repeat tracking
+            // Check if both players have played — determine winner inline
+            const updatedMatch = updatedMatchups.find(m => m.match_index === myMatchup.match_index);
+            if (updatedMatch.player1_score !== null && updatedMatch.player2_score !== null) {
+                if (updatedMatch.player1_score > updatedMatch.player2_score) {
+                    updatedMatch.winner_id = updatedMatch.player1_id;
+                } else if (updatedMatch.player2_score > updatedMatch.player1_score) {
+                    updatedMatch.winner_id = updatedMatch.player2_id;
+                } else {
+                    // Tie — use time_spent as tiebreaker (faster wins)
+                    updatedMatch.winner_id = userId; // Current player wins ties since they played
+                }
+            }
+
+            await supabase
+                .from('trivia_tournament_rounds')
+                .update({ matchups: updatedMatchups })
+                .eq('id', currentRoundData.id);
+
+            // Also update the user's entry
+            await supabase
+                .from('trivia_tournament_entries')
+                .update({
+                    score: (userEntry?.score || 0) + score,
+                    time_spent: (userEntry?.time_spent || 0) + totalTime,
+                    completed_at: new Date().toISOString()
+                })
+                .eq('tournament_id', activeTournament.id)
+                .eq('user_id', userId);
+        }
+
+        // Record question history
         if (userId && questions && questions.length > 0) {
             try {
                 const historyRecords = questions
-                    .filter(q => q.id) // Only record questions with valid IDs
+                    .filter(q => q.id)
                     .map(q => ({
                         user_id: userId,
                         question_id: q.id,
@@ -274,7 +395,8 @@ export default function TournamentsPage() {
             }
         }
 
-        await loadLeaderboard(activeTournament.id);
+        // Refresh bracket data
+        await loadBracketData(activeTournament, userId);
         setGameState('complete');
     }
 
@@ -295,13 +417,36 @@ export default function TournamentsPage() {
         return `${hours}h ${minutes}m`;
     }
 
+    function getDeadlineCountdown(deadline) {
+        if (!deadline) return '';
+        const diff = new Date(deadline) - new Date();
+        if (diff <= 0) return 'Expired';
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        return `${hours}h ${minutes}m remaining`;
+    }
+
+    function getRoundName(roundNum, totalRounds) {
+        if (!totalRounds) return `Round ${roundNum}`;
+        const remaining = totalRounds - roundNum;
+        if (remaining === 0) return 'Finals';
+        if (remaining === 1) return 'Semi-Finals';
+        if (remaining === 2) return 'Quarter-Finals';
+        return `Round ${roundNum}`;
+    }
+
     const currentQuestion = questions[currentQuestionIndex];
+    const hasPlayedThisRound = myMatchup && (
+        (myMatchup.player1_id === userId && myMatchup.player1_score !== null) ||
+        (myMatchup.player2_id === userId && myMatchup.player2_score !== null)
+    );
+    const isEliminated = userEntry?.eliminated_round != null;
 
     return (
         <PageTransition>
             <Head>
                 <title>Tournaments - Smarter.Poker Trivia</title>
-                <meta name="description" content="Compete in weekly trivia tournaments for big diamond prizes!" />
+                <meta name="description" content="Daily bracket tournaments at 7PM CST! Compete for diamond prizes!" />
             </Head>
 
             <div className="tournaments-page">
@@ -309,6 +454,19 @@ export default function TournamentsPage() {
                 <UniversalHeader pageDepth={2} />
 
                 <div className="content">
+                    {/* Notifications Banner */}
+                    {notifications.length > 0 && (
+                        <div className="notifications-banner">
+                            {notifications.map(n => (
+                                <div key={n.id} className={`notification ${n.notification_type}`}>
+                                    <Bell size={16} />
+                                    <span>{n.message}</span>
+                                    <button onClick={() => dismissNotification(n.id)} className="dismiss">✕</button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
                     {gameState === 'loading' && (
                         <div className="loading">
                             <div className="spinner" />
@@ -318,65 +476,143 @@ export default function TournamentsPage() {
 
                     {gameState === 'lobby' && (
                         <div className="lobby">
-                            {/* Lobby Image Header */}
+                            {/* Lobby Image */}
                             <div className="lobby-image-wrapper">
                                 <img
                                     src="/images/trivia/lobby-tournaments.jpg"
-                                    alt="Tournaments - Weekly Competitions Win Big Prizes!"
+                                    alt="Tournaments - Daily Bracket Competitions"
                                     className="lobby-image"
                                 />
                             </div>
 
-                            {/* Active Tournament */}
+                            {/* Active Tournament with Bracket */}
                             {activeTournament && (
                                 <MetalFrame padding="24px" showBolts={true} className="active-tournament">
                                     <div className="tournament-badge live">
                                         <span className="pulse" />
-                                        LIVE NOW
+                                        LIVE — Round {activeTournament.current_round || 1}
                                     </div>
                                     <h2>{activeTournament.name}</h2>
 
                                     <div className="tournament-info">
                                         <div className="info-item">
                                             <Gem size={16} />
-                                            <span>Prize Pool: {activeTournament.prize_pool || activeTournament.entry_fee}💎</span>
+                                            <span>Prize Pool: {activeTournament.prize_pool || 0}💎</span>
                                         </div>
                                         <div className="info-item">
-                                            <Users size={16} />
-                                            <span>{leaderboard.length} players</span>
+                                            <Swords size={16} />
+                                            <span>Round {activeTournament.current_round}/{activeTournament.total_rounds || '?'}</span>
                                         </div>
-                                        <div className="info-item">
-                                            <Clock size={16} />
-                                            <span>Ends: {new Date(activeTournament.end_time).toLocaleTimeString()}</span>
-                                        </div>
+                                        {activeTournament.round_deadline && (
+                                            <div className="info-item deadline">
+                                                <Clock size={16} />
+                                                <span>{getDeadlineCountdown(activeTournament.round_deadline)}</span>
+                                            </div>
+                                        )}
                                     </div>
 
-                                    {userEntry?.completed_at ? (
-                                        <div className="already-played">
-                                            <CheckCircle size={20} color="#22c55e" />
-                                            <span>You scored {userEntry.score} points!</span>
+                                    {/* Your Match Status */}
+                                    {userEntry && !isEliminated && myMatchup && (
+                                        <div className="match-card">
+                                            <h4>Your Match — {getRoundName(activeTournament.current_round, activeTournament.total_rounds)}</h4>
+                                            <div className="match-vs">
+                                                <div className="match-player you">
+                                                    <span className="player-name">You</span>
+                                                    {hasPlayedThisRound && (
+                                                        <span className="player-score">
+                                                            {myMatchup.player1_id === userId ? myMatchup.player1_score : myMatchup.player2_score}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <span className="vs-text">VS</span>
+                                                <div className="match-player opponent">
+                                                    <span className="player-name">{opponentInfo?.username || 'BYE'}</span>
+                                                    {opponentInfo && (
+                                                        <span className="player-record">{opponentInfo.wins}W-{opponentInfo.losses}L</span>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {myMatchup.is_bye ? (
+                                                <div className="bye-notice">
+                                                    <CheckCircle size={20} color="#22c55e" />
+                                                    <span>BYE — You advance automatically!</span>
+                                                </div>
+                                            ) : hasPlayedThisRound ? (
+                                                <div className="already-played">
+                                                    <CheckCircle size={20} color="#22c55e" />
+                                                    <span>Score submitted! Waiting for opponent...</span>
+                                                </div>
+                                            ) : (
+                                                <HexButton
+                                                    onClick={startRoundPlay}
+                                                    variant="primary"
+                                                    size="lg"
+                                                >
+                                                    PLAY YOUR MATCH
+                                                </HexButton>
+                                            )}
+
+                                            {myMatchup.winner_id && (
+                                                <div className={`match-result ${myMatchup.winner_id === userId ? 'won' : 'lost'}`}>
+                                                    {myMatchup.winner_id === userId ? '🏆 You Won!' : '❌ Eliminated'}
+                                                </div>
+                                            )}
                                         </div>
-                                    ) : (
+                                    )}
+
+                                    {/* Eliminated notice */}
+                                    {isEliminated && (
+                                        <div className="eliminated-notice">
+                                            <AlertTriangle size={20} />
+                                            <span>Eliminated in Round {userEntry.eliminated_round}</span>
+                                        </div>
+                                    )}
+
+                                    {/* Not registered */}
+                                    {!userEntry && activeTournament.current_round === 0 && (
                                         <HexButton
-                                            onClick={() => userEntry ? startTournamentPlay(activeTournament) : handleRegister(activeTournament)}
+                                            onClick={() => handleRegister(activeTournament)}
                                             variant="primary"
                                             size="lg"
                                         >
-                                            {userEntry ? 'PLAY NOW' : `ENTER (${activeTournament.entry_fee}💎)`}
+                                            ENTER ({activeTournament.entry_fee}💎)
                                         </HexButton>
                                     )}
 
-                                    {/* Mini Leaderboard */}
-                                    {leaderboard.length > 0 && (
-                                        <div className="mini-leaderboard">
-                                            <h4>Top Players</h4>
-                                            {leaderboard.slice(0, 5).map((entry, idx) => (
-                                                <div key={entry.id} className={`lb-row ${entry.user_id === userId ? 'you' : ''}`}>
-                                                    <span className="rank">{idx + 1}</span>
-                                                    <span className="name">{entry.profiles?.username || 'Player'}</span>
-                                                    <span className="score">{entry.score}</span>
-                                                </div>
-                                            ))}
+                                    {/* Bracket Visualization */}
+                                    {rounds.length > 0 && (
+                                        <div className="bracket-section">
+                                            <h4>Tournament Bracket</h4>
+                                            <div className="bracket-rounds">
+                                                {rounds.map(round => (
+                                                    <div key={round.id} className={`bracket-round ${round.status === 'active' ? 'active' : ''}`}>
+                                                        <div className="round-header">
+                                                            {getRoundName(round.round_number, activeTournament.total_rounds)}
+                                                            {round.status === 'active' && <span className="round-active-dot" />}
+                                                        </div>
+                                                        <div className="round-matchups">
+                                                            {(round.matchups || []).map((matchup, idx) => (
+                                                                <div key={idx} className={`bracket-matchup ${matchup.winner_id ? 'completed' : ''} ${matchup.player1_id === userId || matchup.player2_id === userId ? 'my-match' : ''
+                                                                    }`}>
+                                                                    <div className={`bracket-player ${matchup.winner_id === matchup.player1_id ? 'winner' : ''}`}>
+                                                                        <BracketPlayerName playerId={matchup.player1_id} userId={userId} />
+                                                                        {matchup.player1_score !== null && (
+                                                                            <span className="bracket-score">{matchup.player1_score}</span>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className={`bracket-player ${matchup.winner_id === matchup.player2_id ? 'winner' : ''}`}>
+                                                                        <BracketPlayerName playerId={matchup.player2_id} userId={userId} />
+                                                                        {matchup.player2_score !== null && (
+                                                                            <span className="bracket-score">{matchup.player2_score}</span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
                                     )}
                                 </MetalFrame>
@@ -395,12 +631,21 @@ export default function TournamentsPage() {
                                                         <Calendar size={14} />
                                                         <span>{new Date(tournament.start_time).toLocaleDateString()}</span>
                                                         <Clock size={14} />
-                                                        <span>{new Date(tournament.start_time).toLocaleTimeString()}</span>
+                                                        <span>7:00 PM CST</span>
                                                     </div>
                                                 </div>
                                                 <div className="tournament-action">
                                                     <div className="countdown">{getCountdown(tournament.start_time)}</div>
                                                     <div className="entry-fee">{tournament.entry_fee}💎 entry</div>
+                                                    {!userEntry && (
+                                                        <HexButton
+                                                            onClick={() => handleRegister(tournament)}
+                                                            variant="secondary"
+                                                            size="sm"
+                                                        >
+                                                            Register
+                                                        </HexButton>
+                                                    )}
                                                 </div>
                                             </div>
                                         </MetalFrame>
@@ -416,7 +661,9 @@ export default function TournamentsPage() {
                                         <MetalFrame key={tournament.id} padding="16px" showBolts={false} className="past-card">
                                             <div className="past-header">
                                                 <span>{tournament.name}</span>
-                                                <span className="prize-pool">{tournament.prize_pool}💎 pool</span>
+                                                <span className="prize-pool">
+                                                    {tournament.status === 'cancelled' ? 'Cancelled' : `${tournament.prize_pool || 0}💎 pool`}
+                                                </span>
                                             </div>
                                             {tournament.winners && (
                                                 <div className="winners">
@@ -436,13 +683,13 @@ export default function TournamentsPage() {
                                 </div>
                             )}
 
-                            {/* No tournaments message */}
+                            {/* No tournaments */}
                             {tournaments.length === 0 && (
                                 <MetalFrame padding="32px" showBolts={true}>
                                     <div className="no-tournaments">
                                         <Trophy size={48} color="rgba(255,255,255,0.2)" />
                                         <p>No tournaments scheduled yet.</p>
-                                        <span>Check back every Saturday at 8 PM CST!</span>
+                                        <span>Daily tournaments start at 7 PM CST!</span>
                                     </div>
                                 </MetalFrame>
                             )}
@@ -501,39 +748,28 @@ export default function TournamentsPage() {
                         </div>
                     )}
 
-                    {/* Complete */}
+                    {/* Round Complete */}
                     {gameState === 'complete' && (
                         <div className="complete">
                             <MetalFrame padding="32px" showBolts={true}>
                                 <Trophy size={48} color="#FFD700" />
-                                <h1>Tournament Complete!</h1>
+                                <h1>Round Complete!</h1>
 
                                 <div className="final-score">
                                     <span className="score-value">{score}</span>
                                     <span className="score-label">Points</span>
                                 </div>
 
-                                <p className="time-info">
-                                    Completed in {userEntry?.time_spent || 0} seconds
-                                </p>
-
-                                {/* Find user's rank */}
-                                <div className="rank-display">
-                                    <span>Current Rank:</span>
-                                    <strong>#{leaderboard.findIndex(e => e.user_id === userId) + 1}</strong>
-                                    <span>of {leaderboard.length}</span>
-                                </div>
-
                                 <p className="prize-note">
-                                    Winners will be announced when the tournament ends!
+                                    Your score has been submitted. The round ends when all matches are played or the deadline passes.
                                 </p>
 
                                 <HexButton
-                                    onClick={() => router.push('/hub/trivia')}
+                                    onClick={() => { setGameState('lobby'); loadData(); }}
                                     variant="primary"
                                     size="md"
                                 >
-                                    Back to Trivia
+                                    View Bracket
                                 </HexButton>
                             </MetalFrame>
                         </div>
@@ -549,9 +785,7 @@ export default function TournamentsPage() {
                     font-family: 'Inter', -apple-system, sans-serif;
                 }
 
-                .bg-overlay {
-                    display: none;
-                }
+                .bg-overlay { display: none; }
 
                 .content {
                     position: relative;
@@ -560,6 +794,61 @@ export default function TournamentsPage() {
                     margin: 0 auto;
                 }
 
+                /* Notifications */
+                .notifications-banner {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                    margin-bottom: 16px;
+                    padding: 0 16px;
+                }
+
+                .notification {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    padding: 12px 16px;
+                    border-radius: 8px;
+                    font-size: 14px;
+                    color: #fff;
+                    animation: slideIn 0.3s ease;
+                }
+
+                .notification.round_start {
+                    background: rgba(34, 197, 94, 0.15);
+                    border: 1px solid rgba(34, 197, 94, 0.3);
+                }
+
+                .notification.forfeit_warning {
+                    background: rgba(239, 168, 68, 0.15);
+                    border: 1px solid rgba(239, 168, 68, 0.3);
+                }
+
+                .notification.eliminated {
+                    background: rgba(239, 68, 68, 0.15);
+                    border: 1px solid rgba(239, 68, 68, 0.3);
+                }
+
+                .notification.winner {
+                    background: rgba(255, 215, 0, 0.15);
+                    border: 1px solid rgba(255, 215, 0, 0.3);
+                }
+
+                .dismiss {
+                    background: none;
+                    border: none;
+                    color: rgba(255,255,255,0.5);
+                    cursor: pointer;
+                    margin-left: auto;
+                    font-size: 16px;
+                }
+
+                @keyframes slideIn {
+                    from { transform: translateY(-10px); opacity: 0; }
+                    to { transform: translateY(0); opacity: 1; }
+                }
+
+                /* Lobby */
                 .lobby-image-wrapper {
                     border-radius: 16px;
                     overflow: hidden;
@@ -593,37 +882,8 @@ export default function TournamentsPage() {
 
                 @keyframes spin { to { transform: rotate(360deg); } }
 
-                .page-header {
-                    display: flex;
-                    align-items: center;
-                    gap: 12px;
-                    margin-bottom: 24px;
-                }
-
-                .page-header h1 {
-                    font-family: 'Orbitron', sans-serif;
-                    font-size: 28px;
-                    color: #fff;
-                    margin: 0;
-                    flex: 1;
-                }
-
-                .diamond-balance {
-                    display: flex;
-                    align-items: center;
-                    gap: 6px;
-                    padding: 8px 16px;
-                    background: rgba(0, 212, 255, 0.1);
-                    border: 1px solid rgba(0, 212, 255, 0.3);
-                    border-radius: 8px;
-                    color: #00D4FF;
-                    font-weight: 600;
-                }
-
                 /* Active Tournament */
-                .active-tournament {
-                    margin-bottom: 24px;
-                }
+                .active-tournament { margin-bottom: 24px; }
 
                 .tournament-badge {
                     display: inline-flex;
@@ -676,7 +936,69 @@ export default function TournamentsPage() {
                     color: rgba(255, 255, 255, 0.7);
                 }
 
-                .already-played {
+                .info-item.deadline {
+                    color: #ef4444;
+                    font-weight: 600;
+                }
+
+                /* Match Card */
+                .match-card {
+                    background: rgba(30, 41, 59, 0.5);
+                    border: 1px solid rgba(0, 212, 255, 0.2);
+                    border-radius: 12px;
+                    padding: 20px;
+                    margin: 16px 0;
+                }
+
+                .match-card h4 {
+                    font-size: 14px;
+                    color: #00D4FF;
+                    text-transform: uppercase;
+                    margin: 0 0 16px;
+                }
+
+                .match-vs {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    margin-bottom: 16px;
+                }
+
+                .match-player {
+                    text-align: center;
+                    flex: 1;
+                }
+
+                .player-name {
+                    display: block;
+                    font-size: 16px;
+                    font-weight: 700;
+                    color: #fff;
+                }
+
+                .player-score {
+                    display: block;
+                    font-size: 24px;
+                    font-weight: 800;
+                    color: #FFD700;
+                    margin-top: 4px;
+                }
+
+                .player-record {
+                    display: block;
+                    font-size: 12px;
+                    color: rgba(255,255,255,0.5);
+                    margin-top: 2px;
+                }
+
+                .vs-text {
+                    font-size: 14px;
+                    font-weight: 700;
+                    color: rgba(255,255,255,0.3);
+                    padding: 0 16px;
+                }
+
+                .bye-notice, .already-played {
                     display: flex;
                     align-items: center;
                     gap: 8px;
@@ -687,63 +1009,143 @@ export default function TournamentsPage() {
                     font-weight: 600;
                 }
 
-                .mini-leaderboard {
-                    margin-top: 20px;
-                    padding-top: 20px;
-                    border-top: 1px solid rgba(255, 255, 255, 0.1);
+                .match-result {
+                    margin-top: 12px;
+                    padding: 12px;
+                    border-radius: 8px;
+                    text-align: center;
+                    font-weight: 700;
+                    font-size: 18px;
                 }
 
-                .mini-leaderboard h4 {
-                    font-size: 12px;
-                    color: rgba(255, 255, 255, 0.5);
-                    text-transform: uppercase;
-                    margin: 0 0 12px;
+                .match-result.won {
+                    background: rgba(34, 197, 94, 0.2);
+                    color: #22c55e;
                 }
 
-                .lb-row {
+                .match-result.lost {
+                    background: rgba(239, 68, 68, 0.2);
+                    color: #ef4444;
+                }
+
+                .eliminated-notice {
                     display: flex;
                     align-items: center;
-                    padding: 8px 0;
-                    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                    gap: 8px;
+                    padding: 16px;
+                    background: rgba(239, 68, 68, 0.15);
+                    border-radius: 8px;
+                    color: #ef4444;
+                    font-weight: 600;
+                    margin: 16px 0;
                 }
 
-                .lb-row.you {
-                    background: rgba(0, 212, 255, 0.1);
-                    margin: 0 -16px;
-                    padding: 8px 16px;
+                /* Bracket */
+                .bracket-section {
+                    margin-top: 24px;
+                    padding-top: 24px;
+                    border-top: 1px solid rgba(255,255,255,0.1);
+                }
+
+                .bracket-section h4 {
+                    font-size: 14px;
+                    color: rgba(255,255,255,0.5);
+                    text-transform: uppercase;
+                    margin: 0 0 16px;
+                }
+
+                .bracket-rounds {
+                    display: flex;
+                    gap: 16px;
+                    overflow-x: auto;
+                    padding-bottom: 12px;
+                }
+
+                .bracket-round {
+                    min-width: 180px;
+                    flex-shrink: 0;
+                }
+
+                .bracket-round.active {
+                    border: 1px solid rgba(0, 212, 255, 0.3);
+                    border-radius: 8px;
+                    padding: 8px;
+                    background: rgba(0, 212, 255, 0.05);
+                }
+
+                .round-header {
+                    font-size: 12px;
+                    font-weight: 700;
+                    color: rgba(255,255,255,0.6);
+                    text-transform: uppercase;
+                    margin-bottom: 8px;
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                }
+
+                .round-active-dot {
+                    width: 6px;
+                    height: 6px;
+                    background: #00D4FF;
+                    border-radius: 50%;
+                    animation: pulse 1.5s infinite;
+                }
+
+                .round-matchups {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                }
+
+                .bracket-matchup {
+                    background: rgba(30, 41, 59, 0.4);
+                    border: 1px solid rgba(255,255,255,0.08);
                     border-radius: 6px;
+                    overflow: hidden;
                 }
 
-                .lb-row .rank {
-                    width: 30px;
+                .bracket-matchup.my-match {
+                    border-color: rgba(0, 212, 255, 0.4);
+                }
+
+                .bracket-matchup.completed {
+                    opacity: 0.7;
+                }
+
+                .bracket-player {
+                    display: flex;
+                    justify-content: space-between;
+                    padding: 6px 10px;
+                    font-size: 12px;
+                    color: rgba(255,255,255,0.6);
+                    border-bottom: 1px solid rgba(255,255,255,0.05);
+                }
+
+                .bracket-player:last-child {
+                    border-bottom: none;
+                }
+
+                .bracket-player.winner {
+                    color: #22c55e;
+                    font-weight: 600;
+                }
+
+                .bracket-score {
                     font-weight: 700;
                     color: #FFD700;
                 }
 
-                .lb-row .name {
-                    flex: 1;
-                    color: #fff;
-                }
-
-                .lb-row .score {
-                    font-weight: 600;
-                    color: #00D4FF;
-                }
-
-                /* Upcoming */
-                .upcoming-section, .past-section {
-                    margin-top: 24px;
-                }
+                /* Upcoming/Past sections */
+                .upcoming-section, .past-section { margin-top: 24px; }
 
                 .upcoming-section h3, .past-section h3 {
                     font-size: 16px;
-                    color: rgba(255, 255, 255, 0.6);
+                    color: rgba(255,255,255,0.6);
                     margin: 0 0 12px;
                 }
 
-                .tournament-card {
-                    margin-bottom: 12px;
-                }
+                .tournament-card { margin-bottom: 12px; }
 
                 .tournament-row {
                     display: flex;
@@ -762,12 +1164,10 @@ export default function TournamentsPage() {
                     align-items: center;
                     gap: 6px;
                     font-size: 12px;
-                    color: rgba(255, 255, 255, 0.5);
+                    color: rgba(255,255,255,0.5);
                 }
 
-                .tournament-action {
-                    text-align: right;
-                }
+                .tournament-action { text-align: right; }
 
                 .countdown {
                     font-size: 18px;
@@ -777,25 +1177,22 @@ export default function TournamentsPage() {
 
                 .entry-fee {
                     font-size: 12px;
-                    color: rgba(255, 255, 255, 0.5);
+                    color: rgba(255,255,255,0.5);
+                    margin-bottom: 8px;
                 }
 
                 /* Past */
-                .past-card {
-                    margin-bottom: 12px;
-                }
+                .past-card { margin-bottom: 12px; }
 
                 .past-header {
                     display: flex;
                     justify-content: space-between;
                     margin-bottom: 12px;
-                    color: rgba(255, 255, 255, 0.7);
+                    color: rgba(255,255,255,0.7);
                     font-size: 14px;
                 }
 
-                .prize-pool {
-                    color: #00D4FF;
-                }
+                .prize-pool { color: #00D4FF; }
 
                 .winners {
                     display: flex;
@@ -811,14 +1208,11 @@ export default function TournamentsPage() {
                     color: #fff;
                 }
 
-                .winner .prize {
-                    margin-left: auto;
-                    color: #22c55e;
-                }
+                .winner .prize { margin-left: auto; color: #22c55e; }
 
                 .no-tournaments {
                     text-align: center;
-                    color: rgba(255, 255, 255, 0.5);
+                    color: rgba(255,255,255,0.5);
                 }
 
                 .no-tournaments p {
@@ -925,9 +1319,7 @@ export default function TournamentsPage() {
                     margin: 16px 0;
                 }
 
-                .final-score {
-                    margin: 24px 0;
-                }
+                .final-score { margin: 24px 0; }
 
                 .score-value {
                     display: block;
@@ -941,28 +1333,6 @@ export default function TournamentsPage() {
                     color: rgba(255, 255, 255, 0.5);
                 }
 
-                .time-info {
-                    color: rgba(255, 255, 255, 0.6);
-                    margin-bottom: 20px;
-                }
-
-                .rank-display {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 8px;
-                    padding: 16px;
-                    background: rgba(255, 215, 0, 0.1);
-                    border-radius: 10px;
-                    margin-bottom: 20px;
-                    color: #fff;
-                }
-
-                .rank-display strong {
-                    font-size: 24px;
-                    color: #FFD700;
-                }
-
                 .prize-note {
                     font-size: 14px;
                     color: rgba(255, 255, 255, 0.5);
@@ -971,4 +1341,31 @@ export default function TournamentsPage() {
             `}</style>
         </PageTransition>
     );
+}
+
+// Helper component to display player names in bracket
+function BracketPlayerName({ playerId, userId }) {
+    const [name, setName] = useState(null);
+
+    useEffect(() => {
+        if (!playerId) {
+            setName('BYE');
+            return;
+        }
+        if (playerId === userId) {
+            setName('You');
+            return;
+        }
+
+        supabase
+            .from('profiles')
+            .select('username')
+            .eq('id', playerId)
+            .single()
+            .then(({ data }) => {
+                setName(data?.username || 'Player');
+            });
+    }, [playerId, userId]);
+
+    return <span className={playerId === userId ? 'bracket-you' : ''}>{name || '...'}</span>;
 }
