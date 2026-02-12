@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { LogOut, ArrowLeft, X, Menu, Settings, Download, Users, QrCode, Clock, Layout, Trophy, Monitor, Gift, Tv, BarChart3, AlertTriangle } from 'lucide-react';
+import { LogOut, ArrowLeft, X, Menu, Settings, Download, Users, QrCode, Clock, Layout, Trophy, Monitor, Gift, Tv, BarChart3, AlertTriangle, Map, Bell, DollarSign, Activity, PlusCircle, Calendar, Lock, Upload } from 'lucide-react';
 
 /* ─────────────────────────────────────────────────
    CARD DEFINITIONS — each card has sub-features
@@ -47,9 +47,11 @@ const CARDS = [
     glow: '#31A24C',
     features: [
       { label: 'Table Management', href: '/commander/tables', icon: '/images/commander/icons/mg-poker-room.png' },
+      { label: 'Floor Map', href: '/commander/floor', icon: '/images/commander/icons/mg-poker-room.png' },
+      { label: 'Open Cash Game', href: '/commander/open-game', icon: '/images/commander/icons/mg-poker-room.png' },
       { label: 'Dealer Management', href: '/commander/dealers', icon: '/images/commander/icons/mg-employee.png' },
       { label: 'Time Billing', href: '/commander/time-billing', icon: '/images/commander/icons/wl-desk-view.png' },
-      { label: 'Poker Room', href: '/commander/poker-room', icon: '/images/commander/icons/mg-poker-room.png' },
+      { label: 'Floor Calls', href: '/commander/floor-calls', icon: '/images/commander/icons/rp-activity.png' },
     ],
   },
   {
@@ -60,8 +62,10 @@ const CARDS = [
     glow: '#EF4444',
     features: [
       { label: 'Staff Management', href: '/commander/staff', icon: '/images/commander/icons/mg-employee.png' },
+      { label: 'Staff Schedule', href: '/commander/schedule', icon: '/images/commander/icons/mg-employee.png' },
       { label: 'TV Displays', href: '/commander/displays', icon: '/images/commander/icons/rp-config.png' },
       { label: 'Promotions', href: '/commander/promotions', icon: '/images/commander/icons/tn-registration.png' },
+      { label: 'Comp System', href: '/commander/comps', icon: '/images/commander/icons/tn-registration.png' },
       { label: 'Incidents', href: '/commander/incidents', icon: '/images/commander/icons/rp-activity.png' },
       { label: 'Announcements', href: '/commander/announcements', icon: '/images/commander/icons/wl-player-view.png' },
     ],
@@ -76,7 +80,10 @@ const CARDS = [
       { label: 'Reports Hub', href: '/commander/reports', icon: '/images/commander/icons/rp-waitlist.png' },
       { label: 'Daily Summary', href: '/commander/reports/daily-summary', icon: '/images/commander/icons/rp-custom.png' },
       { label: 'Revenue Report', href: '/commander/reports/revenue', icon: '/images/commander/icons/rp-player.png' },
+      { label: 'Activity Feed', href: '/commander/activity', icon: '/images/commander/icons/rp-activity.png' },
       { label: 'Analytics', href: '/commander/analytics', icon: '/images/commander/icons/rp-tournament.png' },
+      { label: 'Close Day', href: '/commander/close-day', icon: '/images/commander/icons/rp-config.png' },
+      { label: 'Member Import', href: '/commander/member-import', icon: '/images/commander/icons/wl-player-maintenance.png' },
       { label: 'Settings', href: '/commander/settings', icon: '/images/commander/icons/rp-config.png' },
       { label: 'Staff Activity', href: '/commander/reports/staff-activity', icon: '/images/commander/icons/rp-activity.png' },
     ],
@@ -451,6 +458,12 @@ export default function CommanderDashboard() {
               <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/tables'); }}>
                 <Layout size={18} /> Tables
               </button>
+              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/floor'); }}>
+                <Map size={18} /> Floor Map
+              </button>
+              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/floor-calls'); }}>
+                <Bell size={18} /> Floor Calls
+              </button>
               <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/tournaments'); }}>
                 <Trophy size={18} /> Tournaments
               </button>
@@ -461,11 +474,20 @@ export default function CommanderDashboard() {
                 <Monitor size={18} /> Kiosk
               </button>
               <div className="cmd-menu-divider" />
+              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/comps'); }}>
+                <DollarSign size={18} /> Comps
+              </button>
               <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/promotions'); }}>
                 <Gift size={18} /> Promotions
               </button>
+              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/schedule'); }}>
+                <Calendar size={18} /> Staff Schedule
+              </button>
               <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/displays'); }}>
                 <Tv size={18} /> TV Displays
+              </button>
+              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/activity'); }}>
+                <Activity size={18} /> Activity Feed
               </button>
               <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/reports'); }}>
                 <BarChart3 size={18} /> Reports
@@ -474,6 +496,15 @@ export default function CommanderDashboard() {
                 <AlertTriangle size={18} /> Incidents
               </button>
               <div className="cmd-menu-divider" />
+              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/open-game'); }}>
+                <PlusCircle size={18} /> Open Cash Game
+              </button>
+              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/close-day'); }}>
+                <Lock size={18} /> Close Day
+              </button>
+              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/member-import'); }}>
+                <Upload size={18} /> Member Import
+              </button>
               <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/qr-code'); }}>
                 <QrCode size={18} /> QR Code
               </button>
