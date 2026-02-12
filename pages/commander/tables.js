@@ -124,6 +124,24 @@ export default function CommanderTablesPage() {
     }
   }
 
+  // Close/break a running game on a table
+  async function handleCloseGame(gameId) {
+    if (!window.confirm('Close this game? Players will be unseated.')) return;
+    try {
+      const res = await fetch(`/api/commander/games/${gameId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'closed' })
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchTables();
+      }
+    } catch (err) {
+      console.error('Failed to close game:', err);
+    }
+  }
+
   if (!staff || loading) {
     return (
       <div className="cmd-page flex items-center justify-center">
@@ -225,11 +243,17 @@ export default function CommanderTablesPage() {
                   </div>
 
                   {table.current_game_id && (
-                    <div className="mb-3 p-2 bg-[#3A3B3C] rounded-lg">
+                    <div className="mb-3 p-2 bg-[#3A3B3C] rounded-lg flex items-center justify-between">
                       <div className="flex items-center gap-2 text-sm text-[#B0B3B8]">
                         <Users className="w-4 h-4" />
                         <span>Game in progress</span>
                       </div>
+                      <button
+                        onClick={() => handleCloseGame(table.current_game_id)}
+                        className="px-2.5 py-1 text-xs font-medium text-[#EF4444] bg-[#EF4444]/10 rounded-lg hover:bg-[#EF4444]/20 transition-colors"
+                      >
+                        Close Game
+                      </button>
                     </div>
                   )}
 

@@ -157,10 +157,10 @@ export default function WaitlistDesk() {
     } catch (err) { console.error(err); }
   };
 
-  // Group waitlists by game type
+  // Group waitlists by game type + stakes (TC shows "NLH 1/2", not just "NLH")
   const waitlistByGame = {};
   waitlists.filter(w => w.status === 'waiting' || w.status === 'called').forEach(w => {
-    const key = w.game_type || 'Unknown';
+    const key = w.stakes ? `${w.game_type || 'Unknown'} ${w.stakes}` : (w.game_type || 'Unknown');
     if (!waitlistByGame[key]) waitlistByGame[key] = [];
     waitlistByGame[key].push(w);
   });

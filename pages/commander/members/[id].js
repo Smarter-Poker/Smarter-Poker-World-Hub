@@ -27,6 +27,7 @@ export default function MemberProfile() {
   const [tab, setTab] = useState('overview');
   const [addTimeAmount, setAddTimeAmount] = useState('');
   const [showAddTime, setShowAddTime] = useState(false);
+  const [tournamentResults, setTournamentResults] = useState([]);
 
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
@@ -41,12 +42,14 @@ export default function MemberProfile() {
     try {
       const token = getToken();
       const headers = { Authorization: `Bearer ${token}` };
-      const [memberRes, sessionsRes] = await Promise.all([
+      const [memberRes, sessionsRes, tournamentsRes] = await Promise.all([
         fetch(`/api/commander/members/${id}`, { headers }).then(r => r.json()),
-        fetch(`/api/commander/time-billing/sessions?member_id=${id}`, { headers }).then(r => r.json()).catch(() => ({ data: [] }))
+        fetch(`/api/commander/time-billing/sessions?member_id=${id}`, { headers }).then(r => r.json()).catch(() => ({ data: [] })),
+        fetch(`/api/commander/tournaments/player-results?member_id=${id}`, { headers }).then(r => r.json()).catch(() => ({ data: [] }))
       ]);
       if (memberRes.data || memberRes.success) setMember(memberRes.data || memberRes);
       if (sessionsRes.data) setSessions(sessionsRes.data);
+      if (tournamentsRes.data) setTournamentResults(tournamentsRes.data);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
@@ -207,7 +210,7 @@ export default function MemberProfile() {
 
         {/* Tabs */}
         <div className="mt-4 border-b border-[#3A3B3C] flex px-4">
-          {['overview', 'sessions', 'notes'].map(t => (
+          {['overview', 'sessions', 'tournaments', 'notes'].map(t => (
             <button key={t} onClick={() => setTab(t)}
               className={`px-4 py-3 text-sm font-medium capitalize border-b-2 -mb-px ${
                 tab === t ? 'text-[#1877F2] border-[#1877F2]' : 'text-[#B0B3B8] border-transparent'
@@ -248,6 +251,37 @@ export default function MemberProfile() {
                         {s.status}
                       </span>
                       <p className="text-[10px] text-[#B0B3B8]">{s.time_allocated_minutes || 0}m</p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          {/* Tournaments */}
+          {tab === 'tournaments' && (
+            <div className="space-y-2">
+              {tournamentResults.length === 0 ? (
+                <p className="py-6 text-center text-[#B0B3B8]">No tournament results</p>
+              ) : (
+                tournamentResults.slice(0, 30).map((t, i) => (
+                  <div key={t.id || i} className="flex items-center justify-between px-4 py-2.5 bg-[#242526] border border-[#3A3B3C] rounded-lg">
+                    <div>
+                      <p className="text-sm text-white">{t.tournament_name || t.name || 'Tournament'}</p>
+                      <p className="text-[10px] text-[#B0B3B8]">
+                        {t.date ? new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
+                        {t.buyin_amount ? ` — $${t.buyin_amount} buy-in` : ''}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      {t.finish_position && (
+                        <span className={`text-sm font-bold ${t.finish_position <= 3 ? 'text-[#F59E0B]' : 'text-[#B0B3B8]'}`}>
+                          {t.finish_position === 1 ? '🥇 1st' : t.finish_position === 2 ? '🥈 2nd' : t.finish_position === 3 ? '🥉 3rd' : `${t.finish_position}th`}
+                        </span>
+                      )}
+                      {t.payout > 0 && (
+                        <p className="text-xs text-[#31A24C] font-medium">${t.payout.toLocaleString()}</p>
+                      )}
                     </div>
                   </div>
                 ))
