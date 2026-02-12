@@ -18,6 +18,19 @@ import { Timer, Trophy, Gem, Zap, Play } from 'lucide-react';
 import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 
+/** Shuffle answer options so correct answer isn't always A */
+function shuffleOptions(questions) {
+    return questions.map(q => {
+        const opts = [...q.options];
+        const correctText = opts[q.correct_index];
+        for (let i = opts.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [opts[i], opts[j]] = [opts[j], opts[i]];
+        }
+        return { ...q, options: opts, correct_index: opts.indexOf(correctText) };
+    });
+}
+
 const DAILY_DIAMOND_CAP = 5;
 
 export default function TimeAttackPage() {
@@ -142,7 +155,7 @@ export default function TimeAttackPage() {
             if (available.length < 30) available = data;
 
             const shuffled = available.sort(() => Math.random() - 0.5);
-            setQuestions(shuffled);
+            setQuestions(shuffleOptions(shuffled));
             return shuffled;
         }
         return [];

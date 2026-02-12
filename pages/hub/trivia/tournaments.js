@@ -16,6 +16,19 @@ import HexButton from '../../../src/components/ui/HexButton';
 import { Trophy, Calendar, Clock, Gem, Users, CheckCircle, XCircle, Medal, Award, Bell, Swords, AlertTriangle } from 'lucide-react';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 
+/** Shuffle options for each question so correct answer isn't always A */
+function shuffleOptions(questions) {
+    return questions.map(q => {
+        const opts = [...q.options];
+        const correctText = opts[q.correct_index];
+        for (let i = opts.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [opts[i], opts[j]] = [opts[j], opts[i]];
+        }
+        return { ...q, options: opts, correct_index: opts.indexOf(correctText) };
+    });
+}
+
 export default function TournamentsPage() {
     const router = useRouter();
     const [userId, setUserId] = useState(null);
@@ -279,7 +292,7 @@ export default function TournamentsPage() {
         }
 
         // Use 20 questions per round (random from all categories)
-        setQuestions(activeTournament.questions.slice(0, 20));
+        setQuestions(shuffleOptions(activeTournament.questions.slice(0, 20)));
         setCurrentQuestionIndex(0);
         setScore(0);
         setSelectedAnswer(null);
@@ -752,6 +765,7 @@ export default function TournamentsPage() {
                     {/* Round Complete */}
                     {gameState === 'complete' && (
                         <div className="result-panel-overlay">
+                            <button className="panel-back-top" onClick={() => router.push('/hub/trivia')}>← Back to Trivia</button>
                             <div className="result-panel-container">
                                 <img
                                     src="/trivia/panels/panel-win.jpg"
@@ -759,10 +773,6 @@ export default function TournamentsPage() {
                                     className="result-panel-bg"
                                 />
                                 <div className="result-panel-content">
-                                    <h1 className="panel-title win">
-                                        {'Round\nComplete!'}
-                                    </h1>
-
                                     <div className="panel-stats">
                                         <div className="panel-stat-row">
                                             <span className="panel-stat-label">YOUR SCORE</span>
@@ -781,15 +791,6 @@ export default function TournamentsPage() {
                                             <span className="panel-stat-label">ROUND</span>
                                             <span className="panel-stat-value gold">{activeTournament?.current_round || 1} / {activeTournament?.total_rounds || '?'}</span>
                                         </div>
-                                    </div>
-
-                                    <div className="panel-buttons">
-                                        <button className="panel-play-again" onClick={() => { setGameState('lobby'); loadData(); }}>
-                                            View Bracket
-                                        </button>
-                                        <button className="panel-back" onClick={() => router.push('/hub/trivia')}>
-                                            Back to Trivia
-                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -1331,7 +1332,7 @@ export default function TournamentsPage() {
                 .correct-icon { color: #22c55e; margin-left: auto; }
                 .wrong-icon { color: #ef4444; margin-left: auto; }
 
-                /* Result Panel Overlay */
+                /* ===== PANEL OVERLAY SYSTEM ===== */
                 .result-panel-overlay {
                     position: fixed;
                     top: 0;
@@ -1351,19 +1352,43 @@ export default function TournamentsPage() {
                     to { opacity: 1; transform: scale(1); }
                 }
 
+                .panel-back-top {
+                    position: absolute;
+                    top: 16px;
+                    left: 16px;
+                    z-index: 1010;
+                    font-family: 'Orbitron', 'Exo 2', sans-serif;
+                    font-weight: 700;
+                    font-size: 0.85rem;
+                    letter-spacing: 0.04em;
+                    text-transform: uppercase;
+                    color: rgba(255, 255, 255, 0.7);
+                    background: rgba(0, 0, 0, 0.5);
+                    border: 1px solid rgba(255, 255, 255, 0.15);
+                    border-radius: 6px;
+                    padding: 8px 16px;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                }
+
+                .panel-back-top:hover {
+                    color: #00f0ff;
+                    border-color: rgba(0, 240, 255, 0.35);
+                    background: rgba(0, 0, 0, 0.7);
+                    text-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
+                }
+
                 .result-panel-container {
                     position: relative;
-                    width: 90vw;
+                    width: 92vw;
                     max-width: 700px;
-                    aspect-ratio: 4 / 3;
                 }
 
                 .result-panel-bg {
                     width: 100%;
-                    height: 100%;
-                    object-fit: cover;
-                    border-radius: 8px;
+                    height: auto;
                     display: block;
+                    border-radius: 4px;
                 }
 
                 .result-panel-content {
@@ -1376,32 +1401,39 @@ export default function TournamentsPage() {
                     flex-direction: column;
                     align-items: center;
                     justify-content: center;
-                    padding: 12% 10% 10%;
+                    padding: 8% 10% 6%;
                 }
 
+                /* ===== PANEL TITLE — Exact Orbitron spec ===== */
                 .panel-title {
-                    font-family: 'Orbitron', 'Exo 2', sans-serif;
+                    font-family: 'Orbitron', 'Exo 2', 'Rajdhani', sans-serif;
                     font-weight: 900;
-                    font-size: clamp(1.8rem, 5vw, 3.5rem);
+                    font-size: 5rem;
                     letter-spacing: 0.06em;
                     text-transform: uppercase;
                     color: #ffffff;
-                    text-shadow:
-                        0 0 10px #00ffff88,
-                        0 0 20px #00ffff44,
-                        2px 2px 4px #000000cc;
-                    line-height: 1.15;
                     text-align: center;
+                    text-shadow:
+                        0 0 12px #00ffff99,
+                        0 0 24px #00ffff44,
+                        3px 3px 6px #000000aa;
+                    background: linear-gradient(to bottom, #ffffff, #d0d0d0);
+                    -webkit-background-clip: text;
+                    background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    line-height: 1.05;
                     white-space: pre-line;
-                    margin: 0 0 6% 0;
+                    margin: 0 0 4% 0;
+                    padding: 0.5rem 0;
                 }
 
+                /* ===== STAT ROWS ===== */
                 .panel-stats {
-                    width: 70%;
-                    max-width: 360px;
+                    width: 75%;
+                    max-width: 400px;
                     display: flex;
                     flex-direction: column;
-                    gap: 6px;
+                    gap: 8px;
                     margin-bottom: 5%;
                 }
 
@@ -1409,13 +1441,13 @@ export default function TournamentsPage() {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    font-family: 'Orbitron', sans-serif;
-                    font-size: clamp(0.6rem, 1.5vw, 0.85rem);
+                    font-family: 'Orbitron', 'Exo 2', sans-serif;
+                    font-size: 1rem;
                     letter-spacing: 0.04em;
                 }
 
                 .panel-stat-label {
-                    color: rgba(255, 255, 255, 0.55);
+                    color: rgba(255, 255, 255, 0.6);
                     font-weight: 700;
                     text-transform: uppercase;
                 }
@@ -1436,52 +1468,80 @@ export default function TournamentsPage() {
                     margin: 4px 0;
                 }
 
+                /* ===== PANEL BUTTONS ===== */
                 .panel-buttons {
                     display: flex;
                     gap: 16px;
                     align-items: center;
                 }
 
-                .panel-play-again {
-                    font-family: 'Orbitron', sans-serif;
-                    font-weight: 700;
-                    font-size: clamp(0.75rem, 1.8vw, 1rem);
+                .panel-btn-primary {
+                    font-family: 'Orbitron', 'Exo 2', sans-serif;
+                    font-weight: 800;
+                    font-size: 1.1rem;
                     letter-spacing: 0.06em;
                     text-transform: uppercase;
                     color: #00f0ff;
                     background: linear-gradient(to bottom, #3a3e4a, #2a2e3a);
-                    border: 1px solid rgba(0, 240, 255, 0.3);
+                    border: 1px solid rgba(0, 240, 255, 0.35);
                     border-radius: 6px;
-                    padding: 10px 28px;
+                    padding: 12px 32px;
                     cursor: pointer;
                     transition: all 0.2s ease;
-                    text-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
+                    text-shadow: 0 0 10px rgba(0, 240, 255, 0.6);
                 }
 
-                .panel-play-again:hover {
+                .panel-btn-primary:hover {
                     background: linear-gradient(to bottom, #4a4e5a, #3a3e4a);
-                    box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+                    box-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
                     transform: translateY(-1px);
                 }
 
-                .panel-back {
-                    font-family: 'Orbitron', sans-serif;
+                .panel-btn-secondary {
+                    font-family: 'Orbitron', 'Exo 2', sans-serif;
                     font-weight: 700;
-                    font-size: clamp(0.65rem, 1.4vw, 0.85rem);
+                    font-size: 0.85rem;
                     letter-spacing: 0.04em;
                     text-transform: uppercase;
                     color: rgba(255, 255, 255, 0.5);
                     background: transparent;
                     border: 1px solid rgba(255, 255, 255, 0.15);
                     border-radius: 6px;
-                    padding: 10px 20px;
+                    padding: 12px 24px;
                     cursor: pointer;
                     transition: all 0.2s ease;
                 }
 
-                .panel-back:hover {
+                .panel-btn-secondary:hover {
                     color: rgba(255, 255, 255, 0.8);
                     border-color: rgba(255, 255, 255, 0.3);
+                }
+
+                /* ===== RESPONSIVE SCALING ===== */
+                @media (max-width: 600px) {
+                    .panel-title {
+                        font-size: 2.5rem;
+                    }
+                    .panel-stat-row {
+                        font-size: 0.8rem;
+                    }
+                    .panel-btn-primary {
+                        font-size: 0.9rem;
+                        padding: 10px 24px;
+                    }
+                    .panel-btn-secondary {
+                        font-size: 0.75rem;
+                        padding: 10px 18px;
+                    }
+                }
+
+                @media (max-width: 400px) {
+                    .panel-title {
+                        font-size: 1.8rem;
+                    }
+                    .panel-stat-row {
+                        font-size: 0.7rem;
+                    }
                 }
             `}</style>
         </PageTransition>

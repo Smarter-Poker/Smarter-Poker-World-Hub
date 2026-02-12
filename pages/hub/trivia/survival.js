@@ -18,6 +18,19 @@ import { Flame, Trophy, Gem, Target, Play } from 'lucide-react';
 import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 
+/** Shuffle answer options so correct answer isn't always A */
+function shuffleOptions(questions) {
+    return questions.map(q => {
+        const opts = [...q.options];
+        const correctText = opts[q.correct_index];
+        for (let i = opts.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [opts[i], opts[j]] = [opts[j], opts[i]];
+        }
+        return { ...q, options: opts, correct_index: opts.indexOf(correctText) };
+    });
+}
+
 const DAILY_DIAMOND_CAP = 10;
 
 export default function SurvivalModePage() {
@@ -106,7 +119,7 @@ export default function SurvivalModePage() {
         if (data) {
             // Shuffle questions
             const shuffled = data.sort(() => Math.random() - 0.5);
-            setQuestions(shuffled);
+            setQuestions(shuffleOptions(shuffled));
         }
 
         return data || [];
@@ -121,7 +134,7 @@ export default function SurvivalModePage() {
             .range(questions.length, questions.length + 50);
 
         if (data) {
-            setQuestions(prev => [...prev, ...data.sort(() => Math.random() - 0.5)]);
+            setQuestions(prev => [...prev, ...shuffleOptions(data.sort(() => Math.random() - 0.5))]);
         }
     }
 

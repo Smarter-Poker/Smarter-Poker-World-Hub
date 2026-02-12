@@ -22,6 +22,19 @@ import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 
+/** Shuffle answer options so correct answer isn't always A */
+function shuffleOptions(questions) {
+    return questions.map(q => {
+        const opts = [...q.options];
+        const correctText = opts[q.correct_index];
+        for (let i = opts.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [opts[i], opts[j]] = [opts[j], opts[i]];
+        }
+        return { ...q, options: opts, correct_index: opts.indexOf(correctText) };
+    });
+}
+
 // Level configuration: 10 levels, starting at 85%, +2% per level
 const LEVEL_CONFIG = [
     { level: 1, accuracyRequired: 85, minCorrect: 17, difficulty: 'easy' },
@@ -330,7 +343,7 @@ export default function SurvivalGamePage() {
                 if (available.length >= QUESTIONS_PER_LEVEL) {
                     // Shuffle and take 20
                     const shuffled = available.sort(() => Math.random() - 0.5).slice(0, QUESTIONS_PER_LEVEL);
-                    setQuestions(shuffled);
+                    setQuestions(shuffleOptions(shuffled));
                 } else {
                     // Ultimate fallback: get any questions
                     const { data: fallbackData } = await supabase
@@ -339,7 +352,7 @@ export default function SurvivalGamePage() {
                         .limit(QUESTIONS_PER_LEVEL);
 
                     if (fallbackData) {
-                        setQuestions(fallbackData.sort(() => Math.random() - 0.5));
+                        setQuestions(shuffleOptions(fallbackData.sort(() => Math.random() - 0.5)));
                     }
                 }
             }

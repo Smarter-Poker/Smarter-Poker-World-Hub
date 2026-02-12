@@ -23,10 +23,24 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MetalFrame from '../../../src/components/ui/MetalFrame';
 import HexButton from '../../../src/components/ui/HexButton';
-import { Swords, Trophy, Gem, Users, Clock, CheckCircle, XCircle, Zap } from 'lucide-react';
+import { Swords, Trophy, Gem, Users, Clock, CheckCircle, XCircle, Zap, Loader } from 'lucide-react';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 
 const STAKE_OPTIONS = [10, 25, 50, 100];
+
+/** Shuffle options for each question so correct answer isn't always A */
+function shuffleOptions(questions) {
+    return questions.map(q => {
+        const opts = [...q.options];
+        const correctText = opts[q.correct_index];
+        // Fisher-Yates shuffle
+        for (let i = opts.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [opts[i], opts[j]] = [opts[j], opts[i]];
+        }
+        return { ...q, options: opts, correct_index: opts.indexOf(correctText) };
+    });
+}
 
 export default function PvPPage() {
     const router = useRouter();
@@ -329,7 +343,7 @@ export default function PvPPage() {
 
         setIsHorseMatch(true);
         setOpponent(horseOpponent);
-        setQuestions(matchQuestions);
+        setQuestions(shuffleOptions(matchQuestions));
         setMatchId(`horse-match-${Date.now()}`);
         setIsPlayer1(true);
 
@@ -355,7 +369,7 @@ export default function PvPPage() {
 
         setMatchId(matchData.match.id);
         setOpponent(matchData.opponent);
-        setQuestions(matchData.questions);
+        setQuestions(shuffleOptions(matchData.questions));
         setIsPlayer1(matchData.match.player1_id === userId);
 
         // Subscribe to match updates
@@ -707,43 +721,42 @@ export default function PvPPage() {
                     {/* Searching for opponent */}
                     {gameState === 'searching' && (
                         <div className="result-panel-overlay">
-                            <div className="finding-panel-container">
+                            <button className="panel-back-top" onClick={handleCancelSearch}>← Cancel</button>
+                            <div className="result-panel-container finding-container">
                                 <img
                                     src="/trivia/panels/panel-finding.jpg"
                                     alt=""
                                     className="result-panel-bg"
                                 />
-                                <div className="finding-panel-content">
-                                    {opponent ? (
-                                        <div className="finding-opp-found">
-                                            <div className="panel-stats">
-                                                <div className="panel-stat-row">
-                                                    <span className="panel-stat-label">OPPONENT</span>
-                                                    <span className="panel-stat-value cyan">{opponent.username}</span>
-                                                </div>
-                                                <div className="panel-stat-row">
-                                                    <span className="panel-stat-label">RECORD</span>
-                                                    <span className="panel-stat-value white">{opponent.wins}W - {opponent.losses}L</span>
-                                                </div>
-                                                <div className="panel-stat-divider" />
-                                                <div className="panel-stat-row">
-                                                    <span className="panel-stat-label">STAKE</span>
-                                                    <span className="panel-stat-value gold">{stakeAmount} 💎</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="finding-stake-info">
-                                            <div className="panel-stats">
-                                                <div className="panel-stat-row">
-                                                    <span className="panel-stat-label">STAKE</span>
-                                                    <span className="panel-stat-value gold">{stakeAmount} 💎</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
+                                {/* Record positioned in upper area */}
+                                <div className="finding-record-zone">
+                                    <span className="finding-record">{stats.wins}W - {stats.losses}L</span>
                                 </div>
-                                {/* Invisible clickable cancel button positioned over the image's baked-in CANCEL button */}
+                                {/* Spinner in center */}
+                                <div className="finding-spinner-zone">
+                                    <Loader size={52} className="finding-spinner-icon" />
+                                </div>
+                                {/* Opponent info when found */}
+                                {opponent && (
+                                    <div className="finding-opponent-zone">
+                                        <div className="panel-stats">
+                                            <div className="panel-stat-row">
+                                                <span className="panel-stat-label">PLAYER</span>
+                                                <span className="panel-stat-value cyan">{opponent.username}</span>
+                                            </div>
+                                            <div className="panel-stat-row">
+                                                <span className="panel-stat-label">RECORD</span>
+                                                <span className="panel-stat-value white">{opponent.wins}W - {opponent.losses}L</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                                {/* Stake at the bottom, close to CANCEL */}
+                                <div className="finding-stake-zone">
+                                    <span className="finding-stake-label">STAKE</span>
+                                    <span className="finding-stake-value">{stakeAmount} 💎</span>
+                                </div>
+                                {/* Invisible cancel hitbox over baked-in CANCEL button */}
                                 <button className="finding-cancel-hitbox" onClick={handleCancelSearch} aria-label="Cancel search" />
                             </div>
                         </div>
@@ -833,6 +846,7 @@ export default function PvPPage() {
                     {/* Results */}
                     {gameState === 'result' && result && (
                         <div className="result-panel-overlay">
+                            <button className="panel-back-top" onClick={() => router.push('/hub/trivia')}>← Back to Trivia</button>
                             <div className="result-panel-container">
                                 <img
                                     src={result.won || result.tied ? '/trivia/panels/panel-win.jpg' : '/trivia/panels/panel-defeat.jpg'}
@@ -840,10 +854,6 @@ export default function PvPPage() {
                                     className="result-panel-bg"
                                 />
                                 <div className="result-panel-content">
-                                    <h1 className={`panel-title ${result.won ? 'win' : result.tied ? 'tie' : 'lose'}`}>
-                                        {result.won ? 'Congratulations\nYou Won!' : result.tied ? 'It\'s a\nTie!' : 'You Have Been\nDefeated'}
-                                    </h1>
-
                                     <div className="panel-stats">
                                         <div className="panel-stat-row">
                                             <span className="panel-stat-label">YOUR SCORE</span>
@@ -868,15 +878,6 @@ export default function PvPPage() {
                                                 {result.won ? `+${result.winnings}` : result.tied ? `+${stakeAmount}` : `-${stakeAmount}`} 💎
                                             </span>
                                         </div>
-                                    </div>
-
-                                    <div className="panel-buttons">
-                                        <button className="panel-play-again" onClick={handlePlayAgain}>
-                                            Play Again
-                                        </button>
-                                        <button className="panel-back" onClick={() => router.push('/hub/trivia')}>
-                                            Back to Trivia
-                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -1024,58 +1025,6 @@ export default function PvPPage() {
                     margin-bottom: 8px;
                 }
 
-                /* Searching — Finding Opponent Panel */
-                .finding-panel-container {
-                    position: relative;
-                    width: 90vw;
-                    max-width: 700px;
-                    aspect-ratio: 4 / 3;
-                }
-
-                .finding-panel-content {
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    padding: 30% 15% 20%;
-                }
-
-                .finding-stake-info,
-                .finding-opp-found {
-                    width: 100%;
-                }
-
-                .finding-opp-found .panel-stats {
-                    width: 100%;
-                    max-width: 300px;
-                    margin: 0 auto;
-                }
-
-                .finding-stake-info .panel-stats {
-                    width: 60%;
-                    max-width: 260px;
-                    margin: 0 auto;
-                }
-
-                /* Invisible clickable button over baked-in CANCEL */
-                .finding-cancel-hitbox {
-                    position: absolute;
-                    bottom: 2%;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    width: 30%;
-                    height: 8%;
-                    background: transparent;
-                    border: none;
-                    cursor: pointer;
-                    z-index: 10;
-                }
-
                 /* Battle */
                 .battle-header {
                     display: flex;
@@ -1128,6 +1077,11 @@ export default function PvPPage() {
                 .battle-timer.danger {
                     color: #ef4444;
                     animation: pulse 0.5s infinite;
+                }
+
+                @keyframes pulse {
+                    0%, 100% { opacity: 1; transform: scale(1); }
+                    50% { opacity: 0.5; transform: scale(1.1); }
                 }
 
                 .battle-progress {
@@ -1196,12 +1150,31 @@ export default function PvPPage() {
                 .option.correct .result-icon { color: #22c55e; }
                 .option.wrong .result-icon { color: #ef4444; }
 
+                .spinner {
+                    width: 40px;
+                    height: 40px;
+                    border: 3px solid rgba(255, 255, 255, 0.1);
+                    border-top-color: #00d4ff;
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                }
+
+                @keyframes spin { to { transform: rotate(360deg); } }
+
+                .waiting-spinner {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 12px;
+                    margin: 24px 0;
+                }
+
                 /* Waiting */
                 .waiting { text-align: center; }
                 .waiting h2 { color: #fff; margin: 0 0 12px; }
                 .waiting p { color: rgba(255, 255, 255, 0.7); }
 
-                /* Result Panel Overlay */
+                /* ===== PANEL OVERLAY SYSTEM (All 3 Panels) ===== */
                 .result-panel-overlay {
                     position: fixed;
                     top: 0;
@@ -1221,19 +1194,145 @@ export default function PvPPage() {
                     to { opacity: 1; transform: scale(1); }
                 }
 
+                .panel-back-top {
+                    position: absolute;
+                    top: 16px;
+                    left: 16px;
+                    z-index: 1010;
+                    font-family: 'Orbitron', 'Exo 2', sans-serif;
+                    font-weight: 700;
+                    font-size: 0.85rem;
+                    letter-spacing: 0.04em;
+                    text-transform: uppercase;
+                    color: rgba(255, 255, 255, 0.7);
+                    background: rgba(0, 0, 0, 0.5);
+                    border: 1px solid rgba(255, 255, 255, 0.15);
+                    border-radius: 6px;
+                    padding: 8px 16px;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                }
+
+                .panel-back-top:hover {
+                    color: #00f0ff;
+                    border-color: rgba(0, 240, 255, 0.35);
+                    background: rgba(0, 0, 0, 0.7);
+                    text-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
+                }
+
                 .result-panel-container {
                     position: relative;
-                    width: 90vw;
+                    width: 92vw;
                     max-width: 700px;
-                    aspect-ratio: 4 / 3;
+                }
+
+                /* ===== Finding Opponent Panel Zones ===== */
+                .finding-record-zone {
+                    position: absolute;
+                    top: 38%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    z-index: 2;
+                    text-align: center;
+                }
+
+                .finding-record {
+                    font-family: 'Orbitron', 'Exo 2', sans-serif;
+                    font-weight: 700;
+                    font-size: 2rem;
+                    color: rgba(255, 255, 255, 0.9);
+                    letter-spacing: 0.08em;
+                    text-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
+                }
+
+                .finding-spinner-zone {
+                    position: absolute;
+                    top: 52%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    z-index: 2;
+                    text-align: center;
+                }
+
+                .finding-spinner-icon {
+                    color: #00f0ff;
+                    animation: spinLoader 1.2s linear infinite;
+                    filter: drop-shadow(0 0 10px rgba(0, 240, 255, 0.6));
+                }
+
+                @keyframes spinLoader {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+
+                .finding-opponent-zone {
+                    position: absolute;
+                    top: 55%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    z-index: 2;
+                    width: 75%;
+                }
+
+                .finding-opponent-zone .panel-stats {
+                    width: 100%;
+                    max-width: none;
+                }
+
+                .finding-opponent-zone .panel-stat-label {
+                    font-size: 1.1rem;
+                }
+
+                .finding-opponent-zone .panel-stat-value {
+                    font-size: 1.3rem;
+                }
+
+                .finding-stake-zone {
+                    position: absolute;
+                    bottom: 18%;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    z-index: 2;
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                }
+
+                .finding-stake-label {
+                    font-family: 'Orbitron', 'Exo 2', sans-serif;
+                    font-weight: 700;
+                    font-size: 1.3rem;
+                    color: rgba(255, 255, 255, 0.6);
+                    letter-spacing: 0.06em;
+                    text-transform: uppercase;
+                }
+
+                .finding-stake-value {
+                    font-family: 'Orbitron', 'Exo 2', sans-serif;
+                    font-weight: 800;
+                    font-size: 1.6rem;
+                    color: #ffd700;
+                    text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+                }
+
+                .finding-cancel-hitbox {
+                    position: absolute;
+                    bottom: 3%;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    width: 35%;
+                    height: 9%;
+                    background: transparent;
+                    border: none;
+                    cursor: pointer;
+                    z-index: 10;
                 }
 
                 .result-panel-bg {
                     width: 100%;
-                    height: 100%;
-                    object-fit: cover;
-                    border-radius: 8px;
+                    height: auto;
                     display: block;
+                    border-radius: 4px;
                 }
 
                 .result-panel-content {
@@ -1246,46 +1345,62 @@ export default function PvPPage() {
                     flex-direction: column;
                     align-items: center;
                     justify-content: center;
-                    padding: 12% 10% 10%;
+                    padding: 8% 10% 6%;
                 }
 
+                /* ===== PANEL TITLE — User's exact Orbitron spec ===== */
                 .panel-title {
-                    font-family: 'Orbitron', 'Exo 2', sans-serif;
+                    font-family: 'Orbitron', 'Exo 2', 'Rajdhani', sans-serif;
                     font-weight: 900;
-                    font-size: clamp(1.8rem, 5vw, 3.5rem);
+                    font-size: 5rem;
                     letter-spacing: 0.06em;
                     text-transform: uppercase;
                     color: #ffffff;
-                    text-shadow:
-                        0 0 10px #00ffff88,
-                        0 0 20px #00ffff44,
-                        2px 2px 4px #000000cc;
-                    line-height: 1.15;
                     text-align: center;
+                    text-shadow:
+                        0 0 12px #00ffff99,
+                        0 0 24px #00ffff44,
+                        3px 3px 6px #000000aa;
+                    background: linear-gradient(to bottom, #ffffff, #d0d0d0);
+                    -webkit-background-clip: text;
+                    background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    line-height: 1.05;
                     white-space: pre-line;
-                    margin: 0 0 6% 0;
+                    margin: 0 0 4% 0;
+                    padding: 0.5rem 0;
                 }
 
                 .panel-title.lose {
                     text-shadow:
-                        0 0 10px #ff444488,
-                        0 0 20px #ff444444,
-                        2px 2px 4px #000000cc;
+                        0 0 12px #ff444499,
+                        0 0 24px #ff444444,
+                        3px 3px 6px #000000aa;
                 }
 
                 .panel-title.tie {
                     text-shadow:
-                        0 0 10px #ffd70088,
-                        0 0 20px #ffd70044,
-                        2px 2px 4px #000000cc;
+                        0 0 12px #ffd70099,
+                        0 0 24px #ffd70044,
+                        3px 3px 6px #000000aa;
                 }
 
+                .ellipsis-pulse {
+                    animation: ellipsisPulse 1.5s infinite;
+                }
+
+                @keyframes ellipsisPulse {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.2; }
+                }
+
+                /* ===== STAT ROWS ===== */
                 .panel-stats {
-                    width: 70%;
-                    max-width: 360px;
+                    width: 75%;
+                    max-width: 400px;
                     display: flex;
                     flex-direction: column;
-                    gap: 6px;
+                    gap: 8px;
                     margin-bottom: 5%;
                 }
 
@@ -1293,13 +1408,13 @@ export default function PvPPage() {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    font-family: 'Orbitron', sans-serif;
-                    font-size: clamp(0.6rem, 1.5vw, 0.85rem);
+                    font-family: 'Orbitron', 'Exo 2', sans-serif;
+                    font-size: 1rem;
                     letter-spacing: 0.04em;
                 }
 
                 .panel-stat-label {
-                    color: rgba(255, 255, 255, 0.55);
+                    color: rgba(255, 255, 255, 0.6);
                     font-weight: 700;
                     text-transform: uppercase;
                 }
@@ -1320,52 +1435,80 @@ export default function PvPPage() {
                     margin: 4px 0;
                 }
 
+                /* ===== PANEL BUTTONS ===== */
                 .panel-buttons {
                     display: flex;
                     gap: 16px;
                     align-items: center;
                 }
 
-                .panel-play-again {
-                    font-family: 'Orbitron', sans-serif;
-                    font-weight: 700;
-                    font-size: clamp(0.75rem, 1.8vw, 1rem);
+                .panel-btn-primary {
+                    font-family: 'Orbitron', 'Exo 2', sans-serif;
+                    font-weight: 800;
+                    font-size: 1.1rem;
                     letter-spacing: 0.06em;
                     text-transform: uppercase;
                     color: #00f0ff;
                     background: linear-gradient(to bottom, #3a3e4a, #2a2e3a);
-                    border: 1px solid rgba(0, 240, 255, 0.3);
+                    border: 1px solid rgba(0, 240, 255, 0.35);
                     border-radius: 6px;
-                    padding: 10px 28px;
+                    padding: 12px 32px;
                     cursor: pointer;
                     transition: all 0.2s ease;
-                    text-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
+                    text-shadow: 0 0 10px rgba(0, 240, 255, 0.6);
                 }
 
-                .panel-play-again:hover {
+                .panel-btn-primary:hover {
                     background: linear-gradient(to bottom, #4a4e5a, #3a3e4a);
-                    box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+                    box-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
                     transform: translateY(-1px);
                 }
 
-                .panel-back {
-                    font-family: 'Orbitron', sans-serif;
+                .panel-btn-secondary {
+                    font-family: 'Orbitron', 'Exo 2', sans-serif;
                     font-weight: 700;
-                    font-size: clamp(0.65rem, 1.4vw, 0.85rem);
+                    font-size: 0.85rem;
                     letter-spacing: 0.04em;
                     text-transform: uppercase;
                     color: rgba(255, 255, 255, 0.5);
                     background: transparent;
                     border: 1px solid rgba(255, 255, 255, 0.15);
                     border-radius: 6px;
-                    padding: 10px 20px;
+                    padding: 12px 24px;
                     cursor: pointer;
                     transition: all 0.2s ease;
                 }
 
-                .panel-back:hover {
+                .panel-btn-secondary:hover {
                     color: rgba(255, 255, 255, 0.8);
                     border-color: rgba(255, 255, 255, 0.3);
+                }
+
+                /* ===== RESPONSIVE SCALING ===== */
+                @media (max-width: 600px) {
+                    .panel-title {
+                        font-size: 2.5rem;
+                    }
+                    .panel-stat-row {
+                        font-size: 0.8rem;
+                    }
+                    .panel-btn-primary {
+                        font-size: 0.9rem;
+                        padding: 10px 24px;
+                    }
+                    .panel-btn-secondary {
+                        font-size: 0.75rem;
+                        padding: 10px 18px;
+                    }
+                }
+
+                @media (max-width: 400px) {
+                    .panel-title {
+                        font-size: 1.8rem;
+                    }
+                    .panel-stat-row {
+                        font-size: 0.7rem;
+                    }
                 }
             `}</style>
         </PageTransition>

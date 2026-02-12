@@ -151,7 +151,7 @@ async function getBalances(req, res) {
       return res.status(401).json({ error: 'Invalid token' });
     }
 
-    const { venue_id, player_id, sort_by = 'current_balance', limit = 50, offset = 0 } = req.query;
+    const { player_id, sort_by = 'current_balance', limit = 50, offset = 0 } = req.query;
 
     // If no venue_id, return user's balances across all venues
     if (!venue_id) {

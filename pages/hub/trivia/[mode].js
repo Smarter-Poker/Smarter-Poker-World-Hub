@@ -29,6 +29,19 @@ import { TRIVIA_ACHIEVEMENTS, checkNewUnlocks } from '../../../src/config/trivia
 import DoubleOrNothing from '../../../src/components/trivia/DoubleOrNothing';
 import { Gem } from 'lucide-react';
 
+/** Shuffle answer options so correct answer isn't always A */
+function shuffleOptions(questions) {
+    return questions.map(q => {
+        const opts = [...q.options];
+        const correctText = opts[q.correct_index];
+        for (let i = opts.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [opts[i], opts[j]] = [opts[j], opts[i]];
+        }
+        return { ...q, options: opts, correct_index: opts.indexOf(correctText) };
+    });
+}
+
 const CATEGORY_MAP = {
     daily: null,
     history: ['poker_history', 'famous_hands', 'player_profiles'],
@@ -162,7 +175,7 @@ export default function TriviaModePage() {
                     return;
                 }
 
-                setQuestions(loadedQuestions);
+                setQuestions(shuffleOptions(loadedQuestions));
 
                 // Load leaderboard for arcade
                 if (mode === 'arcade') {

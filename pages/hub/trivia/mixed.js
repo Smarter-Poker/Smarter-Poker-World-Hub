@@ -18,6 +18,19 @@ import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 
+/** Shuffle answer options so correct answer isn't always A */
+function shuffleOptions(questions) {
+    return questions.map(q => {
+        const opts = [...q.options];
+        const correctText = opts[q.correct_index];
+        for (let i = opts.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [opts[i], opts[j]] = [opts[j], opts[i]];
+        }
+        return { ...q, options: opts, correct_index: opts.indexOf(correctText) };
+    });
+}
+
 const CATEGORIES = [
     { id: 'poker_history', name: 'History', icon: Trophy, color: '#FFD700', dbCategories: ['poker_history', 'famous_hands', 'player_profiles', 'tournament_facts'] },
     { id: 'rule_knowledge', name: 'Rules', icon: BookOpen, color: '#4a90d9', dbCategories: ['rule_knowledge'] },
@@ -195,7 +208,7 @@ export default function MixedModePage() {
                 }
             }
 
-            setQuestions(interleaved);
+            setQuestions(shuffleOptions(interleaved));
         } catch (e) {
             console.error('Failed to load mixed questions:', e);
         }
