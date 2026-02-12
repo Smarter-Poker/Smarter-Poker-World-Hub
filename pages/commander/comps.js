@@ -51,20 +51,32 @@ export default function CompSystem() {
   const fetchData = async () => {
     setLoading(true);
     try {
+      const venueId = getVenueId();
       const token = getToken();
       const headers = { Authorization: `Bearer ${token}` };
       if (tab === 'balances') {
-        const res = await fetch('/api/commander/comps/balances', { headers });
+        // Get members with comp balances from members API
+        const res = await fetch(`/api/commander/members?venue_id=${venueId}&has_comps=true&limit=100`);
         const json = await res.json();
-        if (json.success) setBalances(json.data || []);
+        if (json.success) {
+          const members = json.data?.members || json.data || [];
+          setBalances(members.filter(m => (m.comp_balance || 0) > 0).map(m => ({
+            member_id: m.id,
+            member_name: m.first_name,
+            last_name: m.last_name,
+            balance: m.comp_balance || 0,
+            lifetime_earned: m.comp_lifetime_earned || 0,
+            membership_tier: m.membership_tier
+          })));
+        }
       } else if (tab === 'rates') {
         const res = await fetch('/api/commander/comps/rates', { headers });
         const json = await res.json();
         if (json.success) setRates(json.data || []);
       } else if (tab === 'history') {
-        const res = await fetch('/api/commander/comps/transactions', { headers });
+        const res = await fetch(`/api/commander/comps/balances?venue_id=${venueId}&history=true`, { headers });
         const json = await res.json();
-        if (json.success) setTransactions(json.data || []);
+        setTransactions(json.data?.transactions || json.transactions || []);
       }
     } catch (err) { console.error(err); }
     finally { setLoading(false); }

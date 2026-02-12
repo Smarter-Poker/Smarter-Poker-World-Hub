@@ -11,12 +11,134 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (req.method !== 'GET') {
-    res.setHeader('Allow', ['GET']);
-    return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method === 'GET') {
+    return getBalances(req, res);
+  }
+  if (req.method === 'POST') {
+    return awardComp(req, res);
   }
 
+  res.setHeader('Allow', ['GET', 'POST']);
+  return res.status(405).json({ error: 'Method not allowed' });
+}
+
+async function awardComp(req, res) {
   try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ success: false, error: 'Authorization required' });
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+
+    const { member_id, amount, reason, type, authorized_by, authorized_pin } = req.body;
+    if (!member_id || !amount) return res.status(400).json({ success: false, error: 'member_id and amount required' });
+
+    // Get the member to find venue_id
+    const { data: member, error: memberErr } = await supabase
+      .from('commander_members')
+      .select('id, venue_id, first_name, last_name, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed')
+      .eq('id', member_id)
+      .single();
+
+    if (memberErr || !member) return res.status(404).json({ success: false, error: 'Member not found' });
+
+    // Verify staff at this venue
+    const { data: staff } = await supabase
+      .from('commander_staff')
+      .select('id, role, display_name')
+      .eq('venue_id', member.venue_id)
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+      .single();
+
+    if (!staff) return res.status(403).json({ success: false, error: 'Staff access required' });
+
+    const parsedAmount = parseFloat(amount);
+    const newBalance = (member.comp_balance || 0) + parsedAmount;
+
+    // Update member's comp balance
+    const updateFields = { comp_balance: Math.round(newBalance * 100) / 100 };
+    if (parsedAmount > 0) {
+      updateFields.comp_lifetime_earned = (member.comp_lifetime_earned || 0) + parsedAmount;
+    } else {
+      updateFields.comp_lifetime_redeemed = (member.comp_lifetime_redeemed || 0) + Math.abs(parsedAmount);
+    }
+
+    const { error: updateErr } = await supabase
+      .from('commander_members')
+      .update(updateFields)
+      .eq('id', member_id);
+
+    if (updateErr) throw updateErr;
+
+    // Log the transaction
+    await supabase
+      .from('commander_member_comp_log')
+      .insert({
+        venue_id: member.venue_id,
+        member_id: member_id,
+        amount: parsedAmount,
+        type: type || 'award',
+        reason: reason || 'Manual comp award',
+        authorized_by: authorized_by || staff.display_name,
+        authorized_pin: authorized_pin || false,
+        processed_by: staff.id,
+        balance_after: Math.round(newBalance * 100) / 100
+      });
+
+    // Ignore log error if table doesn't have all columns - comp was still awarded
+    return res.json({
+      success: true,
+      data: {
+        member_id,
+        amount: parsedAmount,
+        new_balance: Math.round(newBalance * 100) / 100,
+        authorized_by: authorized_by || staff.display_name
+      }
+    });
+  } catch (error) {
+    console.error('Award comp error:', error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+}
+
+async function getBalances(req, res) {
+  try {
+    const { venue_id, history } = req.query;
+
+    // If history=true, return comp log for the venue
+    if (history && venue_id) {
+      const { data: logs, error } = await supabase
+        .from('commander_member_comp_log')
+        .select('*')
+        .eq('venue_id', venue_id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) return res.json({ success: true, data: { transactions: [] } });
+
+      // Enrich with member names
+      const memberIds = [...new Set(logs.map(l => l.member_id))];
+      const { data: members } = await supabase
+        .from('commander_members')
+        .select('id, first_name, last_name')
+        .in('id', memberIds.length > 0 ? memberIds : ['none']);
+
+      const memberMap = {};
+      (members || []).forEach(m => { memberMap[m.id] = `${m.first_name} ${m.last_name}`; });
+
+      return res.json({
+        success: true,
+        data: {
+          transactions: logs.map(l => ({
+            ...l,
+            member_name: memberMap[l.member_id] || 'Unknown'
+          }))
+        }
+      });
+    }
+
     const authHeader = req.headers.authorization;
     if (!authHeader) {
       return res.status(401).json({ error: 'Authorization required' });
