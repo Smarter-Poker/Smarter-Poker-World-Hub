@@ -368,7 +368,7 @@ export default function PvPPage() {
             setPlayerScore(0);
             setSelectedAnswer(null);
             setShowResult(false);
-            setTimeLeft(15);
+            setTimeLeft(40);
             setIsTimerRunning(true);
         }, 2000);
     }
