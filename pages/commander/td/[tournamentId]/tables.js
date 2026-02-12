@@ -11,7 +11,7 @@ import Head from 'next/head';
 import {
   Trophy, LayoutGrid, Users, Scale, UserPlus, Monitor,
   X, ChevronRight, AlertTriangle, Loader2, RefreshCw,
-  ArrowRightLeft, UserX, Coins
+  ArrowRightLeft, UserX, Coins, Printer
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -60,6 +60,8 @@ export default function TDTablesMap() {
   const [loading, setLoading] = useState(true);
   const [selectedTable, setSelectedTable] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
+  const [autoBreak, setAutoBreak] = useState(null);
+  const [breakExecuting, setBreakExecuting] = useState(false);
 
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
@@ -67,11 +69,17 @@ export default function TDTablesMap() {
   const fetchFloor = useCallback(async () => {
     if (!tournamentId) return;
     try {
-      const res = await fetch(`/api/commander/tournaments/${tournamentId}/floor-view`, {
-        headers: { Authorization: `Bearer ${getToken()}` }
-      });
-      const json = await res.json();
+      const headers = { Authorization: `Bearer ${getToken()}` };
+      const [floorRes, breakRes] = await Promise.all([
+        fetch(`/api/commander/tournaments/${tournamentId}/floor-view`, { headers }),
+        fetch(`/api/commander/tournaments/${tournamentId}/auto-break`, { headers }).catch(() => null)
+      ]);
+      const json = await floorRes.json();
       if (json.success) setFloor(json.data);
+      if (breakRes) {
+        const breakJson = await breakRes.json();
+        if (breakJson.success) setAutoBreak(breakJson.data);
+      }
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   }, [tournamentId]);
@@ -124,6 +132,84 @@ export default function TDTablesMap() {
             <RefreshCw className="w-5 h-5 text-[#B0B3B8]" />
           </button>
         </div>
+
+        {/* Auto-Break Alert */}
+        {autoBreak?.should_break && (
+          <div className="mx-4 mt-3 p-4 bg-[#F59E0B]/10 border-2 border-[#F59E0B]/40 rounded-2xl">
+            <div className="flex items-start gap-3 mb-3">
+              <AlertTriangle className="w-6 h-6 text-[#F59E0B] flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="text-base font-bold text-[#F59E0B]">Break Table {autoBreak.break_table}</h3>
+                <p className="text-xs text-[#B0B3B8] mt-0.5">{autoBreak.reason}</p>
+              </div>
+            </div>
+            {/* Assignment preview */}
+            <div className="space-y-1 mb-3">
+              {(autoBreak.assignments || []).map((a, i) => (
+                <div key={i} className="flex items-center gap-2 px-3 py-1.5 bg-[#18191A]/60 rounded-lg text-xs">
+                  <span className="text-white flex-1 truncate">{a.player_name}</span>
+                  <span className="text-[#B0B3B8] font-mono">T{a.from_table}-S{a.from_seat}</span>
+                  <span className="text-[#F59E0B]">→</span>
+                  <span className="text-[#31A24C] font-bold font-mono">T{a.to_table}-S{a.to_seat}</span>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={async () => {
+                setBreakExecuting(true);
+                try {
+                  const res = await fetch(`/api/commander/tournaments/${tournamentId}/auto-break`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+                    body: JSON.stringify({
+                      break_table: autoBreak.break_table,
+                      assignments: autoBreak.assignments
+                    })
+                  });
+                  const json = await res.json();
+                  if (json.success && json.data.receipts) {
+                    // Print receipts
+                    const receipts = json.data.receipts;
+                    const pw = window.open('', '_blank', 'width=400,height=600');
+                    if (pw) {
+                      pw.document.write(`<!DOCTYPE html><html><head><title>Seat Receipts</title>
+                        <style>@page{margin:0;size:80mm auto}body{font-family:'Courier New',monospace;margin:0}
+                        .r{width:72mm;padding:4mm;margin:0 auto;page-break-after:always;border-bottom:1px dashed #000}
+                        .r:last-child{page-break-after:avoid}.c{text-align:center}.b{font-weight:bold}
+                        .lg{font-size:20px}.md{font-size:14px}.sm{font-size:11px}
+                        .d{border-top:1px dashed #000;margin:3mm 0}.rw{display:flex;justify-content:space-between}
+                        .ar{font-size:24px;text-align:center;margin:2mm 0}</style></head><body>
+                        ${receipts.map(r => `<div class="r">
+                          <div class="c b md">${r.tournament_name}</div>
+                          <div class="c sm">TABLE BREAK</div><div class="d"></div>
+                          <div class="c b md">${r.player_name}</div><div class="d"></div>
+                          <div class="rw sm"><span>FROM:</span><span class="b">Table ${r.from_table}, Seat ${r.from_seat}</span></div>
+                          <div class="ar">⬇</div>
+                          <div class="rw"><span class="md">NEW SEAT:</span><span class="b lg">T${r.to_table} - S${r.to_seat}</span></div>
+                          <div class="d"></div>
+                          ${r.chips ? `<div class="rw sm"><span>Chips:</span><span class="b">${Number(r.chips).toLocaleString()}</span></div>` : ''}
+                          <div class="sm c" style="margin-top:2mm;opacity:.6">${new Date(r.timestamp).toLocaleTimeString()}</div>
+                          <div class="sm c" style="opacity:.4;margin-top:1mm">Smarter.Poker</div>
+                        </div>`).join('')}</body></html>`);
+                      pw.document.close();
+                      setTimeout(() => { pw.print(); pw.close(); }, 500);
+                    }
+                  }
+                  setAutoBreak(null);
+                  await fetchFloor();
+                } catch (err) { console.error(err); }
+                finally { setBreakExecuting(false); }
+              }}
+              disabled={breakExecuting}
+              className="w-full py-3.5 rounded-xl bg-[#F59E0B] text-black text-sm font-bold flex items-center justify-center gap-2 active:bg-[#D97706] disabled:opacity-50"
+            >
+              {breakExecuting
+                ? <><Loader2 className="w-4 h-4 animate-spin" /> Breaking Table...</>
+                : <><Printer className="w-4 h-4" /> Break Table & Print {(autoBreak.assignments || []).length} Receipts</>
+              }
+            </button>
+          </div>
+        )}
 
         {/* Tables Grid */}
         <div className="p-4">

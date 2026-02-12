@@ -48,9 +48,24 @@ export default async function handler(req, res) {
         .eq('table_number', parseInt(tableNumber))
         .order('seat_number');
 
+      // If tournament mode, fetch tournament info
+      let tournament = null;
+      if (table.tournament_id) {
+        const { data: t } = await supabase
+          .from('commander_tournaments')
+          .select('id, name, status, game_type, buyin_amount')
+          .eq('id', table.tournament_id)
+          .single();
+        tournament = t;
+      }
+
       return res.status(200).json({
         success: true,
-        data: { ...table, seats: seats || [] }
+        data: {
+          ...table,
+          seats: seats || [],
+          tournament: tournament || null
+        }
       });
     }
 

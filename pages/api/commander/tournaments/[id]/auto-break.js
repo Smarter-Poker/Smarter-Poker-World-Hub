@@ -1,0 +1,282 @@
+/**
+ * Tournament Auto-Break Detection & Execution
+ * GET  /api/commander/tournaments/[id]/auto-break - Check if break conditions met, suggest which table
+ * POST /api/commander/tournaments/[id]/auto-break - Execute the break with assignments, return receipt data
+ *
+ * Auto-break logic:
+ * - Count total open seats across all OTHER tournament tables
+ * - If open seats >= number of players at the smallest table → suggest breaking that table
+ * - The system picks the table with fewest players to break
+ * - Generates optimal seat assignments distributing players across tables with open seats
+ * - Returns printable receipt data for wireless printer
+ */
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+export default async function handler(req, res) {
+  const { id: tournamentId } = req.query;
+  if (!tournamentId) return res.status(400).json({ success: false, error: 'Tournament ID required' });
+
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ success: false, error: 'Authorization required' });
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user } } = await supabase.auth.getUser(token);
+    if (!user) return res.status(401).json({ success: false, error: 'Invalid token' });
+
+    // Get tournament
+    const { data: tournament } = await supabase
+      .from('commander_tournaments')
+      .select('id, venue_id, name, status')
+      .eq('id', tournamentId)
+      .single();
+    if (!tournament) return res.status(404).json({ success: false, error: 'Tournament not found' });
+
+    // Verify staff
+    const { data: staff } = await supabase
+      .from('commander_staff')
+      .select('id, role')
+      .eq('venue_id', tournament.venue_id)
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+      .single();
+    if (!staff) return res.status(403).json({ success: false, error: 'Staff access required' });
+
+    if (req.method === 'GET') return handleCheck(req, res, tournament);
+    if (req.method === 'POST') return handleExecute(req, res, tournament, user);
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
+  } catch (err) {
+    console.error('Auto-break error:', err);
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+async function getTableData(tournamentId, venueId) {
+  // Get tournament tables
+  const { data: tables } = await supabase
+    .from('commander_tables')
+    .select('id, table_number, max_seats')
+    .eq('venue_id', venueId)
+    .eq('tournament_id', tournamentId)
+    .eq('mode', 'tournament');
+
+  if (!tables || tables.length < 2) return { tables: tables || [], entries: [], tableMap: {} };
+
+  // Get active entries with their seats
+  const { data: entries } = await supabase
+    .from('commander_tournament_entries')
+    .select('id, player_name, table_number, seat_number, current_chips, member_id')
+    .eq('tournament_id', tournamentId)
+    .in('status', ['active', 'seated'])
+    .order('table_number')
+    .order('seat_number');
+
+  // Build table occupancy map
+  const tableMap = {};
+  for (const t of tables) {
+    tableMap[t.table_number] = {
+      ...t,
+      players: [],
+      open_seats: []
+    };
+  }
+  for (const e of (entries || [])) {
+    if (tableMap[e.table_number]) {
+      tableMap[e.table_number].players.push(e);
+    }
+  }
+  // Calculate open seats
+  for (const tNum of Object.keys(tableMap)) {
+    const t = tableMap[tNum];
+    const occupied = new Set(t.players.map(p => p.seat_number));
+    for (let s = 1; s <= t.max_seats; s++) {
+      if (!occupied.has(s)) t.open_seats.push(s);
+    }
+  }
+
+  return { tables, entries: entries || [], tableMap };
+}
+
+// GET: Check break conditions
+async function handleCheck(req, res, tournament) {
+  const { tables, entries, tableMap } = await getTableData(tournament.id, tournament.venue_id);
+
+  if (tables.length < 2) {
+    return res.status(200).json({
+      success: true,
+      data: {
+        should_break: false,
+        reason: tables.length === 0 ? 'No tournament tables' : 'Only one table remaining — final table',
+        tables_active: tables.length,
+        total_players: entries.length
+      }
+    });
+  }
+
+  // Find table with fewest players (candidate to break)
+  const tableStats = Object.values(tableMap)
+    .filter(t => t.players.length > 0)
+    .sort((a, b) => a.players.length - b.players.length);
+
+  if (tableStats.length < 2) {
+    return res.status(200).json({
+      success: true,
+      data: { should_break: false, reason: 'Not enough active tables', tables_active: tableStats.length }
+    });
+  }
+
+  const breakCandidate = tableStats[0]; // smallest table
+  const otherTables = tableStats.filter(t => t.table_number !== breakCandidate.table_number);
+
+  // Count total open seats on OTHER tables
+  const totalOpenSeats = otherTables.reduce((sum, t) => sum + t.open_seats.length, 0);
+  const playersToMove = breakCandidate.players.length;
+  const shouldBreak = totalOpenSeats >= playersToMove;
+
+  // Generate suggested assignments if break is possible
+  let assignments = [];
+  if (shouldBreak) {
+    assignments = generateAssignments(breakCandidate.players, otherTables);
+  }
+
+  return res.status(200).json({
+    success: true,
+    data: {
+      should_break: shouldBreak,
+      break_table: breakCandidate.table_number,
+      players_to_move: playersToMove,
+      open_seats_available: totalOpenSeats,
+      reason: shouldBreak
+        ? `Table ${breakCandidate.table_number} has ${playersToMove} players, ${totalOpenSeats} open seats available on other tables`
+        : `Need ${playersToMove} open seats but only ${totalOpenSeats} available`,
+      assignments,
+      tables_active: tableStats.length,
+      total_players: entries.length,
+      table_summary: tableStats.map(t => ({
+        table_number: t.table_number,
+        players: t.players.length,
+        max_seats: t.max_seats,
+        open_seats: t.open_seats.length
+      }))
+    }
+  });
+}
+
+// Generate optimal seat assignments — distribute players evenly
+function generateAssignments(playersToMove, destinationTables) {
+  const assignments = [];
+  // Sort destinations by most open seats first (fill bigger gaps first)
+  const dests = destinationTables
+    .map(t => ({ ...t, available: [...t.open_seats] }))
+    .sort((a, b) => b.available.length - a.available.length);
+
+  // Round-robin distribute players across tables to keep them balanced
+  let destIdx = 0;
+  for (const player of playersToMove) {
+    // Find next table with available seats
+    let attempts = 0;
+    while (dests[destIdx].available.length === 0 && attempts < dests.length) {
+      destIdx = (destIdx + 1) % dests.length;
+      attempts++;
+    }
+    if (dests[destIdx].available.length === 0) break; // shouldn't happen if shouldBreak was true
+
+    const seat = dests[destIdx].available.shift();
+    assignments.push({
+      entry_id: player.id,
+      player_name: player.player_name,
+      member_id: player.member_id,
+      from_table: player.table_number,
+      from_seat: player.seat_number,
+      to_table: dests[destIdx].table_number,
+      to_seat: seat,
+      chips: player.current_chips
+    });
+    destIdx = (destIdx + 1) % dests.length;
+  }
+
+  return assignments;
+}
+
+// POST: Execute the break
+async function handleExecute(req, res, tournament, user) {
+  const { break_table, assignments } = req.body;
+
+  if (!break_table || !Array.isArray(assignments) || assignments.length === 0) {
+    return res.status(400).json({ success: false, error: 'break_table and assignments array required' });
+  }
+
+  const errors = [];
+  const moved = [];
+
+  // Validate no seat conflicts
+  const seatKeys = new Set();
+  for (const a of assignments) {
+    const key = `${a.to_table}-${a.to_seat}`;
+    if (seatKeys.has(key)) {
+      return res.status(400).json({ success: false, error: `Duplicate seat: Table ${a.to_table} Seat ${a.to_seat}` });
+    }
+    seatKeys.add(key);
+  }
+
+  // Execute moves
+  for (const a of assignments) {
+    const { error } = await supabase
+      .from('commander_tournament_entries')
+      .update({
+        table_number: a.to_table,
+        seat_number: a.to_seat,
+        metadata: {
+          last_moved_at: new Date().toISOString(),
+          last_moved_from: { table: a.from_table, seat: a.from_seat },
+          move_reason: 'table_break'
+        }
+      })
+      .eq('id', a.entry_id);
+
+    if (error) {
+      errors.push({ entry_id: a.entry_id, error: error.message });
+    } else {
+      moved.push(a);
+    }
+  }
+
+  // Release the broken table back to inactive
+  await supabase
+    .from('commander_tables')
+    .update({
+      mode: 'inactive',
+      tournament_id: null,
+      status: 'available',
+      assigned_at: null
+    })
+    .eq('venue_id', tournament.venue_id)
+    .eq('table_number', break_table);
+
+  // Build receipt data for printing
+  const receipts = moved.map(a => ({
+    tournament_name: tournament.name,
+    player_name: a.player_name,
+    from_table: a.from_table,
+    from_seat: a.from_seat,
+    to_table: a.to_table,
+    to_seat: a.to_seat,
+    chips: a.chips,
+    timestamp: new Date().toISOString()
+  }));
+
+  return res.status(200).json({
+    success: errors.length === 0,
+    data: {
+      table_broken: break_table,
+      players_moved: moved.length,
+      moves: moved,
+      receipts,
+      errors: errors.length > 0 ? errors : undefined
+    }
+  });
+}

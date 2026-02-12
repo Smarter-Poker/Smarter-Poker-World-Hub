@@ -47,6 +47,7 @@ const CARDS = [
     glow: '#31A24C',
     features: [
       { label: 'Table Management', href: '/commander/tables', icon: '/images/commander/icons/mg-poker-room.png' },
+      { label: 'Table Assignments', href: '/commander/table-assignments', icon: '/images/commander/icons/mg-poker-room.png' },
       { label: 'Floor Map', href: '/commander/floor', icon: '/images/commander/icons/mg-poker-room.png' },
       { label: 'Open Cash Game', href: '/commander/open-game', icon: '/images/commander/icons/mg-poker-room.png' },
       { label: 'Dealer Management', href: '/commander/dealers', icon: '/images/commander/icons/mg-employee.png' },

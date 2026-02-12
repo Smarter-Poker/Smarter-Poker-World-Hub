@@ -20,7 +20,7 @@ import {
   AlertTriangle, Coffee, Hash, Loader2, RefreshCw,
   UserX, UserPlus, Clock, Bell, RotateCcw, ScanLine,
   Camera, X, CheckCircle2, Shield, Timer, Plus, DollarSign,
-  ChevronUp, AlertCircle, User
+  ChevronUp, AlertCircle, User, Power
 } from 'lucide-react';
 
 const TIER_COLORS = { standard: '#B0B3B8', gold: '#F59E0B', platinum: '#94A3B8', vip: '#A855F7' };
@@ -80,47 +80,53 @@ export default function DealerTablet() {
     try {
       const token = getToken();
       const headers = { Authorization: `Bearer ${token}` };
-      const [tableRes, sessionsRes] = await Promise.all([
-        fetch(`/api/commander/tables/${tableNumber}`, { headers }),
-        fetch(`/api/commander/dealer/sessions?table=${tableNumber}`, { headers })
-      ]);
+      // Fetch table by number (includes mode, tournament_id from assignment system)
+      const tableRes = await fetch(`/api/commander/tables/by-number?tableNumber=${tableNumber}`, { headers });
       const tableJson = await tableRes.json();
-      const sessionsJson = await sessionsRes.json();
-      if (tableJson.success) {
-        setTable(tableJson.data);
-        // Check if this table is assigned to a tournament
-        if (tableJson.data?.tournament_id) {
-          try {
-            const tRes = await fetch(`/api/commander/tournaments/${tableJson.data.tournament_id}/floor-view`, { headers });
-            const tJson = await tRes.json();
-            if (tJson.success) {
-              const tData = tJson.data;
-              setTournamentMode({
-                tournament_id: tableJson.data.tournament_id,
-                name: tData?.tournament?.name || 'Tournament',
-                players_remaining: tData?.stats?.players_remaining || 0,
-                tables: tData?.tables || []
-              });
-              // In tournament mode, populate seats from floor-view data (has entry_id, chips, etc)
-              const thisTable = (tData?.tables || []).find(t => String(t.table_number) === String(tableNumber));
-              if (thisTable) {
-                setSeatedPlayers((thisTable.players || []).map(p => ({
-                  ...p,
-                  session_id: p.entry_id, // use entry_id as session reference
-                  player_name: p.player_name,
-                  seat_number: p.seat_number,
-                  current_chips: p.current_chips,
-                  time_remaining: null // no time in tournaments
-                })));
-              }
-              return; // skip cash game session fetch for seated players
+
+      if (!tableJson.success) { setLoading(false); return; }
+      const tbl = tableJson.data;
+      setTable(tbl);
+
+      // Route based on table mode set by floor manager in Table Assignments
+      if (tbl.mode === 'tournament' && tbl.tournament_id) {
+        // TOURNAMENT MODE — get players from tournament floor-view
+        try {
+          const tRes = await fetch(`/api/commander/tournaments/${tbl.tournament_id}/floor-view`, { headers });
+          const tJson = await tRes.json();
+          if (tJson.success) {
+            const tData = tJson.data;
+            setTournamentMode({
+              tournament_id: tbl.tournament_id,
+              name: tData?.tournament?.name || tbl.tournament?.name || 'Tournament',
+              players_remaining: tData?.stats?.players_remaining || 0,
+              tables: tData?.tables || []
+            });
+            // Populate seats from tournament data (has entry_id, chips)
+            const thisTable = (tData?.tables || []).find(t => String(t.table_number) === String(tableNumber));
+            if (thisTable) {
+              setSeatedPlayers((thisTable.players || []).map(p => ({
+                ...p,
+                session_id: p.entry_id,
+                player_name: p.player_name,
+                seat_number: p.seat_number,
+                current_chips: p.current_chips,
+                time_remaining: null
+              })));
+            } else {
+              setSeatedPlayers([]);
             }
-          } catch (e) { console.error('Tournament fetch error:', e); }
-        } else {
-          setTournamentMode(null);
-        }
+          }
+        } catch (e) { console.error('Tournament fetch error:', e); }
+      } else {
+        // CASH MODE or INACTIVE — get player sessions
+        setTournamentMode(null);
+        try {
+          const sessionsRes = await fetch(`/api/commander/dealer/sessions?table=${tableNumber}`, { headers });
+          const sessionsJson = await sessionsRes.json();
+          if (sessionsJson.success) setSeatedPlayers(sessionsJson.data || []);
+        } catch (e) { console.error('Sessions fetch error:', e); }
       }
-      if (sessionsJson.success) setSeatedPlayers(sessionsJson.data || []);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   }, [tableNumber]);
@@ -303,6 +309,23 @@ export default function DealerTablet() {
     finally { setRemovingAll(false); }
   };
 
+  // Cash Game: Close table (set inactive via assignment API, no players left)
+  const [closingTable, setClosingTable] = useState(false);
+  const closeTableAction = async () => {
+    setClosingTable(true);
+    try {
+      const token = getToken();
+      await fetch('/api/commander/table-assignments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ table_id: table?.id })
+      });
+      // Redirect back to poker room — table is now inactive
+      router.push('/commander/poker-room');
+    } catch (err) { console.error(err); }
+    finally { setClosingTable(false); }
+  };
+
   const requestFloor = async () => {
     setFloorRequested(true);
     try {
@@ -337,7 +360,11 @@ export default function DealerTablet() {
             <p className="text-xs text-[#B0B3B8]">
               {tournamentMode
                 ? <><span className="text-[#F59E0B] font-semibold">{tournamentMode.name}</span> — {seatedPlayers.length}/{maxSeats}</>
-                : <>{table?.game_type || 'NLH'} — {table?.stakes || '$1/$2'} — {seatedPlayers.length}/{maxSeats}</>
+                : table?.mode === 'cash'
+                  ? <>{table?.game_type || 'NLH'} {table?.stakes || '$1/$2'} — {seatedPlayers.length}/{maxSeats}</>
+                  : table?.mode === 'inactive' || !table?.mode
+                    ? <span className="text-[#6A6B6D]">Table not assigned — contact floor</span>
+                    : <>{table?.game_type || 'NLH'} — {table?.stakes || '$1/$2'} — {seatedPlayers.length}/{maxSeats}</>
               }
             </p>
           </div>
@@ -495,6 +522,15 @@ export default function DealerTablet() {
 
         {/* Bottom Actions */}
         <div className="bg-[#242526] border-t border-[#3A3B3C] px-4 py-3 space-y-2 flex-shrink-0">
+
+          {/* Table not assigned warning */}
+          {(!table?.mode || table?.mode === 'inactive') && (
+            <div className="p-3 bg-[#3A3B3C]/50 border border-[#3A3B3C] rounded-xl text-center mb-2">
+              <Power className="w-6 h-6 text-[#6A6B6D] mx-auto mb-1" />
+              <p className="text-xs text-[#6A6B6D]">Table not assigned — ask floor manager to assign via Table Assignments</p>
+            </div>
+          )}
+
           <div className="grid grid-cols-3 gap-2">
             <button onClick={() => setHandCount(h => h + 1)} className="py-4 rounded-xl bg-[#1877F2] text-white text-sm font-semibold flex items-center justify-center gap-2 active:bg-[#1565D8]"><Hash className="w-5 h-5" /> Hand +1</button>
             <button onClick={requestFloor} disabled={floorRequested}
@@ -507,11 +543,20 @@ export default function DealerTablet() {
             </button>
           </div>
 
-          {/* Remove All Players (cash game) / Table context row */}
-          {seatedPlayers.length > 0 && !tournamentMode && (
+          {/* Cash game: Remove All when players exist */}
+          {seatedPlayers.length > 0 && !tournamentMode && table?.mode === 'cash' && (
             <button onClick={() => setConfirmRemoveAll(true)}
               className="w-full py-3 rounded-xl bg-[#EF4444]/10 border border-[#EF4444]/30 text-[#EF4444] text-sm font-semibold flex items-center justify-center gap-2 active:bg-[#EF4444]/20">
-              <UserX className="w-4 h-4" /> Remove All Players (Table Break)
+              <UserX className="w-4 h-4" /> Remove All Players
+            </button>
+          )}
+
+          {/* Cash game: Close Table when NO players left */}
+          {seatedPlayers.length === 0 && !tournamentMode && table?.mode === 'cash' && (
+            <button onClick={closeTableAction} disabled={closingTable}
+              className="w-full py-3 rounded-xl bg-[#3A3B3C] border border-[#4A4B4C] text-[#B0B3B8] text-sm font-semibold flex items-center justify-center gap-2 active:bg-[#4A4B4C] disabled:opacity-50">
+              {closingTable ? <Loader2 className="w-4 h-4 animate-spin" /> : <Power className="w-4 h-4" />}
+              {closingTable ? 'Closing...' : 'Close Table'}
             </button>
           )}
 
