@@ -58,6 +58,7 @@ import { getMemoryGamesPreferences, updateMemoryGamesPreferences } from '../../s
 // ═══════════════════════════════════════════════════════════════════════════
 import DiamondEngine from '../../src/services/DiamondEngine';
 import leaderboardService from '../../src/services/LeaderboardService';
+import GameCostPopup from '../../src/components/gates/GameCostPopup';
 import dailyChallengeService from '../../src/services/DailyChallengeService';
 import { processGameResult, getRankTitle } from '../../src/games/ELOService';
 import gameSessionService from '../../src/services/GameSessionService';
@@ -2711,6 +2712,11 @@ export default function MemoryGamesPage() {
 
                 {/* Standard Hub Header - DO NOT MODIFY */}
                 <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
+
+                {/* Per-game cost popup (one-time) */}
+                {userId && !isVIP && (
+                    <GameCostPopup userId={userId} featureKey="memory_games" cost={10} featureName="Memory Games" />
+                )}
 
                 {/* Hamburger Menu */}
                 <HamburgerMenu

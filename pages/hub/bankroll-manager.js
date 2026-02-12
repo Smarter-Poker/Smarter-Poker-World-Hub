@@ -12,6 +12,7 @@ import { supabase } from '../../src/lib/supabase';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import FeatureGate from '../../src/components/gates/FeatureGate';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getBankrollPreferences, updateBankrollPreferences } from '../../src/services/bankrollPreferences';
@@ -709,933 +710,939 @@ export default function BankrollManagerPage() {
         <div style={styles.bgGrid} />
         <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
 
-        {/* Hamburger Menu */}
-        <HamburgerMenu
-          isOpen={menuOpen}
-          onClose={() => setMenuOpen(false)}
-          direction="left"
-          theme="dark"
-          user={user}
-          showProfile={false}
-          menuItems={menuConfig.menuItems}
-          bottomLinks={menuConfig.bottomLinks}
-        />
+        <FeatureGate featureKey="bankroll_manager" userId={userId} cost={25} duration={24} featureName="Bankroll Manager" description="Track sessions, analyze leaks, and manage your poker bankroll for 24 hours.">
+          {/* Hamburger Menu */}
+          <HamburgerMenu
+            isOpen={menuOpen}
+            onClose={() => setMenuOpen(false)}
+            direction="left"
+            theme="dark"
+            user={user}
+            showProfile={false}
+            menuItems={menuConfig.menuItems}
+            bottomLinks={menuConfig.bottomLinks}
+          />
 
 
-        {/* Main Layout */}
-        <div className="bankroll-main-layout" style={styles.mainLayout}>
-          {/* Left Sidebar — hidden on mobile via CSS */}
-          <nav className="bankroll-sidebar" style={styles.sidebar}>
-            {SIDEBAR_SECTIONS.map((section) => (
-              <button
-                key={section.id}
-                onClick={() => handleSidebarClick(section.id)}
-                style={{
-                  ...styles.sidebarItem,
-                  ...(activeSection === section.id ? styles.sidebarItemActive : {}),
-                }}
-              >
-                {section.id === 'dashboard' && activeSection !== 'dashboard' ? '← Dashboard' : section.label}
-              </button>
-            ))}
+          {/* Main Layout */}
+          <div className="bankroll-main-layout" style={styles.mainLayout}>
+            {/* Left Sidebar — hidden on mobile via CSS */}
+            <nav className="bankroll-sidebar" style={styles.sidebar}>
+              {SIDEBAR_SECTIONS.map((section) => (
+                <button
+                  key={section.id}
+                  onClick={() => handleSidebarClick(section.id)}
+                  style={{
+                    ...styles.sidebarItem,
+                    ...(activeSection === section.id ? styles.sidebarItemActive : {}),
+                  }}
+                >
+                  {section.id === 'dashboard' && activeSection !== 'dashboard' ? '← Dashboard' : section.label}
+                </button>
+              ))}
 
-            {/* Jarvis AI Insights - moved from right panel */}
-            <div style={{ marginTop: 16, borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 16 }}>
-              <JarvisLeakInsights userId={userId} onRefresh={loadData} />
-            </div>
-          </nav>
-
-          {/* Main Content - Switches based on activeSection */}
-          <main className="bankroll-main-content" style={styles.mainContent}>
-            {/* Mobile Navigation — horizontal pill bar, visible only on mobile */}
-            <div className="bankroll-mobile-nav">
-              {SIDEBAR_SECTIONS.map((section) => {
-                const isDashboard = section.id === 'dashboard';
-                const onSubPage = activeSection !== 'dashboard';
-                const displayLabel = isDashboard && onSubPage ? '← Back' : section.label;
-                return (
-                  <button
-                    key={section.id}
-                    className={`bankroll-mobile-nav-item${activeSection === section.id ? ' active' : ''}`}
-                    onClick={() => handleSidebarClick(section.id)}
-                  >
-                    {displayLabel}
-                  </button>
-                );
-              })}
-            </div>
-            {/* Header */}
-            <div className="bankroll-content-header" style={styles.contentHeader}>
-              <h1 className="bankroll-page-title" style={styles.pageTitle}>
-                {activeSection === 'dashboard' && categoryFilter === 'all' && 'Bankroll Manager'}
-                {activeSection === 'dashboard' && categoryFilter !== 'all' && (CATEGORY_LABELS[categoryFilter] || 'Bankroll Manager')}
-                {activeSection === 'trips' && 'Trip Tracker'}
-                {activeSection === 'players' && 'Player Notes'}
-                {activeSection === 'leaks' && 'Leak Analysis'}
-                {activeSection === 'reports' && 'Reports'}
-                {activeSection === 'pro' && 'Pro Tools'}
-                {activeSection === 'settings' && 'Settings'}
-                {activeSection === 'rules' && 'Bankroll Rules'}
-                {activeSection === 'staking' && 'Staking Tracker'}
-              </h1>
-              <div style={styles.headerActions}>
-                {activeSection === 'dashboard' && categoryFilter === 'all' && (
-                  <button className="bankroll-log-btn" style={styles.logButton} onClick={handleLogClick}>
-                    Add +
-                  </button>
-                )}
+              {/* Jarvis AI Insights - moved from right panel */}
+              <div style={{ marginTop: 16, borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 16 }}>
+                <JarvisLeakInsights userId={userId} onRefresh={loadData} />
               </div>
-            </div>
+            </nav>
 
-            {/* Category Overview View (Cash Games, Tournaments, etc.) */}
-            {activeSection === 'dashboard' && categoryFilter !== 'all' && (
-              <CategoryOverview
-                userId={userId}
-                categoryFilter={categoryFilter}
-                onBack={() => {
-                  setCategoryFilter('all');
-                  router.push('/hub/bankroll-manager', undefined, { shallow: true });
-                }}
-              />
-            )}
-
-            {/* Dashboard View */}
-            {activeSection === 'dashboard' && categoryFilter === 'all' && (
-              <>
-                {/* Stats Cards */}
-                <div className="bankroll-stats-grid" style={styles.statsGrid}>
-                  <StatCard
-                    title="Bankroll Balance"
-                    value={stats ? formatCurrency(stats.totalBankroll, preferences.currencyEUR) : '—'}
-                    isLoading={isLoading}
-                    onClick={() => setShowAdjustModal(true)}
-                  />
-                  <StatCard
-                    title="Net Results"
-                    value={
-                      stats
-                        ? formatCurrency(stats.allInNet, preferences.currencyEUR)
-                        : '—'
-                    }
-                    isLoading={isLoading}
-                  />
-                </div>
-
-                {/* Active Trip Featured Banner */}
-                {(() => {
-                  const activeTrip = trips.find(t => t.status === 'active' && t.trip_type !== 'series');
-                  if (!activeTrip) return null;
-                  const daysSinceStart = Math.max(1, Math.ceil((Date.now() - new Date(activeTrip.start_date + 'T12:00:00').getTime()) / (1000 * 60 * 60 * 24)));
+            {/* Main Content - Switches based on activeSection */}
+            <main className="bankroll-main-content" style={styles.mainContent}>
+              {/* Mobile Navigation — horizontal pill bar, visible only on mobile */}
+              <div className="bankroll-mobile-nav">
+                {SIDEBAR_SECTIONS.map((section) => {
+                  const isDashboard = section.id === 'dashboard';
+                  const onSubPage = activeSection !== 'dashboard';
+                  const displayLabel = isDashboard && onSubPage ? '← Back' : section.label;
                   return (
-                    <div
-                      style={{
-                        background: 'linear-gradient(135deg, rgba(16,185,129,0.12) 0%, rgba(59,130,246,0.08) 100%)',
-                        border: '1px solid rgba(16,185,129,0.3)',
-                        borderRadius: 12,
-                        padding: '14px 16px',
-                        marginBottom: 12,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 14,
-                        cursor: 'pointer',
-                      }}
-                      onClick={() => setActiveSection('trips')}
+                    <button
+                      key={section.id}
+                      className={`bankroll-mobile-nav-item${activeSection === section.id ? ' active' : ''}`}
+                      onClick={() => handleSidebarClick(section.id)}
                     >
-                      <div style={{
-                        width: 10,
-                        height: 10,
-                        borderRadius: '50%',
-                        background: '#10b981',
-                        boxShadow: '0 0 8px rgba(16,185,129,0.6)',
-                        flexShrink: 0,
-                        animation: 'metalGlow 2s infinite',
-                      }} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginBottom: 2 }}>
-                          {activeTrip.name}
-                        </div>
-                        <div style={{ fontSize: 12, color: '#94a3b8' }}>
-                          {activeTrip.location_name && `${activeTrip.location_name} · `}
-                          Day {daysSinceStart} · {activeTrip.entryCount || 0} sessions
-                        </div>
-                      </div>
-                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <div style={{
-                          fontSize: 16,
-                          fontWeight: 700,
-                          color: (activeTrip.totalNet || 0) >= 0 ? '#10b981' : '#ef4444',
-                        }}>
-                          {(activeTrip.totalNet || 0) >= 0 ? '+' : ''}${Math.abs(activeTrip.totalNet || 0).toLocaleString()}
-                        </div>
-                      </div>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleLogClick(); }}
-                        style={{
-                          background: '#3b82f6',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: 8,
-                          padding: '8px 14px',
-                          fontSize: 12,
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          flexShrink: 0,
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        + Add Entry
-                      </button>
-                    </div>
+                      {displayLabel}
+                    </button>
                   );
-                })()}
-
-                {/* Active Series Featured Banner */}
-                {activeSeries && (() => {
-                  const daysSinceStart = Math.max(1, Math.ceil((Date.now() - new Date(activeSeries.start_date + 'T12:00:00').getTime()) / (1000 * 60 * 60 * 24)));
-                  return (
-                    <div
-                      style={{
-                        background: 'linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(168,85,247,0.08) 100%)',
-                        border: '1px solid rgba(59,130,246,0.3)',
-                        borderRadius: 12,
-                        padding: '14px 16px',
-                        marginBottom: 12,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 14,
-                        cursor: 'pointer',
-                      }}
-                      onClick={() => setActiveSection('series')}
-                    >
-                      <div style={{
-                        width: 10,
-                        height: 10,
-                        borderRadius: '50%',
-                        background: '#3b82f6',
-                        boxShadow: '0 0 8px rgba(59,130,246,0.6)',
-                        flexShrink: 0,
-                        animation: 'metalGlow 2s infinite',
-                      }} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginBottom: 2 }}>
-                          {activeSeries.name}
-                        </div>
-                        <div style={{ fontSize: 12, color: '#94a3b8' }}>
-                          {activeSeries.location_name && `${activeSeries.location_name} · `}
-                          Day {daysSinceStart} · {activeSeries.entryCount || 0} sessions
-                        </div>
-                      </div>
-                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <div style={{
-                          fontSize: 16,
-                          fontWeight: 700,
-                          color: (activeSeries.totalNet || 0) >= 0 ? '#10b981' : '#ef4444',
-                        }}>
-                          {(activeSeries.totalNet || 0) >= 0 ? '+' : ''}${Math.abs(activeSeries.totalNet || 0).toLocaleString()}
-                        </div>
-                      </div>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setActiveSection('series'); }}
-                        style={{
-                          background: '#6366f1',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: 8,
-                          padding: '8px 14px',
-                          fontSize: 12,
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          flexShrink: 0,
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        View Series
-                      </button>
-                    </div>
-                  );
-                })()}
-
-                {/* Filters Row */}
-                <div className="bankroll-filters-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 12 }}>
-                  {/* Location Dropdown */}
-                  <div style={styles.dropdownContainer} onClick={(e) => e.stopPropagation()}>
-                    <button
-                      style={styles.dropdownButton}
-                      onClick={() => {
-                        setShowLocationDropdown(!showLocationDropdown);
-                        setShowTimeDropdown(false);
-                        setShowGameTypeDropdown(false);
-                        setShowChartTypeDropdown(false);
-                      }}
-                    >
-                      {selectedLocationName} <span style={styles.dropdownArrow}>▼</span>
-                    </button>
-                    {showLocationDropdown && (
-                      <div className="bankroll-dropdown-menu" style={styles.dropdownMenu}>
-                        <button
-                          style={styles.dropdownItem}
-                          onClick={() => { setLocationFilter(null); setShowLocationDropdown(false); }}
-                        >
-                          All Locations
-                        </button>
-                        {locations.map((loc) => (
-                          <button
-                            key={loc.id}
-                            style={styles.dropdownItem}
-                            onClick={() => { setLocationFilter(loc.id); setShowLocationDropdown(false); }}
-                          >
-                            {loc.name}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Time Filter Dropdown */}
-                  <div style={styles.dropdownContainer} onClick={(e) => e.stopPropagation()}>
-                    <button
-                      style={styles.dropdownButton}
-                      onClick={() => {
-                        setShowTimeDropdown(!showTimeDropdown);
-                        setShowLocationDropdown(false);
-                        setShowGameTypeDropdown(false);
-                        setShowChartTypeDropdown(false);
-                      }}
-                    >
-                      {timeFilter} <span style={styles.dropdownArrow}>▼</span>
-                    </button>
-                    {showTimeDropdown && (
-                      <div className="bankroll-dropdown-menu" style={styles.dropdownMenu}>
-                        {TIME_FILTERS.map((tf) => (
-                          <button
-                            key={tf}
-                            style={styles.dropdownItem}
-                            onClick={() => { setTimeFilter(tf); setShowTimeDropdown(false); }}
-                          >
-                            {tf}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Game Type Multi-Select Dropdown */}
-                  <div style={styles.dropdownContainer} onClick={(e) => e.stopPropagation()}>
-                    <button
-                      style={styles.dropdownButton}
-                      onClick={() => {
-                        setShowGameTypeDropdown(!showGameTypeDropdown);
-                        setShowLocationDropdown(false);
-                        setShowTimeDropdown(false);
-                        setShowChartTypeDropdown(false);
-                      }}
-                    >
-                      Game Type ({gameTypeFilter.size}) <span style={styles.dropdownArrow}>▼</span>
-                    </button>
-                    {showGameTypeDropdown && (
-                      <div className="bankroll-dropdown-menu" style={{ ...styles.dropdownMenu, minWidth: 200 }}>
-                        {['poker_cash', 'poker_mtt', 'casino_table', 'slots', 'sports'].map((cat) => (
-                          <button
-                            key={cat}
-                            style={{
-                              ...styles.dropdownItem,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 8,
-                              background: gameTypeFilter.has(cat) ? 'rgba(35, 116, 225, 0.15)' : 'transparent',
-                            }}
-                            onClick={() => toggleGameType(cat)}
-                          >
-                            <span style={{
-                              width: 16,
-                              height: 16,
-                              borderRadius: 3,
-                              border: gameTypeFilter.has(cat) ? '2px solid #2374e1' : '2px solid rgba(255,255,255,0.3)',
-                              background: gameTypeFilter.has(cat) ? '#2374e1' : 'transparent',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontSize: 11,
-                              color: '#fff',
-                              flexShrink: 0,
-                            }}>
-                              {gameTypeFilter.has(cat) ? '✓' : ''}
-                            </span>
-                            {CATEGORY_LABELS[cat]}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Chart Type Dropdown */}
-                  <div style={styles.dropdownContainer} onClick={(e) => e.stopPropagation()}>
-                    <button
-                      style={styles.dropdownButton}
-                      onClick={() => {
-                        setShowChartTypeDropdown(!showChartTypeDropdown);
-                        setShowLocationDropdown(false);
-                        setShowTimeDropdown(false);
-                        setShowGameTypeDropdown(false);
-                      }}
-                    >
-                      {CHART_TYPE_LABELS[chartType] || 'Line Chart'} <span style={styles.dropdownArrow}>▼</span>
-                    </button>
-                    {showChartTypeDropdown && (
-                      <div className="bankroll-dropdown-menu" style={styles.dropdownMenu}>
-                        {CHART_TYPES.map((ct) => (
-                          <button
-                            key={ct}
-                            style={{
-                              ...styles.dropdownItem,
-                              background: chartType === ct ? 'rgba(35, 116, 225, 0.15)' : 'transparent',
-                            }}
-                            onClick={() => handleChartTypeChange(ct)}
-                          >
-                            {CHART_TYPE_LABELS[ct]}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Bankroll Trend Chart — filtered by gameTypeFilter, always include expenses */}
-                <BankrollTrendChart entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} isLoading={isLoading} chartType={chartType} timeFilter={timeFilter} />
-
-                {/* Analytics Grid — horizontal slider on mobile */}
-                <div className="bankroll-analytics-slider" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16, gridTemplateRows: '300px' }}>
-                  <LocationAnalytics entries={entries.filter(e => !ACCOUNTING_CATEGORIES.has(e.category) && gameTypeFilter.has(e.category))} isLoading={isLoading} />
-                  <VarianceCalculator entries={entries.filter(e => !ACCOUNTING_CATEGORIES.has(e.category) && gameTypeFilter.has(e.category))} />
-                  <HistoricalComparison entries={entries.filter(e => !ACCOUNTING_CATEGORIES.has(e.category) && gameTypeFilter.has(e.category))} />
-                </div>
-
-                {/* Recent Activity Section */}
-                <div style={styles.activitySection}>
-                  <div
-                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, cursor: 'pointer' }}
-                    onClick={() => setShowAllEntries(!showAllEntries)}
-                  >
-                    <h2 style={styles.sectionTitle}>Recent Activity</h2>
-                    {entries.length > 0 && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setShowAllEntries(!showAllEntries); }}
-                        style={{
-                          background: 'rgba(59, 130, 246, 0.15)',
-                          border: '1px solid rgba(59, 130, 246, 0.3)',
-                          borderRadius: 6,
-                          padding: '6px 14px',
-                          color: '#3b82f6',
-                          fontSize: 13,
-                          fontWeight: 500,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {showAllEntries ? 'Show Less' : `View All (${entries.length})`}
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Ledger Timeline — shows last 5 or all */}
-                  <LedgerTimeline
-                    entries={showAllEntries ? entries : entries.slice(0, 5)}
-                    isLoading={isLoading}
-                    onEdit={handleEditEntry}
-                    onDelete={handleDeleteEntry}
-                  />
-
-
-                </div>
-
-
-              </>
-            )}
-
-            {/* Trip Tracker View */}
-            {activeSection === 'trips' && (
-              <TripTracker
-                userId={userId}
-                onOpenLog={handleLogClick}
-              />
-            )}
-
-            {/* Series Tracker View */}
-            {activeSection === 'series' && (
-              <SeriesTracker
-                userId={userId}
-                onOpenLog={handleLogClick}
-              />
-            )}
-
-            {/* Leaks View */}
-            {activeSection === 'leaks' && (
-              <div style={styles.activitySection}>
-                <h2 style={styles.sectionTitle}>Leak Analysis</h2>
-                {!leakAnalysis || leakAnalysis.topLeaks?.length === 0 ? (
-                  <div style={{ padding: '40px 20px', textAlign: 'center' }}>
-                    <div style={{ marginBottom: 16, opacity: 0.5, fontSize: 18, color: '#22c55e', fontWeight: 600 }}>All Clear</div>
-                    <p style={{ fontSize: 16, fontWeight: 600, color: '#22c55e', margin: '0 0 8px' }}>No Leaks Detected</p>
-                    <p style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.5)', margin: 0 }}>Keep logging sessions to build your analysis history</p>
-                  </div>
-                ) : (
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, padding: 16, background: leakAnalysis.leakRisk === 'HIGH' ? 'rgba(239, 68, 68, 0.1)' : leakAnalysis.leakRisk === 'MEDIUM' ? 'rgba(234, 179, 8, 0.1)' : 'rgba(34, 197, 94, 0.1)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)' }}>
-                      <span style={{ fontSize: 18, fontWeight: 700, color: leakAnalysis.leakRisk === 'HIGH' ? '#ef4444' : leakAnalysis.leakRisk === 'MEDIUM' ? '#eab308' : '#22c55e' }}>{leakAnalysis.leakRisk === 'HIGH' ? 'Alert' : leakAnalysis.leakRisk === 'MEDIUM' ? 'Warning' : 'OK'}</span>
-                      <div>
-                        <div style={{ fontSize: 18, fontWeight: 700, color: leakAnalysis.leakRisk === 'HIGH' ? '#ef4444' : leakAnalysis.leakRisk === 'MEDIUM' ? '#eab308' : '#22c55e' }}>{leakAnalysis.leakRisk} RISK</div>
-                        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>Total Leak Amount: ${leakAnalysis.totalLeakAmount?.toLocaleString() || 0}</div>
-                      </div>
-                    </div>
-                    {leakAnalysis.topLeaks?.map((leak, i) => (
-                      <div key={i} style={{ padding: '14px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: 10, marginBottom: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                          <span style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{leak.title}</span>
-                          <span style={{ fontSize: 14, fontWeight: 700, color: leak.severity >= 4 ? '#ef4444' : leak.severity >= 3 ? '#eab308' : '#3b82f6' }}>{leak.value}</span>
-                        </div>
-                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{leak.message}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                })}
               </div>
-            )}
+              {/* Header */}
+              <div className="bankroll-content-header" style={styles.contentHeader}>
+                <h1 className="bankroll-page-title" style={styles.pageTitle}>
+                  {activeSection === 'dashboard' && categoryFilter === 'all' && 'Bankroll Manager'}
+                  {activeSection === 'dashboard' && categoryFilter !== 'all' && (CATEGORY_LABELS[categoryFilter] || 'Bankroll Manager')}
+                  {activeSection === 'trips' && 'Trip Tracker'}
+                  {activeSection === 'players' && 'Player Notes'}
+                  {activeSection === 'leaks' && 'Leak Analysis'}
+                  {activeSection === 'reports' && 'Reports'}
+                  {activeSection === 'pro' && 'Pro Tools'}
+                  {activeSection === 'settings' && 'Settings'}
+                  {activeSection === 'rules' && 'Bankroll Rules'}
+                  {activeSection === 'staking' && 'Staking Tracker'}
+                </h1>
+                <div style={styles.headerActions}>
+                  {activeSection === 'dashboard' && categoryFilter === 'all' && (
+                    <button className="bankroll-log-btn" style={styles.logButton} onClick={handleLogClick}>
+                      Add +
+                    </button>
+                  )}
+                </div>
+              </div>
 
-            {/* Goals View (from hamburger menu) */}
-            {activeSection === 'goals' && (
-              <div style={styles.activitySection}>
-                <h2 style={styles.sectionTitle}>Bankroll Goals</h2>
-                <BankrollGoals
+              {/* Category Overview View (Cash Games, Tournaments, etc.) */}
+              {activeSection === 'dashboard' && categoryFilter !== 'all' && (
+                <CategoryOverview
                   userId={userId}
-                  currentBankroll={stats?.totalBankroll || 0}
-                  periodPL={stats?.monthlyPL || 0}
+                  categoryFilter={categoryFilter}
+                  onBack={() => {
+                    setCategoryFilter('all');
+                    router.push('/hub/bankroll-manager', undefined, { shallow: true });
+                  }}
                 />
-              </div>
-            )}
+              )}
 
-            {/* Player Notes View */}
-            {activeSection === 'players' && (
-              <PlayerNotes userId={userId} />
-            )}
+              {/* Dashboard View */}
+              {activeSection === 'dashboard' && categoryFilter === 'all' && (
+                <>
+                  {/* Stats Cards */}
+                  <div className="bankroll-stats-grid" style={styles.statsGrid}>
+                    <StatCard
+                      title="Bankroll Balance"
+                      value={stats ? formatCurrency(stats.totalBankroll, preferences.currencyEUR) : '—'}
+                      isLoading={isLoading}
+                      onClick={() => setShowAdjustModal(true)}
+                    />
+                    <StatCard
+                      title="Net Results"
+                      value={
+                        stats
+                          ? formatCurrency(stats.allInNet, preferences.currencyEUR)
+                          : '—'
+                      }
+                      isLoading={isLoading}
+                    />
+                  </div>
 
-            {/* Reports View */}
-            {activeSection === 'reports' && (
-              <div style={styles.activitySection}>
-                <h2 style={styles.sectionTitle}>Performance Reports</h2>
+                  {/* Active Trip Featured Banner */}
+                  {(() => {
+                    const activeTrip = trips.find(t => t.status === 'active' && t.trip_type !== 'series');
+                    if (!activeTrip) return null;
+                    const daysSinceStart = Math.max(1, Math.ceil((Date.now() - new Date(activeTrip.start_date + 'T12:00:00').getTime()) / (1000 * 60 * 60 * 24)));
+                    return (
+                      <div
+                        style={{
+                          background: 'linear-gradient(135deg, rgba(16,185,129,0.12) 0%, rgba(59,130,246,0.08) 100%)',
+                          border: '1px solid rgba(16,185,129,0.3)',
+                          borderRadius: 12,
+                          padding: '14px 16px',
+                          marginBottom: 12,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 14,
+                          cursor: 'pointer',
+                        }}
+                        onClick={() => setActiveSection('trips')}
+                      >
+                        <div style={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: '50%',
+                          background: '#10b981',
+                          boxShadow: '0 0 8px rgba(16,185,129,0.6)',
+                          flexShrink: 0,
+                          animation: 'metalGlow 2s infinite',
+                        }} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginBottom: 2 }}>
+                            {activeTrip.name}
+                          </div>
+                          <div style={{ fontSize: 12, color: '#94a3b8' }}>
+                            {activeTrip.location_name && `${activeTrip.location_name} · `}
+                            Day {daysSinceStart} · {activeTrip.entryCount || 0} sessions
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                          <div style={{
+                            fontSize: 16,
+                            fontWeight: 700,
+                            color: (activeTrip.totalNet || 0) >= 0 ? '#10b981' : '#ef4444',
+                          }}>
+                            {(activeTrip.totalNet || 0) >= 0 ? '+' : ''}${Math.abs(activeTrip.totalNet || 0).toLocaleString()}
+                          </div>
+                        </div>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleLogClick(); }}
+                          style={{
+                            background: '#3b82f6',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: 8,
+                            padding: '8px 14px',
+                            fontSize: 12,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            flexShrink: 0,
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          + Add Entry
+                        </button>
+                      </div>
+                    );
+                  })()}
 
-                {/* Quick Stats Summary */}
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(2, 1fr)',
-                  gap: 12,
-                  marginBottom: 20
-                }}>
-                  <div style={styles.reportStatBox}>
-                    <span style={styles.reportStatLabel}>Total Sessions</span>
-                    <span style={styles.reportStatValue}>{(() => { const s = entries?.filter(e => !ACCOUNTING_CATEGORIES.has(e.category)) || []; return s.length; })()}</span>
+                  {/* Active Series Featured Banner */}
+                  {activeSeries && (() => {
+                    const daysSinceStart = Math.max(1, Math.ceil((Date.now() - new Date(activeSeries.start_date + 'T12:00:00').getTime()) / (1000 * 60 * 60 * 24)));
+                    return (
+                      <div
+                        style={{
+                          background: 'linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(168,85,247,0.08) 100%)',
+                          border: '1px solid rgba(59,130,246,0.3)',
+                          borderRadius: 12,
+                          padding: '14px 16px',
+                          marginBottom: 12,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 14,
+                          cursor: 'pointer',
+                        }}
+                        onClick={() => setActiveSection('series')}
+                      >
+                        <div style={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: '50%',
+                          background: '#3b82f6',
+                          boxShadow: '0 0 8px rgba(59,130,246,0.6)',
+                          flexShrink: 0,
+                          animation: 'metalGlow 2s infinite',
+                        }} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginBottom: 2 }}>
+                            {activeSeries.name}
+                          </div>
+                          <div style={{ fontSize: 12, color: '#94a3b8' }}>
+                            {activeSeries.location_name && `${activeSeries.location_name} · `}
+                            Day {daysSinceStart} · {activeSeries.entryCount || 0} sessions
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                          <div style={{
+                            fontSize: 16,
+                            fontWeight: 700,
+                            color: (activeSeries.totalNet || 0) >= 0 ? '#10b981' : '#ef4444',
+                          }}>
+                            {(activeSeries.totalNet || 0) >= 0 ? '+' : ''}${Math.abs(activeSeries.totalNet || 0).toLocaleString()}
+                          </div>
+                        </div>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setActiveSection('series'); }}
+                          style={{
+                            background: '#6366f1',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: 8,
+                            padding: '8px 14px',
+                            fontSize: 12,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            flexShrink: 0,
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          View Series
+                        </button>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Filters Row */}
+                  <div className="bankroll-filters-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 12 }}>
+                    {/* Location Dropdown */}
+                    <div style={styles.dropdownContainer} onClick={(e) => e.stopPropagation()}>
+                      <button
+                        style={styles.dropdownButton}
+                        onClick={() => {
+                          setShowLocationDropdown(!showLocationDropdown);
+                          setShowTimeDropdown(false);
+                          setShowGameTypeDropdown(false);
+                          setShowChartTypeDropdown(false);
+                        }}
+                      >
+                        {selectedLocationName} <span style={styles.dropdownArrow}>▼</span>
+                      </button>
+                      {showLocationDropdown && (
+                        <div className="bankroll-dropdown-menu" style={styles.dropdownMenu}>
+                          <button
+                            style={styles.dropdownItem}
+                            onClick={() => { setLocationFilter(null); setShowLocationDropdown(false); }}
+                          >
+                            All Locations
+                          </button>
+                          {locations.map((loc) => (
+                            <button
+                              key={loc.id}
+                              style={styles.dropdownItem}
+                              onClick={() => { setLocationFilter(loc.id); setShowLocationDropdown(false); }}
+                            >
+                              {loc.name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Time Filter Dropdown */}
+                    <div style={styles.dropdownContainer} onClick={(e) => e.stopPropagation()}>
+                      <button
+                        style={styles.dropdownButton}
+                        onClick={() => {
+                          setShowTimeDropdown(!showTimeDropdown);
+                          setShowLocationDropdown(false);
+                          setShowGameTypeDropdown(false);
+                          setShowChartTypeDropdown(false);
+                        }}
+                      >
+                        {timeFilter} <span style={styles.dropdownArrow}>▼</span>
+                      </button>
+                      {showTimeDropdown && (
+                        <div className="bankroll-dropdown-menu" style={styles.dropdownMenu}>
+                          {TIME_FILTERS.map((tf) => (
+                            <button
+                              key={tf}
+                              style={styles.dropdownItem}
+                              onClick={() => { setTimeFilter(tf); setShowTimeDropdown(false); }}
+                            >
+                              {tf}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Game Type Multi-Select Dropdown */}
+                    <div style={styles.dropdownContainer} onClick={(e) => e.stopPropagation()}>
+                      <button
+                        style={styles.dropdownButton}
+                        onClick={() => {
+                          setShowGameTypeDropdown(!showGameTypeDropdown);
+                          setShowLocationDropdown(false);
+                          setShowTimeDropdown(false);
+                          setShowChartTypeDropdown(false);
+                        }}
+                      >
+                        Game Type ({gameTypeFilter.size}) <span style={styles.dropdownArrow}>▼</span>
+                      </button>
+                      {showGameTypeDropdown && (
+                        <div className="bankroll-dropdown-menu" style={{ ...styles.dropdownMenu, minWidth: 200 }}>
+                          {['poker_cash', 'poker_mtt', 'casino_table', 'slots', 'sports'].map((cat) => (
+                            <button
+                              key={cat}
+                              style={{
+                                ...styles.dropdownItem,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8,
+                                background: gameTypeFilter.has(cat) ? 'rgba(35, 116, 225, 0.15)' : 'transparent',
+                              }}
+                              onClick={() => toggleGameType(cat)}
+                            >
+                              <span style={{
+                                width: 16,
+                                height: 16,
+                                borderRadius: 3,
+                                border: gameTypeFilter.has(cat) ? '2px solid #2374e1' : '2px solid rgba(255,255,255,0.3)',
+                                background: gameTypeFilter.has(cat) ? '#2374e1' : 'transparent',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: 11,
+                                color: '#fff',
+                                flexShrink: 0,
+                              }}>
+                                {gameTypeFilter.has(cat) ? '✓' : ''}
+                              </span>
+                              {CATEGORY_LABELS[cat]}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Chart Type Dropdown */}
+                    <div style={styles.dropdownContainer} onClick={(e) => e.stopPropagation()}>
+                      <button
+                        style={styles.dropdownButton}
+                        onClick={() => {
+                          setShowChartTypeDropdown(!showChartTypeDropdown);
+                          setShowLocationDropdown(false);
+                          setShowTimeDropdown(false);
+                          setShowGameTypeDropdown(false);
+                        }}
+                      >
+                        {CHART_TYPE_LABELS[chartType] || 'Line Chart'} <span style={styles.dropdownArrow}>▼</span>
+                      </button>
+                      {showChartTypeDropdown && (
+                        <div className="bankroll-dropdown-menu" style={styles.dropdownMenu}>
+                          {CHART_TYPES.map((ct) => (
+                            <button
+                              key={ct}
+                              style={{
+                                ...styles.dropdownItem,
+                                background: chartType === ct ? 'rgba(35, 116, 225, 0.15)' : 'transparent',
+                              }}
+                              onClick={() => handleChartTypeChange(ct)}
+                            >
+                              {CHART_TYPE_LABELS[ct]}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div style={styles.reportStatBox}>
-                    <span style={styles.reportStatLabel}>Win Rate</span>
-                    <span style={styles.reportStatValue}>
-                      {(() => { const s = entries?.filter(e => !ACCOUNTING_CATEGORIES.has(e.category)) || []; return s.length > 0 ? Math.round((s.filter(e => (e.gross_out - e.gross_in) > 0).length / s.length) * 100) : 0; })()}%
-                    </span>
+
+                  {/* Bankroll Trend Chart — filtered by gameTypeFilter, always include expenses */}
+                  <BankrollTrendChart entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} isLoading={isLoading} chartType={chartType} timeFilter={timeFilter} />
+
+                  {/* Analytics Grid — horizontal slider on mobile */}
+                  <div className="bankroll-analytics-slider" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16, gridTemplateRows: '300px' }}>
+                    <LocationAnalytics entries={entries.filter(e => !ACCOUNTING_CATEGORIES.has(e.category) && gameTypeFilter.has(e.category))} isLoading={isLoading} />
+                    <VarianceCalculator entries={entries.filter(e => !ACCOUNTING_CATEGORIES.has(e.category) && gameTypeFilter.has(e.category))} />
+                    <HistoricalComparison entries={entries.filter(e => !ACCOUNTING_CATEGORIES.has(e.category) && gameTypeFilter.has(e.category))} />
                   </div>
-                  <div style={styles.reportStatBox}>
-                    <span style={styles.reportStatLabel}>Net P/L</span>
-                    <span style={{
-                      ...styles.reportStatValue,
-                      color: (stats?.totalNetResult || 0) >= 0 ? '#22c55e' : '#ef4444'
-                    }}>
-                      {(stats?.totalNetResult || 0) >= 0 ? '+' : ''}${Math.abs(stats?.totalNetResult || 0).toLocaleString()}
-                    </span>
+
+                  {/* Recent Activity Section */}
+                  <div style={styles.activitySection}>
+                    <div
+                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, cursor: 'pointer' }}
+                      onClick={() => setShowAllEntries(!showAllEntries)}
+                    >
+                      <h2 style={styles.sectionTitle}>Recent Activity</h2>
+                      {entries.length > 0 && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setShowAllEntries(!showAllEntries); }}
+                          style={{
+                            background: 'rgba(59, 130, 246, 0.15)',
+                            border: '1px solid rgba(59, 130, 246, 0.3)',
+                            borderRadius: 6,
+                            padding: '6px 14px',
+                            color: '#3b82f6',
+                            fontSize: 13,
+                            fontWeight: 500,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {showAllEntries ? 'Show Less' : `View All (${entries.length})`}
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Ledger Timeline — shows last 5 or all */}
+                    <LedgerTimeline
+                      entries={showAllEntries ? entries : entries.slice(0, 5)}
+                      isLoading={isLoading}
+                      onEdit={handleEditEntry}
+                      onDelete={handleDeleteEntry}
+                    />
+
+
                   </div>
-                  <div style={styles.reportStatBox}>
-                    <span style={styles.reportStatLabel}>Avg Session</span>
-                    <span style={styles.reportStatValue}>
-                      ${(() => { const s = entries?.filter(e => !ACCOUNTING_CATEGORIES.has(e.category)) || []; return s.length > 0 ? Math.round(s.reduce((sum, e) => sum + (e.gross_out - e.gross_in), 0) / s.length) : 0; })()}
-                    </span>
+
+
+                </>
+              )}
+
+              {/* Trip Tracker View */}
+              {activeSection === 'trips' && (
+                <TripTracker
+                  userId={userId}
+                  onOpenLog={handleLogClick}
+                />
+              )}
+
+              {/* Series Tracker View */}
+              {activeSection === 'series' && (
+                <SeriesTracker
+                  userId={userId}
+                  onOpenLog={handleLogClick}
+                />
+              )}
+
+              {/* Leaks View */}
+              {activeSection === 'leaks' && (
+                <div style={styles.activitySection}>
+                  <h2 style={styles.sectionTitle}>Leak Analysis</h2>
+                  {!leakAnalysis || leakAnalysis.topLeaks?.length === 0 ? (
+                    <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+                      <div style={{ marginBottom: 16, opacity: 0.5, fontSize: 18, color: '#22c55e', fontWeight: 600 }}>All Clear</div>
+                      <p style={{ fontSize: 16, fontWeight: 600, color: '#22c55e', margin: '0 0 8px' }}>No Leaks Detected</p>
+                      <p style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.5)', margin: 0 }}>Keep logging sessions to build your analysis history</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, padding: 16, background: leakAnalysis.leakRisk === 'HIGH' ? 'rgba(239, 68, 68, 0.1)' : leakAnalysis.leakRisk === 'MEDIUM' ? 'rgba(234, 179, 8, 0.1)' : 'rgba(34, 197, 94, 0.1)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)' }}>
+                        <span style={{ fontSize: 18, fontWeight: 700, color: leakAnalysis.leakRisk === 'HIGH' ? '#ef4444' : leakAnalysis.leakRisk === 'MEDIUM' ? '#eab308' : '#22c55e' }}>{leakAnalysis.leakRisk === 'HIGH' ? 'Alert' : leakAnalysis.leakRisk === 'MEDIUM' ? 'Warning' : 'OK'}</span>
+                        <div>
+                          <div style={{ fontSize: 18, fontWeight: 700, color: leakAnalysis.leakRisk === 'HIGH' ? '#ef4444' : leakAnalysis.leakRisk === 'MEDIUM' ? '#eab308' : '#22c55e' }}>{leakAnalysis.leakRisk} RISK</div>
+                          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>Total Leak Amount: ${leakAnalysis.totalLeakAmount?.toLocaleString() || 0}</div>
+                        </div>
+                      </div>
+                      {leakAnalysis.topLeaks?.map((leak, i) => (
+                        <div key={i} style={{ padding: '14px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: 10, marginBottom: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                            <span style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{leak.title}</span>
+                            <span style={{ fontSize: 14, fontWeight: 700, color: leak.severity >= 4 ? '#ef4444' : leak.severity >= 3 ? '#eab308' : '#3b82f6' }}>{leak.value}</span>
+                          </div>
+                          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{leak.message}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Goals View (from hamburger menu) */}
+              {activeSection === 'goals' && (
+                <div style={styles.activitySection}>
+                  <h2 style={styles.sectionTitle}>Bankroll Goals</h2>
+                  <BankrollGoals
+                    userId={userId}
+                    currentBankroll={stats?.totalBankroll || 0}
+                    periodPL={stats?.monthlyPL || 0}
+                  />
+                </div>
+              )}
+
+              {/* Player Notes View */}
+              {activeSection === 'players' && (
+                <PlayerNotes userId={userId} />
+              )}
+
+              {/* Reports View */}
+              {activeSection === 'reports' && (
+                <div style={styles.activitySection}>
+                  <h2 style={styles.sectionTitle}>Performance Reports</h2>
+
+                  {/* Quick Stats Summary */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(2, 1fr)',
+                    gap: 12,
+                    marginBottom: 20
+                  }}>
+                    <div style={styles.reportStatBox}>
+                      <span style={styles.reportStatLabel}>Total Sessions</span>
+                      <span style={styles.reportStatValue}>{(() => { const s = entries?.filter(e => !ACCOUNTING_CATEGORIES.has(e.category)) || []; return s.length; })()}</span>
+                    </div>
+                    <div style={styles.reportStatBox}>
+                      <span style={styles.reportStatLabel}>Win Rate</span>
+                      <span style={styles.reportStatValue}>
+                        {(() => { const s = entries?.filter(e => !ACCOUNTING_CATEGORIES.has(e.category)) || []; return s.length > 0 ? Math.round((s.filter(e => (e.gross_out - e.gross_in) > 0).length / s.length) * 100) : 0; })()}%
+                      </span>
+                    </div>
+                    <div style={styles.reportStatBox}>
+                      <span style={styles.reportStatLabel}>Net P/L</span>
+                      <span style={{
+                        ...styles.reportStatValue,
+                        color: (stats?.totalNetResult || 0) >= 0 ? '#22c55e' : '#ef4444'
+                      }}>
+                        {(stats?.totalNetResult || 0) >= 0 ? '+' : ''}${Math.abs(stats?.totalNetResult || 0).toLocaleString()}
+                      </span>
+                    </div>
+                    <div style={styles.reportStatBox}>
+                      <span style={styles.reportStatLabel}>Avg Session</span>
+                      <span style={styles.reportStatValue}>
+                        ${(() => { const s = entries?.filter(e => !ACCOUNTING_CATEGORIES.has(e.category)) || []; return s.length > 0 ? Math.round(s.reduce((sum, e) => sum + (e.gross_out - e.gross_in), 0) / s.length) : 0; })()}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {/* Export CSV */}
+                    <button
+                      onClick={async () => {
+                        if (!userId) return;
+                        try {
+                          const res = await fetch('/api/bankroll/export', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ userId, format: 'csv' })
+                          });
+                          const data = await res.json();
+                          if (data.success && data.content) {
+                            const blob = new Blob([data.content], { type: 'text/csv' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = data.filename || `bankroll_export_${new Date().toISOString().split('T')[0]}.csv`;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(url);
+                            toast.success(`Exported ${data.summary?.sessions || 0} sessions to CSV`);
+                          } else {
+                            toast.error(data.message || 'No entries to export');
+                          }
+                        } catch (err) {
+                          console.error('Export failed:', err);
+                          toast.error('CSV export failed');
+                        }
+                      }}
+                      style={styles.reportActionBtn}
+                    >
+                      <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>CSV</span>
+                      <div style={{ flex: 1, textAlign: 'left' }}>
+                        <div style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>Export to CSV</div>
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
+                          Download all sessions for spreadsheet analysis
+                        </div>
+                      </div>
+                      <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
+                    </button>
+
+                    {/* Export JSON */}
+                    <button
+                      onClick={async () => {
+                        if (!userId) return;
+                        try {
+                          const res = await fetch('/api/bankroll/export', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ userId, format: 'json' })
+                          });
+                          const data = await res.json();
+                          if (data.success && data.data) {
+                            const exportPayload = { entries: data.data, summary: data.summary };
+                            const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = data.filename || `bankroll_export_${new Date().toISOString().split('T')[0]}.json`;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(url);
+                            toast.success(`Exported ${data.summary?.sessions || 0} sessions to JSON`);
+                          } else {
+                            toast.error(data.message || 'No entries to export');
+                          }
+                        } catch (err) {
+                          console.error('Export failed:', err);
+                          toast.error('JSON export failed');
+                        }
+                      }}
+                      style={styles.reportActionBtn}
+                    >
+                      <span style={{ fontSize: 14, color: '#65676b' }}>JSON</span>
+                      <div style={{ flex: 1, textAlign: 'left' }}>
+                        <div style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>Export to JSON</div>
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
+                          Full data export for backup or API use
+                        </div>
+                      </div>
+                      <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
+                    </button>
+
+                    {/* PDF Export */}
+                    <button
+                      onClick={async () => {
+                        try {
+                          const { data: { session } } = await supabase.auth.getSession();
+                          const token = session?.access_token;
+                          const res = await fetch('/api/bankroll/export-pdf', {
+                            headers: { Authorization: `Bearer ${token}` }
+                          });
+                          if (res.ok) {
+                            const blob = await res.blob();
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `bankroll_report_${new Date().toISOString().split('T')[0]}.pdf`;
+                            a.click();
+                            URL.revokeObjectURL(url);
+                          }
+                        } catch (err) {
+                          console.error('PDF export failed:', err);
+                        }
+                      }}
+                      style={styles.reportActionBtn}
+                    >
+                      <span style={{ fontSize: 14, color: '#65676b' }}>PDF</span>
+                      <div style={{ flex: 1, textAlign: 'left' }}>
+                        <div style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>Export to PDF</div>
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
+                          Formatted report for printing or sharing
+                        </div>
+                      </div>
+                      <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
+                    </button>
                   </div>
                 </div>
+              )}
 
-                {/* Action Buttons */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {/* Export CSV */}
+              {/* Settings View */}
+              {activeSection === 'settings' && (
+                <div style={styles.activitySection}>
+                  <h2 style={styles.sectionTitle}>Bankroll Settings</h2>
+                  <div style={{ padding: 16, background: 'rgba(255,255,255,0.03)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.06)', marginBottom: 16 }}>
+                    <h3 style={{ fontSize: 14, fontWeight: 600, color: '#fff', margin: '0 0 16px' }}>Preferences</h3>
+                    <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                      <span style={{ fontSize: 14, color: '#fff' }}>Auto-save sessions</span>
+                      <input type="checkbox" checked={preferences.autoSave} onChange={(e) => updatePreference('autoSave', e.target.checked)} style={{ accentColor: '#2374e1' }} />
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0' }}>
+                      <span style={{ fontSize: 14, color: '#fff' }}>Notifications</span>
+                      <input type="checkbox" checked={preferences.notifications} onChange={(e) => updatePreference('notifications', e.target.checked)} style={{ accentColor: '#2374e1' }} />
+                    </label>
+                  </div>
                   <button
-                    onClick={async () => {
-                      if (!userId) return;
-                      try {
-                        const res = await fetch('/api/bankroll/export', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ userId, format: 'csv' })
-                        });
-                        const data = await res.json();
-                        if (data.success && data.content) {
-                          const blob = new Blob([data.content], { type: 'text/csv' });
-                          const url = URL.createObjectURL(blob);
-                          const a = document.createElement('a');
-                          a.href = url;
-                          a.download = data.filename || `bankroll_export_${new Date().toISOString().split('T')[0]}.csv`;
-                          document.body.appendChild(a);
-                          a.click();
-                          document.body.removeChild(a);
-                          URL.revokeObjectURL(url);
-                          toast.success(`Exported ${data.summary?.sessions || 0} sessions to CSV`);
-                        } else {
-                          toast.error(data.message || 'No entries to export');
-                        }
-                      } catch (err) {
-                        console.error('Export failed:', err);
-                        toast.error('CSV export failed');
-                      }
-                    }}
-                    style={styles.reportActionBtn}
+                    onClick={() => setShowVenueModal(true)}
+                    style={{ width: '100%', padding: '14px 18px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 500, cursor: 'pointer', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}
                   >
-                    <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>CSV</span>
-                    <div style={{ flex: 1, textAlign: 'left' }}>
-                      <div style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>Export to CSV</div>
-                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
-                        Download all sessions for spreadsheet analysis
-                      </div>
-                    </div>
+                    Manage Venues
                     <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
                   </button>
-
-                  {/* Export JSON */}
                   <button
-                    onClick={async () => {
-                      if (!userId) return;
-                      try {
-                        const res = await fetch('/api/bankroll/export', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ userId, format: 'json' })
-                        });
-                        const data = await res.json();
-                        if (data.success && data.data) {
-                          const exportPayload = { entries: data.data, summary: data.summary };
-                          const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
-                          const url = URL.createObjectURL(blob);
-                          const a = document.createElement('a');
-                          a.href = url;
-                          a.download = data.filename || `bankroll_export_${new Date().toISOString().split('T')[0]}.json`;
-                          document.body.appendChild(a);
-                          a.click();
-                          document.body.removeChild(a);
-                          URL.revokeObjectURL(url);
-                          toast.success(`Exported ${data.summary?.sessions || 0} sessions to JSON`);
-                        } else {
-                          toast.error(data.message || 'No entries to export');
-                        }
-                      } catch (err) {
-                        console.error('Export failed:', err);
-                        toast.error('JSON export failed');
-                      }
-                    }}
-                    style={styles.reportActionBtn}
+                    onClick={() => setActiveSection('reports')}
+                    style={{ width: '100%', padding: '14px 18px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 500, cursor: 'pointer', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
                   >
-                    <span style={{ fontSize: 14, color: '#65676b' }}>JSON</span>
-                    <div style={{ flex: 1, textAlign: 'left' }}>
-                      <div style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>Export to JSON</div>
-                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
-                        Full data export for backup or API use
-                      </div>
-                    </div>
-                    <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
-                  </button>
-
-                  {/* PDF Export */}
-                  <button
-                    onClick={async () => {
-                      try {
-                        const { data: { session } } = await supabase.auth.getSession();
-                        const token = session?.access_token;
-                        const res = await fetch('/api/bankroll/export-pdf', {
-                          headers: { Authorization: `Bearer ${token}` }
-                        });
-                        if (res.ok) {
-                          const blob = await res.blob();
-                          const url = URL.createObjectURL(blob);
-                          const a = document.createElement('a');
-                          a.href = url;
-                          a.download = `bankroll_report_${new Date().toISOString().split('T')[0]}.pdf`;
-                          a.click();
-                          URL.revokeObjectURL(url);
-                        }
-                      } catch (err) {
-                        console.error('PDF export failed:', err);
-                      }
-                    }}
-                    style={styles.reportActionBtn}
-                  >
-                    <span style={{ fontSize: 14, color: '#65676b' }}>PDF</span>
-                    <div style={{ flex: 1, textAlign: 'left' }}>
-                      <div style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>Export to PDF</div>
-                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
-                        Formatted report for printing or sharing
-                      </div>
-                    </div>
+                    Export Data
                     <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
                   </button>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Settings View */}
-            {activeSection === 'settings' && (
-              <div style={styles.activitySection}>
-                <h2 style={styles.sectionTitle}>Bankroll Settings</h2>
-                <div style={{ padding: 16, background: 'rgba(255,255,255,0.03)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.06)', marginBottom: 16 }}>
-                  <h3 style={{ fontSize: 14, fontWeight: 600, color: '#fff', margin: '0 0 16px' }}>Preferences</h3>
-                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                    <span style={{ fontSize: 14, color: '#fff' }}>Auto-save sessions</span>
-                    <input type="checkbox" checked={preferences.autoSave} onChange={(e) => updatePreference('autoSave', e.target.checked)} style={{ accentColor: '#2374e1' }} />
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0' }}>
-                    <span style={{ fontSize: 14, color: '#fff' }}>Notifications</span>
-                    <input type="checkbox" checked={preferences.notifications} onChange={(e) => updatePreference('notifications', e.target.checked)} style={{ accentColor: '#2374e1' }} />
-                  </label>
+              {/* Bankroll Rules View */}
+              {activeSection === 'rules' && (
+                <div style={styles.activitySection}>
+                  <BankrollRulesCard userId={userId} />
                 </div>
-                <button
-                  onClick={() => setShowVenueModal(true)}
-                  style={{ width: '100%', padding: '14px 18px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 500, cursor: 'pointer', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}
-                >
-                  Manage Venues
-                  <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
-                </button>
-                <button
-                  onClick={() => setActiveSection('reports')}
-                  style={{ width: '100%', padding: '14px 18px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 500, cursor: 'pointer', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                >
-                  Export Data
-                  <span style={{ fontSize: 18, opacity: 0.5 }}>›</span>
-                </button>
-              </div>
-            )}
+              )}
 
-            {/* Bankroll Rules View */}
-            {activeSection === 'rules' && (
-              <div style={styles.activitySection}>
-                <BankrollRulesCard userId={userId} />
-              </div>
-            )}
-
-            {/* Saved Receipts View */}
-            {activeSection === 'receipts' && (
-              <div style={styles.activitySection}>
-                <SavedReceipts userId={userId} />
-              </div>
-            )}
-
-            {/* Tax Reports — dedicated view showing only Tax Report Generator */}
-            {activeSection === 'tax' && (
-              <div style={styles.proToolsContainer}>
-                <div style={{ padding: '20px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                  <h2 style={{ fontSize: 16, fontWeight: 700, color: '#e4e6eb', margin: 0 }}>
-                    Tax Reports
-                  </h2>
-                  <p style={{ fontSize: 12, color: '#b0b3b8', margin: '4px 0 0' }}>Generate tax documents for your poker income</p>
+              {/* Saved Receipts View */}
+              {activeSection === 'receipts' && (
+                <div style={styles.activitySection}>
+                  <SavedReceipts userId={userId} />
                 </div>
-                <BankrollProGate userId={userId}>
-                  <div style={{ padding: 16 }}>
-                    <TaxReportPanel userId={userId} />
+              )}
+
+              {/* Tax Reports — dedicated view showing only Tax Report Generator */}
+              {activeSection === 'tax' && (
+                <div style={styles.proToolsContainer}>
+                  <div style={{ padding: '20px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                    <h2 style={{ fontSize: 16, fontWeight: 700, color: '#e4e6eb', margin: 0 }}>
+                      Tax Reports
+                    </h2>
+                    <p style={{ fontSize: 12, color: '#b0b3b8', margin: '4px 0 0' }}>Generate tax documents for your poker income</p>
                   </div>
-                </BankrollProGate>
-              </div>
-            )}
-
-            {/* Staking Tracker — dedicated standalone view */}
-            {activeSection === 'staking' && (
-              <div style={styles.activitySection}>
-                <BankrollProGate userId={userId}>
-                  <StakingTracker userId={userId} />
-                </BankrollProGate>
-              </div>
-            )}
-
-            {/* Pro Tools View - Gated for non-VIP */}
-            {activeSection === 'pro' && (
-              <div style={styles.proToolsContainer}>
-                {/* Pro Tools Header */}
-                <div style={{ padding: '20px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                  <h2 style={{ fontSize: 16, fontWeight: 700, color: '#e4e6eb', margin: 0 }}>
-                    Pro Tools
-                  </h2>
-                  <p style={{ fontSize: 12, color: '#b0b3b8', margin: '4px 0 0' }}>Premium bankroll features for serious players</p>
+                  <BankrollProGate userId={userId}>
+                    <div style={{ padding: 16 }}>
+                      <TaxReportPanel userId={userId} />
+                    </div>
+                  </BankrollProGate>
                 </div>
+              )}
 
-                <BankrollProGate userId={userId}>
-                  {/* Pro Features Grid - Only visible after unlock or for VIP */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, padding: 16 }}>
+              {/* Staking Tracker — dedicated standalone view */}
+              {activeSection === 'staking' && (
+                <div style={styles.activitySection}>
+                  <BankrollProGate userId={userId}>
                     <StakingTracker userId={userId} />
-                    <SeriesTracker userId={userId} />
-                    <SessionHandReview userId={userId} />
+                  </BankrollProGate>
+                </div>
+              )}
+
+              {/* Pro Tools View - Gated for non-VIP */}
+              {activeSection === 'pro' && (
+                <div style={styles.proToolsContainer}>
+                  {/* Pro Tools Header */}
+                  <div style={{ padding: '20px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                    <h2 style={{ fontSize: 16, fontWeight: 700, color: '#e4e6eb', margin: 0 }}>
+                      Pro Tools
+                    </h2>
+                    <p style={{ fontSize: 12, color: '#b0b3b8', margin: '4px 0 0' }}>Premium bankroll features for serious players</p>
                   </div>
-                </BankrollProGate>
-              </div>
-            )}
-          </main>
-        </div>
+
+                  <BankrollProGate userId={userId}>
+                    {/* Pro Features Grid - Only visible after unlock or for VIP */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, padding: 16 }}>
+                      <StakingTracker userId={userId} />
+                      <SeriesTracker userId={userId} />
+                      <SessionHandReview userId={userId} />
+                    </div>
+                  </BankrollProGate>
+                </div>
+              )}
+            </main>
+          </div>
+        </FeatureGate>
       </div>
 
       {/* Receipt Scanner Modal */}
-      {showScanner && (
-        <div style={styles.scannerModal}>
-          <div style={styles.scannerModalContent}>
-            <div style={styles.scannerModalHeader}>
-              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: '#fff' }}>
-                {scannerStep === 'scan' && 'Scan Receipt'}
-                {scannerStep === 'post-capture' && 'Receipt Saved'}
-                {scannerStep === 'pick-entry' && 'Select Entry'}
-              </h2>
-              <button
-                onClick={() => { setShowScanner(false); setScannerStep('scan'); setScannerEntryId(null); setScannerImageUrl(null); }}
-                style={styles.scannerCloseBtn}
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Step 1: Scan — camera captures first */}
-            {scannerStep === 'scan' && (
-              <div>
-                <ReceiptScanner
-                  userId={userId}
-                  onScanComplete={({ imageUrl }) => {
-                    setScannerImageUrl(imageUrl);
-                    setScannerStep('post-capture');
-                  }}
-                />
+      {
+        showScanner && (
+          <div style={styles.scannerModal}>
+            <div style={styles.scannerModalContent}>
+              <div style={styles.scannerModalHeader}>
+                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: '#fff' }}>
+                  {scannerStep === 'scan' && 'Scan Receipt'}
+                  {scannerStep === 'post-capture' && 'Receipt Saved'}
+                  {scannerStep === 'pick-entry' && 'Select Entry'}
+                </h2>
+                <button
+                  onClick={() => { setShowScanner(false); setScannerStep('scan'); setScannerEntryId(null); setScannerImageUrl(null); }}
+                  style={styles.scannerCloseBtn}
+                >
+                  ✕
+                </button>
               </div>
-            )}
 
-            {/* Step 2: Post-capture — choose what to do */}
-            {scannerStep === 'post-capture' && scannerImageUrl && (
-              <div style={{ padding: 20 }}>
-                {/* Receipt thumbnail */}
-                <div style={{ textAlign: 'center', marginBottom: 20 }}>
-                  <img
-                    src={scannerImageUrl}
-                    alt="Receipt"
-                    style={{ maxWidth: '100%', maxHeight: 180, objectFit: 'contain', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)' }}
+              {/* Step 1: Scan — camera captures first */}
+              {scannerStep === 'scan' && (
+                <div>
+                  <ReceiptScanner
+                    userId={userId}
+                    onScanComplete={({ imageUrl }) => {
+                      setScannerImageUrl(imageUrl);
+                      setScannerStep('post-capture');
+                    }}
                   />
                 </div>
+              )}
 
-                <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, marginTop: 0, marginBottom: 20, textAlign: 'center' }}>
-                  What would you like to do with this receipt?
-                </p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <button
-                    onClick={() => {
-                      // Open LogEntryModal as NEW entry with receipt pre-attached
-                      setDefaultReceiptCategory('expense');
-                      setDefaultReceiptMedia([scannerImageUrl]);
-                      setEditEntry(null);
-                      setShowLogModal(true);
-                      setShowScanner(false);
-                      setScannerStep('scan');
-                      setScannerImageUrl(null);
-                    }}
-                    style={styles.scannerChoiceBtn}
-                  >
-                    <span style={{ fontSize: 12, fontWeight: 600, color: '#4ade80' }}>NEW</span>
-                    <div style={{ textAlign: 'left' }}>
-                      <div style={{ fontWeight: 600, color: '#fff', fontSize: 15 }}>Create New Expense</div>
-                      <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 2 }}>Log this as a new expense entry</div>
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => setScannerStep('pick-entry')}
-                    style={styles.scannerChoiceBtn}
-                  >
-                    <span style={{ fontSize: 12, fontWeight: 600, color: '#60a5fa' }}>ATTACH</span>
-                    <div style={{ textAlign: 'left' }}>
-                      <div style={{ fontWeight: 600, color: '#fff', fontSize: 15 }}>Attach to Existing Entry</div>
-                      <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 2 }}>Add this receipt to a recent session or expense</div>
-                    </div>
-                  </button>
+              {/* Step 2: Post-capture — choose what to do */}
+              {scannerStep === 'post-capture' && scannerImageUrl && (
+                <div style={{ padding: 20 }}>
+                  {/* Receipt thumbnail */}
+                  <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                    <img
+                      src={scannerImageUrl}
+                      alt="Receipt"
+                      style={{ maxWidth: '100%', maxHeight: 180, objectFit: 'contain', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)' }}
+                    />
+                  </div>
+
+                  <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, marginTop: 0, marginBottom: 20, textAlign: 'center' }}>
+                    What would you like to do with this receipt?
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <button
+                      onClick={() => {
+                        // Open LogEntryModal as NEW entry with receipt pre-attached
+                        setDefaultReceiptCategory('expense');
+                        setDefaultReceiptMedia([scannerImageUrl]);
+                        setEditEntry(null);
+                        setShowLogModal(true);
+                        setShowScanner(false);
+                        setScannerStep('scan');
+                        setScannerImageUrl(null);
+                      }}
+                      style={styles.scannerChoiceBtn}
+                    >
+                      <span style={{ fontSize: 12, fontWeight: 600, color: '#4ade80' }}>NEW</span>
+                      <div style={{ textAlign: 'left' }}>
+                        <div style={{ fontWeight: 600, color: '#fff', fontSize: 15 }}>Create New Expense</div>
+                        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 2 }}>Log this as a new expense entry</div>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => setScannerStep('pick-entry')}
+                      style={styles.scannerChoiceBtn}
+                    >
+                      <span style={{ fontSize: 12, fontWeight: 600, color: '#60a5fa' }}>ATTACH</span>
+                      <div style={{ textAlign: 'left' }}>
+                        <div style={{ fontWeight: 600, color: '#fff', fontSize: 15 }}>Attach to Existing Entry</div>
+                        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 2 }}>Add this receipt to a recent session or expense</div>
+                      </div>
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Step 3: Pick existing entry to attach receipt */}
-            {scannerStep === 'pick-entry' && (
-              <div style={{ padding: '0 16px 16px' }}>
-                <button
-                  onClick={() => setScannerStep('post-capture')}
-                  style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: 13, cursor: 'pointer', padding: '12px 4px', fontWeight: 500 }}
-                >
-                  ← Back
-                </button>
-                {entries.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '32px 0', color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>
-                    No entries yet. Create a new expense instead.
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 400, overflowY: 'auto' }}>
-                    {entries.slice(0, 20).map((entry) => {
-                      const isPositive = entry.net_result >= 0;
-                      const dateStr = entry.entry_date
-                        ? new Date(entry.entry_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                        : '';
-                      const LABELS = { cash: 'Cash Game', tournament: 'Tournament', expense: 'Expense', deposit: 'Deposit', withdrawal: 'Withdrawal', sports_bet: 'Sports Bet' };
-                      return (
-                        <button
-                          key={entry.id}
-                          onClick={async () => {
-                            try {
-                              // Append receipt URL to entry's media_urls
-                              const existing = entry.media_urls || [];
-                              const updated = [...existing, scannerImageUrl];
-                              await supabase
-                                .from('bankroll_ledger')
-                                .update({ media_urls: updated })
-                                .eq('id', entry.id);
-                              await loadData();
-                              setShowScanner(false);
-                              setScannerStep('scan');
-                              setScannerEntryId(null);
-                              setScannerImageUrl(null);
-                            } catch (err) {
-                              console.error('Attach failed:', err);
-                            }
-                          }}
-                          style={styles.scannerEntryBtn}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
-                            <div style={{ width: 36, height: 36, borderRadius: 8, background: isPositive ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>
-                              {isPositive ? '✓' : '−'}
-                            </div>
-                            <div style={{ minWidth: 0, flex: 1 }}>
-                              <div style={{ fontSize: 14, fontWeight: 500, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {LABELS[entry.category] || entry.category}
+              {/* Step 3: Pick existing entry to attach receipt */}
+              {scannerStep === 'pick-entry' && (
+                <div style={{ padding: '0 16px 16px' }}>
+                  <button
+                    onClick={() => setScannerStep('post-capture')}
+                    style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: 13, cursor: 'pointer', padding: '12px 4px', fontWeight: 500 }}
+                  >
+                    ← Back
+                  </button>
+                  {entries.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '32px 0', color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>
+                      No entries yet. Create a new expense instead.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 400, overflowY: 'auto' }}>
+                      {entries.slice(0, 20).map((entry) => {
+                        const isPositive = entry.net_result >= 0;
+                        const dateStr = entry.entry_date
+                          ? new Date(entry.entry_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                          : '';
+                        const LABELS = { cash: 'Cash Game', tournament: 'Tournament', expense: 'Expense', deposit: 'Deposit', withdrawal: 'Withdrawal', sports_bet: 'Sports Bet' };
+                        return (
+                          <button
+                            key={entry.id}
+                            onClick={async () => {
+                              try {
+                                // Append receipt URL to entry's media_urls
+                                const existing = entry.media_urls || [];
+                                const updated = [...existing, scannerImageUrl];
+                                await supabase
+                                  .from('bankroll_ledger')
+                                  .update({ media_urls: updated })
+                                  .eq('id', entry.id);
+                                await loadData();
+                                setShowScanner(false);
+                                setScannerStep('scan');
+                                setScannerEntryId(null);
+                                setScannerImageUrl(null);
+                              } catch (err) {
+                                console.error('Attach failed:', err);
+                              }
+                            }}
+                            style={styles.scannerEntryBtn}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
+                              <div style={{ width: 36, height: 36, borderRadius: 8, background: isPositive ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>
+                                {isPositive ? '✓' : '−'}
                               </div>
-                              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>
-                                {dateStr}{entry.location_name ? ` · ${entry.location_name}` : ''}
+                              <div style={{ minWidth: 0, flex: 1 }}>
+                                <div style={{ fontSize: 14, fontWeight: 500, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  {LABELS[entry.category] || entry.category}
+                                </div>
+                                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>
+                                  {dateStr}{entry.location_name ? ` · ${entry.location_name}` : ''}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                          <span style={{ fontSize: 15, fontWeight: 600, color: isPositive ? '#22c55e' : '#ef4444', flexShrink: 0, marginLeft: 8 }}>
-                            {isPositive ? '+' : '-'}${Math.abs(entry.net_result).toLocaleString()}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
+                            <span style={{ fontSize: 15, fontWeight: 600, color: isPositive ? '#22c55e' : '#ef4444', flexShrink: 0, marginLeft: 8 }}>
+                              {isPositive ? '+' : '-'}${Math.abs(entry.net_result).toLocaleString()}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Manage Venues Modal */}
-      {showVenueModal && userId && (
-        <ManageVenuesModal
-          userId={userId}
-          onClose={() => setShowVenueModal(false)}
-          onUpdate={loadData}
-        />
-      )}
+      {
+        showVenueModal && userId && (
+          <ManageVenuesModal
+            userId={userId}
+            onClose={() => setShowVenueModal(false)}
+            onUpdate={loadData}
+          />
+        )
+      }
 
       {/* Log Entry Modal - Shows login prompt if not authenticated */}
       <AnimatePresence>
@@ -1864,7 +1871,7 @@ export default function BankrollManagerPage() {
           />
         )}
       </AnimatePresence>
-    </PageTransition>
+    </PageTransition >
   );
 }
 
