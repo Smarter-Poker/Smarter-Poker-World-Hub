@@ -62,6 +62,20 @@ const REPORTS = [
     description: 'Actions, incidents, session management',
     color: '#B0B3B8'
   },
+  {
+    id: 'analytics-daily',
+    icon: TrendingUp,
+    title: 'Analytics Daily',
+    description: 'Aggregated daily metrics, trends, session and revenue charts',
+    color: '#9333EA'
+  },
+  {
+    id: 'tax-compliance',
+    icon: FileText,
+    title: 'Tax Compliance / W-2G',
+    description: 'Tournament wins reporting, W-2G generation, withholding',
+    color: '#EF4444'
+  },
 ];
 
 export default function ReportsPage() {

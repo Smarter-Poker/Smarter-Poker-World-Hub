@@ -11,13 +11,18 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+  if (req.method === 'POST') return createLeague(req, res);
   if (req.method !== 'GET') {
     return res.status(405).json({
       success: false,
-      error: { code: 'METHOD_NOT_ALLOWED', message: 'Only GET allowed' }
+      error: { code: 'METHOD_NOT_ALLOWED', message: 'GET and POST allowed' }
     });
   }
 
+  return listLeagues(req, res);
+}
+
+async function listLeagues(req, res) {
   try {
     const { status, limit = 50 } = req.query;
 
@@ -78,6 +83,53 @@ export default async function handler(req, res) {
     return res.status(500).json({
       success: false,
       error: { code: 'SERVER_ERROR', message: 'Failed to fetch leagues' }
+    });
+  }
+}
+
+async function createLeague(req, res) {
+  const { name, description, scoring_system, season_start, season_end, prize_pool, venues, status } = req.body;
+
+  if (!name) {
+    return res.status(400).json({
+      success: false,
+      error: { code: 'MISSING_FIELDS', message: 'League name required' }
+    });
+  }
+
+  try {
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.replace('Bearer ', '');
+    let organizerId = null;
+    if (token) {
+      const { data: { user } } = await supabase.auth.getUser(token);
+      organizerId = user?.id;
+    }
+
+    const { data: league, error } = await supabase
+      .from('commander_leagues')
+      .insert({
+        name,
+        description: description || null,
+        organizer_id: organizerId,
+        scoring_system: scoring_system || 'points',
+        season_start: season_start || null,
+        season_end: season_end || null,
+        prize_pool: prize_pool || null,
+        venues: venues || [],
+        status: status || 'active'
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return res.status(201).json({ success: true, data: { league } });
+  } catch (error) {
+    console.error('Create league error:', error);
+    return res.status(500).json({
+      success: false,
+      error: { code: 'SERVER_ERROR', message: error.message }
     });
   }
 }

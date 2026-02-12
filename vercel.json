@@ -171,6 +171,10 @@
     {
       "path": "/api/cron/poker-news",
       "schedule": "15 */4 * * *"
+    },
+    {
+      "path": "/api/cron/commander-daily-aggregate",
+      "schedule": "0 10 * * *"
     }
   ]
 }
