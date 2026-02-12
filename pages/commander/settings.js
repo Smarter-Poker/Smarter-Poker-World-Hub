@@ -272,6 +272,14 @@ export default function CommanderSettingsPage() {
 
           {/* Navigation Links */}
           <section className="cmd-panel divide-y divide-[#3A3B3C]">
+            <button onClick={() => router.push('/commander/membership-plans')}
+              className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
+              <div>
+                <span className="font-medium text-white">Membership Plans</span>
+                <p className="text-xs text-[#B0B3B8]">Set daily/weekly/monthly/yearly pricing per tier</p>
+              </div>
+              <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
+            </button>
             <button onClick={() => router.push('/commander/game-types')}
               className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
               <div>

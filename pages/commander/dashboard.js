@@ -79,6 +79,7 @@ const CARDS = [
       { label: 'Reputation', href: '/commander/reputation', icon: '/images/commander/icons/rp-custom.png' },
       { label: 'Game Types', href: '/commander/game-types', icon: '/images/commander/icons/rp-configuration.png' },
       { label: 'Room Presets', href: '/commander/room-presets', icon: '/images/commander/icons/rp-setups.png' },
+      { label: 'Membership Plans', href: '/commander/membership-plans', icon: '/images/commander/icons/rp-player.png' },
       { label: 'Streaming', href: '/commander/streaming', icon: '/images/commander/icons/tn-clock-setup.png' },
       { label: 'High Hands', href: '/commander/high-hands', icon: '/images/commander/icons/tn-settings.png' },
     ],
