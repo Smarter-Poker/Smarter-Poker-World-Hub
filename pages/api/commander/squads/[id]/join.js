@@ -3,7 +3,7 @@
  * POST /api/commander/squads/:id/join
  */
 import { createClient } from '@supabase/supabase-js';
-import { guardUser } from '../../../../src/lib/commander/auth';
+import { guardUser } from '../../../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
