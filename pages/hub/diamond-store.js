@@ -415,60 +415,56 @@ function PackageCard({ pkg, onSelect, isSelected, onAddToCart }) {
             {/* Diamond Count */}
             <div style={{
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
-                gap: 10,
                 marginBottom: 12,
             }}>
-                <span style={{ fontSize: 32 }}>Diamonds</span>
-                <div>
-                    <div style={{
-                        fontFamily: 'Orbitron, sans-serif',
-                        fontSize: 24,
-                        fontWeight: 700,
-                        color: '#00D4FF',
-                    }}>
-                        {totalDiamonds.toLocaleString()}
-                    </div>
-                    {pkg.bonus > 0 && (
-                        <div style={{
-                            fontSize: 11,
-                            color: '#00ff88',
-                            fontWeight: 600,
-                        }}>
-                            ({pkg.diamonds.toLocaleString()} + {pkg.bonus.toLocaleString()} bonus)
-                        </div>
-                    )}
+                <span style={{ fontSize: 32 }}>💎</span>
+                <div style={{
+                    fontFamily: 'Orbitron, sans-serif',
+                    fontSize: 24,
+                    fontWeight: 700,
+                    color: '#00D4FF',
+                    textAlign: 'center',
+                }}>
+                    {totalDiamonds.toLocaleString()}
                 </div>
+                {pkg.bonus > 0 && (
+                    <div style={{
+                        fontSize: 11,
+                        color: '#00ff88',
+                        fontWeight: 600,
+                        textAlign: 'center',
+                    }}>
+                        ({pkg.diamonds.toLocaleString()} + {pkg.bonus.toLocaleString()} bonus)
+                    </div>
+                )}
             </div>
 
-            {/* Package Name */}
-            <div style={{
-                fontSize: 16,
-                fontWeight: 600,
-                color: '#fff',
-                marginBottom: 6,
-            }}>
-                {pkg.name}
-            </div>
-
-            {/* Price - 1 diamond = 1 cent */}
+            {/* Package Name + Price — single line */}
             <div style={{
                 display: 'flex',
-                justifyContent: 'space-between',
+                justifyContent: 'center',
                 alignItems: 'center',
+                gap: 8,
             }}>
                 <span style={{
-                    fontSize: 22,
+                    fontSize: 16,
+                    fontWeight: 600,
+                    color: '#fff',
+                }}>
+                    {pkg.name}
+                </span>
+                <span style={{
+                    fontSize: 11,
+                    color: 'rgba(255, 255, 255, 0.35)',
+                }}>—</span>
+                <span style={{
+                    fontSize: 18,
                     fontWeight: 700,
                     color: '#fff',
                 }}>
                     ${pkg.price.toFixed(2)}
-                </span>
-                <span style={{
-                    fontSize: 10,
-                    color: 'rgba(255, 255, 255, 0.5)',
-                }}>
-                    1Diamonds = $0.01
                 </span>
             </div>
 
@@ -1140,8 +1136,7 @@ export default function DiamondStorePage() {
                                 {/* Intro */}
                                 <div style={styles.intro}>
                                     <p style={styles.introText}>
-                                        <strong>1 Diamond = $0.01</strong> — Use diamonds for tournament entries,
-                                        premium training, cosmetics, and more. <span style={{ color: '#00ff88' }}>5% bonus on $100+ purchases!</span>
+                                        Use Diamonds For Cash Games & Tournaments, Premium Training, Access To Special Features & Upgrades For Smarter.Poker And More! <span style={{ color: '#00ff88' }}>5% Bonus On $100+ Purchases!</span>
                                     </p>
                                 </div>
 
