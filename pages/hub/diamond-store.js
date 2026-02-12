@@ -236,27 +236,26 @@ const DIAMOND_PACKAGES = [
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
-// VIP MEMBERSHIP — $19.99/month for all features
+// VIP MEMBERSHIP — $19.99/month or $199/year for all features
 // ═══════════════════════════════════════════════════════════════════════════
-const VIP_MEMBERSHIP = {
+const VIP_PLANS = {
     monthly: {
         id: 'vip-monthly',
         name: 'VIP Monthly',
         price: 19.99,
         interval: 'month',
-        popular: true,
-        priceId: process.env.NEXT_PUBLIC_STRIPE_VIP_MONTHLY_PRICE_ID || 'price_vip_monthly', // Stripe Price ID
+        priceId: process.env.NEXT_PUBLIC_STRIPE_VIP_MONTHLY_PRICE_ID || 'price_vip_monthly',
     },
     annual: {
         id: 'vip-annual',
         name: 'VIP Annual',
-        price: 199.99,
+        price: 199,
         interval: 'year',
-        savings: 39.89, // 2 months free
-        popular: false,
-        priceId: process.env.NEXT_PUBLIC_STRIPE_VIP_ANNUAL_PRICE_ID || 'price_vip_annual', // Stripe Price ID
+        savings: 40.88,
+        priceId: process.env.NEXT_PUBLIC_STRIPE_VIP_ANNUAL_PRICE_ID || 'price_vip_annual',
     },
 };
+const VIP_DIAMOND_COST_STORE = 1999;
 
 const VIP_BENEFITS = [
     // GOLD TIER CARD FEATURES
@@ -673,7 +672,9 @@ export default function DiamondStorePage() {
     const [activeTab, setActiveTab] = useState('diamonds'); // diamonds, vip, merch, rewards
     const [rewardsSubTab, setRewardsSubTab] = useState('overview'); // overview, diamonds, xp, eggs
     const [selectedPackage, setSelectedPackage] = useState('standard');
-    const [selectedVIP, setSelectedVIP] = useState('vip-monthly');
+    const [showDiamondVipConfirm, setShowDiamondVipConfirm] = useState(false);
+    const [diamondVipResult, setDiamondVipResult] = useState(null);
+    const [selectedVipCycle, setSelectedVipCycle] = useState('monthly');
     const [isProcessing, setIsProcessing] = useState(false);
 
     //  INTRO VIDEO STATE - Video plays while page loads in background
@@ -887,8 +888,8 @@ export default function DiamondStorePage() {
                 return;
             }
 
-            // Get the selected VIP plan
-            const plan = selectedVIP === 'vip-monthly' ? VIP_MEMBERSHIP.monthly : VIP_MEMBERSHIP.annual;
+            // Use the selected VIP plan
+            const plan = VIP_PLANS[selectedVipCycle];
 
             // Create checkout session
             const response = await fetch('/api/store/create-checkout-session', {
@@ -987,7 +988,7 @@ export default function DiamondStorePage() {
     };
 
     const selectedPkg = DIAMOND_PACKAGES.find(p => p.id === selectedPackage);
-    const selectedVIPPlan = selectedVIP === 'vip-monthly' ? VIP_MEMBERSHIP.monthly : VIP_MEMBERSHIP.annual;
+
 
     return (
         <>
@@ -1192,28 +1193,36 @@ export default function DiamondStorePage() {
                             <>
                                 {/* VIP Hero */}
                                 <div style={styles.vipHero}>
-                                    <h2 style={styles.vipTitle}> VIP Membership</h2>
+                                    <h2 style={styles.vipTitle}>👑 VIP Membership</h2>
                                     <p style={styles.vipSubtitle}>
                                         Unlock <strong>everything</strong> for one low monthly price. No diamond costs, no limits.
                                     </p>
                                 </div>
 
-                                {/* VIP Plan Selection */}
-                                <div style={styles.vipPlansRow}>
-                                    <VIPCard
-                                        plan={VIP_MEMBERSHIP.monthly}
-                                        isSelected={selectedVIP === 'vip-monthly'}
-                                        onSelect={setSelectedVIP}
-                                    />
-                                    <VIPCard
-                                        plan={VIP_MEMBERSHIP.annual}
-                                        isSelected={selectedVIP === 'vip-annual'}
-                                        onSelect={setSelectedVIP}
-                                    />
+                                {/* Billing Toggle */}
+                                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20, gap: 4, background: '#151515', borderRadius: 12, padding: 4, maxWidth: 280, margin: '0 auto 20px' }}>
+                                    <button onClick={() => setSelectedVipCycle('monthly')} style={{ flex: 1, padding: '10px 16px', borderRadius: 10, background: selectedVipCycle === 'monthly' ? '#2a2a2a' : 'transparent', border: 'none', color: selectedVipCycle === 'monthly' ? '#fff' : '#888', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Monthly</button>
+                                    <button onClick={() => setSelectedVipCycle('annual')} style={{ flex: 1, padding: '10px 16px', borderRadius: 10, background: selectedVipCycle === 'annual' ? '#2a2a2a' : 'transparent', border: 'none', color: selectedVipCycle === 'annual' ? '#fff' : '#888', fontWeight: 600, fontSize: 13, cursor: 'pointer', position: 'relative' }}>
+                                        Annual
+                                        <span style={{ position: 'absolute', top: -8, right: -4, background: '#22c55e', color: '#000', fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 6 }}>SAVE</span>
+                                    </button>
                                 </div>
 
-                                {/* Subscribe Button */}
+                                {/* Single VIP Card */}
+                                <div style={{ maxWidth: 420, margin: '0 auto 24px' }}>
+                                    <VIPCard
+                                        plan={VIP_PLANS[selectedVipCycle]}
+                                        isSelected={true}
+                                        onSelect={() => { }}
+                                    />
+                                    {selectedVipCycle === 'annual' && (
+                                        <div style={{ textAlign: 'center', marginTop: 8, fontSize: 12, color: '#22c55e', fontWeight: 600 }}>Save $40.88 vs monthly billing</div>
+                                    )}
+                                </div>
+
+                                {/* Payment Options */}
                                 <div style={styles.vipSubscribeSection}>
+                                    {/* Stripe subscription */}
                                     <button
                                         onClick={handleVIPSubscribe}
                                         disabled={isProcessing}
@@ -1222,10 +1231,92 @@ export default function DiamondStorePage() {
                                             opacity: isProcessing ? 0.6 : 1,
                                         }}
                                     >
-                                        {isProcessing ? 'Processing...' : `Subscribe for $${selectedVIPPlan.price.toFixed(2)}/${selectedVIPPlan.interval}`}
+                                        {isProcessing ? 'Processing...' : `Subscribe — $${VIP_PLANS[selectedVipCycle].price}/${VIP_PLANS[selectedVipCycle].interval}`}
                                     </button>
+
+                                    {/* Divider */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '12px 0' }}>
+                                        <div style={{ flex: 1, height: 1, background: '#333' }} />
+                                        <span style={{ fontSize: 12, color: '#888', fontWeight: 600 }}>OR</span>
+                                        <div style={{ flex: 1, height: 1, background: '#333' }} />
+                                    </div>
+
+                                    {/* Diamond purchase */}
+                                    <button
+                                        onClick={() => setShowDiamondVipConfirm(true)}
+                                        disabled={balance < VIP_DIAMOND_COST_STORE}
+                                        style={{
+                                            ...styles.vipSubscribeButton,
+                                            background: balance >= VIP_DIAMOND_COST_STORE
+                                                ? 'linear-gradient(135deg, #00D4FF, #0084FF)'
+                                                : '#252525',
+                                            color: balance >= VIP_DIAMOND_COST_STORE ? '#000' : '#666',
+                                            cursor: balance >= VIP_DIAMOND_COST_STORE ? 'pointer' : 'not-allowed',
+                                            boxShadow: balance >= VIP_DIAMOND_COST_STORE
+                                                ? '0 4px 16px rgba(0,212,255,0.2)'
+                                                : 'none',
+                                            border: balance >= VIP_DIAMOND_COST_STORE ? 'none' : '1px solid #333',
+                                        }}
+                                    >
+                                        💎 Buy with {VIP_DIAMOND_COST_STORE.toLocaleString()} Diamonds — 30 Days
+                                    </button>
+                                    <p style={{ ...styles.vipCancelNote, marginTop: 6 }}>
+                                        Your balance: <span style={{ color: balance >= VIP_DIAMOND_COST_STORE ? '#00D4FF' : '#ef4444', fontWeight: 700 }}>{balance.toLocaleString()} 💎</span>
+                                    </p>
                                     <p style={styles.vipCancelNote}>Cancel anytime. No commitment required.</p>
                                 </div>
+
+                                {/* Diamond VIP Confirmation Modal */}
+                                {showDiamondVipConfirm && (
+                                    <div style={{
+                                        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)',
+                                        backdropFilter: 'blur(8px)', display: 'flex',
+                                        alignItems: 'center', justifyContent: 'center',
+                                        zIndex: 10000, padding: 16
+                                    }}>
+                                        <div style={{
+                                            width: '100%', maxWidth: 400, background: '#1a1a2e',
+                                            border: '2px solid rgba(0,212,255,0.3)', borderRadius: 20,
+                                            padding: 32, textAlign: 'center'
+                                        }}>
+                                            <div style={{ fontSize: 48, marginBottom: 16 }}>👑</div>
+                                            <h3 style={{ fontSize: 20, fontWeight: 700, color: '#fff', margin: '0 0 12px' }}>Confirm VIP Purchase</h3>
+                                            <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6, margin: '0 0 8px' }}>
+                                                Spend <strong style={{ color: '#00D4FF' }}>{VIP_DIAMOND_COST_STORE.toLocaleString()} 💎</strong> for 30 days of VIP.
+                                            </p>
+                                            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', margin: '0 0 24px' }}>
+                                                Remaining: {(balance - VIP_DIAMOND_COST_STORE).toLocaleString()} 💎
+                                            </p>
+                                            {diamondVipResult?.error && (
+                                                <p style={{ color: '#ef4444', fontSize: 13, margin: '0 0 12px' }}>{diamondVipResult.error}</p>
+                                            )}
+                                            <div style={{ display: 'flex', gap: 12 }}>
+                                                <button onClick={() => { setShowDiamondVipConfirm(false); setDiamondVipResult(null); }}
+                                                    style={{ flex: 1, padding: '12px 20px', background: '#333', border: '1px solid #555', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+                                                >Cancel</button>
+                                                <button
+                                                    onClick={async () => {
+                                                        setIsProcessing(true);
+                                                        const { purchaseVipWithDiamonds } = await import('../../src/lib/gates/premiumFeatureGate');
+                                                        const { data: { user: authU } } = await supabase.auth.getUser();
+                                                        if (!authU) { setDiamondVipResult({ error: 'Please sign in' }); setIsProcessing(false); return; }
+                                                        const result = await purchaseVipWithDiamonds(authU.id);
+                                                        setIsProcessing(false);
+                                                        if (result.success) {
+                                                            setShowDiamondVipConfirm(false);
+                                                            setBalance(result.newBalance || 0);
+                                                            setDiamondVipResult({ success: true });
+                                                        } else {
+                                                            setDiamondVipResult({ error: result.error });
+                                                        }
+                                                    }}
+                                                    disabled={isProcessing}
+                                                    style={{ flex: 1, padding: '12px 20px', background: 'linear-gradient(135deg, #00D4FF, #0084FF)', border: 'none', borderRadius: 10, color: '#000', fontSize: 14, fontWeight: 800, cursor: 'pointer', opacity: isProcessing ? 0.6 : 1 }}
+                                                >{isProcessing ? 'Processing...' : 'Confirm'}</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* VIP Benefits Table */}
                                 <div style={styles.benefitsSection}>
@@ -1255,6 +1346,14 @@ export default function DiamondStorePage() {
                                         <div style={styles.valueLabel}>VIP Price</div>
                                         <div style={styles.vipPrice}>$19.99/mo</div>
                                     </div>
+                                </div>
+
+                                {/* Link to full VIP page */}
+                                <div style={{ textAlign: 'center', marginTop: 16 }}>
+                                    <a href="/hub/vip" style={{
+                                        color: '#00D4FF', fontSize: 14, fontWeight: 600,
+                                        textDecoration: 'none', borderBottom: '1px solid rgba(0,212,255,0.3)'
+                                    }}>View full VIP page →</a>
                                 </div>
                             </>
                         )}
