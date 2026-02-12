@@ -75,6 +75,7 @@ import { sendGeofenceNotification } from '../../src/lib/geofencePush';
 // Clean Facebook-style navigation (no emojis)
 const SIDEBAR_SECTIONS = [
   { id: 'dashboard', label: 'Dashboard', icon: '' },
+  { id: 'adjust-bankroll', label: 'Adjust Bankroll', icon: '', action: true },
   { id: 'trips', label: 'Trip Tracker', icon: '' },
   { id: 'series', label: 'Series Tracker', icon: '' },
   { id: 'players', label: 'Player Notes', icon: '' },
@@ -82,7 +83,6 @@ const SIDEBAR_SECTIONS = [
   { id: 'projection', label: 'Run Projections', icon: '' },
   { id: 'staking', label: 'Staking Tracker', icon: '' },
   { id: 'tax', label: 'Tax Reports', icon: '' },
-
   { id: 'reports', label: 'Reports', icon: '' },
 ];
 
@@ -731,10 +731,10 @@ export default function BankrollManagerPage() {
               {SIDEBAR_SECTIONS.map((section) => (
                 <button
                   key={section.id}
-                  onClick={() => handleSidebarClick(section.id)}
+                  onClick={() => section.action ? setShowAdjustModal(true) : handleSidebarClick(section.id)}
                   style={{
                     ...styles.sidebarItem,
-                    ...(activeSection === section.id ? styles.sidebarItemActive : {}),
+                    ...(activeSection === section.id && !section.action ? styles.sidebarItemActive : {}),
                   }}
                 >
                   {section.id === 'dashboard' && activeSection !== 'dashboard' ? '← Dashboard' : section.label}
@@ -758,8 +758,8 @@ export default function BankrollManagerPage() {
                   return (
                     <button
                       key={section.id}
-                      className={`bankroll-mobile-nav-item${activeSection === section.id ? ' active' : ''}`}
-                      onClick={() => handleSidebarClick(section.id)}
+                      className={`bankroll-mobile-nav-item${activeSection === section.id && !section.action ? ' active' : ''}`}
+                      onClick={() => section.action ? setShowAdjustModal(true) : handleSidebarClick(section.id)}
                     >
                       {displayLabel}
                     </button>

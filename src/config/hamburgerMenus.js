@@ -368,7 +368,7 @@ export const MENU_CONFIGS = {
 
     'bankroll-manager': (user, state, handlers) => ({
         menuItems: [
-            createMenuItem.action('💰 Adjust Bankroll', handlers.onAdjustBankroll),
+            createMenuItem.action('Adjust Bankroll', handlers.onAdjustBankroll),
             createMenuItem.divider(),
             createMenuItem.section('Views'),
             createMenuItem.navigation('Dashboard', '/hub/bankroll-manager?view=dashboard'),

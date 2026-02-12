@@ -48,7 +48,7 @@ export default function PvPPage() {
     const [showResult, setShowResult] = useState(false);
     const [playerScore, setPlayerScore] = useState(0);
     const [opponentScore, setOpponentScore] = useState(null);
-    const [timeLeft, setTimeLeft] = useState(15);
+    const [timeLeft, setTimeLeft] = useState(40);
     const [isTimerRunning, setIsTimerRunning] = useState(false);
 
     const timerRef = useRef(null);
@@ -121,22 +121,73 @@ export default function PvPPage() {
             setUsername(profile.username || 'Player');
         }
 
-        // Get PvP stats
-        const { data: wins } = await supabase
-            .from('trivia_pvp_matches')
-            .select('id')
-            .eq('winner_id', user.id);
+        // Get PvP stats from persistent stats table
+        const { data: pvpStats } = await supabase
+            .from('trivia_pvp_stats')
+            .select('*')
+            .eq('user_id', user.id)
+            .single();
 
-        const { data: losses } = await supabase
-            .from('trivia_pvp_matches')
-            .select('id')
-            .or(`player1_id.eq.${user.id},player2_id.eq.${user.id}`)
-            .neq('winner_id', user.id)
-            .not('winner_id', 'is', null);
+        if (pvpStats) {
+            setStats({
+                wins: pvpStats.wins || 0,
+                losses: pvpStats.losses || 0,
+                ties: pvpStats.ties || 0,
+                winStreak: pvpStats.win_streak || 0,
+                bestStreak: pvpStats.best_streak || 0
+            });
+        }
+    }
+
+    // Persist PvP stats after each match
+    async function updatePvpStats(outcome, diamondsDelta) {
+        if (!userId) return;
+
+        // Fetch current stats
+        const { data: current } = await supabase
+            .from('trivia_pvp_stats')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
+
+        const prev = current || { wins: 0, losses: 0, ties: 0, win_streak: 0, best_streak: 0, total_diamonds_won: 0, total_diamonds_lost: 0 };
+
+        let newStats = { ...prev };
+        if (outcome === 'win') {
+            newStats.wins = (prev.wins || 0) + 1;
+            newStats.win_streak = (prev.win_streak || 0) + 1;
+            newStats.best_streak = Math.max(newStats.win_streak, prev.best_streak || 0);
+            newStats.total_diamonds_won = (prev.total_diamonds_won || 0) + (diamondsDelta || 0);
+        } else if (outcome === 'loss') {
+            newStats.losses = (prev.losses || 0) + 1;
+            newStats.win_streak = 0;
+            newStats.total_diamonds_lost = (prev.total_diamonds_lost || 0) + (diamondsDelta || 0);
+        } else if (outcome === 'tie') {
+            newStats.ties = (prev.ties || 0) + 1;
+            // Streak continues on ties
+        }
+        newStats.updated_at = new Date().toISOString();
+
+        await supabase
+            .from('trivia_pvp_stats')
+            .upsert({
+                user_id: userId,
+                wins: newStats.wins,
+                losses: newStats.losses,
+                ties: newStats.ties,
+                win_streak: newStats.win_streak,
+                best_streak: newStats.best_streak,
+                total_diamonds_won: newStats.total_diamonds_won,
+                total_diamonds_lost: newStats.total_diamonds_lost,
+                updated_at: newStats.updated_at
+            }, { onConflict: 'user_id' });
 
         setStats({
-            wins: wins?.length || 0,
-            losses: losses?.length || 0
+            wins: newStats.wins,
+            losses: newStats.losses,
+            ties: newStats.ties,
+            winStreak: newStats.win_streak,
+            bestStreak: newStats.best_streak
         });
     }
 
@@ -289,7 +340,7 @@ export default function PvPPage() {
             setPlayerScore(0);
             setSelectedAnswer(null);
             setShowResult(false);
-            setTimeLeft(15);
+            setTimeLeft(40);
             setIsTimerRunning(true);
         }, 2000);
     }
@@ -398,7 +449,7 @@ export default function PvPPage() {
             setPlayerScore(prev => prev + 1);
         }
 
-        // Advance after delay
+        // Advance quickly — no GTO explanations in PvP
         setTimeout(() => {
             if (currentQuestionIndex + 1 >= questions.length) {
                 finishBattle();
@@ -406,10 +457,10 @@ export default function PvPPage() {
                 setCurrentQuestionIndex(prev => prev + 1);
                 setSelectedAnswer(null);
                 setShowResult(false);
-                setTimeLeft(15);
+                setTimeLeft(40);
                 setIsTimerRunning(true);
             }
-        }, 1000);
+        }, 500);
     }
 
     async function finishBattle() {
@@ -477,11 +528,13 @@ export default function PvPPage() {
             winnings = stakeAmount; // Show refund amount
         }
 
-        // Update stats
+        // Update persistent stats
         if (won) {
-            setStats(prev => ({ ...prev, wins: prev.wins + 1 }));
-        } else if (!tied) {
-            setStats(prev => ({ ...prev, losses: prev.losses + 1 }));
+            await updatePvpStats('win', winnings - stakeAmount);
+        } else if (tied) {
+            await updatePvpStats('tie', 0);
+        } else {
+            await updatePvpStats('loss', stakeAmount);
         }
 
         setOpponentScore(horseScore);
