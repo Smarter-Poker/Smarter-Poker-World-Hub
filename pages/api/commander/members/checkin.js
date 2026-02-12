@@ -22,12 +22,18 @@ export default async function handler(req, res) {
     const { member_id } = req.body;
     if (!member_id) return res.status(400).json({ success: false, error: 'member_id required' });
 
-    // Update last check-in timestamp on member record
+    // Increment visit count (two-step since supabase.raw() is not supported in JS v2)
+    const { data: currentMember } = await supabase
+      .from('commander_members')
+      .select('visit_count')
+      .eq('id', member_id)
+      .single();
+
     const { data: member, error: memberError } = await supabase
       .from('commander_members')
       .update({
         last_checkin: new Date().toISOString(),
-        visit_count: supabase.raw('COALESCE(visit_count, 0) + 1')
+        visit_count: (currentMember?.visit_count || 0) + 1
       })
       .eq('id', member_id)
       .select()

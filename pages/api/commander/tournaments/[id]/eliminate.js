@@ -126,11 +126,17 @@ export default async function handler(req, res) {
     // Handle bounty if applicable
     let bountiesCollected = 0;
     if (tournament.bounty_amount && eliminated_by_id) {
-      // Award bounty to eliminator
+      // Award bounty to eliminator (read current + increment)
+      const { data: eliminator } = await supabase
+        .from('commander_tournament_entries')
+        .select('bounties_collected')
+        .eq('id', eliminated_by_id)
+        .single();
+
       await supabase
         .from('commander_tournament_entries')
         .update({
-          bounties_collected: supabase.raw('bounties_collected + 1')
+          bounties_collected: (eliminator?.bounties_collected || 0) + 1
         })
         .eq('id', eliminated_by_id);
 
