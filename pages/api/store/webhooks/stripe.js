@@ -124,7 +124,10 @@ async function handleCheckoutCompleted(session) {
                 const totalDiamonds = purchase.diamonds_amount + (purchase.bonus_diamonds || 0);
                 await supabase.rpc('add_diamonds_to_balance', {
                     p_user_id: metadata.user_id,
-                    p_amount: totalDiamonds
+                    p_amount: totalDiamonds,
+                    p_type: 'purchase',
+                    p_description: `Purchased ${purchase.package_name} (${totalDiamonds} diamonds)`,
+                    p_reference_id: metadata.purchase_id
                 });
 
                 console.log(`💎 Added ${totalDiamonds} diamonds to user ${metadata.user_id}`);
@@ -290,7 +293,10 @@ async function handleRefund(charge) {
         const totalDiamonds = purchase.diamonds_amount + (purchase.bonus_diamonds || 0);
         await supabase.rpc('add_diamonds_to_balance', {
             p_user_id: purchase.user_id,
-            p_amount: -totalDiamonds
+            p_amount: -totalDiamonds,
+            p_type: 'refund',
+            p_description: `Refund — ${purchase.package_name} (${totalDiamonds} diamonds)`,
+            p_reference_id: purchase.id
         });
 
         console.log(`💎 Removed ${totalDiamonds} diamonds from user ${purchase.user_id}`);

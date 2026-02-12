@@ -21,6 +21,7 @@ import { useRouter } from 'next/router';
 import { supabase } from '../../lib/supabase';
 import PushNotificationBell from '../notifications/PushNotificationBell';
 import { useLiveHelp, LiveHelpPanel } from '../../world/components/Geeves';
+import DiamondWalletModal from '../store/DiamondWalletModal';
 
 // Dark theme colors matching hub
 const C = {
@@ -94,6 +95,7 @@ export default function UniversalHeader({
     const [notificationCount, setNotificationCount] = useState(0);
     const [unreadMessages, setUnreadMessages] = useState(0);
     const [showFullDiamonds, setShowFullDiamonds] = useState(false);
+    const [isWalletOpen, setIsWalletOpen] = useState(false);
 
     // Live Help state
     const liveHelp = useLiveHelp();
@@ -551,21 +553,22 @@ export default function UniversalHeader({
 
                 {/* CENTER: Diamond Wallet */}
                 <div className="header-center">
-                    {/* Diamond Wallet - click to toggle full/compact */}
-                    <Link href="/hub/diamond-store" className="diamond-wallet" onClick={(e) => {
-                        if (stats.diamonds >= 1000) {
-                            e.preventDefault();
-                            setShowFullDiamonds(!showFullDiamonds);
-                        }
-                    }}>
-                        <span>💎</span>
-                        <span data-testid="header-diamonds" style={{ fontWeight: 700 }} title={stats.diamonds.toLocaleString() + ' diamonds'}>
-                            {showFullDiamonds ? stats.diamonds.toLocaleString() : formatCompact(stats.diamonds)}
-                        </span>
-                        <span onClick={(e) => { e.stopPropagation(); e.preventDefault(); window.location.href = '/hub/diamond-store'; }} style={{
-                            fontWeight: 700, cursor: 'pointer'
+                    {/* Diamond balance — click to open wallet modal */}
+                    <div className="diamond-wallet">
+                        <button
+                            onClick={() => setIsWalletOpen(true)}
+                            style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: 0 }}
+                            title="View transaction history"
+                        >
+                            <span>💎</span>
+                            <span data-testid="header-diamonds" style={{ fontWeight: 700 }} title={stats.diamonds.toLocaleString() + ' diamonds'}>
+                                {showFullDiamonds ? stats.diamonds.toLocaleString() : formatCompact(stats.diamonds)}
+                            </span>
+                        </button>
+                        <span onClick={() => router.push('/hub/diamond-store')} style={{
+                            fontWeight: 700, cursor: 'pointer', color: 'white'
                         }}>+</span>
-                    </Link>
+                    </div>
                 </div>
 
                 {/* RIGHT: Orb Icons */}
@@ -653,6 +656,13 @@ export default function UniversalHeader({
 
             {/* Live Help Panel */}
             <LiveHelpPanel {...liveHelp} />
+
+            {/* Diamond Wallet Modal */}
+            <DiamondWalletModal
+                isOpen={isWalletOpen}
+                onClose={() => setIsWalletOpen(false)}
+                onBuyClick={() => router.push('/hub/diamond-store')}
+            />
         </>
     );
 }
