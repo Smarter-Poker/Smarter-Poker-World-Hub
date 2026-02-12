@@ -56,9 +56,9 @@ export default function PvPPage() {
     const matchSubscription = useRef(null);
     const searchTimeout = useRef(null);
 
-    // Bot battle state
-    const [isBotMatch, setIsBotMatch] = useState(false);
-    const botAnswersRef = useRef([]);
+    // Horse (AI opponent) battle state
+    const [isHorseMatch, setIsHorseMatch] = useState(false);
+    const horseAnswersRef = useRef([]);
 
     useEffect(() => {
         loadUserData();
@@ -180,17 +180,15 @@ export default function PvPPage() {
         if (matchData) {
             handleMatchFound(matchData);
         } else {
-            // Set timeout for bot match after 30 seconds
+            // Fallback to horse opponent after 5 seconds if no real match found
             searchTimeout.current = setTimeout(() => {
-                if (gameState === 'searching') {
-                    handleBotMatch(stake);
-                }
-            }, 30000); // 30 second timeout then bot match
+                handleHorseMatch(stake);
+            }, 5000);
         }
     }
 
-    // Bot Match - Select random AI horse as opponent
-    async function handleBotMatch(stake) {
+    // Horse Match - Select random AI horse as opponent
+    async function handleHorseMatch(stake) {
         if (queueSubscription.current) {
             supabase.removeChannel(queueSubscription.current);
         }
@@ -202,33 +200,33 @@ export default function PvPPage() {
             .eq('is_horse', true)
             .limit(50);
 
-        let botOpponent;
+        let horseOpponent;
         if (horses && horses.length > 0) {
             const randomHorse = horses[Math.floor(Math.random() * horses.length)];
             // Generate realistic W/L record based on stake
             const baseWins = Math.floor(Math.random() * 50) + 20;
             const baseLosses = Math.floor(Math.random() * 30) + 10;
-            botOpponent = {
+            horseOpponent = {
                 id: randomHorse.id,
                 username: randomHorse.username,
                 avatar_url: randomHorse.avatar_url,
                 wins: baseWins,
                 losses: baseLosses,
-                isBot: true
+                isHorse: true
             };
         } else {
-            // Fallback bot if no horses found
-            botOpponent = {
-                id: 'bot-fallback',
-                username: 'SharkyBot',
+            // Fallback horse if no horse profiles found
+            horseOpponent = {
+                id: 'horse-fallback',
+                username: 'SharkyAce',
                 avatar_url: null,
                 wins: 42,
                 losses: 18,
-                isBot: true
+                isHorse: true
             };
         }
 
-        // Load questions for bot match with 60-day exclusion
+        // Load questions for horse match with 60-day exclusion
         let excludeIds = [];
         if (userId) {
             const sixtyDaysAgo = new Date();
@@ -259,11 +257,11 @@ export default function PvPPage() {
             matchQuestions = available.sort(() => Math.random() - 0.5).slice(0, 5);
         }
 
-        // Pre-calculate bot answers based on stake-dependent accuracy
-        // Higher stakes = smarter bot (60-85% accuracy)
-        const botAccuracy = 0.60 + (Math.min(stake, 100) / 100) * 0.25;
-        const botAnswers = matchQuestions.map(q => {
-            if (Math.random() < botAccuracy) {
+        // Pre-calculate horse answers based on stake-dependent accuracy
+        // Higher stakes = smarter horse (60-85% accuracy)
+        const horseAccuracy = 0.60 + (Math.min(stake, 100) / 100) * 0.25;
+        const horseAnswers = matchQuestions.map(q => {
+            if (Math.random() < horseAccuracy) {
                 return q.correct_index; // Correct answer
             } else {
                 // Random wrong answer
@@ -271,12 +269,12 @@ export default function PvPPage() {
                 return wrongIndices[Math.floor(Math.random() * wrongIndices.length)];
             }
         });
-        botAnswersRef.current = botAnswers;
+        horseAnswersRef.current = horseAnswers;
 
-        setIsBotMatch(true);
-        setOpponent(botOpponent);
+        setIsHorseMatch(true);
+        setOpponent(horseOpponent);
         setQuestions(matchQuestions);
-        setMatchId(`bot-match-${Date.now()}`);
+        setMatchId(`horse-match-${Date.now()}`);
         setIsPlayer1(true);
 
         // Start battle after short delay
@@ -320,7 +318,7 @@ export default function PvPPage() {
     }
 
     async function handleNoMatchFound() {
-        // This is now only called if bot match also fails
+        // This is now only called if horse match also fails
         // Refund stake as fallback
         await supabase
             .from('profiles')
@@ -406,9 +404,9 @@ export default function PvPPage() {
 
         const finalScore = playerScore + (selectedAnswer === questions[currentQuestionIndex]?.correct_index ? 1 : 0);
 
-        // Handle bot match differently
-        if (isBotMatch) {
-            await finishBotBattle(finalScore);
+        // Handle horse match differently
+        if (isHorseMatch) {
+            await finishHorseBattle(finalScore);
             return;
         }
 
@@ -416,15 +414,15 @@ export default function PvPPage() {
         await submitMatchScore(matchId, userId, finalScore, isPlayer1);
     }
 
-    // Complete bot battle - calculate result and award winnings
-    async function finishBotBattle(playerFinalScore) {
-        // Calculate bot score from pre-generated answers
-        const botScore = botAnswersRef.current.reduce((score, answer, idx) => {
+    // Complete horse battle - calculate result and award winnings
+    async function finishHorseBattle(playerFinalScore) {
+        // Calculate horse score from pre-generated answers
+        const horseScore = horseAnswersRef.current.reduce((score, answer, idx) => {
             return score + (answer === questions[idx]?.correct_index ? 1 : 0);
         }, 0);
 
-        const won = playerFinalScore > botScore;
-        const tied = playerFinalScore === botScore;
+        const won = playerFinalScore > horseScore;
+        const tied = playerFinalScore === horseScore;
 
         // Calculate winnings
         const rakeAmount = Math.floor(stakeAmount * 0.1);
@@ -471,15 +469,15 @@ export default function PvPPage() {
             setStats(prev => ({ ...prev, losses: prev.losses + 1 }));
         }
 
-        setOpponentScore(botScore);
+        setOpponentScore(horseScore);
         setResult({
             won,
             tied,
             playerScore: playerFinalScore,
-            opponentScore: botScore,
+            opponentScore: horseScore,
             winnings: won ? winnings : (tied ? stakeAmount : 0),
             opponent,
-            isBotMatch: true
+            isHorseMatch: true
         });
 
         // Record question history for 60-day non-repeat
@@ -580,8 +578,8 @@ export default function PvPPage() {
         setQuestions([]);
         setPlayerScore(0);
         setOpponentScore(null);
-        setIsBotMatch(false);
-        botAnswersRef.current = [];
+        setIsHorseMatch(false);
+        horseAnswersRef.current = [];
     }
 
     const currentQuestion = questions[currentQuestionIndex];
