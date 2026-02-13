@@ -906,8 +906,6 @@ export default function DiamondStorePage() {
                             <div style={{
                                 position: 'relative',
                                 width: '100%',
-                                maxWidth: 700,
-                                margin: '0 auto',
                             }}>
                                 <img
                                     src="/images/diamond-store-full-page.jpg"
