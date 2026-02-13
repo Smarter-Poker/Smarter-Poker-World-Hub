@@ -32,15 +32,30 @@ const C = {
 };
 
 const VIP_BENEFITS = [
+    // Club Arena Table Features
+    'Unlimited Rabbit Hunting — see what cards would have come',
+    'Show Stack in BBs — always-on big blind display',
+    'Unlimited Offline Protection during hands',
+    'Auto Time Bank activation when needed',
+    '120 seconds of free time bank each month',
+    '1,200 interactive emojis per month',
+    '3 exclusive table themes unlocked',
+    'Create up to 3 private clubs',
+    '1,000 player tags per month to track opponents',
+    '6% leaderboard score boost',
+    // Smarter.Poker Platform
     'Ad-free experience across the entire platform',
     'Unlimited Training & Trivia games (no diamond cost)',
-    'Full access to GTO Personal Assistant',
-    'Advanced Leak Finder analysis',
-    'Bankroll Manager Pro tools',
-    'Advanced Poker Near Me filters',
-    'VIP badge on your profile',
-    '2,000 bonus diamonds per month',
-    'Priority support',
+    'Full access to GTO AI Personal Assistant',
+    'Advanced Leak Finder analysis tools',
+    'Bankroll Manager Pro — all session tracking & analytics',
+    'Advanced Poker Near Me filters & venue intelligence',
+    'Free entry to all Diamond Arena freeroll tournaments',
+    // Bonus Perks
+    '2,000 bonus diamonds credited every month',
+    'Up to 5 custom AI-generated avatars',
+    'Exclusive Gold VIP profile badge & cosmetic flair',
+    'Priority support with fast-track assistance',
 ];
 
 function CheckIcon() {

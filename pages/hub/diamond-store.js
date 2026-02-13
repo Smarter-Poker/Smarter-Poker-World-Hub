@@ -17,45 +17,7 @@ import ShoppingCart from '../../src/components/store/ShoppingCart';
 import useCartStore from '../../src/stores/cartStore';
 import { createClient } from '@supabase/supabase-js';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// XP SYSTEM — Quadratic Progression (Infinite Levels)
-// Formula: Level = floor(sqrt(XP / 100)) + 1
-// Verified: 700,000 XP = Level 84
-// ═══════════════════════════════════════════════════════════════════════════
 
-// Calculate level from total XP
-function calculateLevelFromXP(xp) {
-    return Math.max(1, Math.floor(Math.sqrt(xp / 100)) + 1);
-}
-
-// Calculate total XP required for a given level
-function calculateXPForLevel(level) {
-    if (level <= 1) return 0;
-    return Math.pow(level - 1, 2) * 100;
-}
-
-// Calculate XP required to reach next level from current XP
-function calculateXPToNextLevel(currentXP) {
-    const currentLevel = calculateLevelFromXP(currentXP);
-    const xpForNextLevel = calculateXPForLevel(currentLevel + 1);
-    return xpForNextLevel - currentXP;
-}
-
-// Generate example milestones for display
-const XP_MILESTONES = [
-    { level: 1, xp: 0 },
-    { level: 5, xp: 1600 },
-    { level: 10, xp: 8100 },
-    { level: 15, xp: 19600 },
-    { level: 20, xp: 36100 },
-    { level: 25, xp: 57600 },
-    { level: 30, xp: 84100 },
-    { level: 40, xp: 152100 },
-    { level: 50, xp: 240100 },
-    { level: 75, xp: 547600 },
-    { level: 84, xp: 688900 }, // Verified production data
-    { level: 100, xp: 980100 },
-];
 
 // ═══════════════════════════════════════════════════════════════════════════
 // STANDARD DIAMOND REWARDS — 10 Ways to Earn (Daily Cap: 500 💎)
@@ -69,7 +31,7 @@ const STANDARD_REWARDS = [
     { id: 'new_level_unlocked', icon: '🔓', name: 'Level Unlocked', amount: '+50 💎', note: 'Unlock a new training level', category: 'Training' },
     { id: 'social_post_share', icon: '📝', name: 'Share Post', amount: '+15 💎', note: 'Share a hand, achievement, or thought', category: 'Social' },
     { id: 'strategy_comment', icon: '💬', name: 'Strategy Comment', amount: '+5 💎', note: 'Leave a thoughtful strategy comment', category: 'Social' },
-    { id: 'xp_level_up', icon: '⬆️', name: 'XP Level Up', amount: '+100 💎', note: 'Reach a new XP level', category: 'Progression' },
+    { id: 'bonus_milestone', icon: '🏆', name: 'Bonus Milestone', amount: '+100 💎', note: 'Reach a periodic engagement milestone', category: 'Progression' },
     { id: 'gto_chart_study', icon: '📊', name: 'Chart Study', amount: '+10 💎', note: 'Study GTO charts for 3+ minutes', category: 'Training' },
     { id: 'referral_success', icon: '👥', name: 'Successful Referral', amount: '+500 💎', note: 'Refer a friend who verifies email & phone (BYPASSES CAP!)', category: 'Referral', bypassesCap: true },
 ];
@@ -176,7 +138,7 @@ const EASTER_EGGS = {
     ],
     legacy_milestones: [
         { id: 'egg_centurion', icon: '💯', name: 'The Centurion', reward: '+1,000 💎', trigger: '100-day login streak', rarity: 'legendary' },
-        { id: 'egg_millionaire', icon: '💰', name: 'Millionaire', reward: '+2,500 💎', trigger: '1,000,000 lifetime XP', rarity: 'legendary' },
+        { id: 'egg_millionaire', icon: '💰', name: 'Millionaire', reward: '+2,500 💎', trigger: '1,000,000 lifetime diamonds earned', rarity: 'legendary' },
         { id: 'egg_old_guard', icon: '🛡️', name: 'Old Guard', reward: '+500 💎', trigger: 'Member for 1 year', rarity: 'epic' },
         { id: 'egg_finisher', icon: '🏁', name: 'The Finisher', reward: '+2,000 💎', trigger: 'Complete every training game in DB', rarity: 'legendary' },
         { id: 'egg_zero_leak', icon: '💧', name: 'Zero Leak', reward: '+1,500 💎', trigger: '1,000 hands with no leak signals', rarity: 'legendary' },
@@ -289,24 +251,30 @@ const VIP_MEMBERSHIP = {
 };
 
 const VIP_BENEFITS = [
-    // GOLD TIER CARD FEATURES
-    { icon: '📊', title: 'Show Stack in BBs', description: 'Display chip stacks in big blinds for better decisions', value: 'Gold' },
-    { icon: '🐰', title: 'Rabbit Hunting', description: 'See what cards would have come after folding', value: 'Gold' },
-    { icon: '🛡️', title: 'Offline Protection', description: 'Protection when disconnected during hands', value: 'Gold' },
-    { icon: '⏱️', title: 'Auto Time Bank', description: 'Automatic time bank activation', value: 'Gold' },
-    { icon: '🕐', title: 'Free Time Bank', description: '+120 seconds of free time bank', value: '+120' },
-    { icon: '🎨', title: 'Available Themes', description: '3 exclusive table themes to choose from', value: '+3' },
-    { icon: '🏠', title: 'Club Creation Limit', description: 'Create up to 3 private clubs', value: '+3' },
-    { icon: '😀', title: 'Free Emojis', description: '1,200 free emojis to use at the tables', value: '+1200' },
-    { icon: '🏷️', title: 'Player Tags', description: '1,000 tags to track and label opponents', value: '+1000' },
-    { icon: '📈', title: 'Leaderboard Boost', description: '6% score boost on all leaderboards', value: '+6%' },
-    // SMARTER.POKER EXCLUSIVES
-    { icon: '🎟️', title: 'Free Roll Entries', description: 'Free entry to all Diamond Arena freeroll tournaments', value: 'Unlimited' },
-    { icon: '🧠', title: 'Premium Training', description: 'Full access to all training modules & drills', value: '$50/mo' },
-    { icon: '🤖', title: 'AI Personal Assistant', description: 'Priority AI coaching & hand analysis', value: '$100/mo' },
-    { icon: '🎁', title: 'Daily Diamond Bonus', description: '+25 💎 free every day ($7.50/mo value)', value: '$7.50/mo' },
-    { icon: '✨', title: 'VIP Badge & Flair', description: 'Exclusive Gold VIP profile badge and cosmetics', value: 'Exclusive' },
-    { icon: '🚀', title: '2x XP Boost', description: 'Double XP earnings on all activities', value: '$25/mo' },
+    // ─── CLUB ARENA TABLE FEATURES ───
+    { icon: '🐰', title: 'Rabbit Hunting', description: 'See what cards would have come after folding', value: 'Unlimited', category: 'Club Arena' },
+    { icon: '📊', title: 'Show Stack in BBs', description: 'Display chip stacks in big blinds for better decisions', value: 'Unlimited', category: 'Club Arena' },
+    { icon: '🛡️', title: 'Offline Protection', description: 'Protection when disconnected during hands', value: 'Unlimited', category: 'Club Arena' },
+    { icon: '⏱️', title: 'Auto Time Bank', description: 'Automatic time bank activation when needed', value: 'Unlimited', category: 'Club Arena' },
+    { icon: '🕐', title: 'Free Time Bank', description: '120 seconds of free time bank each month', value: '+120s/mo', category: 'Club Arena' },
+    { icon: '😀', title: 'Interactive Emojis', description: '1,200 free emojis to throw at the tables', value: '1,200/mo', category: 'Club Arena' },
+    { icon: '🎨', title: 'Table Themes', description: '3 exclusive table themes unlocked', value: '3 Themes', category: 'Club Arena' },
+    { icon: '🏠', title: 'Club Creation', description: 'Create up to 3 private clubs', value: '3 Clubs', category: 'Club Arena' },
+    { icon: '🏷️', title: 'Player Tags', description: '1,000 tags per month to track opponents', value: '1,000/mo', category: 'Club Arena' },
+    { icon: '📈', title: 'Leaderboard Boost', description: '6% score boost on all leaderboards', value: '+6%', category: 'Club Arena' },
+    // ─── SMARTER.POKER PLATFORM ───
+    { icon: '🚫', title: 'Ad-Free Experience', description: 'No ads across the entire platform', value: 'Platform', category: 'Smarter.Poker' },
+    { icon: '🎯', title: 'Unlimited Training & Trivia', description: 'Play all training games and trivia with no diamond cost', value: 'Unlimited', category: 'Smarter.Poker' },
+    { icon: '🤖', title: 'GTO AI Personal Assistant', description: 'Full access to priority AI coaching & hand analysis', value: '$100/mo', category: 'Smarter.Poker' },
+    { icon: '🔍', title: 'Advanced Leak Finder', description: 'Full leak detection and analysis tools', value: '$50/mo', category: 'Smarter.Poker' },
+    { icon: '💼', title: 'Bankroll Manager Pro', description: 'All pro tools for session tracking & analytics', value: '$25/mo', category: 'Smarter.Poker' },
+    { icon: '🗺️', title: 'Advanced Poker Near Me', description: 'Premium filters and venue intelligence', value: '$15/mo', category: 'Smarter.Poker' },
+    { icon: '🎟️', title: 'Free Roll Entries', description: 'Free entry to all Diamond Arena freeroll tournaments', value: 'Unlimited', category: 'Smarter.Poker' },
+    // ─── BONUS PERKS ───
+    { icon: '💰', title: '2,000 Bonus Diamonds', description: '2,000 bonus diamonds credited every month', value: '2,000/mo', category: 'Bonus' },
+    { icon: '🎭', title: 'Custom AI Avatars', description: 'Create up to 5 AI-generated custom avatars', value: '5 Slots', category: 'Bonus' },
+    { icon: '👑', title: 'VIP Badge & Cosmetics', description: 'Exclusive Gold VIP profile badge and cosmetic flair', value: 'Exclusive', category: 'Bonus' },
+    { icon: '⚡', title: 'Priority Support', description: 'Fast-track support and dedicated assistance', value: 'VIP Only', category: 'Bonus' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -681,7 +649,7 @@ function MerchCard({ item, onSelect }) {
 export default function DiamondStorePage() {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('diamonds'); // diamonds, vip, merch, rewards
-    const [rewardsSubTab, setRewardsSubTab] = useState('overview'); // overview, diamonds, xp, eggs
+    const [rewardsSubTab, setRewardsSubTab] = useState('overview'); // overview, diamonds, eggs
     const [selectedPackage, setSelectedPackage] = useState('standard');
     const [selectedVIP, setSelectedVIP] = useState('vip-monthly');
     const [isProcessing, setIsProcessing] = useState(false);
@@ -1032,8 +1000,50 @@ export default function DiamondStorePage() {
                                 {/* VIP Benefits Table */}
                                 <div style={styles.benefitsSection}>
                                     <h3 style={styles.benefitsTitle}>Everything Included with VIP</h3>
+
+                                    {/* Club Arena Table Features */}
+                                    <div style={styles.benefitsCategoryHeader}>
+                                        <span style={styles.benefitsCategoryIcon}>🃏</span>
+                                        <span style={styles.benefitsCategoryLabel}>Club Arena Table Features</span>
+                                    </div>
                                     <div style={styles.benefitsGrid}>
-                                        {VIP_BENEFITS.map((benefit, idx) => (
+                                        {VIP_BENEFITS.filter(b => b.category === 'Club Arena').map((benefit, idx) => (
+                                            <div key={idx} style={styles.benefitCard}>
+                                                <span style={styles.benefitIcon}>{benefit.icon}</span>
+                                                <div style={styles.benefitInfo}>
+                                                    <div style={styles.benefitTitle}>{benefit.title}</div>
+                                                    <div style={styles.benefitDesc}>{benefit.description}</div>
+                                                </div>
+                                                <div style={styles.benefitValue}>{benefit.value}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Smarter.Poker Platform */}
+                                    <div style={styles.benefitsCategoryHeader}>
+                                        <span style={styles.benefitsCategoryIcon}>🌐</span>
+                                        <span style={styles.benefitsCategoryLabel}>Smarter.Poker Platform</span>
+                                    </div>
+                                    <div style={styles.benefitsGrid}>
+                                        {VIP_BENEFITS.filter(b => b.category === 'Smarter.Poker').map((benefit, idx) => (
+                                            <div key={idx} style={styles.benefitCard}>
+                                                <span style={styles.benefitIcon}>{benefit.icon}</span>
+                                                <div style={styles.benefitInfo}>
+                                                    <div style={styles.benefitTitle}>{benefit.title}</div>
+                                                    <div style={styles.benefitDesc}>{benefit.description}</div>
+                                                </div>
+                                                <div style={styles.benefitValue}>{benefit.value}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Bonus Perks */}
+                                    <div style={styles.benefitsCategoryHeader}>
+                                        <span style={styles.benefitsCategoryIcon}>💎</span>
+                                        <span style={styles.benefitsCategoryLabel}>Bonus Perks</span>
+                                    </div>
+                                    <div style={styles.benefitsGrid}>
+                                        {VIP_BENEFITS.filter(b => b.category === 'Bonus').map((benefit, idx) => (
                                             <div key={idx} style={styles.benefitCard}>
                                                 <span style={styles.benefitIcon}>{benefit.icon}</span>
                                                 <div style={styles.benefitInfo}>
@@ -1121,15 +1131,7 @@ export default function DiamondStorePage() {
                                     >
                                         💎 Diamond Rewards
                                     </button>
-                                    <button
-                                        onClick={() => setRewardsSubTab('xp')}
-                                        style={{
-                                            ...styles.rewardsSubTab,
-                                            ...(rewardsSubTab === 'xp' ? styles.rewardsSubTabActive : {}),
-                                        }}
-                                    >
-                                        📈 XP System
-                                    </button>
+
                                     <button
                                         onClick={() => setRewardsSubTab('eggs')}
                                         style={{
@@ -1146,7 +1148,7 @@ export default function DiamondStorePage() {
                                     <div style={styles.rewardsOverview}>
                                         <h2 style={styles.earnTitle}>🎁 Smarter Rewards</h2>
                                         <p style={styles.introText}>
-                                            Welcome to the Smarter Rewards system! Earn diamonds and XP by playing, training, and engaging with the community.
+                                            Welcome to the Smarter Rewards system! Earn diamonds by playing, training, and engaging with the community.
                                         </p>
 
                                         <div style={styles.overviewGrid}>
@@ -1160,12 +1162,65 @@ export default function DiamondStorePage() {
                                             </div>
 
                                             <div style={styles.overviewCard}>
-                                                <div style={styles.overviewIcon}>📈</div>
-                                                <h3 style={styles.overviewCardTitle}>XP System</h3>
-                                                <p style={styles.overviewCardText}>
-                                                    Progress through <strong>infinite levels</strong> using the quadratic formula.
-                                                    Level = floor(sqrt(XP / 100)) + 1. Verified: 700,000 XP = Level 84!
-                                                </p>
+                                                <div style={styles.overviewIcon}>👑</div>
+                                                <h3 style={styles.overviewCardTitle}>VIP Membership</h3>
+                                                <div style={{ marginTop: 12, marginBottom: 12 }}>
+                                                    <img
+                                                        src="/images/vip-card.jpg"
+                                                        alt="VIP Membership Card"
+                                                        style={{
+                                                            width: '100%',
+                                                            maxWidth: 320,
+                                                            borderRadius: 12,
+                                                            boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+                                                        }}
+                                                        draggable={false}
+                                                    />
+                                                </div>
+                                                <div style={{
+                                                    display: 'flex',
+                                                    justifyContent: 'center',
+                                                    gap: 16,
+                                                    marginTop: 8,
+                                                }}>
+                                                    <div style={{
+                                                        background: 'linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,215,0,0.05))',
+                                                        border: '1px solid rgba(255,215,0,0.3)',
+                                                        borderRadius: 10,
+                                                        padding: '10px 18px',
+                                                        textAlign: 'center',
+                                                    }}>
+                                                        <div style={{ fontSize: 20, fontWeight: 800, color: '#FFD700', fontFamily: 'Orbitron, sans-serif' }}>$19.99</div>
+                                                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>per month</div>
+                                                    </div>
+                                                    <div style={{
+                                                        background: 'linear-gradient(135deg, rgba(0,212,255,0.15), rgba(0,212,255,0.05))',
+                                                        border: '1px solid rgba(0,212,255,0.3)',
+                                                        borderRadius: 10,
+                                                        padding: '10px 18px',
+                                                        textAlign: 'center',
+                                                    }}>
+                                                        <div style={{ fontSize: 20, fontWeight: 800, color: '#00D4FF', fontFamily: 'Orbitron, sans-serif' }}>$199.99</div>
+                                                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>per year (save $40!)</div>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => setActiveTab('vip')}
+                                                    style={{
+                                                        marginTop: 12,
+                                                        padding: '10px 28px',
+                                                        background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                                                        border: 'none',
+                                                        borderRadius: 8,
+                                                        color: '#000',
+                                                        fontSize: 14,
+                                                        fontWeight: 700,
+                                                        cursor: 'pointer',
+                                                        boxShadow: '0 0 16px rgba(255,215,0,0.3)',
+                                                    }}
+                                                >
+                                                    View VIP Plans →
+                                                </button>
                                             </div>
 
                                             <div style={styles.overviewCard}>
@@ -1184,8 +1239,8 @@ export default function DiamondStorePage() {
                                                 <span style={styles.quickStatLabel}>Daily Cap</span>
                                             </div>
                                             <div style={styles.quickStat}>
-                                                <span style={styles.quickStatValue}>∞</span>
-                                                <span style={styles.quickStatLabel}>XP Levels</span>
+                                                <span style={styles.quickStatValue}>👑</span>
+                                                <span style={styles.quickStatLabel}>VIP Plans</span>
                                             </div>
                                             <div style={styles.quickStat}>
                                                 <span style={styles.quickStatValue}>100</span>
@@ -1245,61 +1300,7 @@ export default function DiamondStorePage() {
                                     </div>
                                 )}
 
-                                {/* XP SYSTEM SUB-TAB */}
-                                {rewardsSubTab === 'xp' && (
-                                    <div style={styles.xpSystemSection}>
-                                        <h2 style={styles.earnTitle}>📈 XP System - Infinite Progression</h2>
-                                        <p style={styles.introText}>
-                                            Level up using the quadratic formula: <code style={styles.formula}>Level = floor(sqrt(XP / 100)) + 1</code>
-                                        </p>
 
-                                        {/* Formula Explanation */}
-                                        <div style={styles.formulaBox}>
-                                            <h3 style={styles.formulaTitle}>How It Works</h3>
-                                            <p style={styles.formulaText}>
-                                                Your level is calculated dynamically from your total XP using a quadratic formula.
-                                                This means each level requires progressively more XP than the last, creating a satisfying
-                                                long-term progression curve. <strong>There is no level cap!</strong>
-                                            </p>
-                                            <div style={styles.verifiedExample}>
-                                                <span style={styles.verifiedLabel}>Verified:</span>
-                                                <span style={styles.verifiedValue}>700,000 XP = Level 84</span>
-                                            </div>
-                                        </div>
-
-                                        {/* Example Milestones */}
-                                        <h3 style={styles.categoryTitle}>📊 Example Milestones</h3>
-                                        <div style={styles.xpTableContainer}>
-                                            <table style={styles.xpTable}>
-                                                <thead>
-                                                    <tr style={styles.xpTableHeader}>
-                                                        <th style={styles.xpTableHeaderCell}>Level</th>
-                                                        <th style={styles.xpTableHeaderCell}>Total XP Required</th>
-                                                        <th style={styles.xpTableHeaderCell}>XP to Next Level</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {XP_MILESTONES.map((milestone) => {
-                                                        const xpToNext = calculateXPToNextLevel(milestone.xp);
-                                                        return (
-                                                            <tr key={milestone.level} style={styles.xpTableRow}>
-                                                                <td style={styles.xpTableCell}>
-                                                                    <span style={styles.levelBadge}>Lv {milestone.level}</span>
-                                                                </td>
-                                                                <td style={styles.xpTableCell}>
-                                                                    {milestone.xp.toLocaleString()} XP
-                                                                </td>
-                                                                <td style={styles.xpTableCell}>
-                                                                    {xpToNext.toLocaleString()} XP
-                                                                </td>
-                                                            </tr>
-                                                        );
-                                                    })}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                )}
 
                                 {/* EASTER EGGS SUB-TAB */}
                                 {rewardsSubTab === 'eggs' && (
@@ -1926,50 +1927,6 @@ const styles = {
     },
 
     // XP System Section
-    xpSystemSection: {
-        padding: '32px 24px',
-    },
-    formula: {
-        background: 'rgba(255, 255, 255, 0.1)',
-        padding: '2px 8px',
-        borderRadius: 4,
-        fontFamily: 'monospace',
-        fontSize: 13,
-        color: '#00D4FF',
-    },
-    xpTableContainer: {
-        marginTop: 24,
-        overflowX: 'auto',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-        borderRadius: 12,
-        background: 'rgba(255, 255, 255, 0.02)',
-    },
-    xpTable: {
-        width: '100%',
-        borderCollapse: 'collapse',
-    },
-    xpTableHeader: {
-        background: 'rgba(255, 255, 255, 0.05)',
-        borderBottom: '2px solid rgba(255, 255, 255, 0.1)',
-    },
-    xpTableHeaderCell: {
-        padding: '16px',
-        textAlign: 'left',
-        fontSize: 12,
-        fontWeight: 700,
-        color: '#E4E6EB',
-        textTransform: 'uppercase',
-        letterSpacing: '0.5px',
-    },
-    xpTableRow: {
-        borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-        transition: 'background 0.2s ease',
-    },
-    xpTableCell: {
-        padding: '16px',
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.8)',
-    },
     levelBadge: {
         display: 'inline-block',
         padding: '4px 12px',
@@ -2085,48 +2042,7 @@ const styles = {
         border: '1px solid rgba(255, 152, 0, 0.4)',
         color: '#FF9800',
     },
-    // Formula Box Styles
-    formulaBox: {
-        background: 'rgba(0, 212, 255, 0.05)',
-        border: '1px solid rgba(0, 212, 255, 0.2)',
-        borderRadius: 12,
-        padding: 24,
-        marginBottom: 32,
-    },
-    formulaTitle: {
-        fontSize: 18,
-        fontWeight: 700,
-        color: '#00D4FF',
-        marginBottom: 12,
-        fontFamily: 'Orbitron, sans-serif',
-    },
-    formulaText: {
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.7)',
-        lineHeight: 1.6,
-        marginBottom: 16,
-    },
-    verifiedExample: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        padding: 12,
-        background: 'rgba(0, 255, 136, 0.1)',
-        border: '1px solid rgba(0, 255, 136, 0.3)',
-        borderRadius: 8,
-    },
-    verifiedLabel: {
-        fontSize: 12,
-        fontWeight: 700,
-        color: '#00FF88',
-        textTransform: 'uppercase',
-        letterSpacing: '0.5px',
-    },
-    verifiedValue: {
-        fontSize: 14,
-        fontWeight: 600,
-        color: '#E4E6EB',
-    },
+
     easterSection: {
         textAlign: 'center',
         marginBottom: 24,
@@ -2311,6 +2227,26 @@ const styles = {
         color: '#E4E6EB',
         marginBottom: 20,
         textAlign: 'center',
+    },
+    benefitsCategoryHeader: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        marginTop: 20,
+        marginBottom: 12,
+        paddingBottom: 8,
+        borderBottom: '1px solid rgba(255, 215, 0, 0.15)',
+    },
+    benefitsCategoryIcon: {
+        fontSize: 20,
+    },
+    benefitsCategoryLabel: {
+        fontFamily: 'Orbitron, sans-serif',
+        fontSize: 13,
+        fontWeight: 600,
+        color: '#FFD700',
+        letterSpacing: '0.08em',
+        textTransform: 'uppercase',
     },
     benefitsGrid: {
         display: 'grid',
