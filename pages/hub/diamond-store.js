@@ -897,108 +897,97 @@ export default function DiamondStorePage() {
 
                     {/* Header */}
                     <UniversalHeader pageDepth={1} />
-                    <div style={styles.header}>
-                        <div style={{ width: 100 }} />
-                        <h1 style={styles.pageTitle}>💎 Store</h1>
-                        <div style={{ width: 100 }} />
-                    </div>
 
-                    {/* Tab Navigation */}
-                    <div style={styles.tabNav}>
-                        <button
-                            onClick={() => setActiveTab('diamonds')}
-                            style={{
-                                ...styles.tabButton,
-                                ...(activeTab === 'diamonds' ? styles.tabButtonActive : {}),
-                            }}
-                        >
-                            💎 Diamonds
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('vip')}
-                            style={{
-                                ...styles.tabButton,
-                                ...(activeTab === 'vip' ? styles.tabButtonActiveVIP : {}),
-                            }}
-                        >
-                            👑 VIP Membership
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('merch')}
-                            style={{
-                                ...styles.tabButton,
-                                ...(activeTab === 'merch' ? styles.tabButtonActive : {}),
-                            }}
-                        >
-                            🛍️ Merch
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('rewards')}
-                            style={{
-                                ...styles.tabButton,
-                                ...(activeTab === 'rewards' ? styles.tabButtonActive : {}),
-                            }}
-                        >
-                            🎁 Smarter Rewards
-                        </button>
-                    </div>
+                    {activeTab === 'diamonds' ? (
+                        <>
+                            {/* ═══════════════════════════════════════════════════════ */}
+                            {/* FULL-PAGE IMAGE LAYOUT — Diamonds Tab */}
+                            {/* ═══════════════════════════════════════════════════════ */}
+                            <div style={{
+                                position: 'relative',
+                                width: '100%',
+                                maxWidth: 700,
+                                margin: '0 auto',
+                            }}>
+                                <img
+                                    src="/images/diamond-store-full-page.jpg"
+                                    alt="Diamond Store"
+                                    style={{ width: '100%', height: 'auto', display: 'block' }}
+                                    draggable={false}
+                                />
 
-                    {/* Main Content */}
-                    <div style={styles.content}>
+                                {/* ── Tab button clickable zones ── */}
+                                {/* Diamonds tab (already active, no-op but keeps cursor consistent) */}
+                                <div
+                                    onClick={() => setActiveTab('diamonds')}
+                                    style={{ position: 'absolute', left: '5%', top: '9.5%', width: '17%', height: '4%', cursor: 'pointer' }}
+                                />
+                                {/* VIP Membership tab */}
+                                <div
+                                    onClick={() => setActiveTab('vip')}
+                                    style={{ position: 'absolute', left: '24%', top: '9.5%', width: '23%', height: '4%', cursor: 'pointer' }}
+                                />
+                                {/* Merch tab */}
+                                <div
+                                    onClick={() => setActiveTab('merch')}
+                                    style={{ position: 'absolute', left: '49%', top: '9.5%', width: '13%', height: '4%', cursor: 'pointer' }}
+                                />
+                                {/* Rewards tab */}
+                                <div
+                                    onClick={() => setActiveTab('rewards')}
+                                    style={{ position: 'absolute', left: '64%', top: '9.5%', width: '15%', height: '4%', cursor: 'pointer' }}
+                                />
 
-                        {/* ═══════════════════════════════════════════════════════════════════ */}
-                        {/* DIAMONDS TAB */}
-                        {/* ═══════════════════════════════════════════════════════════════════ */}
-                        {activeTab === 'diamonds' && (
-                            <>
-                                {/* Intro */}
-                                <div style={styles.intro}>
-                                    <p style={styles.introText}>
-                                        <strong>1 Diamond = $0.01</strong> — Use diamonds for tournament entries,
-                                        premium training, cosmetics, and more. <span style={{ color: '#00ff88' }}>5% bonus on $100+ purchases!</span>
-                                    </p>
-                                </div>
-
-                                {/* Package Grid */}
-                                <div style={styles.packageGrid}>
-                                    {DIAMOND_PACKAGES.map(pkg => (
-                                        <PackageCard
+                                {/* ── Diamond package clickable zones (6 cards) ── */}
+                                {[
+                                    { pkgIndex: 0, left: '3%', top: '36%', width: '46%', height: '18%' }, // 1,000 — Medium
+                                    { pkgIndex: 1, left: '51%', top: '36%', width: '46%', height: '18%' }, // 2,500 — Standard
+                                    { pkgIndex: 3, left: '3%', top: '55%', width: '46%', height: '18%' }, // 10,500 — Value
+                                    { pkgIndex: 2, left: '51%', top: '55%', width: '46%', height: '18%' }, // 5,000 — Large
+                                    { pkgIndex: 4, left: '3%', top: '76%', width: '46%', height: '20%' }, // 26,250 — Premium
+                                    { pkgIndex: 5, left: '51%', top: '76%', width: '46%', height: '20%' }, // 52,500 — Whale
+                                ].map(({ pkgIndex, left, top, width, height }) => {
+                                    const pkg = DIAMOND_PACKAGES[pkgIndex];
+                                    if (!pkg) return null;
+                                    return (
+                                        <div
                                             key={pkg.id}
-                                            pkg={pkg}
-                                            isSelected={selectedPackage === pkg.id}
-                                            onSelect={setSelectedPackage}
-                                            onAddToCart={handleAddToCart}
+                                            onClick={() => handleAddToCart(pkg)}
+                                            title={`${pkg.name} — $${pkg.price.toFixed(2)} — Click to add to cart`}
+                                            style={{
+                                                position: 'absolute',
+                                                left,
+                                                top,
+                                                width,
+                                                height,
+                                                cursor: 'pointer',
+                                                background: 'transparent',
+                                                borderRadius: 8,
+                                            }}
                                         />
-                                    ))}
-                                </div>
+                                    );
+                                })}
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            {/* Regular header + tabs for VIP/Merch/Rewards */}
+                            <div style={styles.header}>
+                                <div style={{ width: 100 }} />
+                                <h1 style={styles.pageTitle}>💎 Store</h1>
+                                <div style={{ width: 100 }} />
+                            </div>
+                            <div style={styles.tabNav}>
+                                <button onClick={() => setActiveTab('diamonds')} style={{ ...styles.tabButton, ...(activeTab === 'diamonds' ? styles.tabButtonActive : {}) }}>💎 Diamonds</button>
+                                <button onClick={() => setActiveTab('vip')} style={{ ...styles.tabButton, ...(activeTab === 'vip' ? styles.tabButtonActiveVIP : {}) }}>👑 VIP Membership</button>
+                                <button onClick={() => setActiveTab('merch')} style={{ ...styles.tabButton, ...(activeTab === 'merch' ? styles.tabButtonActive : {}) }}>🛍️ Merch</button>
+                                <button onClick={() => setActiveTab('rewards')} style={{ ...styles.tabButton, ...(activeTab === 'rewards' ? styles.tabButtonActive : {}) }}>🎁 Smarter Rewards</button>
+                            </div>
+                        </>
+                    )}
 
-                                {/* Purchase Section */}
-                                <div style={styles.purchaseSection}>
-                                    <div style={styles.selectedInfo}>
-                                        {selectedPkg && (
-                                            <>
-                                                <span style={styles.selectedLabel}>Selected:</span>
-                                                <span style={styles.selectedName}>{selectedPkg.name}</span>
-                                                <span style={styles.selectedDiamonds}>
-                                                    💎 {(selectedPkg.diamonds + selectedPkg.bonus).toLocaleString()}
-                                                </span>
-                                            </>
-                                        )}
-                                    </div>
-
-                                    <button
-                                        onClick={() => handleDiamondPurchase(selectedPkg)}
-                                        disabled={!selectedPackage || isProcessing}
-                                        style={{
-                                            ...styles.purchaseButton,
-                                            opacity: (!selectedPackage || isProcessing) ? 0.6 : 1,
-                                        }}
-                                    >
-                                        {isProcessing ? 'Processing...' : `Purchase for $${selectedPkg?.price.toFixed(2) || '0.00'}`}
-                                    </button>
-                                </div>
-                            </>
-                        )}
+                    {/* Main Content (non-diamonds tabs) */}
+                    <div style={styles.content}>
 
                         {/* ═══════════════════════════════════════════════════════════════════ */}
                         {/* VIP MEMBERSHIP TAB */}
