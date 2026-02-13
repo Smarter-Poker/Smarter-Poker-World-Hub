@@ -93,7 +93,7 @@ export default function Wishlist() {
 }
 
 const styles = {
-    container: { minHeight: '100vh', background: '#0a0a0a', color: '#FFFFFF' },
+    container: { minHeight: '100vh', background: '#000000', color: '#FFFFFF' },
     content: { maxWidth: '1200px', margin: '0 auto', padding: '80px 24px 40px' },
     title: { fontSize: '32px', fontWeight: 700, marginBottom: '32px' },
     wishlistGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '16px' },

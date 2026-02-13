@@ -167,7 +167,7 @@ export default function OrderHistory() {
 }
 
 const styles = {
-    container: { minHeight: '100vh', background: '#0a0a0a', color: '#FFFFFF' },
+    container: { minHeight: '100vh', background: '#000000', color: '#FFFFFF' },
     content: { maxWidth: '900px', margin: '0 auto', padding: '80px 24px 40px' },
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' },
     title: { fontSize: '32px', fontWeight: 700, margin: 0 },

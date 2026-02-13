@@ -1443,7 +1443,7 @@ export default function DiamondStorePage() {
 const styles = {
     container: {
         minHeight: '100vh',
-        background: '#18191A',
+        background: '#000000',
         fontFamily: 'Inter, -apple-system, sans-serif',
         position: 'relative',
     },

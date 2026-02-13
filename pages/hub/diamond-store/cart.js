@@ -230,7 +230,7 @@ function CartItem({ id, name, price, quantity, image, type, onUpdateQuantity, on
 const styles = {
     container: {
         minHeight: '100vh',
-        background: '#0a0a0a',
+        background: '#000000',
         color: '#FFFFFF'
     },
     content: {
@@ -424,7 +424,7 @@ const styles = {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        background: '#0a0a0a',
+        background: '#000000',
         color: '#FFFFFF'
     },
     spinner: {
