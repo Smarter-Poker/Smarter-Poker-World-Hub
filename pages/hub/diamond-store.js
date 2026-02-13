@@ -872,7 +872,6 @@ export default function DiamondStorePage() {
                     <div style={{
                         position: 'relative',
                         width: '100%',
-                        background: '#0a0e1a',
                     }}>
                         <img
                             src="/images/diamond-store-header.png"
@@ -885,22 +884,22 @@ export default function DiamondStorePage() {
                         {/* Diamonds tab */}
                         <div
                             onClick={() => setActiveTab('diamonds')}
-                            style={{ position: 'absolute', left: '8%', top: '58%', width: '16%', height: '30%', cursor: 'pointer' }}
+                            style={{ position: 'absolute', left: '3%', top: '60%', width: '18%', height: '35%', cursor: 'pointer' }}
                         />
                         {/* VIP Membership tab */}
                         <div
                             onClick={() => setActiveTab('vip')}
-                            style={{ position: 'absolute', left: '27%', top: '58%', width: '23%', height: '30%', cursor: 'pointer' }}
+                            style={{ position: 'absolute', left: '24%', top: '60%', width: '26%', height: '35%', cursor: 'pointer' }}
                         />
                         {/* Merch tab */}
                         <div
                             onClick={() => setActiveTab('merch')}
-                            style={{ position: 'absolute', left: '53%', top: '58%', width: '17%', height: '30%', cursor: 'pointer' }}
+                            style={{ position: 'absolute', left: '53%', top: '60%', width: '19%', height: '35%', cursor: 'pointer' }}
                         />
                         {/* Smarter Rewards tab */}
                         <div
                             onClick={() => setActiveTab('rewards')}
-                            style={{ position: 'absolute', left: '73%', top: '58%', width: '22%', height: '30%', cursor: 'pointer' }}
+                            style={{ position: 'absolute', left: '75%', top: '60%', width: '22%', height: '35%', cursor: 'pointer' }}
                         />
                     </div>
 
