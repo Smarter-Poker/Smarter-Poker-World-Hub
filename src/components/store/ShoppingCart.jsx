@@ -3,7 +3,7 @@
  * Floating cart with slide-out panel
  */
 import { useEffect, useState } from 'react';
-import { ShoppingCart, X, Trash2 } from 'lucide-react';
+import { X, Trash2 } from 'lucide-react';
 import useCartStore from '../../stores/cartStore';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -39,29 +39,46 @@ export default function ShoppingCartComponent({ onCheckout }) {
                     position: 'fixed',
                     bottom: 24,
                     right: 24,
-                    width: 60,
-                    height: 60,
-                    borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #1877F2, #4285F4)',
-                    border: 'none',
-                    boxShadow: '0 4px 20px rgba(24, 119, 242, 0.4)',
+                    width: 68,
+                    height: 68,
+                    borderRadius: 14,
+                    background: '#000',
+                    border: '1px solid rgba(0, 200, 255, 0.3)',
+                    boxShadow: '0 4px 24px rgba(0, 180, 255, 0.35), inset 0 0 12px rgba(0, 180, 255, 0.1)',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     zIndex: 1000,
-                    transition: 'transform 0.2s'
+                    transition: 'transform 0.2s, box-shadow 0.2s',
+                    padding: 6,
+                    overflow: 'visible'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.1)';
+                    e.currentTarget.style.boxShadow = '0 6px 30px rgba(0, 180, 255, 0.5), inset 0 0 16px rgba(0, 180, 255, 0.15)';
+                }}
+                onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.boxShadow = '0 4px 24px rgba(0, 180, 255, 0.35), inset 0 0 12px rgba(0, 180, 255, 0.1)';
+                }}
             >
-                <ShoppingCart size={24} color="#fff" />
+                <img
+                    src="/images/cart-icon.png"
+                    alt="Shopping Cart"
+                    style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'contain',
+                        filter: 'drop-shadow(0 0 4px rgba(0, 180, 255, 0.4))'
+                    }}
+                />
                 {itemCount > 0 && (
                     <div style={{
                         position: 'absolute',
-                        top: -4,
-                        right: -4,
-                        width: 24,
+                        top: -8,
+                        right: -8,
+                        minWidth: 24,
                         height: 24,
                         borderRadius: '50%',
                         background: '#ff4757',
@@ -70,7 +87,10 @@ export default function ShoppingCartComponent({ onCheckout }) {
                         fontWeight: 700,
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center'
+                        justifyContent: 'center',
+                        padding: '0 4px',
+                        border: '2px solid #000',
+                        boxShadow: '0 2px 8px rgba(255, 71, 87, 0.5)'
                     }}>
                         {itemCount}
                     </div>
@@ -162,7 +182,7 @@ export default function ShoppingCartComponent({ onCheckout }) {
                                         padding: '40px 20px',
                                         color: 'rgba(255, 255, 255, 0.5)'
                                     }}>
-                                        <ShoppingCart size={48} style={{ margin: '0 auto 16px' }} />
+                                        <img src="/images/cart-icon.png" alt="Cart" style={{ width: 64, height: 64, margin: '0 auto 16px', objectFit: 'contain', opacity: 0.5 }} />
                                         <p>Your cart is empty</p>
                                     </div>
                                 ) : (
@@ -198,7 +218,7 @@ export default function ShoppingCartComponent({ onCheckout }) {
                                                             color: '#1877F2',
                                                             margin: 0
                                                         }}>
-                                                            <img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/> {item.diamonds} Diamonds
+                                                            <img src="/images/diamond.png" alt="Diamond" style={{ width: 20, height: 20, display: "inline-block", verticalAlign: "middle" }} /> {item.diamonds} Diamonds
                                                             {item.bonus > 0 && ` + ${item.bonus} Bonus`}
                                                         </p>
                                                     )}
