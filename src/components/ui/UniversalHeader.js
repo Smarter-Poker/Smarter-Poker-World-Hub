@@ -613,7 +613,7 @@ export default function UniversalHeader({
                     {/* Messages - Custom Metallic Messenger icon */}
                     <Link href="/hub/messenger" style={{ textDecoration: 'none' }}>
                         <div className="orb-btn">
-                            <img src="/images/header-messenger.png" alt="Messages" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                            <img src="/images/header-messenger.png" alt="Messages" style={{ width: '200%', height: '200%', objectFit: 'contain', position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} />
                             {unreadMessages > 0 && (
                                 <span className="orb-badge">{unreadMessages > 99 ? '99+' : unreadMessages}</span>
                             )}
@@ -623,7 +623,7 @@ export default function UniversalHeader({
                     {/* Notifications - Custom Metallic Bell icon */}
                     <Link href="/hub/notifications" style={{ textDecoration: 'none' }}>
                         <div className="orb-btn">
-                            <img src="/images/header-notifications.png" alt="Notifications" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                            <img src="/images/header-notifications.png" alt="Notifications" style={{ width: '200%', height: '200%', objectFit: 'contain', position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} />
                             {notificationCount > 0 && (
                                 <span className="orb-badge">{notificationCount > 99 ? '99+' : notificationCount}</span>
                             )}
@@ -633,7 +633,7 @@ export default function UniversalHeader({
                     {/* Settings - Custom Metallic Gear icon */}
                     <Link href="/hub/settings" style={{ textDecoration: 'none' }}>
                         <div className="orb-btn">
-                            <img src="/images/header-settings.png" alt="Settings" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                            <img src="/images/header-settings.png" alt="Settings" style={{ width: '200%', height: '200%', objectFit: 'contain', position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} />
                         </div>
                     </Link>
 
@@ -653,7 +653,7 @@ export default function UniversalHeader({
                             zIndex: 10
                         }}
                     >
-                        <img src="/images/header-help.png" alt="Live Help" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                        <img src="/images/header-help.png" alt="Live Help" style={{ width: '200%', height: '200%', objectFit: 'contain', position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} />
                     </button>
 
                     {/* Push Notification Bell */}
