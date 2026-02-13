@@ -886,22 +886,22 @@ export default function DiamondStorePage() {
                                 {/* Diamonds tab (already active, no-op but keeps cursor consistent) */}
                                 <div
                                     onClick={() => setActiveTab('diamonds')}
-                                    style={{ position: 'absolute', left: '5%', top: '9.5%', width: '17%', height: '4%', cursor: 'pointer' }}
+                                    style={{ position: 'absolute', left: '5%', top: '15.5%', width: '21%', height: '5%', cursor: 'pointer' }}
                                 />
                                 {/* VIP Membership tab */}
                                 <div
                                     onClick={() => setActiveTab('vip')}
-                                    style={{ position: 'absolute', left: '24%', top: '9.5%', width: '23%', height: '4%', cursor: 'pointer' }}
+                                    style={{ position: 'absolute', left: '28%', top: '15.5%', width: '25%', height: '5%', cursor: 'pointer' }}
                                 />
                                 {/* Merch tab */}
                                 <div
                                     onClick={() => setActiveTab('merch')}
-                                    style={{ position: 'absolute', left: '49%', top: '9.5%', width: '13%', height: '4%', cursor: 'pointer' }}
+                                    style={{ position: 'absolute', left: '55%', top: '15.5%', width: '16%', height: '5%', cursor: 'pointer' }}
                                 />
                                 {/* Rewards tab */}
                                 <div
                                     onClick={() => setActiveTab('rewards')}
-                                    style={{ position: 'absolute', left: '64%', top: '9.5%', width: '15%', height: '4%', cursor: 'pointer' }}
+                                    style={{ position: 'absolute', left: '73%', top: '15.5%', width: '20%', height: '5%', cursor: 'pointer' }}
                                 />
 
                                 {/* ── Diamond package clickable zones (6 cards) ── */}
