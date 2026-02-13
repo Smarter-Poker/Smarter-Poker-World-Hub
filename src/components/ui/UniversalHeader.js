@@ -25,7 +25,7 @@ import DiamondWalletModal from '../store/DiamondWalletModal';
 
 // Dark theme colors matching hub
 const C = {
-    bg: '#0a0e1a',
+    bg: '#000000',
     border: 'rgba(0, 136, 255, 0.2)',
     cyan: '#00f5ff',
     blue: '#0088ff',
@@ -422,7 +422,7 @@ export default function UniversalHeader({
                     min-width: 18px;
                     text-align: center;
                     box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-                    border: 2px solid #0a0e1a;
+                    border: 2px solid #000000;
                 }
                 
                 .profile-orb {
@@ -587,40 +587,34 @@ export default function UniversalHeader({
                         </div>
                     </Link>
 
-                    {/* Messages - Facebook-style Messenger icon */}
+                    {/* Messages - Custom Metallic Messenger icon */}
                     <Link href="/hub/messenger" style={{ textDecoration: 'none' }}>
                         <div className="orb-btn">
-                            <svg width="32" height="32" viewBox="0 0 24 24" fill="white">
-                                <path d="M12 2C6.36 2 2 6.13 2 11.7c0 2.91 1.19 5.44 3.14 7.17.16.13.26.35.27.57l.05 1.78c.04.57.61.94 1.13.71l1.98-.87c.17-.07.36-.09.53-.05.86.23 1.81.36 2.9.36 5.64 0 10-4.13 10-9.7C22 6.13 17.64 2 12 2zm6.07 7.56l-2.96 4.69c-.47.75-1.48.93-2.18.38l-2.35-1.76a.75.75 0 00-.9 0l-3.17 2.41c-.42.32-.98-.18-.7-.63l2.96-4.69c.47-.75 1.48-.93 2.18-.38l2.35 1.76c.27.2.65.2.9 0l3.17-2.41c.42-.32.98.18.7.63z" />
-                            </svg>
+                            <img src="/images/header-messenger.png" alt="Messages" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                             {unreadMessages > 0 && (
                                 <span className="orb-badge">{unreadMessages > 99 ? '99+' : unreadMessages}</span>
                             )}
                         </div>
                     </Link>
 
-                    {/* Notifications - Facebook-style bell icon */}
+                    {/* Notifications - Custom Metallic Bell icon */}
                     <Link href="/hub/notifications" style={{ textDecoration: 'none' }}>
                         <div className="orb-btn">
-                            <svg width="32" height="32" viewBox="0 0 24 24" fill="white">
-                                <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" />
-                            </svg>
+                            <img src="/images/header-notifications.png" alt="Notifications" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                             {notificationCount > 0 && (
                                 <span className="orb-badge">{notificationCount > 99 ? '99+' : notificationCount}</span>
                             )}
                         </div>
                     </Link>
 
-                    {/* Settings */}
+                    {/* Settings - Custom Metallic Gear icon */}
                     <Link href="/hub/settings" style={{ textDecoration: 'none' }}>
                         <div className="orb-btn">
-                            <svg width="32" height="32" viewBox="0 0 24 24" fill="white">
-                                <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
-                            </svg>
+                            <img src="/images/header-settings.png" alt="Settings" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                         </div>
                     </Link>
 
-                    {/* Live Help */}
+                    {/* Live Help - Custom Metallic Question icon */}
                     <button
                         onClick={() => {
                             console.log('[UniversalHeader] Live Help button clicked');
@@ -636,10 +630,7 @@ export default function UniversalHeader({
                             zIndex: 10
                         }}
                     >
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="white">
-                            <circle cx="12" cy="12" r="10" stroke="white" strokeWidth="2" fill="none" />
-                            <text x="12" y="17" textAnchor="middle" fontSize="14" fontWeight="bold" fill="white">?</text>
-                        </svg>
+                        <img src="/images/header-help.png" alt="Live Help" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                     </button>
 
                     {/* Push Notification Bell */}
