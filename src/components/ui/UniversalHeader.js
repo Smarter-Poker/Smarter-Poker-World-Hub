@@ -360,6 +360,34 @@ export default function UniversalHeader({
                     box-shadow: 0 2px 8px rgba(0,136,255,0.2);
                 }
                 
+                .header-img-btn {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: none;
+                    border: none;
+                    padding: 0;
+                    cursor: pointer;
+                    height: 36px;
+                    width: 36px;
+                    flex-shrink: 0;
+                    transition: transform 0.1s ease, opacity 0.15s ease;
+                }
+
+                .header-img-btn:hover {
+                    opacity: 0.85;
+                    transform: scale(1.05);
+                }
+
+                .header-img-btn:active {
+                    transform: scale(0.95);
+                }
+
+                .header-nav-btn {
+                    width: auto;
+                    height: 32px;
+                }
+                
                 .brand-text {
                     color: white;
                     font-size: 16px;
@@ -466,18 +494,15 @@ export default function UniversalHeader({
                         display: none; /* Hide brand text on mobile */
                     }
                     
-                    /* BIGGER Hub button with text visible */
-                    .nav-btn {
-                        padding: 10px 14px;
-                        font-size: 14px;
-                        font-weight: 700;
-                        gap: 4px;
-                        border-radius: 8px;
+                    /* Image buttons - mobile sizing */
+                    .header-img-btn {
+                        height: 30px;
+                        width: 30px;
                     }
-                    
-                    /* SHOW the Hub/Back text on mobile */
-                    .nav-btn span:last-child {
-                        display: inline; /* Keep Hub/Back text visible */
+
+                    .header-nav-btn {
+                        height: 26px;
+                        width: auto;
                     }
                     
                     /* Diamond wallet - mobile sizing */
@@ -530,23 +555,21 @@ export default function UniversalHeader({
                     {onMenuClick && (
                         <button
                             onClick={onMenuClick}
-                            className="nav-btn"
+                            className="header-img-btn"
                             aria-label="Open menu"
-                            style={{ marginRight: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                         >
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <line x1="3" y1="6" x2="21" y2="6" />
-                                <line x1="3" y1="12" x2="21" y2="12" />
-                                <line x1="3" y1="18" x2="21" y2="18" />
-                            </svg>
+                            <img src="/images/btn-hamburger.png" alt="Menu" style={{ height: '100%', width: '100%', objectFit: 'contain' }} />
                         </button>
                     )}
                     <button
                         onClick={pageDepth >= 2 ? handleBack : () => router.push('/hub')}
-                        className="nav-btn"
+                        className="header-img-btn header-nav-btn"
                     >
-                        <span>←</span>
-                        <span>{pageDepth >= 2 ? 'Back' : 'Hub'}</span>
+                        <img
+                            src={pageDepth >= 2 ? '/images/btn-back.png' : '/images/btn-hub.png'}
+                            alt={pageDepth >= 2 ? 'Back' : 'Hub'}
+                            style={{ height: '100%', width: '100%', objectFit: 'contain' }}
+                        />
                     </button>
                     <span className="brand-text">Smarter.Poker</span>
                 </div>

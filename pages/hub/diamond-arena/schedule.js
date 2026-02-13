@@ -75,18 +75,10 @@ export default function DiamondArenaSchedule() {
                         <div style={{ marginBottom: '40px' }}>
                             <button
                                 onClick={() => router.push('/hub/diamond-arena')}
-                                style={{
-                                    background: 'rgba(59, 130, 246, 0.1)',
-                                    border: '1px solid rgba(59, 130, 246, 0.3)',
-                                    color: '#3b82f6',
-                                    padding: '8px 16px',
-                                    borderRadius: '8px',
-                                    cursor: 'pointer',
-                                    marginBottom: '20px'
-                                }}
-                            >
-                                ← Back to Arena
-                            </button>
+                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', marginBottom: '20px' }}
+                        >
+                            <img src="/images/btn-back.png" alt="Back" style={{ height: 32 }} />
+                        </button>
 
                             <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#fff', marginBottom: '8px' }}>
                                 Tournament Schedule

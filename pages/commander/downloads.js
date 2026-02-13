@@ -200,8 +200,8 @@ export default function DownloadsPage() {
 
         {/* Back to Login */}
         <div className="text-center mt-8">
-          <Link href="/commander/login" className="text-[#B0B3B8] hover:text-[#E4E6EB]">
-            ← Back to Login
+          <Link href="/commander/login">
+            <img src="/images/btn-back.png" alt="Back" style={{ height: 32 }} />
           </Link>
         </div>
       </div>

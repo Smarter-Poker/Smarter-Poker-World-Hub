@@ -30,17 +30,9 @@ export default function DiamondArcadePrizes() {
                     <div style={{ padding: '120px 20px 40px', maxWidth: '1200px', margin: '0 auto' }}>
                         <button
                             onClick={() => router.push('/hub/diamond-arcade')}
-                            style={{
-                                background: 'rgba(251, 191, 36, 0.1)',
-                                border: '1px solid rgba(251, 191, 36, 0.3)',
-                                color: '#fbbf24',
-                                padding: '8px 16px',
-                                borderRadius: '8px',
-                                cursor: 'pointer',
-                                marginBottom: '20px'
-                            }}
+                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', marginBottom: '20px' }}
                         >
-                            ← Back to Arcade
+                            <img src="/images/btn-back.png" alt="Back" style={{ height: 32 }} />
                         </button>
 
                         <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#fff', marginBottom: '30px' }}>

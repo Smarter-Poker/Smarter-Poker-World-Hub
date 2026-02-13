@@ -126,16 +126,14 @@ export default function BankrollExport() {
                         <button
                             onClick={() => router.push('/hub/bankroll-manager')}
                             style={{
-                                background: 'rgba(16, 185, 129, 0.1)',
-                                border: '1px solid rgba(16, 185, 129, 0.3)',
-                                color: '#10b981',
-                                padding: '8px 16px',
-                                borderRadius: '8px',
+                                background: 'none',
+                                border: 'none',
+                                padding: 0,
                                 cursor: 'pointer',
                                 marginBottom: '20px'
                             }}
                         >
-                            ← Back to Bankroll Manager
+                            <img src="/images/btn-back.png" alt="Back" style={{ height: 32 }} />
                         </button>
 
                         <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#fff', marginBottom: '12px' }}>

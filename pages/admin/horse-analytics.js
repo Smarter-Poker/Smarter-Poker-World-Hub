@@ -322,11 +322,13 @@ export default function HorseAnalytics() {
                 <button
                     onClick={() => router.push('/hub')}
                     style={{
-                        ...styles.refreshBtn,
-                        background: 'rgba(255,255,255,0.1)'
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        cursor: 'pointer',
                     }}
                 >
-                    ← Back to Hub
+                    <img src="/images/btn-back.png" alt="Back" style={{ height: 32 }} />
                 </button>
             </div>
         </>

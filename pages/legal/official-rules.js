@@ -20,8 +20,8 @@ export default function OfficialRules() {
                         <div style={styles.logoOrb} />
                         <span style={styles.logoText}>Smarter.Poker</span>
                     </Link>
-                    <Link href="/terms" style={styles.backButton}>
-                        ← Back to Terms
+                    <Link href="/terms" style={{ display: 'inline-block' }}>
+                        <img src="/images/btn-back.png" alt="Back" style={{ height: 32 }} />
                     </Link>
                 </header>
 

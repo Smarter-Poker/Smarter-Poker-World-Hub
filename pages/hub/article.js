@@ -165,7 +165,7 @@ export default function ArticlePage() {
         return (
             <div className="article-page not-found">
                 <h1>Article Not Found</h1>
-                <Link href="/hub/news">← Back to News</Link>
+                <Link href="/hub/news"><img src="/images/btn-back.png" alt="Back" style={{ height: 32 }} /></Link>
                 <style jsx>{`
                     .article-page { min-height: 100vh; background: #0a0a12; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
                     h1 { font-size: 24px; }
@@ -196,9 +196,8 @@ export default function ArticlePage() {
 
                 {/* Header */}
                 <header className="header">
-                    <div className="back-btn">
-                        <ArrowLeft size={20} />
-                        <span>Back to News</span>
+                    <div className="back-btn" onClick={() => router.push('/hub/news')} style={{ cursor: 'pointer' }}>
+                        <img src="/images/btn-back.png" alt="Back" style={{ height: 32 }} />
                     </div>
                     <div className="actions">
                         <button onClick={handleShare}><Share2 size={18} /></button>

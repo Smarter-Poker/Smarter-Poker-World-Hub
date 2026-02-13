@@ -208,17 +208,9 @@ export default function MemoryGamesStats() {
                         {/* Back Button */}
                         <button
                             onClick={() => router.push('/hub/memory-games')}
-                            style={{
-                                background: 'rgba(0, 212, 255, 0.1)',
-                                border: '1px solid rgba(0, 212, 255, 0.3)',
-                                color: '#00D4FF',
-                                padding: '8px 16px',
-                                borderRadius: '8px',
-                                cursor: 'pointer',
-                                marginBottom: '20px'
-                            }}
+                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', marginBottom: '20px' }}
                         >
-                            ← Back to Memory Games
+                            <img src="/images/btn-back.png" alt="Back" style={{ height: 32 }} />
                         </button>
 
                         <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#fff', marginBottom: '24px' }}>

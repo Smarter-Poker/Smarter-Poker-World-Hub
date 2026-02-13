@@ -233,15 +233,10 @@ export default function LivesPage() {
                         justifyContent: 'space-between',
                     }}>
                         <Link href="/hub/social-media" style={{
-                            color: 'white',
-                            textDecoration: 'none',
-                            fontSize: 16,
-                            fontWeight: 600,
                             display: 'flex',
                             alignItems: 'center',
-                            gap: 6,
                         }}>
-                            ← Back
+                            <img src="/images/btn-back.png" alt="Back" style={{ height: 32 }} />
                         </Link>
                         <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'white' }}>
                             🔴 Lives

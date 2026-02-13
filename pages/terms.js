@@ -30,8 +30,8 @@ export default function TermsOfService() {
                         <div style={styles.logoOrb} />
                         <span style={styles.logoText}>Smarter.Poker</span>
                     </Link>
-                    <Link href="/auth/signup" style={styles.backButton}>
-                        ← Back to Signup
+                    <Link href="/auth/signup" style={{ display: 'inline-block' }}>
+                        <img src="/images/btn-back.png" alt="Back" style={{ height: 32 }} />
                     </Link>
                 </header>
 

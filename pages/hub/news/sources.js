@@ -29,17 +29,9 @@ export default function NewsSources() {
                     <div style={{ padding: '120px 20px 40px', maxWidth: '800px', margin: '0 auto' }}>
                         <button
                             onClick={() => router.push('/hub/news')}
-                            style={{
-                                background: 'rgba(239, 68, 68, 0.1)',
-                                border: '1px solid rgba(239, 68, 68, 0.3)',
-                                color: '#ef4444',
-                                padding: '8px 16px',
-                                borderRadius: '8px',
-                                cursor: 'pointer',
-                                marginBottom: '20px'
-                            }}
+                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', marginBottom: '20px' }}
                         >
-                            ← Back to News
+                            <img src="/images/btn-back.png" alt="Back" style={{ height: 32 }} />
                         </button>
 
                         <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#fff', marginBottom: '12px' }}>
