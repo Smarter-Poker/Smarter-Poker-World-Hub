@@ -43,8 +43,8 @@ export default function ShoppingCartComponent({ onCheckout }) {
                     height: 68,
                     borderRadius: 14,
                     background: '#000',
-                    border: '1px solid rgba(0, 200, 255, 0.3)',
-                    boxShadow: '0 4px 24px rgba(0, 180, 255, 0.35), inset 0 0 12px rgba(0, 180, 255, 0.1)',
+                    border: 'none',
+                    boxShadow: 'none',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -56,11 +56,9 @@ export default function ShoppingCartComponent({ onCheckout }) {
                 }}
                 onMouseEnter={(e) => {
                     e.currentTarget.style.transform = 'scale(1.1)';
-                    e.currentTarget.style.boxShadow = '0 6px 30px rgba(0, 180, 255, 0.5), inset 0 0 16px rgba(0, 180, 255, 0.15)';
                 }}
                 onMouseLeave={(e) => {
                     e.currentTarget.style.transform = 'scale(1)';
-                    e.currentTarget.style.boxShadow = '0 4px 24px rgba(0, 180, 255, 0.35), inset 0 0 12px rgba(0, 180, 255, 0.1)';
                 }}
             >
                 <img
