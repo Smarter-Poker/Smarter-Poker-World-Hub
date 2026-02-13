@@ -19,7 +19,7 @@ import { getAuthUser } from '../../src/lib/authUtils';
 import { purchaseVipWithDiamonds, VIP_DIAMOND_COST } from '../../src/lib/gates/premiumFeatureGate';
 
 const C = {
-    bg: '#0a0a0a',
+    bg: '#000000',
     card: '#1a1a1a',
     text: '#FFFFFF',
     textSec: '#9ca3af',
@@ -166,14 +166,14 @@ export default function VipPage() {
                                 animate={{ scale: 1, opacity: 1 }}
                                 transition={{ duration: 0.5 }}
                                 style={{
-                                    width: 80, height: 80, borderRadius: '50%',
-                                    background: `linear-gradient(135deg, ${C.goldDim}, ${C.gold})`,
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    width: '100%', maxWidth: 340,
                                     margin: '0 auto 20px',
+                                    borderRadius: 16,
+                                    overflow: 'hidden',
                                     boxShadow: '0 0 40px rgba(255,215,0,0.25)'
                                 }}
                             >
-                                <span style={{ fontSize: 36 }}>👑</span>
+                                <img src="/images/vip-card.jpg" alt="VIP Membership" style={{ width: '100%', display: 'block' }} />
                             </motion.div>
                             <h1 style={{
                                 fontSize: 32, fontWeight: 800, color: C.text,
@@ -201,7 +201,7 @@ export default function VipPage() {
                                     textAlign: 'center'
                                 }}
                             >
-                                <div style={{ fontSize: 28, marginBottom: 8 }}>✅</div>
+                                <div style={{ fontSize: 28, marginBottom: 8 }}></div>
                                 <div style={{ fontSize: 18, fontWeight: 700, color: C.green, marginBottom: 4 }}>
                                     You are a VIP Member
                                 </div>
@@ -270,7 +270,6 @@ export default function VipPage() {
                                 borderBottom: `1px solid ${C.gold}20`
                             }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-                                    <span style={{ fontSize: 24 }}>👑</span>
                                     <span style={{
                                         fontSize: 11, fontWeight: 700, padding: '3px 10px',
                                         background: C.gold, color: '#000', borderRadius: 6,
@@ -365,7 +364,7 @@ export default function VipPage() {
                                                 : 'none'
                                         }}
                                     >
-                                        💎 Buy with {VIP_DIAMOND_COST.toLocaleString()} Diamonds — 30 Days
+                                        Buy with {VIP_DIAMOND_COST.toLocaleString()} Diamonds — 30 Days
                                     </button>
 
                                     {/* Balance display */}
@@ -375,7 +374,7 @@ export default function VipPage() {
                                         Your balance: <span style={{
                                             color: diamonds >= VIP_DIAMOND_COST ? C.cyan : C.red,
                                             fontWeight: 700
-                                        }}>{diamonds.toLocaleString()} 💎</span>
+                                        }}>{diamonds.toLocaleString()}</span>
                                         {diamonds < VIP_DIAMOND_COST && (
                                             <span style={{ color: C.red }}>
                                                 {' '}— need {(VIP_DIAMOND_COST - diamonds).toLocaleString()} more
@@ -398,7 +397,7 @@ export default function VipPage() {
                                         fontSize: 14, fontWeight: 600
                                     }}
                                 >
-                                    🎉 VIP Activated! Expires {purchaseResult.expiresAt?.toLocaleDateString()}
+                                    VIP Activated! Expires {purchaseResult.expiresAt?.toLocaleDateString()}
                                 </motion.div>
                             )}
 
@@ -424,7 +423,7 @@ export default function VipPage() {
                                 color: C.cyan, fontSize: 14, fontWeight: 600,
                                 textDecoration: 'none', transition: 'all 0.2s'
                             }}>
-                                🛒 View in Marketplace
+                                View in Marketplace
                                 <span style={{ fontSize: 16 }}>→</span>
                             </Link>
                         </div>
@@ -447,7 +446,7 @@ export default function VipPage() {
                                         borderRadius: 20, padding: 32, textAlign: 'center'
                                     }}
                                 >
-                                    <div style={{ fontSize: 48, marginBottom: 16 }}>👑</div>
+                                    <img src="/images/vip-card.jpg" alt="VIP" style={{ width: '100%', maxWidth: 200, borderRadius: 12, marginBottom: 16 }} />
                                     <h3 style={{
                                         fontSize: 20, fontWeight: 700, color: '#fff', margin: '0 0 12px'
                                     }}>Confirm VIP Purchase</h3>
@@ -455,13 +454,13 @@ export default function VipPage() {
                                         fontSize: 14, color: 'rgba(255,255,255,0.7)',
                                         lineHeight: 1.6, margin: '0 0 8px'
                                     }}>
-                                        Spend <strong style={{ color: C.cyan }}>{VIP_DIAMOND_COST.toLocaleString()} 💎</strong> for
+                                        Spend <strong style={{ color: C.cyan }}>{VIP_DIAMOND_COST.toLocaleString()}</strong> diamonds for
                                         30 days of VIP membership.
                                     </p>
                                     <p style={{
                                         fontSize: 13, color: 'rgba(255,255,255,0.5)', margin: '0 0 24px'
                                     }}>
-                                        Remaining balance: {(diamonds - VIP_DIAMOND_COST).toLocaleString()} 💎
+                                        Remaining balance: {(diamonds - VIP_DIAMOND_COST).toLocaleString()} diamonds
                                     </p>
                                     <div style={{ display: 'flex', gap: 12 }}>
                                         <button
