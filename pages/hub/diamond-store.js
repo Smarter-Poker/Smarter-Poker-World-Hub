@@ -884,22 +884,22 @@ export default function DiamondStorePage() {
                         {/* Diamonds tab */}
                         <div
                             onClick={() => setActiveTab('diamonds')}
-                            style={{ position: 'absolute', left: '3%', top: '60%', width: '18%', height: '35%', cursor: 'pointer' }}
+                            style={{ position: 'absolute', left: '3%', top: '62%', width: '18%', height: '34%', cursor: 'pointer' }}
                         />
                         {/* VIP Membership tab */}
                         <div
                             onClick={() => setActiveTab('vip')}
-                            style={{ position: 'absolute', left: '24%', top: '60%', width: '26%', height: '35%', cursor: 'pointer' }}
+                            style={{ position: 'absolute', left: '24%', top: '62%', width: '26%', height: '34%', cursor: 'pointer' }}
                         />
                         {/* Merch tab */}
                         <div
                             onClick={() => setActiveTab('merch')}
-                            style={{ position: 'absolute', left: '53%', top: '60%', width: '19%', height: '35%', cursor: 'pointer' }}
+                            style={{ position: 'absolute', left: '53%', top: '62%', width: '19%', height: '34%', cursor: 'pointer' }}
                         />
                         {/* Smarter Rewards tab */}
                         <div
                             onClick={() => setActiveTab('rewards')}
-                            style={{ position: 'absolute', left: '75%', top: '60%', width: '22%', height: '35%', cursor: 'pointer' }}
+                            style={{ position: 'absolute', left: '75%', top: '62%', width: '23%', height: '34%', cursor: 'pointer' }}
                         />
                     </div>
 
