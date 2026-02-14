@@ -65,7 +65,7 @@ const CARDS = [
     id: 'staff',
     title: 'Staff & Operations',
     subtitle: 'Employees, Schedule, Config',
-    image: '/images/commander/card-management.jpg',
+    image: '/images/commander/card-staff.jpg',
     glow: '#10B981',
     features: [
       { label: 'Employee Maintenance', href: '/commander/staff', icon: '/images/commander/icons/mg-employee.png' },
@@ -81,9 +81,9 @@ const CARDS = [
   },
   {
     id: 'displays',
-    title: 'Displays & Comms',
+    title: 'Displays & Promotions',
     subtitle: 'TV Screens, Streaming, Alerts',
-    image: '/images/commander/card-management.jpg',
+    image: '/images/commander/card-displays.jpg',
     glow: '#8B5CF6',
     features: [
       { label: 'TV Displays', href: '/commander/displays', icon: '/images/commander/icons/mg-tv-displays.png' },
@@ -94,7 +94,6 @@ const CARDS = [
       { label: 'Display: Leaderboard', href: '/commander/displays/leaderboard', icon: '/images/commander/icons/mg-display-leaderboard.png' },
       { label: 'Display: Combined', href: '/commander/displays/combined', icon: '/images/commander/icons/mg-display-combined.png' },
       { label: 'Streaming', href: '/commander/streaming', icon: '/images/commander/icons/mg-streaming.png' },
-      { label: 'Announcements', href: '/commander/announcements', icon: '/images/commander/icons/tn-controls.png' },
       { label: 'Notifications', href: '/commander/notifications', icon: '/images/commander/icons/mg-notifications.png' },
     ],
   },
