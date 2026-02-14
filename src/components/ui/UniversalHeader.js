@@ -650,7 +650,10 @@ export default function UniversalHeader({
                             border: 'none',
                             padding: 0,
                             cursor: 'pointer',
-                            zIndex: 10
+                            zIndex: 10,
+                            width: 40,
+                            height: 40,
+                            overflow: 'hidden'
                         }}
                     >
                         <img src="/images/header-help.png" alt="Live Help" style={{ width: '200%', height: '200%', objectFit: 'contain', position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} />
