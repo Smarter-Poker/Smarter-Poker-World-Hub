@@ -68,141 +68,141 @@ export default function ChurnPrediction() {
 
   return (
     <CommanderLayout title="Churn Prediction" backHref="/commander/dashboard"><div style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: 'Inter, system-ui, sans-serif' }}>
-        <div style={{ background: '#1877F2', color: 'white', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-<Brain size={22} />
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 17 }}>Player Churn Prediction</div>
-            <div style={{ fontSize: 12, opacity: 0.85 }}>AI analysis of at-risk players</div>
-          </div>
+      <div style={{ background: '#1877F2', color: 'white', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <Brain size={22} />
+        <div>
+          <div style={{ fontWeight: 700, fontSize: 17 }}>Player Churn Prediction</div>
+          <div style={{ fontSize: 12, opacity: 0.85 }}>AI analysis of at-risk players</div>
         </div>
+      </div>
 
-        <div style={{ padding: 16, maxWidth: 600, margin: '0 auto' }}>
-          {/* Summary */}
-          {summary && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 14 }}>
-              {[
-                { label: 'Analyzed', val: summary.total_players_analyzed, color: '#1877F2', icon: Users },
-                { label: 'High Risk', val: summary.high_risk, color: '#EF4444', icon: AlertTriangle },
-                { label: 'Medium', val: summary.medium_risk, color: '#F59E0B', icon: TrendingDown },
-                { label: 'Low Risk', val: summary.low_risk, color: '#10B981', icon: Users },
-              ].map(c => (
-                <div key={c.label} style={{ background: 'white', borderRadius: 10, padding: 10, border: '1px solid #E4E6EB', textAlign: 'center' }}>
-                  <c.icon size={16} color={c.color} style={{ margin: '0 auto 4px' }} />
-                  <div style={{ fontSize: 20, fontWeight: 800, color: '#1C2526' }}>{c.val}</div>
-                  <div style={{ fontSize: 10, color: '#65676B' }}>{c.label}</div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Filter */}
-          <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+      <div style={{ padding: 16, maxWidth: 600, margin: '0 auto' }}>
+        {/* Summary */}
+        {summary && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 14 }}>
             {[
-              { v: 'all', l: 'All Players' },
-              { v: 'high', l: 'High Risk' },
-              { v: 'medium', l: 'Medium Risk' }
-            ].map(f => (
-              <button key={f.v} onClick={() => setFilter(f.v)}
-                style={{ flex: 1, padding: '8px 0', border: '1px solid', borderColor: filter === f.v ? '#1877F2' : '#CED0D4', borderRadius: 8, background: filter === f.v ? '#EBF5FF' : 'white', color: filter === f.v ? '#1877F2' : '#65676B', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-                {f.l}
-              </button>
+              { label: 'Analyzed', val: summary.total_players_analyzed, color: '#1877F2', icon: Users },
+              { label: 'High Risk', val: summary.high_risk, color: '#EF4444', icon: AlertTriangle },
+              { label: 'Medium', val: summary.medium_risk, color: '#F59E0B', icon: TrendingDown },
+              { label: 'Low Risk', val: summary.low_risk, color: '#10B981', icon: Users },
+            ].map(c => (
+              <div key={c.label} style={{ background: 'white', borderRadius: 10, padding: 10, border: '1px solid #E4E6EB', textAlign: 'center' }}>
+                <c.icon size={16} color={c.color} style={{ margin: '0 auto 4px' }} />
+                <div style={{ fontSize: 20, fontWeight: 800, color: '#1C2526' }}>{c.val}</div>
+                <div style={{ fontSize: 10, color: '#65676B' }}>{c.label}</div>
+              </div>
             ))}
           </div>
+        )}
 
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: 40 }}><Loader2 size={28} color="#1877F2" className="spin" /></div>
-          ) : filtered.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: 40, color: '#65676B', background: 'white', borderRadius: 12 }}>
-              {filter === 'all' ? 'No player data to analyze — need at least 2 sessions per player' : `No ${filter} risk players`}
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {filtered.map(p => {
-                const rc = riskColor(p.risk);
-                const isExpanded = expandedId === p.player_id;
-                return (
-                  <div key={p.player_id} style={{ background: 'white', borderRadius: 10, border: `1px solid ${p.risk === 'high' ? '#FCA5A5' : '#E4E6EB'}`, overflow: 'hidden' }}>
-                    <button onClick={() => setExpandedId(isExpanded ? null : p.player_id)}
-                      style={{ width: '100%', padding: '12px 14px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left' }}>
-                      {/* Risk gauge */}
-                      <div style={{ width: 40, height: 40, borderRadius: 20, background: rc.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <span style={{ fontSize: 14, fontWeight: 800, color: rc.text }}>{p.risk_score}</span>
+        {/* Filter */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+          {[
+            { v: 'all', l: 'All Players' },
+            { v: 'high', l: 'High Risk' },
+            { v: 'medium', l: 'Medium Risk' }
+          ].map(f => (
+            <button key={f.v} onClick={() => setFilter(f.v)}
+              style={{ flex: 1, padding: '8px 0', border: '1px solid', borderColor: filter === f.v ? '#1877F2' : '#CED0D4', borderRadius: 8, background: filter === f.v ? '#EBF5FF' : 'white', color: filter === f.v ? '#1877F2' : '#65676B', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+              {f.l}
+            </button>
+          ))}
+        </div>
+
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: 40 }}><Loader2 size={28} color="#1877F2" className="spin" /></div>
+        ) : filtered.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: 40, color: '#65676B', background: 'white', borderRadius: 12 }}>
+            {filter === 'all' ? 'No player data to analyze — need at least 2 sessions per player' : `No ${filter} risk players`}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {filtered.map(p => {
+              const rc = riskColor(p.risk);
+              const isExpanded = expandedId === p.player_id;
+              return (
+                <div key={p.player_id} style={{ background: 'white', borderRadius: 10, border: `1px solid ${p.risk === 'high' ? '#FCA5A5' : '#E4E6EB'}`, overflow: 'hidden' }}>
+                  <button onClick={() => setExpandedId(isExpanded ? null : p.player_id)}
+                    style={{ width: '100%', padding: '12px 14px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left' }}>
+                    {/* Risk gauge */}
+                    <div style={{ width: 40, height: 40, borderRadius: 20, background: rc.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <span style={{ fontSize: 14, fontWeight: 800, color: rc.text }}>{p.risk_score}</span>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: '#1C2526' }}>{p.player_name}</div>
+                      <div style={{ fontSize: 12, color: '#65676B', display: 'flex', gap: 8 }}>
+                        <span>{p.days_since_visit}d ago</span>
+                        <span>{p.visits_last_30} visits/30d</span>
                       </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 700, fontSize: 14, color: '#1C2526' }}>{p.player_name}</div>
-                        <div style={{ fontSize: 12, color: '#65676B', display: 'flex', gap: 8 }}>
-                          <span>{p.days_since_visit}d ago</span>
-                          <span>{p.visits_last_30} visits/30d</span>
+                    </div>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: rc.bg, color: rc.text, textTransform: 'uppercase' }}>
+                      {p.risk}
+                    </span>
+                    {isExpanded ? <ChevronUp size={16} color="#65676B" /> : <ChevronDown size={16} color="#65676B" />}
+                  </button>
+
+                  {isExpanded && (
+                    <div style={{ padding: '0 14px 14px', borderTop: '1px solid #F0F2F5' }}>
+                      {/* Risk bar */}
+                      <div style={{ marginTop: 10, marginBottom: 10 }}>
+                        <div style={{ height: 8, background: '#F0F2F5', borderRadius: 4, overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${p.risk_score}%`, background: rc.bar, borderRadius: 4 }} />
                         </div>
                       </div>
-                      <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: rc.bg, color: rc.text, textTransform: 'uppercase' }}>
-                        {p.risk}
-                      </span>
-                      {isExpanded ? <ChevronUp size={16} color="#65676B" /> : <ChevronDown size={16} color="#65676B" />}
-                    </button>
 
-                    {isExpanded && (
-                      <div style={{ padding: '0 14px 14px', borderTop: '1px solid #F0F2F5' }}>
-                        {/* Risk bar */}
-                        <div style={{ marginTop: 10, marginBottom: 10 }}>
-                          <div style={{ height: 8, background: '#F0F2F5', borderRadius: 4, overflow: 'hidden' }}>
-                            <div style={{ height: '100%', width: `${p.risk_score}%`, background: rc.bar, borderRadius: 4 }} />
+                      {/* Stats */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 10 }}>
+                        {[
+                          { label: 'Last Visit', val: `${p.days_since_visit}d ago`, icon: Calendar },
+                          { label: 'Avg Gap', val: `${p.avg_gap_days}d`, icon: Clock },
+                          { label: '90d Sessions', val: p.total_sessions_90d, icon: Users },
+                        ].map(s => (
+                          <div key={s.label} style={{ textAlign: 'center', padding: 8, background: '#F9FAFB', borderRadius: 8 }}>
+                            <s.icon size={12} color="#65676B" style={{ margin: '0 auto 2px' }} />
+                            <div style={{ fontSize: 14, fontWeight: 700, color: '#1C2526' }}>{s.val}</div>
+                            <div style={{ fontSize: 10, color: '#65676B' }}>{s.label}</div>
                           </div>
-                        </div>
+                        ))}
+                      </div>
 
-                        {/* Stats */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 10 }}>
-                          {[
-                            { label: 'Last Visit', val: `${p.days_since_visit}d ago`, icon: Calendar },
-                            { label: 'Avg Gap', val: `${p.avg_gap_days}d`, icon: Clock },
-                            { label: '90d Sessions', val: p.total_sessions_90d, icon: Users },
-                          ].map(s => (
-                            <div key={s.label} style={{ textAlign: 'center', padding: 8, background: '#F9FAFB', borderRadius: 8 }}>
-                              <s.icon size={12} color="#65676B" style={{ margin: '0 auto 2px' }} />
-                              <div style={{ fontSize: 14, fontWeight: 700, color: '#1C2526' }}>{s.val}</div>
-                              <div style={{ fontSize: 10, color: '#65676B' }}>{s.label}</div>
+                      {/* Visit trend */}
+                      <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                        <div style={{ flex: 1, padding: 8, background: p.visits_last_30 < p.visits_prev_30 ? '#FEF2F2' : '#ECFDF5', borderRadius: 8, textAlign: 'center' }}>
+                          <div style={{ fontSize: 11, color: '#65676B' }}>Last 30d</div>
+                          <div style={{ fontSize: 18, fontWeight: 800, color: p.visits_last_30 < p.visits_prev_30 ? '#EF4444' : '#10B981' }}>{p.visits_last_30}</div>
+                        </div>
+                        <div style={{ flex: 1, padding: 8, background: '#F9FAFB', borderRadius: 8, textAlign: 'center' }}>
+                          <div style={{ fontSize: 11, color: '#65676B' }}>Prev 30d</div>
+                          <div style={{ fontSize: 18, fontWeight: 800, color: '#1C2526' }}>{p.visits_prev_30}</div>
+                        </div>
+                        <div style={{ flex: 1, padding: 8, background: '#F9FAFB', borderRadius: 8, textAlign: 'center' }}>
+                          <div style={{ fontSize: 11, color: '#65676B' }}>Avg Session</div>
+                          <div style={{ fontSize: 18, fontWeight: 800, color: '#1C2526' }}>{p.avg_session_minutes}m</div>
+                        </div>
+                      </div>
+
+                      {/* Risk factors */}
+                      {p.factors.length > 0 && (
+                        <div>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: '#65676B', marginBottom: 4 }}>RISK FACTORS</div>
+                          {p.factors.map((f, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0', fontSize: 13 }}>
+                              <AlertTriangle size={12} color={rc.bar} />
+                              <span style={{ color: '#444' }}>{f}</span>
                             </div>
                           ))}
                         </div>
-
-                        {/* Visit trend */}
-                        <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-                          <div style={{ flex: 1, padding: 8, background: p.visits_last_30 < p.visits_prev_30 ? '#FEF2F2' : '#ECFDF5', borderRadius: 8, textAlign: 'center' }}>
-                            <div style={{ fontSize: 11, color: '#65676B' }}>Last 30d</div>
-                            <div style={{ fontSize: 18, fontWeight: 800, color: p.visits_last_30 < p.visits_prev_30 ? '#EF4444' : '#10B981' }}>{p.visits_last_30}</div>
-                          </div>
-                          <div style={{ flex: 1, padding: 8, background: '#F9FAFB', borderRadius: 8, textAlign: 'center' }}>
-                            <div style={{ fontSize: 11, color: '#65676B' }}>Prev 30d</div>
-                            <div style={{ fontSize: 18, fontWeight: 800, color: '#1C2526' }}>{p.visits_prev_30}</div>
-                          </div>
-                          <div style={{ flex: 1, padding: 8, background: '#F9FAFB', borderRadius: 8, textAlign: 'center' }}>
-                            <div style={{ fontSize: 11, color: '#65676B' }}>Avg Session</div>
-                            <div style={{ fontSize: 18, fontWeight: 800, color: '#1C2526' }}>{p.avg_session_minutes}m</div>
-                          </div>
-                        </div>
-
-                        {/* Risk factors */}
-                        {p.factors.length > 0 && (
-                          <div>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: '#65676B', marginBottom: 4 }}>RISK FACTORS</div>
-                            {p.factors.map((f, i) => (
-                              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0', fontSize: 13 }}>
-                                <AlertTriangle size={12} color={rc.bar} />
-                                <span style={{ color: '#444' }}>{f}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
+    </div>
       <style jsx global>{`.spin { animation: spin 1s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }`}</style>
-    </>
+    </CommanderLayout>
   );
 }

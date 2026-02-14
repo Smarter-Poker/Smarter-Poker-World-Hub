@@ -389,6 +389,10 @@ export default function UniversalHeader({
                     width: auto;
                     height: 32px;
                 }
+
+                .header-nav-btn img {
+                    filter: hue-rotate(170deg) saturate(1.4) brightness(1.15);
+                }
                 
                 .brand-text {
                     color: white;
