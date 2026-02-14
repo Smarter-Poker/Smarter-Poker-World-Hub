@@ -662,7 +662,7 @@ export default function UniversalHeader({
                             overflow: 'hidden'
                         }}
                     >
-                        <img src="/images/header-help.png" alt="Live Help" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '55%', left: '50%', transform: 'translate(-50%, -50%)' }} />
+                        <img src="/images/header-help.png" alt="Live Help" style={{ width: '120%', height: '120%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '45%', left: '50%', transform: 'translate(-50%, -50%)' }} />
                     </button>
 
                     {/* Push Notification Bell - hidden on mobile to save space */}
