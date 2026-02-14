@@ -160,7 +160,7 @@ export default function MembershipKiosk() {
         {/* ===== MEMBER LOOKUP ===== */}
         {mode === 'lookup' && !selectedMember && (
           <div className="w-full max-w-md space-y-4">
-            <button onClick={reset} style={{ background: 'none', border: '1px solid #444', borderRadius: 10, padding: '8px 14px', color: '#ccc', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600 }}>
+            <button onClick={reset} className="cmd-back-btn">
               <ArrowLeft size={16} /> Back
             </button>
             <h2 className="text-2xl font-bold text-white">Find Your Account</h2>
@@ -222,7 +222,7 @@ export default function MembershipKiosk() {
         {/* ===== MEMBER FOUND — Actions ===== */}
         {mode === 'lookup' && selectedMember && (
           <div className="w-full max-w-md space-y-4">
-            <button onClick={() => setSelectedMember(null)} style={{ background: 'none', border: '1px solid #444', borderRadius: 10, padding: '8px 14px', color: '#ccc', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600 }}>
+            <button onClick={() => setSelectedMember(null)} className="cmd-back-btn">
               <ArrowLeft size={16} /> Back
             </button>
 
@@ -280,7 +280,7 @@ export default function MembershipKiosk() {
         {/* ===== BUY TIME ===== */}
         {mode === 'buy_time' && selectedMember && (
           <div className="w-full max-w-md space-y-4">
-            <button onClick={() => setMode('lookup')} style={{ background: 'none', border: '1px solid #444', borderRadius: 10, padding: '8px 14px', color: '#ccc', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600 }}>
+            <button onClick={() => setMode('lookup')} className="cmd-back-btn">
               <ArrowLeft size={16} /> Back
             </button>
 
@@ -364,7 +364,7 @@ export default function MembershipKiosk() {
         {/* ===== NEW MEMBER REGISTRATION ===== */}
         {mode === 'register' && (
           <div className="w-full max-w-md space-y-4">
-            <button onClick={reset} style={{ background: 'none', border: '1px solid #444', borderRadius: 10, padding: '8px 14px', color: '#ccc', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600 }}>
+            <button onClick={reset} className="cmd-back-btn">
               <ArrowLeft size={16} /> Back
             </button>
             <h2 className="text-2xl font-bold text-white">New Member</h2>
@@ -422,6 +422,26 @@ export default function MembershipKiosk() {
           <p className="text-white/10 text-xs">Powered by Smarter.Poker</p>
         </div>
       </div>
+      <style jsx>{`
+        .cmd-back-btn {
+          background: none;
+          border: 1px solid #444;
+          border-radius: 10px;
+          padding: 8px 14px;
+          color: #ccc;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
+          font-weight: 600;
+          transition: all 0.2s;
+        }
+        .cmd-back-btn:hover {
+          border-color: #666;
+          color: #fff;
+        }
+      `}</style>
     </>
   );
 }

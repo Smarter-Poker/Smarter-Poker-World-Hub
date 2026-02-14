@@ -87,8 +87,9 @@ export default function PlayerActivityReport() {
         <header className="bg-[#242526] border-b border-[#3A3B3C] sticky top-0 z-50">
           <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <button onClick={() => router.push('/commander/reports')}
-                style={{ background: 'none', border: '1px solid #444', borderRadius: 10, padding: '8px 14px', color: '#ccc', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600 }}><ArrowLeft size={16} /> Back</button>
+              <button className="cmd-back-btn" onClick={() => router.push('/commander/reports')}>
+                <ArrowLeft size={16} /> Back
+              </button>
               <h1 className="text-lg font-bold text-white">Player Activity</h1>
             </div>
             <div className="flex items-center gap-2">
@@ -273,6 +274,26 @@ export default function PlayerActivityReport() {
           )}
         </main>
       </div>
+    <style jsx>{`
+        .cmd-back-btn {
+          background: none;
+          border: 1px solid #444;
+          border-radius: 10px;
+          padding: 8px 14px;
+          color: #ccc;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
+          font-weight: 600;
+          transition: all 0.2s;
+        }
+        .cmd-back-btn:hover {
+          border-color: #666;
+          color: #fff;
+        }
+      `}</style>
     </>
   );
 }

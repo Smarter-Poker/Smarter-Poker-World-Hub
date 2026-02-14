@@ -200,11 +200,32 @@ export default function DownloadsPage() {
 
         {/* Back to Login */}
         <div className="text-center mt-8">
-          <Link href="/commander/login" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: '1px solid #444', borderRadius: 10, padding: '8px 14px', color: '#ccc', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
-            ← Back to Login
+          <Link href="/commander/login" className="cmd-back-btn">
+            <ArrowLeft size={16} /> Back
           </Link>
         </div>
       </div>
+      <style jsx>{`
+        .cmd-back-btn {
+          background: none;
+          border: 1px solid #444;
+          border-radius: 10px;
+          padding: 8px 14px;
+          color: #ccc;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
+          font-weight: 600;
+          transition: all 0.2s;
+          text-decoration: none;
+        }
+        .cmd-back-btn:hover {
+          border-color: #666;
+          color: #fff;
+        }
+      `}</style>
     </div>
   );
 }
