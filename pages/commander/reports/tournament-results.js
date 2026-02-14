@@ -27,7 +27,7 @@ export default function TournamentResultsReport() {
           headers: { Authorization: `Bearer ${token}` }
         });
         const json = await res.json();
-        if (json.success) setTournaments(json.data || []);
+        if (json.success && Array.isArray(json.data)) setTournaments(json.data);
       } catch (err) { console.error(err); }
       finally { setLoading(false); }
     };
@@ -43,7 +43,7 @@ export default function TournamentResultsReport() {
         headers: { Authorization: `Bearer ${token}` }
       });
       const json = await res.json();
-      if (json.success) {
+      if (json.success && Array.isArray(json.data)) {
         setTournaments(prev => prev.map(t =>
           t.id === tournamentId ? { ...t, entries: json.data } : t
         ));
@@ -96,11 +96,10 @@ export default function TournamentResultsReport() {
                         .slice(0, 20)
                         .map(e => (
                           <div key={e.id} className="flex items-center gap-3 py-2">
-                            <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
-                              e.finish_position === 1 ? 'bg-[#F59E0B]/20 text-[#F59E0B]' :
-                              e.finish_position <= 3 ? 'bg-[#1877F2]/20 text-[#1877F2]' :
-                              'bg-[#3A3B3C] text-[#B0B3B8]'
-                            }`}>
+                            <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${e.finish_position === 1 ? 'bg-[#F59E0B]/20 text-[#F59E0B]' :
+                                e.finish_position <= 3 ? 'bg-[#1877F2]/20 text-[#1877F2]' :
+                                  'bg-[#3A3B3C] text-[#B0B3B8]'
+                              }`}>
                               {e.finish_position}
                             </span>
                             <span className="flex-1 text-sm text-[#E4E6EB]">{e.player_name}</span>
@@ -122,7 +121,7 @@ export default function TournamentResultsReport() {
           </div>
         )}
       </div>
-    <style jsx>{`
+      <style jsx>{`
         .cmd-back-btn {
           background: none;
           border: 1px solid #444;

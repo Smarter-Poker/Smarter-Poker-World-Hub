@@ -45,13 +45,13 @@ export default function PokerRoomFunctions() {
       // Fetch tournaments
       const tRes = await fetch('/api/commander/tournaments?status=active', { headers });
       const tJson = await tRes.json();
-      if (tJson.success) setTournaments(tJson.data || []);
+      if (tJson.success && Array.isArray(tJson.data)) setTournaments(tJson.data);
 
       // Fetch tables
       const tabRes = await fetch('/api/commander/tables', { headers });
       const tabJson = await tabRes.json();
-      if (tabJson.success) {
-        setTables(tabJson.data || []);
+      if (tabJson.success && Array.isArray(tabJson.data)) {
+        setTables(tabJson.data);
         if (tabJson.data?.[0]?.venue_id) setVenueId(tabJson.data[0].venue_id);
       }
 
@@ -117,11 +117,10 @@ export default function PokerRoomFunctions() {
 
         {/* Room Status Toggle */}
         <div className="px-4 py-4">
-          <div className={`rounded-2xl border-2 p-5 flex items-center justify-between ${
-            roomOpen
+          <div className={`rounded-2xl border-2 p-5 flex items-center justify-between ${roomOpen
               ? 'bg-[#31A24C]/10 border-[#31A24C]/30'
               : 'bg-[#EF4444]/10 border-[#EF4444]/30'
-          }`}>
+            }`}>
             <div className="flex items-center gap-4">
               {roomOpen
                 ? <Wifi className="w-8 h-8 text-[#31A24C]" />
@@ -140,9 +139,8 @@ export default function PokerRoomFunctions() {
               </div>
             </div>
             <button onClick={toggleRoom} disabled={toggling}
-              className={`w-16 h-16 rounded-2xl flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50 ${
-                roomOpen ? 'bg-[#EF4444]' : 'bg-[#31A24C]'
-              }`}>
+              className={`w-16 h-16 rounded-2xl flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50 ${roomOpen ? 'bg-[#EF4444]' : 'bg-[#31A24C]'
+                }`}>
               {toggling
                 ? <Loader2 className="w-7 h-7 text-white animate-spin" />
                 : roomOpen
@@ -173,10 +171,10 @@ export default function PokerRoomFunctions() {
                     <p className="text-base font-semibold text-white truncate">{t.name}</p>
                     <p className="text-xs text-[#B0B3B8]">
                       {t.status === 'running' ? 'Running' :
-                       t.status === 'paused' ? 'Paused' :
-                       t.status === 'break' ? 'On Break' :
-                       t.status === 'final_table' ? 'Final Table' :
-                       'Registration Open'}
+                        t.status === 'paused' ? 'Paused' :
+                          t.status === 'break' ? 'On Break' :
+                            t.status === 'final_table' ? 'Final Table' :
+                              'Registration Open'}
                       {t.players_remaining !== undefined && ` — ${t.players_remaining} players`}
                     </p>
                   </div>
@@ -249,7 +247,7 @@ export default function PokerRoomFunctions() {
           </div>
         </div>
       </div>
-    <style jsx>{`
+      <style jsx>{`
         .cmd-back-btn {
           background: none;
           border: 1px solid #444;

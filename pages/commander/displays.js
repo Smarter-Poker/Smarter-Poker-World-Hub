@@ -36,9 +36,8 @@ function DeviceCard({ device, onConfigure, onPushContent, onRemove }) {
     <div className="cmd-panel p-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-            isOnline ? 'bg-[#31A24C]/10 border border-[#31A24C]/30' : 'bg-[#EF4444]/10 border border-[#EF4444]/30'
-          }`}>
+          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isOnline ? 'bg-[#31A24C]/10 border border-[#31A24C]/30' : 'bg-[#EF4444]/10 border border-[#EF4444]/30'
+            }`}>
             <Monitor className={`w-5 h-5 ${isOnline ? 'text-[#31A24C]' : 'text-[#EF4444]'}`} />
           </div>
           <div>
@@ -116,13 +115,14 @@ export default function DisplaysManagementPage() {
   const fetchDisplays = useCallback(async () => {
     if (!venueId) return;
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const res = await fetch(`/api/commander/displays?venue_id=${venueId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
       if (data.success) {
-        setDisplays(data.data?.displays || []);
+        const list = data.data?.displays || data.data || [];
+        setDisplays(Array.isArray(list) ? list : []);
       }
     } catch (err) {
       console.error('Fetch displays failed:', err);
@@ -132,19 +132,20 @@ export default function DisplaysManagementPage() {
   }, [venueId]);
 
   useEffect(() => {
-    const token = localStorage.getItem('smarter-poker-auth');
+    const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
     if (!token) {
-      router.push('/auth/login');
+      router.push('/commander/login');
       return;
     }
     if (venueId) fetchDisplays();
+    else setLoading(false);
   }, [venueId, fetchDisplays, router]);
 
   async function handleRegister() {
     if (!newDevice.name) return;
     setRegistering(true);
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const res = await fetch('/api/commander/displays', {
         method: 'POST',
         headers: {
@@ -168,7 +169,7 @@ export default function DisplaysManagementPage() {
 
   async function handleSaveConfig(device) {
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       await fetch(`/api/commander/displays/${device.id}/config`, {
         method: 'PUT',
         headers: {
@@ -187,7 +188,7 @@ export default function DisplaysManagementPage() {
   async function handlePushContent(device) {
     setPushing(true);
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       await fetch(`/api/commander/displays/${device.id}/content`, {
         method: 'POST',
         headers: {
@@ -211,7 +212,7 @@ export default function DisplaysManagementPage() {
   async function handleRemove(device) {
     if (!confirm(`Remove display "${device.name || device.id}"?`)) return;
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       await fetch(`/api/commander/displays/${device.id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
@@ -437,11 +438,10 @@ export default function DisplaysManagementPage() {
                 <button
                   key={option.value}
                   onClick={() => setContentType(option.value)}
-                  className={`w-full text-left p-3 rounded-lg border transition-colors ${
-                    contentType === option.value
-                      ? 'border-[#1877F2] bg-[#1877F2]/10'
-                      : 'border-[#3A3B3C] hover:bg-[#3A3B3C]'
-                  }`}
+                  className={`w-full text-left p-3 rounded-lg border transition-colors ${contentType === option.value
+                    ? 'border-[#1877F2] bg-[#1877F2]/10'
+                    : 'border-[#3A3B3C] hover:bg-[#3A3B3C]'
+                    }`}
                 >
                   <p className={`font-medium ${contentType === option.value ? 'text-[#1877F2]' : 'text-white'}`}>
                     {option.label}
