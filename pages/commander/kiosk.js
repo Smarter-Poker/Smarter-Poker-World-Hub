@@ -161,7 +161,7 @@ export default function MembershipKiosk() {
         {mode === 'lookup' && !selectedMember && (
           <div className="w-full max-w-md space-y-4">
             <button onClick={reset} className="flex items-center gap-2 text-[#B0B3B8] mb-4">
-              <img src="/images/btn-back.png" alt="Back" style={{ height: 32, objectFit: 'contain' }} />
+              <img src="/images/btn-back.png" alt="Back" style={{ height: 44, objectFit: 'contain' }} />
             </button>
             <h2 className="text-2xl font-bold text-white">Find Your Account</h2>
 
@@ -223,7 +223,7 @@ export default function MembershipKiosk() {
         {mode === 'lookup' && selectedMember && (
           <div className="w-full max-w-md space-y-4">
             <button onClick={() => setSelectedMember(null)} className="flex items-center gap-2 text-[#B0B3B8] mb-4">
-              <img src="/images/btn-back.png" alt="Back" style={{ height: 32, objectFit: 'contain' }} />
+              <img src="/images/btn-back.png" alt="Back" style={{ height: 44, objectFit: 'contain' }} />
             </button>
 
             <div className="bg-[#242526] rounded-2xl p-5 text-center border border-[#3A3B3C]">
@@ -281,7 +281,7 @@ export default function MembershipKiosk() {
         {mode === 'buy_time' && selectedMember && (
           <div className="w-full max-w-md space-y-4">
             <button onClick={() => setMode('lookup')} className="flex items-center gap-2 text-[#B0B3B8] mb-2">
-              <img src="/images/btn-back.png" alt="Back" style={{ height: 32, objectFit: 'contain' }} />
+              <img src="/images/btn-back.png" alt="Back" style={{ height: 44, objectFit: 'contain' }} />
             </button>
 
             <div className="bg-[#242526] rounded-2xl p-4 border border-[#3A3B3C] flex items-center gap-3">
@@ -365,7 +365,7 @@ export default function MembershipKiosk() {
         {mode === 'register' && (
           <div className="w-full max-w-md space-y-4">
             <button onClick={reset} className="flex items-center gap-2 text-[#B0B3B8] mb-4">
-              <img src="/images/btn-back.png" alt="Back" style={{ height: 32, objectFit: 'contain' }} />
+              <img src="/images/btn-back.png" alt="Back" style={{ height: 44, objectFit: 'contain' }} />
             </button>
             <h2 className="text-2xl font-bold text-white">New Member</h2>
 

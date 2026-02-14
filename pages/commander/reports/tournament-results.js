@@ -58,7 +58,7 @@ export default function TournamentResultsReport() {
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
           <button onClick={() => router.push('/commander/reports')}
             className="w-10 h-10 rounded-lg bg-[#3A3B3C] flex items-center justify-center active:bg-[#4A4B4C]">
-            <img src="/images/btn-back.png" alt="Back" style={{ height: 32, objectFit: 'contain' }} />
+            <img src="/images/btn-back.png" alt="Back" style={{ height: 44, objectFit: 'contain' }} />
           </button>
           <h1 className="text-lg font-bold text-white">Tournament Results</h1>
         </div>

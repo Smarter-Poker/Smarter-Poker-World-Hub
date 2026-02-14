@@ -110,7 +110,7 @@ export default function MembersPage() {
                     <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <button onClick={() => router.push('/commander/dashboard')} className="p-2 hover:bg-[#3A3B3C] rounded-lg transition-colors">
-                                <img src="/images/btn-back.png" alt="Back" style={{ height: 32, objectFit: 'contain' }} />
+                                <img src="/images/btn-back.png" alt="Back" style={{ height: 44, objectFit: 'contain' }} />
                             </button>
                             <div>
                                 <h1 className="font-bold text-white flex items-center gap-2">

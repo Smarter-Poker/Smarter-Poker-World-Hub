@@ -212,7 +212,7 @@ export default function TournamentDetailPage() {
                 onClick={() => router.push('/commander/tournaments')}
                 className="p-2 hover:bg-[#132240] rounded-lg transition-colors"
               >
-                <img src="/images/btn-back.png" alt="Back" style={{ height: 32, objectFit: 'contain' }} />
+                <img src="/images/btn-back.png" alt="Back" style={{ height: 44, objectFit: 'contain' }} />
               </button>
               <div>
                 <h1 className="font-bold text-white">{tournament.name}</h1>

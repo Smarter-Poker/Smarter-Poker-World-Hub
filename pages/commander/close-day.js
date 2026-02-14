@@ -119,7 +119,7 @@ export default function CloseDay() {
         {/* Header */}
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
           <button onClick={() => router.push('/commander/dashboard')} className="p-2 rounded-lg active:bg-[#3A3B3C]">
-            <img src="/images/btn-back.png" alt="Back" style={{ height: 32, objectFit: 'contain' }} />
+            <img src="/images/btn-back.png" alt="Back" style={{ height: 44, objectFit: 'contain' }} />
           </button>
           <div className="flex-1">
             <h1 className="text-lg font-bold text-white">End of Day Close</h1>

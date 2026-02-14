@@ -124,7 +124,7 @@ export default function CommanderSettingsPage() {
                 onClick={() => router.push('/commander/dashboard')}
                 className="p-2 hover:bg-[#3A3B3C] rounded-lg transition-colors"
               >
-                <img src="/images/btn-back.png" alt="Back" style={{ height: 32, objectFit: 'contain' }} />
+                <img src="/images/btn-back.png" alt="Back" style={{ height: 44, objectFit: 'contain' }} />
               </button>
               <div>
                 <h1 className="font-bold text-white text-lg">Settings</h1>

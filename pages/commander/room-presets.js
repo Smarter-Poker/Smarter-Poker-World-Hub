@@ -169,7 +169,7 @@ export default function RoomPresetsPage() {
           <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button onClick={() => router.push('/commander/settings')}
-                className="p-2 hover:bg-[#3A3B3C] rounded-lg"><img src="/images/btn-back.png" alt="Back" style={{ height: 32, objectFit: 'contain' }} /></button>
+                className="p-2 hover:bg-[#3A3B3C] rounded-lg"><img src="/images/btn-back.png" alt="Back" style={{ height: 44, objectFit: 'contain' }} /></button>
               <div>
                 <h1 className="font-bold text-white text-lg">Room Presets</h1>
                 <p className="text-sm text-[#B0B3B8]">One-click room configurations</p>

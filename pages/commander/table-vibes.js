@@ -78,7 +78,7 @@ export default function TableVibes() {
       <div style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: 'Inter, system-ui, sans-serif' }}>
         <div style={{ background: '#1877F2', color: 'white', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
           <button onClick={() => router.push('/commander/dashboard')} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: 4 }}>
-            <img src="/images/btn-back.png" alt="Back" style={{ height: 32, objectFit: 'contain' }} />
+            <img src="/images/btn-back.png" alt="Back" style={{ height: 44, objectFit: 'contain' }} />
           </button>
           <Flame size={22} />
           <div style={{ flex: 1 }}>
