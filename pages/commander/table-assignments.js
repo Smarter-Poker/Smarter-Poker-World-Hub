@@ -17,6 +17,7 @@ import {
   ArrowLeft, Loader2, RefreshCw, Table2, Trophy, DollarSign,
   Power, ChevronRight, X, Check, AlertTriangle, Users, Wifi
 } from 'lucide-react';
+import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 const GAME_TYPES = [
   { type: 'NLH', name: "No Limit Hold'em" },
@@ -123,22 +124,18 @@ export default function TableAssignments() {
   const totalPlayers = tables.reduce((s, t) => s + (t.active_players || 0), 0);
 
   if (loading) return (
+    <CommanderLayout title="Table Assignments" backHref="/commander/dashboard">
     <div className="min-h-screen bg-[#18191A] flex items-center justify-center">
       <Loader2 className="w-8 h-8 text-[#1877F2] animate-spin" />
     </div>
   );
 
   return (
-    <>
-      <Head><title>Table Assignments | Club Commander</title></Head>
-      <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
+    <><div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
         {/* Header */}
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
-          <button className="cmd-back-btn" onClick={() => router.push('/commander/dashboard')}>
-            <ArrowLeft size={16} /> Back
-          </button>
-          <div className="flex-1">
+<div className="flex-1">
             <h1 className="text-lg font-bold text-white">Table Assignments</h1>
             <p className="text-xs text-[#B0B3B8]">Assign tables to cash games or tournaments</p>
           </div>
@@ -385,25 +382,8 @@ export default function TableAssignments() {
         )}
       </div>
     <style jsx>{`
-        .cmd-back-btn {
-          background: none;
-          border: 1px solid #444;
-          border-radius: 10px;
-          padding: 8px 14px;
-          color: #ccc;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 13px;
-          font-weight: 600;
-          transition: all 0.2s;
-        }
-        .cmd-back-btn:hover {
-          border-color: #666;
-          color: #fff;
-        }
       `}</style>
     </>
+    </CommanderLayout>
   );
 }

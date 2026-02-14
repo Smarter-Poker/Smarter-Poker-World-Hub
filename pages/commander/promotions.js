@@ -32,6 +32,7 @@ import PromotionCard from '../../src/components/commander/promotions/PromotionCa
 import PromotionEditor from '../../src/components/commander/promotions/PromotionEditor';
 import PromotionBuilder from '../../src/components/commander/promotions/PromotionBuilder';
 import HighHandDisplay from '../../src/components/commander/promotions/HighHandDisplay';
+import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 const PROMO_TYPES = [
   { value: 'high_hand', label: 'High Hand', icon: Trophy, color: '#F59E0B' },
@@ -114,6 +115,7 @@ function RecordHighHandModal({ isOpen, onClose, onSubmit, venueId, staff }) {
   if (!isOpen) return null;
 
   return (
+    <CommanderLayout title="Promotions | Commander" backHref="/commander/dashboard">
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
       <div className="cmd-panel cmd-corner-lights w-full max-w-lg max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between p-4 border-b border-[#3A3B3C]">
@@ -514,13 +516,7 @@ export default function PromotionsPage() {
   }
 
   return (
-    <>
-      <Head>
-        <title>Promotions | Commander</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
-
-      <div className="cmd-page">
+    <><div className="cmd-page">
         <header className="cmd-header-bar sticky top-0 z-40">
           <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -882,25 +878,8 @@ export default function PromotionsPage() {
         </div>
       )}
       <style jsx>{`
-        .cmd-back-btn {
-          background: none;
-          border: 1px solid #444;
-          border-radius: 10px;
-          padding: 8px 14px;
-          color: #ccc;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 13px;
-          font-weight: 600;
-          transition: all 0.2s;
-        }
-        .cmd-back-btn:hover {
-          border-color: #666;
-          color: #fff;
-        }
       `}</style>
     </>
+    </CommanderLayout>
   );
 }

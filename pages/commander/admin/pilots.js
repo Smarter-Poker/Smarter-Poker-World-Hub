@@ -26,6 +26,7 @@ import {
   Target,
   Award,
 } from 'lucide-react';
+import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
 // Success criteria from IMPLEMENTATION_PHASES.md Step 6.6
 const SUCCESS_CRITERIA = {
@@ -109,13 +110,7 @@ export default function PilotVenuesPage() {
   }
 
   return (
-    <>
-      <Head>
-        <title>Pilot Venues | Club Commander Admin</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
-
-      <div className="cmd-page min-h-screen">
+    <CommanderLayout title="Pilot Venues" backHref="/commander/dashboard"><div className="cmd-page min-h-screen">
         {/* Header */}
         <header className="cmd-header-bar sticky top-0 z-20">
           <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">

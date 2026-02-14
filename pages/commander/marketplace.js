@@ -24,6 +24,7 @@ import {
   X,
   ChevronRight
 } from 'lucide-react';
+import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 const GAME_TYPES = ['nlhe', 'plo', 'plo8', 'mixed', 'stud', 'razz', 'omaha'];
 
@@ -80,6 +81,7 @@ function RentEquipmentModal({ isOpen, onClose, equipment, venueId }) {
   if (!isOpen || !equipment) return null;
 
   return (
+    <CommanderLayout title="Marketplace | Commander" backHref="/commander/dashboard">
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
       <div className="cmd-panel cmd-corner-lights w-full max-w-md">
         <div className="flex items-center justify-between p-4 border-b border-[#3A3B3C]">
@@ -531,13 +533,7 @@ export default function MarketplacePage() {
   }
 
   return (
-    <>
-      <Head>
-        <title>Marketplace | Commander</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
-
-      <div className="cmd-page">
+    <><div className="cmd-page">
         <header className="cmd-header-bar sticky top-0 z-40">
           <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -657,25 +653,8 @@ export default function MarketplacePage() {
         venueId={venueId}
       />
       <style jsx>{`
-        .cmd-back-btn {
-          background: none;
-          border: 1px solid #444;
-          border-radius: 10px;
-          padding: 8px 14px;
-          color: #ccc;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 13px;
-          font-weight: 600;
-          transition: all 0.2s;
-        }
-        .cmd-back-btn:hover {
-          border-color: #666;
-          color: #fff;
-        }
       `}</style>
     </>
+    </CommanderLayout>
   );
 }

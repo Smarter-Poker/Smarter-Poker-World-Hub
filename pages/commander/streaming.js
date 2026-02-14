@@ -25,6 +25,7 @@ import {
   Check,
   X
 } from 'lucide-react';
+import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 const PLATFORMS = [
   { id: 'youtube', label: 'YouTube', icon: Youtube, color: '#FF0000' },
@@ -36,6 +37,7 @@ function StreamCard({ stream, onStart, onStop, onConfigure }) {
   const isLive = stream.status === 'live';
 
   return (
+    <CommanderLayout title="Streaming" backHref="/commander/dashboard">
     <div className="cmd-panel overflow-hidden">
       {/* Preview Area */}
       <div className={`h-40 flex items-center justify-center ${isLive ? 'bg-[#1F2937]' : 'bg-[#3A3B3C]'}`}>
@@ -380,13 +382,7 @@ export default function StreamingPage() {
   }
 
   return (
-    <>
-      <Head>
-        <title>Streaming | Club Commander</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
-
-      <div className="cmd-page">
+    <><div className="cmd-page">
         {/* Header */}
         <header className="cmd-header-bar sticky top-0 z-40">
           <div className="max-w-4xl mx-auto px-4 py-4">
@@ -476,5 +472,6 @@ export default function StreamingPage() {
         )}
       </div>
     </>
+    </CommanderLayout>
   );
 }

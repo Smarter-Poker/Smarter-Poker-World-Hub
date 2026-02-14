@@ -11,6 +11,7 @@ import {
   CheckCircle, XCircle, AlertTriangle, Loader2, HelpCircle, Activity,
   Users, Layout, Gamepad2, ExternalLink
 } from 'lucide-react';
+import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 export default function SystemInfoPage() {
   const router = useRouter();
@@ -53,16 +54,11 @@ export default function SystemInfoPage() {
   }
 
   return (
-    <>
-      <Head><title>System Info | {venueName || 'Commander'}</title></Head>
-      <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
+    <CommanderLayout title="System Info | {venueName || 'Commander'}" backHref="/commander/dashboard"><div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
         <header className="bg-[#242526] border-b border-[#3A3B3C] sticky top-0 z-50">
           <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <button className="cmd-back-btn" onClick={() => router.push('/commander/dashboard')}>
-                <ArrowLeft size={16} /> Back
-              </button>
-              <div>
+<div>
                 <h1 className="font-bold text-white text-lg">System Information</h1>
                 <p className="text-sm text-[#B0B3B8]">{venueName}</p>
               </div>
@@ -221,24 +217,6 @@ export default function SystemInfoPage() {
         </main>
       </div>
     <style jsx>{`
-        .cmd-back-btn {
-          background: none;
-          border: 1px solid #444;
-          border-radius: 10px;
-          padding: 8px 14px;
-          color: #ccc;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 13px;
-          font-weight: 600;
-          transition: all 0.2s;
-        }
-        .cmd-back-btn:hover {
-          border-color: #666;
-          color: #fff;
-        }
       `}</style>
     </>
   );

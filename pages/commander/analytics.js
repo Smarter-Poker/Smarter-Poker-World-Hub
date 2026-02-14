@@ -20,12 +20,14 @@ import {
   Loader2
 } from 'lucide-react';
 import AnalyticsDashboard from '../../src/components/commander/analytics/AnalyticsDashboard';
+import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 function StatCard({ title, value, change, icon: Icon, color = '#1877F2' }) {
   const hasChange = change !== undefined && change !== null;
   const isPositive = hasChange && change >= 0;
 
   return (
+    <CommanderLayout title="Analytics | Commander" backHref="/commander/dashboard">
     <div className="cmd-panel p-4">
       <div className="flex items-start justify-between mb-2">
         <div
@@ -274,13 +276,7 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <>
-      <Head>
-        <title>Analytics | Commander</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
-
-      <div className="cmd-page">
+    <><div className="cmd-page">
         <header className="cmd-header-bar sticky top-0 z-40">
           <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -421,25 +417,8 @@ export default function AnalyticsPage() {
         </main>
       </div>
       <style jsx>{`
-        .cmd-back-btn {
-          background: none;
-          border: 1px solid #444;
-          border-radius: 10px;
-          padding: 8px 14px;
-          color: #ccc;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 13px;
-          font-weight: 600;
-          transition: all 0.2s;
-        }
-        .cmd-back-btn:hover {
-          border-color: #666;
-          color: #fff;
-        }
       `}</style>
     </>
+    </CommanderLayout>
   );
 }

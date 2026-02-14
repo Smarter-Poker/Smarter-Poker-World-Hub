@@ -20,6 +20,7 @@ import {
   MapPin,
   FileText
 } from 'lucide-react';
+import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 const INCIDENT_TYPES = [
   { value: 'dispute', label: 'Player Dispute' },
@@ -55,6 +56,7 @@ function IncidentCard({ incident, onClick }) {
   };
 
   return (
+    <CommanderLayout title="Incidents" backHref="/commander/dashboard">
     <button
       onClick={onClick}
       className="w-full cmd-panel p-4 text-left hover:border-[#1877F2] transition-colors"
@@ -505,13 +507,7 @@ export default function IncidentsPage() {
   }
 
   return (
-    <>
-      <Head>
-        <title>Incidents | Club Commander</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
-
-      <div className="cmd-page">
+    <><div className="cmd-page">
         {/* Header */}
         <header className="cmd-header-bar sticky top-0 z-40">
           <div className="max-w-4xl mx-auto px-4 py-4">
@@ -620,5 +616,6 @@ export default function IncidentsPage() {
         )}
       </div>
     </>
+    </CommanderLayout>
   );
 }

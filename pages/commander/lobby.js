@@ -15,6 +15,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 export default function LobbyDisplay() {
   const router = useRouter();
@@ -94,9 +95,7 @@ export default function LobbyDisplay() {
   };
 
   return (
-    <>
-      <Head><title>Poker Room | Now Playing</title></Head>
-      <style jsx global>{`
+    <><style jsx global>{`
         * { cursor: none !important; }
         body { overflow: hidden; }
         @keyframes scroll-left { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }

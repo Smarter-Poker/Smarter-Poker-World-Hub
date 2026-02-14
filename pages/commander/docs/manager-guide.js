@@ -24,6 +24,7 @@ import {
   UserCog,
   Building2,
 } from 'lucide-react';
+import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
 const GUIDE_SECTIONS = [
   {
@@ -467,13 +468,7 @@ export default function ManagerGuidePage() {
     : GUIDE_SECTIONS;
 
   return (
-    <>
-      <Head>
-        <title>Manager Admin Guide | Club Commander</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
-
-      <div className="cmd-page min-h-screen">
+    <CommanderLayout title="Manager Admin Guide" backHref="/commander/dashboard"><div className="cmd-page min-h-screen">
         {/* Header */}
         <header className="cmd-header-bar sticky top-0 z-20">
           <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">

@@ -11,6 +11,7 @@ import {
   ArrowLeft, ArrowRightLeft, Loader2, RefreshCw, Users, Link2, Unlink,
   CheckCircle2, AlertTriangle, ChevronRight, Crown, ArrowRight
 } from 'lucide-react';
+import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 const GAME_LABELS = { nlh: 'NLH', plo: 'PLO', plo5: 'PLO5', mixed: 'Mixed', limit: 'Limit', stud: 'Stud', razz: 'Razz', other: 'Other' };
 
@@ -114,9 +115,7 @@ export default function MustMoveManager() {
   const singles = data?.single_games || [];
 
   return (
-    <>
-      <Head><title>Must-Move Games | Club Commander</title></Head>
-      <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
+    <><div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
           <button onClick={() => router.push('/commander/poker-room')} className="cmd-back-btn">
             <ArrowLeft size={16} /> Back
@@ -276,24 +275,6 @@ export default function MustMoveManager() {
         )}
       </div>
       <style jsx>{`
-        .cmd-back-btn {
-          background: none;
-          border: 1px solid #444;
-          border-radius: 10px;
-          padding: 8px 14px;
-          color: #ccc;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 13px;
-          font-weight: 600;
-          transition: all 0.2s;
-        }
-        .cmd-back-btn:hover {
-          border-color: #666;
-          color: #fff;
-        }
       `}</style>
     </>
   );

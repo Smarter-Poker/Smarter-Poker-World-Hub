@@ -10,6 +10,7 @@ import {
   ArrowLeft, FileText, DollarSign, AlertTriangle, CheckCircle2,
   Loader2, Printer, Download, ChevronDown, ChevronUp, Search
 } from 'lucide-react';
+import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
 export default function TaxCompliance() {
   const router = useRouter();
@@ -208,15 +209,10 @@ export default function TaxCompliance() {
   const formatMoney = (v) => `$${parseFloat(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
-    <>
-      <Head><title>Tax Compliance / W-2G | Club Commander</title></Head>
-      <div style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <CommanderLayout title="W-2G Form" backHref="/commander/reports"><div style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: 'Inter, system-ui, sans-serif' }}>
         {/* Header */}
         <div style={{ background: '#1877F2', color: 'white', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button className="cmd-back-btn" onClick={() => router.push('/commander/reports')}>
-            <ArrowLeft size={16} /> Back
-          </button>
-          <FileText size={22} />
+<FileText size={22} />
           <div>
             <div style={{ fontWeight: 700, fontSize: 17 }}>Tax Compliance / W-2G</div>
             <div style={{ fontSize: 12, opacity: 0.85 }}>Tournament wins reporting and withholding</div>
@@ -357,25 +353,7 @@ export default function TaxCompliance() {
           )}
         </div>
       </div>
-      <style jsx global>{`
-        .cmd-back-btn {
-          background: none;
-          border: 1px solid #444;
-          border-radius: 10px;
-          padding: 8px 14px;
-          color: #ccc;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 13px;
-          font-weight: 600;
-          transition: all 0.2s;
-        }
-        .cmd-back-btn:hover {
-          border-color: #666;
-          color: #fff;
-        }.spin { animation: spin 1s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <style jsx global>{`.spin { animation: spin 1s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </>
   );
 }

@@ -25,6 +25,7 @@ import {
   AlertCircle,
   Edit
 } from 'lucide-react';
+import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 function DeviceCard({ device, onConfigure, onPushContent, onRemove }) {
   const isOnline = device.status === 'online';
@@ -33,6 +34,7 @@ function DeviceCard({ device, onConfigure, onPushContent, onRemove }) {
     : null;
 
   return (
+    <CommanderLayout title="Display Management" backHref="/commander/dashboard">
     <div className="cmd-panel p-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -234,13 +236,7 @@ export default function DisplaysManagementPage() {
   }
 
   return (
-    <>
-      <Head>
-        <title>Display Management | Club Commander</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
-
-      <div className="cmd-page">
+    <><div className="cmd-page">
         {/* Header */}
         <header className="cmd-header-bar sticky top-0 z-40">
           <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -465,25 +461,8 @@ export default function DisplaysManagementPage() {
         </div>
       )}
       <style jsx>{`
-        .cmd-back-btn {
-          background: none;
-          border: 1px solid #444;
-          border-radius: 10px;
-          padding: 8px 14px;
-          color: #ccc;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 13px;
-          font-weight: 600;
-          transition: all 0.2s;
-        }
-        .cmd-back-btn:hover {
-          border-color: #666;
-          color: #fff;
-        }
       `}</style>
     </>
+    </CommanderLayout>
   );
 }

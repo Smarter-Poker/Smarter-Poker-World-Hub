@@ -24,6 +24,7 @@ import {
   Building2,
   MoreVertical,
 } from 'lucide-react';
+import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
 const STATUS_CONFIG = {
   new: { label: 'New', color: 'bg-blue-500', textColor: 'text-blue-400' },
@@ -106,13 +107,7 @@ export default function LeadManagementPage() {
       : 0;
 
   return (
-    <>
-      <Head>
-        <title>Lead Management | Club Commander Admin</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
-
-      <div className="cmd-page min-h-screen">
+    <CommanderLayout title="Lead Management" backHref="/commander/dashboard"><div className="cmd-page min-h-screen">
         {/* Header */}
         <header className="cmd-header-bar sticky top-0 z-20">
           <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">

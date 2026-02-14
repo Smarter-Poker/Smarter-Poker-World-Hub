@@ -10,6 +10,7 @@ import {
   ArrowLeft, Brain, AlertTriangle, Users, TrendingDown,
   Loader2, ChevronDown, ChevronUp, Clock, Calendar
 } from 'lucide-react';
+import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 export default function ChurnPrediction() {
   const router = useRouter();
@@ -66,14 +67,9 @@ export default function ChurnPrediction() {
   };
 
   return (
-    <>
-      <Head><title>Churn Prediction | Club Commander</title></Head>
-      <div style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <CommanderLayout title="Churn Prediction" backHref="/commander/dashboard"><div style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: 'Inter, system-ui, sans-serif' }}>
         <div style={{ background: '#1877F2', color: 'white', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button className="cmd-back-btn" onClick={() => router.push('/commander/dashboard')}>
-            <ArrowLeft size={16} /> Back
-          </button>
-          <Brain size={22} />
+<Brain size={22} />
           <div>
             <div style={{ fontWeight: 700, fontSize: 17 }}>Player Churn Prediction</div>
             <div style={{ fontSize: 12, opacity: 0.85 }}>AI analysis of at-risk players</div>
@@ -206,25 +202,7 @@ export default function ChurnPrediction() {
           )}
         </div>
       </div>
-      <style jsx global>{`
-        .cmd-back-btn {
-          background: none;
-          border: 1px solid #444;
-          border-radius: 10px;
-          padding: 8px 14px;
-          color: #ccc;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 13px;
-          font-weight: 600;
-          transition: all 0.2s;
-        }
-        .cmd-back-btn:hover {
-          border-color: #666;
-          color: #fff;
-        }.spin { animation: spin 1s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <style jsx global>{`.spin { animation: spin 1s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </>
   );
 }

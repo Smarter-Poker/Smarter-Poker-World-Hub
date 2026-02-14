@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { QrCode, Download, Maximize2, Minimize2, ArrowLeft } from 'lucide-react';
+import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 export default function VenueQRCodePage() {
   const router = useRouter();
@@ -99,13 +100,7 @@ export default function VenueQRCodePage() {
   }
 
   return (
-    <>
-      <Head>
-        <title>Check-In QR Code | {venue?.name || 'Commander'}</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
-
-      <div className="cmd-page">
+    <><div className="cmd-page">
         {/* Header */}
         <header className="cmd-header-bar">
           <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -189,25 +184,8 @@ export default function VenueQRCodePage() {
         </main>
       </div>
       <style jsx>{`
-        .cmd-back-btn {
-          background: none;
-          border: 1px solid #444;
-          border-radius: 10px;
-          padding: 8px 14px;
-          color: #ccc;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 13px;
-          font-weight: 600;
-          transition: all 0.2s;
-        }
-        .cmd-back-btn:hover {
-          border-color: #666;
-          color: #fff;
-        }
       `}</style>
     </>
+    </CommanderLayout>
   );
 }

@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { ArrowLeft, Bell, Clock, Users, Save, Loader2, ChevronRight } from 'lucide-react';
+import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 export default function CommanderSettingsPage() {
   const router = useRouter();
@@ -99,6 +100,7 @@ export default function CommanderSettingsPage() {
 
   if (!staff || loading) {
     return (
+    <CommanderLayout title="Settings | {venue?.name || 'Commander'}" backHref="/commander/dashboard">
       <div className="cmd-page flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
       </div>
@@ -109,13 +111,7 @@ export default function CommanderSettingsPage() {
   const canManageSettings = staff.permissions?.manage_settings !== false;
 
   return (
-    <>
-      <Head>
-        <title>Settings | {venue?.name || 'Commander'}</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
-
-      <div className="cmd-page">
+    <><div className="cmd-page">
         {/* Header */}
         <header className="cmd-header-bar sticky top-0 z-50">
           <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -348,24 +344,6 @@ export default function CommanderSettingsPage() {
         </main>
       </div>
       <style jsx>{`
-        .cmd-back-btn {
-          background: none;
-          border: 1px solid #444;
-          border-radius: 10px;
-          padding: 8px 14px;
-          color: #ccc;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 13px;
-          font-weight: 600;
-          transition: all 0.2s;
-        }
-        .cmd-back-btn:hover {
-          border-color: #666;
-          color: #fff;
-        }
       `}</style>
     </>
   );
@@ -412,5 +390,6 @@ function SettingNumber({ label, description, value, onChange, min, max, disabled
         className="w-20 h-10 px-3 cmd-input text-center disabled:opacity-50 disabled:cursor-not-allowed"
       />
     </div>
+    </CommanderLayout>
   );
 }

@@ -16,6 +16,7 @@ import {
   Users, Trophy, Coffee, ChevronUp, ChevronDown, Copy, Download,
   Loader2, Settings, Calculator, FileText, RotateCcw, Check
 } from 'lucide-react';
+import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
 
 // ===== PRESET TEMPLATES =====
 const STRUCTURE_TEMPLATES = {
@@ -307,6 +308,7 @@ export default function TournamentSettings() {
   const breakCount = levels.filter(l => l.is_break).length;
 
   if (loading) return (
+    <CommanderLayout title="Settings | {name || 'Tournament'}" backHref="/commander/tournaments">
     <div className="min-h-screen bg-[#18191A] flex items-center justify-center">
       <Loader2 className="w-8 h-8 text-[#1877F2] animate-spin" />
     </div>
@@ -319,9 +321,7 @@ export default function TournamentSettings() {
   ];
 
   return (
-    <>
-      <Head><title>Settings | {name || 'Tournament'}</title></Head>
-      <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter'] flex flex-col">
+    <><div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter'] flex flex-col">
 
         {/* Header */}
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center justify-between flex-shrink-0">
@@ -676,25 +676,8 @@ export default function TournamentSettings() {
         </div>
       </div>
       <style jsx>{`
-        .cmd-back-btn {
-          background: none;
-          border: 1px solid #444;
-          border-radius: 10px;
-          padding: 8px 14px;
-          color: #ccc;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 13px;
-          font-weight: 600;
-          transition: all 0.2s;
-        }
-        .cmd-back-btn:hover {
-          border-color: #666;
-          color: #fff;
-        }
       `}</style>
     </>
+    </CommanderLayout>
   );
 }

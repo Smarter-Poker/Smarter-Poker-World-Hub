@@ -23,6 +23,7 @@ import {
   Play,
   Search,
 } from 'lucide-react';
+import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
 const GUIDE_SECTIONS = [
   {
@@ -362,13 +363,7 @@ export default function StaffGuidePage() {
     : GUIDE_SECTIONS;
 
   return (
-    <>
-      <Head>
-        <title>Staff Training Guide | Club Commander</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
-
-      <div className="cmd-page min-h-screen">
+    <CommanderLayout title="Staff Training Guide" backHref="/commander/dashboard"><div className="cmd-page min-h-screen">
         {/* Header */}
         <header className="cmd-header-bar sticky top-0 z-20">
           <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">

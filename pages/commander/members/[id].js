@@ -17,6 +17,7 @@ import {
   ArrowLeft, Clock, DollarSign, Users, Star, Calendar,
   Shield, AlertTriangle, Loader2, Edit, Plus, Ban, Check
 } from 'lucide-react';
+import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
 export default function MemberProfile() {
   const router = useRouter();
@@ -85,6 +86,7 @@ export default function MemberProfile() {
   };
 
   if (loading) return (
+    <CommanderLayout title="{m.first_name} {m.last_name}" backHref="/commander/members">
     <div className="min-h-screen bg-[#18191A] flex items-center justify-center">
       <Loader2 className="w-8 h-8 text-[#1877F2] animate-spin" />
     </div>
@@ -104,9 +106,7 @@ export default function MemberProfile() {
   const timeMin = (m.time_balance_minutes || 0) % 60;
 
   return (
-    <>
-      <Head><title>{m.first_name} {m.last_name} | Club Commander</title></Head>
-      <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
+    <><div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
         {/* Header */}
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
@@ -300,24 +300,6 @@ export default function MemberProfile() {
         </div>
       </div>
       <style jsx>{`
-        .cmd-back-btn {
-          background: none;
-          border: 1px solid #444;
-          border-radius: 10px;
-          padding: 8px 14px;
-          color: #ccc;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 13px;
-          font-weight: 600;
-          transition: all 0.2s;
-        }
-        .cmd-back-btn:hover {
-          border-color: #666;
-          color: #fff;
-        }
       `}</style>
     </>
   );
@@ -329,5 +311,6 @@ function InfoRow({ label, value }) {
       <span className="text-sm text-[#B0B3B8]">{label}</span>
       <span className="text-sm font-medium text-white capitalize">{value}</span>
     </div>
+    </CommanderLayout>
   );
 }

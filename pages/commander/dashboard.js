@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { LogOut, ArrowLeft, Settings, Download, Users, QrCode } from 'lucide-react';
+import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 /* ─────────────────────────────────────────────────
    CARD DEFINITIONS — each card has sub-features
@@ -162,11 +163,7 @@ export default function CommanderDashboard() {
   const openCard = CARDS.find(c => c.id === activeCard);
 
   return (
-    <>
-      <Head>
-        <title>Club Commander | Dashboard</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
+    <CommanderLayout title="Dashboard" hideBack={true}>
 
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;500;600;700&display=swap');
@@ -177,28 +174,7 @@ export default function CommanderDashboard() {
           font-family: 'Inter', sans-serif;
         }
 
-        /* ── TOP BAR ── */
-        .cmd-topbar {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 12px 20px;
-          background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%);
-          border-bottom: 1px solid #222;
-        }
-        .cmd-topbar-title {
-          font-family: 'Orbitron', sans-serif;
-          font-size: 16px;
-          font-weight: 700;
-          color: #fff;
-          letter-spacing: 2px;
-          text-transform: uppercase;
-        }
-        .cmd-topbar-venue {
-          font-size: 11px;
-          color: #888;
-          margin-top: 2px;
-        }
+
 
 
         /* ── 6-CARD GRID ── */
@@ -378,13 +354,6 @@ export default function CommanderDashboard() {
       `}</style>
 
       <div className="cmd-dashboard">
-        {/* TOP BAR */}
-        <div className="cmd-topbar">
-          <div style={{ textAlign: 'right' }}>
-            <div className="cmd-topbar-title">Club Commander</div>
-            <div className="cmd-topbar-venue">{staff.venue_name || 'Poker Room'}</div>
-          </div>
-        </div>
 
         {/* ── MAIN: 4-CARD GRID ── */}
         {!activeCard && (
@@ -432,6 +401,6 @@ export default function CommanderDashboard() {
           </div>
         )}
       </div>
-    </>
+    </CommanderLayout>
   );
 }

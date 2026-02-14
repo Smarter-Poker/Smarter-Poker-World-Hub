@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { ArrowLeft, Plus, Edit2, Trash2, User, Loader2, X, Eye, EyeOff } from 'lucide-react';
+import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 const ROLES = [
   { value: 'owner', label: 'Owner', color: 'bg-[#7C3AED] text-white' },
@@ -128,6 +129,7 @@ export default function CommanderStaffPage() {
 
   if (!currentStaff || loading) {
     return (
+    <CommanderLayout title="Staff | {venue?.name || 'Commander'}" backHref="/commander/dashboard">
       <div className="cmd-page flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
       </div>
@@ -135,13 +137,7 @@ export default function CommanderStaffPage() {
   }
 
   return (
-    <>
-      <Head>
-        <title>Staff | {venue?.name || 'Commander'}</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
-
-      <div className="cmd-page">
+    <><div className="cmd-page">
         {/* Header */}
         <header className="cmd-header-bar sticky top-0 z-50">
           <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -285,24 +281,6 @@ export default function CommanderStaffPage() {
         />
       )}
       <style jsx>{`
-        .cmd-back-btn {
-          background: none;
-          border: 1px solid #444;
-          border-radius: 10px;
-          padding: 8px 14px;
-          color: #ccc;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 13px;
-          font-weight: 600;
-          transition: all 0.2s;
-        }
-        .cmd-back-btn:hover {
-          border-color: #666;
-          color: #fff;
-        }
       `}</style>
     </>
   );
@@ -479,5 +457,6 @@ function StaffModal({ staff, onClose, onSubmit }) {
         </form>
       </div>
     </div>
+    </CommanderLayout>
   );
 }

@@ -26,6 +26,7 @@ import {
   Timer,
   AlertCircle
 } from 'lucide-react';
+import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 const GAME_CERTIFICATIONS = [
   { value: 'nlhe', label: 'No Limit Hold\'em' },
@@ -37,6 +38,7 @@ const GAME_CERTIFICATIONS = [
 
 function DealerCard({ dealer, onEdit, onRotate }) {
   return (
+    <CommanderLayout title="Dealers" backHref="/commander/dashboard">
     <div className="cmd-panel p-4">
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
@@ -467,13 +469,7 @@ export default function DealersPage() {
   }
 
   return (
-    <>
-      <Head>
-        <title>Dealers | Club Commander</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
-
-      <div className="cmd-page">
+    <><div className="cmd-page">
         {/* Header */}
         <header className="cmd-header-bar sticky top-0 z-40">
           <div className="max-w-4xl mx-auto px-4 py-4">
@@ -714,5 +710,6 @@ export default function DealersPage() {
         )}
       </div>
     </>
+    </CommanderLayout>
   );
 }
