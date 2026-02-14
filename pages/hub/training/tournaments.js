@@ -226,15 +226,11 @@ export default function TournamentsPage() {
                                         )}
 
                                         {tournament.status === 'live' && (
-                                            <Link href={`/hub/training/tournament/${tournament.id}`}>
-                                                <a style={styles.playBtn}>Play Now →</a>
-                                            </Link>
+                                            <Link href={`/hub/training/tournament/${tournament.id}`} style={styles.playBtn}>Play Now →</Link>
                                         )}
 
                                         {tournament.status === 'complete' && (
-                                            <Link href={`/hub/training/tournament/${tournament.id}`}>
-                                                <a style={styles.viewBtn}>View Results</a>
-                                            </Link>
+                                            <Link href={`/hub/training/tournament/${tournament.id}`} style={styles.viewBtn}>View Results</Link>
                                         )}
                                     </motion.div>
                                 );

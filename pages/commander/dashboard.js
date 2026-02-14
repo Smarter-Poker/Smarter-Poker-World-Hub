@@ -16,98 +16,116 @@ const CARDS = [
   {
     id: 'waitlist',
     title: 'Waitlist',
-    subtitle: 'Memberships and Time',
+    subtitle: 'Players, Memberships, Kiosk',
     image: '/images/commander/card-waitlist.jpg',
     glow: '#22D3EE',
     features: [
       { label: 'Desk View', href: '/commander/waitlist/desk', icon: '/images/commander/icons/wl-desk-view.png' },
       { label: 'Player Maintenance', href: '/commander/members', icon: '/images/commander/icons/wl-player-maintenance.png' },
       { label: 'Player Kiosk', href: '/commander/kiosk', icon: '/images/commander/icons/wl-player-kiosk.png' },
-      { label: 'Member Import', href: '/commander/member-import', icon: '/images/commander/icons/wl-player-maintenance.png' },
-      { label: 'Membership Plans', href: '/commander/membership-plans', icon: '/images/commander/icons/wl-player-view.png' },
+      { label: 'Member Import', href: '/commander/member-import', icon: '/images/commander/icons/wl-member-import.png' },
+      { label: 'Membership Plans', href: '/commander/membership-plans', icon: '/images/commander/icons/mg-membership-plans.png' },
       { label: 'Player Display', href: '/commander/displays/waitlist', icon: '/images/commander/icons/wl-player-view.png' },
     ],
   },
   {
     id: 'tournaments',
-    title: 'Tournaments',
-    subtitle: 'Management, Results, Leagues',
+    title: 'Tournaments & Events',
+    subtitle: 'Tournaments, Leagues, Promos',
     image: '/images/commander/card-tournaments.jpg',
     glow: '#F59E0B',
     features: [
       { label: 'Tournament Manager', href: '/commander/tournaments', icon: '/images/commander/icons/tn-registration.png' },
       { label: 'Tournament Results', href: '/commander/reports/tournament-results', icon: '/images/commander/icons/rp-tournament.png' },
       { label: 'Leagues', href: '/commander/leagues', icon: '/images/commander/icons/tn-maintenance.png' },
-      { label: 'High Hands', href: '/commander/high-hands', icon: '/images/commander/icons/tn-settings.png' },
+      { label: 'High Hands', href: '/commander/high-hands', icon: '/images/commander/icons/tn-high-hands.png' },
+      { label: 'Promotions', href: '/commander/promotions', icon: '/images/commander/icons/mg-promotions.png' },
+      { label: 'Comps', href: '/commander/comps', icon: '/images/commander/icons/mg-comps.png' },
     ],
   },
   {
-    id: 'management',
-    title: 'Management',
-    subtitle: 'Staff, Tables, Floor Operations',
+    id: 'floor',
+    title: 'Tables & Floor',
+    subtitle: 'Tables, Dealers, Floor Ops',
     image: '/images/commander/card-management.jpg',
     glow: '#EF4444',
     features: [
+      { label: 'Tables', href: '/commander/tables', icon: '/images/commander/icons/mg-tables.png' },
+      { label: 'Table Assignments', href: '/commander/table-assignments', icon: '/images/commander/icons/mg-table-assignments.png' },
+      { label: 'Floor Map', href: '/commander/floor', icon: '/images/commander/icons/mg-floor-map.png' },
+      { label: 'Open Cash Game', href: '/commander/open-game', icon: '/images/commander/icons/mg-open-game.png' },
+      { label: 'Must-Move Games', href: '/commander/must-move', icon: '/images/commander/icons/mg-must-move.png' },
+      { label: 'Floor Calls', href: '/commander/floor-calls', icon: '/images/commander/icons/mg-floor-calls.png' },
+      { label: 'Dealers', href: '/commander/dealers', icon: '/images/commander/icons/mg-dealers.png' },
+      { label: 'Dealer Rotation', href: '/commander/dealer-rotation', icon: '/images/commander/icons/tn-clock.png' },
+      { label: 'Table Vibes', href: '/commander/table-vibes', icon: '/images/commander/icons/mg-table-vibes.png' },
+      { label: 'Game Start AI', href: '/commander/game-start', icon: '/images/commander/icons/mg-game-start-ai.png' },
+    ],
+  },
+  {
+    id: 'staff',
+    title: 'Staff & Operations',
+    subtitle: 'Employees, Schedule, Config',
+    image: '/images/commander/card-management.jpg',
+    glow: '#10B981',
+    features: [
       { label: 'Employee Maintenance', href: '/commander/staff', icon: '/images/commander/icons/mg-employee.png' },
       { label: 'Poker Room Functions', href: '/commander/poker-room', icon: '/images/commander/icons/mg-poker-room.png' },
-      { label: 'Tables', href: '/commander/tables', icon: '/images/commander/icons/mg-poker-room.png' },
-      { label: 'Table Assignments', href: '/commander/table-assignments', icon: '/images/commander/icons/mg-poker-room.png' },
-      { label: 'Floor Map', href: '/commander/floor', icon: '/images/commander/icons/mg-poker-room.png' },
-      { label: 'Open Cash Game', href: '/commander/open-game', icon: '/images/commander/icons/mg-poker-room.png' },
-      { label: 'Dealers', href: '/commander/dealers', icon: '/images/commander/icons/mg-employee.png' },
-      { label: 'Dealer Rotation', href: '/commander/dealer-rotation', icon: '/images/commander/icons/tn-clock.png' },
-      { label: 'Time Billing', href: '/commander/time-billing', icon: '/images/commander/icons/mg-poker-room.png' },
       { label: 'Staff Schedule', href: '/commander/schedule', icon: '/images/commander/icons/tn-clock-setup.png' },
-      { label: 'Shift Handoff', href: '/commander/shift-handoff', icon: '/images/commander/icons/mg-employee.png' },
-      { label: 'Cashier', href: '/commander/cashier', icon: '/images/commander/icons/rp-config.png' },
-      { label: 'Must-Move Games', href: '/commander/must-move', icon: '/images/commander/icons/mg-poker-room.png' },
-      { label: 'Floor Calls', href: '/commander/floor-calls', icon: '/images/commander/icons/rp-activity.png' },
-      { label: 'TV Displays', href: '/commander/displays', icon: '/images/commander/icons/wl-player-view.png' },
-      { label: 'Display: Tables', href: '/commander/displays/tables', icon: '/images/commander/icons/mg-poker-room.png' },
-      { label: 'Display: Dealers', href: '/commander/displays/dealers', icon: '/images/commander/icons/mg-employee.png' },
-      { label: 'Display: Announcements', href: '/commander/displays/announcements', icon: '/images/commander/icons/wl-player-view.png' },
-      { label: 'Display: Promotions', href: '/commander/displays/promotions', icon: '/images/commander/icons/tn-registration.png' },
-      { label: 'Display: Leaderboard', href: '/commander/displays/leaderboard', icon: '/images/commander/icons/rp-activity.png' },
-      { label: 'Display: Combined', href: '/commander/displays/combined', icon: '/images/commander/icons/wl-player-view.png' },
-      { label: 'Promotions', href: '/commander/promotions', icon: '/images/commander/icons/tn-registration.png' },
-      { label: 'Comps', href: '/commander/comps', icon: '/images/commander/icons/tn-registration.png' },
-      { label: 'Incidents', href: '/commander/incidents', icon: '/images/commander/icons/rp-activity.png' },
-      { label: 'Announcements', href: '/commander/announcements', icon: '/images/commander/icons/wl-player-view.png' },
-      { label: 'Streaming', href: '/commander/streaming', icon: '/images/commander/icons/wl-player-view.png' },
+      { label: 'Shift Handoff', href: '/commander/shift-handoff', icon: '/images/commander/icons/mg-shift-handoff.png' },
+      { label: 'Cashier', href: '/commander/cashier', icon: '/images/commander/icons/mg-cashier.png' },
+      { label: 'Time Billing', href: '/commander/time-billing', icon: '/images/commander/icons/mg-time-billing.png' },
+      { label: 'Incidents', href: '/commander/incidents', icon: '/images/commander/icons/mg-incidents.png' },
+      { label: 'Room Presets', href: '/commander/room-presets', icon: '/images/commander/icons/mg-room-presets.png' },
       { label: 'Game Types', href: '/commander/game-types', icon: '/images/commander/icons/tn-settings.png' },
-      { label: 'Room Presets', href: '/commander/room-presets', icon: '/images/commander/icons/mg-poker-room.png' },
-      { label: 'Notifications', href: '/commander/notifications', icon: '/images/commander/icons/wl-player-view.png' },
-      { label: 'Table Vibes', href: '/commander/table-vibes', icon: '/images/commander/icons/mg-poker-room.png' },
-      { label: 'Game Start AI', href: '/commander/game-start', icon: '/images/commander/icons/tn-controls.png' },
+    ],
+  },
+  {
+    id: 'displays',
+    title: 'Displays & Comms',
+    subtitle: 'TV Screens, Streaming, Alerts',
+    image: '/images/commander/card-management.jpg',
+    glow: '#8B5CF6',
+    features: [
+      { label: 'TV Displays', href: '/commander/displays', icon: '/images/commander/icons/mg-tv-displays.png' },
+      { label: 'Display: Tables', href: '/commander/displays/tables', icon: '/images/commander/icons/mg-display-tables.png' },
+      { label: 'Display: Dealers', href: '/commander/displays/dealers', icon: '/images/commander/icons/mg-display-dealers.png' },
+      { label: 'Display: Announcements', href: '/commander/displays/announcements', icon: '/images/commander/icons/mg-display-announcements.png' },
+      { label: 'Display: Promotions', href: '/commander/displays/promotions', icon: '/images/commander/icons/mg-display-promotions.png' },
+      { label: 'Display: Leaderboard', href: '/commander/displays/leaderboard', icon: '/images/commander/icons/mg-display-leaderboard.png' },
+      { label: 'Display: Combined', href: '/commander/displays/combined', icon: '/images/commander/icons/mg-display-combined.png' },
+      { label: 'Streaming', href: '/commander/streaming', icon: '/images/commander/icons/mg-streaming.png' },
+      { label: 'Announcements', href: '/commander/announcements', icon: '/images/commander/icons/tn-controls.png' },
+      { label: 'Notifications', href: '/commander/notifications', icon: '/images/commander/icons/mg-notifications.png' },
     ],
   },
   {
     id: 'reports',
-    title: 'Reports and Maintenance',
-    subtitle: 'Analytics, Configuration, System',
+    title: 'Reports & System',
+    subtitle: 'Analytics, Configuration, Data',
     image: '/images/commander/card-reports.jpg',
     glow: '#94A3B8',
     features: [
       { label: 'Reports Hub', href: '/commander/reports', icon: '/images/commander/icons/rp-player.png' },
-      { label: 'Daily Summary', href: '/commander/reports/daily-summary', icon: '/images/commander/icons/rp-custom.png' },
-      { label: 'Revenue Report', href: '/commander/reports/revenue', icon: '/images/commander/icons/rp-tournament.png' },
+      { label: 'Daily Summary', href: '/commander/reports/daily-summary', icon: '/images/commander/icons/rp-daily-summary.png' },
+      { label: 'Revenue Report', href: '/commander/reports/revenue', icon: '/images/commander/icons/rp-revenue.png' },
       { label: 'Staff Activity', href: '/commander/reports/staff-activity', icon: '/images/commander/icons/rp-activity.png' },
-      { label: 'Player Activity', href: '/commander/reports/player-activity', icon: '/images/commander/icons/rp-player.png' },
+      { label: 'Player Activity', href: '/commander/reports/player-activity', icon: '/images/commander/icons/rp-player-activity.png' },
       { label: 'Analytics', href: '/commander/analytics', icon: '/images/commander/icons/rp-custom.png' },
-      { label: 'Analytics Daily', href: '/commander/reports/analytics-daily', icon: '/images/commander/icons/rp-custom.png' },
-      { label: 'Table Utilization', href: '/commander/reports/table-utilization', icon: '/images/commander/icons/rp-custom.png' },
+      { label: 'Analytics Daily', href: '/commander/reports/analytics-daily', icon: '/images/commander/icons/rp-analytics-daily.png' },
+      { label: 'Table Utilization', href: '/commander/reports/table-utilization', icon: '/images/commander/icons/rp-table-utilization.png' },
       { label: 'Waitlist Metrics', href: '/commander/reports/waitlist-metrics', icon: '/images/commander/icons/rp-waitlist.png' },
-      { label: 'Tax / W-2G', href: '/commander/reports/tax-compliance', icon: '/images/commander/icons/rp-tournament.png' },
-      { label: 'Activity Feed', href: '/commander/activity', icon: '/images/commander/icons/rp-activity.png' },
-      { label: 'Churn Prediction', href: '/commander/churn-prediction', icon: '/images/commander/icons/rp-custom.png' },
+      { label: 'Tax / W-2G', href: '/commander/reports/tax-compliance', icon: '/images/commander/icons/rp-tax.png' },
+      { label: 'Activity Feed', href: '/commander/activity', icon: '/images/commander/icons/rp-activity-feed.png' },
+      { label: 'Churn Prediction', href: '/commander/churn-prediction', icon: '/images/commander/icons/rp-churn-prediction.png' },
       { label: 'Configuration', href: '/commander/settings', icon: '/images/commander/icons/rp-setups.png' },
       { label: 'System Info', href: '/commander/system-info', icon: '/images/commander/icons/rp-system.png' },
-      { label: 'Close Day', href: '/commander/close-day', icon: '/images/commander/icons/rp-config.png' },
+      { label: 'Close Day', href: '/commander/close-day', icon: '/images/commander/icons/rp-close-day.png' },
       { label: 'Exports', href: '/commander/exports', icon: '/images/commander/icons/rp-config.png' },
-      { label: 'Downloads', href: '/commander/downloads', icon: '/images/commander/icons/rp-config.png' },
-      { label: 'Responsible Gaming', href: '/commander/responsible-gaming', icon: '/images/commander/icons/rp-system.png' },
-      { label: 'Marketplace', href: '/commander/marketplace', icon: '/images/commander/icons/rp-system.png' },
-      { label: 'Reputation', href: '/commander/reputation', icon: '/images/commander/icons/rp-custom.png' },
+      { label: 'Downloads', href: '/commander/downloads', icon: '/images/commander/icons/rp-downloads.png' },
+      { label: 'Responsible Gaming', href: '/commander/responsible-gaming', icon: '/images/commander/icons/rp-responsible-gaming.png' },
+      { label: 'Marketplace', href: '/commander/marketplace', icon: '/images/commander/icons/rp-marketplace.png' },
+      { label: 'Reputation', href: '/commander/reputation', icon: '/images/commander/icons/rp-reputation.png' },
     ],
   },
 ];
@@ -282,23 +300,32 @@ export default function CommanderDashboard() {
         .cmd-menu-item.danger { color: #ef4444; }
         .cmd-menu-item.danger:hover { background: rgba(239,68,68,0.1); color: #f87171; }
 
-        /* ── 4-CARD GRID ── */
+        /* ── 6-CARD GRID ── */
         .cmd-grid {
           display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 16px;
+          grid-template-columns: 1fr 1fr 1fr;
+          gap: 14px;
           padding: 16px;
-          max-width: 900px;
+          max-width: 1100px;
           margin: 0 auto;
           height: calc(100vh - 65px);
           grid-template-rows: 1fr 1fr;
         }
+        @media (max-width: 900px) {
+          .cmd-grid {
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: repeat(3, 1fr);
+            gap: 12px;
+          }
+        }
         @media (max-width: 640px) {
           .cmd-grid {
             grid-template-columns: 1fr;
-            grid-template-rows: repeat(4, 1fr);
-            gap: 12px;
+            grid-template-rows: repeat(6, minmax(120px, 1fr));
+            gap: 10px;
             padding: 12px;
+            height: auto;
+            min-height: calc(100vh - 65px);
           }
         }
 

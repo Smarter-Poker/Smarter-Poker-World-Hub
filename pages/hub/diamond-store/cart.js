@@ -114,9 +114,7 @@ export default function ShoppingCart() {
                             <div style={styles.emptyIcon}>🛒</div>
                             <h2 style={styles.emptyTitle}>Your cart is empty</h2>
                             <p style={styles.emptyText}>Add some items to get started!</p>
-                            <Link href="/hub/diamond-store">
-                                <a style={styles.shopButton}>Browse Store</a>
-                            </Link>
+                            <Link href="/hub/diamond-store" style={styles.shopButton}>Browse Store</Link>
                         </div>
                     ) : (
                         <div style={styles.cartLayout}>
@@ -163,9 +161,7 @@ export default function ShoppingCart() {
                                     Proceed to Checkout
                                 </button>
 
-                                <Link href="/hub/diamond-store">
-                                    <a style={styles.continueShoppingLink}>← Continue Shopping</a>
-                                </Link>
+                                <Link href="/hub/diamond-store" style={styles.continueShoppingLink}>← Continue Shopping</Link>
                             </div>
                         </div>
                     )}

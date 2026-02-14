@@ -138,9 +138,7 @@ export default function TrainingProgress() {
                     <UniversalHeader pageDepth={2} />
                     <div style={styles.emptyState}>
                         <h2>Sign in to view your progress</h2>
-                        <Link href="/login">
-                            <a style={styles.button}>Sign In</a>
-                        </Link>
+                        <Link href="/login" style={styles.button}>Sign In</Link>
                     </div>
                 </div>
             </PageTransition>
@@ -234,12 +232,8 @@ export default function TrainingProgress() {
 
                     {/* Actions */}
                     <div style={styles.actions}>
-                        <Link href="/hub/training">
-                            <a style={styles.primaryButton}>Continue Training</a>
-                        </Link>
-                        <Link href="/hub/training/leaderboard">
-                            <a style={styles.secondaryButton}>View Leaderboard</a>
-                        </Link>
+                        <Link href="/hub/training" style={styles.primaryButton}>Continue Training</Link>
+                        <Link href="/hub/training/leaderboard" style={styles.secondaryButton}>View Leaderboard</Link>
                     </div>
                 </div>
             </div>

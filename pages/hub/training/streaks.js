@@ -142,9 +142,7 @@ export default function StreaksPage() {
                     <UniversalHeader pageDepth={2} />
                     <div style={styles.emptyState}>
                         <h2>Sign in to view your streak</h2>
-                        <Link href="/login">
-                            <a style={styles.button}>Sign In</a>
-                        </Link>
+                        <Link href="/login" style={styles.button}>Sign In</Link>
                     </div>
                 </div>
             </PageTransition>

@@ -141,9 +141,7 @@ export default function TrainingLeaderboard() {
                             {leaderboard.length === 0 && (
                                 <div style={styles.emptyState}>
                                     <p>No data yet for this timeframe</p>
-                                    <Link href="/hub/training">
-                                        <a style={styles.button}>Start Training</a>
-                                    </Link>
+                                    <Link href="/hub/training" style={styles.button}>Start Training</Link>
                                 </div>
                             )}
                         </div>

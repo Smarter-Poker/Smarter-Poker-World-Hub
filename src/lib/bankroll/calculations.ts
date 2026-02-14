@@ -70,6 +70,8 @@ export async function calculateTotalBankroll(userId: string): Promise<number> {
   // Sum net results from all entries
   let total = 0;
   entries.forEach((e: any) => {
+    // Skip deposit/withdrawal — they are bankroll movements already tracked in segments
+    if (e.category === 'deposit' || e.category === 'withdrawal') return;
     if (e.category === 'expense') {
       total -= Math.abs(e.gross_in || 0);
     } else {
