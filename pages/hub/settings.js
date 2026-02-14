@@ -97,11 +97,11 @@ export default function SettingsPage() {
     // Hamburger Menu State
     const [menuOpen, setMenuOpen] = useState(false);
 
-    // Menu config
-    const menuConfig = getMenuConfig('settings', user, {}, {});
-
     //  Use context user or localStorage fallback
     const user = contextUser || localUser;
+
+    // Menu config
+    const menuConfig = getMenuConfig('settings', user, {}, {});
 
     //  BULLETPROOF: Read user from localStorage immediately (same as UniversalHeader)
     useEffect(() => {
