@@ -646,26 +646,24 @@ export default function UniversalHeader({
                     </Link>
 
                     {/* Live Help - Hidden on mobile */}
-                    <div className="hide-mobile">
-                        <button
-                            onClick={() => {
-                                console.log('[UniversalHeader] Live Help button clicked');
-                                liveHelp.setIsOpen(true);
-                            }}
-                            className="orb-btn"
-                            aria-label="Live Help"
-                            style={{
-                                background: 'none',
-                                border: 'none',
-                                padding: 0,
-                                cursor: 'pointer',
-                                zIndex: 10,
-                                overflow: 'hidden'
-                            }}
-                        >
-                            <img src="/images/header-help.png" alt="Live Help" style={{ width: '340%', height: '340%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} />
-                        </button>
-                    </div>
+                    <button
+                        onClick={() => {
+                            console.log('[UniversalHeader] Live Help button clicked');
+                            liveHelp.setIsOpen(true);
+                        }}
+                        className="orb-btn hide-mobile"
+                        aria-label="Live Help"
+                        style={{
+                            background: 'none',
+                            border: 'none',
+                            padding: 0,
+                            cursor: 'pointer',
+                            zIndex: 10,
+                            overflow: 'hidden'
+                        }}
+                    >
+                        <img src="/images/header-help.png" alt="Live Help" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '55%', left: '50%', transform: 'translate(-50%, -50%)' }} />
+                    </button>
 
                     {/* Push Notification Bell - hidden on mobile to save space */}
                     <div className="hide-mobile">
