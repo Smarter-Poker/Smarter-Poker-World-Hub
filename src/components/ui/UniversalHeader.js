@@ -96,6 +96,7 @@ export default function UniversalHeader({
     const [unreadMessages, setUnreadMessages] = useState(0);
     const [showFullDiamonds, setShowFullDiamonds] = useState(false);
     const [isWalletOpen, setIsWalletOpen] = useState(false);
+    const [isVip, setIsVip] = useState(false);
 
     // Live Help state
     const liveHelp = useLiveHelp();
@@ -154,13 +155,14 @@ export default function UniversalHeader({
                             console.log(`[UniversalHeader] API fetch attempt ${attempt}:`, result);
 
                             if (result.success && result.profile && mounted) {
-                                const { diamonds, full_name, username, avatar_url } = result.profile;
+                                const { diamonds, full_name, username, avatar_url, is_vip } = result.profile;
                                 setStats({ diamonds });
                                 setUser(prev => ({
                                     ...prev,
                                     avatar: avatar_url,
                                     name: full_name || username
                                 }));
+                                setIsVip(!!is_vip);
                                 // Set notification and message counts from API
                                 if (typeof result.notificationCount === 'number') {
                                     setNotificationCount(result.notificationCount);
@@ -605,6 +607,28 @@ export default function UniversalHeader({
 
                 {/* RIGHT: Orb Icons */}
                 <div className="header-right">
+                    {/* VIP Card Icon — only for VIP members */}
+                    {isVip && (
+                        <Link href="/hub/diamond-store" style={{ textDecoration: 'none' }}>
+                            <div className="orb-btn" style={{ borderRadius: 6 }}>
+                                <img
+                                    src="/images/vip-card.png"
+                                    alt="VIP Member"
+                                    style={{
+                                        width: '220%',
+                                        height: '220%',
+                                        maxWidth: 'none',
+                                        objectFit: 'contain',
+                                        position: 'absolute',
+                                        top: '50%',
+                                        left: '50%',
+                                        transform: 'translate(-50%, -50%)',
+                                    }}
+                                />
+                            </div>
+                        </Link>
+                    )}
+
                     {/* Avatar/Profile */}
                     <Link href="/hub/profile" style={{ textDecoration: 'none' }}>
                         <div

@@ -565,59 +565,7 @@ function VIPCard({ plan, isSelected, onSelect }) {
                 </div>
             </div>
 
-            {/* Recommended Badge */}
-            {plan.popular && (
-                <div style={{
-                    position: 'absolute',
-                    top: 10,
-                    right: 12,
-                    background: 'linear-gradient(135deg, #1877F2, #4285F4)',
-                    color: '#fff',
-                    fontSize: 10,
-                    fontWeight: 700,
-                    padding: '4px 10px',
-                    borderRadius: 10,
-                    textTransform: 'uppercase',
-                }}>
-                    Recommended
-                </div>
-            )}
 
-            {/* Savings Badge */}
-            {plan.savings && (
-                <div style={{
-                    position: 'absolute',
-                    top: 10,
-                    left: 12,
-                    background: 'linear-gradient(135deg, #00ff88, #00cc66)',
-                    color: '#0a1628',
-                    fontSize: 10,
-                    fontWeight: 700,
-                    padding: '4px 10px',
-                    borderRadius: 10,
-                }}>
-                    Save ${plan.savings.toFixed(2)}
-                </div>
-            )}
-
-            {/* Selected Indicator */}
-            {isSelected && (
-                <div style={{
-                    position: 'absolute',
-                    top: 10,
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    background: 'rgba(0,212,255,0.9)',
-                    color: '#000',
-                    fontSize: 10,
-                    fontWeight: 700,
-                    padding: '3px 12px',
-                    borderRadius: 10,
-                    textTransform: 'uppercase',
-                }}>
-                    Selected
-                </div>
-            )}
         </div>
     );
 }
