@@ -59,7 +59,6 @@ const CARDS = [
       { label: 'Dealers', href: '/commander/dealers', icon: '/images/commander/icons/mg-dealers.png' },
       { label: 'Dealer Rotation', href: '/commander/dealer-rotation', icon: '/images/commander/icons/tn-clock.png' },
       { label: 'Table Vibes', href: '/commander/table-vibes', icon: '/images/commander/icons/mg-table-vibes.png' },
-      { label: 'Game Start AI', href: '/commander/game-start', icon: '/images/commander/icons/mg-game-start-ai.png' },
     ],
   },
   {

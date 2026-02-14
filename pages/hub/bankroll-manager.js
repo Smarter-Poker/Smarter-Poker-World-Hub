@@ -644,22 +644,23 @@ export default function BankrollManagerPage() {
               font-weight: 600;
             }
             .bankroll-filters-row {
-              flex-direction: row !important;
-              flex-wrap: wrap !important;
-              overflow: visible !important;
+              display: grid !important;
+              grid-template-columns: repeat(2, 1fr) !important;
               gap: 6px !important;
               margin-bottom: 8px !important;
               padding-bottom: 4px;
             }
             .bankroll-filters-row > div {
-              flex-shrink: 0;
               position: relative;
+              min-width: 0;
             }
             .bankroll-filters-row button {
-              padding: 6px 10px !important;
+              padding: 6px 8px !important;
               font-size: 11px !important;
               white-space: nowrap;
-              width: auto !important;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              width: 100% !important;
               min-height: 32px;
               touch-action: manipulation;
             }
@@ -948,172 +949,172 @@ export default function BankrollManagerPage() {
                     marginBottom: 16,
                   }}>
 
-                  {/* Stats Cards */}
-                  <div className="bankroll-stats-grid" style={styles.statsGrid}>
-                    <StatCard
-                      title="Bankroll Balance"
-                      value={stats ? formatCurrency(stats.totalBankroll, preferences.currencyEUR) : '—'}
-                      isLoading={isLoading}
-                      onClick={() => setShowAdjustModal(true)}
-                    />
-                    <StatCard
-                      title="Net Results"
-                      value={
-                        stats
-                          ? formatCurrency(stats.allInNet, preferences.currencyEUR)
-                          : '—'
-                      }
-                      isLoading={isLoading}
-                    />
-                  </div>
+                    {/* Stats Cards */}
+                    <div className="bankroll-stats-grid" style={styles.statsGrid}>
+                      <StatCard
+                        title="Bankroll Balance"
+                        value={stats ? formatCurrency(stats.totalBankroll, preferences.currencyEUR) : '—'}
+                        isLoading={isLoading}
+                        onClick={() => setShowAdjustModal(true)}
+                      />
+                      <StatCard
+                        title="Net Results"
+                        value={
+                          stats
+                            ? formatCurrency(stats.allInNet, preferences.currencyEUR)
+                            : '—'
+                        }
+                        isLoading={isLoading}
+                      />
+                    </div>
 
-                  {/* Bankroll Trend Chart — filtered by gameTypeFilter, always include expenses */}
-                  <BankrollTrendChart entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} isLoading={isLoading} chartType={chartType} timeFilter={timeFilter} />
+                    {/* Bankroll Trend Chart — filtered by gameTypeFilter, always include expenses */}
+                    <BankrollTrendChart entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} isLoading={isLoading} chartType={chartType} timeFilter={timeFilter} />
 
-                  {/* Filters Row */}
-                  <div className="bankroll-filters-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 12 }}>
-                    {/* Location Dropdown */}
-                    <div style={styles.dropdownContainer} onClick={(e) => e.stopPropagation()}>
-                      <button
-                        style={styles.dropdownButton}
-                        onClick={() => {
-                          setShowLocationDropdown(!showLocationDropdown);
-                          setShowTimeDropdown(false);
-                          setShowGameTypeDropdown(false);
-                          setShowChartTypeDropdown(false);
-                        }}
-                      >
-                        {selectedLocationName} <span style={styles.dropdownArrow}>▼</span>
-                      </button>
-                      {showLocationDropdown && (
-                        <div className="bankroll-dropdown-menu" style={styles.dropdownMenu}>
-                          <button
-                            style={styles.dropdownItem}
-                            onClick={() => { setLocationFilter(null); setShowLocationDropdown(false); }}
-                          >
-                            All Locations
-                          </button>
-                          {locations.map((loc) => (
+                    {/* Filters Row */}
+                    <div className="bankroll-filters-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 12 }}>
+                      {/* Location Dropdown */}
+                      <div style={styles.dropdownContainer} onClick={(e) => e.stopPropagation()}>
+                        <button
+                          style={styles.dropdownButton}
+                          onClick={() => {
+                            setShowLocationDropdown(!showLocationDropdown);
+                            setShowTimeDropdown(false);
+                            setShowGameTypeDropdown(false);
+                            setShowChartTypeDropdown(false);
+                          }}
+                        >
+                          {selectedLocationName} <span style={styles.dropdownArrow}>▼</span>
+                        </button>
+                        {showLocationDropdown && (
+                          <div className="bankroll-dropdown-menu" style={styles.dropdownMenu}>
                             <button
-                              key={loc.id}
                               style={styles.dropdownItem}
-                              onClick={() => { setLocationFilter(loc.id); setShowLocationDropdown(false); }}
+                              onClick={() => { setLocationFilter(null); setShowLocationDropdown(false); }}
                             >
-                              {loc.name}
+                              All Locations
                             </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                            {locations.map((loc) => (
+                              <button
+                                key={loc.id}
+                                style={styles.dropdownItem}
+                                onClick={() => { setLocationFilter(loc.id); setShowLocationDropdown(false); }}
+                              >
+                                {loc.name}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
 
-                    {/* Time Filter Dropdown */}
-                    <div style={styles.dropdownContainer} onClick={(e) => e.stopPropagation()}>
-                      <button
-                        style={styles.dropdownButton}
-                        onClick={() => {
-                          setShowTimeDropdown(!showTimeDropdown);
-                          setShowLocationDropdown(false);
-                          setShowGameTypeDropdown(false);
-                          setShowChartTypeDropdown(false);
-                        }}
-                      >
-                        {timeFilter} <span style={styles.dropdownArrow}>▼</span>
-                      </button>
-                      {showTimeDropdown && (
-                        <div className="bankroll-dropdown-menu" style={styles.dropdownMenu}>
-                          {TIME_FILTERS.map((tf) => (
-                            <button
-                              key={tf}
-                              style={styles.dropdownItem}
-                              onClick={() => { setTimeFilter(tf); setShowTimeDropdown(false); }}
-                            >
-                              {tf}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                      {/* Time Filter Dropdown */}
+                      <div style={styles.dropdownContainer} onClick={(e) => e.stopPropagation()}>
+                        <button
+                          style={styles.dropdownButton}
+                          onClick={() => {
+                            setShowTimeDropdown(!showTimeDropdown);
+                            setShowLocationDropdown(false);
+                            setShowGameTypeDropdown(false);
+                            setShowChartTypeDropdown(false);
+                          }}
+                        >
+                          {timeFilter} <span style={styles.dropdownArrow}>▼</span>
+                        </button>
+                        {showTimeDropdown && (
+                          <div className="bankroll-dropdown-menu" style={styles.dropdownMenu}>
+                            {TIME_FILTERS.map((tf) => (
+                              <button
+                                key={tf}
+                                style={styles.dropdownItem}
+                                onClick={() => { setTimeFilter(tf); setShowTimeDropdown(false); }}
+                              >
+                                {tf}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
 
-                    {/* Game Type Multi-Select Dropdown */}
-                    <div style={styles.dropdownContainer} onClick={(e) => e.stopPropagation()}>
-                      <button
-                        style={styles.dropdownButton}
-                        onClick={() => {
-                          setShowGameTypeDropdown(!showGameTypeDropdown);
-                          setShowLocationDropdown(false);
-                          setShowTimeDropdown(false);
-                          setShowChartTypeDropdown(false);
-                        }}
-                      >
-                        Game Type ({gameTypeFilter.size}) <span style={styles.dropdownArrow}>▼</span>
-                      </button>
-                      {showGameTypeDropdown && (
-                        <div className="bankroll-dropdown-menu" style={{ ...styles.dropdownMenu, minWidth: 200 }}>
-                          {['poker_cash', 'poker_mtt', 'casino_table', 'slots', 'sports'].map((cat) => (
-                            <button
-                              key={cat}
-                              style={{
-                                ...styles.dropdownItem,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 8,
-                                background: gameTypeFilter.has(cat) ? 'rgba(35, 116, 225, 0.15)' : 'transparent',
-                              }}
-                              onClick={() => toggleGameType(cat)}
-                            >
-                              <span style={{
-                                width: 16,
-                                height: 16,
-                                borderRadius: 3,
-                                border: gameTypeFilter.has(cat) ? '2px solid #2374e1' : '2px solid rgba(255,255,255,0.3)',
-                                background: gameTypeFilter.has(cat) ? '#2374e1' : 'transparent',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: 11,
-                                color: '#fff',
-                                flexShrink: 0,
-                              }}>
-                                {gameTypeFilter.has(cat) ? '✓' : ''}
-                              </span>
-                              {CATEGORY_LABELS[cat]}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                      {/* Game Type Multi-Select Dropdown */}
+                      <div style={styles.dropdownContainer} onClick={(e) => e.stopPropagation()}>
+                        <button
+                          style={styles.dropdownButton}
+                          onClick={() => {
+                            setShowGameTypeDropdown(!showGameTypeDropdown);
+                            setShowLocationDropdown(false);
+                            setShowTimeDropdown(false);
+                            setShowChartTypeDropdown(false);
+                          }}
+                        >
+                          Game Type ({gameTypeFilter.size}) <span style={styles.dropdownArrow}>▼</span>
+                        </button>
+                        {showGameTypeDropdown && (
+                          <div className="bankroll-dropdown-menu" style={{ ...styles.dropdownMenu, minWidth: 200 }}>
+                            {['poker_cash', 'poker_mtt', 'casino_table', 'slots', 'sports'].map((cat) => (
+                              <button
+                                key={cat}
+                                style={{
+                                  ...styles.dropdownItem,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 8,
+                                  background: gameTypeFilter.has(cat) ? 'rgba(35, 116, 225, 0.15)' : 'transparent',
+                                }}
+                                onClick={() => toggleGameType(cat)}
+                              >
+                                <span style={{
+                                  width: 16,
+                                  height: 16,
+                                  borderRadius: 3,
+                                  border: gameTypeFilter.has(cat) ? '2px solid #2374e1' : '2px solid rgba(255,255,255,0.3)',
+                                  background: gameTypeFilter.has(cat) ? '#2374e1' : 'transparent',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: 11,
+                                  color: '#fff',
+                                  flexShrink: 0,
+                                }}>
+                                  {gameTypeFilter.has(cat) ? '✓' : ''}
+                                </span>
+                                {CATEGORY_LABELS[cat]}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
 
-                    {/* Chart Type Dropdown */}
-                    <div style={styles.dropdownContainer} onClick={(e) => e.stopPropagation()}>
-                      <button
-                        style={styles.dropdownButton}
-                        onClick={() => {
-                          setShowChartTypeDropdown(!showChartTypeDropdown);
-                          setShowLocationDropdown(false);
-                          setShowTimeDropdown(false);
-                          setShowGameTypeDropdown(false);
-                        }}
-                      >
-                        {CHART_TYPE_LABELS[chartType] || 'Line Chart'} <span style={styles.dropdownArrow}>▼</span>
-                      </button>
-                      {showChartTypeDropdown && (
-                        <div className="bankroll-dropdown-menu" style={styles.dropdownMenu}>
-                          {CHART_TYPES.map((ct) => (
-                            <button
-                              key={ct}
-                              style={{
-                                ...styles.dropdownItem,
-                                background: chartType === ct ? 'rgba(35, 116, 225, 0.15)' : 'transparent',
-                              }}
-                              onClick={() => handleChartTypeChange(ct)}
-                            >
-                              {CHART_TYPE_LABELS[ct]}
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                      {/* Chart Type Dropdown */}
+                      <div style={styles.dropdownContainer} onClick={(e) => e.stopPropagation()}>
+                        <button
+                          style={styles.dropdownButton}
+                          onClick={() => {
+                            setShowChartTypeDropdown(!showChartTypeDropdown);
+                            setShowLocationDropdown(false);
+                            setShowTimeDropdown(false);
+                            setShowGameTypeDropdown(false);
+                          }}
+                        >
+                          {CHART_TYPE_LABELS[chartType] || 'Line Chart'} <span style={styles.dropdownArrow}>▼</span>
+                        </button>
+                        {showChartTypeDropdown && (
+                          <div className="bankroll-dropdown-menu" style={styles.dropdownMenu}>
+                            {CHART_TYPES.map((ct) => (
+                              <button
+                                key={ct}
+                                style={{
+                                  ...styles.dropdownItem,
+                                  background: chartType === ct ? 'rgba(35, 116, 225, 0.15)' : 'transparent',
+                                }}
+                                onClick={() => handleChartTypeChange(ct)}
+                              >
+                                {CHART_TYPE_LABELS[ct]}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
 
                   </div>
 
