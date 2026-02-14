@@ -246,7 +246,7 @@ export default function DisplaysManagementPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push('/commander/dashboard')}
-                className="p-2 hover:bg-[#3A3B3C] rounded-lg transition-colors"
+                style={{ background: 'none', border: '1px solid #444', borderRadius: 10, padding: '8px 14px', color: '#ccc', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600 }}
               >
                 <ArrowLeft size={16} /> Back
               </button>

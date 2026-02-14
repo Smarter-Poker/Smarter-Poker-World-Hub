@@ -22,7 +22,7 @@ export default function WaitlistMetrics() {
   const [venueId, setVenueId] = useState(null);
 
   useEffect(() => {
-    try { const s = JSON.parse(localStorage.getItem('commander_staff') || '{}'); if (s.venue_id) setVenueId(s.venue_id); } catch {}
+    try { const s = JSON.parse(localStorage.getItem('commander_staff') || '{}'); if (s.venue_id) setVenueId(s.venue_id); } catch { }
   }, []);
   const getToken = () => localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
 
@@ -51,7 +51,7 @@ export default function WaitlistMetrics() {
       <Head><title>Waitlist Metrics | Club Commander</title></Head>
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
-          <button onClick={() => router.push('/commander/reports')} className="p-2 rounded-lg active:bg-[#3A3B3C]"><ArrowLeft size={16} /> Back</button>
+          <button onClick={() => router.push('/commander/reports')} style={{ background: 'none', border: '1px solid #444', borderRadius: 10, padding: '8px 14px', color: '#ccc', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600 }}><ArrowLeft size={16} /> Back</button>
           <div className="flex-1"><h1 className="text-lg font-bold text-white">Waitlist Metrics</h1><p className="text-xs text-[#B0B3B8]">{RANGES.find(r => r.value === range)?.label}</p></div>
           <button onClick={fetchData} className="p-2 rounded-lg active:bg-[#3A3B3C]"><RefreshCw className="w-5 h-5 text-[#B0B3B8]" /></button>
         </div>

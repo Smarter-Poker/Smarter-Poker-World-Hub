@@ -425,9 +425,8 @@ function EquipmentCard({ equipment, onRent }) {
           <MapPin className="w-4 h-4" />
           {equipment.location || 'Local pickup'}
         </span>
-        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-          equipment.available ? 'bg-[#31A24C]/10 text-[#31A24C]' : 'bg-[#EF4444]/10 text-[#EF4444]'
-        }`}>
+        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${equipment.available ? 'bg-[#31A24C]/10 text-[#31A24C]' : 'bg-[#EF4444]/10 text-[#EF4444]'
+          }`}>
           {equipment.available ? 'Available' : 'Rented'}
         </span>
       </div>
@@ -544,7 +543,7 @@ export default function MarketplacePage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push('/commander/dashboard')}
-                className="p-2 hover:bg-[#3A3B3C] rounded-lg"
+                style={{ background: 'none', border: '1px solid #444', borderRadius: 10, padding: '8px 14px', color: '#ccc', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600 }}
               >
                 <ArrowLeft size={16} /> Back
               </button>
@@ -560,22 +559,20 @@ export default function MarketplacePage() {
           <div className="max-w-4xl mx-auto px-4 flex gap-1 border-t border-[#3A3B3C]">
             <button
               onClick={() => setActiveTab('dealers')}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'dealers'
+              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'dealers'
                   ? 'border-[#1877F2] text-[#1877F2]'
                   : 'border-transparent text-[#B0B3B8] hover:text-white'
-              }`}
+                }`}
             >
               <Users className="w-4 h-4 inline-block mr-2" />
               Dealers
             </button>
             <button
               onClick={() => setActiveTab('equipment')}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'equipment'
+              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'equipment'
                   ? 'border-[#31A24C] text-[#31A24C]'
                   : 'border-transparent text-[#B0B3B8] hover:text-white'
-              }`}
+                }`}
             >
               <Package className="w-4 h-4 inline-block mr-2" />
               Equipment

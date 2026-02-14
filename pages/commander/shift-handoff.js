@@ -130,7 +130,7 @@ export default function ShiftHandoff() {
       <div style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: 'Inter, system-ui, sans-serif' }}>
         {/* Header */}
         <div style={{ background: '#1877F2', color: 'white', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button onClick={() => mode === 'menu' ? router.push('/commander/dashboard') : setMode('menu')} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: 4 }}>
+          <button onClick={() => mode === 'menu' ? router.push('/commander/dashboard') : setMode('menu')} style={{ background: 'none', border: '1px solid #444', borderRadius: 10, padding: '8px 14px', color: '#ccc', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600 }}>
             <ArrowLeft size={16} /> Back
           </button>
           <ArrowRightLeft size={22} />

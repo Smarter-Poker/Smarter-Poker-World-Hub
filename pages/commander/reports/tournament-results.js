@@ -57,7 +57,7 @@ export default function TournamentResultsReport() {
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
           <button onClick={() => router.push('/commander/reports')}
-            className="w-10 h-10 rounded-lg bg-[#3A3B3C] flex items-center justify-center active:bg-[#4A4B4C]">
+            style={{ background: 'none', border: '1px solid #444', borderRadius: 10, padding: '8px 14px', color: '#ccc', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600 }}>
             <ArrowLeft size={16} /> Back
           </button>
           <h1 className="text-lg font-bold text-white">Tournament Results</h1>
