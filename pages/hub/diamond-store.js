@@ -15,7 +15,7 @@ import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import ShoppingCart from '../../src/components/store/ShoppingCart';
 import useCartStore from '../../src/stores/cartStore';
-import { createClient } from '@supabase/supabase-js';
+import supabase from '../../src/lib/supabase';
 
 
 
@@ -526,7 +526,7 @@ function VIPCard({ plan, isSelected, onSelect }) {
         >
             {/* VIP Card Image As Full Background */}
             <img
-                src="/images/vip-card.jpg"
+                src="/images/vip-card.png"
                 alt={plan.name}
                 style={{
                     width: '100%',
@@ -791,11 +791,6 @@ export default function DiamondStorePage() {
         setIsProcessing(true);
 
         try {
-            const supabase = createClient(
-                process.env.NEXT_PUBLIC_SUPABASE_URL,
-                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-            );
-
             const { data: { session } } = await supabase.auth.getSession();
 
             if (!session) {
@@ -804,9 +799,21 @@ export default function DiamondStorePage() {
                 return;
             }
 
-            // For now, show coming soon message
+            // Check if user already has an active VIP subscription
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('is_vip, vip_tier, vip_expires_at')
+                .eq('id', session.user.id)
+                .single();
+
+            if (profile?.is_vip && profile?.vip_expires_at && new Date(profile.vip_expires_at) > new Date()) {
+                alert(`You already have an active VIP ${profile.vip_tier || ''} membership! Your subscription is active until ${new Date(profile.vip_expires_at).toLocaleDateString()}.`);
+                setIsProcessing(false);
+                return;
+            }
+
             // TODO: Add Stripe Price IDs for VIP subscriptions
-            alert('VIP subscriptions coming soon! We need to configure Stripe Price IDs first.');
+            alert('VIP subscriptions launching soon! Stay tuned.');
             setIsProcessing(false);
 
         } catch (error) {
@@ -1197,7 +1204,7 @@ export default function DiamondStorePage() {
                                                 <h3 style={styles.overviewCardTitle}>VIP Membership</h3>
                                                 <div style={{ marginTop: 12, marginBottom: 12 }}>
                                                     <img
-                                                        src="/images/vip-card.jpg"
+                                                        src="/images/vip-card.png"
                                                         alt="VIP Membership Card"
                                                         style={{
                                                             width: '100%',
