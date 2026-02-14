@@ -1001,6 +1001,18 @@ export default function DiamondStorePage() {
                         </div>
                     )}
 
+                    {/* VIP Membership Banner — Outside content container for full width */}
+                    {activeTab === 'vip' && (
+                        <div style={{ width: '100%', position: 'relative' }}>
+                            <img
+                                src="/images/vip-membership-header.png"
+                                alt="VIP Membership — Unlock Everything For One Low Monthly Price. No Diamond Costs, No Limits."
+                                style={{ width: '100%', height: 'auto', display: 'block' }}
+                                draggable={false}
+                            />
+                        </div>
+                    )}
+
                     {/* Main Content (non-diamonds tabs) */}
                     <div style={styles.content}>
 
@@ -1009,15 +1021,6 @@ export default function DiamondStorePage() {
                         {/* ═══════════════════════════════════════════════════════════════════ */}
                         {activeTab === 'vip' && (
                             <>
-                                {/* VIP Hero Banner */}
-                                <div style={{ width: '100%', position: 'relative' }}>
-                                    <img
-                                        src="/images/vip-membership-header.png"
-                                        alt="VIP Membership — Unlock Everything For One Low Monthly Price. No Diamond Costs, No Limits."
-                                        style={{ width: '100%', height: 'auto', display: 'block' }}
-                                        draggable={false}
-                                    />
-                                </div>
 
                                 {/* VIP Plan Selection */}
                                 <div style={styles.vipPlansRow}>
