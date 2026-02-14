@@ -939,7 +939,7 @@ export default function DiamondStorePage() {
                     </div>
 
                     {/* ═══════════════════════════════════════════════════════ */}
-                    {/* DIAMONDS TAB — Full-page image content below header */}
+                    {/* DIAMONDS TAB — Checkout image with clickable zones */}
                     {/* ═══════════════════════════════════════════════════════ */}
                     {activeTab === 'diamonds' && (
                         <div style={{
@@ -947,20 +947,20 @@ export default function DiamondStorePage() {
                             width: '100%',
                         }}>
                             <img
-                                src="/images/diamond-store-full-page.jpg"
-                                alt="Diamond Store"
+                                src="/images/diamond-store-checkout.png"
+                                alt="Diamond Packages — Click any box to add to cart"
                                 style={{ width: '100%', height: 'auto', display: 'block' }}
                                 draggable={false}
                             />
 
-                            {/* ── Diamond package clickable zones (6 cards) ── */}
+                            {/* ── Diamond package clickable zones (6 boxes, 2×3 grid) ── */}
                             {[
-                                { pkgIndex: 0, left: '3%', top: '36%', width: '46%', height: '18%' }, // 1,000 — Medium
-                                { pkgIndex: 1, left: '51%', top: '36%', width: '46%', height: '18%' }, // 2,500 — Standard
-                                { pkgIndex: 3, left: '3%', top: '55%', width: '46%', height: '18%' }, // 10,500 — Value
-                                { pkgIndex: 2, left: '51%', top: '55%', width: '46%', height: '18%' }, // 5,000 — Large
-                                { pkgIndex: 4, left: '3%', top: '76%', width: '46%', height: '20%' }, // 26,250 — Premium
-                                { pkgIndex: 5, left: '51%', top: '76%', width: '46%', height: '20%' }, // 52,500 — Whale
+                                { pkgIndex: 2, left: '3%', top: '25%', width: '46%', height: '21%' }, // 1,000 💎 — Micro $10
+                                { pkgIndex: 3, left: '51%', top: '25%', width: '46%', height: '21%' }, // 2,500 💎 — Standard $25
+                                { pkgIndex: 4, left: '3%', top: '49%', width: '46%', height: '23%' }, // 5,000 💎 — Large $50
+                                { pkgIndex: 5, left: '51%', top: '49%', width: '46%', height: '23%' }, // 10,500 💎 — Value $100
+                                { pkgIndex: 6, left: '3%', top: '74%', width: '46%', height: '25%' }, // 26,250 💎 — Premium $250
+                                { pkgIndex: 7, left: '51%', top: '74%', width: '46%', height: '25%' }, // 52,500 💎 — Whale $500
                             ].map(({ pkgIndex, left, top, width, height }) => {
                                 const pkg = DIAMOND_PACKAGES[pkgIndex];
                                 if (!pkg) return null;
@@ -968,7 +968,7 @@ export default function DiamondStorePage() {
                                     <div
                                         key={pkg.id}
                                         onClick={() => handleAddToCart(pkg)}
-                                        title={`${pkg.name} — $${pkg.price.toFixed(2)} — Click to add to cart`}
+                                        title={`${pkg.name} — ${(pkg.diamonds + (pkg.bonus || 0)).toLocaleString()} 💎 — $${pkg.price.toFixed(2)} — Click to add to cart`}
                                         style={{
                                             position: 'absolute',
                                             left,
@@ -978,7 +978,10 @@ export default function DiamondStorePage() {
                                             cursor: 'pointer',
                                             background: 'transparent',
                                             borderRadius: 8,
+                                            transition: 'box-shadow 0.2s ease',
                                         }}
+                                        onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 0 20px rgba(0,180,255,0.4), inset 0 0 15px rgba(0,180,255,0.15)'}
+                                        onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}
                                     />
                                 );
                             })}
