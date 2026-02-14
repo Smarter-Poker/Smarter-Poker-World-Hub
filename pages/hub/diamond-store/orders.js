@@ -99,7 +99,7 @@ export default function OrderHistory() {
 
                 <div style={styles.content}>
                     <div style={styles.header}>
-                        <h1 style={styles.title}>📦 Order History</h1>
+                        <h1 style={styles.title}>Order History</h1>
                         <Link href="/hub/diamond-store" style={styles.shopLink}>
                             Continue Shopping →
                         </Link>
@@ -107,16 +107,16 @@ export default function OrderHistory() {
 
                     {loading ? (
                         <div style={styles.loadingContainer}>
-                            <div style={styles.spinner}>📦</div>
-                            <p style={styles.loadingText}>Loading orders...</p>
+                            <div style={styles.spinner}></div>
+                            <p style={styles.loadingText}>Loading Orders...</p>
                         </div>
                     ) : orders.length === 0 ? (
                         <div style={styles.emptyState}>
-                            <div style={styles.emptyIcon}>📦</div>
-                            <h2 style={styles.emptyTitle}>No orders yet</h2>
-                            <p style={styles.emptyText}>Your order history will appear here after your first purchase</p>
+                            <div style={styles.emptyIcon}></div>
+                            <h2 style={styles.emptyTitle}>No Orders Yet</h2>
+                            <p style={styles.emptyText}>Your Order History Will Appear Here After Your First Purchase</p>
                             <Link href="/hub/diamond-store" style={styles.shopButton}>
-                                Diamonds Visit Diamond Store
+                                Visit Diamond Store
                             </Link>
                         </div>
                     ) : (

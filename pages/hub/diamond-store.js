@@ -24,16 +24,16 @@ import { createClient } from '@supabase/supabase-js';
 // Streak Multipliers: 1.0x (Days 1-3), 1.5x (Days 4-6), 2.0x (Day 7+)
 // ═══════════════════════════════════════════════════════════════════════════
 const STANDARD_REWARDS = [
-    { id: 'daily_login', icon: '📅', name: 'Daily Login', amount: '5-50 💎', note: 'Scales with streak (Day 1: 5💎, Day 7+: 50💎)', category: 'Daily' },
-    { id: 'first_training_of_day', icon: '🎯', name: 'First Training', amount: '+25 💎', note: 'Complete your first training session of the day', category: 'Daily' },
-    { id: 'level_completion_85', icon: '✅', name: 'Level Mastery', amount: '+10 💎', note: 'Complete a level with 85%+ accuracy', category: 'Training' },
-    { id: 'perfect_score_bonus', icon: '💯', name: 'Perfect Score', amount: '+5 💎', note: 'Bonus for 100% accuracy on a level', category: 'Training' },
-    { id: 'new_level_unlocked', icon: '🔓', name: 'Level Unlocked', amount: '+50 💎', note: 'Unlock a new training level', category: 'Training' },
-    { id: 'social_post_share', icon: '📝', name: 'Share Post', amount: '+15 💎', note: 'Share a hand, achievement, or thought', category: 'Social' },
-    { id: 'strategy_comment', icon: '💬', name: 'Strategy Comment', amount: '+5 💎', note: 'Leave a thoughtful strategy comment', category: 'Social' },
-    { id: 'bonus_milestone', icon: '🏆', name: 'Bonus Milestone', amount: '+100 💎', note: 'Reach a periodic engagement milestone', category: 'Progression' },
-    { id: 'gto_chart_study', icon: '📊', name: 'Chart Study', amount: '+10 💎', note: 'Study GTO charts for 3+ minutes', category: 'Training' },
-    { id: 'referral_success', icon: '👥', name: 'Successful Referral', amount: '+500 💎', note: 'Refer a friend who verifies email & phone (BYPASSES CAP!)', category: 'Referral', bypassesCap: true },
+    { id: 'daily_login', icon: '📅', name: 'Daily Login', amount: '5-50 💎', note: 'Scales With Streak (Day 1: 5💎, Day 7+: 50💎)', category: 'Daily' },
+    { id: 'first_training_of_day', icon: '🎯', name: 'First Training', amount: '+25 💎', note: 'Complete Your First Training Session Of The Day', category: 'Daily' },
+    { id: 'level_completion_85', icon: '✅', name: 'Level Mastery', amount: '+10 💎', note: 'Complete A Level With 85%+ Accuracy', category: 'Training' },
+    { id: 'perfect_score_bonus', icon: '💯', name: 'Perfect Score', amount: '+5 💎', note: 'Bonus For 100% Accuracy On A Level', category: 'Training' },
+    { id: 'new_level_unlocked', icon: '🔓', name: 'Level Unlocked', amount: '+50 💎', note: 'Unlock A New Training Level', category: 'Training' },
+    { id: 'social_post_share', icon: '📝', name: 'Share Post', amount: '+15 💎', note: 'Share A Hand, Achievement, Or Thought', category: 'Social' },
+    { id: 'strategy_comment', icon: '💬', name: 'Strategy Comment', amount: '+5 💎', note: 'Leave A Thoughtful Strategy Comment', category: 'Social' },
+    { id: 'bonus_milestone', icon: '🏆', name: 'Bonus Milestone', amount: '+100 💎', note: 'Reach A Periodic Engagement Milestone', category: 'Progression' },
+    { id: 'gto_chart_study', icon: '📊', name: 'Chart Study', amount: '+10 💎', note: 'Study GTO Charts For 3+ Minutes', category: 'Training' },
+    { id: 'referral_success', icon: '👥', name: 'Successful Referral', amount: '+500 💎', note: 'Refer A Friend Who Verifies Email & Phone (BYPASSES CAP!)', category: 'Referral', bypassesCap: true },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -285,7 +285,7 @@ const MERCHANDISE = [
     {
         id: 'card-protector-gold',
         name: 'Gold Card Protector',
-        description: 'Premium weighted card protector with Smarter.Poker logo',
+        description: 'Premium Weighted Card Protector With Smarter.Poker Logo',
         price: 24.99,
         image: '/merch/card-protector-gold.jpg',
         category: 'accessories',
@@ -293,7 +293,7 @@ const MERCHANDISE = [
     {
         id: 'card-protector-black',
         name: 'Stealth Card Protector',
-        description: 'Matte black weighted card protector',
+        description: 'Matte Black Weighted Card Protector',
         price: 24.99,
         image: '/merch/card-protector-black.jpg',
         category: 'accessories',
@@ -301,7 +301,7 @@ const MERCHANDISE = [
     {
         id: 'hoodie-neural',
         name: 'Neural Network Hoodie',
-        description: 'Premium hoodie with neural poker design',
+        description: 'Premium Hoodie With Neural Poker Design',
         price: 59.99,
         image: '/merch/hoodie-neural.jpg',
         category: 'apparel',
@@ -309,7 +309,7 @@ const MERCHANDISE = [
     {
         id: 'tshirt-gto',
         name: 'GTO Wizard Tee',
-        description: '100% cotton tee with GTO brain graphic',
+        description: '100% Cotton Tee With GTO Brain Graphic',
         price: 29.99,
         image: '/merch/tshirt-gto.jpg',
         category: 'apparel',
@@ -317,7 +317,7 @@ const MERCHANDISE = [
     {
         id: 'hat-diamond',
         name: 'Diamond Dad Hat',
-        description: 'Embroidered diamond logo cap',
+        description: 'Embroidered Diamond Logo Cap',
         price: 34.99,
         image: '/merch/hat-diamond.jpg',
         category: 'apparel',
@@ -325,7 +325,7 @@ const MERCHANDISE = [
     {
         id: 'deck-premium',
         name: 'Premium Playing Cards',
-        description: 'Casino-quality Smarter.Poker deck',
+        description: 'Casino-Quality Smarter.Poker Deck',
         price: 14.99,
         image: '/merch/deck-premium.jpg',
         category: 'accessories',
@@ -333,7 +333,7 @@ const MERCHANDISE = [
     {
         id: 'chip-set-100',
         name: '100-Chip Travel Set',
-        description: 'Clay composite chips in aluminum case',
+        description: 'Clay Composite Chips In Aluminum Case',
         price: 79.99,
         image: '/merch/chip-set-100.jpg',
         category: 'accessories',
@@ -341,7 +341,7 @@ const MERCHANDISE = [
     {
         id: 'chip-set-500',
         name: '500-Chip Pro Set',
-        description: 'Full tournament set with dealer button',
+        description: 'Full Tournament Set With Dealer Button',
         price: 199.99,
         image: '/merch/chip-set-500.jpg',
         category: 'accessories',
@@ -494,7 +494,7 @@ function PackageCard({ pkg, onSelect, isSelected, onAddToCart }) {
                 onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
                 onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
             >
-                Add to Cart
+                Add To Cart
             </button>
         </div>
     );
@@ -997,7 +997,7 @@ export default function DiamondStorePage() {
                                 <div style={styles.vipHero}>
                                     <h2 style={styles.vipTitle}>VIP Membership</h2>
                                     <p style={styles.vipSubtitle}>
-                                        Unlock <strong>everything</strong> for one low monthly price. No diamond costs, no limits.
+                                        Unlock <strong>Everything</strong> For One Low Monthly Price. No Diamond Costs, No Limits.
                                     </p>
                                 </div>
 
@@ -1027,12 +1027,12 @@ export default function DiamondStorePage() {
                                     >
                                         {isProcessing ? 'Processing...' : `Subscribe for $${selectedVIPPlan.price.toFixed(2)}/${selectedVIPPlan.interval}`}
                                     </button>
-                                    <p style={styles.vipCancelNote}>Cancel anytime. No commitment required.</p>
+                                    <p style={styles.vipCancelNote}>Cancel Anytime. No Commitment Required.</p>
                                 </div>
 
                                 {/* VIP Benefits Table */}
                                 <div style={styles.benefitsSection}>
-                                    <h3 style={styles.benefitsTitle}>Everything Included with VIP</h3>
+                                    <h3 style={styles.benefitsTitle}>Everything Included With VIP</h3>
 
                                     {/* Smarter.Poker Platform */}
                                     <div style={styles.benefitsCategoryHeader}>
@@ -1107,7 +1107,7 @@ export default function DiamondStorePage() {
                                 <div style={styles.intro}>
                                     <h2 style={styles.merchTitle}>Official Merch</h2>
                                     <p style={styles.introText}>
-                                        Rep the Smarter.Poker brand at the tables. Premium quality gear for serious players.
+                                        Rep The Smarter.Poker Brand At The Tables. Premium Quality Gear For Serious Players.
                                     </p>
                                 </div>
 
@@ -1176,7 +1176,7 @@ export default function DiamondStorePage() {
                                     <div style={styles.rewardsOverview}>
                                         <h2 style={styles.earnTitle}>Smarter Rewards</h2>
                                         <p style={styles.introText}>
-                                            Welcome to the Smarter Rewards system! Earn diamonds by playing, training, and engaging with the community.
+                                            Welcome To The Smarter Rewards System! Earn Diamonds By Playing, Training, And Engaging With The Community.
                                         </p>
 
                                         <div style={styles.overviewGrid}>
@@ -1184,8 +1184,8 @@ export default function DiamondStorePage() {
                                                 <div style={styles.overviewIcon}></div>
                                                 <h3 style={styles.overviewCardTitle}>Diamond Rewards</h3>
                                                 <p style={styles.overviewCardText}>
-                                                    Earn diamonds through daily logins, training, social engagement, and referrals.
-                                                    <strong style={{ color: '#00ff88' }}> Daily cap: 500</strong> with streak multipliers!
+                                                    Earn Diamonds Through Daily Logins, Training, Social Engagement, And Referrals.
+                                                    <strong style={{ color: '#00ff88' }}> Daily Cap: 500</strong> With Streak Multipliers!
                                                 </p>
                                             </div>
 
@@ -1219,7 +1219,7 @@ export default function DiamondStorePage() {
                                                         textAlign: 'center',
                                                     }}>
                                                         <div style={{ fontSize: 20, fontWeight: 800, color: '#FFD700', fontFamily: 'Orbitron, sans-serif' }}>$19.99</div>
-                                                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>per month</div>
+                                                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>Per Month</div>
                                                     </div>
                                                     <div style={{
                                                         background: 'linear-gradient(135deg, rgba(0,212,255,0.15), rgba(0,212,255,0.05))',
@@ -1229,7 +1229,7 @@ export default function DiamondStorePage() {
                                                         textAlign: 'center',
                                                     }}>
                                                         <div style={{ fontSize: 20, fontWeight: 800, color: '#00D4FF', fontFamily: 'Orbitron, sans-serif' }}>$199.99</div>
-                                                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>per year (save $40!)</div>
+                                                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>Per Year (Save $40!)</div>
                                                     </div>
                                                 </div>
                                                 <button
@@ -1255,8 +1255,8 @@ export default function DiamondStorePage() {
                                                 <div style={styles.overviewIcon}></div>
                                                 <h3 style={styles.overviewCardTitle}>Easter Eggs</h3>
                                                 <p style={styles.overviewCardText}>
-                                                    Discover <strong>100 hidden achievements</strong> across 6 categories.
-                                                    From Performance to Legacy Milestones, find them all for massive rewards!
+                                                    Discover <strong>100 Hidden Achievements</strong> Across 6 Categories.
+                                                    From Performance To Legacy Milestones, Find Them All For Massive Rewards!
                                                 </p>
                                             </div>
                                         </div>
@@ -1287,7 +1287,7 @@ export default function DiamondStorePage() {
                                     <div style={styles.diamondRewardsSection}>
                                         <h2 style={styles.earnTitle}>Diamond Rewards</h2>
                                         <p style={styles.introText}>
-                                            All 10 ways you can earn diamonds on Smarter.Poker
+                                            All 10 Ways You Can Earn Diamonds On Smarter.Poker
                                         </p>
 
                                         {/* Daily Cap Banner */}
@@ -1335,7 +1335,7 @@ export default function DiamondStorePage() {
                                     <div style={styles.easterEggsSection}>
                                         <h2 style={styles.earnTitle}>Easter Eggs - 100 Hidden Achievements</h2>
                                         <p style={styles.introText}>
-                                            Discover 100 hidden achievements across 6 categories for massive bonus rewards!
+                                            Discover 100 Hidden Achievements Across 6 Categories For Massive Bonus Rewards!
                                         </p>
 
                                         {/* Performance Category (10 eggs) */}

@@ -91,8 +91,8 @@ export default function ShoppingCart() {
     if (loading) {
         return (
             <div style={styles.loadingContainer}>
-                <div style={styles.spinner}>🛒</div>
-                <p style={styles.loadingText}>Loading cart...</p>
+                <div style={styles.spinner}></div>
+                <p style={styles.loadingText}>Loading Cart...</p>
             </div>
         );
     }
@@ -107,13 +107,13 @@ export default function ShoppingCart() {
                 <UniversalHeader pageDepth={2} />
 
                 <div style={styles.content}>
-                    <h1 style={styles.title}>🛒 Shopping Cart</h1>
+                    <h1 style={styles.title}>Shopping Cart</h1>
 
                     {cart.length === 0 ? (
                         <div style={styles.emptyState}>
-                            <div style={styles.emptyIcon}>🛒</div>
-                            <h2 style={styles.emptyTitle}>Your cart is empty</h2>
-                            <p style={styles.emptyText}>Add some items to get started!</p>
+                            <div style={styles.emptyIcon}></div>
+                            <h2 style={styles.emptyTitle}>Your Cart Is Empty</h2>
+                            <p style={styles.emptyText}>Add Some Items To Get Started!</p>
                             <Link href="/hub/diamond-store" style={styles.shopButton}>Browse Store</Link>
                         </div>
                     ) : (
@@ -147,7 +147,7 @@ export default function ShoppingCart() {
 
                                 <div style={styles.summaryRow}>
                                     <span>Tax</span>
-                                    <span>Calculated at checkout</span>
+                                    <span>Calculated At Checkout</span>
                                 </div>
 
                                 <div style={styles.divider} />
@@ -158,7 +158,7 @@ export default function ShoppingCart() {
                                 </div>
 
                                 <button onClick={handleCheckout} style={styles.checkoutButton}>
-                                    Proceed to Checkout
+                                    Proceed To Checkout
                                 </button>
 
                                 <Link href="/hub/diamond-store" style={styles.continueShoppingLink}>← Continue Shopping</Link>

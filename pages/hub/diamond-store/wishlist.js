@@ -65,13 +65,13 @@ export default function Wishlist() {
                     {loading ? (
                         <div style={styles.loadingContainer}>
                             <div style={styles.spinner}></div>
-                            <p style={styles.loadingText}>Loading wishlist...</p>
+                            <p style={styles.loadingText}>Loading Wishlist...</p>
                         </div>
                     ) : wishlist.length === 0 ? (
                         <div style={styles.emptyState}>
                             <div style={styles.emptyIcon}></div>
-                            <h2 style={styles.emptyTitle}>Your wishlist is empty</h2>
-                            <p style={styles.emptyText}>Save items you love for later</p>
+                            <h2 style={styles.emptyTitle}>Your Wishlist Is Empty</h2>
+                            <p style={styles.emptyText}>Save Items You Love For Later</p>
                         </div>
                     ) : (
                         <div style={styles.wishlistGrid}>
