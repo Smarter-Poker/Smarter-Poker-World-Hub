@@ -56,7 +56,6 @@ function IncidentCard({ incident, onClick }) {
   };
 
   return (
-    <CommanderLayout title="Incidents" backHref="/commander/dashboard">
     <button
       onClick={onClick}
       className="w-full cmd-panel p-4 text-left hover:border-[#1877F2] transition-colors"
@@ -169,11 +168,10 @@ function CreateIncidentModal({ onSubmit, onClose }) {
                   key={level.value}
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, severity: level.value }))}
-                  className={`py-2 rounded-lg border text-sm font-medium transition-colors ${
-                    formData.severity === level.value
+                  className={`py-2 rounded-lg border text-sm font-medium transition-colors ${formData.severity === level.value
                       ? `border-2`
                       : 'border-[#3A3B3C] text-[#B0B3B8]'
-                  }`}
+                    }`}
                   style={{
                     borderColor: formData.severity === level.value ? level.color : undefined,
                     backgroundColor: formData.severity === level.value ? `${level.color}15` : undefined,
@@ -507,7 +505,8 @@ export default function IncidentsPage() {
   }
 
   return (
-    <><div className="cmd-page">
+    <CommanderLayout title="Incidents" backHref="/commander/dashboard">
+      <div className="cmd-page">
         {/* Header */}
         <header className="cmd-header-bar sticky top-0 z-40">
           <div className="max-w-4xl mx-auto px-4 py-4">
@@ -562,11 +561,10 @@ export default function IncidentsPage() {
                 <button
                   key={f.value}
                   onClick={() => setFilter(f.value)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                    filter === f.value
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${filter === f.value
                       ? 'bg-[#1877F2] text-white'
                       : 'bg-[#242526] border border-[#3A3B3C] text-[#B0B3B8] hover:border-[#1877F2]'
-                  }`}
+                    }`}
                 >
                   {f.label}
                 </button>
@@ -615,7 +613,6 @@ export default function IncidentsPage() {
           />
         )}
       </div>
-    </>
     </CommanderLayout>
   );
 }
