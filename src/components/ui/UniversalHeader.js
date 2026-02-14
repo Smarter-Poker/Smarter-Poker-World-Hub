@@ -415,8 +415,8 @@ export default function UniversalHeader({
 
                 
                 .orb-btn {
-                    width: 36px;
-                    height: 36px;
+                    width: 40px;
+                    height: 40px;
                     background: transparent;
                     border: none;
                     display: flex;
@@ -517,10 +517,10 @@ export default function UniversalHeader({
                         display: none !important;
                     }
                     
-                    /* Bigger icons on mobile for touch */
+                    /* Match profile orb size on mobile */
                     .orb-btn, .profile-orb {
-                        width: 32px;
-                        height: 32px;
+                        width: 40px;
+                        height: 40px;
                         font-size: 14px;
                     }
                     
