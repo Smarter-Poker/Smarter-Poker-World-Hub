@@ -146,10 +146,10 @@ export default function CommanderTournamentsPage() {
   const displayTournaments = filter === 'all'
     ? tournaments
     : filter === 'upcoming'
-    ? upcomingTournaments
-    : filter === 'active'
-    ? activeTournaments
-    : completedTournaments;
+      ? upcomingTournaments
+      : filter === 'active'
+        ? activeTournaments
+        : completedTournaments;
 
   if (!staff || loading) {
     return (
@@ -173,9 +173,9 @@ export default function CommanderTournamentsPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push('/commander/dashboard')}
-                className="p-2 hover:bg-[#3A3B3C] rounded-lg transition-colors"
+                style={{ background: 'none', border: '1px solid #444', borderRadius: 10, padding: '8px 14px', color: '#ccc', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600 }}
               >
-                <img src="/images/btn-back.png" alt="Back" style={{ height: 38 }} />
+                <ArrowLeft size={16} /> Back
               </button>
               <div>
                 <h1 className="font-bold text-white text-lg">Tournaments</h1>
@@ -231,11 +231,10 @@ export default function CommanderTournamentsPage() {
               <button
                 key={opt.value}
                 onClick={() => setFilter(opt.value)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-                  filter === opt.value
+                className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${filter === opt.value
                     ? 'bg-[#1877F2] text-white'
                     : 'bg-[#3A3B3C] text-[#B0B3B8] hover:bg-[#3A3B3C]'
-                }`}
+                  }`}
               >
                 {opt.label}
               </button>
@@ -274,9 +273,8 @@ export default function CommanderTournamentsPage() {
                   <button
                     key={tournament.id}
                     onClick={() => openTournament(tournament)}
-                    className={`w-full cmd-panel p-4 text-left transition-all hover:border-[#1877F2]/30 ${
-                      isActive ? 'border-l-4 border-l-[#31A24C]' : ''
-                    }`}
+                    className={`w-full cmd-panel p-4 text-left transition-all hover:border-[#1877F2]/30 ${isActive ? 'border-l-4 border-l-[#31A24C]' : ''
+                      }`}
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1 min-w-0">

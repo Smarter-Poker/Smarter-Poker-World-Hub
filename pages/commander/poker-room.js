@@ -105,7 +105,7 @@ export default function PokerRoomFunctions() {
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
           <button onClick={() => router.push('/commander/dashboard')}
             className="w-10 h-10 rounded-lg bg-[#3A3B3C] flex items-center justify-center active:bg-[#4A4B4C]">
-            <img src="/images/btn-back.png" alt="Back" style={{ height: 38 }} />
+            <ArrowLeft size={16} /> Back
           </button>
           <div className="flex-1">
             <h1 className="text-lg font-bold text-white">Poker Room Functions</h1>

@@ -110,8 +110,8 @@ export default function ReportsPage() {
         {/* Header */}
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
           <button onClick={() => router.push('/commander/dashboard')}
-            className="w-10 h-10 rounded-lg bg-[#3A3B3C] flex items-center justify-center active:bg-[#4A4B4C]">
-            <img src="/images/btn-back.png" alt="Back" style={{ height: 38 }} />
+            style={{ background: 'none', border: '1px solid #444', borderRadius: 10, padding: '8px 14px', color: '#ccc', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600 }}>
+            <ArrowLeft size={16} /> Back
           </button>
           <div className="flex-1">
             <h1 className="text-lg font-bold text-white">Reports</h1>
@@ -122,9 +122,8 @@ export default function ReportsPage() {
         <div className="px-4 py-3 flex gap-2">
           {['today', 'week', 'month', 'quarter'].map(r => (
             <button key={r} onClick={() => setDateRange(r)}
-              className={`px-4 py-2 rounded-full text-sm font-medium capitalize ${
-                dateRange === r ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8] active:bg-[#4A4B4C]'
-              }`}>
+              className={`px-4 py-2 rounded-full text-sm font-medium capitalize ${dateRange === r ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8] active:bg-[#4A4B4C]'
+                }`}>
               {r}
             </button>
           ))}

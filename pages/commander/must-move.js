@@ -118,8 +118,8 @@ export default function MustMoveManager() {
       <Head><title>Must-Move Games | Club Commander</title></Head>
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
-          <button onClick={() => router.push('/commander/poker-room')} className="flex items-center">
-            <img src="/images/btn-back.png" alt="Back" style={{ height: 38 }} />
+          <button onClick={() => router.push('/commander/poker-room')} className="cmd-back-btn">
+            <ArrowLeft size={16} /> Back
           </button>
           <div className="flex-1">
             <h1 className="text-lg font-bold text-white">Must-Move Games</h1>

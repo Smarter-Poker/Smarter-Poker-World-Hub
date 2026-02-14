@@ -147,8 +147,8 @@ export default function MemberImport() {
 
         {/* Header */}
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
-          <button onClick={() => router.push('/commander/members')} className="flex items-center">
-            <img src="/images/btn-back.png" alt="Back" style={{ height: 38 }} />
+          <button onClick={() => router.push('/commander/members')} className="cmd-back-btn">
+            <ArrowLeft size={16} /> Back
           </button>
           <div className="flex-1">
             <h1 className="text-lg font-bold text-white">Import Members</h1>

@@ -117,8 +117,8 @@ export default function TableSeating() {
         {/* Header */}
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={() => router.back()} className="flex items-center">
-              <img src="/images/btn-back.png" alt="Back" style={{ height: 38 }} />
+            <button onClick={() => router.back()} className="cmd-back-btn">
+              <ArrowLeft size={16} /> Back
             </button>
             <div>
               <h1 className="text-lg font-bold text-white">Table {tableNum}</h1>

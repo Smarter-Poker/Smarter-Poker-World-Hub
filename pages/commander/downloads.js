@@ -200,8 +200,8 @@ export default function DownloadsPage() {
 
         {/* Back to Login */}
         <div className="text-center mt-8">
-          <Link href="/commander/login">
-            <img src="/images/btn-back.png" alt="Back" style={{ height: 32 }} />
+          <Link href="/commander/login" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: '1px solid #444', borderRadius: 10, padding: '8px 14px', color: '#ccc', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
+            ← Back to Login
           </Link>
         </div>
       </div>

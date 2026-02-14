@@ -71,7 +71,7 @@ export default function ChurnPrediction() {
       <div style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: 'Inter, system-ui, sans-serif' }}>
         <div style={{ background: '#1877F2', color: 'white', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
           <button onClick={() => router.push('/commander/dashboard')} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: 4 }}>
-            <img src="/images/btn-back.png" alt="Back" style={{ height: 38 }} />
+            <ArrowLeft size={16} /> Back
           </button>
           <Brain size={22} />
           <div>
