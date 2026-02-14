@@ -247,7 +247,7 @@ export default function CommanderDashboard() {
         .cmd-card img {
           width: 100%;
           height: 100%;
-          object-fit: contain;
+          object-fit: fill;
           display: block;
           border-radius: 10px;
           background: #0a0a0a;
