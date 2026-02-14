@@ -631,7 +631,7 @@ export default function UniversalHeader({
                     {/* Notifications - Custom Metallic Bell icon */}
                     <Link href="/hub/notifications" style={{ textDecoration: 'none' }}>
                         <div className="orb-btn">
-                            <img src="/images/header-notifications.png" alt="Notifications" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '55%', left: '50%', transform: 'translate(-50%, -50%)' }} />
+                            <img src="/images/header-notifications.png" alt="Notifications" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '60%', left: '50%', transform: 'translate(-50%, -50%)' }} />
                             {notificationCount > 0 && (
                                 <span className="orb-badge">{notificationCount > 99 ? '99+' : notificationCount}</span>
                             )}
@@ -662,7 +662,7 @@ export default function UniversalHeader({
                             overflow: 'hidden'
                         }}
                     >
-                        <img src="/images/header-help.png" alt="Live Help" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '55%', left: '50%', transform: 'translate(-50%, -50%)' }} />
+                        <img src="/images/header-help.png" alt="Live Help" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '60%', left: '50%', transform: 'translate(-50%, -50%)' }} />
                     </button>
 
                     {/* Push Notification Bell - hidden on mobile to save space */}
