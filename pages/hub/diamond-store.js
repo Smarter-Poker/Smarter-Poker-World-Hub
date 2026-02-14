@@ -714,8 +714,13 @@ export default function DiamondStorePage() {
 
     const { addItem } = useCartStore();
 
-    // Add diamond package to cart
+    // Add diamond package to cart (with haptic feedback)
     const handleAddToCart = (pkg) => {
+        // Haptic feedback — short vibration pulse on mobile
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            navigator.vibrate(50);
+        }
+
         addItem({
             id: `diamond-${pkg.id}`,
             name: pkg.name,
