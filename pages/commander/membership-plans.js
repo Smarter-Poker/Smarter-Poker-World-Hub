@@ -167,8 +167,8 @@ export default function MembershipPlansPage() {
         <header className="cmd-header-bar sticky top-0 z-50">
           <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <button onClick={() => router.push('/commander/settings')} className="p-2 hover:bg-[#3A3B3C] rounded-lg">
-                <img src="/images/btn-back.png" alt="Back" style={{ height: 44, objectFit: 'contain' }} />
+              <button onClick={() => router.push('/commander/settings')} className="flex items-center">
+                <img src="/images/btn-back.png" alt="Back" style={{ height: 38 }} />
               </button>
               <div>
                 <h1 className="font-bold text-white text-lg">Membership Plans</h1>

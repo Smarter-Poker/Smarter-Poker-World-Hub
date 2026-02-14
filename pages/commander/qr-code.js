@@ -114,7 +114,7 @@ export default function VenueQRCodePage() {
                 onClick={() => router.push('/commander/dashboard')}
                 className="p-2 hover:bg-[#3A3B3C] rounded-lg transition-colors"
               >
-                <img src="/images/btn-back.png" alt="Back" style={{ height: 44, objectFit: 'contain' }} />
+                <img src="/images/btn-back.png" alt="Back" style={{ height: 38 }} />
               </button>
               <div>
                 <h1 className="font-bold text-white">Check-In QR Code</h1>

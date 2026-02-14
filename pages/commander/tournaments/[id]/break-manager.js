@@ -152,8 +152,8 @@ ${receipts.map(r => `
 
         {/* Header */}
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
-          <button onClick={() => router.back()} className="p-2 rounded-lg active:bg-[#3A3B3C]">
-            <img src="/images/btn-back.png" alt="Back" style={{ height: 44, objectFit: 'contain' }} />
+          <button onClick={() => router.back()} className="flex items-center">
+            <img src="/images/btn-back.png" alt="Back" style={{ height: 38 }} />
           </button>
           <div className="flex-1">
             <h1 className="text-lg font-bold text-white">Table Break Manager</h1>
