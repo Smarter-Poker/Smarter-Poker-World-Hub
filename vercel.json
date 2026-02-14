@@ -187,6 +187,10 @@
     {
       "path": "/api/cron/trivia-pvp-cleanup",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/vip-diamond-stipend",
+      "schedule": "5 0 1 * *"
     }
   ]
 }

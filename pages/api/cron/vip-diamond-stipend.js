@@ -63,12 +63,14 @@ export default async function handler(req, res) {
         for (const user of vipUsers) {
             try {
                 // 2. Check if stipend already granted this month
+                //    Uses transaction_type + metadata to identify stipend entries
                 const { data: existing } = await supabase
                     .from('diamond_transactions')
                     .select('id')
                     .eq('user_id', user.id)
-                    .eq('source', 'vip_stipend')
+                    .eq('transaction_type', 'bonus')
                     .gte('created_at', `${monthKey}-01T00:00:00Z`)
+                    .ilike('description', '%VIP Monthly Stipend%')
                     .limit(1);
 
                 if (existing && existing.length > 0) {
@@ -93,15 +95,23 @@ export default async function handler(req, res) {
                         updated_at: now.toISOString()
                     }, { onConflict: 'user_id' });
 
+                // Also update profiles.diamonds for consistency
+                await supabase
+                    .from('profiles')
+                    .update({ diamonds: newBalance })
+                    .eq('id', user.id);
+
                 // 4. Log transaction for audit trail
+                //    Uses transaction_type, description, metadata, balance_after
+                //    matching the schema in premiumFeatureGate.js
                 await supabase
                     .from('diamond_transactions')
                     .insert({
                         user_id: user.id,
                         amount: VIP_MONTHLY_STIPEND,
-                        type: 'credit',
-                        source: 'vip_stipend',
+                        transaction_type: 'bonus',
                         description: `VIP Monthly Stipend — ${monthKey}`,
+                        metadata: { source: 'vip_stipend', month: monthKey },
                         balance_after: newBalance
                     });
 

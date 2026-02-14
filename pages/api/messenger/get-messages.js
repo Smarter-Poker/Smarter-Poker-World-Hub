@@ -45,7 +45,7 @@ export default async function handler(req, res) {
                 created_at,
                 sender_id,
                 is_deleted,
-                profiles:sender_id (id, username, avatar_url)
+                profiles:sender_id (id, username, avatar_url, is_vip)
             `)
             .eq('conversation_id', conversationId)
             .eq('is_deleted', false)

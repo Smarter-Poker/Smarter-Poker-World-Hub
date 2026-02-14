@@ -53,7 +53,7 @@ const VIP_BENEFITS = [
     'Create Up To 3 Private Clubs',
     '1,000 Player Tags Per Month To Track Opponents',
     // Bonus Perks
-    '2,000 Bonus Diamonds Credited Every Month',
+    '500 Bonus Diamonds Credited Every Month',
     'Up To 5 Custom AI-Generated Avatars',
     'Exclusive Gold VIP Profile Badge & Cosmetic Flair',
     'Priority Support With Fast-Track Assistance',

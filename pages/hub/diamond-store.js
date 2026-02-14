@@ -257,7 +257,7 @@ const VIP_BENEFITS = [
     { icon: '', title: 'Unlimited Memory Games', description: 'Play All Memory Games With No Diamond Cost', value: 'Unlimited', category: 'Smarter.Poker' },
     { icon: '', title: 'Unlimited Poker Trivia', description: 'Play All Poker Trivia Games With No Diamond Cost', value: 'Unlimited', category: 'Smarter.Poker' },
     { icon: '', title: 'GTO AI Personal Assistant', description: 'Full Access To Priority AI Coaching & Hand Analysis', value: 'Unlimited', category: 'Smarter.Poker' },
-    { icon: '', title: 'Jarvis AI GTO Analysis', description: 'Unlimited AI-Powered GTO Analysis — Free Users Limited To 3/Day', value: 'Unlimited', category: 'Smarter.Poker' },
+    { icon: '', title: 'Jarvis AI GTO Analysis', description: 'Unlimited AI-Powered GTO Analysis — Free Users Limited To 5/Day', value: 'Unlimited', category: 'Smarter.Poker' },
     { icon: '', title: 'Post-Game Hand Reviews', description: 'AI-Powered Tactical Breakdowns After Training Sessions', value: 'VIP Only', category: 'Smarter.Poker' },
     { icon: '', title: 'Advanced Leak Finder', description: 'Full Leak Detection And Analysis Tools', value: '$50/Mo', category: 'Smarter.Poker' },
     { icon: '', title: 'Bankroll Manager Pro', description: 'All Pro Tools For Session Tracking & Analytics', value: '$25/Mo', category: 'Smarter.Poker' },
