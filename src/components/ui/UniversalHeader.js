@@ -645,25 +645,27 @@ export default function UniversalHeader({
                         </div>
                     </Link>
 
-                    {/* Live Help - Custom Metallic Question icon */}
-                    <button
-                        onClick={() => {
-                            console.log('[UniversalHeader] Live Help button clicked');
-                            liveHelp.setIsOpen(true);
-                        }}
-                        className="orb-btn"
-                        aria-label="Live Help"
-                        style={{
-                            background: 'none',
-                            border: 'none',
-                            padding: 0,
-                            cursor: 'pointer',
-                            zIndex: 10,
-                            overflow: 'hidden'
-                        }}
-                    >
-                        <img src="/images/header-help.png" alt="Live Help" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '55%', left: '50%', transform: 'translate(-50%, -50%)' }} />
-                    </button>
+                    {/* Live Help - Hidden on mobile */}
+                    <div className="hide-mobile">
+                        <button
+                            onClick={() => {
+                                console.log('[UniversalHeader] Live Help button clicked');
+                                liveHelp.setIsOpen(true);
+                            }}
+                            className="orb-btn"
+                            aria-label="Live Help"
+                            style={{
+                                background: 'none',
+                                border: 'none',
+                                padding: 0,
+                                cursor: 'pointer',
+                                zIndex: 10,
+                                overflow: 'hidden'
+                            }}
+                        >
+                            <img src="/images/header-help.png" alt="Live Help" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '55%', left: '50%', transform: 'translate(-50%, -50%)' }} />
+                        </button>
+                    </div>
 
                     {/* Push Notification Bell - hidden on mobile to save space */}
                     <div className="hide-mobile">
