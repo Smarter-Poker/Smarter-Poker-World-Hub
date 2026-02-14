@@ -643,6 +643,22 @@ export default function DiamondStorePage() {
     const [selectedPackage, setSelectedPackage] = useState('standard');
     const [selectedVIP, setSelectedVIP] = useState('vip-monthly');
     const [isProcessing, setIsProcessing] = useState(false);
+    const [isVip, setIsVip] = useState(false);
+
+    // Check VIP status on mount
+    useEffect(() => {
+        (async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user?.id) {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('is_vip')
+                    .eq('id', session.user.id)
+                    .single();
+                setIsVip(!!profile?.is_vip);
+            }
+        })();
+    }, []);
 
     // 🎬 INTRO VIDEO STATE - Video plays while page loads in background
     // Only show once per session (not on every reload)
@@ -919,6 +935,26 @@ export default function DiamondStorePage() {
                                 style={{ width: '100%', height: 'auto', display: 'block' }}
                                 draggable={false}
                             />
+
+                            {/* VIP 10% Discount Banner */}
+                            {isVip && (
+                                <div style={{
+                                    position: 'absolute',
+                                    top: 8,
+                                    right: 8,
+                                    background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                                    color: '#000',
+                                    padding: '6px 14px',
+                                    borderRadius: 20,
+                                    fontSize: 12,
+                                    fontWeight: 800,
+                                    zIndex: 5,
+                                    boxShadow: '0 2px 8px rgba(255,215,0,0.4)',
+                                    letterSpacing: '0.5px',
+                                }}>
+                                    👑 VIP — 10% OFF ALL PACKS
+                                </div>
+                            )}
 
                             {/* ── Diamond package clickable zones (6 boxes, 2×3 grid) ── */}
                             {[

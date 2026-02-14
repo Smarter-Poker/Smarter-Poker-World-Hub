@@ -1162,11 +1162,12 @@ export default function MessengerPage() {
                 if (authUser) {
                     const { data: profile } = await supabase
                         .from('profiles')
-                        .select('id, username, avatar_url')
+                        .select('id, username, avatar_url, is_vip')
                         .eq('id', authUser.id)
                         .single();
 
                     setUser({ ...authUser, ...profile });
+                    setIsVip(!!profile?.is_vip);
                     await loadConversations(authUser.id);
 
                     // Load friends for quick access
@@ -1208,11 +1209,12 @@ export default function MessengerPage() {
                 // Update user state
                 const { data: profile } = await supabase
                     .from('profiles')
-                    .select('id, username, avatar_url')
+                    .select('id, username, avatar_url, is_vip')
                     .eq('id', authUser.id)
                     .single();
 
                 setUser({ ...authUser, ...profile });
+                setIsVip(!!profile?.is_vip);
 
                 // Reload conversations (uses API-first approach, resilient to RLS)
                 await loadConversations(authUser.id);
