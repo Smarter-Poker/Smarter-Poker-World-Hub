@@ -205,6 +205,6 @@ export default function ResponsibleGaming() {
       </div>
     <style jsx>{`
       `}</style>
-    </>
+    </CommanderLayout>
   );
 }

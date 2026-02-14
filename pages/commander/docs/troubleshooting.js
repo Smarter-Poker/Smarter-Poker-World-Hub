@@ -654,7 +654,7 @@ export default function TroubleshootingPage() {
           </div>
         </div>
       </div>
-    </>
+    </CommanderLayout>
   );
 }
 

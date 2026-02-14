@@ -286,6 +286,6 @@ export default function OpenGame() {
       </div>
       <style jsx>{`
       `}</style>
-    </>
+    </CommanderLayout>
   );
 }

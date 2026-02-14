@@ -151,6 +151,6 @@ export default function TableUtilization() {
       </div>
     <style jsx>{`
       `}</style>
-    </>
+    </CommanderLayout>
   );
 }

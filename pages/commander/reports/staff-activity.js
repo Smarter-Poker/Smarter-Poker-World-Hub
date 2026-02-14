@@ -79,6 +79,6 @@ export default function StaffActivity() {
       </div>
     <style jsx>{`
       `}</style>
-    </>
+    </CommanderLayout>
   );
 }

@@ -153,6 +153,6 @@ export default function RevenueReport() {
       </div>
     <style jsx>{`
       `}</style>
-    </>
+    </CommanderLayout>
   );
 }

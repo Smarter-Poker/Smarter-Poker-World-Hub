@@ -170,6 +170,6 @@ export default function NotificationCenter() {
       </div>
     <style jsx>{`
       `}</style>
-    </>
+    </CommanderLayout>
   );
 }

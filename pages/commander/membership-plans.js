@@ -465,6 +465,6 @@ export default function MembershipPlansPage() {
       </div>
       <style jsx>{`
       `}</style>
-    </>
+    </CommanderLayout>
   );
 }

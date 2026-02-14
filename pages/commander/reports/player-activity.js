@@ -272,6 +272,6 @@ export default function PlayerActivityReport() {
       </div>
     <style jsx>{`
       `}</style>
-    </>
+    </CommanderLayout>
   );
 }

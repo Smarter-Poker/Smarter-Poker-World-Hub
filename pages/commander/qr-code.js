@@ -100,7 +100,7 @@ export default function VenueQRCodePage() {
   }
 
   return (
-    <><div className="cmd-page">
+    <CommanderLayout title="Qr Code" backHref="/commander/dashboard"><div className="cmd-page">
         {/* Header */}
         <header className="cmd-header-bar">
           <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">

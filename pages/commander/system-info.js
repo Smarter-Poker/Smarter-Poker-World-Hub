@@ -218,7 +218,7 @@ export default function SystemInfoPage() {
       </div>
     <style jsx>{`
       `}</style>
-    </>
+    </CommanderLayout>
   );
 }
 

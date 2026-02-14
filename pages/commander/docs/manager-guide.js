@@ -597,6 +597,6 @@ export default function ManagerGuidePage() {
           </div>
         </div>
       </div>
-    </>
+    </CommanderLayout>
   );
 }

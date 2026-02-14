@@ -258,6 +258,6 @@ export default function AnalyticsDailyReport() {
         </div>
       </div>
       <style jsx global>{`.spin { animation: spin 1s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }`}</style>
-    </>
+    </CommanderLayout>
   );
 }

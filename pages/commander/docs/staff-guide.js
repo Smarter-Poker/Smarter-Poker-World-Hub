@@ -499,6 +499,6 @@ export default function StaffGuidePage() {
           </div>
         </div>
       </div>
-    </>
+    </CommanderLayout>
   );
 }

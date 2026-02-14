@@ -122,6 +122,6 @@ export default function TournamentResultsReport() {
     </div>
       <style jsx>{`
       `}</style>
-    </>
+    </CommanderLayout>
   );
 }

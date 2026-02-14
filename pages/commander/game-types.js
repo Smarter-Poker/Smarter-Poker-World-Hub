@@ -389,6 +389,6 @@ export default function GameTypesPage() {
       </div>
       <style jsx>{`
       `}</style>
-    </>
+    </CommanderLayout>
   );
 }

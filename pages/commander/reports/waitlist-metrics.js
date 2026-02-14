@@ -151,6 +151,6 @@ export default function WaitlistMetrics() {
       </div>
     <style jsx>{`
       `}</style>
-    </>
+    </CommanderLayout>
   );
 }

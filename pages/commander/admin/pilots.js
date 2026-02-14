@@ -402,7 +402,7 @@ export default function PilotVenuesPage() {
           </div>
         </div>
       </div>
-    </>
+    </CommanderLayout>
   );
 }
 

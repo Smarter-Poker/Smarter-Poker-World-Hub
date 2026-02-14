@@ -441,6 +441,6 @@ export default function LeadManagementPage() {
           </div>
         )}
       </div>
-    </>
+    </CommanderLayout>
   );
 }

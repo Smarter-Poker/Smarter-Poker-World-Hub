@@ -36,7 +36,10 @@ export default function DisplayManagement() {
           headers: { Authorization: `Bearer ${token}` }
         });
         const json = await res.json();
-        if (json.success) setTournaments(json.data || []);
+        if (json.success) {
+          const list = json.data?.tournaments || json.data || [];
+          setTournaments(Array.isArray(list) ? list : []);
+        }
       } catch (err) { console.error(err); }
       finally { setLoading(false); }
     };

@@ -147,7 +147,7 @@ ${receipts.map(r => `
   );
 
   return (
-    <><div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
+    <CommanderLayout title="Table Break Receipts" backHref="/commander/tournaments"><div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
         {/* Header */}
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">

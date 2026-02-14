@@ -439,6 +439,6 @@ export default function CompSystem() {
       </div>
     <style jsx>{`
       `}</style>
-    </>
+    </CommanderLayout>
   );
 }

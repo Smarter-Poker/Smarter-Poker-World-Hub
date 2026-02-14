@@ -198,7 +198,7 @@ export default function TournamentDetailPage() {
   }
 
   return (
-    <><div className="cmd-page">
+    <CommanderLayout title="Id" backHref="/commander/tournaments"><div className="cmd-page">
         {/* Header */}
         <header className="cmd-header-bar sticky top-0 z-40">
           <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">

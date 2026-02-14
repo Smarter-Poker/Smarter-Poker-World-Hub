@@ -89,7 +89,7 @@ export default function DailySummaryReport() {
       </div>
     <style jsx>{`
       `}</style>
-    </>
+    </CommanderLayout>
   );
 }
 

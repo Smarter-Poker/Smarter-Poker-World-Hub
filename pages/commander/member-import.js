@@ -305,6 +305,6 @@ export default function MemberImport() {
       </div>
       <style jsx>{`
       `}</style>
-    </>
+    </CommanderLayout>
   );
 }
