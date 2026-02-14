@@ -45,7 +45,9 @@ export default async function handler(req, res) {
             .range(offset, offset + limit - 1);
 
         if (type && type !== 'all') {
-            query = query.eq('type', type);
+            // Try transaction_type first (VIP system migration schema),
+            // fall back to type (original memory matrix schema)
+            query = query.or(`transaction_type.eq.${type},type.eq.${type}`);
         }
 
         const { data, count, error } = await query;

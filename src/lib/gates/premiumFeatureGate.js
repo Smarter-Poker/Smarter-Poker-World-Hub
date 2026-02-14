@@ -259,7 +259,7 @@ export async function purchaseVipWithDiamonds(userId) {
         .from('profiles')
         .update({
             is_vip: true,
-            vip_tier: 'diamond',
+            vip_tier: 'monthly',
             vip_expires_at: expiresAt.toISOString(),
             updated_at: new Date().toISOString()
         })
@@ -281,7 +281,7 @@ export async function purchaseVipWithDiamonds(userId) {
     // Record in vip_subscriptions (non-critical, ignore errors)
     await supabase.from('vip_subscriptions').upsert({
         user_id: userId,
-        tier: 'diamond',
+        tier: 'monthly',
         status: 'active',
         price_usd: 0,
         current_period_start: new Date().toISOString(),
@@ -292,7 +292,7 @@ export async function purchaseVipWithDiamonds(userId) {
 
     // Update localStorage for instant UI feedback
     if (typeof window !== 'undefined') {
-        localStorage.setItem('sp-vip-tier', 'diamond');
+        localStorage.setItem('sp-vip-tier', 'monthly');
     }
 
     return {
