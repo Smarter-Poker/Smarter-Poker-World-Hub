@@ -923,22 +923,22 @@ export default function DiamondStorePage() {
                         {/* ── Tab button clickable zones ── */}
                         {/* Diamonds tab */}
                         <div
-                            onClick={() => setActiveTab('diamonds')}
+                            onClick={() => { if (navigator?.vibrate) navigator.vibrate(50); setActiveTab('diamonds'); }}
                             style={{ position: 'absolute', left: '3%', top: '62%', width: '18%', height: '34%', cursor: 'pointer' }}
                         />
                         {/* VIP Membership tab */}
                         <div
-                            onClick={() => setActiveTab('vip')}
+                            onClick={() => { if (navigator?.vibrate) navigator.vibrate(50); setActiveTab('vip'); }}
                             style={{ position: 'absolute', left: '24%', top: '62%', width: '26%', height: '34%', cursor: 'pointer' }}
                         />
                         {/* Merch tab */}
                         <div
-                            onClick={() => setActiveTab('merch')}
+                            onClick={() => { if (navigator?.vibrate) navigator.vibrate(50); setActiveTab('merch'); }}
                             style={{ position: 'absolute', left: '53%', top: '62%', width: '19%', height: '34%', cursor: 'pointer' }}
                         />
                         {/* Smarter Rewards tab */}
                         <div
-                            onClick={() => setActiveTab('rewards')}
+                            onClick={() => { if (navigator?.vibrate) navigator.vibrate(50); setActiveTab('rewards'); }}
                             style={{ position: 'absolute', left: '75%', top: '62%', width: '23%', height: '34%', cursor: 'pointer' }}
                         />
                     </div>
