@@ -32,30 +32,29 @@ const C = {
 };
 
 const VIP_BENEFITS = [
-    // Club Arena Table Features
-    'Unlimited Rabbit Hunting — see what cards would have come',
-    'Show Stack in BBs — always-on big blind display',
-    'Unlimited Offline Protection during hands',
-    'Auto Time Bank activation when needed',
-    '120 seconds of free time bank each month',
-    '1,200 interactive emojis per month',
-    '3 exclusive table themes unlocked',
-    'Create up to 3 private clubs',
-    '1,000 player tags per month to track opponents',
-    '6% leaderboard score boost',
     // Smarter.Poker Platform
-    'Ad-free experience across the entire platform',
-    'Unlimited Training & Trivia games (no diamond cost)',
-    'Full access to GTO AI Personal Assistant',
-    'Advanced Leak Finder analysis tools',
-    'Bankroll Manager Pro — all session tracking & analytics',
-    'Advanced Poker Near Me filters & venue intelligence',
-    'Free entry to all Diamond Arena freeroll tournaments',
+    'Ad-Free Experience Across The Entire Platform',
+    'Unlimited Training & Trivia Games (No Diamond Cost)',
+    'Full Access To GTO AI Personal Assistant',
+    'Advanced Leak Finder Analysis Tools',
+    'Bankroll Manager Pro — All Session Tracking & Analytics',
+    'Advanced Poker Near Me Filters & Venue Intelligence',
+    'Free Entry To All Diamond Arena Freeroll Tournaments',
+    // Club & Diamond Arena Features
+    'Unlimited Rabbit Hunting — See What Cards Would Have Come',
+    'Show Stack In BBs — Always-On Big-Blind Display',
+    'Unlimited Offline Protection During Hands',
+    'Auto Time Bank Activation When Needed',
+    '120 Seconds Of Free Time Bank Each Month',
+    '1,200 Interactive Emojis Per Month',
+    '3 Exclusive Table Themes Unlocked',
+    'Create Up To 3 Private Clubs',
+    '1,000 Player Tags Per Month To Track Opponents',
     // Bonus Perks
-    '2,000 bonus diamonds credited every month',
-    'Up to 5 custom AI-generated avatars',
-    'Exclusive Gold VIP profile badge & cosmetic flair',
-    'Priority support with fast-track assistance',
+    '2,000 Bonus Diamonds Credited Every Month',
+    'Up To 5 Custom AI-Generated Avatars',
+    'Exclusive Gold VIP Profile Badge & Cosmetic Flair',
+    'Priority Support With Fast-Track Assistance',
 ];
 
 function CheckIcon() {

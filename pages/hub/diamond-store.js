@@ -251,30 +251,29 @@ const VIP_MEMBERSHIP = {
 };
 
 const VIP_BENEFITS = [
-    // ─── CLUB ARENA TABLE FEATURES ───
-    { icon: '🐰', title: 'Rabbit Hunting', description: 'See what cards would have come after folding', value: 'Unlimited', category: 'Club Arena' },
-    { icon: '📊', title: 'Show Stack in BBs', description: 'Display chip stacks in big blinds for better decisions', value: 'Unlimited', category: 'Club Arena' },
-    { icon: '🛡️', title: 'Offline Protection', description: 'Protection when disconnected during hands', value: 'Unlimited', category: 'Club Arena' },
-    { icon: '⏱️', title: 'Auto Time Bank', description: 'Automatic time bank activation when needed', value: 'Unlimited', category: 'Club Arena' },
-    { icon: '🕐', title: 'Free Time Bank', description: '120 seconds of free time bank each month', value: '+120s/mo', category: 'Club Arena' },
-    { icon: '😀', title: 'Interactive Emojis', description: '1,200 free emojis to throw at the tables', value: '1,200/mo', category: 'Club Arena' },
-    { icon: '🎨', title: 'Table Themes', description: '3 exclusive table themes unlocked', value: '3 Themes', category: 'Club Arena' },
-    { icon: '🏠', title: 'Club Creation', description: 'Create up to 3 private clubs', value: '3 Clubs', category: 'Club Arena' },
-    { icon: '🏷️', title: 'Player Tags', description: '1,000 tags per month to track opponents', value: '1,000/mo', category: 'Club Arena' },
-    { icon: '📈', title: 'Leaderboard Boost', description: '6% score boost on all leaderboards', value: '+6%', category: 'Club Arena' },
     // ─── SMARTER.POKER PLATFORM ───
-    { icon: '🚫', title: 'Ad-Free Experience', description: 'No ads across the entire platform', value: 'Platform', category: 'Smarter.Poker' },
-    { icon: '🎯', title: 'Unlimited Training & Trivia', description: 'Play all training games and trivia with no diamond cost', value: 'Unlimited', category: 'Smarter.Poker' },
-    { icon: '🤖', title: 'GTO AI Personal Assistant', description: 'Full access to priority AI coaching & hand analysis', value: '$100/mo', category: 'Smarter.Poker' },
-    { icon: '🔍', title: 'Advanced Leak Finder', description: 'Full leak detection and analysis tools', value: '$50/mo', category: 'Smarter.Poker' },
-    { icon: '💼', title: 'Bankroll Manager Pro', description: 'All pro tools for session tracking & analytics', value: '$25/mo', category: 'Smarter.Poker' },
-    { icon: '🗺️', title: 'Advanced Poker Near Me', description: 'Premium filters and venue intelligence', value: '$15/mo', category: 'Smarter.Poker' },
-    { icon: '🎟️', title: 'Free Roll Entries', description: 'Free entry to all Diamond Arena freeroll tournaments', value: 'Unlimited', category: 'Smarter.Poker' },
+    { icon: '', title: 'Ad-Free Experience', description: 'No ads across the entire platform', value: 'Platform', category: 'Smarter.Poker' },
+    { icon: '', title: 'Unlimited Training & Trivia', description: 'Play all training games and trivia with no diamond cost', value: 'Unlimited', category: 'Smarter.Poker' },
+    { icon: '', title: 'GTO AI Personal Assistant', description: 'Full access to priority AI coaching & hand analysis', value: '$100/Mo', category: 'Smarter.Poker' },
+    { icon: '', title: 'Advanced Leak Finder', description: 'Full leak detection and analysis tools', value: '$50/Mo', category: 'Smarter.Poker' },
+    { icon: '', title: 'Bankroll Manager Pro', description: 'All pro tools for session tracking & analytics', value: '$25/Mo', category: 'Smarter.Poker' },
+    { icon: '', title: 'Advanced Poker Near Me', description: 'Premium filters and venue intelligence', value: '$15/Mo', category: 'Smarter.Poker' },
+    { icon: '', title: 'Free Roll Entries', description: 'Free entry to all Diamond Arena freeroll tournaments', value: 'Unlimited', category: 'Smarter.Poker' },
+    // ─── CLUB & DIAMOND ARENA FEATURES ───
+    { icon: '', title: 'Rabbit Hunting', description: 'See what cards would have come after folding', value: 'Unlimited', category: 'Club & Diamond Arena' },
+    { icon: '', title: 'Show Stack In BBs', description: 'Display chip stacks in Big-Blinds for better decisions', value: 'Unlimited', category: 'Club & Diamond Arena' },
+    { icon: '', title: 'Offline Protection', description: 'Protection when disconnected during hands', value: 'Unlimited', category: 'Club & Diamond Arena' },
+    { icon: '', title: 'Auto Time Bank', description: 'Automatic time bank activation when needed', value: 'Unlimited', category: 'Club & Diamond Arena' },
+    { icon: '', title: 'Free Time Bank', description: '120 seconds of free time bank each month', value: '+120s/Mo', category: 'Club & Diamond Arena' },
+    { icon: '', title: 'Interactive Emojis', description: '1,200 free emojis to throw at the tables', value: '1,200/Mo', category: 'Club & Diamond Arena' },
+    { icon: '', title: 'Table Themes', description: '3 exclusive table themes unlocked', value: '3 Themes', category: 'Club & Diamond Arena' },
+    { icon: '', title: 'Club Creation', description: 'Create up to 3 private clubs', value: '3 Clubs', category: 'Club & Diamond Arena' },
+    { icon: '', title: 'Player Tags', description: '1,000 tags per month to track opponents', value: '1,000/Mo', category: 'Club & Diamond Arena' },
     // ─── BONUS PERKS ───
-    { icon: '💰', title: '2,000 Bonus Diamonds', description: '2,000 bonus diamonds credited every month', value: '2,000/mo', category: 'Bonus' },
-    { icon: '🎭', title: 'Custom AI Avatars', description: 'Create up to 5 AI-generated custom avatars', value: '5 Slots', category: 'Bonus' },
-    { icon: '👑', title: 'VIP Badge & Cosmetics', description: 'Exclusive Gold VIP profile badge and cosmetic flair', value: 'Exclusive', category: 'Bonus' },
-    { icon: '⚡', title: 'Priority Support', description: 'Fast-track support and dedicated assistance', value: 'VIP Only', category: 'Bonus' },
+    { icon: '', title: '2,000 Bonus Diamonds', description: '2,000 bonus diamonds credited every month', value: '2,000/Mo', category: 'Bonus' },
+    { icon: '', title: 'Custom AI Avatars', description: 'Create up to 5 AI-generated custom avatars', value: '5 Slots', category: 'Bonus' },
+    { icon: '', title: 'VIP Badge & Cosmetics', description: 'Exclusive Gold VIP profile badge and cosmetic flair', value: 'Exclusive', category: 'Bonus' },
+    { icon: '', title: 'Priority Support', description: 'Fast-track support and dedicated assistance', value: 'VIP Only', category: 'Bonus' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -558,7 +557,7 @@ function VIPCard({ plan, isSelected, onSelect }) {
             )}
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                <span style={{ fontSize: 36 }}>👑</span>
+                <img src="/images/vip-card.jpg" alt="VIP" style={{ width: 60, height: 36, borderRadius: 6, objectFit: 'cover' }} />
                 <div>
                     <div style={{
                         fontFamily: 'Orbitron, sans-serif',
@@ -960,7 +959,7 @@ export default function DiamondStorePage() {
                             <>
                                 {/* VIP Hero */}
                                 <div style={styles.vipHero}>
-                                    <h2 style={styles.vipTitle}>👑 VIP Membership</h2>
+                                    <h2 style={styles.vipTitle}>VIP Membership</h2>
                                     <p style={styles.vipSubtitle}>
                                         Unlock <strong>everything</strong> for one low monthly price. No diamond costs, no limits.
                                     </p>
@@ -999,15 +998,13 @@ export default function DiamondStorePage() {
                                 <div style={styles.benefitsSection}>
                                     <h3 style={styles.benefitsTitle}>Everything Included with VIP</h3>
 
-                                    {/* Club Arena Table Features */}
+                                    {/* Smarter.Poker Platform */}
                                     <div style={styles.benefitsCategoryHeader}>
-                                        <span style={styles.benefitsCategoryIcon}>🃏</span>
-                                        <span style={styles.benefitsCategoryLabel}>Club Arena Table Features</span>
+                                        <span style={styles.benefitsCategoryLabel}>Smarter.Poker Platform</span>
                                     </div>
                                     <div style={styles.benefitsGrid}>
-                                        {VIP_BENEFITS.filter(b => b.category === 'Club Arena').map((benefit, idx) => (
+                                        {VIP_BENEFITS.filter(b => b.category === 'Smarter.Poker').map((benefit, idx) => (
                                             <div key={idx} style={styles.benefitCard}>
-                                                <span style={styles.benefitIcon}>{benefit.icon}</span>
                                                 <div style={styles.benefitInfo}>
                                                     <div style={styles.benefitTitle}>{benefit.title}</div>
                                                     <div style={styles.benefitDesc}>{benefit.description}</div>
@@ -1017,15 +1014,14 @@ export default function DiamondStorePage() {
                                         ))}
                                     </div>
 
-                                    {/* Smarter.Poker Platform */}
+
+                                    {/* Club & Diamond Arena Features */}
                                     <div style={styles.benefitsCategoryHeader}>
-                                        <span style={styles.benefitsCategoryIcon}>🌐</span>
-                                        <span style={styles.benefitsCategoryLabel}>Smarter.Poker Platform</span>
+                                        <span style={styles.benefitsCategoryLabel}>Club & Diamond Arena Features</span>
                                     </div>
                                     <div style={styles.benefitsGrid}>
-                                        {VIP_BENEFITS.filter(b => b.category === 'Smarter.Poker').map((benefit, idx) => (
+                                        {VIP_BENEFITS.filter(b => b.category === 'Club & Diamond Arena').map((benefit, idx) => (
                                             <div key={idx} style={styles.benefitCard}>
-                                                <span style={styles.benefitIcon}>{benefit.icon}</span>
                                                 <div style={styles.benefitInfo}>
                                                     <div style={styles.benefitTitle}>{benefit.title}</div>
                                                     <div style={styles.benefitDesc}>{benefit.description}</div>
@@ -1037,13 +1033,11 @@ export default function DiamondStorePage() {
 
                                     {/* Bonus Perks */}
                                     <div style={styles.benefitsCategoryHeader}>
-                                        <span style={styles.benefitsCategoryIcon}>💎</span>
                                         <span style={styles.benefitsCategoryLabel}>Bonus Perks</span>
                                     </div>
                                     <div style={styles.benefitsGrid}>
                                         {VIP_BENEFITS.filter(b => b.category === 'Bonus').map((benefit, idx) => (
                                             <div key={idx} style={styles.benefitCard}>
-                                                <span style={styles.benefitIcon}>{benefit.icon}</span>
                                                 <div style={styles.benefitInfo}>
                                                     <div style={styles.benefitTitle}>{benefit.title}</div>
                                                     <div style={styles.benefitDesc}>{benefit.description}</div>
@@ -1075,7 +1069,7 @@ export default function DiamondStorePage() {
                         {activeTab === 'merch' && (
                             <>
                                 <div style={styles.intro}>
-                                    <h2 style={styles.merchTitle}>🛍️ Official Merch</h2>
+                                    <h2 style={styles.merchTitle}>Official Merch</h2>
                                     <p style={styles.introText}>
                                         Rep the Smarter.Poker brand at the tables. Premium quality gear for serious players.
                                     </p>
@@ -1083,7 +1077,7 @@ export default function DiamondStorePage() {
 
                                 {/* Apparel Section */}
                                 <div style={styles.merchSection}>
-                                    <h3 style={styles.merchCategoryTitle}>👕 Apparel</h3>
+                                    <h3 style={styles.merchCategoryTitle}>Apparel</h3>
                                     <div style={styles.merchGrid}>
                                         {MERCHANDISE.filter(m => m.category === 'apparel').map(item => (
                                             <MerchCard key={item.id} item={item} onSelect={handleMerchPurchase} />
@@ -1093,7 +1087,7 @@ export default function DiamondStorePage() {
 
                                 {/* Accessories Section */}
                                 <div style={styles.merchSection}>
-                                    <h3 style={styles.merchCategoryTitle}>🎴 Accessories</h3>
+                                    <h3 style={styles.merchCategoryTitle}>Accessories</h3>
                                     <div style={styles.merchGrid}>
                                         {MERCHANDISE.filter(m => m.category === 'accessories').map(item => (
                                             <MerchCard key={item.id} item={item} onSelect={handleMerchPurchase} />
@@ -1118,7 +1112,7 @@ export default function DiamondStorePage() {
                                             ...(rewardsSubTab === 'overview' ? styles.rewardsSubTabActive : {}),
                                         }}
                                     >
-                                        📋 Overview
+                                        Overview
                                     </button>
                                     <button
                                         onClick={() => setRewardsSubTab('diamonds')}
@@ -1127,7 +1121,7 @@ export default function DiamondStorePage() {
                                             ...(rewardsSubTab === 'diamonds' ? styles.rewardsSubTabActive : {}),
                                         }}
                                     >
-                                        💎 Diamond Rewards
+                                        Diamond Rewards
                                     </button>
 
                                     <button
@@ -1137,30 +1131,30 @@ export default function DiamondStorePage() {
                                             ...(rewardsSubTab === 'eggs' ? styles.rewardsSubTabActive : {}),
                                         }}
                                     >
-                                        🎁 Easter Eggs
+                                        Easter Eggs
                                     </button>
                                 </div>
 
                                 {/* OVERVIEW SUB-TAB */}
                                 {rewardsSubTab === 'overview' && (
                                     <div style={styles.rewardsOverview}>
-                                        <h2 style={styles.earnTitle}>🎁 Smarter Rewards</h2>
+                                        <h2 style={styles.earnTitle}>Smarter Rewards</h2>
                                         <p style={styles.introText}>
                                             Welcome to the Smarter Rewards system! Earn diamonds by playing, training, and engaging with the community.
                                         </p>
 
                                         <div style={styles.overviewGrid}>
                                             <div style={styles.overviewCard}>
-                                                <div style={styles.overviewIcon}>💎</div>
+                                                <div style={styles.overviewIcon}></div>
                                                 <h3 style={styles.overviewCardTitle}>Diamond Rewards</h3>
                                                 <p style={styles.overviewCardText}>
                                                     Earn diamonds through daily logins, training, social engagement, and referrals.
-                                                    <strong style={{ color: '#00ff88' }}> Daily cap: 500 💎</strong> with streak multipliers!
+                                                    <strong style={{ color: '#00ff88' }}> Daily cap: 500</strong> with streak multipliers!
                                                 </p>
                                             </div>
 
                                             <div style={styles.overviewCard}>
-                                                <div style={styles.overviewIcon}>👑</div>
+                                                <div style={styles.overviewIcon}></div>
                                                 <h3 style={styles.overviewCardTitle}>VIP Membership</h3>
                                                 <div style={{ marginTop: 12, marginBottom: 12 }}>
                                                     <img
@@ -1222,7 +1216,7 @@ export default function DiamondStorePage() {
                                             </div>
 
                                             <div style={styles.overviewCard}>
-                                                <div style={styles.overviewIcon}>🎁</div>
+                                                <div style={styles.overviewIcon}></div>
                                                 <h3 style={styles.overviewCardTitle}>Easter Eggs</h3>
                                                 <p style={styles.overviewCardText}>
                                                     Discover <strong>100 hidden achievements</strong> across 6 categories.
@@ -1233,11 +1227,11 @@ export default function DiamondStorePage() {
 
                                         <div style={styles.quickStats}>
                                             <div style={styles.quickStat}>
-                                                <span style={styles.quickStatValue}>500 💎</span>
+                                                <span style={styles.quickStatValue}>500</span>
                                                 <span style={styles.quickStatLabel}>Daily Cap</span>
                                             </div>
                                             <div style={styles.quickStat}>
-                                                <span style={styles.quickStatValue}>👑</span>
+                                                <span style={styles.quickStatValue}>2</span>
                                                 <span style={styles.quickStatLabel}>VIP Plans</span>
                                             </div>
                                             <div style={styles.quickStat}>
@@ -1255,7 +1249,7 @@ export default function DiamondStorePage() {
                                 {/* DIAMOND REWARDS SUB-TAB */}
                                 {rewardsSubTab === 'diamonds' && (
                                     <div style={styles.diamondRewardsSection}>
-                                        <h2 style={styles.earnTitle}>💎 Diamond Rewards</h2>
+                                        <h2 style={styles.earnTitle}>Diamond Rewards</h2>
                                         <p style={styles.introText}>
                                             All 10 ways you can earn diamonds on Smarter.Poker
                                         </p>
@@ -1281,7 +1275,7 @@ export default function DiamondStorePage() {
 
                                         {/* Standard Rewards List */}
                                         <div style={styles.rewardCategory}>
-                                            <h3 style={styles.categoryTitle}>💎 All Standard Rewards</h3>
+                                            <h3 style={styles.categoryTitle}>All Standard Rewards</h3>
                                             <div style={styles.rewardList}>
                                                 {STANDARD_REWARDS.map((reward, idx) => (
                                                     <div key={idx} style={reward.bypassesCap ? { ...styles.rewardItem, ...styles.referralHighlight } : styles.rewardItem}>
@@ -1303,14 +1297,14 @@ export default function DiamondStorePage() {
                                 {/* EASTER EGGS SUB-TAB */}
                                 {rewardsSubTab === 'eggs' && (
                                     <div style={styles.easterEggsSection}>
-                                        <h2 style={styles.earnTitle}>🎁 Easter Eggs - 100 Hidden Achievements</h2>
+                                        <h2 style={styles.earnTitle}>Easter Eggs - 100 Hidden Achievements</h2>
                                         <p style={styles.introText}>
                                             Discover 100 hidden achievements across 6 categories for massive bonus rewards!
                                         </p>
 
                                         {/* Performance Category (10 eggs) */}
                                         <div style={styles.eggCategory}>
-                                            <h3 style={styles.eggCategoryTitle}>🎯 Performance (10 Achievements)</h3>
+                                            <h3 style={styles.eggCategoryTitle}>Performance (10 Achievements)</h3>
                                             <div style={styles.eggGrid}>
                                                 {EASTER_EGGS.performance.map((egg) => (
                                                     <div key={egg.id} style={styles.eggCard}>
@@ -1328,7 +1322,7 @@ export default function DiamondStorePage() {
 
                                         {/* Timing & Loyalty Category (15 eggs) */}
                                         <div style={styles.eggCategory}>
-                                            <h3 style={styles.eggCategoryTitle}>⏰ Timing & Loyalty (15 Achievements)</h3>
+                                            <h3 style={styles.eggCategoryTitle}>Timing & Loyalty (15 Achievements)</h3>
                                             <div style={styles.eggGrid}>
                                                 {EASTER_EGGS.timing_loyalty.map((egg) => (
                                                     <div key={egg.id} style={styles.eggCard}>
@@ -1346,7 +1340,7 @@ export default function DiamondStorePage() {
 
                                         {/* Strategy & Mastery Category (20 eggs) */}
                                         <div style={styles.eggCategory}>
-                                            <h3 style={styles.eggCategoryTitle}>♟️ Strategy & Mastery (20 Achievements)</h3>
+                                            <h3 style={styles.eggCategoryTitle}>Strategy & Mastery (20 Achievements)</h3>
                                             <div style={styles.eggGrid}>
                                                 {EASTER_EGGS.strategy_mastery.map((egg) => (
                                                     <div key={egg.id} style={styles.eggCard}>
@@ -1364,7 +1358,7 @@ export default function DiamondStorePage() {
 
                                         {/* Social/Viral Category (20 eggs) */}
                                         <div style={styles.eggCategory}>
-                                            <h3 style={styles.eggCategoryTitle}>🌟 Social & Viral (20 Achievements)</h3>
+                                            <h3 style={styles.eggCategoryTitle}>Social & Viral (20 Achievements)</h3>
                                             <div style={styles.eggGrid}>
                                                 {EASTER_EGGS.social_viral.map((egg) => (
                                                     <div key={egg.id} style={styles.eggCard}>
@@ -1382,7 +1376,7 @@ export default function DiamondStorePage() {
 
                                         {/* Meta/Interface Category (20 eggs) */}
                                         <div style={styles.eggCategory}>
-                                            <h3 style={styles.eggCategoryTitle}>🎮 Meta & Interface (20 Achievements)</h3>
+                                            <h3 style={styles.eggCategoryTitle}>Meta & Interface (20 Achievements)</h3>
                                             <div style={styles.eggGrid}>
                                                 {EASTER_EGGS.meta_interface.map((egg) => (
                                                     <div key={egg.id} style={styles.eggCard}>
@@ -1400,7 +1394,7 @@ export default function DiamondStorePage() {
 
                                         {/* Legacy/Milestones Category (15 eggs) */}
                                         <div style={styles.eggCategory}>
-                                            <h3 style={styles.eggCategoryTitle}>🏆 Legacy & Milestones (15 Achievements)</h3>
+                                            <h3 style={styles.eggCategoryTitle}>Legacy & Milestones (15 Achievements)</h3>
                                             <div style={styles.eggGrid}>
                                                 {EASTER_EGGS.legacy_milestones.map((egg) => (
                                                     <div key={egg.id} style={styles.eggCard}>
