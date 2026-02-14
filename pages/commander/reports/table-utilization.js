@@ -50,7 +50,7 @@ export default function TableUtilization() {
       <Head><title>Table Utilization | Club Commander</title></Head>
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
-          <button onClick={() => router.push('/commander/reports')} className="p-2 rounded-lg active:bg-[#3A3B3C]"><ArrowLeft className="w-5 h-5 text-[#B0B3B8]" /></button>
+          <button onClick={() => router.push('/commander/reports')} className="p-2 rounded-lg active:bg-[#3A3B3C]"><img src="/images/btn-back.png" alt="Back" style={{ height: 32, objectFit: 'contain' }} /></button>
           <div className="flex-1"><h1 className="text-lg font-bold text-white">Table Utilization</h1><p className="text-xs text-[#B0B3B8]">{RANGES.find(r => r.value === range)?.label}</p></div>
           <button onClick={fetchData} className="p-2 rounded-lg active:bg-[#3A3B3C]"><RefreshCw className="w-5 h-5 text-[#B0B3B8]" /></button>
         </div>

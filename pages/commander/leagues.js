@@ -135,7 +135,7 @@ export default function LeaguesManagement() {
         {/* Header */}
         <div style={{ background: '#1877F2', color: 'white', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
           <button onClick={() => router.push('/commander/dashboard')} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: 4 }}>
-            <ArrowLeft size={22} />
+            <img src="/images/btn-back.png" alt="Back" style={{ height: 32, objectFit: 'contain' }} />
           </button>
           <Trophy size={22} />
           <div style={{ flex: 1 }}>

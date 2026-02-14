@@ -161,7 +161,7 @@ export default function GameTypesPage() {
           <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button onClick={() => router.push('/commander/settings')}
-                className="p-2 hover:bg-[#3A3B3C] rounded-lg"><ArrowLeft className="w-5 h-5 text-[#B0B3B8]" /></button>
+                className="p-2 hover:bg-[#3A3B3C] rounded-lg"><img src="/images/btn-back.png" alt="Back" style={{ height: 32, objectFit: 'contain' }} /></button>
               <div>
                 <h1 className="font-bold text-white text-lg">Game Types</h1>
                 <p className="text-sm text-[#B0B3B8]">{venueName} — {gameTypes.filter(g => g.is_active).length} active</p>

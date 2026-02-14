@@ -187,7 +187,7 @@ export default function Cashier() {
         {/* Header */}
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
           <button onClick={() => router.push('/commander/dashboard')} className="p-2 rounded-lg active:bg-[#3A3B3C]">
-            <ArrowLeft className="w-5 h-5 text-[#B0B3B8]" />
+            <img src="/images/btn-back.png" alt="Back" style={{ height: 32, objectFit: 'contain' }} />
           </button>
           <div className="flex-1">
             <h1 className="text-lg font-bold text-white">Cashier</h1>

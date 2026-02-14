@@ -528,7 +528,7 @@ export default function PromotionsPage() {
                 onClick={() => router.push('/commander/dashboard')}
                 className="p-2 hover:bg-[#3A3B3C] rounded-lg"
               >
-                <ArrowLeft className="w-5 h-5 text-[#B0B3B8]" />
+                <img src="/images/btn-back.png" alt="Back" style={{ height: 32, objectFit: 'contain' }} />
               </button>
               <div>
                 <h1 className="font-bold text-white">Promotions</h1>
