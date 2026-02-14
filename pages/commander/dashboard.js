@@ -478,7 +478,7 @@ export default function CommanderDashboard() {
         {/* TOP BAR */}
         <div className="cmd-topbar">
           <button className="cmd-hamburger" onClick={() => setMenuOpen(true)}>
-            <Menu size={22} />
+            <img src="/images/btn-hamburger.png" alt="Menu" style={{ height: 22, width: 22, objectFit: 'contain' }} />
           </button>
           <div style={{ textAlign: 'right' }}>
             <div className="cmd-topbar-title">Club Commander</div>
