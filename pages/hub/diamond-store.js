@@ -515,6 +515,7 @@ function VIPCard({ plan, isSelected, onSelect }) {
                 transform: isSelected ? 'scale(1.03)' : 'scale(1)',
                 flex: 1,
                 overflow: 'hidden',
+                background: '#000',
                 border: isSelected
                     ? '3px solid #00D4FF'
                     : '2px solid rgba(255,255,255,0.15)',
@@ -1004,9 +1005,7 @@ export default function DiamondStorePage() {
                                 {/* VIP Hero */}
                                 <div style={styles.vipHero}>
                                     <h2 style={styles.vipTitle}>VIP Membership</h2>
-                                    <p style={styles.vipSubtitle}>
-                                        Unlock <strong>Everything</strong> For One Low Monthly Price. No Diamond Costs, No Limits.
-                                    </p>
+                                    <p style={styles.vipSubtitle}>Unlock <strong>Everything</strong> For One Low Monthly Price. No Diamond Costs, No Limits.</p>
                                 </div>
 
                                 {/* VIP Plan Selection */}
@@ -1023,18 +1022,26 @@ export default function DiamondStorePage() {
                                     />
                                 </div>
 
-                                {/* Subscribe Button */}
+                                {/* Subscribe Button — Metallic Image */}
                                 <div style={styles.vipSubscribeSection}>
-                                    <button
+                                    <div
                                         onClick={handleVIPSubscribe}
-                                        disabled={isProcessing}
                                         style={{
-                                            ...styles.vipSubscribeButton,
+                                            cursor: isProcessing ? 'wait' : 'pointer',
                                             opacity: isProcessing ? 0.6 : 1,
+                                            transition: 'transform 0.15s ease, filter 0.15s ease',
+                                            display: 'inline-block',
                                         }}
+                                        onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.03)'; e.currentTarget.style.filter = 'brightness(1.15)'; }}
+                                        onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.filter = 'brightness(1)'; }}
                                     >
-                                        {isProcessing ? 'Processing...' : `Subscribe for $${selectedVIPPlan.price.toFixed(2)}/${selectedVIPPlan.interval}`}
-                                    </button>
+                                        <img
+                                            src="/images/subscribe-button.png"
+                                            alt={isProcessing ? 'Processing...' : 'Subscribe For $19.99 A Month'}
+                                            style={{ width: '100%', maxWidth: 420, height: 'auto', display: 'block' }}
+                                            draggable={false}
+                                        />
+                                    </div>
                                     <p style={styles.vipCancelNote}>Cancel Anytime. No Commitment Required.</p>
                                 </div>
 
@@ -1092,18 +1099,6 @@ export default function DiamondStorePage() {
                                     </div>
                                 </div>
 
-                                {/* Value Comparison */}
-                                <div style={styles.valueComparison}>
-                                    <div style={styles.valueBox}>
-                                        <div style={styles.valueLabel}>Total Feature Value</div>
-                                        <div style={styles.valueAmount}>$200+/mo</div>
-                                    </div>
-                                    <div style={styles.valueDivider}>→</div>
-                                    <div style={styles.valueBoxHighlight}>
-                                        <div style={styles.valueLabel}>VIP Price</div>
-                                        <div style={styles.vipPrice}>$19.99/mo</div>
-                                    </div>
-                                </div>
                             </>
                         )}
 
@@ -2222,11 +2217,10 @@ const styles = {
         marginBottom: 12,
     },
     vipSubtitle: {
-        fontSize: 16,
+        fontSize: 15,
         color: 'rgba(255, 255, 255, 0.7)',
-        maxWidth: 500,
         margin: '0 auto',
-        lineHeight: 1.6,
+        lineHeight: 1.4,
     },
     vipPlansRow: {
         display: 'flex',
