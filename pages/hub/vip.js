@@ -34,7 +34,9 @@ const C = {
 const VIP_BENEFITS = [
     // Smarter.Poker Platform
     'Ad-Free Experience Across The Entire Platform',
-    'Unlimited Training & Trivia Games (No Diamond Cost)',
+    'Unlimited GTO Training Games (No Diamond Cost)',
+    'Unlimited Memory Games (No Diamond Cost)',
+    'Unlimited Poker Trivia (No Diamond Cost)',
     'Full Access To GTO AI Personal Assistant',
     'Advanced Leak Finder Analysis Tools',
     'Bankroll Manager Pro — All Session Tracking & Analytics',

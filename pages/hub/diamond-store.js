@@ -252,28 +252,30 @@ const VIP_MEMBERSHIP = {
 
 const VIP_BENEFITS = [
     // ─── SMARTER.POKER PLATFORM ───
-    { icon: '', title: 'Ad-Free Experience', description: 'No ads across the entire platform', value: 'Platform', category: 'Smarter.Poker' },
-    { icon: '', title: 'Unlimited Training & Trivia', description: 'Play all training games and trivia with no diamond cost', value: 'Unlimited', category: 'Smarter.Poker' },
-    { icon: '', title: 'GTO AI Personal Assistant', description: 'Full access to priority AI coaching & hand analysis', value: '$100/Mo', category: 'Smarter.Poker' },
-    { icon: '', title: 'Advanced Leak Finder', description: 'Full leak detection and analysis tools', value: '$50/Mo', category: 'Smarter.Poker' },
-    { icon: '', title: 'Bankroll Manager Pro', description: 'All pro tools for session tracking & analytics', value: '$25/Mo', category: 'Smarter.Poker' },
-    { icon: '', title: 'Advanced Poker Near Me', description: 'Premium filters and venue intelligence', value: '$15/Mo', category: 'Smarter.Poker' },
-    { icon: '', title: 'Free Roll Entries', description: 'Free entry to all Diamond Arena freeroll tournaments', value: 'Unlimited', category: 'Smarter.Poker' },
+    { icon: '', title: 'Ad-Free Experience', description: 'No Ads Across The Entire Platform', value: 'Platform', category: 'Smarter.Poker' },
+    { icon: '', title: 'Unlimited GTO Training Games', description: 'Play All GTO Training Games With No Diamond Cost', value: 'Unlimited', category: 'Smarter.Poker' },
+    { icon: '', title: 'Unlimited Memory Games', description: 'Play All Memory Games With No Diamond Cost', value: 'Unlimited', category: 'Smarter.Poker' },
+    { icon: '', title: 'Unlimited Poker Trivia', description: 'Play All Poker Trivia Games With No Diamond Cost', value: 'Unlimited', category: 'Smarter.Poker' },
+    { icon: '', title: 'GTO AI Personal Assistant', description: 'Full Access To Priority AI Coaching & Hand Analysis', value: '$100/Mo', category: 'Smarter.Poker' },
+    { icon: '', title: 'Advanced Leak Finder', description: 'Full Leak Detection And Analysis Tools', value: '$50/Mo', category: 'Smarter.Poker' },
+    { icon: '', title: 'Bankroll Manager Pro', description: 'All Pro Tools For Session Tracking & Analytics', value: '$25/Mo', category: 'Smarter.Poker' },
+    { icon: '', title: 'Advanced Poker Near Me', description: 'Premium Filters And Venue Intelligence', value: '$15/Mo', category: 'Smarter.Poker' },
+    { icon: '', title: 'Free Roll Entries', description: 'Free Entry To All Diamond Arena Freeroll Tournaments', value: 'Unlimited', category: 'Smarter.Poker' },
     // ─── CLUB & DIAMOND ARENA FEATURES ───
-    { icon: '', title: 'Rabbit Hunting', description: 'See what cards would have come after folding', value: 'Unlimited', category: 'Club & Diamond Arena' },
-    { icon: '', title: 'Show Stack In BBs', description: 'Display chip stacks in Big-Blinds for better decisions', value: 'Unlimited', category: 'Club & Diamond Arena' },
-    { icon: '', title: 'Offline Protection', description: 'Protection when disconnected during hands', value: 'Unlimited', category: 'Club & Diamond Arena' },
-    { icon: '', title: 'Auto Time Bank', description: 'Automatic time bank activation when needed', value: 'Unlimited', category: 'Club & Diamond Arena' },
-    { icon: '', title: 'Free Time Bank', description: '120 seconds of free time bank each month', value: '+120s/Mo', category: 'Club & Diamond Arena' },
-    { icon: '', title: 'Interactive Emojis', description: '1,200 free emojis to throw at the tables', value: '1,200/Mo', category: 'Club & Diamond Arena' },
-    { icon: '', title: 'Table Themes', description: '3 exclusive table themes unlocked', value: '3 Themes', category: 'Club & Diamond Arena' },
-    { icon: '', title: 'Club Creation', description: 'Create up to 3 private clubs', value: '3 Clubs', category: 'Club & Diamond Arena' },
-    { icon: '', title: 'Player Tags', description: '1,000 tags per month to track opponents', value: '1,000/Mo', category: 'Club & Diamond Arena' },
+    { icon: '', title: 'Rabbit Hunting', description: 'See What Cards Would Have Come After Folding', value: 'Unlimited', category: 'Club & Diamond Arena' },
+    { icon: '', title: 'Show Stack In BBs', description: 'Display Chip Stacks In Big-Blinds For Better Decisions', value: 'Unlimited', category: 'Club & Diamond Arena' },
+    { icon: '', title: 'Offline Protection', description: 'Protection When Disconnected During Hands', value: 'Unlimited', category: 'Club & Diamond Arena' },
+    { icon: '', title: 'Auto Time Bank', description: 'Automatic Time Bank Activation When Needed', value: 'Unlimited', category: 'Club & Diamond Arena' },
+    { icon: '', title: 'Free Time Bank', description: '120 Seconds Of Free Time Bank Each Month', value: '+120s/Mo', category: 'Club & Diamond Arena' },
+    { icon: '', title: 'Interactive Emojis', description: '1,200 Free Emojis To Throw At The Tables', value: '1,200/Mo', category: 'Club & Diamond Arena' },
+    { icon: '', title: 'Table Themes', description: '3 Exclusive Table Themes Unlocked', value: '3 Themes', category: 'Club & Diamond Arena' },
+    { icon: '', title: 'Club Creation', description: 'Create Up To 3 Private Clubs', value: '3 Clubs', category: 'Club & Diamond Arena' },
+    { icon: '', title: 'Player Tags', description: '1,000 Tags Per Month To Track Opponents', value: '1,000/Mo', category: 'Club & Diamond Arena' },
     // ─── BONUS PERKS ───
-    { icon: '', title: '2,000 Bonus Diamonds', description: '2,000 bonus diamonds credited every month', value: '2,000/Mo', category: 'Bonus' },
-    { icon: '', title: 'Custom AI Avatars', description: 'Create up to 5 AI-generated custom avatars', value: '5 Slots', category: 'Bonus' },
-    { icon: '', title: 'VIP Badge & Cosmetics', description: 'Exclusive Gold VIP profile badge and cosmetic flair', value: 'Exclusive', category: 'Bonus' },
-    { icon: '', title: 'Priority Support', description: 'Fast-track support and dedicated assistance', value: 'VIP Only', category: 'Bonus' },
+    { icon: '', title: '2,000 Bonus Diamonds', description: '2,000 Bonus Diamonds Credited Every Month', value: '2,000/Mo', category: 'Bonus' },
+    { icon: '', title: 'Custom AI Avatars', description: 'Create Up To 5 AI-Generated Custom Avatars', value: '5 Slots', category: 'Bonus' },
+    { icon: '', title: 'VIP Badge & Cosmetics', description: 'Exclusive Gold VIP Profile Badge And Cosmetic Flair', value: 'Exclusive', category: 'Bonus' },
+    { icon: '', title: 'Priority Support', description: 'Fast-Track Support And Dedicated Assistance', value: 'VIP Only', category: 'Bonus' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -507,27 +509,67 @@ function VIPCard({ plan, isSelected, onSelect }) {
             onClick={() => onSelect(plan.id)}
             style={{
                 position: 'relative',
-                background: isSelected
-                    ? 'linear-gradient(135deg, rgba(24, 119, 242, 0.3), rgba(66, 133, 244, 0.3))'
-                    : 'linear-gradient(135deg, rgba(24, 119, 242, 0.1), rgba(66, 133, 244, 0.1))',
-                border: isSelected
-                    ? '2px solid #1877F2'
-                    : plan.popular
-                        ? '2px solid rgba(24, 119, 242, 0.5)'
-                        : '1px solid rgba(24, 119, 242, 0.3)',
                 borderRadius: 16,
-                padding: 24,
                 cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                transform: isSelected ? 'scale(1.02)' : 'scale(1)',
+                transition: 'all 0.3s ease',
+                transform: isSelected ? 'scale(1.03)' : 'scale(1)',
                 flex: 1,
+                overflow: 'hidden',
+                border: isSelected
+                    ? '3px solid #00D4FF'
+                    : '2px solid rgba(255,255,255,0.15)',
+                boxShadow: isSelected
+                    ? '0 0 30px rgba(0,212,255,0.4)'
+                    : '0 4px 20px rgba(0,0,0,0.3)',
             }}
         >
+            {/* VIP Card Image As Full Background */}
+            <img
+                src="/images/vip-card.jpg"
+                alt={plan.name}
+                style={{
+                    width: '100%',
+                    display: 'block',
+                    borderRadius: 14,
+                }}
+                draggable={false}
+            />
+
+            {/* Price Overlay At Bottom */}
+            <div style={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 60%, transparent 100%)',
+                padding: '40px 16px 14px',
+                borderRadius: '0 0 14px 14px',
+            }}>
+                <div style={{
+                    fontFamily: 'Orbitron, sans-serif',
+                    fontSize: 14,
+                    fontWeight: 700,
+                    color: '#FFFFFF',
+                    marginBottom: 4,
+                }}>
+                    {plan.name}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                    <span style={{ fontSize: 28, fontWeight: 700, color: '#FFFFFF' }}>
+                        ${plan.price.toFixed(2)}
+                    </span>
+                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>
+                        /{plan.interval}
+                    </span>
+                </div>
+            </div>
+
+            {/* Recommended Badge */}
             {plan.popular && (
                 <div style={{
                     position: 'absolute',
-                    top: -10,
-                    right: 16,
+                    top: 10,
+                    right: 12,
                     background: 'linear-gradient(135deg, #1877F2, #4285F4)',
                     color: '#fff',
                     fontSize: 10,
@@ -540,11 +582,12 @@ function VIPCard({ plan, isSelected, onSelect }) {
                 </div>
             )}
 
+            {/* Savings Badge */}
             {plan.savings && (
                 <div style={{
                     position: 'absolute',
-                    top: -10,
-                    left: 16,
+                    top: 10,
+                    left: 12,
                     background: 'linear-gradient(135deg, #00ff88, #00cc66)',
                     color: '#0a1628',
                     fontSize: 10,
@@ -556,31 +599,24 @@ function VIPCard({ plan, isSelected, onSelect }) {
                 </div>
             )}
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                <img src="/images/vip-card.jpg" alt="VIP" style={{ width: 60, height: 36, borderRadius: 6, objectFit: 'cover' }} />
-                <div>
-                    <div style={{
-                        fontFamily: 'Orbitron, sans-serif',
-                        fontSize: 20,
-                        fontWeight: 700,
-                        color: '#fff',
-                    }}>
-                        {plan.name}
-                    </div>
-                    <div style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.6)' }}>
-                        All features included
-                    </div>
+            {/* Selected Indicator */}
+            {isSelected && (
+                <div style={{
+                    position: 'absolute',
+                    top: 10,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: 'rgba(0,212,255,0.9)',
+                    color: '#000',
+                    fontSize: 10,
+                    fontWeight: 700,
+                    padding: '3px 12px',
+                    borderRadius: 10,
+                    textTransform: 'uppercase',
+                }}>
+                    Selected
                 </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                <span style={{ fontSize: 32, fontWeight: 700, color: '#fff' }}>
-                    ${plan.price.toFixed(2)}
-                </span>
-                <span style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.5)' }}>
-                    /{plan.interval}
-                </span>
-            </div>
+            )}
         </div>
     );
 }
@@ -2235,8 +2271,8 @@ const styles = {
     benefitsCategoryLabel: {
         fontFamily: 'Orbitron, sans-serif',
         fontSize: 13,
-        fontWeight: 600,
-        color: '#FFD700',
+        fontWeight: 700,
+        color: '#FFFFFF',
         letterSpacing: '0.08em',
         textTransform: 'uppercase',
     },
