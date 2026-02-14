@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { LogOut, ArrowLeft, X, Menu, Settings, Download, Users, QrCode } from 'lucide-react';
+import { LogOut, ArrowLeft, Settings, Download, Users, QrCode } from 'lucide-react';
 
 /* ─────────────────────────────────────────────────
    CARD DEFINITIONS — each card has sub-features
@@ -132,7 +132,7 @@ export default function CommanderDashboard() {
   const router = useRouter();
   const [staff, setStaff] = useState(null);
   const [activeCard, setActiveCard] = useState(null); // which card is "opened"
-  const [menuOpen, setMenuOpen] = useState(false);
+
 
   // Auth guard
   useEffect(() => {
@@ -199,104 +199,7 @@ export default function CommanderDashboard() {
           color: #888;
           margin-top: 2px;
         }
-        .cmd-hamburger {
-          background: none;
-          border: 1px solid #333;
-          padding: 8px;
-          border-radius: 8px;
-          color: #ccc;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.2s;
-        }
-        .cmd-hamburger:hover {
-          border-color: #555;
-          color: #fff;
-          background: rgba(255,255,255,0.05);
-        }
 
-        /* ── HAMBURGER DROPDOWN ── */
-        .cmd-menu-overlay {
-          position: fixed;
-          inset: 0;
-          z-index: 200;
-          background: rgba(0,0,0,0.5);
-          animation: cmdMenuFade 0.15s ease;
-        }
-        @keyframes cmdMenuFade {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        .cmd-menu-panel {
-          position: fixed;
-          top: 0;
-          right: 0;
-          z-index: 201;
-          width: 260px;
-          max-height: 100vh;
-          background: linear-gradient(180deg, #1a1a1a 0%, #111 100%);
-          border-left: 1px solid #333;
-          border-bottom: 1px solid #333;
-          padding: 16px 0;
-          animation: cmdMenuSlide 0.2s ease;
-        }
-        @keyframes cmdMenuSlide {
-          from { transform: translateX(100%); }
-          to { transform: translateX(0); }
-        }
-        .cmd-menu-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 0 16px 12px;
-          border-bottom: 1px solid #222;
-          margin-bottom: 8px;
-        }
-        .cmd-menu-header-text {
-          font-family: 'Orbitron', sans-serif;
-          font-size: 13px;
-          font-weight: 700;
-          color: #fff;
-          letter-spacing: 1.5px;
-          text-transform: uppercase;
-        }
-        .cmd-menu-close {
-          background: none;
-          border: none;
-          color: #666;
-          cursor: pointer;
-          padding: 4px;
-          display: flex;
-        }
-        .cmd-menu-close:hover { color: #fff; }
-        .cmd-menu-item {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          width: 100%;
-          padding: 12px 20px;
-          background: none;
-          border: none;
-          color: #ccc;
-          font-size: 14px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.15s;
-          text-align: left;
-        }
-        .cmd-menu-item:hover {
-          background: rgba(255,255,255,0.05);
-          color: #fff;
-        }
-        .cmd-menu-divider {
-          height: 1px;
-          background: #222;
-          margin: 8px 16px;
-        }
-        .cmd-menu-item.danger { color: #ef4444; }
-        .cmd-menu-item.danger:hover { background: rgba(239,68,68,0.1); color: #f87171; }
 
         /* ── 6-CARD GRID ── */
         .cmd-grid {
@@ -477,95 +380,11 @@ export default function CommanderDashboard() {
       <div className="cmd-dashboard">
         {/* TOP BAR */}
         <div className="cmd-topbar">
-          <button className="cmd-hamburger" onClick={() => setMenuOpen(true)} style={{ overflow: 'hidden', position: 'relative', width: 40, height: 40 }}>
-            <img src="/images/btn-hamburger.png" alt="Menu" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '55%', left: '50%', transform: 'translate(-50%, -50%)' }} />
-          </button>
           <div style={{ textAlign: 'right' }}>
             <div className="cmd-topbar-title">Club Commander</div>
             <div className="cmd-topbar-venue">{staff.venue_name || 'Poker Room'}</div>
           </div>
         </div>
-
-        {/* HAMBURGER MENU */}
-        {menuOpen && (
-          <>
-            <div className="cmd-menu-overlay" onClick={() => setMenuOpen(false)} />
-            <div className="cmd-menu-panel">
-              <div className="cmd-menu-header">
-                <span className="cmd-menu-header-text">Menu</span>
-                <button className="cmd-menu-close" onClick={() => setMenuOpen(false)}>
-                  <X size={18} />
-                </button>
-              </div>
-              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/members'); }}>
-                <Users size={18} /> Members
-              </button>
-              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/waitlist/desk'); }}>
-                <Clock size={18} /> Waitlist Desk
-              </button>
-              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/tables'); }}>
-                <Layout size={18} /> Tables
-              </button>
-              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/floor'); }}>
-                <Map size={18} /> Floor Map
-              </button>
-              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/floor-calls'); }}>
-                <Bell size={18} /> Floor Calls
-              </button>
-              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/tournaments'); }}>
-                <Trophy size={18} /> Tournaments
-              </button>
-              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/dealers'); }}>
-                <Users size={18} /> Dealers
-              </button>
-              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/kiosk'); }}>
-                <Monitor size={18} /> Kiosk
-              </button>
-              <div className="cmd-menu-divider" />
-              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/comps'); }}>
-                <DollarSign size={18} /> Comps
-              </button>
-              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/promotions'); }}>
-                <Gift size={18} /> Promotions
-              </button>
-              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/schedule'); }}>
-                <Calendar size={18} /> Staff Schedule
-              </button>
-              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/displays'); }}>
-                <Tv size={18} /> TV Displays
-              </button>
-              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/activity'); }}>
-                <Activity size={18} /> Activity Feed
-              </button>
-              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/reports'); }}>
-                <BarChart3 size={18} /> Reports
-              </button>
-              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/incidents'); }}>
-                <AlertTriangle size={18} /> Incidents
-              </button>
-              <div className="cmd-menu-divider" />
-              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/open-game'); }}>
-                <PlusCircle size={18} /> Open Cash Game
-              </button>
-              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/close-day'); }}>
-                <Lock size={18} /> Close Day
-              </button>
-              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/member-import'); }}>
-                <Upload size={18} /> Member Import
-              </button>
-              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/qr-code'); }}>
-                <QrCode size={18} /> QR Code
-              </button>
-              <button className="cmd-menu-item" onClick={() => { setMenuOpen(false); router.push('/commander/settings'); }}>
-                <Settings size={18} /> Settings
-              </button>
-              <div className="cmd-menu-divider" />
-              <button className="cmd-menu-item danger" onClick={handleLogout}>
-                <LogOut size={18} /> Sign Out
-              </button>
-            </div>
-          </>
-        )}
 
         {/* ── MAIN: 4-CARD GRID ── */}
         {!activeCard && (
