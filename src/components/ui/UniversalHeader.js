@@ -472,23 +472,26 @@ export default function UniversalHeader({
                 /* MOBILE: Compact layout with all icons visible */
                 @media (max-width: 600px) {
                     .universal-header {
-                        padding: 6px 8px;
-                        gap: 4px;
+                        padding: 6px 6px;
+                        gap: 2px;
                     }
                     
                     .header-left {
-                        gap: 4px;
+                        gap: 2px;
+                        flex-shrink: 1;
+                        min-width: 0;
                     }
                     
                     .header-center {
-                        gap: 4px;
+                        gap: 2px;
                         flex-shrink: 1;
                         min-width: 0;
                     }
                     
                     .header-right {
-                        gap: 4px;
-                        flex-grow: 1;
+                        gap: 2px;
+                        flex-shrink: 0;
+                        flex-grow: 0;
                         justify-content: flex-end;
                     }
                     
@@ -496,21 +499,24 @@ export default function UniversalHeader({
                         display: none; /* Hide brand text on mobile */
                     }
                     
-                    /* Image buttons - mobile sizing */
+                    /* Hamburger button - mobile sizing */
                     .header-img-btn {
-                        height: 28px;
-                        width: 28px;
+                        height: 26px;
+                        width: 26px;
                     }
 
+                    /* CRITICAL: Cap BACK/HUB nav button width on mobile */
                     .header-nav-btn {
-                        height: 24px;
+                        height: 22px;
                         width: auto;
+                        max-width: 80px;
                     }
                     
                     /* Diamond wallet - mobile sizing */
                     .diamond-wallet {
-                        width: 65px;
-                        height: 32px;
+                        width: auto;
+                        min-width: 50px;
+                        height: 30px;
                         padding: 0 4px;
                         font-size: 10px;
                     }
@@ -521,16 +527,16 @@ export default function UniversalHeader({
                     
                     /* Shrink all orb icons to fit on mobile */
                     .orb-btn, .profile-orb {
-                        width: 28px;
-                        height: 28px;
-                        font-size: 12px;
+                        width: 26px;
+                        height: 26px;
+                        font-size: 11px;
                     }
                     
                     .orb-badge {
                         top: -3px;
                         right: -3px;
                         padding: 0 3px;
-                        font-size: 8px;
+                        font-size: 7px;
                         min-width: 10px;
                     }
                 }
@@ -615,7 +621,7 @@ export default function UniversalHeader({
                     {/* Messages - Custom Metallic Messenger icon */}
                     <Link href="/hub/messenger" style={{ textDecoration: 'none' }}>
                         <div className="orb-btn">
-                            <img src="/images/header-messenger.png" alt="Messages" style={{ width: 80, height: 80, maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '55%', left: '50%', transform: 'translate(-50%, -50%)' }} />
+                            <img src="/images/header-messenger.png" alt="Messages" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '55%', left: '50%', transform: 'translate(-50%, -50%)' }} />
                             {unreadMessages > 0 && (
                                 <span className="orb-badge">{unreadMessages > 99 ? '99+' : unreadMessages}</span>
                             )}
@@ -625,7 +631,7 @@ export default function UniversalHeader({
                     {/* Notifications - Custom Metallic Bell icon */}
                     <Link href="/hub/notifications" style={{ textDecoration: 'none' }}>
                         <div className="orb-btn">
-                            <img src="/images/header-notifications.png" alt="Notifications" style={{ width: 80, height: 80, maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '55%', left: '50%', transform: 'translate(-50%, -50%)' }} />
+                            <img src="/images/header-notifications.png" alt="Notifications" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '55%', left: '50%', transform: 'translate(-50%, -50%)' }} />
                             {notificationCount > 0 && (
                                 <span className="orb-badge">{notificationCount > 99 ? '99+' : notificationCount}</span>
                             )}
@@ -635,7 +641,7 @@ export default function UniversalHeader({
                     {/* Settings - Custom Metallic Gear icon */}
                     <Link href="/hub/settings" style={{ textDecoration: 'none' }}>
                         <div className="orb-btn">
-                            <img src="/images/header-settings.png" alt="Settings" style={{ width: 80, height: 80, maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '55%', left: '50%', transform: 'translate(-50%, -50%)' }} />
+                            <img src="/images/header-settings.png" alt="Settings" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '55%', left: '50%', transform: 'translate(-50%, -50%)' }} />
                         </div>
                     </Link>
 
@@ -653,16 +659,16 @@ export default function UniversalHeader({
                             padding: 0,
                             cursor: 'pointer',
                             zIndex: 10,
-                            width: 40,
-                            height: 40,
                             overflow: 'hidden'
                         }}
                     >
-                        <img src="/images/header-help.png" alt="Live Help" style={{ width: 80, height: 80, maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '55%', left: '50%', transform: 'translate(-50%, -50%)' }} />
+                        <img src="/images/header-help.png" alt="Live Help" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '55%', left: '50%', transform: 'translate(-50%, -50%)' }} />
                     </button>
 
-                    {/* Push Notification Bell */}
-                    <PushNotificationBell />
+                    {/* Push Notification Bell - hidden on mobile to save space */}
+                    <div className="hide-mobile">
+                        <PushNotificationBell />
+                    </div>
 
                     {/* Search - HIDE on mobile */}
                     {showSearch && (
