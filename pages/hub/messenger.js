@@ -480,6 +480,7 @@ function TypingIndicator({ name }) {
 
 
 function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInGroup, onRetry, onReact, onDelete, currentUserId }) {
+    const senderIsVip = sender?.is_vip || false;
     const [showReactions, setShowReactions] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
     const [reactions, setReactions] = useState(message.reactions || []);
@@ -670,7 +671,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                 <div style={{
                     padding: '8px 12px',
                     borderRadius: 18,
-                    background: isOwn ? C.ownBubble : C.otherBubble,
+                    background: isOwn ? C.ownBubble : (senderIsVip ? 'linear-gradient(135deg, rgba(255,215,0,0.08), rgba(255,215,0,0.03))' : C.otherBubble),
                     color: isOwn ? 'white' : C.text,
                     fontSize: 15,
                     lineHeight: 1.4,
@@ -678,6 +679,10 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                     borderBottomLeftRadius: !isOwn && !isLastInGroup ? 4 : 18,
                     wordBreak: 'break-word',
                     overflow: 'hidden',
+                    ...(senderIsVip && !isOwn ? {
+                        borderLeft: '3px solid #FFD700',
+                        boxShadow: '0 0 6px rgba(255,215,0,0.15)',
+                    } : {}),
                 }}>
                     {/* Render media content (images/videos) */}
                     {(() => {
@@ -940,7 +945,7 @@ function SearchBar({ value, onChange, onSearchUser, searchResults, onSelectUser,
                     fontSize: 14,
                     fontWeight: 500,
                 }}>
-                     New Message - Search for a user below
+                    New Message - Search for a user below
                 </div>
             )}
             <div style={{
@@ -1055,6 +1060,7 @@ export default function MessengerPage() {
     // Incoming Call State (for seamless calling like Snapchat/WhatsApp)
     const [incomingCall, setIncomingCall] = useState(null); // { callerId, callerName, callerAvatar, callType, roomName }
     const [callingUser, setCallingUser] = useState(null); // Track who we're calling
+    const [isVip, setIsVip] = useState(false); // VIP status for Jarvis daily limits
     const incomingCallAudioRef = useRef(null);
     // outgoingCallAudioRef removed - using Web Audio API createRingTone() instead
     const outgoingRingToneRef = useRef(null); // Web Audio API ring tone (more reliable)
@@ -1280,7 +1286,7 @@ export default function MessengerPage() {
                 // Fetch sender profile for enrichment
                 const { data: profile } = await supabase
                     .from('profiles')
-                    .select('id, username, avatar_url')
+                    .select('id, username, avatar_url, is_vip')
                     .eq('id', newMsg.sender_id)
                     .single();
 
@@ -1588,7 +1594,7 @@ export default function MessengerPage() {
                     try {
                         const { data: participants } = await supabase
                             .from('social_conversation_participants')
-                            .select('user_id, profiles(id, username, avatar_url)')
+                            .select('user_id, profiles(id, username, avatar_url, is_vip)')
                             .eq('conversation_id', p.conversation_id)
                             .neq('user_id', userId);
 
@@ -1760,6 +1766,29 @@ export default function MessengerPage() {
 
         // Special handling for Jarvis AI
         if (activeConversation.isJarvis) {
+            // ── Jarvis Daily Usage Limiter (5/day for free users, unlimited for VIP) ──
+            const JARVIS_DAILY_LIMIT = 5;
+            const today = new Date().toISOString().split('T')[0];
+            const usageKey = `jarvis_daily_usage_${today}`;
+            const currentUsage = parseInt(localStorage.getItem(usageKey) || '0', 10);
+
+            if (!isVip && currentUsage >= JARVIS_DAILY_LIMIT) {
+                const limitMsg = {
+                    id: `jarvis-limit-${Date.now()}`,
+                    content: `⚡ You've used all ${JARVIS_DAILY_LIMIT} free Jarvis messages today. Upgrade to **VIP** for unlimited Jarvis AI access, advanced analytics, and more!\n\n👑 [Upgrade to VIP →](/hub/diamond-store)`,
+                    created_at: new Date().toISOString(),
+                    sender_id: 'jarvis',
+                    profiles: { id: 'jarvis', username: 'jarvis', full_name: 'Jarvis', avatar_url: null },
+                    isJarvis: true
+                };
+                setMessages(prev => [...prev, limitMsg]);
+                return;
+            }
+
+            // Increment daily usage for non-VIP
+            if (!isVip) {
+                localStorage.setItem(usageKey, String(currentUsage + 1));
+            }
             const userMsg = {
                 id: `user-${Date.now()}`,
                 content: content.trim(),
@@ -2701,7 +2730,7 @@ export default function MessengerPage() {
                                 onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
                                 title="Accept"
                             >
-                                
+
                             </button>
                         </div>
                     </div>

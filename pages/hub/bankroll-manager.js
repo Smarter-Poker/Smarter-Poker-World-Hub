@@ -236,6 +236,7 @@ export default function BankrollManagerPage() {
   const [defaultReceiptCategory, setDefaultReceiptCategory] = useState(null);
   const [defaultReceiptMedia, setDefaultReceiptMedia] = useState(null);
   const [ruleViolations, setRuleViolations] = useState([]);
+  const [isVip, setIsVip] = useState(false);
 
   //  INTRO VIDEO STATE - Video plays while page loads in background
   // Only show once per session (not on every reload)
@@ -264,6 +265,9 @@ export default function BankrollManagerPage() {
   useEffect(() => {
     if (userId) {
       initializeUserBankroll(userId).catch(console.error);
+      // Check VIP status
+      supabase.from('profiles').select('is_vip').eq('id', userId).single()
+        .then(({ data }) => { if (data) setIsVip(!!data.is_vip); });
     }
   }, [userId]);
 
@@ -1119,15 +1123,52 @@ export default function BankrollManagerPage() {
                   </div>
 
                   {/* Analytics Grid — horizontal slider on mobile */}
-                  <div className="bankroll-analytics-slider" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16, gridTemplateRows: '300px' }}>
-                    <div style={{ height: 300, minHeight: 300, maxHeight: 300, overflow: 'auto' }}>
-                      <LocationAnalytics entries={entries.filter(e => !ACCOUNTING_CATEGORIES.has(e.category) && gameTypeFilter.has(e.category))} isLoading={isLoading} />
-                    </div>
-                    <div style={{ height: 300, minHeight: 300, maxHeight: 300, overflow: 'auto' }}>
-                      <VarianceCalculator entries={entries.filter(e => !ACCOUNTING_CATEGORIES.has(e.category) && gameTypeFilter.has(e.category))} />
-                    </div>
-                    <div style={{ height: 300, minHeight: 300, maxHeight: 300, overflow: 'auto' }}>
-                      <HistoricalComparison entries={entries.filter(e => !ACCOUNTING_CATEGORIES.has(e.category) && gameTypeFilter.has(e.category))} />
+                  <div style={{ position: 'relative' }}>
+                    {!isVip && (
+                      <div style={{
+                        position: 'absolute',
+                        top: 0, left: 0, right: 0, bottom: 0,
+                        background: 'rgba(10, 12, 20, 0.85)',
+                        backdropFilter: 'blur(6px)',
+                        borderRadius: 12,
+                        zIndex: 10,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 12,
+                      }}>
+                        <div style={{ fontSize: 32 }}>👑</div>
+                        <div style={{ fontSize: 16, fontWeight: 700, color: '#FFD700', textAlign: 'center' }}>VIP Only — Advanced Analytics</div>
+                        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', textAlign: 'center', maxWidth: 280 }}>Variance Analysis, Venue Intelligence & Historical Trends require VIP membership.</div>
+                        <button
+                          onClick={() => router.push('/hub/diamond-store')}
+                          style={{
+                            background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                            color: '#000',
+                            border: 'none',
+                            borderRadius: 8,
+                            padding: '10px 24px',
+                            fontSize: 14,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            marginTop: 4,
+                          }}
+                        >
+                          Upgrade to VIP
+                        </button>
+                      </div>
+                    )}
+                    <div className="bankroll-analytics-slider" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16, gridTemplateRows: '300px', filter: isVip ? 'none' : 'blur(3px)', pointerEvents: isVip ? 'auto' : 'none' }}>
+                      <div style={{ height: 300, minHeight: 300, maxHeight: 300, overflow: 'auto' }}>
+                        <LocationAnalytics entries={entries.filter(e => !ACCOUNTING_CATEGORIES.has(e.category) && gameTypeFilter.has(e.category))} isLoading={isLoading} />
+                      </div>
+                      <div style={{ height: 300, minHeight: 300, maxHeight: 300, overflow: 'auto' }}>
+                        <VarianceCalculator entries={entries.filter(e => !ACCOUNTING_CATEGORIES.has(e.category) && gameTypeFilter.has(e.category))} />
+                      </div>
+                      <div style={{ height: 300, minHeight: 300, maxHeight: 300, overflow: 'auto' }}>
+                        <HistoricalComparison entries={entries.filter(e => !ACCOUNTING_CATEGORIES.has(e.category) && gameTypeFilter.has(e.category))} />
+                      </div>
                     </div>
                   </div>
 

@@ -256,11 +256,15 @@ const VIP_BENEFITS = [
     { icon: '', title: 'Unlimited GTO Training Games', description: 'Play All GTO Training Games With No Diamond Cost', value: 'Unlimited', category: 'Smarter.Poker' },
     { icon: '', title: 'Unlimited Memory Games', description: 'Play All Memory Games With No Diamond Cost', value: 'Unlimited', category: 'Smarter.Poker' },
     { icon: '', title: 'Unlimited Poker Trivia', description: 'Play All Poker Trivia Games With No Diamond Cost', value: 'Unlimited', category: 'Smarter.Poker' },
-    { icon: '', title: 'GTO AI Personal Assistant', description: 'Full Access To Priority AI Coaching & Hand Analysis', value: '$100/Mo', category: 'Smarter.Poker' },
+    { icon: '', title: 'GTO AI Personal Assistant', description: 'Full Access To Priority AI Coaching & Hand Analysis', value: 'Unlimited', category: 'Smarter.Poker' },
+    { icon: '', title: 'Jarvis AI GTO Analysis', description: 'Unlimited AI-Powered GTO Analysis — Free Users Limited To 3/Day', value: 'Unlimited', category: 'Smarter.Poker' },
+    { icon: '', title: 'Post-Game Hand Reviews', description: 'AI-Powered Tactical Breakdowns After Training Sessions', value: 'VIP Only', category: 'Smarter.Poker' },
     { icon: '', title: 'Advanced Leak Finder', description: 'Full Leak Detection And Analysis Tools', value: '$50/Mo', category: 'Smarter.Poker' },
     { icon: '', title: 'Bankroll Manager Pro', description: 'All Pro Tools For Session Tracking & Analytics', value: '$25/Mo', category: 'Smarter.Poker' },
+    { icon: '', title: 'Advanced Bankroll Analytics', description: 'Variance Analysis, Historical Trends & Venue Intelligence', value: 'VIP Only', category: 'Smarter.Poker' },
     { icon: '', title: 'Advanced Poker Near Me', description: 'Premium Filters And Venue Intelligence', value: '$15/Mo', category: 'Smarter.Poker' },
     { icon: '', title: 'Free Roll Entries', description: 'Free Entry To All Diamond Arena Freeroll Tournaments', value: 'Unlimited', category: 'Smarter.Poker' },
+    { icon: '', title: 'Priority Messaging', description: 'Gold-Highlighted Messages In All Conversations', value: 'VIP Only', category: 'Smarter.Poker' },
     // ─── CLUB & DIAMOND ARENA FEATURES ───
     { icon: '', title: 'Rabbit Hunting', description: 'See What Cards Would Have Come After Folding', value: 'Unlimited', category: 'Club & Diamond Arena' },
     { icon: '', title: 'Show Stack In BBs', description: 'Display Chip Stacks In Big-Blinds For Better Decisions', value: 'Unlimited', category: 'Club & Diamond Arena' },
@@ -270,11 +274,13 @@ const VIP_BENEFITS = [
     { icon: '', title: 'Interactive Emojis', description: '1,200 Free Emojis To Throw At The Tables', value: '1,200/Mo', category: 'Club & Diamond Arena' },
     { icon: '', title: 'Table Themes', description: '3 Exclusive Table Themes Unlocked', value: '3 Themes', category: 'Club & Diamond Arena' },
     { icon: '', title: 'Club Creation', description: 'Create Up To 3 Private Clubs', value: '3 Clubs', category: 'Club & Diamond Arena' },
+    { icon: '', title: 'Extended Player Notes', description: 'Unlimited Player Notes — Free Users Limited To 10', value: 'Unlimited', category: 'Club & Diamond Arena' },
     { icon: '', title: 'Player Tags', description: '1,000 Tags Per Month To Track Opponents', value: '1,000/Mo', category: 'Club & Diamond Arena' },
     // ─── BONUS PERKS ───
-    { icon: '', title: '2,000 Bonus Diamonds', description: '2,000 Bonus Diamonds Credited Every Month', value: '2,000/Mo', category: 'Bonus' },
+    { icon: '', title: '500 Monthly Diamonds', description: '500 Bonus Diamonds Credited Every Month', value: '500/Mo', category: 'Bonus' },
+    { icon: '', title: 'VIP Store Discounts', description: '10% Off All Diamond Packs & Merchandise', value: '10% Off', category: 'Bonus' },
     { icon: '', title: 'Custom AI Avatars', description: 'Create Up To 5 AI-Generated Custom Avatars', value: '5 Slots', category: 'Bonus' },
-    { icon: '', title: 'VIP Badge & Cosmetics', description: 'Exclusive Gold VIP Profile Badge And Cosmetic Flair', value: 'Exclusive', category: 'Bonus' },
+    { icon: '', title: 'VIP Badge & Profile Flair', description: 'Exclusive Gold VIP Border, Crown Icon & Profile Cosmetics', value: 'Exclusive', category: 'Bonus' },
     { icon: '', title: 'Priority Support', description: 'Fast-Track Support And Dedicated Assistance', value: 'VIP Only', category: 'Bonus' },
 ];
 
