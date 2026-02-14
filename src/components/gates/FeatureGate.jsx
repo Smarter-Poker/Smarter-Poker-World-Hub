@@ -37,7 +37,7 @@ const ANIM = `
  * @param {number} [props.cost] - Override cost from FEATURE_CONFIG
  * @param {React.ReactNode} props.children - Content to show when access granted
  */
-export default function FeatureGate({ userId, featureKey, title, subtitle, description, features = [], cost: costOverride, children }) {
+export default function FeatureGate({ userId, featureKey, title, subtitle, description, features = [], cost: costOverride, hideBadge, children }) {
     const config = FEATURE_CONFIG[featureKey] || { cost: 25, label: featureKey, durationHours: 24 };
     const cost = costOverride || config.cost;
 
@@ -102,13 +102,15 @@ export default function FeatureGate({ userId, featureKey, title, subtitle, descr
     if (access.hasAccess) {
         return (
             <div style={{ position: 'relative' }}>
-                <div style={{ ...s.badge, ...(access.isVip ? s.badgeGold : s.badgeCyan) }}>
-                    {access.isVip ? (
-                        <><Crown size={12} /> VIP ACCESS</>
-                    ) : (
-                        <><Timer size={12} /> {formatTimeRemaining(access.expiresAt)}</>
-                    )}
-                </div>
+                {!hideBadge && (
+                    <div style={{ ...s.badge, ...(access.isVip ? s.badgeGold : s.badgeCyan) }}>
+                        {access.isVip ? (
+                            <><Crown size={12} /> VIP ACCESS</>
+                        ) : (
+                            <><Timer size={12} /> {formatTimeRemaining(access.expiresAt)}</>
+                        )}
+                    </div>
+                )}
                 {children}
                 <style>{ANIM}</style>
             </div>

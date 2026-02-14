@@ -710,7 +710,7 @@ export default function BankrollManagerPage() {
         <div style={styles.bgGrid} />
         <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
 
-        <FeatureGate featureKey="bankroll_manager" userId={userId} cost={25} duration={24} featureName="Bankroll Manager" description="Track sessions, analyze leaks, and manage your poker bankroll for 24 hours.">
+        <FeatureGate featureKey="bankroll_manager" userId={userId} cost={25} duration={24} featureName="Bankroll Manager" description="Track sessions, analyze leaks, and manage your poker bankroll for 24 hours." hideBadge>
           {/* Hamburger Menu */}
           <HamburgerMenu
             isOpen={menuOpen}
@@ -804,24 +804,6 @@ export default function BankrollManagerPage() {
               {/* Dashboard View */}
               {activeSection === 'dashboard' && categoryFilter === 'all' && (
                 <>
-                  {/* Stats Cards */}
-                  <div className="bankroll-stats-grid" style={styles.statsGrid}>
-                    <StatCard
-                      title="Bankroll Balance"
-                      value={stats ? formatCurrency(stats.totalBankroll, preferences.currencyEUR) : '—'}
-                      isLoading={isLoading}
-                      onClick={() => setShowAdjustModal(true)}
-                    />
-                    <StatCard
-                      title="Net Results"
-                      value={
-                        stats
-                          ? formatCurrency(stats.allInNet, preferences.currencyEUR)
-                          : '—'
-                      }
-                      isLoading={isLoading}
-                    />
-                  </div>
 
                   {/* Active Trip Featured Banner */}
                   {(() => {
@@ -956,6 +938,37 @@ export default function BankrollManagerPage() {
                       </div>
                     );
                   })()}
+
+                  {/* === Unified Dashboard Frame === */}
+                  <div style={{
+                    background: '#1a1b1e',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: 14,
+                    padding: '16px',
+                    marginBottom: 16,
+                  }}>
+
+                  {/* Stats Cards */}
+                  <div className="bankroll-stats-grid" style={styles.statsGrid}>
+                    <StatCard
+                      title="Bankroll Balance"
+                      value={stats ? formatCurrency(stats.totalBankroll, preferences.currencyEUR) : '—'}
+                      isLoading={isLoading}
+                      onClick={() => setShowAdjustModal(true)}
+                    />
+                    <StatCard
+                      title="Net Results"
+                      value={
+                        stats
+                          ? formatCurrency(stats.allInNet, preferences.currencyEUR)
+                          : '—'
+                      }
+                      isLoading={isLoading}
+                    />
+                  </div>
+
+                  {/* Bankroll Trend Chart — filtered by gameTypeFilter, always include expenses */}
+                  <BankrollTrendChart entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} isLoading={isLoading} chartType={chartType} timeFilter={timeFilter} />
 
                   {/* Filters Row */}
                   <div className="bankroll-filters-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 12 }}>
@@ -1102,26 +1115,30 @@ export default function BankrollManagerPage() {
                     </div>
                   </div>
 
-                  {/* Bankroll Trend Chart — filtered by gameTypeFilter, always include expenses */}
-                  <BankrollTrendChart entries={entries.filter(e => e.category === 'expense' || gameTypeFilter.has(e.category))} isLoading={isLoading} chartType={chartType} timeFilter={timeFilter} />
+                  </div>
 
                   {/* Analytics Grid — horizontal slider on mobile */}
                   <div className="bankroll-analytics-slider" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16, gridTemplateRows: '300px' }}>
-                    <LocationAnalytics entries={entries.filter(e => !ACCOUNTING_CATEGORIES.has(e.category) && gameTypeFilter.has(e.category))} isLoading={isLoading} />
-                    <VarianceCalculator entries={entries.filter(e => !ACCOUNTING_CATEGORIES.has(e.category) && gameTypeFilter.has(e.category))} />
-                    <HistoricalComparison entries={entries.filter(e => !ACCOUNTING_CATEGORIES.has(e.category) && gameTypeFilter.has(e.category))} />
+                    <div style={{ height: 300, minHeight: 300, maxHeight: 300, overflow: 'auto' }}>
+                      <LocationAnalytics entries={entries.filter(e => !ACCOUNTING_CATEGORIES.has(e.category) && gameTypeFilter.has(e.category))} isLoading={isLoading} />
+                    </div>
+                    <div style={{ height: 300, minHeight: 300, maxHeight: 300, overflow: 'auto' }}>
+                      <VarianceCalculator entries={entries.filter(e => !ACCOUNTING_CATEGORIES.has(e.category) && gameTypeFilter.has(e.category))} />
+                    </div>
+                    <div style={{ height: 300, minHeight: 300, maxHeight: 300, overflow: 'auto' }}>
+                      <HistoricalComparison entries={entries.filter(e => !ACCOUNTING_CATEGORIES.has(e.category) && gameTypeFilter.has(e.category))} />
+                    </div>
                   </div>
 
                   {/* Recent Activity Section */}
                   <div style={styles.activitySection}>
                     <div
-                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, cursor: 'pointer' }}
-                      onClick={() => setShowAllEntries(!showAllEntries)}
+                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}
                     >
                       <h2 style={styles.sectionTitle}>Recent Activity</h2>
-                      {entries.length > 0 && (
+                      {entries.length > 5 && (
                         <button
-                          onClick={(e) => { e.stopPropagation(); setShowAllEntries(!showAllEntries); }}
+                          onClick={() => setShowAllEntries(true)}
                           style={{
                             background: 'rgba(59, 130, 246, 0.15)',
                             border: '1px solid rgba(59, 130, 246, 0.3)',
@@ -1133,21 +1150,96 @@ export default function BankrollManagerPage() {
                             cursor: 'pointer',
                           }}
                         >
-                          {showAllEntries ? 'Show Less' : `View All (${entries.length})`}
+                          View All ({entries.length})
                         </button>
                       )}
                     </div>
 
-                    {/* Ledger Timeline — shows last 5 or all */}
+                    {/* Ledger Timeline — always shows last 5 */}
                     <LedgerTimeline
-                      entries={showAllEntries ? entries : entries.slice(0, 5)}
+                      entries={entries.slice(0, 5)}
                       isLoading={isLoading}
                       onEdit={handleEditEntry}
                       onDelete={handleDeleteEntry}
                     />
-
-
                   </div>
+
+                  {/* Recent Activity Modal Popup */}
+                  {showAllEntries && (
+                    <div
+                      onClick={() => setShowAllEntries(false)}
+                      style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'rgba(0, 0, 0, 0.85)',
+                        backdropFilter: 'blur(6px)',
+                        zIndex: 9999,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: 16,
+                      }}
+                    >
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                          width: '100%',
+                          maxWidth: 600,
+                          maxHeight: '80vh',
+                          background: '#1a1b1e',
+                          borderRadius: 16,
+                          border: '1px solid rgba(255,255,255,0.1)',
+                          overflow: 'hidden',
+                          display: 'flex',
+                          flexDirection: 'column',
+                        }}
+                      >
+                        {/* Modal Header */}
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '16px 20px',
+                          borderBottom: '1px solid rgba(255,255,255,0.08)',
+                          flexShrink: 0,
+                        }}>
+                          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#fff', margin: 0 }}>Recent Activity</h2>
+                          <button
+                            onClick={() => setShowAllEntries(false)}
+                            style={{
+                              background: 'rgba(255,255,255,0.1)',
+                              border: 'none',
+                              borderRadius: 8,
+                              width: 32,
+                              height: 32,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: '#fff',
+                              fontSize: 16,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        {/* Scrollable Content */}
+                        <div style={{ overflowY: 'auto', padding: '12px 20px 20px' }}>
+                          <LedgerTimeline
+                            entries={entries}
+                            isLoading={isLoading}
+                            onEdit={handleEditEntry}
+                            onDelete={handleDeleteEntry}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+
 
 
                 </>
