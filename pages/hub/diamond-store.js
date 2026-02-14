@@ -1003,7 +1003,7 @@ export default function DiamondStorePage() {
 
                     {/* VIP Membership Banner — Outside content container for full width */}
                     {activeTab === 'vip' && (
-                        <div style={{ width: '100%', position: 'relative' }}>
+                        <div style={{ width: '100%', position: 'relative', marginTop: 0 }}>
                             <img
                                 src="/images/vip-membership-header.png"
                                 alt="VIP Membership — Unlock Everything For One Low Monthly Price. No Diamond Costs, No Limits."
@@ -1014,7 +1014,10 @@ export default function DiamondStorePage() {
                     )}
 
                     {/* Main Content (non-diamonds tabs) */}
-                    <div style={styles.content}>
+                    <div style={{
+                        ...styles.content,
+                        ...(activeTab === 'vip' ? { paddingTop: 8 } : {}),
+                    }}>
 
                         {/* ═══════════════════════════════════════════════════════════════════ */}
                         {/* VIP MEMBERSHIP TAB */}
