@@ -1009,10 +1009,14 @@ export default function DiamondStorePage() {
                         {/* ═══════════════════════════════════════════════════════════════════ */}
                         {activeTab === 'vip' && (
                             <>
-                                {/* VIP Hero */}
-                                <div style={styles.vipHero}>
-                                    <h2 style={styles.vipTitle}>VIP Membership</h2>
-                                    <p style={styles.vipSubtitle}>Unlock <strong>Everything</strong> For One Low Monthly Price. No Diamond Costs, No Limits.</p>
+                                {/* VIP Hero Banner */}
+                                <div style={{ width: '100%', position: 'relative' }}>
+                                    <img
+                                        src="/images/vip-membership-header.png"
+                                        alt="VIP Membership — Unlock Everything For One Low Monthly Price. No Diamond Costs, No Limits."
+                                        style={{ width: '100%', height: 'auto', display: 'block' }}
+                                        draggable={false}
+                                    />
                                 </div>
 
                                 {/* VIP Plan Selection */}
