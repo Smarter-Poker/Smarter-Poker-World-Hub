@@ -477,8 +477,8 @@ export default function CommanderDashboard() {
       <div className="cmd-dashboard">
         {/* TOP BAR */}
         <div className="cmd-topbar">
-          <button className="cmd-hamburger" onClick={() => setMenuOpen(true)}>
-            <img src="/images/btn-hamburger.png" alt="Menu" style={{ height: 22, width: 22, objectFit: 'contain' }} />
+          <button className="cmd-hamburger" onClick={() => setMenuOpen(true)} style={{ overflow: 'hidden', position: 'relative', width: 40, height: 40 }}>
+            <img src="/images/btn-hamburger.png" alt="Menu" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '55%', left: '50%', transform: 'translate(-50%, -50%)' }} />
           </button>
           <div style={{ textAlign: 'right' }}>
             <div className="cmd-topbar-title">Club Commander</div>

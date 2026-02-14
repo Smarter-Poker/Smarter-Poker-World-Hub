@@ -563,10 +563,11 @@ export default function UniversalHeader({
                     {onMenuClick && (
                         <button
                             onClick={onMenuClick}
-                            className="header-img-btn"
+                            className="orb-btn"
                             aria-label="Open menu"
+                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
                         >
-                            <img src="/images/btn-hamburger.png" alt="Menu" style={{ height: '100%', width: '100%', objectFit: 'contain' }} />
+                            <img src="/images/btn-hamburger.png" alt="Menu" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '55%', left: '50%', transform: 'translate(-50%, -50%)' }} />
                         </button>
                     )}
                     <button
