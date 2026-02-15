@@ -1108,13 +1108,13 @@ export default function SignUpPage() {
                                     <div style={{
                                         marginTop: '6px',
                                         padding: '8px 12px',
-                                        background: 'rgba(236, 72, 153, 0.15)',
-                                        border: '1px solid rgba(236, 72, 153, 0.3)',
+                                        background: 'rgba(255, 255, 255, 0.08)',
+                                        border: '1px solid rgba(255, 255, 255, 0.2)',
                                         borderRadius: '6px',
                                         fontSize: '13px',
-                                        color: '#EC4899',
+                                        color: '#FFFFFF',
                                     }}>
-                                        🤝 Referred by Player #{referralDetails.playerNumber} ({referralDetails.referrerName})
+                                        Referred by Player #{referralDetails.playerNumber} ({referralDetails.referrerName})
                                     </div>
                                 )}
                                 {promoError && (
