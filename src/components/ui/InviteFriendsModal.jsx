@@ -409,40 +409,44 @@ export default function InviteFriendsModal({ isOpen, onClose, user }) {
                                     display: 'flex',
                                     flexDirection: 'column',
                                     alignItems: 'center',
-                                    gap: 10,
-                                    padding: '18px 8px 14px',
-                                    background: 'rgba(255,255,255,0.04)',
-                                    border: '1px solid rgba(255,255,255,0.06)',
-                                    borderRadius: 14,
+                                    justifyContent: 'center',
+                                    gap: 0,
+                                    padding: 0,
+                                    background: 'transparent',
+                                    border: 'none',
+                                    borderRadius: 0,
                                     textDecoration: 'none',
                                     color: '#fff',
                                     transition: 'all 0.2s',
                                     cursor: 'pointer',
                                 }}
                                 onMouseEnter={e => {
-                                    e.currentTarget.style.background = `${channel.color}22`;
-                                    e.currentTarget.style.borderColor = `${channel.color}44`;
-                                    e.currentTarget.style.transform = 'translateY(-2px)';
+                                    e.currentTarget.style.transform = 'translateY(-3px) scale(1.05)';
+                                    e.currentTarget.querySelector('.social-icon-circle').style.boxShadow = `0 6px 20px ${channel.color}44`;
                                 }}
                                 onMouseLeave={e => {
-                                    e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
-                                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
-                                    e.currentTarget.style.transform = 'translateY(0)';
+                                    e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                                    e.currentTarget.querySelector('.social-icon-circle').style.boxShadow = 'none';
                                 }}
                             >
-                                <div style={{
-                                    width: 56,
-                                    height: 56,
-                                    borderRadius: 14,
-                                    background: `${channel.color}20`,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    color: channel.color,
-                                }}>
+                                <div
+                                    className="social-icon-circle"
+                                    style={{
+                                        width: 64,
+                                        height: 64,
+                                        borderRadius: '50%',
+                                        background: channel.color,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: '#fff',
+                                        transition: 'box-shadow 0.2s',
+                                    }}
+                                >
                                     {channel.icon}
                                 </div>
                                 <span style={{
+                                    marginTop: 8,
                                     fontSize: 12,
                                     fontWeight: 600,
                                     color: 'rgba(255,255,255,0.7)',
