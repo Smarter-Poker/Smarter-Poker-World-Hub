@@ -18,6 +18,11 @@ export default function ShoppingCart() {
     const [user, setUser] = useState(null);
     const [cart, setCart] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [diamondBalance, setDiamondBalance] = useState(0);
+    const [payWithDiamonds, setPayWithDiamonds] = useState(false);
+    const [checkingOut, setCheckingOut] = useState(false);
+
+    const DIAMONDS_PER_DOLLAR = 100;
 
     useEffect(() => {
         loadCart();
@@ -32,6 +37,17 @@ export default function ShoppingCart() {
             const savedCart = localStorage.getItem('diamond-store-cart');
             if (savedCart) {
                 setCart(JSON.parse(savedCart));
+            }
+
+            // Fetch diamond balance
+            if (authUser?.token) {
+                const res = await fetch('/api/store/diamond-transactions?limit=1', {
+                    headers: { Authorization: `Bearer ${authUser.token}` }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    setDiamondBalance(data.balance || 0);
+                }
             }
 
             setLoading(false);
@@ -69,7 +85,16 @@ export default function ShoppingCart() {
         return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     };
 
+    const getDiamondCost = () => {
+        return Math.ceil(getSubtotal() * DIAMONDS_PER_DOLLAR);
+    };
+
+    const canAffordWithDiamonds = () => {
+        return diamondBalance >= getDiamondCost();
+    };
+
     const handleCheckout = async () => {
+        setCheckingOut(true);
         try {
             const res = await fetch('/api/store/create-checkout-session', {
                 method: 'POST',
@@ -85,6 +110,42 @@ export default function ShoppingCart() {
         } catch (err) {
             toast.error(err.message || 'Checkout unavailable. Redirecting...');
             window.location.href = '/hub/diamond-store?checkout=true';
+        } finally {
+            setCheckingOut(false);
+        }
+    };
+
+    const handleDiamondCheckout = async () => {
+        if (!canAffordWithDiamonds()) {
+            toast.error(`Not enough diamonds! You need ${getDiamondCost().toLocaleString()}💎 but only have ${diamondBalance.toLocaleString()}💎`);
+            return;
+        }
+
+        setCheckingOut(true);
+        try {
+            const authUser = await getAuthUser();
+            const res = await fetch('/api/store/purchase-with-diamonds', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${authUser.token}`
+                },
+                body: JSON.stringify({ items: cart })
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                toast.success(`Purchased with ${data.data.diamonds_spent.toLocaleString()}💎! New balance: ${data.data.new_balance.toLocaleString()}💎`);
+                clearCart();
+                setDiamondBalance(data.data.new_balance);
+            } else {
+                throw new Error(data.error || 'Diamond purchase failed');
+            }
+        } catch (err) {
+            toast.error(err.message || 'Diamond purchase failed');
+        } finally {
+            setCheckingOut(false);
         }
     };
 
@@ -96,6 +157,9 @@ export default function ShoppingCart() {
             </div>
         );
     }
+
+    const diamondCost = getDiamondCost();
+    const affordable = canAffordWithDiamonds();
 
     return (
         <PageTransition>
@@ -157,9 +221,146 @@ export default function ShoppingCart() {
                                     <span>${getSubtotal().toFixed(2)}</span>
                                 </div>
 
-                                <button onClick={handleCheckout} style={styles.checkoutButton}>
-                                    Proceed To Checkout
+                                {/* ═══ Payment Method Selection ═══ */}
+                                <div style={{ marginBottom: '16px' }}>
+                                    <p style={{ fontSize: '13px', color: '#9ca3af', marginBottom: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Payment Method</p>
+
+                                    {/* Pay with Diamonds Option */}
+                                    <button
+                                        onClick={() => setPayWithDiamonds(true)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '14px 16px',
+                                            background: payWithDiamonds
+                                                ? 'linear-gradient(135deg, rgba(0, 224, 255, 0.15), rgba(138, 43, 226, 0.15))'
+                                                : 'rgba(255, 255, 255, 0.03)',
+                                            border: payWithDiamonds
+                                                ? '2px solid #00E0FF'
+                                                : '1px solid rgba(255, 255, 255, 0.1)',
+                                            borderRadius: '10px',
+                                            cursor: 'pointer',
+                                            marginBottom: '8px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <span style={{ fontSize: '22px' }}>💎</span>
+                                            <div style={{ textAlign: 'left' }}>
+                                                <span style={{ color: '#FFFFFF', fontWeight: 600, fontSize: '14px', display: 'block' }}>
+                                                    Pay with Diamonds
+                                                </span>
+                                                <span style={{ color: affordable ? '#00E0FF' : '#FF6B6B', fontSize: '12px' }}>
+                                                    Balance: {diamondBalance.toLocaleString()}💎
+                                                    {!affordable && ` (Need ${diamondCost.toLocaleString()}💎)`}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div style={{ textAlign: 'right' }}>
+                                            <span style={{
+                                                color: payWithDiamonds ? '#00E0FF' : '#FFFFFF',
+                                                fontWeight: 700,
+                                                fontSize: '16px'
+                                            }}>
+                                                {diamondCost.toLocaleString()}💎
+                                            </span>
+                                            <div style={{
+                                                width: '18px', height: '18px',
+                                                borderRadius: '50%',
+                                                border: `2px solid ${payWithDiamonds ? '#00E0FF' : 'rgba(255,255,255,0.3)'}`,
+                                                background: payWithDiamonds ? '#00E0FF' : 'transparent',
+                                                marginLeft: 'auto', marginTop: '4px',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                transition: 'all 0.2s ease'
+                                            }}>
+                                                {payWithDiamonds && <span style={{ color: '#000', fontSize: '11px', fontWeight: 900 }}>✓</span>}
+                                            </div>
+                                        </div>
+                                    </button>
+
+                                    {/* Pay with Card Option */}
+                                    <button
+                                        onClick={() => setPayWithDiamonds(false)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '14px 16px',
+                                            background: !payWithDiamonds
+                                                ? 'linear-gradient(135deg, rgba(0, 224, 255, 0.15), rgba(0, 153, 255, 0.15))'
+                                                : 'rgba(255, 255, 255, 0.03)',
+                                            border: !payWithDiamonds
+                                                ? '2px solid #00E0FF'
+                                                : '1px solid rgba(255, 255, 255, 0.1)',
+                                            borderRadius: '10px',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <span style={{ fontSize: '22px' }}>💳</span>
+                                            <div style={{ textAlign: 'left' }}>
+                                                <span style={{ color: '#FFFFFF', fontWeight: 600, fontSize: '14px', display: 'block' }}>
+                                                    Pay with Card
+                                                </span>
+                                                <span style={{ color: '#9ca3af', fontSize: '12px' }}>
+                                                    Visa, Mastercard, Amex
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div style={{ textAlign: 'right' }}>
+                                            <span style={{
+                                                color: !payWithDiamonds ? '#00E0FF' : '#FFFFFF',
+                                                fontWeight: 700,
+                                                fontSize: '16px'
+                                            }}>
+                                                ${getSubtotal().toFixed(2)}
+                                            </span>
+                                            <div style={{
+                                                width: '18px', height: '18px',
+                                                borderRadius: '50%',
+                                                border: `2px solid ${!payWithDiamonds ? '#00E0FF' : 'rgba(255,255,255,0.3)'}`,
+                                                background: !payWithDiamonds ? '#00E0FF' : 'transparent',
+                                                marginLeft: 'auto', marginTop: '4px',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                transition: 'all 0.2s ease'
+                                            }}>
+                                                {!payWithDiamonds && <span style={{ color: '#000', fontSize: '11px', fontWeight: 900 }}>✓</span>}
+                                            </div>
+                                        </div>
+                                    </button>
+                                </div>
+
+                                {/* Checkout Button */}
+                                <button
+                                    onClick={payWithDiamonds ? handleDiamondCheckout : handleCheckout}
+                                    disabled={checkingOut || (payWithDiamonds && !affordable)}
+                                    style={{
+                                        ...styles.checkoutButton,
+                                        background: payWithDiamonds
+                                            ? (affordable
+                                                ? 'linear-gradient(135deg, #00E0FF, #8A2BE2)'
+                                                : 'rgba(255, 255, 255, 0.1)')
+                                            : 'linear-gradient(135deg, #00E0FF, #0099FF)',
+                                        opacity: checkingOut || (payWithDiamonds && !affordable) ? 0.5 : 1,
+                                        cursor: checkingOut || (payWithDiamonds && !affordable) ? 'not-allowed' : 'pointer'
+                                    }}
+                                >
+                                    {checkingOut
+                                        ? 'Processing...'
+                                        : payWithDiamonds
+                                            ? `Pay ${diamondCost.toLocaleString()}💎`
+                                            : 'Proceed To Checkout'}
                                 </button>
+
+                                {payWithDiamonds && !affordable && (
+                                    <p style={{ fontSize: '12px', color: '#FF6B6B', textAlign: 'center', marginBottom: '12px' }}>
+                                        You need {(diamondCost - diamondBalance).toLocaleString()} more diamonds
+                                    </p>
+                                )}
 
                                 <Link href="/hub/diamond-store" style={styles.continueShoppingLink}>← Continue Shopping</Link>
                             </div>
