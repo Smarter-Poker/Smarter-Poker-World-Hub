@@ -1699,7 +1699,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
             };
             const fetchPending = async () => {
                 try {
-                    const res = await fetch(`/api/social/pages/follow?page_id=${page.id}`);
+                    const res = await fetch(`/api/social/pages/follow?page_id=${page.id}&requester_id=${userId}`);
                     const json = await res.json();
                     if (json.success) setPendingFollowers((json.data || []).filter(f => f.status === 'pending'));
                 } catch (e) { console.error('Pending fetch error:', e); }
@@ -2447,11 +2447,10 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
     const checkFollowStatus = async () => {
         if (!userId) { setFollowStatus('none'); setFollowLoading(false); return; }
         try {
-            const res = await fetch(`/api/social/pages/follow?page_id=${pageId}`);
+            const res = await fetch(`/api/social/pages/follow?page_id=${pageId}&requester_id=${userId}`);
             const json = await res.json();
             if (json.success) {
-                const myFollow = (json.data || []).find(f => f.user_id === userId);
-                setFollowStatus(myFollow ? (myFollow.status || 'approved') : 'none');
+                setFollowStatus(json.my_status || (json.is_following ? 'approved' : 'none'));
             } else { setFollowStatus('none'); }
         } catch { setFollowStatus('none'); }
         setFollowLoading(false);

@@ -81,10 +81,36 @@ export default async function handler(req, res) {
             .single();
 
         if (error) return res.status(500).json({ error: error.message });
+
+        // Send push notification to page owner about new follower
+        try {
+            const { data: ownerPage } = await supabase
+                .from('social_pages').select('owner_id, name').eq('id', page_id).single();
+            if (ownerPage && ownerPage.owner_id !== user_id) {
+                const { data: followerProfile } = await supabase
+                    .from('profiles').select('username, full_name').eq('id', user_id).single();
+                const followerName = followerProfile?.full_name || followerProfile?.username || 'Someone';
+                const notifTitle = requiresApproval ? '🔔 New Follow Request' : '🎉 New Follower';
+                const notifMsg = requiresApproval
+                    ? `${followerName} wants to follow your page "${ownerPage.name}". Approve or reject in your Live Games tab.`
+                    : `${followerName} is now following your page "${ownerPage.name}"!`;
+                await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker'}/api/notifications/send`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: notifTitle,
+                        message: notifMsg,
+                        externalUserIds: [ownerPage.owner_id],
+                        url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker'}/hub/social-media`,
+                        data: { type: 'follow_request', page_id, follower_id: user_id }
+                    }),
+                });
+            }
+        } catch (notifErr) { console.error('Follow notification error:', notifErr); }
+
         return res.status(201).json({ success: true, following: true, status: followStatus, pending: requiresApproval, data });
 
     } else if (req.method === 'GET') {
-        const { page_id, user_id, role } = req.query;
+        const { page_id, user_id, role, requester_id } = req.query;
 
         if (page_id) {
             // Get followers for a page
@@ -98,23 +124,40 @@ export default async function handler(req, res) {
             const { data, error } = await query.order('created_at', { ascending: false });
             if (error) return res.status(500).json({ error: error.message });
 
-            // Enrich with profiles
-            const userIds = (data || []).map(f => f.user_id);
-            let profiles = {};
-            if (userIds.length > 0) {
-                const { data: profileData } = await supabase
-                    .from('profiles')
-                    .select('id, username, full_name, avatar_url')
-                    .in('id', userIds);
-                (profileData || []).forEach(p => { profiles[p.id] = p; });
+            // Determine if requester is page owner (only owners see individual follower identities)
+            let isOwner = false;
+            if (requester_id) {
+                const { data: pageOwner } = await supabase
+                    .from('social_pages').select('owner_id').eq('id', page_id).single();
+                isOwner = pageOwner && pageOwner.owner_id === requester_id;
             }
 
-            const enriched = (data || []).map(f => ({
-                ...f,
-                profile: profiles[f.user_id] || null
-            }));
-
-            return res.status(200).json({ success: true, data: enriched, count: enriched.length });
+            if (isOwner) {
+                // Owner sees full profile details
+                const userIds = (data || []).map(f => f.user_id);
+                let profiles = {};
+                if (userIds.length > 0) {
+                    const { data: profileData } = await supabase
+                        .from('profiles')
+                        .select('id, username, full_name, avatar_url')
+                        .in('id', userIds);
+                    (profileData || []).forEach(p => { profiles[p.id] = p; });
+                }
+                const enriched = (data || []).map(f => ({
+                    ...f,
+                    profile: profiles[f.user_id] || null
+                }));
+                return res.status(200).json({ success: true, data: enriched, count: enriched.length });
+            } else {
+                // Non-owners only see the count + their own follow status
+                const myFollow = requester_id ? (data || []).find(f => f.user_id === requester_id) : null;
+                return res.status(200).json({
+                    success: true,
+                    count: (data || []).filter(f => f.status === 'approved').length,
+                    my_status: myFollow ? myFollow.status : null,
+                    is_following: !!myFollow,
+                });
+            }
         }
 
         if (user_id) {
