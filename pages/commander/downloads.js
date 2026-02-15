@@ -80,155 +80,130 @@ export default function DownloadsPage() {
 
   return (
     <CommanderLayout title="Download Club Commander - Desktop App" backHref="/commander/dashboard">
-    <div className="min-h-screen bg-[#18191A]">
-      <Head>
-        <title>Download Club Commander - Desktop App</title>
-      </Head>
+      <div className="min-h-screen bg-[#18191A]">
+        <Head>
+          <title>Download Club Commander - Desktop App</title>
+        </Head>
 
-      <div className="container mx-auto px-4 py-12">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <div className="flex justify-center mb-4">
-            <img src="/images/club-commander-logo.jpg" alt="Club Commander" className="w-full max-w-md rounded-lg" />
+        <div className="container mx-auto px-4 py-12">
+          {/* Header */}
+          <div className="text-center mb-12">
+            <div className="flex justify-center mb-4">
+              <img src="/images/club-commander-logo.jpg" alt="Club Commander" className="w-full max-w-md rounded-lg" />
+            </div>
+            <h1 className="text-4xl font-bold text-[#E4E6EB] mb-3">Club Commander Desktop</h1>
+            <p className="text-[#B0B3B8] text-lg">The fastest way to manage your poker room</p>
+            <p className="text-[#31A24C] text-sm mt-2 flex items-center justify-center gap-1"><Check className="w-4 h-4" /> Version 1.0.6 - Released February 2026</p>
           </div>
-          <h1 className="text-4xl font-bold text-[#E4E6EB] mb-3">Club Commander Desktop</h1>
-          <p className="text-[#B0B3B8] text-lg">The fastest way to manage your poker room</p>
-          <p className="text-[#31A24C] text-sm mt-2 flex items-center justify-center gap-1"><Check className="w-4 h-4" /> Version 1.0.6 - Released February 2026</p>
-        </div>
 
-        {/* Main Download Card */}
-        <div className="max-w-2xl mx-auto bg-[#242526] rounded-xl p-8 border border-[#3A3B3C] mb-8">
-          {/* Platform Tabs */}
-          <div className="flex justify-center gap-2 mb-8">
-            {Object.entries(platforms).map(([key, p]) => (
+          {/* Main Download Card */}
+          <div className="max-w-2xl mx-auto bg-[#242526] rounded-xl p-8 border border-[#3A3B3C] mb-8">
+            {/* Platform Tabs */}
+            <div className="flex justify-center gap-2 mb-8">
+              {Object.entries(platforms).map(([key, p]) => (
+                <button
+                  key={key}
+                  onClick={() => setPlatform(key)}
+                  className={`px-5 py-2.5 rounded-lg font-medium transition-colors ${platform === key
+                    ? 'bg-[#1877F2] text-white'
+                    : 'bg-[#3A3B3C] text-[#B0B3B8] hover:bg-[#4E4F50]'
+                    }`}
+                >
+
+                  {p.name}
+                </button>
+              ))}
+            </div>
+
+            {/* Download Button */}
+            <div className="text-center mb-8">
               <button
-                key={key}
-                onClick={() => setPlatform(key)}
-                className={`px-5 py-2.5 rounded-lg font-medium transition-colors ${platform === key
-                  ? 'bg-[#1877F2] text-white'
-                  : 'bg-[#3A3B3C] text-[#B0B3B8] hover:bg-[#4E4F50]'
-                  }`}
+                onClick={handleDownload}
+                disabled={downloading}
+                className="w-full max-w-md bg-[#1877F2] hover:bg-[#1664d9] disabled:bg-[#3A3B3C] text-white font-bold py-4 px-8 rounded-xl text-lg transition-colors"
               >
-
-                {p.name}
+                {downloading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Starting Download...
+                  </span>
+                ) : (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Download for {currentPlatform.name}
+                  </span>
+                )}
               </button>
-            ))}
-          </div>
-
-          {/* Download Button */}
-          <div className="text-center mb-8">
-            <button
-              onClick={handleDownload}
-              disabled={downloading}
-              className="w-full max-w-md bg-[#1877F2] hover:bg-[#1664d9] disabled:bg-[#3A3B3C] text-white font-bold py-4 px-8 rounded-xl text-lg transition-colors"
-            >
-              {downloading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  Starting Download...
-                </span>
-              ) : (
-                <span className="flex items-center justify-center gap-2">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                  Download for {currentPlatform.name}
-                </span>
+              <p className="text-[#B0B3B8] text-sm mt-3">
+                {currentPlatform.filename} ({currentPlatform.size})
+              </p>
+              {currentPlatform.altDownload && (
+                <a
+                  href={currentPlatform.altDownload.url}
+                  className="text-[#1877F2] hover:underline text-sm mt-2 inline-block"
+                >
+                  Or download {currentPlatform.altDownload.name} →
+                </a>
               )}
-            </button>
-            <p className="text-[#B0B3B8] text-sm mt-3">
-              {currentPlatform.filename} ({currentPlatform.size})
-            </p>
-            {currentPlatform.altDownload && (
-              <a
-                href={currentPlatform.altDownload.url}
-                className="text-[#1877F2] hover:underline text-sm mt-2 inline-block"
-              >
-                Or download {currentPlatform.altDownload.name} →
-              </a>
+            </div>
+
+            {/* Requirements */}
+            <div className="border-t border-[#3A3B3C] pt-6">
+              <h3 className="text-[#E4E6EB] font-medium mb-3">System Requirements</h3>
+              <ul className="text-[#B0B3B8] text-sm space-y-1">
+                {currentPlatform.requirements.map((req, i) => (
+                  <li key={i} className="flex items-center gap-2">
+                    <Check className="w-4 h-4 text-[#31A24C] flex-shrink-0" /> {req}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Mac Installation Note */}
+            {currentPlatform.installNote && (
+              <div className="border-t border-[#3A3B3C] pt-6 mt-4">
+                <h3 className="text-[#E4E6EB] font-medium mb-3 flex items-center gap-2">
+                  <svg className="w-5 h-5 text-[#F0AD4E]" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  macOS Installation
+                </h3>
+                <p className="text-[#B0B3B8] text-sm">{currentPlatform.installNote}</p>
+              </div>
             )}
           </div>
 
-          {/* Requirements */}
-          <div className="border-t border-[#3A3B3C] pt-6">
-            <h3 className="text-[#E4E6EB] font-medium mb-3">System Requirements</h3>
-            <ul className="text-[#B0B3B8] text-sm space-y-1">
-              {currentPlatform.requirements.map((req, i) => (
-                <li key={i} className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-[#31A24C] flex-shrink-0" /> {req}
-                </li>
-              ))}
-            </ul>
+          {/* Features Grid */}
+          <div className="max-w-2xl mx-auto grid grid-cols-2 gap-4 mb-8">
+            {features.map((feature, i) => (
+              <div key={i} className="bg-[#242526] rounded-lg p-4 border border-[#3A3B3C]">
+                <h4 className="text-[#E4E6EB] font-medium mb-1">{feature.title}</h4>
+                <p className="text-[#B0B3B8] text-sm">{feature.desc}</p>
+              </div>
+            ))}
           </div>
 
-          {/* Mac Installation Note */}
-          {currentPlatform.installNote && (
-            <div className="border-t border-[#3A3B3C] pt-6 mt-4">
-              <h3 className="text-[#E4E6EB] font-medium mb-3 flex items-center gap-2">
-                <svg className="w-5 h-5 text-[#F0AD4E]" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
-                macOS Installation
-              </h3>
-              <p className="text-[#B0B3B8] text-sm">{currentPlatform.installNote}</p>
-            </div>
-          )}
-        </div>
+          {/* All Downloads Link */}
+          <div className="text-center">
+            <a
+              href="https://github.com/Smarter-Poker/club-commander-desktop/releases"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#1877F2] hover:underline"
+            >
+              View all releases on GitHub →
+            </a>
+          </div>
 
-        {/* Features Grid */}
-        <div className="max-w-2xl mx-auto grid grid-cols-2 gap-4 mb-8">
-          {features.map((feature, i) => (
-            <div key={i} className="bg-[#242526] rounded-lg p-4 border border-[#3A3B3C]">
-              <h4 className="text-[#E4E6EB] font-medium mb-1">{feature.title}</h4>
-              <p className="text-[#B0B3B8] text-sm">{feature.desc}</p>
-            </div>
-          ))}
         </div>
-
-        {/* All Downloads Link */}
-        <div className="text-center">
-          <a
-            href="https://github.com/Smarter-Poker/club-commander-desktop/releases"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[#1877F2] hover:underline"
-          >
-            View all releases on GitHub →
-          </a>
-        </div>
-
-        {/* Back to Login */}
-        <div className="text-center mt-8">
-          <Link href="/commander/login" className="cmd-back-btn">
-            <ArrowLeft size={16} /> Back
-          </Link>
-        </div>
+        <style jsx>{`
+`}</style>
       </div>
-      <style jsx>{`
-        .cmd-back-btn {
-          background: none;
-          border: 1px solid #444;
-          border-radius: 10px;
-          padding: 8px 14px;
-          color: #ccc;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 13px;
-          font-weight: 600;
-          transition: all 0.2s;
-          text-decoration: none;
-        }
-        .cmd-back-btn:hover {
-          border-color: #666;
-          color: #fff;
-        }
-      `}</style>
-    </div>
     </CommanderLayout>
   );
 }

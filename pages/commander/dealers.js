@@ -11,7 +11,6 @@ import {
   Users,
   Plus,
   Clock,
-  ChevronLeft,
   Search,
   Loader2,
   Edit2,
@@ -53,11 +52,10 @@ function DealerCard({ dealer, onEdit, onRotate }) {
           {[1, 2, 3, 4, 5].map(level => (
             <Star
               key={level}
-              className={`w-4 h-4 ${
-                level <= (dealer.skill_level || 3)
+              className={`w-4 h-4 ${level <= (dealer.skill_level || 3)
                   ? 'text-[#F59E0B] fill-[#F59E0B]'
                   : 'text-[#3A3B3C]'
-              }`}
+                }`}
             />
           ))}
         </div>
@@ -184,11 +182,10 @@ function AddDealerModal({ onSubmit, onClose, dealer = null }) {
                   key={level}
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, skill_level: level }))}
-                  className={`flex-1 py-3 rounded-lg border text-sm font-medium transition-colors ${
-                    formData.skill_level === level
+                  className={`flex-1 py-3 rounded-lg border text-sm font-medium transition-colors ${formData.skill_level === level
                       ? 'border-[#F59E0B] bg-[#F59E0B]/10 text-[#F59E0B]'
                       : 'border-[#3A3B3C] text-[#B0B3B8]'
-                  }`}
+                    }`}
                 >
                   {level}
                 </button>
@@ -206,11 +203,10 @@ function AddDealerModal({ onSubmit, onClose, dealer = null }) {
                   key={cert.value}
                   type="button"
                   onClick={() => toggleCertification(cert.value)}
-                  className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                    formData.certified_games.includes(cert.value)
+                  className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${formData.certified_games.includes(cert.value)
                       ? 'border-[#31A24C] bg-[#31A24C]/10 text-[#31A24C]'
                       : 'border-[#3A3B3C] text-[#B0B3B8]'
-                  }`}
+                    }`}
                 >
                   {cert.label}
                 </button>
@@ -279,11 +275,10 @@ function RotateModal({ dealer, tables, onSubmit, onClose }) {
             <button
               key={table.id}
               onClick={() => setSelectedTable(table.id)}
-              className={`w-full p-3 rounded-lg border text-left transition-colors ${
-                selectedTable === table.id
+              className={`w-full p-3 rounded-lg border text-left transition-colors ${selectedTable === table.id
                   ? 'border-[#1877F2] bg-[#1877F2]/5'
                   : 'border-[#3A3B3C] hover:border-[#1877F2]'
-              }`}
+                }`}
             >
               <div className="flex items-center justify-between">
                 <div>
@@ -468,72 +463,47 @@ export default function DealersPage() {
   }
 
   return (
-    <>
-      <Head>
-        <title>Dealers | Club Commander</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
-
+    <CommanderLayout title="Dealer Management">
       <div className="cmd-page">
-        {/* Header */}
-        <header className="cmd-header-bar sticky top-0 z-40">
-          <div className="max-w-4xl mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => router.push('/commander/dashboard')}
-                  className="p-2 hover:bg-[#3A3B3C] rounded-lg transition-colors"
-                >
-                  <ChevronLeft className="w-5 h-5 text-[#B0B3B8]" />
-                </button>
-                <div>
-                  <h1 className="text-xl font-bold text-white flex items-center gap-2">
-                    <Users className="w-6 h-6 text-[#1877F2]" />
-                    Dealer Management
-                  </h1>
-                  <p className="text-sm text-[#B0B3B8]">
-                    {activeDealers.length} active, {availableDealers.length} available
-                  </p>
-                </div>
-              </div>
-              {activeTab === 'dealers' && (
-                <button
-                  onClick={() => setShowAddModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 cmd-btn cmd-btn-primary"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add Dealer
-                </button>
-              )}
-            </div>
-          </div>
+        {/* Action Bar + Tabs */}
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+          <p className="text-sm text-[#B0B3B8]">
+            {activeDealers.length} active, {availableDealers.length} available
+          </p>
+          {activeTab === 'dealers' && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-2 px-4 py-2 cmd-btn cmd-btn-primary"
+            >
+              <Plus className="w-4 h-4" />
+              Add Dealer
+            </button>
+          )}
+        </div>
 
-          {/* Tabs */}
-          <div className="max-w-4xl mx-auto px-4 flex gap-1 border-t border-[#3A3B3C]">
-            <button
-              onClick={() => setActiveTab('dealers')}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'dealers'
-                  ? 'border-[#1877F2] text-[#1877F2]'
-                  : 'border-transparent text-[#B0B3B8] hover:text-white'
+        {/* Tabs */}
+        <div className="max-w-4xl mx-auto px-4 flex gap-1 border-b border-[#3A3B3C]">
+          <button
+            onClick={() => setActiveTab('dealers')}
+            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'dealers'
+                ? 'border-[#1877F2] text-[#1877F2]'
+                : 'border-transparent text-[#B0B3B8] hover:text-white'
               }`}
-            >
-              <Users className="w-4 h-4 inline-block mr-2" />
-              Dealers
-            </button>
-            <button
-              onClick={() => setActiveTab('rotations')}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'rotations'
-                  ? 'border-[#31A24C] text-[#31A24C]'
-                  : 'border-transparent text-[#B0B3B8] hover:text-white'
+          >
+            <Users className="w-4 h-4 inline-block mr-2" />
+            Dealers
+          </button>
+          <button
+            onClick={() => setActiveTab('rotations')}
+            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'rotations'
+                ? 'border-[#31A24C] text-[#31A24C]'
+                : 'border-transparent text-[#B0B3B8] hover:text-white'
               }`}
-            >
-              <History className="w-4 h-4 inline-block mr-2" />
-              Rotation History
-            </button>
-          </div>
-        </header>
+          >
+            <History className="w-4 h-4 inline-block mr-2" />
+            Rotation History
+          </button>
+        </div>
 
         <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
           {activeTab === 'dealers' ? (
@@ -635,7 +605,6 @@ export default function DealersPage() {
                       const toTable = tables.find(t => t.id === rotation.to_table_id);
 
                       return (
-                        <CommanderLayout title="Dealers" backHref="/commander/dashboard">
                         <div key={rotation.id} className="p-4 flex items-center gap-4">
                           <div className="w-10 h-10 rounded-full bg-[#31A24C]/10 flex items-center justify-center">
                             <RotateCw className="w-5 h-5 text-[#31A24C]" />
@@ -668,7 +637,6 @@ export default function DealersPage() {
                             </p>
                           </div>
                         </div>
-                        </CommanderLayout>
                       );
                     })}
                   </div>
@@ -716,6 +684,6 @@ export default function DealersPage() {
           />
         )}
       </div>
-    </>
+    </CommanderLayout>
   );
 }

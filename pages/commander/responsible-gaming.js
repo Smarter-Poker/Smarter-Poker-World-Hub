@@ -6,8 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import {
-  ArrowLeft, Shield, Search, Loader2, RefreshCw, AlertTriangle,
+import { Shield, Search, Loader2, RefreshCw, AlertTriangle,
   CheckCircle2, Clock, Ban, UserX, Users
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
@@ -72,8 +71,7 @@ export default function ResponsibleGaming() {
           results.push({
             ...player,
             exclusion: checkJson.data || checkJson,
-            is_excluded: checkJson.data?.is_excluded || checkJson.is_excluded || false,
-          });
+            is_excluded: checkJson.data?.is_excluded || checkJson.is_excluded || false });
         } catch {
           results.push({ ...player, exclusion: null, is_excluded: false });
         }
@@ -96,10 +94,7 @@ export default function ResponsibleGaming() {
       <Head><title>Responsible Gaming | Club Commander</title></Head>
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
-          <button className="cmd-back-btn" onClick={() => router.push('/commander/dashboard')}>
-            <ArrowLeft size={16} /> Back
-          </button>
-          <div className="flex-1">
+<div className="flex-1">
             <h1 className="text-lg font-bold text-white">Responsible Gaming</h1>
             <p className="text-xs text-[#B0B3B8]">Player protection & compliance</p>
           </div>
@@ -210,25 +205,7 @@ export default function ResponsibleGaming() {
         </div>
       </div>
     <style jsx>{`
-        .cmd-back-btn {
-          background: none;
-          border: 1px solid #444;
-          border-radius: 10px;
-          padding: 8px 14px;
-          color: #ccc;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 13px;
-          font-weight: 600;
-          transition: all 0.2s;
-        }
-        .cmd-back-btn:hover {
-          border-color: #666;
-          color: #fff;
-        }
-      `}</style>
+`}</style>
     </>
     </CommanderLayout>
   );

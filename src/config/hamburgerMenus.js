@@ -9,7 +9,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Helper to copy referral link for the current user
-const copyReferralLink = async (user) => {
+export const copyReferralLink = async (user) => {
     if (!user?.id) {
         alert('Please log in to use referral links.');
         return;
@@ -868,18 +868,24 @@ export function getMenuConfig(worldKey, user, state = {}, handlers = {}) {
     const result = config(user, state, handlers);
 
     // Inject "Refer a Friend" into bottomLinks for logged-in users
+    // Skip if the config already has a referral item in menuItems or bottomLinks
     if (user && result.bottomLinks) {
-        const referralItem = {
-            label: '🤝 Refer a Friend — Copy Link',
-            action: true,
-            onClick: () => copyReferralLink(user),
-        };
-        // Add before the last item (usually Settings)
-        const settingsIdx = result.bottomLinks.findIndex(l => l.label === 'Settings');
-        if (settingsIdx >= 0) {
-            result.bottomLinks.splice(settingsIdx, 0, referralItem);
-        } else {
-            result.bottomLinks.push(referralItem);
+        const alreadyHasReferral =
+            (result.menuItems || []).some(i => i?.label?.includes?.('Refer a Friend')) ||
+            result.bottomLinks.some(l => l?.label?.includes?.('Refer a Friend'));
+        if (!alreadyHasReferral) {
+            const referralItem = {
+                label: '🤝 Refer a Friend — Copy Link',
+                action: true,
+                onClick: () => copyReferralLink(user),
+            };
+            // Add before the last item (usually Settings)
+            const settingsIdx = result.bottomLinks.findIndex(l => l.label === 'Settings');
+            if (settingsIdx >= 0) {
+                result.bottomLinks.splice(settingsIdx, 0, referralItem);
+            } else {
+                result.bottomLinks.push(referralItem);
+            }
         }
     }
 

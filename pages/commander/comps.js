@@ -12,8 +12,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import {
-  ArrowLeft, Gift, DollarSign, Users, Clock, Search,
+import { Gift, DollarSign, Users, Clock, Search,
   Plus, Loader2, RefreshCw, Check, Star, TrendingUp, Lock, X, Shield
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
@@ -223,10 +222,7 @@ export default function CompSystem() {
         {/* Header */}
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button className="cmd-back-btn" onClick={() => router.push('/commander/dashboard')}>
-              <ArrowLeft size={16} /> Back
-            </button>
-            <h1 className="text-lg font-bold text-white">Comp System</h1>
+<h1 className="text-lg font-bold text-white">Comp System</h1>
           </div>
           <button onClick={fetchData} className="p-2 rounded-lg active:bg-[#3A3B3C]">
             <RefreshCw className="w-5 h-5 text-[#B0B3B8]" />
@@ -444,25 +440,7 @@ export default function CompSystem() {
         </div>
       </div>
     <style jsx>{`
-        .cmd-back-btn {
-          background: none;
-          border: 1px solid #444;
-          border-radius: 10px;
-          padding: 8px 14px;
-          color: #ccc;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 13px;
-          font-weight: 600;
-          transition: all 0.2s;
-        }
-        .cmd-back-btn:hover {
-          border-color: #666;
-          color: #fff;
-        }
-      `}</style>
+`}</style>
     </>
     </CommanderLayout>
   );

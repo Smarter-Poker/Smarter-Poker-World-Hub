@@ -59,6 +59,7 @@ import LiveStreamService from '../../src/services/LiveStreamService';
 import ArticleCard, { ArticleCardFromPost, getPostMediaType } from '../../src/components/social/ArticleCard';
 import ArticleReaderModal from '../../src/components/social/ArticleReaderModal';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
+import { copyReferralLink } from '../../src/config/hamburgerMenus';
 
 // God-Mode Stack
 import { useSocialStore } from '../../src/stores/socialStore';
@@ -4288,87 +4289,72 @@ export default function SocialMediaPage() {
                     </Link>
                 </div>
 
-                {/* See More - Expandable Section */}
+                {/* Additional Navigation Items */}
                 <div style={{ padding: '0 16px', marginBottom: 16 }}>
-                    <button
-                        onClick={() => setShowMoreMenu && setShowMoreMenu(!showMoreMenu)}
-                        style={{
-                            width: '100%', padding: 12, background: '#e4e6eb', border: 'none',
-                            borderRadius: 8, fontSize: 15, fontWeight: 600, cursor: 'pointer', color: '#1c1e21',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
-                        }}
-                    >
-                        {showMoreMenu ? 'See less' : 'See more'}
-                        <span style={{ transform: showMoreMenu ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▼</span>
-                    </button>
-
-                    {/* Expandable Items */}
-                    {showMoreMenu && (
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 12 }}>
-                            <Link href="/hub/profile" onClick={() => setSidebarOpen(false)} style={{
-                                display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
-                                background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
-                            }}>
-                                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
-                                    <circle cx="12" cy="12" r="11" fill="#e3f2fd" />
-                                    <circle cx="12" cy="9" r="4" fill="#1877f2" />
-                                    <path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" fill="#1877f2" />
-                                </svg>
-                                <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Profile</span>
-                            </Link>
-                            <Link href="/hub/messenger" onClick={() => setSidebarOpen(false)} style={{
-                                display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
-                                background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
-                            }}>
-                                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
-                                    <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" fill="#0084ff" />
-                                </svg>
-                                <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Messenger</span>
-                            </Link>
-                            <Link href="/hub/lives" prefetch={false} onClick={() => setSidebarOpen(false)} style={{
-                                display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
-                                background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
-                            }}>
-                                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
-                                    <circle cx="12" cy="12" r="11" fill="#ff4444" />
-                                    <circle cx="12" cy="12" r="5" fill="white" />
-                                </svg>
-                                <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Lives</span>
-                            </Link>
-                            <Link href="/hub/news" onClick={() => setSidebarOpen(false)} style={{
-                                display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
-                                background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
-                            }}>
-                                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
-                                    <rect x="3" y="4" width="18" height="16" rx="2" fill="#4267B2" />
-                                    <rect x="6" y="8" width="6" height="4" fill="white" />
-                                    <rect x="6" y="14" width="12" height="2" fill="white" opacity="0.7" />
-                                    <rect x="14" y="8" width="4" height="2" fill="white" opacity="0.7" />
-                                </svg>
-                                <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>News</span>
-                            </Link>
-                            <Link href="/hub/poker-near-me" onClick={() => setSidebarOpen(false)} style={{
-                                display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
-                                background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
-                            }}>
-                                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
-                                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#ea4335" />
-                                    <circle cx="12" cy="9" r="3" fill="white" />
-                                </svg>
-                                <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Poker Near Me</span>
-                            </Link>
-                            <Link href="/hub/notifications" onClick={() => setSidebarOpen(false)} style={{
-                                display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
-                                background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
-                            }}>
-                                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
-                                    <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" fill="#f5a623" />
-                                    <path d="M13.73 21a2 2 0 01-3.46 0" stroke="#f5a623" strokeWidth="2" />
-                                </svg>
-                                <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Notifications</span>
-                            </Link>
-                        </div>
-                    )}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                        <Link href="/hub/profile" onClick={() => setSidebarOpen(false)} style={{
+                            display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
+                            background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
+                        }}>
+                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
+                                <circle cx="12" cy="12" r="11" fill="#e3f2fd" />
+                                <circle cx="12" cy="9" r="4" fill="#1877f2" />
+                                <path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" fill="#1877f2" />
+                            </svg>
+                            <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Profile</span>
+                        </Link>
+                        <Link href="/hub/messenger" onClick={() => setSidebarOpen(false)} style={{
+                            display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
+                            background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
+                        }}>
+                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
+                                <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" fill="#0084ff" />
+                            </svg>
+                            <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Messenger</span>
+                        </Link>
+                        <Link href="/hub/lives" prefetch={false} onClick={() => setSidebarOpen(false)} style={{
+                            display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
+                            background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
+                        }}>
+                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
+                                <circle cx="12" cy="12" r="11" fill="#ff4444" />
+                                <circle cx="12" cy="12" r="5" fill="white" />
+                            </svg>
+                            <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Lives</span>
+                        </Link>
+                        <Link href="/hub/news" onClick={() => setSidebarOpen(false)} style={{
+                            display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
+                            background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
+                        }}>
+                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
+                                <rect x="3" y="4" width="18" height="16" rx="2" fill="#4267B2" />
+                                <rect x="6" y="8" width="6" height="4" fill="white" />
+                                <rect x="6" y="14" width="12" height="2" fill="white" opacity="0.7" />
+                                <rect x="14" y="8" width="4" height="2" fill="white" opacity="0.7" />
+                            </svg>
+                            <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>News</span>
+                        </Link>
+                        <Link href="/hub/poker-near-me" onClick={() => setSidebarOpen(false)} style={{
+                            display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
+                            background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
+                        }}>
+                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
+                                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#ea4335" />
+                                <circle cx="12" cy="9" r="3" fill="white" />
+                            </svg>
+                            <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Poker Near Me</span>
+                        </Link>
+                        <Link href="/hub/notifications" onClick={() => setSidebarOpen(false)} style={{
+                            display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
+                            background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
+                        }}>
+                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
+                                <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" fill="#f5a623" />
+                                <path d="M13.73 21a2 2 0 01-3.46 0" stroke="#f5a623" strokeWidth="2" />
+                            </svg>
+                            <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Notifications</span>
+                        </Link>
+                    </div>
                 </div>
 
                 {/* Bottom Links */}
@@ -4382,6 +4368,22 @@ export default function SocialMediaPage() {
                         <span style={{ flex: 1, fontSize: 15 }}>Help and support</span>
                         <span style={{ color: C.textSec }}>›</span>
                     </Link>
+                    <button
+                        onClick={() => {
+                            if (user) copyReferralLink(user);
+                            else alert('Please log in to use referral links.');
+                            setSidebarOpen(false);
+                        }}
+                        style={{
+                            padding: '12px 0', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
+                            background: 'none', border: 'none', width: '100%', textAlign: 'left',
+                            color: 'inherit', fontFamily: 'inherit'
+                        }}
+                    >
+                        <span style={{ fontSize: 20, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🤝</span>
+                        <span style={{ flex: 1, fontSize: 15 }}>Refer a Friend — Copy Link</span>
+                        <span style={{ color: C.textSec }}>›</span>
+                    </button>
                     <Link href="/hub/settings" onClick={() => setSidebarOpen(false)} style={{
                         padding: '12px 0', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', textDecoration: 'none', color: 'inherit'
                     }}>

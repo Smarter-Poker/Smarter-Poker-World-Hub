@@ -13,8 +13,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import {
-  ArrowLeft, Loader2, RefreshCw, Table2, Trophy, DollarSign,
+import { Loader2, RefreshCw, Table2, Trophy, DollarSign,
   Power, ChevronRight, X, Check, AlertTriangle, Users, Wifi
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
@@ -32,14 +31,12 @@ const STAKES_MAP = {
   PLO: ['$1/$2', '$2/$5', '$5/$10', '$5/$25'],
   Mixed: ['$2/$4', '$4/$8', '$10/$20'],
   Omaha: ['$2/$4', '$4/$8', '$5/$10'],
-  Stud: ['$1/$3', '$2/$4', '$3/$6'],
-};
+  Stud: ['$1/$3', '$2/$4', '$3/$6'] };
 
 const MODE_COLORS = {
   inactive: { bg: '#3A3B3C', border: '#4A4B4C', text: '#B0B3B8', icon: Power },
   cash: { bg: '#31A24C', border: '#28883F', text: '#fff', icon: DollarSign },
-  tournament: { bg: '#F59E0B', border: '#D97706', text: '#fff', icon: Trophy },
-};
+  tournament: { bg: '#F59E0B', border: '#D97706', text: '#fff', icon: Trophy } };
 
 export default function TableAssignments() {
   const router = useRouter();
@@ -136,10 +133,7 @@ export default function TableAssignments() {
 
         {/* Header */}
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
-          <button className="cmd-back-btn" onClick={() => router.push('/commander/dashboard')}>
-            <ArrowLeft size={16} /> Back
-          </button>
-          <div className="flex-1">
+<div className="flex-1">
             <h1 className="text-lg font-bold text-white">Table Assignments</h1>
             <p className="text-xs text-[#B0B3B8]">Assign tables to cash games or tournaments</p>
           </div>
@@ -388,25 +382,7 @@ export default function TableAssignments() {
         )}
       </div>
     <style jsx>{`
-        .cmd-back-btn {
-          background: none;
-          border: 1px solid #444;
-          border-radius: 10px;
-          padding: 8px 14px;
-          color: #ccc;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 13px;
-          font-weight: 600;
-          transition: all 0.2s;
-        }
-        .cmd-back-btn:hover {
-          border-color: #666;
-          color: #fff;
-        }
-      `}</style>
+`}</style>
     </>
   );
 }

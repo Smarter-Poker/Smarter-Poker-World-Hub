@@ -13,7 +13,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import {
   UserCheck, Users, Search, Phone, ChevronRight, Loader2,
-  CheckCircle2, AlertTriangle, Clock, Plus, ArrowLeft, Timer, DollarSign
+  CheckCircle2, AlertTriangle, Clock, Plus, Timer, DollarSign
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
@@ -162,10 +162,7 @@ export default function MembershipKiosk() {
         {/* ===== MEMBER LOOKUP ===== */}
         {mode === 'lookup' && !selectedMember && (
           <div className="w-full max-w-md space-y-4">
-            <button onClick={reset} className="cmd-back-btn">
-              <ArrowLeft size={16} /> Back
-            </button>
-            <h2 className="text-2xl font-bold text-white">Find Your Account</h2>
+<h2 className="text-2xl font-bold text-white">Find Your Account</h2>
 
             <div>
               <label className="text-sm text-[#B0B3B8] mb-1 block">Phone Number</label>
@@ -224,9 +221,6 @@ export default function MembershipKiosk() {
         {/* ===== MEMBER FOUND — Actions ===== */}
         {mode === 'lookup' && selectedMember && (
           <div className="w-full max-w-md space-y-4">
-            <button onClick={() => setSelectedMember(null)} className="cmd-back-btn">
-              <ArrowLeft size={16} /> Back
-            </button>
 
             <div className="bg-[#242526] rounded-2xl p-5 text-center border border-[#3A3B3C]">
               <div className="w-16 h-16 rounded-full bg-[#1877F2]/20 flex items-center justify-center mx-auto mb-3">
@@ -282,9 +276,6 @@ export default function MembershipKiosk() {
         {/* ===== BUY TIME ===== */}
         {mode === 'buy_time' && selectedMember && (
           <div className="w-full max-w-md space-y-4">
-            <button onClick={() => setMode('lookup')} className="cmd-back-btn">
-              <ArrowLeft size={16} /> Back
-            </button>
 
             <div className="bg-[#242526] rounded-2xl p-4 border border-[#3A3B3C] flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-[#1877F2]/20 flex items-center justify-center">
@@ -366,10 +357,7 @@ export default function MembershipKiosk() {
         {/* ===== NEW MEMBER REGISTRATION ===== */}
         {mode === 'register' && (
           <div className="w-full max-w-md space-y-4">
-            <button onClick={reset} className="cmd-back-btn">
-              <ArrowLeft size={16} /> Back
-            </button>
-            <h2 className="text-2xl font-bold text-white">New Member</h2>
+<h2 className="text-2xl font-bold text-white">New Member</h2>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -425,25 +413,7 @@ export default function MembershipKiosk() {
         </div>
       </div>
       <style jsx>{`
-        .cmd-back-btn {
-          background: none;
-          border: 1px solid #444;
-          border-radius: 10px;
-          padding: 8px 14px;
-          color: #ccc;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 13px;
-          font-weight: 600;
-          transition: all 0.2s;
-        }
-        .cmd-back-btn:hover {
-          border-color: #666;
-          color: #fff;
-        }
-      `}</style>
+`}</style>
     </>
     </CommanderLayout>
   );

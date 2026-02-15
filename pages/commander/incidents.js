@@ -13,7 +13,6 @@ import {
   User,
   Check,
   X,
-  ChevronLeft,
   Filter,
   Search,
   Loader2,
@@ -168,11 +167,10 @@ function CreateIncidentModal({ onSubmit, onClose }) {
                   key={level.value}
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, severity: level.value }))}
-                  className={`py-2 rounded-lg border text-sm font-medium transition-colors ${
-                    formData.severity === level.value
+                  className={`py-2 rounded-lg border text-sm font-medium transition-colors ${formData.severity === level.value
                       ? `border-2`
                       : 'border-[#3A3B3C] text-[#B0B3B8]'
-                  }`}
+                    }`}
                   style={{
                     borderColor: formData.severity === level.value ? level.color : undefined,
                     backgroundColor: formData.severity === level.value ? `${level.color}15` : undefined,
@@ -506,45 +504,21 @@ export default function IncidentsPage() {
   }
 
   return (
-    <CommanderLayout title="Incidents" backHref="/commander/dashboard">
-    <>
-      <Head>
-        <title>Incidents | Club Commander</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
-
+    <CommanderLayout title="Incidents">
       <div className="cmd-page">
-        {/* Header */}
-        <header className="cmd-header-bar sticky top-0 z-40">
-          <div className="max-w-4xl mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => router.push('/commander/dashboard')}
-                  className="p-2 hover:bg-[#3A3B3C] rounded-lg transition-colors"
-                >
-                  <ChevronLeft className="w-5 h-5 text-[#B0B3B8]" />
-                </button>
-                <div>
-                  <h1 className="text-xl font-bold text-white flex items-center gap-2">
-                    <AlertTriangle className="w-6 h-6 text-[#EF4444]" />
-                    Incidents
-                  </h1>
-                  {openCount > 0 && (
-                    <p className="text-sm text-[#EF4444]">{openCount} open incident{openCount !== 1 ? 's' : ''}</p>
-                  )}
-                </div>
-              </div>
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-[#EF4444] text-white rounded-lg hover:bg-[#DC2626] transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-                Report
-              </button>
-            </div>
-          </div>
-        </header>
+        {/* Action Bar */}
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+          {openCount > 0 && (
+            <p className="text-sm text-[#EF4444]">{openCount} open incident{openCount !== 1 ? 's' : ''}</p>
+          )}
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-[#EF4444] text-white rounded-lg hover:bg-[#DC2626] transition-colors ml-auto"
+          >
+            <Plus className="w-4 h-4" />
+            Report
+          </button>
+        </div>
 
         <main className="max-w-4xl mx-auto px-4 py-6 space-y-4">
           {/* Filters */}
@@ -568,11 +542,10 @@ export default function IncidentsPage() {
                 <button
                   key={f.value}
                   onClick={() => setFilter(f.value)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                    filter === f.value
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${filter === f.value
                       ? 'bg-[#1877F2] text-white'
                       : 'bg-[#242526] border border-[#3A3B3C] text-[#B0B3B8] hover:border-[#1877F2]'
-                  }`}
+                    }`}
                 >
                   {f.label}
                 </button>
@@ -621,7 +594,6 @@ export default function IncidentsPage() {
           />
         )}
       </div>
-    </>
     </CommanderLayout>
   );
 }

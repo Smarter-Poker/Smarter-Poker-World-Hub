@@ -6,8 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import {
-  ArrowLeft, Plus, Play, Edit2, Trash2, X, Loader2, Save,
+import { Plus, Play, Edit2, Trash2, X, Loader2, Save,
   Zap, Copy, Calendar, CheckCircle, AlertCircle, Layout
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
@@ -170,8 +169,6 @@ export default function RoomPresetsPage() {
         <header className="bg-[#242526] border-b border-[#3A3B3C] sticky top-0 z-50">
           <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <button onClick={() => router.push('/commander/settings')}
-                className="cmd-back-btn"><ArrowLeft size={16} /> Back</button>
               <div>
                 <h1 className="font-bold text-white text-lg">Room Presets</h1>
                 <p className="text-sm text-[#B0B3B8]">One-click room configurations</p>
@@ -333,25 +330,7 @@ export default function RoomPresetsPage() {
         </main>
       </div>
       <style jsx>{`
-        .cmd-back-btn {
-          background: none;
-          border: 1px solid #444;
-          border-radius: 10px;
-          padding: 8px 14px;
-          color: #ccc;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 13px;
-          font-weight: 600;
-          transition: all 0.2s;
-        }
-        .cmd-back-btn:hover {
-          border-color: #666;
-          color: #fff;
-        }
-      `}</style>
+`}</style>
     </>
     </CommanderLayout>
   );

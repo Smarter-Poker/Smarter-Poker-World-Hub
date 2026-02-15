@@ -9,8 +9,7 @@
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import {
-  ArrowLeft, Upload, FileText, Check, AlertTriangle,
+import { Upload, FileText, Check, AlertTriangle,
   Loader2, Users, ChevronRight, X, Download
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
@@ -149,9 +148,6 @@ export default function MemberImport() {
 
         {/* Header */}
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
-          <button onClick={() => router.push('/commander/members')} className="cmd-back-btn">
-            <ArrowLeft size={16} /> Back
-          </button>
           <div className="flex-1">
             <h1 className="text-lg font-bold text-white">Import Members</h1>
             <p className="text-xs text-[#B0B3B8]">Step {step} of 5</p>
@@ -307,25 +303,7 @@ export default function MemberImport() {
         </div>
       </div>
       <style jsx>{`
-        .cmd-back-btn {
-          background: none;
-          border: 1px solid #444;
-          border-radius: 10px;
-          padding: 8px 14px;
-          color: #ccc;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 13px;
-          font-weight: 600;
-          transition: all 0.2s;
-        }
-        .cmd-back-btn:hover {
-          border-color: #666;
-          color: #fff;
-        }
-      `}</style>
+`}</style>
     </>
     </CommanderLayout>
   );

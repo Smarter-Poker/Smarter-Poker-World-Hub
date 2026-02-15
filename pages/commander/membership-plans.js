@@ -8,8 +8,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import {
-  ArrowLeft, Plus, Save, Loader2, DollarSign, Crown, Star,
+import { Plus, Save, Loader2, DollarSign, Crown, Star,
   Shield, Users, Trash2, ChevronDown, ChevronUp, Gift, Clock,
   Percent, Car, Utensils, Ticket, Armchair, X, Check
 } from 'lucide-react';
@@ -105,8 +104,7 @@ export default function MembershipPlansPage() {
         comp_multiplier: parseFloat(form.comp_multiplier) || 1.0,
         guest_passes_per_month: parseInt(form.guest_passes_per_month) || 0,
         tournament_discount_pct: parseFloat(form.tournament_discount_pct) || 0,
-        max_members: form.max_members ? parseInt(form.max_members) : null,
-      };
+        max_members: form.max_members ? parseInt(form.max_members) : null };
 
       const isNew = editing === 'new';
       const url = isNew
@@ -168,9 +166,6 @@ export default function MembershipPlansPage() {
         <header className="cmd-header-bar sticky top-0 z-50">
           <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <button onClick={() => router.push('/commander/settings')} className="cmd-back-btn">
-                <ArrowLeft size={16} /> Back
-              </button>
               <div>
                 <h1 className="font-bold text-white text-lg">Membership Plans</h1>
                 <p className="text-sm text-[#B0B3B8]">Set pricing & perks per tier</p>
@@ -468,25 +463,7 @@ export default function MembershipPlansPage() {
         </main>
       </div>
       <style jsx>{`
-        .cmd-back-btn {
-          background: none;
-          border: 1px solid #444;
-          border-radius: 10px;
-          padding: 8px 14px;
-          color: #ccc;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 13px;
-          font-weight: 600;
-          transition: all 0.2s;
-        }
-        .cmd-back-btn:hover {
-          border-color: #666;
-          color: #fff;
-        }
-      `}</style>
+`}</style>
     </>
   );
 }

@@ -6,8 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import {
-  ArrowLeft, DollarSign, Plus, Minus, Loader2, RefreshCw, Users,
+import { DollarSign, Plus, Minus, Loader2, RefreshCw, Users,
   CheckCircle2, AlertTriangle, Banknote, CreditCard, ArrowDownToLine,
   ArrowUpFromLine, Coins, Receipt
 } from 'lucide-react';
@@ -97,8 +96,7 @@ export default function Cashier() {
           seat_number: selectedPlayer?.seat_number,
           type: txType,
           amount: parseFloat(amount),
-          payment_method: payMethod,
-        })
+          payment_method: payMethod })
       });
       const json = await res.json();
       if (json.success) {
@@ -113,8 +111,7 @@ export default function Cashier() {
           seat_number: selectedPlayer?.seat_number,
           amount: parseFloat(amount),
           payment_method: payMethod,
-          created_at: new Date().toISOString(),
-        });
+          created_at: new Date().toISOString() });
         fetchData();
       } else {
         setMessage({ type: 'error', text: json.error || 'Transaction failed' });
@@ -187,10 +184,7 @@ export default function Cashier() {
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
         {/* Header */}
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
-          <button className="cmd-back-btn" onClick={() => router.push('/commander/dashboard')}>
-            <ArrowLeft size={16} /> Back
-          </button>
-          <div className="flex-1">
+<div className="flex-1">
             <h1 className="text-lg font-bold text-white">Cashier</h1>
             <p className="text-xs text-[#B0B3B8]">{sessions.length} active players</p>
           </div>
@@ -414,25 +408,7 @@ export default function Cashier() {
         )}
       </div>
     <style jsx>{`
-        .cmd-back-btn {
-          background: none;
-          border: 1px solid #444;
-          border-radius: 10px;
-          padding: 8px 14px;
-          color: #ccc;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 13px;
-          font-weight: 600;
-          transition: all 0.2s;
-        }
-        .cmd-back-btn:hover {
-          border-color: #666;
-          color: #fff;
-        }
-      `}</style>
+`}</style>
     </>
   );
 }

@@ -15,7 +15,7 @@ import { CarouselEngine } from './carousel/CarouselEngine';
 import { getFooterCards, recordCardVisit, triggerHaptic, getLastCarouselIndex, setLastCarouselIndex } from '../state/userPreferences';
 import { useWorldStore } from '../state/worldStore';
 import type { OrbConfig } from '../orbs/manifest/registry';
-import { COMMANDER_ORB } from '../orbs/manifest/registry';
+import { COMMANDER_ORB, POKER_IQ_ORBS } from '../orbs/manifest/registry';
 import { NeuronLights } from './components/NeuronLights';
 import { LaunchPad, useLaunchAnimation } from './components/LaunchPad';
 import { useCinematicIntro } from './components/CinematicIntro';

@@ -6,8 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import {
-  ArrowLeft, Server, Database, Wifi, Shield, Clock, RefreshCw,
+import { Server, Database, Wifi, Shield, Clock, RefreshCw,
   CheckCircle, XCircle, AlertTriangle, Loader2, HelpCircle, Activity,
   Users, Layout, Gamepad2, ExternalLink
 } from 'lucide-react';
@@ -61,10 +60,7 @@ export default function SystemInfoPage() {
         <header className="bg-[#242526] border-b border-[#3A3B3C] sticky top-0 z-50">
           <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <button className="cmd-back-btn" onClick={() => router.push('/commander/dashboard')}>
-                <ArrowLeft size={16} /> Back
-              </button>
-              <div>
+<div>
                 <h1 className="font-bold text-white text-lg">System Information</h1>
                 <p className="text-sm text-[#B0B3B8]">{venueName}</p>
               </div>
@@ -223,25 +219,7 @@ export default function SystemInfoPage() {
         </main>
       </div>
     <style jsx>{`
-        .cmd-back-btn {
-          background: none;
-          border: 1px solid #444;
-          border-radius: 10px;
-          padding: 8px 14px;
-          color: #ccc;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 13px;
-          font-weight: 600;
-          transition: all 0.2s;
-        }
-        .cmd-back-btn:hover {
-          border-color: #666;
-          color: #fff;
-        }
-      `}</style>
+`}</style>
     </>
     </CommanderLayout>
   );

@@ -189,54 +189,29 @@ export default function StaffReportsPage() {
   }
 
   return (
-    <CommanderLayout title="Daily Reports" backHref="/commander/dashboard">
-    <>
-      <Head>
-        <title>Daily Reports | Club Commander</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
-
+    <CommanderLayout title="Daily Reports">
       <div className="cmd-page">
         {/* Export Message */}
         {exportMessage && (
           <div
-            className={`fixed top-0 left-0 right-0 z-50 py-3 px-4 text-center text-white font-medium ${
-              exportMessage.type === 'success' ? 'bg-[#31A24C]' : 'bg-[#EF4444]'
-            }`}
+            className={`fixed top-0 left-0 right-0 z-50 py-3 px-4 text-center text-white font-medium ${exportMessage.type === 'success' ? 'bg-[#31A24C]' : 'bg-[#EF4444]'
+              }`}
           >
             {exportMessage.text}
           </div>
         )}
 
-        {/* Header */}
-        <header className="cmd-header-bar sticky top-0 z-40">
-          <div className="max-w-4xl mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => router.push('/commander/dashboard')}
-                  className="p-2 hover:bg-[#3A3B3C] rounded-lg transition-colors"
-                >
-                  <ChevronLeft className="w-5 h-5 text-[#B0B3B8]" />
-                </button>
-                <div>
-                  <h1 className="text-xl font-bold text-white flex items-center gap-2">
-                    <FileText className="w-6 h-6 text-[#1877F2]" />
-                    Daily Reports
-                  </h1>
-                  <p className="text-sm text-[#B0B3B8]">{report?.venue_name || 'Loading...'}</p>
-                </div>
-              </div>
-              <button
-                onClick={handleExport}
-                className="flex items-center gap-2 px-4 py-2 cmd-btn cmd-btn-primary"
-              >
-                <Download className="w-4 h-4" />
-                Export
-              </button>
-            </div>
-          </div>
-        </header>
+        {/* Action Bar */}
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+          <p className="text-sm text-[#B0B3B8]">{report?.venue_name || 'Loading...'}</p>
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-2 px-4 py-2 cmd-btn cmd-btn-primary"
+          >
+            <Download className="w-4 h-4" />
+            Export
+          </button>
+        </div>
 
         <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
           {/* Date Selector */}
@@ -259,9 +234,8 @@ export default function StaffReportsPage() {
             <button
               onClick={() => changeDate(1)}
               disabled={isToday}
-              className={`p-2 rounded-lg transition-colors ${
-                isToday ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#3A3B3C]'
-              }`}
+              className={`p-2 rounded-lg transition-colors ${isToday ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#3A3B3C]'
+                }`}
             >
               <ChevronRight className="w-5 h-5 text-[#B0B3B8]" />
             </button>
@@ -417,7 +391,6 @@ export default function StaffReportsPage() {
           )}
         </main>
       </div>
-    </>
     </CommanderLayout>
   );
 }

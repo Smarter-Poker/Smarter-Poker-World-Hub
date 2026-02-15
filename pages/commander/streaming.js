@@ -12,7 +12,6 @@ import {
   Play,
   Square,
   Settings,
-  ChevronLeft,
   Loader2,
   Users,
   Clock,
@@ -185,11 +184,10 @@ function ConfigureModal({ stream, onSave, onClose }) {
                   <button
                     key={platform.id}
                     onClick={() => togglePlatform(platform.id)}
-                    className={`flex-1 py-3 rounded-lg border flex flex-col items-center gap-1 transition-colors ${
-                      isSelected
+                    className={`flex-1 py-3 rounded-lg border flex flex-col items-center gap-1 transition-colors ${isSelected
                         ? 'border-2'
                         : 'border-[#3A3B3C]'
-                    }`}
+                      }`}
                     style={{
                       borderColor: isSelected ? platform.color : undefined,
                       backgroundColor: isSelected ? `${platform.color}10` : undefined
@@ -215,11 +213,10 @@ function ConfigureModal({ stream, onSave, onClose }) {
                 <button
                   key={mins}
                   onClick={() => setConfig(prev => ({ ...prev, delay_minutes: mins }))}
-                  className={`flex-1 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                    config.delay_minutes === mins
+                  className={`flex-1 py-2 rounded-lg border text-sm font-medium transition-colors ${config.delay_minutes === mins
                       ? 'border-[#1877F2] bg-[#1877F2]/5 text-[#1877F2]'
                       : 'border-[#3A3B3C] text-[#B0B3B8]'
-                  }`}
+                    }`}
                 >
                   {mins}m
                 </button>
@@ -381,36 +378,8 @@ export default function StreamingPage() {
   }
 
   return (
-    <CommanderLayout title="Streaming" backHref="/commander/displays">
-    <>
-      <Head>
-        <title>Streaming | Club Commander</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
-
+    <CommanderLayout title="Streaming">
       <div className="cmd-page">
-        {/* Header */}
-        <header className="cmd-header-bar sticky top-0 z-40">
-          <div className="max-w-4xl mx-auto px-4 py-4">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => router.push('/commander/dashboard')}
-                className="p-2 hover:bg-[#3A3B3C] rounded-lg transition-colors"
-              >
-                <ChevronLeft className="w-5 h-5 text-[#B0B3B8]" />
-              </button>
-              <div>
-                <h1 className="text-xl font-bold text-white flex items-center gap-2">
-                  <Video className="w-6 h-6 text-[#1877F2]" />
-                  Streaming
-                </h1>
-                <p className="text-sm text-[#B0B3B8]">
-                  {liveStreams.length} table{liveStreams.length !== 1 ? 's' : ''} live
-                </p>
-              </div>
-            </div>
-          </div>
-        </header>
 
         <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
           {loading ? (
@@ -477,7 +446,6 @@ export default function StreamingPage() {
           />
         )}
       </div>
-    </>
     </CommanderLayout>
   );
 }

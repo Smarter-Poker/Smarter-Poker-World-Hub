@@ -7,8 +7,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import {
-  ArrowLeft, Download, FileText, Loader2, RefreshCw, CheckCircle2,
+import { Download, FileText, Loader2, RefreshCw, CheckCircle2,
   AlertTriangle, Clock, Users, Trophy, BarChart3, Gift, Shield, X
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
@@ -26,8 +25,7 @@ const STATUS_STYLES = {
   pending: { bg: 'bg-[#F59E0B]/15', text: 'text-[#F59E0B]', label: 'Pending' },
   processing: { bg: 'bg-[#1877F2]/15', text: 'text-[#1877F2]', label: 'Processing' },
   completed: { bg: 'bg-[#31A24C]/15', text: 'text-[#31A24C]', label: 'Ready' },
-  failed: { bg: 'bg-[#EF4444]/15', text: 'text-[#EF4444]', label: 'Failed' },
-};
+  failed: { bg: 'bg-[#EF4444]/15', text: 'text-[#EF4444]', label: 'Failed' } };
 
 export default function ExportsHub() {
   const router = useRouter();
@@ -78,8 +76,7 @@ export default function ExportsHub() {
           export_type: exportType,
           date_from: dateFrom || undefined,
           date_to: dateTo || undefined,
-          format,
-        })
+          format })
       });
       const json = await res.json();
       if (json.export) {
@@ -133,10 +130,7 @@ export default function ExportsHub() {
       <Head><title>Data Exports | Club Commander</title></Head>
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
-          <button className="cmd-back-btn" onClick={() => router.push('/commander/dashboard')}>
-            <ArrowLeft size={16} /> Back
-          </button>
-          <div className="flex-1">
+<div className="flex-1">
             <h1 className="text-lg font-bold text-white">Data Exports</h1>
             <p className="text-xs text-[#B0B3B8]">Download venue data as CSV or JSON</p>
           </div>
@@ -277,25 +271,7 @@ export default function ExportsHub() {
         )}
       </div>
     <style jsx>{`
-        .cmd-back-btn {
-          background: none;
-          border: 1px solid #444;
-          border-radius: 10px;
-          padding: 8px 14px;
-          color: #ccc;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 13px;
-          font-weight: 600;
-          transition: all 0.2s;
-        }
-        .cmd-back-btn:hover {
-          border-color: #666;
-          color: #fff;
-        }
-      `}</style>
+`}</style>
     </>
   );
 }

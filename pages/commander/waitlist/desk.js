@@ -9,8 +9,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useRealtimeUpdates } from '../../../src/lib/commander/useRealtimeUpdates';
-import {
-  ArrowLeft, RefreshCw, Loader2, Users, Phone, UserPlus,
+import { RefreshCw, Loader2, Users, Phone, UserPlus,
   ChevronRight, Clock, CheckCircle2, X, AlertTriangle,
   Armchair, PhoneCall, MessageSquare, ChevronDown, SkipForward, Trash2
 } from 'lucide-react';
@@ -179,10 +178,7 @@ export default function WaitlistDesk() {
 
         {/* Header */}
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
-          <button className="cmd-back-btn" onClick={() => router.push('/commander/dashboard')}>
-            <ArrowLeft size={16} /> Back
-          </button>
-          <div className="flex-1">
+<div className="flex-1">
             <h1 className="text-lg font-bold text-white">The Board</h1>
             <p className="text-xs text-[#B0B3B8]">
               {activeTables.length} tables — {waitlists.filter(w => w.status === 'waiting').length} waiting
@@ -398,25 +394,7 @@ export default function WaitlistDesk() {
         )}
       </div>
     <style jsx>{`
-        .cmd-back-btn {
-          background: none;
-          border: 1px solid #444;
-          border-radius: 10px;
-          padding: 8px 14px;
-          color: #ccc;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 13px;
-          font-weight: 600;
-          transition: all 0.2s;
-        }
-        .cmd-back-btn:hover {
-          border-color: #666;
-          color: #fff;
-        }
-      `}</style>
+`}</style>
     </>
   );
 }

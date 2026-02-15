@@ -11,8 +11,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import {
-  ArrowLeft, Save, Plus, Trash2, GripVertical, Clock, DollarSign,
+import { Save, Plus, Trash2, GripVertical, Clock, DollarSign,
   Users, Trophy, Coffee, ChevronUp, ChevronDown, Copy, Download,
   Loader2, Settings, Calculator, FileText, RotateCcw, Check
 } from 'lucide-react';
@@ -327,10 +326,6 @@ export default function TournamentSettings() {
         {/* Header */}
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
-            <button onClick={() => router.push(`/commander/tournaments/${id}`)}
-              className="cmd-back-btn">
-              <ArrowLeft size={16} /> Back
-            </button>
             <div>
               <h1 className="text-lg font-bold text-white">Tournament Settings</h1>
               <p className="text-xs text-[#B0B3B8]">{name}</p>
@@ -679,25 +674,7 @@ export default function TournamentSettings() {
         </div>
       </div>
       <style jsx>{`
-        .cmd-back-btn {
-          background: none;
-          border: 1px solid #444;
-          border-radius: 10px;
-          padding: 8px 14px;
-          color: #ccc;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 13px;
-          font-weight: 600;
-          transition: all 0.2s;
-        }
-        .cmd-back-btn:hover {
-          border-color: #666;
-          color: #fff;
-        }
-      `}</style>
+`}</style>
     </>
   );
 }
