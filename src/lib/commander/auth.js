@@ -185,8 +185,11 @@ export async function verifyPin(venueId, pinCode) {
 }
 
 /**
- * Verify staff via x-staff-session header (PIN-based terminal auth)
- * Used by staff-facing API endpoints that authenticate via the terminal PIN flow.
+ * Verify staff via x-staff-session header
+ * Supports TWO auth flows:
+ *   1. PIN-based terminal auth: session has `id` (commander_staff row ID)
+ *   2. Owner email/password login: session has `user_id` + `role: 'owner'`
+ *
  * @param {object} req - Next.js request object
  * @returns {object} - { staff } on success, { error: { status, code, message } } on failure
  */
@@ -203,18 +206,62 @@ export async function verifyStaffSession(req) {
     return { error: { status: 401, code: 'INVALID_SESSION', message: 'Invalid session format' } };
   }
 
-  const { data: staff, error: staffError } = await supabase
-    .from('commander_staff')
-    .select('id, venue_id, role, is_active')
-    .eq('id', sessionData.id)
-    .eq('is_active', true)
-    .single();
+  // Path 1: PIN-based staff terminal — session contains staff row `id`
+  if (sessionData.id) {
+    const { data: staff, error: staffError } = await supabase
+      .from('commander_staff')
+      .select('id, venue_id, role, is_active')
+      .eq('id', sessionData.id)
+      .eq('is_active', true)
+      .single();
 
-  if (staffError || !staff) {
-    return { error: { status: 401, code: 'INVALID_STAFF', message: 'Staff member not found or inactive' } };
+    if (staffError || !staff) {
+      return { error: { status: 401, code: 'INVALID_STAFF', message: 'Staff member not found or inactive' } };
+    }
+
+    return { staff };
   }
 
-  return { staff };
+  // Path 2: Owner login — session contains `user_id` + `role` + `venue_id`
+  if (sessionData.user_id && sessionData.venue_id) {
+    // First try: look up commander_staff row by user_id
+    const { data: staff } = await supabase
+      .from('commander_staff')
+      .select('id, venue_id, role, is_active')
+      .eq('user_id', sessionData.user_id)
+      .eq('venue_id', sessionData.venue_id)
+      .eq('is_active', true)
+      .single();
+
+    if (staff) {
+      return { staff };
+    }
+
+    // Fallback for owners: verify via subscription (owners may not have commander_staff rows)
+    if (sessionData.role === 'owner') {
+      const { data: sub } = await supabase
+        .from('commander_subscriptions')
+        .select('id, venue_id, owner_id, status')
+        .eq('owner_id', sessionData.user_id)
+        .eq('venue_id', sessionData.venue_id)
+        .in('status', ['active', 'trialing'])
+        .single();
+
+      if (sub) {
+        // Return a synthetic staff object for the owner
+        return {
+          staff: {
+            id: `owner-${sub.user_id}`,
+            venue_id: sub.venue_id,
+            role: 'owner',
+            is_active: true,
+          }
+        };
+      }
+    }
+  }
+
+  return { error: { status: 401, code: 'INVALID_STAFF', message: 'Staff member not found or inactive' } };
 }
 
 /**
