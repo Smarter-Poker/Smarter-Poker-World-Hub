@@ -1578,8 +1578,8 @@ function ClubPageCreateModal({ C, commanderData, userId, onCreated, onClose }) {
                     category,
                     owner_id: userId,
                     linked_venue_id: commanderData?.venue_id ? String(commanderData.venue_id) : undefined,
-                    location_city: commanderData?.venue_city || '',
-                    location_state: commanderData?.venue_state || '',
+                    location_city: (() => { try { const v = JSON.parse(localStorage.getItem('commander_venue') || '{}'); return v.city || v.location_city || ''; } catch { return ''; } })(),
+                    location_state: (() => { try { const v = JSON.parse(localStorage.getItem('commander_venue') || '{}'); return v.state || v.location_state || ''; } catch { return ''; } })(),
                     is_public: true,
                     allow_member_posts: false,
                 }),
@@ -2228,6 +2228,7 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
 }
 
 export default function SocialMediaPage() {
+    const router = useRouter();
     // Zustand Global State (replaces UI-related useState)
     const sidebarOpen = useSocialStore((s) => s.sidebarOpen);
     const setSidebarOpen = useSocialStore((s) => s.setSidebarOpen);

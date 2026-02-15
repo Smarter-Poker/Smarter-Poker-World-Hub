@@ -613,7 +613,9 @@ export const MENU_CONFIGS = {
             createMenuItem.section('Activity'),
             createMenuItem.navigation('My Posts', '/hub/social-media'),
             createMenuItem.navigation('My Friends', '/hub/friends'),
-            createMenuItem.navigation('Notifications', '/hub/notifications')
+            createMenuItem.navigation('Notifications', '/hub/notifications'),
+            createMenuItem.divider(),
+            createMenuItem.navigation('🤝 Refer a Friend', '/hub/settings?section=account')
         ],
         bottomLinks: [
             { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings }
@@ -631,7 +633,9 @@ export const MENU_CONFIGS = {
             createMenuItem.section('Content'),
             createMenuItem.navigation('News', '/hub/news'),
             createMenuItem.navigation('Lives', '/hub/lives'),
-            createMenuItem.navigation('Video Library', '/hub/video-library')
+            createMenuItem.navigation('Video Library', '/hub/video-library'),
+            createMenuItem.divider(),
+            createMenuItem.navigation('🤝 Refer a Friend', '/hub/settings?section=account')
         ],
         bottomLinks: [
             { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings }

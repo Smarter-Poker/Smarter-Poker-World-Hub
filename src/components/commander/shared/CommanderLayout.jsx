@@ -77,12 +77,15 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
           if (dismissDate.toDateString() === now.toDateString()) return;
         }
 
-        // Check if account is at least 1 hour old
-        if (staff.created_at) {
-          const createdAt = new Date(staff.created_at);
-          const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
-          if (createdAt > hourAgo) return; // Less than 1 hour old, skip
-        }
+        // Check if account is at least 1 hour old (use subscription created_at if available)
+        try {
+          const sub = JSON.parse(localStorage.getItem('commander_subscription') || '{}');
+          if (sub.created_at) {
+            const createdAt = new Date(sub.created_at);
+            const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
+            if (createdAt > hourAgo) return; // Less than 1 hour old, skip
+          }
+        } catch { }
 
         // Check if user already has a club page
         const res = await fetch(`/api/social/pages?linked_venue_id=${staff.venue_id}`);

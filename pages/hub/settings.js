@@ -96,6 +96,7 @@ export default function SettingsPage() {
 
     // Hamburger Menu State
     const [menuOpen, setMenuOpen] = useState(false);
+    const [referralCopied, setReferralCopied] = useState(false);
 
     //  Use context user or localStorage fallback
     const user = contextUser || localUser;
@@ -190,7 +191,7 @@ export default function SettingsPage() {
             // Also fetch user profile for display name
             supabase
                 .from('profiles')
-                .select('full_name, username, avatar_url')
+                .select('full_name, username, avatar_url, player_number')
                 .eq('id', user.id)
                 .single()
                 .then(({ data: profile }) => {
@@ -738,6 +739,98 @@ export default function SettingsPage() {
                                     )}
                                 </div>
 
+                                {/* Refer a Friend Card */}
+                                {userProfile?.player_number && (
+                                    <div style={{
+                                        ...styles.card,
+                                        background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(168, 85, 247, 0.15))',
+                                        border: '1px solid rgba(236, 72, 153, 0.4)',
+                                    }}>
+                                        <h3 style={{ ...styles.cardTitle, color: '#EC4899', marginBottom: 8 }}>
+                                            🤝 Refer a Friend
+                                        </h3>
+                                        <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, marginBottom: 16 }}>
+                                            Share your referral code and earn <strong style={{ color: '#FFD700' }}>500 💎</strong> for every friend who signs up!
+                                        </p>
+
+                                        {/* Player Number Display */}
+                                        <div style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 12,
+                                            marginBottom: 16,
+                                            padding: '12px 16px',
+                                            background: 'rgba(0, 0, 0, 0.3)',
+                                            borderRadius: 10,
+                                            border: '1px solid rgba(236, 72, 153, 0.3)',
+                                        }}>
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Your Referral Code</div>
+                                                <div style={{
+                                                    fontFamily: 'Orbitron, monospace',
+                                                    fontSize: 28,
+                                                    fontWeight: 700,
+                                                    color: '#EC4899',
+                                                    letterSpacing: '3px',
+                                                }}>
+                                                    #{userProfile.player_number}
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(String(userProfile.player_number));
+                                                    setReferralCopied(true);
+                                                    setTimeout(() => setReferralCopied(false), 2000);
+                                                }}
+                                                style={{
+                                                    padding: '10px 16px',
+                                                    background: referralCopied ? 'rgba(49, 162, 76, 0.3)' : 'rgba(236, 72, 153, 0.2)',
+                                                    border: `1px solid ${referralCopied ? 'rgba(49, 162, 76, 0.5)' : 'rgba(236, 72, 153, 0.4)'}`,
+                                                    borderRadius: 8,
+                                                    color: referralCopied ? '#31A24C' : '#EC4899',
+                                                    fontSize: 13,
+                                                    fontWeight: 600,
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.2s ease',
+                                                }}
+                                            >
+                                                {referralCopied ? '✓ Copied!' : '📋 Copy Code'}
+                                            </button>
+                                        </div>
+
+                                        {/* Copy Referral Link Button */}
+                                        <button
+                                            onClick={() => {
+                                                const link = `https://smarter.poker/auth/signup?ref=${userProfile.player_number}`;
+                                                navigator.clipboard.writeText(link);
+                                                setReferralCopied(true);
+                                                setTimeout(() => setReferralCopied(false), 2000);
+                                            }}
+                                            style={{
+                                                width: '100%',
+                                                padding: '14px 20px',
+                                                background: 'linear-gradient(135deg, #EC4899, #A855F7)',
+                                                border: 'none',
+                                                borderRadius: 10,
+                                                color: '#fff',
+                                                fontSize: 14,
+                                                fontWeight: 600,
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: 8,
+                                                boxShadow: '0 4px 20px rgba(236, 72, 153, 0.3)',
+                                                transition: 'all 0.3s ease',
+                                            }}
+                                        >
+                                            🔗 Copy Referral Link
+                                        </button>
+                                        <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 10, textAlign: 'center' }}>
+                                            Friends enter your code during signup, you earn 500💎 each time!
+                                        </p>
+                                    </div>
+                                )}
 
                                 <div style={styles.card}>
                                     <h3 style={styles.cardTitle}>Account Security</h3>

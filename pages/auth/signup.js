@@ -92,6 +92,23 @@ export default function SignUpPage() {
     const [promoError, setPromoError] = useState('');
     const [promoDetails, setPromoDetails] = useState(null);
 
+    // Referral Code State (player_number)
+    const [referralValid, setReferralValid] = useState(null);
+    const [referralDetails, setReferralDetails] = useState(null); // { referrerId, playerNumber, referrerName }
+    const [isReferralCode, setIsReferralCode] = useState(false); // true if input looks like a referral code
+
+    // Auto-fill promo/referral code from ?ref= or ?promo= query parameter
+    useEffect(() => {
+        if (router.isReady) {
+            const { ref, promo } = router.query;
+            if (ref && !formData.promoCode) {
+                setFormData(prev => ({ ...prev, promoCode: String(ref).toUpperCase() }));
+            } else if (promo && !formData.promoCode) {
+                setFormData(prev => ({ ...prev, promoCode: String(promo).toUpperCase() }));
+            }
+        }
+    }, [router.isReady]);
+
     // Override global html/body background for Facebook Dark theme
     useEffect(() => {
         const style = document.createElement('style');
@@ -264,36 +281,66 @@ export default function SignUpPage() {
         }
     }, [formData.phone]);
 
-    // Promo code validation with debounce
+    // Check promo or referral code validity with debounce
     useEffect(() => {
-        if (!formData.promoCode || formData.promoCode.trim().length < 3) {
-            setPromoValid(null);
-            setPromoError('');
-            setPromoDetails(null);
+        // Reset all states when input changes
+        setPromoValid(null);
+        setPromoError('');
+        setPromoDetails(null);
+        setReferralValid(null);
+        setReferralDetails(null);
+
+        if (!formData.promoCode || formData.promoCode.length < 3) {
+            setIsReferralCode(false);
             return;
         }
+
+        // Determine if this looks like a referral code (all digits) or promo code
+        const isNumeric = /^\d+$/.test(formData.promoCode);
+        setIsReferralCode(isNumeric);
 
         const timeout = setTimeout(async () => {
             setPromoChecking(true);
             setPromoError('');
             try {
-                const res = await fetch('/api/promo/validate-promo-code', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ code: formData.promoCode }),
-                });
-                const data = await res.json();
-                if (res.ok && data.valid) {
-                    setPromoValid(true);
-                    setPromoDetails(data);
-                    setPromoError('');
+                if (isNumeric) {
+                    // Validate as referral code (player number)
+                    const res = await fetch('/api/promo/validate-referral-code', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ code: formData.promoCode }),
+                    });
+                    const data = await res.json();
+                    if (res.ok && data.valid) {
+                        setReferralValid(true);
+                        setReferralDetails(data);
+                        setPromoValid(true); // Shared valid state for border color
+                        setPromoError('');
+                    } else {
+                        setReferralValid(false);
+                        setPromoValid(false);
+                        setPromoError(data.error || 'Invalid referral code');
+                    }
                 } else {
-                    setPromoValid(false);
-                    setPromoDetails(null);
-                    setPromoError(data.error || 'Invalid promo code');
+                    // Validate as promo code
+                    const res = await fetch('/api/promo/validate-promo-code', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ code: formData.promoCode }),
+                    });
+                    const data = await res.json();
+                    if (res.ok && data.valid) {
+                        setPromoValid(true);
+                        setPromoDetails(data);
+                        setPromoError('');
+                    } else {
+                        setPromoValid(false);
+                        setPromoDetails(null);
+                        setPromoError(data.error || 'Invalid promo code');
+                    }
                 }
             } catch (err) {
-                console.error('Promo validation error:', err);
+                console.error('Promo/referral validation error:', err);
                 setPromoValid(null);
             } finally {
                 setPromoChecking(false);
@@ -523,7 +570,7 @@ export default function SignUpPage() {
             }
 
             // Redeem promo code if provided and valid
-            if (formData.promoCode && promoValid && authData.user) {
+            if (formData.promoCode && promoValid && authData.user && !isReferralCode) {
                 try {
                     await fetch('/api/promo/redeem-promo-code', {
                         method: 'POST',
@@ -536,6 +583,23 @@ export default function SignUpPage() {
                     console.log('Promo code redeemed:', formData.promoCode);
                 } catch (promoErr) {
                     console.error('Promo redemption error (non-blocking):', promoErr);
+                }
+            }
+
+            // Award referral bonus to referrer if referral code was used
+            if (isReferralCode && referralValid && referralDetails && authData.user) {
+                try {
+                    await fetch('/api/rewards/referral', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            referrerId: referralDetails.referrerId,
+                            referredUserId: authData.user.id,
+                        }),
+                    });
+                    console.log('Referral reward sent to:', referralDetails.referrerId);
+                } catch (refErr) {
+                    console.error('Referral reward error (non-blocking):', refErr);
                 }
             }
 
@@ -992,10 +1056,10 @@ export default function SignUpPage() {
                                 )}
                             </div>
 
-                            {/* Promo Code (Optional) */}
+                            {/* Promo Code or Referral Code (Optional) */}
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>
-                                    Promo Code
+                                    Promo or Referral Code
                                     <span style={styles.labelHint}>(optional)</span>
                                 </label>
                                 <div style={styles.aliasInputWrapper}>
@@ -1003,7 +1067,7 @@ export default function SignUpPage() {
                                         type="text"
                                         value={formData.promoCode}
                                         onChange={(e) => setFormData({ ...formData, promoCode: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') })}
-                                        placeholder="Enter promo code"
+                                        placeholder="Promo code or player #"
                                         style={{
                                             ...styles.inputSingle,
                                             borderColor: promoValid === false ? '#F02849' :
@@ -1025,7 +1089,8 @@ export default function SignUpPage() {
                                         <span style={{ ...styles.aliasStatus, color: '#F02849' }}>✗ Invalid</span>
                                     )}
                                 </div>
-                                {promoValid && promoDetails && (
+                                {/* Promo code success message */}
+                                {promoValid && promoDetails && !isReferralCode && (
                                     <div style={{
                                         marginTop: '6px',
                                         padding: '8px 12px',
@@ -1036,6 +1101,20 @@ export default function SignUpPage() {
                                         color: '#31A24C',
                                     }}>
                                         🎉 {promoDetails.description || `Bonus: ${promoDetails.value} ${promoDetails.type === 'vip_trial' ? 'day VIP trial' : 'diamonds'}`}
+                                    </div>
+                                )}
+                                {/* Referral code success message */}
+                                {referralValid && referralDetails && isReferralCode && (
+                                    <div style={{
+                                        marginTop: '6px',
+                                        padding: '8px 12px',
+                                        background: 'rgba(236, 72, 153, 0.15)',
+                                        border: '1px solid rgba(236, 72, 153, 0.3)',
+                                        borderRadius: '6px',
+                                        fontSize: '13px',
+                                        color: '#EC4899',
+                                    }}>
+                                        🤝 Referred by Player #{referralDetails.playerNumber} ({referralDetails.referrerName})
                                     </div>
                                 )}
                                 {promoError && (
