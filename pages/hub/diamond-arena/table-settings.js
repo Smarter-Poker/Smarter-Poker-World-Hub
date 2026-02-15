@@ -18,18 +18,12 @@ export default function DiamondArenaTableSettings() {
 
             <PageTransition>
                 <div style={{ minHeight: '100vh', background: '#0a0e1a' }}>
-                    <UniversalHeader />
+                    <UniversalHeader pageDepth={2} />
 
                     <div style={{ padding: '120px 20px 40px', maxWidth: '800px', margin: '0 auto' }}>
-                        <button
-                            onClick={() => router.push('/hub/diamond-arena')}
-                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', marginBottom: '20px' }}
-                        >
-                            <img src="/images/btn-back.png" alt="Back" style={{ height: 32 }} />
-                        </button>
 
                         <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#fff', marginBottom: '12px' }}>
-                             Table Settings
+                            Table Settings
                         </h1>
                         <p style={{ color: '#9ca3af', marginBottom: '40px' }}>
                             Customize your table appearance and behavior

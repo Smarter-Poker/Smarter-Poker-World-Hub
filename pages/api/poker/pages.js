@@ -1,9 +1,9 @@
 /**
- * Poker Pages API - Aggregated feed of venue, tour, and series pages
+ * Poker Pages API - Aggregated feed of venue, tour, series, home game, charity, and club pages
  * Returns unified page objects for discovery and follow management
  *
  * GET /api/poker/pages
- *   ?category=venues|tours|series|all (default: all)
+ *   ?category=venues|tours|series|home_games|charity|clubs|all (default: all)
  *   ?search=text
  *   ?user_id=X (returns follow status for each page)
  *   ?followed_only=true (only return pages user follows)
@@ -81,6 +81,48 @@ function buildSeriesPages() {
         .sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
 }
 
+// Build social pages (club, home_game, charity) from Supabase social_pages table
+async function buildSocialPages(pageType) {
+    try {
+        // Query by column page_type OR metadata->page_type (dashboard writes to both)
+        let query = supabase
+            .from('social_pages')
+            .select('id, name, description, avatar_url, cover_url, category, page_type, location_city, location_state, follower_count, metadata, is_public, created_at')
+            .eq('is_public', true);
+
+        // Filter by page_type column
+        if (pageType) {
+            query = query.eq('page_type', pageType);
+        }
+
+        const { data, error } = await query.order('follower_count', { ascending: false });
+        if (error || !data) return [];
+
+        return data.map(p => {
+            const effectiveType = p.metadata?.page_type || p.page_type || 'club';
+            const subtitle = [p.location_city, p.location_state].filter(Boolean).join(', ') || p.category || '';
+            return {
+                page_type: effectiveType,
+                page_id: p.id,
+                name: p.name,
+                subtitle,
+                category: effectiveType === 'home_game' ? 'Home Game'
+                    : effectiveType === 'charity' ? 'Charity Event'
+                        : p.category || 'Club',
+                avatar_url: p.avatar_url,
+                cover_url: p.cover_url,
+                description: p.description,
+                follower_count: p.follower_count || 0,
+                created_at: p.created_at,
+                is_social_page: true,
+            };
+        });
+    } catch (e) {
+        console.error('buildSocialPages error:', e);
+        return [];
+    }
+}
+
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method not allowed' });
@@ -107,6 +149,16 @@ export default async function handler(req, res) {
         }
         if (category === 'all' || category === 'series') {
             pages.push(...buildSeriesPages());
+        }
+        // Social pages: home games, charity, clubs from Supabase
+        if (category === 'all' || category === 'home_games') {
+            pages.push(...await buildSocialPages('home_game'));
+        }
+        if (category === 'all' || category === 'charity') {
+            pages.push(...await buildSocialPages('charity'));
+        }
+        if (category === 'all' || category === 'clubs') {
+            pages.push(...await buildSocialPages('club'));
         }
 
         // Filter by state (venues only)
@@ -174,10 +226,10 @@ export default async function handler(req, res) {
         // Sort
         if (sort === 'popular') {
             pages.sort((a, b) => {
-                // Tours first, then series, then venues
-                const typeOrder = { tour: 0, series: 1, venue: 2 };
-                const typeA = typeOrder[a.page_type] ?? 3;
-                const typeB = typeOrder[b.page_type] ?? 3;
+                // Tours first, then series, then venues, then social pages
+                const typeOrder = { tour: 0, series: 1, venue: 2, club: 3, home_game: 4, charity: 5 };
+                const typeA = typeOrder[a.page_type] ?? 6;
+                const typeB = typeOrder[b.page_type] ?? 6;
                 if (typeA !== typeB) return typeA - typeB;
                 // Then by follower count
                 return (b.follower_count || 0) - (a.follower_count || 0);

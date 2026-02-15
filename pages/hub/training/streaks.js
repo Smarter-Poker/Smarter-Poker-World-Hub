@@ -310,12 +310,8 @@ export default function StreaksPage() {
                         </div>
                     </section>
 
-                    {/* Back Button */}
-                    <div style={styles.actions}>
-                        <Link href="/hub/training" style={{ display: 'inline-block' }}>
-                            <img src="/images/btn-back.png" alt="Back" style={{ height: 32 }} />
-                        </Link>
-                    </div>
+
+
                 </div>
             </div>
         </PageTransition>

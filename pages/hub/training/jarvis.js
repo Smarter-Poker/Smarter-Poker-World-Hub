@@ -207,9 +207,8 @@ export default function JarvisDashboard() {
                         </div>
                     )}
 
-                    <Link href="/hub/training" style={{ display: 'inline-block', marginTop: 32, textAlign: 'center' }}>
-                        <img src="/images/btn-back.png" alt="Back" style={{ height: 32 }} />
-                    </Link>
+
+
                 </div>
             </div>
         </PageTransition>

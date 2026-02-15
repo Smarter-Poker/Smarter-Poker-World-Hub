@@ -165,7 +165,7 @@ export default function ArticlePage() {
         return (
             <div className="article-page not-found">
                 <h1>Article Not Found</h1>
-                <Link href="/hub/news"><img src="/images/btn-back.png" alt="Back" style={{ height: 32 }} /></Link>
+                <Link href="/hub/news">← Back to News</Link>
                 <style jsx>{`
                     .article-page { min-height: 100vh; background: #0a0a12; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
                     h1 { font-size: 24px; }
@@ -194,11 +194,9 @@ export default function ArticlePage() {
                     bottomLinks={menuConfig.bottomLinks}
                 />
 
-                {/* Header */}
+                {/* Header — share/bookmark actions only (back button is in UniversalHeader) */}
                 <header className="header">
-                    <div className="back-btn" onClick={() => router.push('/hub/news')} style={{ cursor: 'pointer' }}>
-                        <img src="/images/btn-back.png" alt="Back" style={{ height: 32 }} />
-                    </div>
+                    <div style={{ width: 60 }} />
                     <div className="actions">
                         <button onClick={handleShare}><Share2 size={18} /></button>
                         <button onClick={handleBookmark} style={isBookmarked ? { background: 'rgba(0,212,255,0.2)', borderColor: '#00d4ff' } : {}}>

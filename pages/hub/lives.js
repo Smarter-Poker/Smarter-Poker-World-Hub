@@ -232,12 +232,7 @@ export default function LivesPage() {
                         alignItems: 'center',
                         justifyContent: 'space-between',
                     }}>
-                        <Link href="/hub/social-media" style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                        }}>
-                            <img src="/images/btn-back.png" alt="Back" style={{ height: 32 }} />
-                        </Link>
+                        <div style={{ width: 60 }} />
                         <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'white' }}>
                             🔴 Lives
                         </h1>

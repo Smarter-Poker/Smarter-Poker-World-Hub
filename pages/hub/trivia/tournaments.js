@@ -765,9 +765,8 @@ export default function TournamentsPage() {
                     {/* Round Complete */}
                     {gameState === 'complete' && (
                         <div className="result-panel-overlay">
-                            <button className="panel-back-top" onClick={() => router.push('/hub/trivia')} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
-                                <img src="/images/btn-back.png" alt="Back" style={{ height: 32 }} />
-                            </button>
+
+
                             <div className="result-panel-container">
                                 <img
                                     src="/trivia/panels/panel-win.jpg"
