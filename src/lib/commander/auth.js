@@ -251,7 +251,7 @@ export async function verifyStaffSession(req) {
         // Return a synthetic staff object for the owner
         return {
           staff: {
-            id: `owner-${sub.user_id}`,
+            id: sessionData.user_id,
             venue_id: sub.venue_id,
             role: 'owner',
             is_active: true,

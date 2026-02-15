@@ -158,7 +158,7 @@ async function createTournament(req, res, staff) {
         broadcast_to_smarter: broadcast_to_smarter !== false,
         series_id,
         settings: settings || {},
-        created_by: staff.id
+        created_by: staff.role === 'owner' ? null : staff.id
       })
       .select()
       .single();
