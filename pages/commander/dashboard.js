@@ -6,8 +6,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { LogOut, ArrowLeft, Settings, Download, Users, QrCode } from 'lucide-react';
+import { LogOut, ArrowLeft, Settings, Download, Users, QrCode, Lock, Crown } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { canAccessRoute, getUpgradeTier, getTierConfig } from '../../src/lib/commander/tierConfig';
 
 /* ─────────────────────────────────────────────────
    CARD DEFINITIONS — each card has sub-features
@@ -37,7 +38,7 @@ const CARDS = [
     glow: '#F59E0B',
     features: [
       { label: 'Tournament Manager', href: '/commander/tournaments', icon: '/images/commander/icons/tn-registration.png' },
-      { label: 'Tournament Results', href: '/commander/reports/tournament-results', icon: '/images/commander/icons/rp-tournament.png' },
+      { label: 'Tournament Settings', href: '/commander/tournament-settings', icon: '/images/commander/icons/tn-settings.png' },
       { label: 'Leagues', href: '/commander/leagues', icon: '/images/commander/icons/tn-maintenance.png' },
       { label: 'Tournament Clock', href: '/commander/tournament-clock', icon: '/images/commander/icons/tn-clock.png' },
       { label: 'Tournament Clock Setup', href: '/commander/tournament-clock-setup', icon: '/images/commander/icons/tn-clock-setup.png' },
@@ -109,6 +110,7 @@ const CARDS = [
     glow: '#94A3B8',
     features: [
       { label: 'Reports Hub', href: '/commander/reports', icon: '/images/commander/icons/rp-player.png' },
+      { label: 'Tournament Results', href: '/commander/reports/tournament-results', icon: '/images/commander/icons/rp-tournament.png' },
       { label: 'Daily Summary', href: '/commander/reports/daily-summary', icon: '/images/commander/icons/rp-daily-summary.png' },
       { label: 'Revenue Report', href: '/commander/reports/revenue', icon: '/images/commander/icons/rp-revenue.png' },
       { label: 'Staff Activity', href: '/commander/reports/staff-activity', icon: '/images/commander/icons/rp-activity.png' },
@@ -136,6 +138,8 @@ export default function CommanderDashboard() {
   const router = useRouter();
   const [staff, setStaff] = useState(null);
   const [activeCard, setActiveCard] = useState(null); // which card is "opened"
+  const [currentTier, setCurrentTier] = useState('home_game');
+  const [showUpgradeModal, setShowUpgradeModal] = useState(null);
 
 
   // Auth guard
@@ -147,6 +151,10 @@ export default function CommanderDashboard() {
       if (!data.venue_id) { router.push('/commander/login'); return; }
       setStaff(data);
     } catch { router.push('/commander/login'); }
+    try {
+      const sub = JSON.parse(localStorage.getItem('commander_subscription') || '{}');
+      if (sub.tier) setCurrentTier(sub.tier);
+    } catch { }
   }, [router]);
 
   const handleLogout = () => {
@@ -155,6 +163,21 @@ export default function CommanderDashboard() {
     localStorage.removeItem('commander_subscription');
     localStorage.removeItem('commander_remember');
     router.push('/commander/login');
+  };
+
+  const handleFeatureClick = (feat) => {
+    const allowed = canAccessRoute(currentTier, feat.href);
+    if (allowed) {
+      router.push(feat.href);
+    } else {
+      const upgradeTo = getUpgradeTier(currentTier);
+      const upgradeConfig = upgradeTo ? getTierConfig(upgradeTo) : null;
+      setShowUpgradeModal({
+        label: feat.label,
+        upgradeTierName: upgradeConfig?.name || 'a higher tier',
+        upgradePrice: upgradeConfig?.price || '',
+      });
+    }
   };
 
   if (!staff) return (
@@ -420,19 +443,88 @@ export default function CommanderDashboard() {
                 </div>
               </div>
               <div className="cmd-features">
-                {openCard.features.map((feat, i) => (
+                {openCard.features.map((feat, i) => {
+                  const isLocked = !canAccessRoute(currentTier, feat.href);
+                  return (
+                    <button
+                      key={i}
+                      className="cmd-feature-btn"
+                      style={{
+                        '--glow': openCard.glow,
+                        '--glow-dim': `${openCard.glow}30`,
+                        opacity: isLocked ? 0.4 : 1,
+                        filter: isLocked ? 'grayscale(0.6)' : 'none',
+                      }}
+                      onClick={() => handleFeatureClick(feat)}
+                    >
+                      <img src={feat.icon} alt={feat.label} />
+                      {isLocked && (
+                        <div style={{
+                          position: 'absolute', inset: 0, display: 'flex',
+                          alignItems: 'center', justifyContent: 'center',
+                          background: 'rgba(0,0,0,0.55)', borderRadius: 14,
+                        }}>
+                          <div style={{
+                            background: 'rgba(0,0,0,0.7)', borderRadius: 8,
+                            padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 5,
+                            border: '1px solid rgba(245,158,11,0.3)',
+                          }}>
+                            <Lock size={14} color="#F59E0B" />
+                            <span style={{ color: '#F59E0B', fontSize: 11, fontWeight: 700, letterSpacing: 0.5 }}>UPGRADE</span>
+                          </div>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ── UPGRADE MODAL ── */}
+          {showUpgradeModal && (
+            <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div onClick={() => setShowUpgradeModal(null)} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.7)' }} />
+              <div style={{
+                position: 'relative', background: 'linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%)',
+                borderRadius: 16, width: '90%', maxWidth: 400, padding: 28,
+                boxShadow: '0 12px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1)',
+                border: '1px solid rgba(255,255,255,0.08)'
+              }}>
+                <div style={{ width: 56, height: 56, borderRadius: 14, background: 'linear-gradient(135deg, #F59E0B, #EF4444)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                  <Crown size={28} color="#fff" />
+                </div>
+                <h2 style={{ margin: '0 0 8px', fontSize: 20, fontWeight: 800, color: '#fff', textAlign: 'center', fontFamily: 'Inter, sans-serif' }}>
+                  Upgrade Required
+                </h2>
+                <p style={{ margin: '0 0 20px', fontSize: 14, color: '#999', textAlign: 'center', lineHeight: 1.5, fontFamily: 'Inter, sans-serif' }}>
+                  <strong style={{ color: '#F59E0B' }}>{showUpgradeModal.label}</strong> requires the{' '}
+                  <strong style={{ color: '#22D3EE' }}>{showUpgradeModal.upgradeTierName}</strong> plan
+                  {showUpgradeModal.upgradePrice && <> (${showUpgradeModal.upgradePrice}/mo)</>}.
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <button
-                    key={i}
-                    className="cmd-feature-btn"
+                    onClick={() => { setShowUpgradeModal(null); router.push('/commander/settings?tab=subscription'); }}
                     style={{
-                      '--glow': openCard.glow,
-                      '--glow-dim': `${openCard.glow}30`,
+                      padding: '12px 24px', borderRadius: 10, border: 'none',
+                      background: 'linear-gradient(135deg, #F59E0B, #EF4444)', color: '#fff',
+                      fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter, sans-serif',
+                      boxShadow: '0 4px 16px rgba(245,158,11,0.4)'
                     }}
-                    onClick={() => router.push(feat.href)}
                   >
-                    <img src={feat.icon} alt={feat.label} />
+                    Upgrade Plan
                   </button>
-                ))}
+                  <button
+                    onClick={() => setShowUpgradeModal(null)}
+                    style={{
+                      padding: '10px 20px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)',
+                      background: 'transparent', color: '#888',
+                      fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'Inter, sans-serif'
+                    }}
+                  >
+                    Maybe Later
+                  </button>
+                </div>
               </div>
             </div>
           )}
