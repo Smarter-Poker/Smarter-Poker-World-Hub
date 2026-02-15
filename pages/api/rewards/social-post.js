@@ -1,8 +1,16 @@
 /**
  * 📝 SOCIAL POST REWARD API
  * ═══════════════════════════════════════════════════════════════════════════
- * Awards 15💎 for creating a social post (max 1 per day)
+ * Awards 10💎 for creating a social post (max 1 per day)
  * Subject to 500💎 daily cap
+ * 
+ * ANTI-FARMING SAFEGUARDS:
+ * - 1 reward per calendar day (CST)
+ * - 500💎 daily cap across all non-referral rewards
+ * - 10-minute cooldown between reward-eligible posts
+ * - Minimum 20-char content required (rejects empty/spam posts)
+ * - Account must be 24+ hours old
+ * - Post must exist in social_posts table (prevents phantom claims)
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -11,8 +19,10 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const POST_REWARD = 15;
+const POST_REWARD = 10;
 const DAILY_CAP = 500;
+const COOLDOWN_MINUTES = 10;
+const MIN_CONTENT_LENGTH = 20;
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -31,7 +41,44 @@ export default async function handler(req, res) {
     const today = `${cstDate.getFullYear()}-${String(cstDate.getMonth() + 1).padStart(2, '0')}-${String(cstDate.getDate()).padStart(2, '0')}`;
 
     try {
-        // Check if already claimed today
+        // ── SAFEGUARD 1: Account age check (24h minimum) ──
+        const { data: userProfile } = await supabase
+            .from('profiles')
+            .select('created_at')
+            .eq('id', userId)
+            .maybeSingle();
+
+        if (userProfile?.created_at) {
+            const accountAge = now - new Date(userProfile.created_at);
+            if (accountAge < 24 * 60 * 60 * 1000) {
+                return res.status(200).json({
+                    success: false,
+                    message: 'Account must be 24 hours old to earn post rewards'
+                });
+            }
+        }
+
+        // ── SAFEGUARD 2: Verify post actually exists and meets quality bar ──
+        if (postId) {
+            const { data: post } = await supabase
+                .from('social_posts')
+                .select('content')
+                .eq('id', postId)
+                .maybeSingle();
+
+            if (!post) {
+                return res.status(200).json({ success: false, message: 'Post not found' });
+            }
+
+            if ((post.content || '').trim().length < MIN_CONTENT_LENGTH) {
+                return res.status(200).json({
+                    success: false,
+                    message: `Post must be at least ${MIN_CONTENT_LENGTH} characters to earn rewards`
+                });
+            }
+        }
+
+        // ── SAFEGUARD 3: Already claimed today ──
         const { data: existing } = await supabase
             .from('diamond_reward_claims')
             .select('id')
@@ -48,13 +95,34 @@ export default async function handler(req, res) {
             });
         }
 
-        // Check daily cap (sum all non-cap-bypassing rewards today)
+        // ── SAFEGUARD 4: Cooldown (10 min between reward-eligible posts) ──
+        const { data: lastClaim } = await supabase
+            .from('diamond_reward_claims')
+            .select('claimed_at')
+            .eq('user_id', userId)
+            .eq('reward_type', 'social_post')
+            .order('claimed_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        if (lastClaim?.claimed_at) {
+            const elapsed = now - new Date(lastClaim.claimed_at);
+            if (elapsed < COOLDOWN_MINUTES * 60 * 1000) {
+                return res.status(200).json({
+                    success: false,
+                    cooldown: true,
+                    message: `Please wait ${COOLDOWN_MINUTES} minutes between reward-eligible posts`
+                });
+            }
+        }
+
+        // ── SAFEGUARD 5: Daily diamond cap ──
         const { data: todayClaims } = await supabase
             .from('diamond_reward_claims')
             .select('diamonds_awarded')
             .eq('user_id', userId)
             .eq('claim_date', today)
-            .neq('reward_type', 'referral'); // Referrals bypass cap
+            .neq('reward_type', 'referral');
 
         const todayTotal = (todayClaims || []).reduce((sum, c) => sum + (c.diamonds_awarded || 0), 0);
 
@@ -66,7 +134,7 @@ export default async function handler(req, res) {
             });
         }
 
-        // Record claim
+        // ── Record claim & award ──
         await supabase.from('diamond_reward_claims').insert({
             user_id: userId,
             reward_type: 'social_post',
@@ -75,7 +143,6 @@ export default async function handler(req, res) {
             metadata: { post_id: postId || null }
         });
 
-        // Award diamonds
         await supabase.rpc('add_diamonds_to_balance', {
             p_user_id: userId,
             p_amount: POST_REWARD,

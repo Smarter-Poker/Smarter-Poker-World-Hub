@@ -3,6 +3,14 @@
  * ═══════════════════════════════════════════════════════════════════════════
  * Awards 5💎 for strategy comments (max 3 per day)
  * Subject to 500💎 daily cap
+ *
+ * ANTI-FARMING SAFEGUARDS:
+ * - 3 rewards per calendar day (CST)
+ * - 500💎 daily cap across all non-referral rewards
+ * - 2-minute cooldown between reward-eligible comments
+ * - Minimum 10-char content required (rejects "nice" / emoji spam)
+ * - Account must be 24+ hours old
+ * - Comment must exist in social_comments table
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -14,6 +22,8 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const COMMENT_REWARD = 5;
 const MAX_PER_DAY = 3;
 const DAILY_CAP = 500;
+const COOLDOWN_MINUTES = 2;
+const MIN_CONTENT_LENGTH = 10;
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -32,7 +42,44 @@ export default async function handler(req, res) {
     const today = `${cstDate.getFullYear()}-${String(cstDate.getMonth() + 1).padStart(2, '0')}-${String(cstDate.getDate()).padStart(2, '0')}`;
 
     try {
-        // Count today's comment claims
+        // ── SAFEGUARD 1: Account age check (24h minimum) ──
+        const { data: userProfile } = await supabase
+            .from('profiles')
+            .select('created_at')
+            .eq('id', userId)
+            .maybeSingle();
+
+        if (userProfile?.created_at) {
+            const accountAge = now - new Date(userProfile.created_at);
+            if (accountAge < 24 * 60 * 60 * 1000) {
+                return res.status(200).json({
+                    success: false,
+                    message: 'Account must be 24 hours old to earn comment rewards'
+                });
+            }
+        }
+
+        // ── SAFEGUARD 2: Verify comment exists and meets quality bar ──
+        if (commentId) {
+            const { data: comment } = await supabase
+                .from('social_comments')
+                .select('content')
+                .eq('id', commentId)
+                .maybeSingle();
+
+            if (!comment) {
+                return res.status(200).json({ success: false, message: 'Comment not found' });
+            }
+
+            if ((comment.content || '').trim().length < MIN_CONTENT_LENGTH) {
+                return res.status(200).json({
+                    success: false,
+                    message: `Comment must be at least ${MIN_CONTENT_LENGTH} characters to earn rewards`
+                });
+            }
+        }
+
+        // ── SAFEGUARD 3: Per-day limit check ──
         const { count } = await supabase
             .from('diamond_reward_claims')
             .select('*', { count: 'exact', head: true })
@@ -48,7 +95,28 @@ export default async function handler(req, res) {
             });
         }
 
-        // Check daily cap
+        // ── SAFEGUARD 4: Cooldown (2 min between reward-eligible comments) ──
+        const { data: lastClaim } = await supabase
+            .from('diamond_reward_claims')
+            .select('claimed_at')
+            .eq('user_id', userId)
+            .eq('reward_type', 'strategy_comment')
+            .order('claimed_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        if (lastClaim?.claimed_at) {
+            const elapsed = now - new Date(lastClaim.claimed_at);
+            if (elapsed < COOLDOWN_MINUTES * 60 * 1000) {
+                return res.status(200).json({
+                    success: false,
+                    cooldown: true,
+                    message: `Please wait ${COOLDOWN_MINUTES} minutes between reward-eligible comments`
+                });
+            }
+        }
+
+        // ── SAFEGUARD 5: Daily diamond cap ──
         const { data: todayClaims } = await supabase
             .from('diamond_reward_claims')
             .select('diamonds_awarded')
@@ -66,7 +134,7 @@ export default async function handler(req, res) {
             });
         }
 
-        // Record claim
+        // ── Record claim & award ──
         await supabase.from('diamond_reward_claims').insert({
             user_id: userId,
             reward_type: 'strategy_comment',
@@ -75,7 +143,6 @@ export default async function handler(req, res) {
             metadata: { comment_id: commentId || null }
         });
 
-        // Award diamonds
         await supabase.rpc('add_diamonds_to_balance', {
             p_user_id: userId,
             p_amount: COMMENT_REWARD,
