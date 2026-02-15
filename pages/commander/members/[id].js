@@ -86,11 +86,9 @@ export default function MemberProfile() {
   };
 
   if (loading) return (
-    <CommanderLayout title="Member Profile" backHref="/commander/members">
-      <div className="min-h-screen bg-[#18191A] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-[#1877F2] animate-spin" />
-      </div>
-    </CommanderLayout>
+    <div className="min-h-screen bg-[#18191A] flex items-center justify-center">
+      <Loader2 className="w-8 h-8 text-[#1877F2] animate-spin" />
+    </div>
   );
 
   if (!member) return (
@@ -107,7 +105,9 @@ export default function MemberProfile() {
   const timeMin = (m.time_balance_minutes || 0) % 60;
 
   return (
-    <CommanderLayout title={`${m.first_name} ${m.last_name}`} backHref="/commander/members">
+    <CommanderLayout title="{m.first_name} {m.last_name}" backHref="/commander/members">
+    <>
+      <Head><title>{m.first_name} {m.last_name} | Club Commander</title></Head>
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
         {/* Header */}
@@ -195,8 +195,9 @@ export default function MemberProfile() {
               <div className="grid grid-cols-4 gap-2 mb-3">
                 {[30, 60, 120, 180].map(mins => (
                   <button key={mins} onClick={() => setAddTimeAmount(String(mins))}
-                    className={`py-2 rounded-lg text-sm font-medium ${addTimeAmount === String(mins) ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#E4E6EB]'
-                      }`}>{mins >= 60 ? `${mins / 60}h` : `${mins}m`}</button>
+                    className={`py-2 rounded-lg text-sm font-medium ${
+                      addTimeAmount === String(mins) ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#E4E6EB]'
+                    }`}>{mins >= 60 ? `${mins / 60}h` : `${mins}m`}</button>
                 ))}
               </div>
               <div className="flex gap-2">
@@ -213,8 +214,9 @@ export default function MemberProfile() {
         <div className="mt-4 border-b border-[#3A3B3C] flex px-4">
           {['overview', 'sessions', 'tournaments', 'notes'].map(t => (
             <button key={t} onClick={() => setTab(t)}
-              className={`px-4 py-3 text-sm font-medium capitalize border-b-2 -mb-px ${tab === t ? 'text-[#1877F2] border-[#1877F2]' : 'text-[#B0B3B8] border-transparent'
-                }`}>{t}</button>
+              className={`px-4 py-3 text-sm font-medium capitalize border-b-2 -mb-px ${
+                tab === t ? 'text-[#1877F2] border-[#1877F2]' : 'text-[#B0B3B8] border-transparent'
+              }`}>{t}</button>
           ))}
         </div>
 
@@ -300,7 +302,26 @@ export default function MemberProfile() {
         </div>
       </div>
       <style jsx>{`
+        .cmd-back-btn {
+          background: none;
+          border: 1px solid #444;
+          border-radius: 10px;
+          padding: 8px 14px;
+          color: #ccc;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
+          font-weight: 600;
+          transition: all 0.2s;
+        }
+        .cmd-back-btn:hover {
+          border-color: #666;
+          color: #fff;
+        }
       `}</style>
+    </>
     </CommanderLayout>
   );
 }

@@ -516,6 +516,12 @@ export default function PromotionsPage() {
 
   return (
     <CommanderLayout title="Promotions | Commander" backHref="/commander/dashboard">
+    <>
+      <Head>
+        <title>Promotions | Commander</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+      </Head>
+
       <div className="cmd-page">
         <header className="cmd-header-bar sticky top-0 z-40">
           <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -564,20 +570,22 @@ export default function PromotionsPage() {
           <div className="max-w-4xl mx-auto px-4 flex gap-1 border-t border-[#3A3B3C]">
             <button
               onClick={() => setActiveTab('promotions')}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'promotions'
+              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'promotions'
                   ? 'border-[#1877F2] text-[#1877F2]'
                   : 'border-transparent text-[#B0B3B8] hover:text-white'
-                }`}
+              }`}
             >
               <Gift className="w-4 h-4 inline-block mr-2" />
               Promotions
             </button>
             <button
               onClick={() => setActiveTab('high-hands')}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'high-hands'
+              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'high-hands'
                   ? 'border-[#F59E0B] text-[#F59E0B]'
                   : 'border-transparent text-[#B0B3B8] hover:text-white'
-                }`}
+              }`}
             >
               <Trophy className="w-4 h-4 inline-block mr-2" />
               High Hands
@@ -593,10 +601,11 @@ export default function PromotionsPage() {
                   <button
                     key={f}
                     onClick={() => setFilter(f)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${filter === f
+                    className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${
+                      filter === f
                         ? 'bg-[#1877F2] text-white'
                         : 'cmd-btn cmd-btn-secondary'
-                      }`}
+                    }`}
                   >
                     {f}
                   </button>
@@ -844,12 +853,13 @@ export default function PromotionsPage() {
                             {award.profiles?.display_name || award.player_name || 'Unknown'}
                           </span>
                         </div>
-                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${award.status === 'approved'
+                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                          award.status === 'approved'
                             ? 'bg-[#31A24C]/10 text-[#31A24C]'
                             : award.status === 'pending'
-                              ? 'bg-[#F59E0B]/10 text-[#F59E0B]'
-                              : 'bg-[#3A3B3C]/10 text-[#B0B3B8]'
-                          }`}>
+                            ? 'bg-[#F59E0B]/10 text-[#F59E0B]'
+                            : 'bg-[#3A3B3C]/10 text-[#B0B3B8]'
+                        }`}>
                           {award.status}
                         </span>
                       </div>
@@ -874,7 +884,26 @@ export default function PromotionsPage() {
         </div>
       )}
       <style jsx>{`
+        .cmd-back-btn {
+          background: none;
+          border: 1px solid #444;
+          border-radius: 10px;
+          padding: 8px 14px;
+          color: #ccc;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
+          font-weight: 600;
+          transition: all 0.2s;
+        }
+        .cmd-back-btn:hover {
+          border-color: #666;
+          color: #fff;
+        }
       `}</style>
+    </>
     </CommanderLayout>
   );
 }

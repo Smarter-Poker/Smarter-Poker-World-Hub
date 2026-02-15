@@ -9,7 +9,6 @@
  * - Waitlist Board: /commander/displays/waitlist
  * - Promotions: /commander/displays/promotions (future)
  * - Combined: /commander/displays/combined (future)
- * Build: v2-fix-filter-crash
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -37,10 +36,7 @@ export default function DisplayManagement() {
           headers: { Authorization: `Bearer ${token}` }
         });
         const json = await res.json();
-        if (json.success) {
-          const list = json.data?.tournaments || json.data || [];
-          setTournaments(Array.isArray(list) ? list : []);
-        }
+        if (json.success) setTournaments(json.data || []);
       } catch (err) { console.error(err); }
       finally { setLoading(false); }
     };

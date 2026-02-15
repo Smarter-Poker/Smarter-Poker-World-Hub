@@ -108,12 +108,17 @@ export default function FloorCalls() {
   const pendingCount = calls.filter(c => c.status === 'pending').length;
 
   return (
-    <><div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
+    <>
+      <Head><title>Floor Calls{pendingCount > 0 ? ` (${pendingCount})` : ''} | Club Commander</title></Head>
+      <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
         {/* Header */}
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-<div>
+            <button className="cmd-back-btn" onClick={() => router.push('/commander/dashboard')}>
+              <ArrowLeft size={16} /> Back
+            </button>
+            <div>
               <h1 className="text-lg font-bold text-white">Floor Calls</h1>
               {pendingCount > 0 && (
                 <p className="text-xs text-[#EF4444] font-semibold">{pendingCount} pending</p>
@@ -156,7 +161,7 @@ export default function FloorCalls() {
                   const pConfig = PRIORITY_CONFIG[call.priority] || PRIORITY_CONFIG.normal;
                   const sConfig = STATUS_CONFIG[call.status] || STATUS_CONFIG.pending;
                   return (
-                    <CommanderLayout title="Floor Calls" backHref="/commander/dashboard">
+                    <CommanderLayout title="Floor Calls{pendingCount > 0 ? ` (${pendingCount})` : ''}" backHref="/commander/dashboard">
                     <div key={call.id}
                       className={`bg-[#242526] border rounded-xl overflow-hidden ${
                         call.priority === 'urgent' ? 'border-[#EF4444]/50 animate-pulse' : 'border-[#3A3B3C]'
@@ -229,6 +234,24 @@ export default function FloorCalls() {
         )}
       </div>
     <style jsx>{`
+        .cmd-back-btn {
+          background: none;
+          border: 1px solid #444;
+          border-radius: 10px;
+          padding: 8px 14px;
+          color: #ccc;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
+          font-weight: 600;
+          transition: all 0.2s;
+        }
+        .cmd-back-btn:hover {
+          border-color: #666;
+          color: #fff;
+        }
       `}</style>
     </>
   );

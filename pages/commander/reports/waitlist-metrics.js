@@ -48,9 +48,14 @@ export default function WaitlistMetrics() {
   const fmtHour = h => h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? '12p' : `${h - 12}p`;
 
   return (
-    <CommanderLayout title="Waitlist Metrics" backHref="/commander/reports"><div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
+    <>
+      <Head><title>Waitlist Metrics | Club Commander</title></Head>
+      <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
-<div className="flex-1"><h1 className="text-lg font-bold text-white">Waitlist Metrics</h1><p className="text-xs text-[#B0B3B8]">{RANGES.find(r => r.value === range)?.label}</p></div>
+          <button className="cmd-back-btn" onClick={() => router.push('/commander/reports')}>
+            <ArrowLeft size={16} /> Back
+          </button>
+          <div className="flex-1"><h1 className="text-lg font-bold text-white">Waitlist Metrics</h1><p className="text-xs text-[#B0B3B8]">{RANGES.find(r => r.value === range)?.label}</p></div>
           <button onClick={fetchData} className="p-2 rounded-lg active:bg-[#3A3B3C]"><RefreshCw className="w-5 h-5 text-[#B0B3B8]" /></button>
         </div>
 
@@ -125,6 +130,7 @@ export default function WaitlistMetrics() {
                     const pct = (v / maxHourly) * 100;
                     const isTop = v === maxHourly && v > 0;
                     return (
+                      <CommanderLayout title="Waitlist Metrics" backHref="/commander/reports">
                       <div key={hour} className="flex-1 flex flex-col items-center justify-end h-full">
                         {v > 0 && <span className="text-[8px] text-[#B0B3B8] mb-0.5">{v}</span>}
                         <div className="w-full rounded-t" style={{
@@ -134,6 +140,7 @@ export default function WaitlistMetrics() {
                         }} />
                         <span className="text-[7px] text-[#6A6B6D] mt-1">{fmtHour(hour)}</span>
                       </div>
+                      </CommanderLayout>
                     );
                   })}
                 </div>
@@ -150,7 +157,25 @@ export default function WaitlistMetrics() {
         )}
       </div>
     <style jsx>{`
+        .cmd-back-btn {
+          background: none;
+          border: 1px solid #444;
+          border-radius: 10px;
+          padding: 8px 14px;
+          color: #ccc;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
+          font-weight: 600;
+          transition: all 0.2s;
+        }
+        .cmd-back-btn:hover {
+          border-color: #666;
+          color: #fff;
+        }
       `}</style>
-    </CommanderLayout>
+    </>
   );
 }

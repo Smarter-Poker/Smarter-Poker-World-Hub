@@ -121,8 +121,13 @@ export default function MembershipKiosk() {
   };
 
   return (
-    <CommanderLayout title="Receipt" backHref="/commander/dashboard">
-    <><div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter'] flex flex-col items-center justify-center p-6">
+    <CommanderLayout title="Check In" backHref="/commander/dashboard">
+    <>
+      <Head>
+        <title>Check In | Club Commander</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+      </Head>
+      <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter'] flex flex-col items-center justify-center p-6">
 
         {/* ===== HOME ===== */}
         {mode === 'home' && (
@@ -420,6 +425,24 @@ export default function MembershipKiosk() {
         </div>
       </div>
       <style jsx>{`
+        .cmd-back-btn {
+          background: none;
+          border: 1px solid #444;
+          border-radius: 10px;
+          padding: 8px 14px;
+          color: #ccc;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
+          font-weight: 600;
+          transition: all 0.2s;
+        }
+        .cmd-back-btn:hover {
+          border-color: #666;
+          color: #fff;
+        }
       `}</style>
     </>
     </CommanderLayout>

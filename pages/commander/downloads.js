@@ -80,7 +80,12 @@ export default function DownloadsPage() {
 
   return (
     <CommanderLayout title="Download Club Commander - Desktop App" backHref="/commander/dashboard">
-    <div className="min-h-screen bg-[#18191A]"><div className="container mx-auto px-4 py-12">
+    <div className="min-h-screen bg-[#18191A]">
+      <Head>
+        <title>Download Club Commander - Desktop App</title>
+      </Head>
+
+      <div className="container mx-auto px-4 py-12">
         {/* Header */}
         <div className="text-center mb-12">
           <div className="flex justify-center mb-4">
@@ -203,6 +208,25 @@ export default function DownloadsPage() {
         </div>
       </div>
       <style jsx>{`
+        .cmd-back-btn {
+          background: none;
+          border: 1px solid #444;
+          border-radius: 10px;
+          padding: 8px 14px;
+          color: #ccc;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
+          font-weight: 600;
+          transition: all 0.2s;
+          text-decoration: none;
+        }
+        .cmd-back-btn:hover {
+          border-color: #666;
+          color: #fff;
+        }
       `}</style>
     </div>
     </CommanderLayout>

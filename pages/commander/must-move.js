@@ -115,7 +115,9 @@ export default function MustMoveManager() {
   const singles = data?.single_games || [];
 
   return (
-    <><div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
+    <>
+      <Head><title>Must-Move Games | Club Commander</title></Head>
+      <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
           <button onClick={() => router.push('/commander/poker-room')} className="cmd-back-btn">
             <ArrowLeft size={16} /> Back
@@ -190,7 +192,7 @@ export default function MustMoveManager() {
                       const canMove = isLinked && mainOpenSeats > 0 && game.player_count > 0;
 
                       return (
-                        <CommanderLayout title="Must Move" backHref="/commander/dashboard">
+                        <CommanderLayout title="Must-Move Games" backHref="/commander/dashboard">
                         <div key={game.id} className={`rounded-xl p-3 ${
                           isLinked ? 'bg-[#F59E0B]/10 border border-[#F59E0B]/30' : 'bg-[#3A3B3C]/30 border border-[#3A3B3C]'
                         }`}>
@@ -277,6 +279,24 @@ export default function MustMoveManager() {
         )}
       </div>
       <style jsx>{`
+        .cmd-back-btn {
+          background: none;
+          border: 1px solid #444;
+          border-radius: 10px;
+          padding: 8px 14px;
+          color: #ccc;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
+          font-weight: 600;
+          transition: all 0.2s;
+        }
+        .cmd-back-btn:hover {
+          border-color: #666;
+          color: #fff;
+        }
       `}</style>
     </>
   );

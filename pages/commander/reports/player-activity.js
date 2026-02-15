@@ -82,11 +82,16 @@ export default function PlayerActivityReport() {
   }
 
   return (
-    <CommanderLayout title="Player Activity" backHref="/commander/reports"><div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
+    <>
+      <Head><title>Player Activity | Club Commander</title></Head>
+      <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
         <header className="bg-[#242526] border-b border-[#3A3B3C] sticky top-0 z-50">
           <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
-<h1 className="text-lg font-bold text-white">Player Activity</h1>
+              <button className="cmd-back-btn" onClick={() => router.push('/commander/reports')}>
+                <ArrowLeft size={16} /> Back
+              </button>
+              <h1 className="text-lg font-bold text-white">Player Activity</h1>
             </div>
             <div className="flex items-center gap-2">
               {['7d', '30d', '90d', '1y'].map(r => (
@@ -206,6 +211,7 @@ export default function PlayerActivityReport() {
                     const playerSessions = isExpanded ? getPlayerSessions(p.id) : [];
 
                     return (
+                      <CommanderLayout title="Player Activity" backHref="/commander/reports">
                       <div key={p.id}>
                         <button onClick={() => setExpandedPlayer(isExpanded ? null : p.id)}
                           className="w-full px-4 py-3 grid grid-cols-12 items-center hover:bg-[#18191A] transition-colors text-left">
@@ -259,6 +265,7 @@ export default function PlayerActivityReport() {
                           </div>
                         )}
                       </div>
+                      </CommanderLayout>
                     );
                   })}
                   {filteredPlayers.length === 0 && (
@@ -271,7 +278,25 @@ export default function PlayerActivityReport() {
         </main>
       </div>
     <style jsx>{`
+        .cmd-back-btn {
+          background: none;
+          border: 1px solid #444;
+          border-radius: 10px;
+          padding: 8px 14px;
+          color: #ccc;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
+          font-weight: 600;
+          transition: all 0.2s;
+        }
+        .cmd-back-btn:hover {
+          border-color: #666;
+          color: #fff;
+        }
       `}</style>
-    </CommanderLayout>
+    </>
   );
 }

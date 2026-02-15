@@ -154,7 +154,10 @@ export default function GameTypesPage() {
   const canManage = staff?.role === 'owner' || staff?.role === 'manager';
 
   return (
-    <CommanderLayout title="Game Types | {venueName || 'Commander'}" backHref="/commander/dashboard"><div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
+    <CommanderLayout title="Game Types | {venueName || 'Commander'}" backHref="/commander/dashboard">
+    <>
+      <Head><title>Game Types | {venueName || 'Commander'}</title></Head>
+      <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
         {/* Header */}
         <header className="bg-[#242526] border-b border-[#3A3B3C] sticky top-0 z-50">
           <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -388,7 +391,26 @@ export default function GameTypesPage() {
         </main>
       </div>
       <style jsx>{`
+        .cmd-back-btn {
+          background: none;
+          border: 1px solid #444;
+          border-radius: 10px;
+          padding: 8px 14px;
+          color: #ccc;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
+          font-weight: 600;
+          transition: all 0.2s;
+        }
+        .cmd-back-btn:hover {
+          border-color: #666;
+          color: #fff;
+        }
       `}</style>
+    </>
     </CommanderLayout>
   );
 }

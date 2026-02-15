@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { supabase } from '../../src/lib/supabase';
-import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 const TIERS = {
   starter: {
@@ -132,8 +131,12 @@ export default function RegisterPage() {
   const inputClass = "w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 focus:outline-none";
 
   return (
-    <CommanderLayout title="Register Your Club - Club Commander" backHref="/commander/dashboard">
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900"><div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <Head>
+        <title>Register Your Club - Club Commander</title>
+      </Head>
+
+      <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
             <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center text-3xl">♠️</div>
@@ -241,6 +244,5 @@ export default function RegisterPage() {
         </div>
       </div>
     </div>
-    </CommanderLayout>
   );
 }

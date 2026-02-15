@@ -95,7 +95,9 @@ export default function LobbyDisplay() {
   };
 
   return (
-    <><style jsx global>{`
+    <>
+      <Head><title>Poker Room | Now Playing</title></Head>
+      <style jsx global>{`
         * { cursor: none !important; }
         body { overflow: hidden; }
         @keyframes scroll-left { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
@@ -226,7 +228,7 @@ export default function LobbyDisplay() {
                     };
                     const color = statusColors[t.status] || '#B0B3B8';
                     return (
-                      <CommanderLayout title="Lobby" backHref="/commander/dashboard">
+                      <CommanderLayout title="Poker Room | Now Playing" backHref="/commander/dashboard">
                       <div key={t.id} className="bg-white/3 rounded-lg p-3">
                         <p className="text-sm font-semibold text-white truncate">{t.name}</p>
                         <div className="flex items-center justify-between mt-1">

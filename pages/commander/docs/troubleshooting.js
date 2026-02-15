@@ -512,7 +512,13 @@ export default function TroubleshootingPage() {
   };
 
   return (
-    <CommanderLayout title="Troubleshooting Guide" backHref="/commander/dashboard"><div className="cmd-page min-h-screen">
+    <>
+      <Head>
+        <title>Troubleshooting Guide | Club Commander</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+      </Head>
+
+      <div className="cmd-page min-h-screen">
         {/* Header */}
         <header className="cmd-header-bar sticky top-0 z-20">
           <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
@@ -609,9 +615,11 @@ export default function TroubleshootingPage() {
                     {(() => {
                       const Icon = currentSection.icon;
                       return (
+                        <CommanderLayout title="Troubleshooting Guide" backHref="/commander/dashboard">
                         <div className="w-10 h-10 bg-[#F59E0B]/10 rounded-lg flex items-center justify-center">
                           <Icon className="w-5 h-5 text-[#F59E0B]" />
                         </div>
+                        </CommanderLayout>
                       );
                     })()}
                     <h2 className="text-2xl font-bold text-white">{currentSection.title}</h2>
@@ -654,7 +662,7 @@ export default function TroubleshootingPage() {
           </div>
         </div>
       </div>
-    </CommanderLayout>
+    </>
   );
 }
 

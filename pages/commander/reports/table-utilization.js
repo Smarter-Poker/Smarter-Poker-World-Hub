@@ -47,9 +47,14 @@ export default function TableUtilization() {
   const fmtHour = h => h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? '12p' : `${h - 12}p`;
 
   return (
-    <CommanderLayout title="Table Utilization" backHref="/commander/reports"><div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
+    <>
+      <Head><title>Table Utilization | Club Commander</title></Head>
+      <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
-<div className="flex-1"><h1 className="text-lg font-bold text-white">Table Utilization</h1><p className="text-xs text-[#B0B3B8]">{RANGES.find(r => r.value === range)?.label}</p></div>
+          <button className="cmd-back-btn" onClick={() => router.push('/commander/reports')}>
+            <ArrowLeft size={16} /> Back
+          </button>
+          <div className="flex-1"><h1 className="text-lg font-bold text-white">Table Utilization</h1><p className="text-xs text-[#B0B3B8]">{RANGES.find(r => r.value === range)?.label}</p></div>
           <button onClick={fetchData} className="p-2 rounded-lg active:bg-[#3A3B3C]"><RefreshCw className="w-5 h-5 text-[#B0B3B8]" /></button>
         </div>
 
@@ -134,12 +139,14 @@ export default function TableUtilization() {
                     const intensity = v / maxHeat;
                     const bg = v === 0 ? '#3A3B3C30' : `rgba(24, 119, 242, ${0.15 + intensity * 0.85})`;
                     return (
+                      <CommanderLayout title="Table Utilization" backHref="/commander/reports">
                       <div key={hour} className="flex flex-col items-center gap-1">
                         <div className="w-full aspect-square rounded-md flex items-center justify-center" style={{ background: bg }}>
                           <span className="text-[9px] font-bold text-white">{v || ''}</span>
                         </div>
                         <span className="text-[8px] text-[#6A6B6D]">{fmtHour(hour)}</span>
                       </div>
+                      </CommanderLayout>
                     );
                   })}
                 </div>
@@ -150,7 +157,25 @@ export default function TableUtilization() {
         )}
       </div>
     <style jsx>{`
+        .cmd-back-btn {
+          background: none;
+          border: 1px solid #444;
+          border-radius: 10px;
+          padding: 8px 14px;
+          color: #ccc;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
+          font-weight: 600;
+          transition: all 0.2s;
+        }
+        .cmd-back-btn:hover {
+          border-color: #666;
+          color: #fff;
+        }
       `}</style>
-    </CommanderLayout>
+    </>
   );
 }

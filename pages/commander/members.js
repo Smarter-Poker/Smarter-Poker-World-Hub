@@ -100,12 +100,21 @@ export default function MembersPage() {
 
     return (
         <CommanderLayout title="Members" backHref="/commander/dashboard">
-        <><div className="min-h-screen bg-[#18191A]">
+        <>
+            <Head>
+                <title>Members | Club Commander</title>
+                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+            </Head>
+
+            <div className="min-h-screen bg-[#18191A]">
                 {/* Header */}
                 <header className="bg-[#242526] border-b border-[#3A3B3C] sticky top-0 z-30">
                     <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
                         <div className="flex items-center gap-3">
-<div>
+                            <button className="cmd-back-btn" onClick={() => router.push('/commander/dashboard')}>
+                              <ArrowLeft size={16} /> Back
+                            </button>
+                            <div>
                                 <h1 className="font-bold text-white flex items-center gap-2">
                                     <Users className="w-5 h-5 text-[#1877F2]" /> Members
                                 </h1>
@@ -282,6 +291,24 @@ export default function MembersPage() {
             <ScanMemberModal isOpen={showScanModal} onClose={() => setShowScanModal(false)} venueId={venueId} onMemberFound={(m) => { setShowScanModal(false); setSelectedMember(m); }} />
             {selectedMember && <MemberDetailPanel member={selectedMember} venueName={venueName} onClose={() => setSelectedMember(null)} onUpdate={handleMemberUpdated} />}
               <style jsx>{`
+        .cmd-back-btn {
+          background: none;
+          border: 1px solid #444;
+          border-radius: 10px;
+          padding: 8px 14px;
+          color: #ccc;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
+          font-weight: 600;
+          transition: all 0.2s;
+        }
+        .cmd-back-btn:hover {
+          border-color: #666;
+          color: #fff;
+        }
       `}</style>
 </>
         </CommanderLayout>

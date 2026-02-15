@@ -107,7 +107,13 @@ export default function LeadManagementPage() {
       : 0;
 
   return (
-    <CommanderLayout title="Lead Management" backHref="/commander/dashboard"><div className="cmd-page min-h-screen">
+    <>
+      <Head>
+        <title>Lead Management | Club Commander Admin</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+      </Head>
+
+      <div className="cmd-page min-h-screen">
         {/* Header */}
         <header className="cmd-header-bar sticky top-0 z-20">
           <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
@@ -231,6 +237,7 @@ export default function LeadManagementPage() {
                     {filteredLeads.map((lead) => {
                       const statusConfig = STATUS_CONFIG[lead.status] || STATUS_CONFIG.new;
                       return (
+                        <CommanderLayout title="Lead Management" backHref="/commander/dashboard">
                         <tr
                           key={lead.id}
                           className="hover:bg-[#1E293B]/50 transition-colors cursor-pointer"
@@ -309,6 +316,7 @@ export default function LeadManagementPage() {
                             </button>
                           </td>
                         </tr>
+                        </CommanderLayout>
                       );
                     })}
                   </tbody>
@@ -441,6 +449,6 @@ export default function LeadManagementPage() {
           </div>
         )}
       </div>
-    </CommanderLayout>
+    </>
   );
 }

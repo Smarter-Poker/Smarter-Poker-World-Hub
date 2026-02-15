@@ -29,7 +29,6 @@ function MetricCard({ label, value, change, changeLabel, icon: Icon, color = '#1
   const isNeutral = change === 0;
 
   return (
-    <CommanderLayout title="Daily Reports" backHref="/commander/dashboard">
     <div className="cmd-panel p-4">
       <div className="flex items-start justify-between mb-2">
         <div
@@ -190,7 +189,14 @@ export default function StaffReportsPage() {
   }
 
   return (
-    <><div className="cmd-page">
+    <CommanderLayout title="Daily Reports" backHref="/commander/dashboard">
+    <>
+      <Head>
+        <title>Daily Reports | Club Commander</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+      </Head>
+
+      <div className="cmd-page">
         {/* Export Message */}
         {exportMessage && (
           <div

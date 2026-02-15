@@ -38,9 +38,14 @@ export default function DailySummaryReport() {
   }, [date]);
 
   return (
-    <CommanderLayout title="Daily Summary" backHref="/commander/reports"><div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
+    <>
+      <Head><title>Daily Summary | Club Commander</title></Head>
+      <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
-<div className="flex-1">
+          <button className="cmd-back-btn" onClick={() => router.push('/commander/reports')}>
+            <ArrowLeft size={16} /> Back
+          </button>
+          <div className="flex-1">
             <h1 className="text-lg font-bold text-white">Daily Summary</h1>
           </div>
           <input type="date" value={date} onChange={e => setDate(e.target.value)}
@@ -65,12 +70,14 @@ export default function DailySummaryReport() {
                   const hour = i + 8;
                   const pct = Math.random() * 80 + 10;
                   return (
+                    <CommanderLayout title="Daily Summary" backHref="/commander/reports">
                     <div key={i} className="flex-1 flex flex-col items-center gap-1">
                       <div className="w-full bg-[#1877F2]/30 rounded-t" style={{ height: `${pct}%` }}>
                         <div className="w-full bg-[#1877F2] rounded-t" style={{ height: `${pct * 0.7}%` }} />
                       </div>
                       <span className="text-[8px] text-[#B0B3B8]">{hour > 12 ? hour - 12 : hour}{hour >= 12 ? 'p' : 'a'}</span>
                     </div>
+                    </CommanderLayout>
                   );
                 })}
               </div>
@@ -88,8 +95,26 @@ export default function DailySummaryReport() {
         )}
       </div>
     <style jsx>{`
+        .cmd-back-btn {
+          background: none;
+          border: 1px solid #444;
+          border-radius: 10px;
+          padding: 8px 14px;
+          color: #ccc;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
+          font-weight: 600;
+          transition: all 0.2s;
+        }
+        .cmd-back-btn:hover {
+          border-color: #666;
+          color: #fff;
+        }
       `}</style>
-    </CommanderLayout>
+    </>
   );
 }
 

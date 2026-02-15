@@ -248,9 +248,9 @@ export default function DisplaysManagementPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push('/commander/dashboard')}
-                className="p-2 hover:bg-[#3A3B3C] rounded-lg transition-colors"
+                className="cmd-back-btn"
               >
-                <ArrowLeft className="w-5 h-5 text-[#B0B3B8]" />
+                <ArrowLeft size={16} /> Back
               </button>
               <div>
                 <h1 className="font-bold text-white flex items-center gap-2">
@@ -466,6 +466,26 @@ export default function DisplaysManagementPage() {
           </div>
         </div>
       )}
+      <style jsx>{`
+        .cmd-back-btn {
+          background: none;
+          border: 1px solid #444;
+          border-radius: 10px;
+          padding: 8px 14px;
+          color: #ccc;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
+          font-weight: 600;
+          transition: all 0.2s;
+        }
+        .cmd-back-btn:hover {
+          border-color: #666;
+          color: #fff;
+        }
+      `}</style>
     </>
     </CommanderLayout>
   );

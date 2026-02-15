@@ -110,7 +110,13 @@ export default function PilotVenuesPage() {
   }
 
   return (
-    <CommanderLayout title="Pilot Venues" backHref="/commander/dashboard"><div className="cmd-page min-h-screen">
+    <>
+      <Head>
+        <title>Pilot Venues | Club Commander Admin</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+      </Head>
+
+      <div className="cmd-page min-h-screen">
         {/* Header */}
         <header className="cmd-header-bar sticky top-0 z-20">
           <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
@@ -192,6 +198,7 @@ export default function PilotVenuesPage() {
                 const current = pilotsByRegion[region.region.substring(0, 2).toUpperCase()] || 0;
                 const progress = (current / region.target) * 100;
                 return (
+                  <CommanderLayout title="Pilot Venues" backHref="/commander/dashboard">
                   <div key={region.id} className="bg-[#1E293B] rounded-lg p-4">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-white font-medium">{region.region}</span>
@@ -209,6 +216,7 @@ export default function PilotVenuesPage() {
                     </div>
                     <p className="text-xs text-[#B0B3B8] mt-2">{region.description}</p>
                   </div>
+                  </CommanderLayout>
                 );
               })}
             </div>
@@ -402,7 +410,7 @@ export default function PilotVenuesPage() {
           </div>
         </div>
       </div>
-    </CommanderLayout>
+    </>
   );
 }
 

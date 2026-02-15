@@ -161,7 +161,9 @@ export default function MembershipPlansPage() {
   }
 
   return (
-    <CommanderLayout title="Membership Plans | Commander" backHref="/commander/dashboard"><div className="cmd-page">
+    <>
+      <Head><title>Membership Plans | Commander</title></Head>
+      <div className="cmd-page">
         {/* Header */}
         <header className="cmd-header-bar sticky top-0 z-50">
           <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -360,6 +362,7 @@ export default function MembershipPlansPage() {
               ].filter(Boolean);
 
               return (
+                <CommanderLayout title="Membership Plans | Commander" backHref="/commander/dashboard">
                 <div key={plan.id} className={`cmd-panel overflow-hidden ${!plan.is_active ? 'opacity-50' : ''}`}>
                   {/* Header row */}
                   <button onClick={() => setExpandedId(isExpanded ? null : plan.id)}
@@ -449,6 +452,7 @@ export default function MembershipPlansPage() {
                     </div>
                   )}
                 </div>
+                </CommanderLayout>
               );
             })
           )}
@@ -464,7 +468,25 @@ export default function MembershipPlansPage() {
         </main>
       </div>
       <style jsx>{`
+        .cmd-back-btn {
+          background: none;
+          border: 1px solid #444;
+          border-radius: 10px;
+          padding: 8px 14px;
+          color: #ccc;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
+          font-weight: 600;
+          transition: all 0.2s;
+        }
+        .cmd-back-btn:hover {
+          border-color: #666;
+          color: #fff;
+        }
       `}</style>
-    </CommanderLayout>
+    </>
   );
 }
