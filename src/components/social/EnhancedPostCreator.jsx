@@ -10,6 +10,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { SocialService } from '../../services/SocialService';
 import { validatePostContent } from '../../services/social-types';
 import toast from '../../stores/toastStore';
+import { claimReward } from '../../lib/claimReward';
 
 // Simple file validation since MediaUploadService may not exist
 const validateFile = (file, mediaType) => {
@@ -289,13 +290,9 @@ export const EnhancedPostCreator = ({
         visibility
       });
 
-      // Award social post diamonds (fire-and-forget)
+      // Award social post diamonds (fire-and-forget with toast)
       if (user?.id) {
-        fetch('/api/rewards/social-post', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: user.id, postId: newPost?.id })
-        }).catch(() => { }); // Non-blocking
+        claimReward('/api/rewards/social-post', { userId: user.id, postId: newPost?.id }, 'New Post Published');
       }
 
       // Show success animation

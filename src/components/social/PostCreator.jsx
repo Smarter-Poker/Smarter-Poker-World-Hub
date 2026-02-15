@@ -8,6 +8,7 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useSupabase } from '../../providers/SupabaseProvider';
+import { claimReward } from '../../lib/claimReward';
 import { useSocialOrb } from '../../providers/SocialOrbProvider';
 import { SocialService } from '../SocialService';
 import { validatePostContent } from '../types';
@@ -84,13 +85,9 @@ export const PostCreator = ({
         visibility
       });
 
-      // Award social post diamonds (fire-and-forget)
+      // Award social post diamonds (fire-and-forget with toast)
       if (user?.id) {
-        fetch('/api/rewards/social-post', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: user.id, postId: newPost?.id })
-        }).catch(() => { }); // Non-blocking
+        claimReward('/api/rewards/social-post', { userId: user.id, postId: newPost?.id }, 'New Post Published');
       }
 
       // Show success animation
