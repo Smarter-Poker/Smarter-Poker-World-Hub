@@ -48,7 +48,7 @@ const CARDS = [
     id: 'floor',
     title: 'Tables & Floor',
     subtitle: 'Tables, Dealers, Floor Ops',
-    image: '/images/commander/card-floor.jpg?v=2',
+    image: '/images/commander/card-floor.jpg?v=4',
     glow: '#EF4444',
     features: [
       { label: 'Tables', href: '/commander/tables', icon: '/images/commander/icons/mg-tables.png' },
@@ -164,13 +164,13 @@ export default function CommanderDashboard() {
 
   return (
     <CommanderLayout title="Club Commander | Dashboard" backHref="/commander/dashboard" hideBack={true}>
-    <>
-      <Head>
-        <title>Club Commander | Dashboard</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
+      <>
+        <Head>
+          <title>Club Commander | Dashboard</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+        </Head>
 
-      <style jsx global>{`
+        <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;500;600;700&display=swap');
 
         .cmd-dashboard {
@@ -379,62 +379,62 @@ export default function CommanderDashboard() {
         }
       `}</style>
 
-      <div className="cmd-dashboard">
-        {/* TOP BAR */}
-        <div className="cmd-topbar">
-          <div style={{ textAlign: 'right' }}>
-            <div className="cmd-topbar-title">Club Commander</div>
-            <div className="cmd-topbar-venue">{staff.venue_name || 'Poker Room'}</div>
-          </div>
-        </div>
-
-        {/* ── MAIN: 4-CARD GRID ── */}
-        {!activeCard && (
-          <div className="cmd-grid">
-            {CARDS.map(card => (
-              <div
-                key={card.id}
-                className="cmd-card"
-                style={{ boxShadow: `0 0 20px ${card.glow}30, inset 0 0 1px ${card.glow}40` }}
-                onClick={() => setActiveCard(card.id)}
-              >
-                <img src={card.image} alt={card.title} />
-                <div className="cmd-card-overlay" />
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* ── OPENED CARD: sub-features ── */}
-        {openCard && (
-          <div className="cmd-open">
-            <div className="cmd-open-header">
-              <button className="cmd-open-back" onClick={() => setActiveCard(null)}>
-                <ArrowLeft size={16} /> Back
-              </button>
-              <div className="cmd-open-title" style={{ color: openCard.glow }}>
-                {openCard.title}
-              </div>
+        <div className="cmd-dashboard">
+          {/* TOP BAR */}
+          <div className="cmd-topbar">
+            <div style={{ textAlign: 'right' }}>
+              <div className="cmd-topbar-title">Club Commander</div>
+              <div className="cmd-topbar-venue">{staff.venue_name || 'Poker Room'}</div>
             </div>
-            <div className="cmd-features">
-              {openCard.features.map((feat, i) => (
-                <button
-                  key={i}
-                  className="cmd-feature-btn"
-                  style={{
-                    '--glow': openCard.glow,
-                    '--glow-dim': `${openCard.glow}30`,
-                  }}
-                  onClick={() => router.push(feat.href)}
+          </div>
+
+          {/* ── MAIN: 4-CARD GRID ── */}
+          {!activeCard && (
+            <div className="cmd-grid">
+              {CARDS.map(card => (
+                <div
+                  key={card.id}
+                  className="cmd-card"
+                  style={{ boxShadow: `0 0 20px ${card.glow}30, inset 0 0 1px ${card.glow}40` }}
+                  onClick={() => setActiveCard(card.id)}
                 >
-                  <img src={feat.icon} alt={feat.label} />
-                </button>
+                  <img src={card.image} alt={card.title} />
+                  <div className="cmd-card-overlay" />
+                </div>
               ))}
             </div>
-          </div>
-        )}
-      </div>
-    </>
+          )}
+
+          {/* ── OPENED CARD: sub-features ── */}
+          {openCard && (
+            <div className="cmd-open">
+              <div className="cmd-open-header">
+                <button className="cmd-open-back" onClick={() => setActiveCard(null)}>
+                  <ArrowLeft size={16} /> Back
+                </button>
+                <div className="cmd-open-title" style={{ color: openCard.glow }}>
+                  {openCard.title}
+                </div>
+              </div>
+              <div className="cmd-features">
+                {openCard.features.map((feat, i) => (
+                  <button
+                    key={i}
+                    className="cmd-feature-btn"
+                    style={{
+                      '--glow': openCard.glow,
+                      '--glow-dim': `${openCard.glow}30`,
+                    }}
+                    onClick={() => router.push(feat.href)}
+                  >
+                    <img src={feat.icon} alt={feat.label} />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </>
     </CommanderLayout>
   );
 }

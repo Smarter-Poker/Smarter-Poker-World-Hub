@@ -1100,6 +1100,84 @@ export default function DiamondStorePage() {
                                     </div>
                                 </div>
 
+                                {/* View in Marketplace Link */}
+                                <div style={{ textAlign: 'center', marginTop: 24, marginBottom: 32 }}>
+                                    <a
+                                        href="/hub/diamond-store?tab=merch"
+                                        onClick={(e) => { e.preventDefault(); setActiveTab('merch'); }}
+                                        style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: 8,
+                                            color: '#FFD700',
+                                            fontSize: 16,
+                                            fontWeight: 600,
+                                            textDecoration: 'none',
+                                            cursor: 'pointer',
+                                            padding: '12px 24px',
+                                            borderRadius: 12,
+                                            background: 'rgba(255, 215, 0, 0.08)',
+                                            border: '1px solid rgba(255, 215, 0, 0.2)',
+                                            transition: 'all 0.2s ease',
+                                        }}
+                                        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 215, 0, 0.15)'; e.currentTarget.style.borderColor = 'rgba(255, 215, 0, 0.4)'; }}
+                                        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255, 215, 0, 0.08)'; e.currentTarget.style.borderColor = 'rgba(255, 215, 0, 0.2)'; }}
+                                    >
+                                        View in Marketplace <span style={{ fontSize: 18 }}>→</span>
+                                    </a>
+                                </div>
+
+                                {/* ─── Frequently Asked Questions ─── */}
+                                <div style={{
+                                    background: 'rgba(255, 255, 255, 0.03)',
+                                    borderRadius: 16,
+                                    padding: '28px 24px',
+                                    border: '1px solid rgba(255, 255, 255, 0.06)',
+                                }}>
+                                    <h3 style={{
+                                        fontSize: 20,
+                                        fontWeight: 700,
+                                        color: '#FFFFFF',
+                                        marginBottom: 20,
+                                        textAlign: 'center',
+                                    }}>Frequently Asked Questions</h3>
+
+                                    {[
+                                        { q: 'Can I cancel anytime?', a: 'Yes! You can cancel your VIP membership at any time. Your benefits will remain active until the end of your current billing period.' },
+                                        { q: 'What happens when my diamond VIP expires?', a: 'When your VIP membership expires, you\'ll revert to the free tier. Any diamonds you\'ve earned are yours to keep, but VIP-exclusive features will become locked.' },
+                                        { q: 'Do I keep my bonus diamonds?', a: 'Yes! All diamonds credited to your account — including monthly VIP bonuses — are permanently yours, even after your membership ends.' },
+                                        { q: 'Can I switch between monthly and annual?', a: 'Absolutely. You can switch plans at any time. If upgrading to annual, you\'ll receive a prorated credit for your remaining monthly period.' },
+                                        { q: 'What payment methods are accepted?', a: 'We accept all major credit and debit cards, Apple Pay, Google Pay, and select crypto options through our secure payment processor.' },
+                                    ].map((faq, idx) => (
+                                        <details key={idx} style={{
+                                            borderBottom: idx < 4 ? '1px solid rgba(255, 255, 255, 0.06)' : 'none',
+                                            paddingBottom: 0,
+                                        }}>
+                                            <summary style={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center',
+                                                padding: '16px 0',
+                                                cursor: 'pointer',
+                                                fontSize: 15,
+                                                fontWeight: 600,
+                                                color: '#E4E6EB',
+                                                listStyle: 'none',
+                                            }}>
+                                                {faq.q}
+                                                <span style={{ color: '#B0B3B8', fontSize: 18, marginLeft: 12, flexShrink: 0 }}>▾</span>
+                                            </summary>
+                                            <p style={{
+                                                padding: '0 0 16px 0',
+                                                margin: 0,
+                                                fontSize: 14,
+                                                lineHeight: 1.6,
+                                                color: '#B0B3B8',
+                                            }}>{faq.a}</p>
+                                        </details>
+                                    ))}
+                                </div>
+
                             </>
                         )}
 
