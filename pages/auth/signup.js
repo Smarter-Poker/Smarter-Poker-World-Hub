@@ -1067,7 +1067,7 @@ export default function SignUpPage() {
                                         type="text"
                                         value={formData.promoCode}
                                         onChange={(e) => setFormData({ ...formData, promoCode: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') })}
-                                        placeholder="Promo code or player #"
+                                        placeholder=""
                                         style={{
                                             ...styles.inputSingle,
                                             borderColor: promoValid === false ? '#F02849' :
