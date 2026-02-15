@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
-import { MapPin, Search, RefreshCw, AlertCircle, Trophy, FileText, Shield, Zap, Radio, DollarSign, Users, Clock, CreditCard } from 'lucide-react';
+import { MapPin, Search, RefreshCw, AlertCircle, Trophy, FileText, Shield, Zap, Radio, DollarSign, Users, Clock, CreditCard, Globe } from 'lucide-react';
 import VenueCard from '../../../src/components/commander/player/VenueCard';
 import WaitlistCard from '../../../src/components/commander/player/WaitlistCard';
 import PushNotificationProvider from '../../../src/components/commander/shared/PushNotificationProvider';
@@ -19,6 +19,7 @@ export default function CommanderHub() {
   const [userLocation, setUserLocation] = useState(null);
   const [locationLoading, setLocationLoading] = useState(false);
   const [liveGames, setLiveGames] = useState([]);
+  const [hasClubPage, setHasClubPage] = useState(null); // null=loading, false=no page, string=page id
 
   async function fetchVenues() {
     try {
@@ -79,6 +80,25 @@ export default function CommanderHub() {
     fetchVenues();
     fetchMyWaitlists();
     fetchLiveGames();
+    // Check if user has a club page
+    (async () => {
+      try {
+        const token = localStorage.getItem('smarter-poker-auth');
+        if (!token) return;
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const res = await fetch(`/api/social/pages?owner_id=${user.id}`);
+          const json = await res.json();
+          if (json.success && json.data && json.data.length > 0) {
+            setHasClubPage(json.data[0].id);
+          } else {
+            setHasClubPage(false);
+          }
+        }
+      } catch (e) { setHasClubPage(false); }
+    })();
   }, [userLocation]);
 
   async function handleLeaveWaitlist(entryId) {
@@ -134,6 +154,7 @@ export default function CommanderHub() {
               { href: '/hub/commander/leagues', icon: Trophy, label: 'Leagues', sub: 'Compete' },
               { href: '/hub/commander/hand-history', icon: FileText, label: 'Hands', sub: 'Review' },
               { href: '/hub/commander/responsible-gaming', icon: Shield, label: 'Limits', sub: 'Settings' },
+              { href: hasClubPage ? `/hub/social-media?viewPage=${hasClubPage}` : '/hub/social-media?createPage=true', icon: Globe, label: hasClubPage ? 'Club Page' : 'Create Page', sub: hasClubPage ? 'Edit' : 'Build' },
             ].map(({ href, icon: Icon, label, sub }) => (
               <Link
                 key={href}

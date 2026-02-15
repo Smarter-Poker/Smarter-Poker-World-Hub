@@ -21,7 +21,8 @@ import {
   History,
   Gift,
   Loader2,
-  Edit2
+  Edit2,
+  Globe
 } from 'lucide-react';
 
 function StatCard({ icon: Icon, label, value, subtext, color = '#22D3EE' }) {
@@ -89,6 +90,7 @@ export default function PlayerProfilePage() {
   const [achievements, setAchievements] = useState([]);
   const [favoriteVenues, setFavoriteVenues] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
+  const [hasClubPage, setHasClubPage] = useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem('smarter-poker-auth');
@@ -130,7 +132,7 @@ export default function PlayerProfilePage() {
                 setRecommendations(recData.data?.recommendations || []);
               }
             })
-            .catch(() => {});
+            .catch(() => { });
         }
       }
       if (statsData.success) {
@@ -148,7 +150,24 @@ export default function PlayerProfilePage() {
     }
   }
 
+  // Check if user has a club page
+  useEffect(() => {
+    (async () => {
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const res = await fetch(`/api/social/pages?owner_id=${user.id}`);
+          const json = await res.json();
+          setHasClubPage(json.success && json.data && json.data.length > 0 ? json.data[0].id : false);
+        }
+      } catch (e) { setHasClubPage(false); }
+    })();
+  }, []);
+
   const menuItems = [
+    { href: hasClubPage ? `/hub/social-media?viewPage=${hasClubPage}` : '/hub/social-media?createPage=true', label: hasClubPage ? 'Club Page' : 'Create Club Page', icon: Globe },
     { href: '/hub/commander/history', label: 'Session History', icon: History },
     { href: '/hub/commander/rewards', label: 'Rewards & Comps', icon: Gift },
     { href: '/hub/commander/notifications', label: 'Notifications', icon: Bell },
@@ -332,9 +351,8 @@ export default function PlayerProfilePage() {
                 <button
                   key={href}
                   onClick={() => router.push(href)}
-                  className={`w-full flex items-center justify-between p-4 hover:bg-[#0F1C32] transition-colors ${
-                    index < menuItems.length - 1 ? 'border-b border-[#4A5E78]' : ''
-                  }`}
+                  className={`w-full flex items-center justify-between p-4 hover:bg-[#0F1C32] transition-colors ${index < menuItems.length - 1 ? 'border-b border-[#4A5E78]' : ''
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <Icon className="w-5 h-5 text-[#64748B]" />

@@ -12,6 +12,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
 function formatTime(date) {
   if (!date) return '';
@@ -88,14 +89,8 @@ export default function WaitlistDisplay() {
   const gameTypes = [...new Set([...Object.keys(waitlistByGame), ...Object.keys(tablesByGame)])].sort();
 
   return (
-    <>
-      <Head>
-        <title>Waitlist Display</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-      </Head>
+    <CommanderLayout title="Waitlist Display">
       <style jsx global>{`
-        * { cursor: none !important; }
-        body { overflow: hidden; }
         @keyframes pulse-called { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
         .called-pulse { animation: pulse-called 1.5s ease-in-out infinite; }
       `}</style>
@@ -179,21 +174,18 @@ export default function WaitlistDisplay() {
                     <div className="space-y-1">
                       {entries.slice(0, 15).map((entry, idx) => (
                         <div key={entry.id}
-                          className={`flex items-center gap-3 px-4 py-3 rounded-xl ${
-                            entry.status === 'called'
-                              ? 'bg-[#31A24C]/20 border-2 border-[#31A24C]/50 called-pulse'
-                              : 'bg-white/5'
-                          }`}>
-                          <span className={`w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold ${
-                            entry.status === 'called'
-                              ? 'bg-[#31A24C] text-white'
-                              : 'bg-white/10 text-white/60'
-                          }`}>
+                          className={`flex items-center gap-3 px-4 py-3 rounded-xl ${entry.status === 'called'
+                            ? 'bg-[#31A24C]/20 border-2 border-[#31A24C]/50 called-pulse'
+                            : 'bg-white/5'
+                            }`}>
+                          <span className={`w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold ${entry.status === 'called'
+                            ? 'bg-[#31A24C] text-white'
+                            : 'bg-white/10 text-white/60'
+                            }`}>
                             {idx + 1}
                           </span>
-                          <span className={`text-xl font-medium ${
-                            entry.status === 'called' ? 'text-[#31A24C]' : 'text-white'
-                          }`}>
+                          <span className={`text-xl font-medium ${entry.status === 'called' ? 'text-[#31A24C]' : 'text-white'
+                            }`}>
                             {entry.player_name}
                           </span>
                           {entry.status === 'called' && (
@@ -223,6 +215,6 @@ export default function WaitlistDisplay() {
           </p>
         </div>
       </div>
-    </>
+    </CommanderLayout>
   );
 }

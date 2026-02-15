@@ -1687,6 +1687,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
     const [qrData, setQrData] = useState(null);
     const [showQR, setShowQR] = useState(false);
     const [copiedUrl, setCopiedUrl] = useState(false);
+    const [texasClubEnabled, setTexasClubEnabled] = useState((page.metadata || {}).texas_club_enabled !== false && (page.metadata || {}).page_type !== 'home_game' && (page.metadata || {}).page_type !== 'charity');
 
     // Fetch live games
     useEffect(() => {
@@ -1726,7 +1727,9 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
 
     const handlePageTypeChange = async (newType) => {
         setPageType(newType);
-        await saveMetadata({ page_type: newType }, 'Page type updated!');
+        const autoDisableTexas = newType === 'home_game' || newType === 'charity';
+        if (autoDisableTexas) setTexasClubEnabled(false);
+        await saveMetadata({ page_type: newType, ...(autoDisableTexas ? { texas_club_enabled: false } : {}) }, 'Page type updated!');
     };
 
     const handleCreateGame = async () => {
@@ -2232,6 +2235,30 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
                             }}>{t === 'club' ? '🏢 Club' : t === 'home_game' ? '🏠 Home Game' : '💝 Charity'}</button>
                         ))}
                         {pageType === 'home_game' && <span style={{ fontSize: 11, color: '#92400e', fontWeight: 600 }}>🔒 Followers require approval</span>}
+                    </div>
+
+                    {/* Texas Club Features Toggle */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, padding: '10px 12px', borderRadius: 8, background: texasClubEnabled ? '#eef2ff' : '#f5f5f5', border: `1px solid ${texasClubEnabled ? '#818cf8' : '#e4e6eb'}`, transition: 'all 0.2s' }}>
+                        <div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>🏈 Texas Club Style Features</div>
+                            <div style={{ fontSize: 11, color: C.textSec, marginTop: 2 }}>Seat fees, time charges, membership dues, rake structure</div>
+                            {(pageType === 'home_game' || pageType === 'charity') && <div style={{ fontSize: 10, color: '#dc2626', fontWeight: 600, marginTop: 2 }}>⚠️ Auto-disabled for {pageType === 'home_game' ? 'Home Game' : 'Charity'} pages</div>}
+                        </div>
+                        <button
+                            onClick={() => {
+                                const newVal = !texasClubEnabled;
+                                setTexasClubEnabled(newVal);
+                                saveMetadata({ texas_club_enabled: newVal }, `Texas Club features ${newVal ? 'enabled' : 'disabled'}`);
+                            }}
+                            disabled={pageType === 'home_game' || pageType === 'charity'}
+                            style={{
+                                width: 52, height: 28, borderRadius: 14, border: 'none', padding: 2, cursor: (pageType === 'home_game' || pageType === 'charity') ? 'not-allowed' : 'pointer',
+                                backgroundColor: texasClubEnabled ? '#6366f1' : '#94a3b8', opacity: (pageType === 'home_game' || pageType === 'charity') ? 0.5 : 1,
+                                transition: 'background-color 0.2s ease', display: 'flex', alignItems: 'center', flexShrink: 0
+                            }}
+                        >
+                            <span style={{ width: 24, height: 24, borderRadius: '50%', backgroundColor: 'white', boxShadow: '0 2px 4px rgba(0,0,0,0.2)', transform: texasClubEnabled ? 'translateX(24px)' : 'translateX(0)', transition: 'transform 0.2s ease' }} />
+                        </button>
                     </div>
 
                     {/* Pending Approval Requests */}
