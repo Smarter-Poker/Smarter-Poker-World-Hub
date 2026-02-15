@@ -63,6 +63,7 @@ import dailyChallengeService from '../../src/services/DailyChallengeService';
 import { processGameResult, getRankTitle } from '../../src/games/ELOService';
 import gameSessionService from '../../src/services/GameSessionService';
 import achievementService from '../../src/services/AchievementService';
+import { claimReward } from '../../src/lib/claimReward';
 
 // New Game Mode Components (dynamic imports for code splitting)
 import dynamic from 'next/dynamic';
@@ -2101,6 +2102,9 @@ export default function MemoryGamesPage() {
                                 const bonus = challenge.diamond_reward || 25;
                                 DiamondEngine.award(bonus);
                                 setDiamondBalance(prev => prev + bonus);
+
+                                // Award daily trivia diamonds via server-validated API (15💎, with toast)
+                                claimReward('/api/rewards/daily-trivia', { userId: user.id }, 'Daily Trivia Challenge');
                             }
                         }).catch(err => {
                             console.warn('[Memory] Daily challenge completion failed:', err);

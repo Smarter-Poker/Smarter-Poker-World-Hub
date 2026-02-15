@@ -10,6 +10,8 @@ import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import { claimReward } from '../../../src/lib/claimReward';
+import { getAuthUser } from '../../../src/lib/authUtils';
 
 const VENUE_TYPE_LABELS = {
   casino: 'Casino',
@@ -310,16 +312,16 @@ export default function VenueDetailPage() {
   }, [id]);
 
   // Fetch linked social page (if one exists for this venue)
-  useEffect(function() {
+  useEffect(function () {
     if (!id) return;
     fetch('/api/social/pages?linked_venue_id=' + String(id) + '&limit=1')
-      .then(function(r) { return r.json(); })
-      .then(function(json) {
+      .then(function (r) { return r.json(); })
+      .then(function (json) {
         if (json.success && json.data && json.data.length > 0) {
           setSocialPageSlug(json.data[0].slug || json.data[0].id);
         }
       })
-      .catch(function() {});
+      .catch(function () { });
   }, [id]);
 
   // Fetch live games
@@ -665,6 +667,27 @@ export default function VenueDetailPage() {
         setShowReviewForm(false);
         setReviewForm({ rating: 0, reviewer_name: '', review_text: '' });
         await fetchReviews();
+
+        // Award venue review diamonds (geo-fenced, fire-and-forget)
+        // Only for authenticated users — anonymous reviews still save but don't earn diamonds
+        var authUser = getAuthUser();
+        if (authUser && authUser.id && navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            function (position) {
+              claimReward('/api/rewards/venue-review', {
+                userId: authUser.id,
+                venueId: id,
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude
+              }, 'Venue Review (GPS Verified)');
+            },
+            function () {
+              // GPS denied — review saved, no diamonds. Silent fail.
+              console.log('[VenueReview] GPS denied — review saved, no reward diamonds');
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+          );
+        }
       }
     } catch (err) { /* silent */ }
     finally { setReviewSubmitting(false); }
@@ -905,7 +928,7 @@ export default function VenueDetailPage() {
                   {copySuccess ? 'Copied!' : 'Share'}
                 </button>
                 {socialPageSlug && (
-                  <button className="action-btn social-page-btn" onClick={function() { router.push('/hub/social-pages/' + socialPageSlug); }}>
+                  <button className="action-btn social-page-btn" onClick={function () { router.push('/hub/social-pages/' + socialPageSlug); }}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                       <circle cx="9" cy="7" r="4" />

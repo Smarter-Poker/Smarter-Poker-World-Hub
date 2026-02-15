@@ -20,20 +20,29 @@ import supabase from '../../src/lib/supabase';
 
 
 // ═══════════════════════════════════════════════════════════════════════════
-// STANDARD DIAMOND REWARDS — 10 Ways to Earn (Daily Cap: 500 💎)
+// STANDARD DIAMOND REWARDS — 13 Ways to Earn (Daily Cap: 500 💎)
 // Streak Multipliers: 1.0x (Days 1-3), 1.5x (Days 4-6), 2.0x (Day 7+)
 // ═══════════════════════════════════════════════════════════════════════════
 const STANDARD_REWARDS = [
+    // ── Daily ──
     { id: 'daily_login', icon: '📅', name: 'Daily Login', amount: '5-50 💎', note: 'Scales With Streak (Day 1: 5💎, Day 7+: 50💎)', category: 'Daily' },
-    { id: 'first_training_of_day', icon: '🎯', name: 'First Training', amount: '+25 💎', note: 'Complete Your First Training Session Of The Day', category: 'Daily' },
-    { id: 'level_completion_85', icon: '✅', name: 'Level Mastery', amount: '+10 💎', note: 'Complete A Level With 85%+ Accuracy', category: 'Training' },
-    { id: 'perfect_score_bonus', icon: '💯', name: 'Perfect Score', amount: '+5 💎', note: 'Bonus For 100% Accuracy On A Level', category: 'Training' },
-    { id: 'new_level_unlocked', icon: '🔓', name: 'Level Unlocked', amount: '+50 💎', note: 'Unlock A New Training Level', category: 'Training' },
-    { id: 'social_post_share', icon: '📝', name: 'Share Post', amount: '+15 💎', note: 'Share A Hand, Achievement, Or Thought', category: 'Social' },
-    { id: 'strategy_comment', icon: '💬', name: 'Strategy Comment', amount: '+5 💎', note: 'Leave A Thoughtful Strategy Comment', category: 'Social' },
-    { id: 'bonus_milestone', icon: '🏆', name: 'Bonus Milestone', amount: '+100 💎', note: 'Reach A Periodic Engagement Milestone', category: 'Progression' },
-    { id: 'gto_chart_study', icon: '📊', name: 'Chart Study', amount: '+10 💎', note: 'Study GTO Charts For 3+ Minutes', category: 'Training' },
-    { id: 'referral_success', icon: '👥', name: 'Successful Referral', amount: '+500 💎', note: 'Refer A Friend Who Verifies Email & Phone (BYPASSES CAP!)', category: 'Referral', bypassesCap: true },
+    { id: 'daily_trivia', icon: '🧠', name: 'Daily Trivia Challenge', amount: '+15 💎', note: 'Complete The Daily Challenge (Any Score!)', category: 'Daily' },
+    // ── Social ──
+    { id: 'social_post_share', icon: '📝', name: 'Share Post', amount: '+10 💎', note: 'Share A Hand, Achievement, Or Thought (3/day)', category: 'Social' },
+    { id: 'strategy_comment', icon: '💬', name: 'Strategy Comment', amount: '+5 💎', note: 'Leave A Strategy Comment (5/day)', category: 'Social' },
+    { id: 'reaction', icon: '👍', name: 'Like / React', amount: '+2 💎', note: 'React To A Post (10/day Max)', category: 'Social' },
+    { id: 'follow_user', icon: '👥', name: 'Follow A Player', amount: '+5 💎', note: 'Follow Another Player (3/day Max)', category: 'Social' },
+    // ── Training / Content ──
+    { id: 'video_watch', icon: '🎬', name: 'Watch A Video', amount: '+3 💎', note: 'Watch 5+ Minutes Of Training Content (3/day)', category: 'Training' },
+    { id: 'video_favorite', icon: '⭐', name: 'Favorite A Video', amount: '+2 💎', note: 'Save A Video To Favorites (3/day Max)', category: 'Training' },
+    // ── Engagement ──
+    { id: 'venue_review', icon: '📍', name: 'Venue Review', amount: '+25 💎', note: 'Review A Venue You\'ve Visited (GPS Verified, 1/venue)', category: 'Engagement' },
+    // ── One-Time ──
+    { id: 'profile_pic', icon: '📸', name: 'Profile Picture', amount: '+10 💎', note: 'Upload Your First Profile Picture', category: 'One-Time' },
+    { id: 'profile_complete', icon: '✅', name: 'Profile Complete', amount: '+50 💎', note: 'Complete Avatar + Bio + Username', category: 'One-Time' },
+    { id: 'hendonmob_link', icon: '🔗', name: 'HendonMob Link', amount: '+25 💎', note: 'Link Your HendonMob Profile', category: 'One-Time' },
+    // ── Referral ──
+    { id: 'referral_success', icon: '🏆', name: 'Successful Referral', amount: '+500 💎', note: 'Refer A Friend Who Verifies Email & Phone (BYPASSES CAP!)', category: 'Referral', bypassesCap: true },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1381,7 +1390,7 @@ export default function DiamondStorePage() {
                                                 <span style={styles.quickStatLabel}>Easter Eggs</span>
                                             </div>
                                             <div style={styles.quickStat}>
-                                                <span style={styles.quickStatValue}>10</span>
+                                                <span style={styles.quickStatValue}>13</span>
                                                 <span style={styles.quickStatLabel}>Standard Rewards</span>
                                             </div>
                                         </div>
@@ -1393,7 +1402,7 @@ export default function DiamondStorePage() {
                                     <div style={styles.diamondRewardsSection}>
                                         <h2 style={styles.earnTitle}>Diamond Rewards</h2>
                                         <p style={styles.introText}>
-                                            All 10 Ways You Can Earn Diamonds On Smarter.Poker
+                                            All 13 Ways You Can Earn Diamonds On Smarter.Poker
                                         </p>
 
                                         {/* Daily Cap Banner */}
