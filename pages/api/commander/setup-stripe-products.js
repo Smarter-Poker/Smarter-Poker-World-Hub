@@ -9,21 +9,21 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 const PRODUCTS = [
   {
-    tier: 'starter',
-    name: 'Club Commander Starter',
+    tier: 'home_game',
+    name: 'Club Commander Home Game',
     description: 'Up to 5 tables, 3 staff accounts, 100 SMS/month',
     price: 9900, // $99.00 in cents
   },
   {
-    tier: 'professional',
-    name: 'Club Commander Professional',
-    description: 'Up to 15 tables, 10 staff accounts, 500 SMS/month, tournaments, priority support',
+    tier: 'charity',
+    name: 'Club Commander Charity',
+    description: 'Up to 15 tables, 10 staff accounts, 500 SMS/month, full operations suite',
     price: 19900, // $199.00
   },
   {
-    tier: 'enterprise',
-    name: 'Club Commander Enterprise',
-    description: 'Unlimited tables, staff, SMS. API access, white-label, dedicated support',
+    tier: 'club',
+    name: 'Club Commander Club',
+    description: 'Unlimited tables, staff, SMS. Paid memberships, time billing, priority support',
     price: 39900, // $399.00
   },
 ];

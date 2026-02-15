@@ -474,6 +474,12 @@ export default function WorldHub() {
                                         // Backfill localStorage so future visits are instant
                                         try {
                                             localStorage.setItem('commander_staff', JSON.stringify(data.staff));
+                                            // Store tier for tier-gated sidebar
+                                            if (data.tier) {
+                                                const sub = JSON.parse(localStorage.getItem('commander_subscription') || '{}');
+                                                sub.tier = data.tier;
+                                                localStorage.setItem('commander_subscription', JSON.stringify(sub));
+                                            }
                                             console.log('[WorldHub] 🏢 Commander account detected via API');
                                         } catch { }
                                     }

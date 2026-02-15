@@ -11,17 +11,17 @@ const supabase = createClient(
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 const TIER_PRICES = {
-  starter: {
+  home_game: {
     price: 99,
-    priceId: process.env.STRIPE_STARTER_PRICE_ID || 'price_starter',
+    priceId: process.env.STRIPE_HOME_GAME_PRICE_ID || 'price_home_game',
   },
-  professional: {
+  charity: {
     price: 199,
-    priceId: process.env.STRIPE_PROFESSIONAL_PRICE_ID || 'price_professional',
+    priceId: process.env.STRIPE_CHARITY_PRICE_ID || 'price_charity',
   },
-  enterprise: {
+  club: {
     price: 399,
-    priceId: process.env.STRIPE_ENTERPRISE_PRICE_ID || 'price_enterprise',
+    priceId: process.env.STRIPE_CLUB_PRICE_ID || 'price_club',
   },
 };
 

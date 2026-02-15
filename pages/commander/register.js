@@ -4,32 +4,33 @@ import Head from 'next/head';
 import { supabase } from '../../src/lib/supabase';
 
 const TIERS = {
-  starter: {
-    name: 'Starter',
+  home_game: {
+    name: 'Home Game',
     price: 99,
     tables: 5,
     staff: 3,
     sms: 100,
-    features: ['Waitlist Management', 'Basic Analytics', 'SMS Notifications (100/mo)', 'Social Hub Page']
+    features: ['Waitlist Management', 'Tournament Management', 'Free Member Cards', 'Basic Analytics', 'Social Hub Page']
   },
-  professional: {
-    name: 'Professional',
+  charity: {
+    name: 'Charity',
     price: 199,
     tables: 15,
     staff: 10,
     sms: 500,
-    features: ['Everything in Starter', 'Tournament Management', 'Advanced Analytics', 'SMS Notifications (500/mo)', 'Priority Support'],
+    features: ['Everything in Home Game', 'Floor View & Map', 'Dealer Rotation', 'Player Kiosk & Displays', 'Staff Accounts & Scheduling', 'Promotions Engine', 'Advanced Analytics & Reports'],
     popular: true
   },
-  enterprise: {
-    name: 'Enterprise',
+  club: {
+    name: 'Club',
     price: 399,
     tables: 'Unlimited',
     staff: 'Unlimited',
     sms: 'Unlimited',
-    features: ['Everything in Professional', 'API Access', 'White-label Option', 'Unlimited SMS', 'Dedicated Support']
+    features: ['Everything in Charity', 'Paid Memberships (Fees)', 'Time-Based Seat Billing', 'Unlimited SMS', 'Priority Support']
   }
 };
+
 
 const US_STATES = [
   'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
@@ -55,7 +56,7 @@ export default function RegisterPage() {
     name: '', email: '', password: '', confirmPassword: '', phone: ''
   });
 
-  const [selectedTier, setSelectedTier] = useState('professional');
+  const [selectedTier, setSelectedTier] = useState('charity');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const handleClubInfoChange = (e) => {

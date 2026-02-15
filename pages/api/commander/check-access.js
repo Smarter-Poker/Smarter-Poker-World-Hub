@@ -32,7 +32,7 @@ export default async function handler(req, res) {
         // Check 1: commander_staff table (staff members: owner, manager, floor, etc.)
         const { data: staffRecords, error: staffError } = await supabase
             .from('commander_staff')
-            .select('id, venue_id, role, poker_venues(id, name)')
+            .select('id, venue_id, role, poker_venues(id, name, commander_tier)')
             .eq('user_id', user.id)
             .eq('is_active', true)
             .limit(1);
@@ -41,6 +41,7 @@ export default async function handler(req, res) {
             const record = staffRecords[0];
             return res.status(200).json({
                 hasAccess: true,
+                tier: record.poker_venues?.commander_tier || 'home_game',
                 staff: {
                     user_id: user.id,
                     id: record.id,
@@ -54,7 +55,7 @@ export default async function handler(req, res) {
         // Check 2: commander_subscriptions table (venue owners with active/trialing subscription)
         const { data: subs, error: subError } = await supabase
             .from('commander_subscriptions')
-            .select('id, venue_id, billing_name, status, venue:poker_venues(id, name)')
+            .select('id, venue_id, tier, billing_name, status, venue:poker_venues(id, name)')
             .eq('owner_id', user.id)
             .in('status', ['active', 'trialing'])
             .limit(1);
@@ -63,6 +64,7 @@ export default async function handler(req, res) {
             const sub = subs[0];
             return res.status(200).json({
                 hasAccess: true,
+                tier: sub.tier || 'home_game',
                 staff: {
                     user_id: user.id,
                     role: 'owner',

@@ -3,6 +3,8 @@
  * Provides the consistent Club Commander top bar across ALL pages:
  *   [☰ Hamburger] [← Back] .............. [CLUB COMMANDER / Venue Name]
  * 
+ * Tier-gated sidebar: items show 🔒 when locked for current tier.
+ * 
  * Props:
  *   title       — page title for <Head> tag
  *   backHref    — where Back button navigates (default: /commander/dashboard)
@@ -16,9 +18,10 @@ import {
   Menu, X, ArrowLeft, Users, Clock, Layout, Map, Bell, Trophy,
   Monitor, DollarSign, Gift, Calendar, Tv, Activity, BarChart3,
   AlertTriangle, PlusCircle, Lock, Upload, QrCode, Settings, LogOut,
-  Package, Briefcase, Globe
+  Package, Briefcase, Globe, Crown
 } from 'lucide-react';
 import CommanderErrorBoundary from './CommanderErrorBoundary';
+import { canAccessRoute, getUpgradeTier, getTierConfig, TIERS } from '../../../lib/commander/tierConfig';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/commander/dashboard', icon: Layout },
@@ -44,6 +47,7 @@ const NAV_ITEMS = [
   { label: 'Open Cash Game', href: '/commander/open-game', icon: PlusCircle },
   { label: 'Close Day', href: '/commander/close-day', icon: Lock },
   { label: 'Member Import', href: '/commander/member-import', icon: Upload },
+  { label: 'Membership Plans', href: '/commander/membership-plans', icon: Crown },
   { label: 'QR Code', href: '/commander/qr-code', icon: QrCode },
   { label: 'Settings', href: '/commander/settings', icon: Settings },
 ];
@@ -53,11 +57,17 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
   const [menuOpen, setMenuOpen] = useState(false);
   const [staff, setStaff] = useState(null);
   const [showClubPagePopup, setShowClubPagePopup] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(null); // null or { label, requiredTier }
+  const [currentTier, setCurrentTier] = useState('home_game');
 
   useEffect(() => {
     try {
       const stored = localStorage.getItem('commander_staff');
       if (stored) setStaff(JSON.parse(stored));
+    } catch { }
+    try {
+      const sub = JSON.parse(localStorage.getItem('commander_subscription') || '{}');
+      if (sub.tier) setCurrentTier(sub.tier);
     } catch { }
   }, []);
 
@@ -120,7 +130,25 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
     router.push('/commander/login');
   };
 
+  const handleNavClick = (item) => {
+    const allowed = canAccessRoute(currentTier, item.href);
+    if (allowed) {
+      setMenuOpen(false);
+      router.push(item.href);
+    } else {
+      const upgradeTo = getUpgradeTier(currentTier);
+      const upgradeConfig = upgradeTo ? getTierConfig(upgradeTo) : null;
+      setShowUpgradeModal({
+        label: item.label,
+        upgradeTierName: upgradeConfig?.name || 'a higher tier',
+        upgradePrice: upgradeConfig?.price || '',
+      });
+    }
+  };
+
   const venueName = staff?.venue_name || 'Poker Room';
+  const currentTierConfig = getTierConfig(currentTier);
+  const currentTierLabel = currentTierConfig?.name || 'Home Game';
 
   return (
     <>
@@ -228,7 +256,7 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
           top: 0;
           right: 0;
           z-index: 201;
-          width: 260px;
+          width: 280px;
           max-height: 100vh;
           overflow-y: auto;
           background: linear-gradient(180deg, #1a1a1a 0%, #111 100%);
@@ -293,6 +321,13 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
           color: #22D3EE;
           background: rgba(34,211,238,0.05);
         }
+        .cmd-menu-item.locked {
+          color: #555;
+        }
+        .cmd-menu-item.locked:hover {
+          color: #777;
+          background: rgba(255,255,255,0.02);
+        }
         .cmd-menu-item.danger {
           color: #EF4444;
         }
@@ -303,6 +338,30 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
           height: 1px;
           background: #222;
           margin: 8px 16px;
+        }
+        .cmd-menu-lock-badge {
+          margin-left: auto;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 10px;
+          color: #F59E0B;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        .cmd-menu-tier-badge {
+          padding: 4px 10px 6px;
+          margin: 4px 16px 8px;
+          border-radius: 8px;
+          font-size: 11px;
+          font-weight: 600;
+          color: #22D3EE;
+          background: rgba(34,211,238,0.08);
+          border: 1px solid rgba(34,211,238,0.15);
+          text-align: center;
+          letter-spacing: 0.5px;
+          text-transform: uppercase;
         }
 
         /* ── HUB BUTTON ── */
@@ -378,6 +437,10 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
                   <X size={18} />
                 </button>
               </div>
+              {/* Tier badge */}
+              <div className="cmd-menu-tier-badge">
+                {currentTierLabel} Plan
+              </div>
               <button
                 className="cmd-menu-item"
                 style={{ color: '#22D3EE', fontWeight: 600 }}
@@ -390,13 +453,19 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
                 if (item.divider) return <div key={`d-${idx}`} className="cmd-menu-divider" />;
                 const Icon = item.icon;
                 const isActive = router.asPath === item.href;
+                const isLocked = !canAccessRoute(currentTier, item.href);
                 return (
                   <button
                     key={item.href}
-                    className={`cmd-menu-item ${isActive ? 'active' : ''}`}
-                    onClick={() => { setMenuOpen(false); router.push(item.href); }}
+                    className={`cmd-menu-item ${isActive ? 'active' : ''} ${isLocked ? 'locked' : ''}`}
+                    onClick={() => handleNavClick(item)}
                   >
                     <Icon size={18} /> {item.label}
+                    {isLocked && (
+                      <span className="cmd-menu-lock-badge">
+                        <Lock size={12} /> Upgrade
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -406,6 +475,58 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
               </button>
             </div>
           </>
+        )}
+
+        {/* ── UPGRADE MODAL ── */}
+        {showUpgradeModal && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div onClick={() => setShowUpgradeModal(null)} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.7)' }} />
+            <div style={{
+              position: 'relative', background: 'linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%)',
+              borderRadius: 16, width: '90%', maxWidth: 400, padding: 28,
+              boxShadow: '0 12px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1)',
+              border: '1px solid rgba(255,255,255,0.08)'
+            }}>
+              <div style={{ width: 56, height: 56, borderRadius: 14, background: 'linear-gradient(135deg, #F59E0B, #EF4444)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                <Crown size={28} color="#fff" />
+              </div>
+              <h2 style={{ margin: '0 0 8px', fontSize: 20, fontWeight: 800, color: '#fff', textAlign: 'center', fontFamily: 'Inter, sans-serif' }}>
+                Upgrade Required
+              </h2>
+              <p style={{ margin: '0 0 20px', fontSize: 14, color: '#999', textAlign: 'center', lineHeight: 1.5, fontFamily: 'Inter, sans-serif' }}>
+                <strong style={{ color: '#F59E0B' }}>{showUpgradeModal.label}</strong> requires the{' '}
+                <strong style={{ color: '#22D3EE' }}>{showUpgradeModal.upgradeTierName}</strong> plan
+                {showUpgradeModal.upgradePrice && <> (${showUpgradeModal.upgradePrice}/mo)</>}.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <button
+                  onClick={() => {
+                    setShowUpgradeModal(null);
+                    setMenuOpen(false);
+                    router.push('/commander/settings?tab=subscription');
+                  }}
+                  style={{
+                    padding: '12px 24px', borderRadius: 10, border: 'none',
+                    background: 'linear-gradient(135deg, #F59E0B, #EF4444)', color: '#fff',
+                    fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter, sans-serif',
+                    boxShadow: '0 4px 16px rgba(245,158,11,0.4)'
+                  }}
+                >
+                  Upgrade Plan
+                </button>
+                <button
+                  onClick={() => setShowUpgradeModal(null)}
+                  style={{
+                    padding: '10px 20px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)',
+                    background: 'transparent', color: '#888',
+                    fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'Inter, sans-serif'
+                  }}
+                >
+                  Maybe Later
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* ── CLUB PAGE CREATION POPUP ── */}

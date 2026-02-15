@@ -150,23 +150,40 @@ async function handleSubscriptionUpdate(subscription) {
   // Update venue subscription tier if this is a Commander subscription
   if (metadata?.venue_id) {
     const tierMap = {
-      active: metadata.tier || 'pro',
-      trialing: metadata.tier || 'pro',
-      past_due: metadata.tier || 'pro',
+      active: metadata.tier || 'home_game',
+      trialing: metadata.tier || 'home_game',
+      past_due: metadata.tier || 'home_game',
       canceled: 'free',
       unpaid: 'free'
     };
 
+    const resolvedTier = tierMap[status] || 'free';
+
+    // Update poker_venues table
     const { error } = await supabase
       .from('poker_venues')
       .update({
-        commander_tier: tierMap[status] || 'free',
+        commander_tier: resolvedTier,
         commander_enabled: status === 'active' || status === 'trialing'
       })
       .eq('id', metadata.venue_id);
 
     if (error) {
       console.error('Update venue subscription error:', error);
+    }
+
+    // Also update commander_subscriptions table (login flow reads from here)
+    const { error: subError } = await supabase
+      .from('commander_subscriptions')
+      .update({
+        tier: resolvedTier === 'free' ? metadata.tier || 'home_game' : resolvedTier,
+        status: status,
+      })
+      .eq('venue_id', metadata.venue_id)
+      .in('status', ['active', 'trialing', 'past_due']);
+
+    if (subError) {
+      console.error('Update commander_subscriptions error:', subError);
     }
   }
 
@@ -177,15 +194,30 @@ async function handleSubscriptionCancelled(subscription) {
   const { id, metadata } = subscription;
 
   if (metadata?.venue_id) {
+    // Update poker_venues
     const { error } = await supabase
       .from('poker_venues')
       .update({
-        commander_tier: 'free'
+        commander_tier: 'free',
+        commander_enabled: false
       })
       .eq('id', metadata.venue_id);
 
     if (error) {
       console.error('Update venue subscription error:', error);
+    }
+
+    // Update commander_subscriptions status
+    const { error: subError } = await supabase
+      .from('commander_subscriptions')
+      .update({
+        status: 'canceled',
+      })
+      .eq('venue_id', metadata.venue_id)
+      .in('status', ['active', 'trialing', 'past_due']);
+
+    if (subError) {
+      console.error('Update commander_subscriptions cancel error:', subError);
     }
   }
 

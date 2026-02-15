@@ -17,12 +17,13 @@ export default async function handler(req, res) {
   }
 
   const tierInfo = {
-    starter: { name: 'Starter', price: '$99/month', tables: '5', staff: '3', sms: '100' },
-    professional: { name: 'Professional', price: '$199/month', tables: '15', staff: '10', sms: '500' },
-    enterprise: { name: 'Enterprise', price: '$399/month', tables: 'Unlimited', staff: 'Unlimited', sms: 'Unlimited' },
+    home_game: { name: 'Home Game', price: '$99/month', tables: '5', staff: '3', sms: '100' },
+    charity: { name: 'Charity', price: '$199/month', tables: '15', staff: '10', sms: '500' },
+    club: { name: 'Club', price: '$399/month', tables: 'Unlimited', staff: 'Unlimited', sms: 'Unlimited' },
   };
 
-  const plan = tierInfo[tier] || tierInfo.professional;
+  const plan = tierInfo[tier] || tierInfo.charity;
+
 
   const emailHtml = `
 <!DOCTYPE html>

@@ -58,50 +58,55 @@ const FEATURES = [
 
 const PRICING = [
   {
-    name: 'Starter',
-    price: 'Free',
-    description: 'For small rooms getting started',
+    name: 'Home Game',
+    price: '$99',
+    period: '/month',
+    description: 'Perfect for home games & small private events',
     features: [
-      'Up to 3 tables',
-      'Basic waitlist',
-      'SMS notifications (pay per use)',
-      'Player app access',
-      'Email support'
+      'Up to 5 tables',
+      'Digital waitlist',
+      'Tournament management',
+      'Free member cards',
+      'Basic analytics',
+      'Social Hub page',
+      'SMS notifications (100/mo)'
     ],
-    cta: 'Get Started Free',
+    cta: 'Get Started',
     highlighted: false
   },
   {
-    name: 'Professional',
-    price: '$299',
+    name: 'Charity',
+    price: '$199',
     period: '/month',
-    description: 'For established poker rooms',
+    description: 'Full operations suite for charity poker rooms',
     features: [
-      'Unlimited tables',
-      'Full tournament system',
-      'Unlimited SMS & push',
-      'Promotions & comps',
-      'Analytics dashboard',
-      'Priority support',
-      'Hendon Mob integration'
+      'Everything in Home Game',
+      'Up to 15 tables',
+      'Floor view & map',
+      'Dealer rotation',
+      'Player kiosk & displays',
+      'Staff accounts & scheduling',
+      'Promotions engine',
+      'Advanced analytics & reports',
+      'SMS notifications (500/mo)'
     ],
     cta: 'Start Free Trial',
     highlighted: true
   },
   {
-    name: 'Enterprise',
-    price: 'Custom',
-    description: 'For casino poker rooms',
+    name: 'Club',
+    price: '$399',
+    period: '/month',
+    description: 'Full Texas-style card room with revenue tools',
     features: [
-      'Everything in Professional',
-      'Multi-venue management',
-      'Custom integrations',
-      'API access',
-      'Dedicated account manager',
-      'On-site training',
-      'SLA guarantee'
+      'Everything in Charity',
+      'Unlimited tables & staff',
+      'Paid memberships (fees)',
+      'Time-based seat billing',
+      'Unlimited SMS',
+      'Priority support'
     ],
-    cta: 'Contact Sales',
+    cta: 'Start Free Trial',
     highlighted: false
   }
 ];
@@ -145,11 +150,10 @@ function FeatureCard({ icon: Icon, title, description }) {
 function PricingCard({ plan, highlighted, onAction }) {
   return (
     <div
-      className={`p-6 rounded-2xl border ${
-        highlighted
-          ? 'border-[#1877F2] ring-2 ring-[#1877F2] ring-opacity-50 bg-[#0F2A3E]'
-          : 'border-[#3A3B3C] bg-[#0F1D32]'
-      }`}
+      className={`p-6 rounded-2xl border ${highlighted
+        ? 'border-[#1877F2] ring-2 ring-[#1877F2] ring-opacity-50 bg-[#0F2A3E]'
+        : 'border-[#3A3B3C] bg-[#0F1D32]'
+        }`}
     >
       {highlighted && (
         <span className="inline-block px-3 py-1 text-xs font-medium rounded-full bg-[#1877F2]/10 text-[#1877F2] mb-4">
@@ -172,11 +176,10 @@ function PricingCard({ plan, highlighted, onAction }) {
       </ul>
       <button
         onClick={() => onAction?.(plan)}
-        className={`w-full py-3 rounded-xl font-medium transition-colors ${
-          highlighted
-            ? 'cmd-btn cmd-btn-primary'
-            : 'cmd-btn cmd-btn-secondary'
-        }`}
+        className={`w-full py-3 rounded-xl font-medium transition-colors ${highlighted
+          ? 'cmd-btn cmd-btn-primary'
+          : 'cmd-btn cmd-btn-secondary'
+          }`}
       >
         {plan.cta}
       </button>
@@ -207,12 +210,12 @@ export default function CommanderLanding() {
   }
 
   function handlePricingAction(plan) {
-    if (plan.name === 'Starter') {
+    if (plan.name === 'Home Game') {
       handleGetStarted();
-    } else if (plan.name === 'Professional') {
+    } else if (plan.name === 'Charity') {
       handleFreeTrial();
-    } else if (plan.name === 'Enterprise') {
-      handleContactSales();
+    } else if (plan.name === 'Club') {
+      handleFreeTrial();
     }
   }
 
