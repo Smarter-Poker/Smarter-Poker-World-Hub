@@ -38,6 +38,16 @@ export default function HubPage() {
         // getAuthUser is synchronous, returns user or null
         const authUser = getAuthUser();
         setUser(authUser);
+
+        // Award daily login diamonds (fire-and-forget, once per session)
+        if (authUser?.id && !sessionStorage.getItem('dailyLoginClaimed')) {
+            sessionStorage.setItem('dailyLoginClaimed', 'true');
+            fetch('/api/rewards/daily-login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: authUser.id })
+            }).catch(() => { }); // Non-blocking
+        }
     }, []);
 
     const menuConfig = getMenuConfig('hub-home', user, {}, {});

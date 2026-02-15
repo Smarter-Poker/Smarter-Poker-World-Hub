@@ -17,243 +17,252 @@ import { validatePostContent } from '../types';
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const PostCreator = ({
-    isOpen,
-    onClose,
-    onPostCreated
+  isOpen,
+  onClose,
+  onPostCreated
 }) => {
-    const { user, supabase } = useSupabase();
-    const { state: socialState } = useSocialOrb();
+  const { user, supabase } = useSupabase();
+  const { state: socialState } = useSocialOrb();
 
-    const [content, setContent] = useState('');
-    const [visibility, setVisibility] = useState('public');
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [error, setError] = useState(null);
-    const [showSuccess, setShowSuccess] = useState(false);
+  const [content, setContent] = useState('');
+  const [visibility, setVisibility] = useState('public');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+  const [showSuccess, setShowSuccess] = useState(false);
 
-    const textareaRef = useRef(null);
-    const modalRef = useRef(null);
+  const textareaRef = useRef(null);
+  const modalRef = useRef(null);
 
-    // Character count
-    const charCount = content.length;
-    const maxChars = 2000;
-    const charPercentage = (charCount / maxChars) * 100;
+  // Character count
+  const charCount = content.length;
+  const maxChars = 2000;
+  const charPercentage = (charCount / maxChars) * 100;
 
-    // Focus textarea when modal opens
-    useEffect(() => {
-        if (isOpen && textareaRef.current) {
-            setTimeout(() => textareaRef.current?.focus(), 100);
-        }
-    }, [isOpen]);
+  // Focus textarea when modal opens
+  useEffect(() => {
+    if (isOpen && textareaRef.current) {
+      setTimeout(() => textareaRef.current?.focus(), 100);
+    }
+  }, [isOpen]);
 
-    // Handle escape key
-    useEffect(() => {
-        const handleEscape = (e) => {
-            if (e.key === 'Escape' && isOpen) {
-                onClose();
-            }
-        };
+  // Handle escape key
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
 
-        document.addEventListener('keydown', handleEscape);
-        return () => document.removeEventListener('keydown', handleEscape);
-    }, [isOpen, onClose]);
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen, onClose]);
 
-    // Handle backdrop click
-    const handleBackdropClick = useCallback((e) => {
-        if (e.target === modalRef.current) {
-            onClose();
-        }
-    }, [onClose]);
+  // Handle backdrop click
+  const handleBackdropClick = useCallback((e) => {
+    if (e.target === modalRef.current) {
+      onClose();
+    }
+  }, [onClose]);
 
-    // Submit post
-    const handleSubmit = useCallback(async () => {
-        const validation = validatePostContent(content);
-        if (!validation.valid) {
-            setError(validation.error);
-            return;
-        }
+  // Submit post
+  const handleSubmit = useCallback(async () => {
+    const validation = validatePostContent(content);
+    if (!validation.valid) {
+      setError(validation.error);
+      return;
+    }
 
-        setIsSubmitting(true);
-        setError(null);
+    setIsSubmitting(true);
+    setError(null);
 
-        try {
-            const socialService = new SocialService(supabase);
-            const newPost = await socialService.createPost({
-                authorId: user.id,
-                content: content.trim(),
-                contentType: 'text',
-                visibility
-            });
+    try {
+      const socialService = new SocialService(supabase);
+      const newPost = await socialService.createPost({
+        authorId: user.id,
+        content: content.trim(),
+        contentType: 'text',
+        visibility
+      });
 
-            // Show success animation
-            setShowSuccess(true);
-            triggerSuccessParticles();
+      // Award social post diamonds (fire-and-forget)
+      if (user?.id) {
+        fetch('/api/rewards/social-post', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: user.id, postId: newPost?.id })
+        }).catch(() => { }); // Non-blocking
+      }
 
-            setTimeout(() => {
-                setContent('');
-                setShowSuccess(false);
-                onPostCreated?.(newPost);
-                onClose();
-            }, 1500);
+      // Show success animation
+      setShowSuccess(true);
+      triggerSuccessParticles();
 
-        } catch (err) {
-            console.error('Post creation error:', err);
-            setError('Failed to create post. Please try again.');
-        } finally {
-            setIsSubmitting(false);
-        }
-    }, [content, visibility, user, supabase, onPostCreated, onClose]);
+      setTimeout(() => {
+        setContent('');
+        setShowSuccess(false);
+        onPostCreated?.(newPost);
+        onClose();
+      }, 1500);
 
-    // Success particle effect
-    const triggerSuccessParticles = useCallback(() => {
-        const modal = document.querySelector('.creator-card');
-        if (!modal) return;
+    } catch (err) {
+      console.error('Post creation error:', err);
+      setError('Failed to create post. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [content, visibility, user, supabase, onPostCreated, onClose]);
 
-        const rect = modal.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-        const particles = 20;
+  // Success particle effect
+  const triggerSuccessParticles = useCallback(() => {
+    const modal = document.querySelector('.creator-card');
+    if (!modal) return;
 
-        for (let i = 0; i < particles; i++) {
-            const particle = document.createElement('div');
-            particle.className = 'success-particle';
-            particle.style.left = `${centerX}px`;
-            particle.style.top = `${centerY}px`;
-            particle.style.setProperty('--angle', `${(i / particles) * 360}deg`);
-            particle.style.setProperty('--distance', `${80 + Math.random() * 60}px`);
-            particle.style.setProperty('--color', ['#00FFFF', '#FF00FF', '#FFD700', '#32CD32'][i % 4]);
-            document.body.appendChild(particle);
+    const rect = modal.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const particles = 20;
 
-            setTimeout(() => particle.remove(), 1000);
-        }
-    }, []);
+    for (let i = 0; i < particles; i++) {
+      const particle = document.createElement('div');
+      particle.className = 'success-particle';
+      particle.style.left = `${centerX}px`;
+      particle.style.top = `${centerY}px`;
+      particle.style.setProperty('--angle', `${(i / particles) * 360}deg`);
+      particle.style.setProperty('--distance', `${80 + Math.random() * 60}px`);
+      particle.style.setProperty('--color', ['#00FFFF', '#FF00FF', '#FFD700', '#32CD32'][i % 4]);
+      document.body.appendChild(particle);
 
-    if (!isOpen) return null;
+      setTimeout(() => particle.remove(), 1000);
+    }
+  }, []);
 
-    return (
-        <div
-            className="post-creator-overlay"
-            ref={modalRef}
-            onClick={handleBackdropClick}
-        >
-            <div className={`creator-card glass-card ${showSuccess ? 'success' : ''}`}>
-                {/* Success Overlay */}
-                {showSuccess && (
-                    <div className="success-overlay">
-                        <div className="success-icon">✨</div>
-                        <div className="success-text">Post Created!</div>
-                    </div>
-                )}
+  if (!isOpen) return null;
 
-                {/* Header */}
-                <header className="creator-header">
-                    <h2>Create Post</h2>
-                    <button
-                        className="close-btn interactive"
-                        onClick={onClose}
-                        aria-label="Close"
-                    >
-                        ✕
-                    </button>
-                </header>
+  return (
+    <div
+      className="post-creator-overlay"
+      ref={modalRef}
+      onClick={handleBackdropClick}
+    >
+      <div className={`creator-card glass-card ${showSuccess ? 'success' : ''}`}>
+        {/* Success Overlay */}
+        {showSuccess && (
+          <div className="success-overlay">
+            <div className="success-icon">✨</div>
+            <div className="success-text">Post Created!</div>
+          </div>
+        )}
 
-                {/* Author Preview */}
-                <div className="author-preview">
-                    <div className="author-avatar">
-                        <div className="avatar-placeholder">
-                            {user?.email?.[0]?.toUpperCase() || '?'}
-                        </div>
-                    </div>
-                    <div className="author-info">
-                        <span className="author-name">{user?.email?.split('@')[0] || 'You'}</span>
-                        <select
-                            className="visibility-select"
-                            value={visibility}
-                            onChange={(e) => setVisibility(e.target.value)}
-                        >
-                            <option value="public">🌍 Public</option>
-                            <option value="followers">👥 Followers</option>
-                            <option value="private">🔒 Private</option>
-                        </select>
-                    </div>
-                </div>
+        {/* Header */}
+        <header className="creator-header">
+          <h2>Create Post</h2>
+          <button
+            className="close-btn interactive"
+            onClick={onClose}
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </header>
 
-                {/* Content Input */}
-                <div className="content-input-container">
-                    <textarea
-                        ref={textareaRef}
-                        className="content-textarea"
-                        placeholder="Share your poker journey, achievements, or insights..."
-                        value={content}
-                        onChange={(e) => {
-                            setContent(e.target.value);
-                            setError(null);
-                        }}
-                        maxLength={maxChars}
-                        disabled={isSubmitting}
-                    />
-
-                    {/* Character Counter */}
-                    <div className="char-counter">
-                        <div
-                            className="char-progress"
-                            style={{
-                                width: `${Math.min(charPercentage, 100)}%`,
-                                background: charPercentage > 90
-                                    ? '#FF4444'
-                                    : charPercentage > 75
-                                        ? '#FFD700'
-                                        : '#00FFFF'
-                            }}
-                        />
-                        <span className={charPercentage > 90 ? 'warning' : ''}>
-                            {charCount}/{maxChars}
-                        </span>
-                    </div>
-                </div>
-
-                {/* Error Message */}
-                {error && (
-                    <div className="error-message">
-                        ⚠️ {error}
-                    </div>
-                )}
-
-                {/* Actions */}
-                <footer className="creator-actions">
-                    <div className="action-tools">
-                        <button className="tool-btn interactive" title="Add Image" disabled>
-                            📷
-                        </button>
-                        <button className="tool-btn interactive" title="Add GIF" disabled>
-                            🎬
-                        </button>
-                        <button className="tool-btn interactive" title="Add Poll" disabled>
-                            📊
-                        </button>
-                    </div>
-
-                    <button
-                        className="submit-btn interactive glow-shift"
-                        onClick={handleSubmit}
-                        disabled={isSubmitting || !content.trim()}
-                    >
-                        {isSubmitting ? (
-                            <span className="submit-loading">
-                                <span className="dot" />
-                                <span className="dot" />
-                                <span className="dot" />
-                            </span>
-                        ) : (
-                            <>
-                                <span>Post</span>
-                                <span className="arrow">→</span>
-                            </>
-                        )}
-                    </button>
-                </footer>
+        {/* Author Preview */}
+        <div className="author-preview">
+          <div className="author-avatar">
+            <div className="avatar-placeholder">
+              {user?.email?.[0]?.toUpperCase() || '?'}
             </div>
+          </div>
+          <div className="author-info">
+            <span className="author-name">{user?.email?.split('@')[0] || 'You'}</span>
+            <select
+              className="visibility-select"
+              value={visibility}
+              onChange={(e) => setVisibility(e.target.value)}
+            >
+              <option value="public">🌍 Public</option>
+              <option value="followers">👥 Followers</option>
+              <option value="private">🔒 Private</option>
+            </select>
+          </div>
+        </div>
 
-            <style>{`
+        {/* Content Input */}
+        <div className="content-input-container">
+          <textarea
+            ref={textareaRef}
+            className="content-textarea"
+            placeholder="Share your poker journey, achievements, or insights..."
+            value={content}
+            onChange={(e) => {
+              setContent(e.target.value);
+              setError(null);
+            }}
+            maxLength={maxChars}
+            disabled={isSubmitting}
+          />
+
+          {/* Character Counter */}
+          <div className="char-counter">
+            <div
+              className="char-progress"
+              style={{
+                width: `${Math.min(charPercentage, 100)}%`,
+                background: charPercentage > 90
+                  ? '#FF4444'
+                  : charPercentage > 75
+                    ? '#FFD700'
+                    : '#00FFFF'
+              }}
+            />
+            <span className={charPercentage > 90 ? 'warning' : ''}>
+              {charCount}/{maxChars}
+            </span>
+          </div>
+        </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="error-message">
+            ⚠️ {error}
+          </div>
+        )}
+
+        {/* Actions */}
+        <footer className="creator-actions">
+          <div className="action-tools">
+            <button className="tool-btn interactive" title="Add Image" disabled>
+              📷
+            </button>
+            <button className="tool-btn interactive" title="Add GIF" disabled>
+              🎬
+            </button>
+            <button className="tool-btn interactive" title="Add Poll" disabled>
+              📊
+            </button>
+          </div>
+
+          <button
+            className="submit-btn interactive glow-shift"
+            onClick={handleSubmit}
+            disabled={isSubmitting || !content.trim()}
+          >
+            {isSubmitting ? (
+              <span className="submit-loading">
+                <span className="dot" />
+                <span className="dot" />
+                <span className="dot" />
+              </span>
+            ) : (
+              <>
+                <span>Post</span>
+                <span className="arrow">→</span>
+              </>
+            )}
+          </button>
+        </footer>
+      </div>
+
+      <style>{`
         .post-creator-overlay {
           position: fixed;
           top: 0;
@@ -617,8 +626,8 @@ export const PostCreator = ({
           }
         }
       `}</style>
-        </div>
-    );
+    </div>
+  );
 };
 
 export default PostCreator;

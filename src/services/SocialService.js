@@ -433,6 +433,15 @@ export class SocialService {
 
             if (error) throw error;
 
+            // Award comment diamonds (fire-and-forget, 5💎 max 3/day)
+            if (authorId) {
+                fetch('/api/rewards/comment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: authorId, commentId: data?.id })
+                }).catch(() => { }); // Non-blocking
+            }
+
             return createComment({
                 ...data,
                 author_username: data.author?.username,

@@ -120,6 +120,67 @@ export default function AuthCallback() {
                     setStatus('Account created! Redirecting...');
                 }
 
+                // ═══════════════════════════════════════════════════════════════
+                // 🎁 NEW USER WELCOME: 30-day VIP trial + 300 diamonds
+                // Runs after profile creation (both RPC and fallback paths)
+                // ═══════════════════════════════════════════════════════════════
+                try {
+                    const now = new Date();
+                    const vipExpires = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
+
+                    // Set VIP status on profile
+                    await supabase
+                        .from('profiles')
+                        .update({
+                            is_vip: true,
+                            vip_expires_at: vipExpires.toISOString(),
+                            diamonds: 300,
+                        })
+                        .eq('id', user.id);
+
+                    // Initialize diamond balance
+                    await supabase
+                        .from('user_diamond_balance')
+                        .upsert({
+                            user_id: user.id,
+                            balance: 300,
+                            updated_at: now.toISOString(),
+                        }, { onConflict: 'user_id' });
+
+                    // Log welcome diamond grant
+                    await supabase
+                        .from('diamond_transactions')
+                        .insert({
+                            user_id: user.id,
+                            amount: 300,
+                            transaction_type: 'bonus',
+                            description: 'Welcome Bonus — 300 Diamonds for joining Smarter.Poker!',
+                            metadata: { source: 'welcome_bonus', type: 'new_user' },
+                            balance_after: 300,
+                        });
+
+                    // Log VIP trial activation
+                    await supabase
+                        .from('diamond_transactions')
+                        .insert({
+                            user_id: user.id,
+                            amount: 0,
+                            transaction_type: 'bonus',
+                            description: `VIP Trial Activated — Free 30-day VIP membership!`,
+                            metadata: {
+                                source: 'vip_trial',
+                                type: 'new_user',
+                                vip_expires_at: vipExpires.toISOString(),
+                            },
+                            balance_after: 300,
+                        });
+
+                    console.log(`[Auth Callback] 🎁 Welcome package granted: 300💎 + 30-day VIP for ${user.email}`);
+                } catch (welcomeErr) {
+                    // Don't block account creation if welcome package fails
+                    console.error('[Auth Callback] Welcome package error (non-blocking):', welcomeErr);
+                }
+
                 // Redirect to hub with intro
                 sessionStorage.setItem('just_authenticated', 'true');
                 setTimeout(() => router.replace('/hub'), 1500);

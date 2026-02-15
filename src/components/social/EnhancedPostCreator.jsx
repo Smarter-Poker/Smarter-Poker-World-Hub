@@ -289,6 +289,15 @@ export const EnhancedPostCreator = ({
         visibility
       });
 
+      // Award social post diamonds (fire-and-forget)
+      if (user?.id) {
+        fetch('/api/rewards/social-post', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: user.id, postId: newPost?.id })
+        }).catch(() => { }); // Non-blocking
+      }
+
       // Show success animation
       setShowSuccess(true);
       triggerSuccessParticles();
