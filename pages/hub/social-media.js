@@ -3074,8 +3074,14 @@ export default function SocialMediaPage() {
     // Article Reader Modal State
     const [articleReader, setArticleReader] = useState({ open: false, url: null, title: null });
 
-    // Club Pages View State
-    const [showClubPages, setShowClubPages] = useState(false);
+    // Club Pages View State — initialize from URL query param so back-nav preserves state
+    const [showClubPages, setShowClubPages] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('view') === 'club-pages';
+        }
+        return false;
+    });
     const [clubPages, setClubPages] = useState([]);
     const [clubPagesLoading, setClubPagesLoading] = useState(false);
     const [clubPagesCategory, setClubPagesCategory] = useState('all');
@@ -3387,6 +3393,7 @@ export default function SocialMediaPage() {
         // Handle ?createPage=true query param (from Commander popup redirect)
         if (router.query.createPage === 'true') {
             setShowClubPages(true);
+            router.replace('/hub/social-media?view=club-pages', undefined, { shallow: true });
             // Small delay to let state settle, then open create modal if Commander
             setTimeout(() => {
                 const stored = localStorage.getItem('commander_staff');
@@ -3410,8 +3417,8 @@ export default function SocialMediaPage() {
                         }
                     }
                 } catch (e) { console.error('viewPage error:', e); }
-                // Clean up the URL
-                router.replace('/hub/social-media', undefined, { shallow: true });
+                // Clean up the URL but preserve club-pages view state
+                router.replace('/hub/social-media?view=club-pages', undefined, { shallow: true });
             })();
         }
 
@@ -3433,8 +3440,8 @@ export default function SocialMediaPage() {
                         // Show the club pages view and navigate to the referred page's live games
                         setShowClubPages(true);
                         setViewingLiveGamesPage(refPage);
-                        // Clean up the URL
-                        router.replace('/hub/social-media', undefined, { shallow: true });
+                        // Clean up the URL but preserve club-pages view state
+                        router.replace('/hub/social-media?view=club-pages', undefined, { shallow: true });
                     }
                 } catch (e) { console.error('Referral follow error:', e); }
             })();
@@ -4258,7 +4265,7 @@ export default function SocialMediaPage() {
                         <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Tournaments</span>
                     </Link>
                     {/* Club Pages - Venue/Tour/Series Pages (inline view) */}
-                    <div onClick={() => { setShowClubPages(true); setSidebarOpen(false); }} style={{
+                    <div onClick={() => { setShowClubPages(true); setSidebarOpen(false); router.replace('/hub/social-media?view=club-pages', undefined, { shallow: true }); }} style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
                         background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1', cursor: 'pointer'
                     }}>
@@ -4688,7 +4695,7 @@ export default function SocialMediaPage() {
                                 setSearch={setClubPagesSearch}
                                 followingIds={clubPagesFollowing}
                                 setFollowingIds={setClubPagesFollowing}
-                                onClose={() => setShowClubPages(false)}
+                                onClose={() => { setShowClubPages(false); router.replace('/hub/social-media', undefined, { shallow: true }); }}
                                 onViewLiveGames={setViewingLiveGamesPage}
                             />
                         </>
@@ -4700,7 +4707,7 @@ export default function SocialMediaPage() {
                         {user && <StoriesBar userId={user.id} userAvatar={user.avatar} />}
 
                         {/* Post Creator */}
-                        {user && <PostCreator user={user} onPost={handlePost} isPosting={isPosting} onGoLive={() => setShowGoLiveModal(true)} onOpenClubPages={() => setShowClubPages(true)} />}
+                        {user && <PostCreator user={user} onPost={handlePost} isPosting={isPosting} onGoLive={() => setShowGoLiveModal(true)} onOpenClubPages={() => { setShowClubPages(true); router.replace('/hub/social-media?view=club-pages', undefined, { shallow: true }); }} />}
 
                         {/* Login prompt */}
                         {!user && (
