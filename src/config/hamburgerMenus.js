@@ -646,7 +646,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('My Friends', '/hub/friends'),
             createMenuItem.navigation('Notifications', '/hub/notifications'),
             createMenuItem.divider(),
-            createMenuItem.action('🤝 Refer a Friend — Copy Link', () => copyReferralLink(user), null, false, true)
+            { type: 'action', label: '🤝 Invite Friends', openInviteModal: true, closeOnClick: false }
         ],
         bottomLinks: [
             { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings }
@@ -666,7 +666,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Lives', '/hub/lives'),
             createMenuItem.navigation('Video Library', '/hub/video-library'),
             createMenuItem.divider(),
-            createMenuItem.action('🤝 Refer a Friend — Copy Link', () => copyReferralLink(user), null, false, true)
+            { type: 'action', label: '🤝 Invite Friends', openInviteModal: true, closeOnClick: false }
         ],
         bottomLinks: [
             { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings }
@@ -871,13 +871,13 @@ export function getMenuConfig(worldKey, user, state = {}, handlers = {}) {
     // Skip if the config already has a referral item in menuItems or bottomLinks
     if (user && result.bottomLinks) {
         const alreadyHasReferral =
-            (result.menuItems || []).some(i => i?.label?.includes?.('Refer a Friend')) ||
-            result.bottomLinks.some(l => l?.label?.includes?.('Refer a Friend'));
+            (result.menuItems || []).some(i => i?.label?.includes?.('Refer a Friend') || i?.label?.includes?.('Invite Friends') || i?.openInviteModal) ||
+            result.bottomLinks.some(l => l?.label?.includes?.('Refer a Friend') || l?.label?.includes?.('Invite Friends') || l?.openInviteModal);
         if (!alreadyHasReferral) {
             const referralItem = {
-                label: '🤝 Refer a Friend — Copy Link',
+                label: '🤝 Invite Friends',
                 action: true,
-                onClick: () => copyReferralLink(user),
+                openInviteModal: true,
             };
             // Add before the last item (usually Settings)
             const settingsIdx = result.bottomLinks.findIndex(l => l.label === 'Settings');

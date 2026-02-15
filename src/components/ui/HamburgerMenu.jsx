@@ -6,9 +6,10 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import InviteFriendsModal from './InviteFriendsModal';
 
 export default function HamburgerMenu({
     isOpen,
@@ -24,6 +25,7 @@ export default function HamburgerMenu({
     width = 320
 }) {
     const router = useRouter();
+    const [showInviteModal, setShowInviteModal] = useState(false);
 
     // Close on ESC key
     useEffect(() => {
@@ -171,6 +173,10 @@ export default function HamburgerMenu({
                     <button
                         key={index}
                         onClick={() => {
+                            if (item.openInviteModal) {
+                                setShowInviteModal(true);
+                                return;
+                            }
                             if (item.onClick) item.onClick();
                             if (item.closeOnClick !== false) onClose();
                         }}
@@ -422,12 +428,16 @@ export default function HamburgerMenu({
                                 fontFamily: 'inherit',
                             };
 
-                            if (link.action && link.onClick) {
+                            if (link.action || link.openInviteModal) {
                                 return (
                                     <button
                                         key={index}
                                         onClick={() => {
-                                            link.onClick();
+                                            if (link.openInviteModal) {
+                                                setShowInviteModal(true);
+                                                return;
+                                            }
+                                            if (link.onClick) link.onClick();
                                             onClose();
                                         }}
                                         style={{
@@ -460,6 +470,13 @@ export default function HamburgerMenu({
                     </div>
                 )}
             </div>
+
+            {/* Invite Friends Modal */}
+            <InviteFriendsModal
+                isOpen={showInviteModal}
+                onClose={() => setShowInviteModal(false)}
+                user={user}
+            />
 
             {/* CSS for animations */}
             <style jsx global>{`

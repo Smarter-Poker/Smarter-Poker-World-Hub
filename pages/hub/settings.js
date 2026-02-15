@@ -22,6 +22,7 @@ import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
+import InviteFriendsModal from '../../src/components/ui/InviteFriendsModal';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TOGGLE SWITCH COMPONENT
@@ -97,6 +98,7 @@ export default function SettingsPage() {
     // Hamburger Menu State
     const [menuOpen, setMenuOpen] = useState(false);
     const [referralCopied, setReferralCopied] = useState(false);
+    const [showInviteModal, setShowInviteModal] = useState(false);
 
     //  Use context user or localStorage fallback
     const user = contextUser || localUser;
@@ -825,6 +827,30 @@ export default function SettingsPage() {
                                             }}
                                         >
                                             🔗 Copy Referral Link
+                                        </button>
+                                        {/* Invite Friends Button */}
+                                        <button
+                                            onClick={() => setShowInviteModal(true)}
+                                            style={{
+                                                width: '100%',
+                                                padding: '14px 20px',
+                                                background: 'linear-gradient(135deg, #8B5CF6, #06B6D4)',
+                                                border: 'none',
+                                                borderRadius: 10,
+                                                color: '#fff',
+                                                fontSize: 14,
+                                                fontWeight: 600,
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: 8,
+                                                boxShadow: '0 4px 20px rgba(139, 92, 246, 0.3)',
+                                                transition: 'all 0.3s ease',
+                                                marginTop: 10,
+                                            }}
+                                        >
+                                            📲 Invite Friends — Share via Social, Email & SMS
                                         </button>
                                         <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 10, textAlign: 'center' }}>
                                             Friends enter your code during signup, you earn 500💎 each time!
@@ -1752,6 +1778,13 @@ export default function SettingsPage() {
                     </div>
                 </div>
             )}
+
+            {/* Invite Friends Modal */}
+            <InviteFriendsModal
+                isOpen={showInviteModal}
+                onClose={() => setShowInviteModal(false)}
+                user={user}
+            />
         </PageTransition>
     );
 }

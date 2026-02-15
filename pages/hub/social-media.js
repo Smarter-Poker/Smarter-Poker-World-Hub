@@ -59,7 +59,7 @@ import LiveStreamService from '../../src/services/LiveStreamService';
 import ArticleCard, { ArticleCardFromPost, getPostMediaType } from '../../src/components/social/ArticleCard';
 import ArticleReaderModal from '../../src/components/social/ArticleReaderModal';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
-import { copyReferralLink } from '../../src/config/hamburgerMenus';
+import InviteFriendsModal from '../../src/components/ui/InviteFriendsModal';
 
 // God-Mode Stack
 import { useSocialStore } from '../../src/stores/socialStore';
@@ -3095,6 +3095,7 @@ export default function SocialMediaPage() {
     const [openChats, setOpenChats] = useState([]);
     const [chatMsgs, setChatMsgs] = useState({});
     // showMoreMenu state removed — all sidebar items now always visible
+    const [showInviteModal, setShowInviteModal] = useState(false);
     const [isPosting, setIsPosting] = useState(false);
     const [bottomNavVisible, setBottomNavVisible] = useState(true);
     const [notifications, setNotifications] = useState([]);
@@ -4412,9 +4413,11 @@ export default function SocialMediaPage() {
                     </Link>
                     <button
                         onClick={() => {
-                            if (user) copyReferralLink(user);
-                            else alert('Please log in to use referral links.');
-                            setSidebarOpen(false);
+                            if (!user) {
+                                alert('Please log in to invite friends.');
+                                return;
+                            }
+                            setShowInviteModal(true);
                         }}
                         style={{
                             padding: '12px 0', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
@@ -4423,7 +4426,7 @@ export default function SocialMediaPage() {
                         }}
                     >
                         <span style={{ fontSize: 20, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🤝</span>
-                        <span style={{ flex: 1, fontSize: 15 }}>Refer a Friend — Copy Link</span>
+                        <span style={{ flex: 1, fontSize: 15 }}>Invite Friends</span>
                         <span style={{ color: C.textSec }}>›</span>
                     </button>
                     <Link href="/hub/settings" onClick={() => setSidebarOpen(false)} style={{
@@ -4980,6 +4983,13 @@ export default function SocialMediaPage() {
                     onClose={() => setArticleReader({ open: false, url: null, title: null })}
                 />
             )}
+
+            {/* Invite Friends Modal */}
+            <InviteFriendsModal
+                isOpen={showInviteModal}
+                onClose={() => setShowInviteModal(false)}
+                user={user}
+            />
         </PageTransition>
     );
 }

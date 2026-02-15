@@ -415,7 +415,7 @@ export default function UniversalHeader({
                 }
 
                 .header-nav-btn img {
-                    filter: hue-rotate(170deg) saturate(1.4) brightness(1.15);
+                    /* No filter — render buttons at native colors for solid black interior */
                 }
                 
                 .brand-text {
