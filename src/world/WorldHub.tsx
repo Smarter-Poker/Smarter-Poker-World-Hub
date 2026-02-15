@@ -424,7 +424,8 @@ export default function WorldHub() {
             const stored = localStorage.getItem('commander_staff');
             if (stored) {
                 const parsed = JSON.parse(stored);
-                if (parsed?.venue_id) setHasCommanderAccount(true);
+                // Accept any valid staff record — venue_id may be null for owners without a venue
+                if (parsed?.id || parsed?.venue_id || parsed?.role) setHasCommanderAccount(true);
             }
         } catch { }
     }, []);

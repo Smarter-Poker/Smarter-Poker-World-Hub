@@ -1682,6 +1682,8 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
     const [showCreateGame, setShowCreateGame] = useState(false);
     const [newGameForm, setNewGameForm] = useState({ game_name: '', game_type: 'NLH', stakes: '1/2', max_seats: 9, table_number: '', notes: '' });
     const [creatingGame, setCreatingGame] = useState(false);
+    const [pendingFollowers, setPendingFollowers] = useState([]);
+    const [pageType, setPageType] = useState((page.metadata || {}).page_type || 'club');
 
     // Fetch live games
     useEffect(() => {
@@ -1695,11 +1697,34 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
                 } catch (e) { console.error('Games fetch error:', e); }
                 setLoadingGames(false);
             };
+            const fetchPending = async () => {
+                try {
+                    const res = await fetch(`/api/social/pages/follow?page_id=${page.id}`);
+                    const json = await res.json();
+                    if (json.success) setPendingFollowers((json.data || []).filter(f => f.status === 'pending'));
+                } catch (e) { console.error('Pending fetch error:', e); }
+            };
             fetchGames();
-            const interval = setInterval(fetchGames, 15000);
+            fetchPending();
+            const interval = setInterval(() => { fetchGames(); fetchPending(); }, 15000);
             return () => clearInterval(interval);
         }
     }, [activeTab, page.id]);
+
+    const handleApproveFollower = async (followerId, action) => {
+        try {
+            await fetch('/api/social/pages/follow', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ page_id: page.id, user_id: userId, action, follower_id: followerId }),
+            });
+            setPendingFollowers(prev => prev.filter(f => f.user_id !== followerId));
+        } catch (e) { console.error('Approve/reject error:', e); }
+    };
+
+    const handlePageTypeChange = async (newType) => {
+        setPageType(newType);
+        await saveMetadata({ page_type: newType }, 'Page type updated!');
+    };
 
     const handleCreateGame = async () => {
         if (!newGameForm.game_name.trim()) return;
@@ -2193,6 +2218,41 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
                         </button>
                     </div>
 
+                    {/* Page Type Selector */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, padding: '8px 12px', borderRadius: 8, background: '#f5f5f5', border: '1px solid #e4e6eb' }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Page Type:</span>
+                        {['club', 'home_game', 'charity'].map(t => (
+                            <button key={t} onClick={() => handlePageTypeChange(t)} style={{
+                                padding: '4px 12px', borderRadius: 6, border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                                background: pageType === t ? (t === 'home_game' ? '#f59e0b' : '#1877F2') : '#E4E6EB',
+                                color: pageType === t ? '#fff' : C.text
+                            }}>{t === 'club' ? '🏢 Club' : t === 'home_game' ? '🏠 Home Game' : '💝 Charity'}</button>
+                        ))}
+                        {pageType === 'home_game' && <span style={{ fontSize: 11, color: '#92400e', fontWeight: 600 }}>🔒 Followers require approval</span>}
+                    </div>
+
+                    {/* Pending Approval Requests */}
+                    {pendingFollowers.length > 0 && (
+                        <div style={{ marginBottom: 12, borderRadius: 10, border: '2px solid #f59e0b', background: '#fffbeb', padding: 12 }}>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: '#92400e', marginBottom: 8 }}>⏳ Pending Follow Requests ({pendingFollowers.length})</div>
+                            {pendingFollowers.map(f => (
+                                <div key={f.user_id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #fde68a' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#fed7aa', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>👤</div>
+                                        <div>
+                                            <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{f.profile?.full_name || f.profile?.username || 'Unknown'}</div>
+                                            <div style={{ fontSize: 11, color: C.textSec }}>{f.profile?.username ? `@${f.profile.username}` : `Requested ${new Date(f.created_at).toLocaleDateString()}`}</div>
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 6 }}>
+                                        <button onClick={() => handleApproveFollower(f.user_id, 'approve')} style={{ padding: '4px 14px', borderRadius: 6, border: 'none', background: '#22c55e', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>✓ Approve</button>
+                                        <button onClick={() => handleApproveFollower(f.user_id, 'reject')} style={{ padding: '4px 14px', borderRadius: 6, border: 'none', background: '#ef4444', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>✕ Reject</button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
                     {/* Create Game Form */}
                     {showCreateGame && (
                         <div style={{ background: '#f5f5f5', borderRadius: 10, padding: 12, marginBottom: 12, border: '1px solid #e4e6eb' }}>
@@ -2380,6 +2440,22 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
     const [loading, setLoading] = useState(true);
     const [playerName, setPlayerName] = useState(userName || '');
     const [actionMsg, setActionMsg] = useState('');
+    const [followStatus, setFollowStatus] = useState(null); // null = not checked, 'none' | 'pending' | 'approved'
+    const [followLoading, setFollowLoading] = useState(true);
+
+    // Check follow status
+    const checkFollowStatus = async () => {
+        if (!userId) { setFollowStatus('none'); setFollowLoading(false); return; }
+        try {
+            const res = await fetch(`/api/social/pages/follow?page_id=${pageId}`);
+            const json = await res.json();
+            if (json.success) {
+                const myFollow = (json.data || []).find(f => f.user_id === userId);
+                setFollowStatus(myFollow ? (myFollow.status || 'approved') : 'none');
+            } else { setFollowStatus('none'); }
+        } catch { setFollowStatus('none'); }
+        setFollowLoading(false);
+    };
 
     const fetchGames = async () => {
         try {
@@ -2391,12 +2467,32 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
     };
 
     useEffect(() => {
+        checkFollowStatus();
         fetchGames();
         const interval = setInterval(fetchGames, 15000);
         return () => clearInterval(interval);
     }, [pageId]);
 
     const showMsg = (msg) => { setActionMsg(msg); setTimeout(() => setActionMsg(''), 3000); };
+
+    const handleFollow = async () => {
+        if (!userId) { showMsg('You must be logged in to follow this page'); return; }
+        setFollowLoading(true);
+        try {
+            const res = await fetch('/api/social/pages/follow', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ page_id: pageId, user_id: userId, action: 'follow' }),
+            });
+            const json = await res.json();
+            if (json.success) {
+                const newStatus = json.status || 'approved';
+                setFollowStatus(newStatus);
+                if (newStatus === 'pending') showMsg('Follow request sent! Waiting for approval.');
+                else showMsg('You are now following this page!');
+            } else { showMsg(json.error || 'Could not follow page'); }
+        } catch { showMsg('Error following page'); }
+        setFollowLoading(false);
+    };
 
     const handleTakeSeat = async (gameId, seatNumber) => {
         if (!playerName.trim()) { showMsg('Please enter your name first'); return; }
@@ -2435,6 +2531,8 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
         } catch (e) { showMsg('Error leaving game'); }
     };
 
+    const canInteract = followStatus === 'approved';
+
     return (
         <div style={{ paddingBottom: 8 }}>
             {/* Header */}
@@ -2446,12 +2544,37 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                     </div>
                     {onClose && <button onClick={onClose} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.15)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>← Back</button>}
                 </div>
-                {/* Player Name Input */}
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <label style={{ fontSize: 12, fontWeight: 600, opacity: 0.8 }}>Your Name:</label>
-                    <input value={playerName} onChange={e => setPlayerName(e.target.value)} placeholder="Enter your name to sign up" style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: 14, fontFamily: 'inherit', outline: 'none' }} />
-                </div>
-                {actionMsg && <div style={{ marginTop: 8, padding: '6px 12px', borderRadius: 6, background: actionMsg.includes('Error') || actionMsg.includes('Please') || actionMsg.includes('Could not') ? 'rgba(240,40,73,0.2)' : 'rgba(34,197,94,0.2)', fontSize: 13, fontWeight: 600 }}>{actionMsg}</div>}
+
+                {/* Follow Status Banner */}
+                {followLoading ? (
+                    <div style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.1)', fontSize: 13 }}>Checking access...</div>
+                ) : followStatus === 'none' ? (
+                    <div style={{ padding: '10px 14px', borderRadius: 8, background: 'rgba(24,119,242,0.3)', border: '1px solid rgba(24,119,242,0.5)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div>
+                                <div style={{ fontSize: 14, fontWeight: 700 }}>Follow to Play</div>
+                                <div style={{ fontSize: 12, opacity: 0.8 }}>You must follow this page before you can sign up for games.</div>
+                            </div>
+                            <button onClick={handleFollow} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#1877F2', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+                                {!userId ? '🔒 Sign In' : '➕ Follow Page'}
+                            </button>
+                        </div>
+                    </div>
+                ) : followStatus === 'pending' ? (
+                    <div style={{ padding: '10px 14px', borderRadius: 8, background: 'rgba(245,158,11,0.2)', border: '1px solid rgba(245,158,11,0.5)' }}>
+                        <div style={{ fontSize: 14, fontWeight: 700 }}>⏳ Follow Request Pending</div>
+                        <div style={{ fontSize: 12, opacity: 0.85 }}>The host needs to approve your request before you can sign up for games. Check back soon!</div>
+                    </div>
+                ) : (
+                    <>
+                        {/* Player Name Input — only for approved followers */}
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                            <label style={{ fontSize: 12, fontWeight: 600, opacity: 0.8 }}>Your Name:</label>
+                            <input value={playerName} onChange={e => setPlayerName(e.target.value)} placeholder="Enter your name to sign up" style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: 14, fontFamily: 'inherit', outline: 'none' }} />
+                        </div>
+                    </>
+                )}
+                {actionMsg && <div style={{ marginTop: 8, padding: '6px 12px', borderRadius: 6, background: actionMsg.includes('Error') || actionMsg.includes('Please') || actionMsg.includes('Could not') || actionMsg.includes('must') ? 'rgba(240,40,73,0.2)' : 'rgba(34,197,94,0.2)', fontSize: 13, fontWeight: 600 }}>{actionMsg}</div>}
             </div>
 
             {/* Games */}
@@ -2498,6 +2621,14 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
 
                                 {/* Seat Selection Grid */}
                                 <div style={{ padding: 16 }}>
+                                    {!canInteract && (
+                                        <div style={{ padding: '10px 14px', borderRadius: 8, background: '#fff7ed', border: '1px solid #fed7aa', marginBottom: 10, textAlign: 'center' }}>
+                                            <span style={{ fontSize: 13, fontWeight: 600, color: '#92400e' }}>
+                                                {followStatus === 'pending' ? '⏳ Approval pending — you can view but not join yet' : '🔒 Follow this page to sign up for games'}
+                                            </span>
+                                        </div>
+                                    )}
+
                                     {myReservation && (
                                         <div style={{ marginBottom: 10, padding: '8px 12px', borderRadius: 8, background: myReservation.status === 'waitlist' ? '#fffbeb' : '#f0fdf4', border: `1px solid ${myReservation.status === 'waitlist' ? '#fde68a' : '#86efac'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                             <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
@@ -2510,20 +2641,21 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                     )}
 
                                     <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 8 }}>
-                                        {openSeats > 0 ? 'Click a seat to reserve it:' : 'All seats taken — join the waitlist!'}
+                                        {!canInteract ? 'Current seat map:' : openSeats > 0 ? 'Click a seat to reserve it:' : 'All seats taken — join the waitlist!'}
                                     </div>
 
                                     {/* Seat Grid */}
                                     <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(game.max_seats, 5)}, 1fr)`, gap: 6 }}>
                                         {seatArr.map(seat => (
-                                            <button key={seat.number} onClick={() => !seat.taken && !myReservation && handleTakeSeat(game.id, seat.number)} disabled={!!seat.taken || !!myReservation} style={{
-                                                padding: '10px 6px', borderRadius: 8, textAlign: 'center', cursor: seat.taken || myReservation ? 'default' : 'pointer',
-                                                background: seat.taken ? (seat.taken.player_name === playerName.trim() ? '#dbeafe' : '#fee2e2') : '#f0fdf4',
-                                                border: `2px solid ${seat.taken ? (seat.taken.player_name === playerName.trim() ? '#3b82f6' : '#fca5a5') : '#86efac'}`,
+                                            <button key={seat.number} onClick={() => canInteract && !seat.taken && !myReservation && handleTakeSeat(game.id, seat.number)} disabled={!canInteract || !!seat.taken || !!myReservation} style={{
+                                                padding: '10px 6px', borderRadius: 8, textAlign: 'center',
+                                                cursor: canInteract && !seat.taken && !myReservation ? 'pointer' : 'default',
+                                                background: seat.taken ? (seat.taken.player_name === playerName.trim() ? '#dbeafe' : '#fee2e2') : canInteract ? '#f0fdf4' : '#f5f5f5',
+                                                border: `2px solid ${seat.taken ? (seat.taken.player_name === playerName.trim() ? '#3b82f6' : '#fca5a5') : canInteract ? '#86efac' : '#d4d4d4'}`,
                                                 transition: 'all 0.15s', fontFamily: 'inherit',
-                                                transform: !seat.taken && !myReservation ? undefined : undefined,
+                                                opacity: canInteract ? 1 : 0.7,
                                             }}
-                                                onMouseEnter={e => { if (!seat.taken && !myReservation) e.target.style.transform = 'scale(1.05)'; }}
+                                                onMouseEnter={e => { if (canInteract && !seat.taken && !myReservation) e.target.style.transform = 'scale(1.05)'; }}
                                                 onMouseLeave={e => { e.target.style.transform = 'scale(1)'; }}
                                             >
                                                 <div style={{ fontSize: 10, fontWeight: 600, color: C.textSec }}>Seat {seat.number}</div>
@@ -2532,7 +2664,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                                         {seat.taken.player_name === playerName.trim() ? '⭐ YOU' : seat.taken.player_name}
                                                     </div>
                                                 ) : (
-                                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#22c55e' }}>🪑 OPEN</div>
+                                                    <div style={{ fontSize: 12, fontWeight: 700, color: canInteract ? '#22c55e' : '#a3a3a3' }}>🪑 OPEN</div>
                                                 )}
                                             </button>
                                         ))}
@@ -2543,7 +2675,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                         <div style={{ fontSize: 12, color: C.textSec }}>
                                             {waitlist.length > 0 && <span style={{ fontWeight: 600, color: '#f59e0b' }}>📋 Waitlist: {waitlist.map(w => w.player_name).join(', ')}</span>}
                                         </div>
-                                        {!myReservation && (
+                                        {canInteract && !myReservation && (
                                             <button onClick={() => handleJoinWaitlist(game.id)} style={{ padding: '6px 16px', borderRadius: 8, border: 'none', background: '#f59e0b', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Join Waitlist</button>
                                         )}
                                     </div>
