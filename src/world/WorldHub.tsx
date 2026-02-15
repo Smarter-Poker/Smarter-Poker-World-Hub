@@ -418,7 +418,7 @@ export default function WorldHub() {
     const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
     const [hasCommanderAccount, setHasCommanderAccount] = useState(false);
 
-    // Check if user has a Commander account
+    // Check if user has a Commander account — localStorage first for instant display
     useEffect(() => {
         try {
             const stored = localStorage.getItem('commander_staff');
@@ -435,7 +435,7 @@ export default function WorldHub() {
         return [COMMANDER_ORB, ...POKER_IQ_ORBS];
     }, [hasCommanderAccount]);
 
-    // Fetch user profile data including avatar
+    // Fetch user profile data including avatar + Commander account detection via Supabase
     useEffect(() => {
         const fetchUserProfile = async () => {
             try {
@@ -445,6 +445,8 @@ export default function WorldHub() {
 
                 if (user) {
                     const { supabase } = await import('../lib/supabase');
+
+                    // Fetch profile avatar
                     const { data: profile } = await supabase
                         .from('profiles')
                         .select('avatar_url')
@@ -452,6 +454,35 @@ export default function WorldHub() {
                         .maybeSingle();
                     if (profile?.avatar_url) {
                         setUserAvatarUrl(profile.avatar_url);
+                    }
+
+                    // 🔑 Commander account detection — query Supabase if localStorage didn't have it
+                    if (!hasCommanderAccount) {
+                        try {
+                            const { data: staffRecords } = await supabase
+                                .from('commander_staff')
+                                .select('id, venue_id, role, poker_venues(id, name)')
+                                .eq('user_id', user.id)
+                                .eq('is_active', true)
+                                .limit(1);
+
+                            if (staffRecords && staffRecords.length > 0) {
+                                const record = staffRecords[0];
+                                setHasCommanderAccount(true);
+                                // Backfill localStorage so future visits are instant
+                                try {
+                                    localStorage.setItem('commander_staff', JSON.stringify({
+                                        id: record.id,
+                                        venue_id: record.venue_id,
+                                        role: record.role,
+                                        venue_name: (record as any).poker_venues?.name || 'My Venue',
+                                    }));
+                                    console.log('[WorldHub] 🏢 Commander account detected via Supabase — backfilled localStorage');
+                                } catch { }
+                            }
+                        } catch (e) {
+                            console.warn('[WorldHub] Commander check failed (non-critical):', e);
+                        }
                     }
                 }
             } catch (e) {

@@ -77,10 +77,34 @@ export default async function handler(req, res) {
         const { action } = req.body;
 
         // === SEAT ACTIONS ===
+        // Helper: check follow status before allowing seat/waitlist actions
+        const checkFollowStatus = async (game_id, player_id) => {
+            if (!player_id) return { allowed: false, reason: 'You must be logged in to join a game' };
+            // Get the page_id for this game
+            const { data: game } = await supabase
+                .from('club_live_games').select('page_id').eq('id', game_id).single();
+            if (!game) return { allowed: false, reason: 'Game not found' };
+            // Check if player follows the page
+            const { data: follow } = await supabase
+                .from('social_page_followers')
+                .select('status')
+                .eq('page_id', game.page_id).eq('user_id', player_id)
+                .single();
+            if (!follow) return { allowed: false, reason: 'You must follow this page to join a game', code: 'NOT_FOLLOWING' };
+            if (follow.status === 'pending') return { allowed: false, reason: 'Your follow request is pending approval', code: 'PENDING_APPROVAL' };
+            return { allowed: true };
+        };
+
         if (action === 'take_seat') {
             const { game_id, seat_number, player_id, player_name } = req.body;
             if (!game_id || !seat_number || !player_name) {
                 return res.status(400).json({ error: 'game_id, seat_number, and player_name required' });
+            }
+
+            // Follow-gate: must be an approved follower
+            const followCheck = await checkFollowStatus(game_id, player_id);
+            if (!followCheck.allowed) {
+                return res.status(403).json({ error: followCheck.reason, code: followCheck.code });
             }
 
             // Check seat is available
@@ -119,6 +143,12 @@ export default async function handler(req, res) {
             const { game_id, player_id, player_name } = req.body;
             if (!game_id || !player_name) {
                 return res.status(400).json({ error: 'game_id and player_name required' });
+            }
+
+            // Follow-gate: must be an approved follower
+            const followCheck = await checkFollowStatus(game_id, player_id);
+            if (!followCheck.allowed) {
+                return res.status(403).json({ error: followCheck.reason, code: followCheck.code });
             }
 
             // Get current max waitlist position

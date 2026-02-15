@@ -17,10 +17,33 @@ export default async function handler(req, res) {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     if (req.method === 'POST') {
-        const { page_id, user_id, action } = req.body;
+        const { page_id, user_id, action, follower_id } = req.body;
 
         if (!page_id || !user_id) {
             return res.status(400).json({ error: 'page_id and user_id required' });
+        }
+
+        // === Approve/Reject (Commander actions) ===
+        if (action === 'approve' || action === 'reject') {
+            if (!follower_id) return res.status(400).json({ error: 'follower_id required' });
+            if (action === 'approve') {
+                const { data, error } = await supabase
+                    .from('social_page_followers')
+                    .update({ status: 'approved' })
+                    .eq('page_id', page_id)
+                    .eq('user_id', follower_id)
+                    .select().single();
+                if (error) return res.status(500).json({ error: error.message });
+                return res.status(200).json({ success: true, data });
+            } else {
+                const { error } = await supabase
+                    .from('social_page_followers')
+                    .delete()
+                    .eq('page_id', page_id)
+                    .eq('user_id', follower_id);
+                if (error) return res.status(500).json({ error: error.message });
+                return res.status(200).json({ success: true });
+            }
         }
 
         if (action === 'unfollow') {
@@ -34,6 +57,16 @@ export default async function handler(req, res) {
             return res.status(200).json({ success: true, following: false });
         }
 
+        // Determine if page requires approval (home_game type)
+        let requiresApproval = false;
+        const { data: pageData } = await supabase
+            .from('social_pages').select('metadata').eq('id', page_id).single();
+        if (pageData?.metadata?.page_type === 'home_game') {
+            requiresApproval = true;
+        }
+
+        const followStatus = requiresApproval ? 'pending' : 'approved';
+
         // Follow
         const { data, error } = await supabase
             .from('social_page_followers')
@@ -41,13 +74,14 @@ export default async function handler(req, res) {
                 page_id,
                 user_id,
                 role: 'follower',
+                status: followStatus,
                 notifications_enabled: true
             }, { onConflict: 'page_id,user_id' })
             .select()
             .single();
 
         if (error) return res.status(500).json({ error: error.message });
-        return res.status(201).json({ success: true, following: true, data });
+        return res.status(201).json({ success: true, following: true, status: followStatus, pending: requiresApproval, data });
 
     } else if (req.method === 'GET') {
         const { page_id, user_id, role } = req.query;
@@ -56,7 +90,7 @@ export default async function handler(req, res) {
             // Get followers for a page
             let query = supabase
                 .from('social_page_followers')
-                .select('id, user_id, role, notifications_enabled, created_at')
+                .select('id, user_id, role, status, notifications_enabled, created_at')
                 .eq('page_id', page_id);
 
             if (role) query = query.eq('role', role);
