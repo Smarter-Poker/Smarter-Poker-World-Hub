@@ -723,7 +723,7 @@ export default function SettingsPage() {
                                             <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13 }}>
                                                 Diamonds Free users get 1 custom avatar.
                                                 <a
-                                                    href="/hub/vip"
+                                                    href="/hub/diamond-store"
                                                     style={{
                                                         color: '#FFD700',
                                                         fontWeight: 600,

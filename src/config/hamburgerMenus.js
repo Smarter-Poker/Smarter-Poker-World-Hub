@@ -707,7 +707,7 @@ export const MENU_CONFIGS = {
         menuItems: [
             createMenuItem.section('Promotions'),
             createMenuItem.navigation('All Promotions', '/hub/promotions'),
-            createMenuItem.navigation('VIP Offers', '/hub/vip'),
+            createMenuItem.navigation('VIP Offers', '/hub/diamond-store?tab=vip'),
             createMenuItem.divider(),
             createMenuItem.section('Quick Links'),
             createMenuItem.navigation('Diamond Store', '/hub/diamond-store'),
@@ -718,21 +718,7 @@ export const MENU_CONFIGS = {
         ]
     }),
 
-    'vip': (user, state, handlers) => ({
-        menuItems: [
-            createMenuItem.section('VIP Membership'),
-            createMenuItem.navigation('Current Plan', '/hub/vip'),
-            createMenuItem.navigation('Benefits', '/hub/vip#benefits'),
-            createMenuItem.navigation('Upgrade', '/hub/vip#upgrade'),
-            createMenuItem.divider(),
-            createMenuItem.section('Quick Links'),
-            createMenuItem.navigation('Diamond Store', '/hub/diamond-store'),
-            createMenuItem.navigation('Promotions', '/hub/promotions')
-        ],
-        bottomLinks: [
-            { label: 'Help', href: '/hub/help', icon: MenuIcons.help }
-        ]
-    }),
+
 
     'help': (user, state, handlers) => ({
         menuItems: [
