@@ -1645,7 +1645,7 @@ const CATEGORY_LABELS = { poker_room: 'Poker Room', casino: 'Casino', card_club:
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const DAY_LABELS = { monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 'Thu', friday: 'Fri', saturday: 'Sat', sunday: 'Sun' };
 
-function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
+function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive }) {
     const [activeTab, setActiveTab] = useState('posts');
     const [posts, setPosts] = useState([]);
     const [loadingPosts, setLoadingPosts] = useState(true);
@@ -1891,7 +1891,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
         setPosting(true);
         try {
             const mediaUrls = postMedia.map(m => m.url);
-            const contentType = postMedia.some(m => m.type === 'video') ? 'video' : (postMedia.length > 0 ? 'photo' : 'text');
+            const contentType = postMedia.some(m => m.type === 'video') ? 'video' : (postMedia.length > 0 ? 'image' : 'text');
             console.log('[ClubPage] Posting:', { page_id: page.id, author_id: userId, content: postContent.trim().substring(0, 50), contentType, mediaUrls });
             const res = await fetch('/api/social/pages/posts', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1983,7 +1983,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
                             onClick={() => logoInputRef.current?.click()}
                             title="Click to upload logo"
                             style={{
-                                width: 72, height: 72, borderRadius: 12, background: '#fff',
+                                width: 80, height: 80, borderRadius: '50%', background: '#fff',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 fontSize: 30, fontWeight: 800, color: '#1877F2', border: '3px solid #fff',
                                 boxShadow: '0 2px 8px rgba(0,0,0,0.2)', cursor: 'pointer',
@@ -1991,19 +1991,20 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
                             }}
                         >
                             {logoUrl ? (
-                                <img src={logoUrl} alt={page.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                <img src={logoUrl} alt={page.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
                             ) : (
                                 (page.name || 'C')[0].toUpperCase()
                             )}
                             <div style={{
-                                position: 'absolute', bottom: 0, left: 0, right: 0, height: 22,
-                                background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                position: 'absolute', bottom: 2, right: 2, width: 24, height: 24, borderRadius: '50%',
+                                background: '#1877F2', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                border: '2px solid #fff', boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
                             }}>
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" />
                                 </svg>
                             </div>
-                            {logoUploading && <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#1877F2' }}>...</div>}
+                            {logoUploading && <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#1877F2', borderRadius: '50%' }}>...</div>}
                         </div>
                         <div>
                             <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#fff', textShadow: '0 1px 6px rgba(0,0,0,0.4)' }}>{page.name}</h2>
@@ -2026,6 +2027,11 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
                         color: editingPage ? '#fff' : C.text,
                         fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
                     }}>Edit Page</button>
+                    {onGoLive && <button onClick={onGoLive} style={{
+                        padding: '8px 16px', borderRadius: 8, border: 'none', background: '#E4E6EB',
+                        color: '#E53935', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                        display: 'flex', alignItems: 'center', gap: 6
+                    }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#E53935', display: 'inline-block' }}></span>Go Live</button>}
                     <button onClick={() => window.open(`/club/${page.slug}`, '_blank')} style={{
                         padding: '8px 16px', borderRadius: 8, border: 'none', background: '#E4E6EB',
                         color: C.text, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginLeft: 'auto'
@@ -4818,6 +4824,7 @@ export default function SocialMediaPage() {
                             userId={user?.id}
                             onBack={() => setShowPageDashboard(false)}
                             onPageUpdated={(updated) => setMyClubPage(updated)}
+                            onGoLive={() => setShowGoLiveModal(true)}
                         />
                     )}
 
