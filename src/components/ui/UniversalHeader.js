@@ -415,7 +415,7 @@ export default function UniversalHeader({
                 }
 
                 .header-nav-btn img {
-                    filter: contrast(1.2);
+                    /* no filter - images are pre-processed */
                 }
                 
                 .brand-text {
