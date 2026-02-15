@@ -15,6 +15,7 @@ import { CarouselEngine } from './carousel/CarouselEngine';
 import { getFooterCards, recordCardVisit, triggerHaptic, getLastCarouselIndex, setLastCarouselIndex } from '../state/userPreferences';
 import { useWorldStore } from '../state/worldStore';
 import type { OrbConfig } from '../orbs/manifest/registry';
+import { COMMANDER_ORB } from '../orbs/manifest/registry';
 import { NeuronLights } from './components/NeuronLights';
 import { LaunchPad, useLaunchAnimation } from './components/LaunchPad';
 import { useCinematicIntro } from './components/CinematicIntro';
@@ -415,6 +416,24 @@ export default function WorldHub() {
     const [messageCount] = useState(0);
     const [notificationCount] = useState(0);
     const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
+    const [hasCommanderAccount, setHasCommanderAccount] = useState(false);
+
+    // Check if user has a Commander account
+    useEffect(() => {
+        try {
+            const stored = localStorage.getItem('commander_staff');
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                if (parsed?.venue_id) setHasCommanderAccount(true);
+            }
+        } catch { }
+    }, []);
+
+    // Build carousel orbs — inject Commander card at position 0 if user has account
+    const carouselOrbs = useMemo(() => {
+        if (!hasCommanderAccount) return undefined; // use default POKER_IQ_ORBS
+        return [COMMANDER_ORB, ...POKER_IQ_ORBS];
+    }, [hasCommanderAccount]);
 
     // Fetch user profile data including avatar
     useEffect(() => {
@@ -529,6 +548,12 @@ export default function WorldHub() {
         };
 
         const targetRoute = `/hub/${orbId}`;
+
+        // Commander card routes to commander dashboard, not /hub/
+        if (orbId === 'club-commander') {
+            router.push('/commander/dashboard');
+            return;
+        }
 
         // Immediately start prefetching the page while video plays
         router.prefetch(targetRoute);
@@ -744,6 +769,7 @@ export default function WorldHub() {
                             initialIndex={getLastCarouselIndex()}
                             onIndexChange={setLastCarouselIndex}
                             isIntroComplete={isIntroComplete}
+                            orbs={carouselOrbs}
                         />
                     </Suspense>
                 </Canvas>

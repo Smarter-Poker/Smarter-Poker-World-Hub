@@ -29,6 +29,16 @@ export const POKER_IQ_ORBS: OrbConfig[] = [
     { id: 'video-library', color: '#ff4444', label: 'Video Library', gradient: ['#ff6666', '#cc3333'], imageUrl: '/cards/video-library.jpg', description: 'ENDLESS CONTENT — THOUSANDS OF HOURS OF CASH AND TOURNAMENT PLAY' },
 ];
 
+// Club Commander — only shown to users with a Commander account
+export const COMMANDER_ORB: OrbConfig = {
+    id: 'club-commander',
+    color: '#cc0000',
+    label: 'Club Commander',
+    gradient: ['#991111', '#440000'],
+    imageUrl: '/cards/club-commander.jpg',
+    description: 'MANAGE YOUR POKER ROOM — FULL COMMAND CENTER FOR YOUR VENUE',
+};
+
 // Utility exports
 export const ORB_COUNT = POKER_IQ_ORBS.length;
 export const getOrbById = (id: string) => POKER_IQ_ORBS.find(orb => orb.id === id);

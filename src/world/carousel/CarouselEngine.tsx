@@ -8,10 +8,9 @@
 import { useRef, useState, useCallback, useMemo, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Group } from 'three';
-import { POKER_IQ_ORBS } from '../../orbs/manifest/registry';
+import { POKER_IQ_ORBS, OrbConfig } from '../../orbs/manifest/registry';
 import { OrbCore } from './OrbCore';
 
-const TOTAL_ORBS = POKER_IQ_ORBS.length; // 11
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 🎠 SNAP CAROUSEL — MAIN EXPORT
@@ -21,9 +20,12 @@ interface CarouselEngineProps {
     initialIndex?: number;
     onIndexChange?: (index: number) => void;
     isIntroComplete?: boolean;
+    orbs?: OrbConfig[];
 }
 
-export function CarouselEngine({ onOrbSelect, initialIndex = 0, onIndexChange, isIntroComplete = true }: CarouselEngineProps) {
+export function CarouselEngine({ onOrbSelect, initialIndex = 0, onIndexChange, isIntroComplete = true, orbs }: CarouselEngineProps) {
+    const allOrbs = orbs || POKER_IQ_ORBS;
+    const TOTAL_ORBS = allOrbs.length;
     const groupRef = useRef<Group>(null);
     const [scrollPosition, setScrollPosition] = useState(initialIndex);
     const [targetPosition, setTargetPosition] = useState(initialIndex);
@@ -206,7 +208,7 @@ export function CarouselEngine({ onOrbSelect, initialIndex = 0, onIndexChange, i
 
             // Show 5 cards
             if (Math.abs(offset) <= 2.5) {
-                result.push({ config: POKER_IQ_ORBS[i], offset, index: i });
+                result.push({ config: allOrbs[i], offset, index: i });
             }
         }
 
