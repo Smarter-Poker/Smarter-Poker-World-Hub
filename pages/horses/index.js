@@ -42,6 +42,19 @@ export default function HorsesAdmin() {
     const [searchTerm, setSearchTerm] = useState('');
     const [filter, setFilter] = useState('all');
     const [showCreateModal, setShowCreateModal] = useState(false);
+
+    // Promo Code State
+    const [promoCodes, setPromoCodes] = useState([]);
+    const [promoLoading, setPromoLoading] = useState(false);
+    const [promoForm, setPromoForm] = useState({
+        code: '',
+        description: '',
+        type: 'signup_bonus',
+        value: 100,
+        maxUses: '',
+        expiresAt: '',
+    });
+    const [promoCreating, setPromoCreating] = useState(false);
     const [newPersona, setNewPersona] = useState({
         name: '',
         gender: 'male',
@@ -120,6 +133,29 @@ export default function HorsesAdmin() {
         } catch (err) {
             console.log('Using demo data');
             setPersonas(DEMO_PERSONAS);
+        }
+
+        // Load promo codes
+        await loadPromoCodes();
+    };
+
+    const loadPromoCodes = async () => {
+        setPromoLoading(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.access_token) return;
+
+            const res = await fetch('/api/promo/admin-promo-codes', {
+                headers: { 'Authorization': `Bearer ${session.access_token}` },
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setPromoCodes(data.codes || []);
+            }
+        } catch (err) {
+            console.error('Failed to load promo codes:', err);
+        } finally {
+            setPromoLoading(false);
         }
     };
 
@@ -331,6 +367,9 @@ export default function HorsesAdmin() {
                     </button>
                     <button className={activeTab === 'stats' ? styles.active : ''} onClick={() => setActiveTab('stats')}>
                         📊 Statistics
+                    </button>
+                    <button className={activeTab === 'promo' ? styles.active : ''} onClick={() => setActiveTab('promo')}>
+                        🎟️ Promo Codes
                     </button>
                 </nav>
 
@@ -794,6 +833,249 @@ export default function HorsesAdmin() {
                                         </div>
                                     ))}
                                 </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* PROMO CODES TAB */}
+                    {activeTab === 'promo' && (
+                        <div className={styles.statsView}>
+                            <h2>🎟️ Promo Code Manager</h2>
+
+                            {/* Stats Bar */}
+                            <div className={styles.statsOverview}>
+                                <div className={styles.statCardLarge}>
+                                    <span className={styles.statNumber}>{promoCodes.length}</span>
+                                    <span className={styles.statLabel}>Total Codes</span>
+                                </div>
+                                <div className={styles.statCardLarge}>
+                                    <span className={styles.statNumber}>{promoCodes.filter(c => c.is_active).length}</span>
+                                    <span className={styles.statLabel}>Active</span>
+                                </div>
+                                <div className={styles.statCardLarge}>
+                                    <span className={styles.statNumber}>{promoCodes.reduce((sum, c) => sum + c.current_uses, 0)}</span>
+                                    <span className={styles.statLabel}>Total Redemptions</span>
+                                </div>
+                            </div>
+
+                            {/* Create Promo Code Form */}
+                            <div className={styles.contentBreakdown} style={{ marginBottom: '24px' }}>
+                                <h3>Create New Promo Code</h3>
+                                <form onSubmit={async (e) => {
+                                    e.preventDefault();
+                                    setPromoCreating(true);
+                                    try {
+                                        const { data: { session } } = await supabase.auth.getSession();
+                                        const res = await fetch('/api/promo/admin-promo-codes', {
+                                            method: 'POST',
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                                'Authorization': `Bearer ${session.access_token}`,
+                                            },
+                                            body: JSON.stringify(promoForm),
+                                        });
+                                        const data = await res.json();
+                                        if (res.ok) {
+                                            showNotification(`Promo code ${data.code.code} created! 🎟️`);
+                                            setPromoForm({ code: '', description: '', type: 'signup_bonus', value: 100, maxUses: '', expiresAt: '' });
+                                            await loadPromoCodes();
+                                        } else {
+                                            showNotification(data.error || 'Failed to create code', 'error');
+                                        }
+                                    } catch (err) {
+                                        showNotification('Error creating code', 'error');
+                                    } finally {
+                                        setPromoCreating(false);
+                                    }
+                                }}>
+                                    <div className={styles.formRow} style={{ marginBottom: '12px' }}>
+                                        <div className={styles.formGroup}>
+                                            <label>Code (leave blank to auto-generate)</label>
+                                            <input
+                                                type="text"
+                                                value={promoForm.code}
+                                                onChange={e => setPromoForm({ ...promoForm, code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') })}
+                                                placeholder="Auto-generated"
+                                                maxLength={20}
+                                                style={{ textTransform: 'uppercase', letterSpacing: '2px' }}
+                                            />
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>Description</label>
+                                            <input
+                                                type="text"
+                                                value={promoForm.description}
+                                                onChange={e => setPromoForm({ ...promoForm, description: e.target.value })}
+                                                placeholder="e.g. Welcome bonus for new users"
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className={styles.formRow} style={{ marginBottom: '12px' }}>
+                                        <div className={styles.formGroup}>
+                                            <label>Type</label>
+                                            <select
+                                                value={promoForm.type}
+                                                onChange={e => setPromoForm({ ...promoForm, type: e.target.value })}
+                                            >
+                                                <option value="signup_bonus">Signup Bonus (Diamonds)</option>
+                                                <option value="diamonds">Diamond Bonus</option>
+                                                <option value="vip_trial">VIP Trial (Days)</option>
+                                            </select>
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>Value ({promoForm.type === 'vip_trial' ? 'Days' : 'Diamonds'})</label>
+                                            <input
+                                                type="number"
+                                                value={promoForm.value}
+                                                onChange={e => setPromoForm({ ...promoForm, value: parseInt(e.target.value) || 0 })}
+                                                min="1"
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className={styles.formRow} style={{ marginBottom: '16px' }}>
+                                        <div className={styles.formGroup}>
+                                            <label>Max Uses (blank = unlimited)</label>
+                                            <input
+                                                type="number"
+                                                value={promoForm.maxUses}
+                                                onChange={e => setPromoForm({ ...promoForm, maxUses: e.target.value })}
+                                                placeholder="Unlimited"
+                                                min="1"
+                                            />
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>Expires At (optional)</label>
+                                            <input
+                                                type="datetime-local"
+                                                value={promoForm.expiresAt}
+                                                onChange={e => setPromoForm({ ...promoForm, expiresAt: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+                                    <button type="submit" className={styles.btnSubmit} disabled={promoCreating} style={{ width: '100%' }}>
+                                        {promoCreating ? 'Creating...' : '🎟️ Create Promo Code'}
+                                    </button>
+                                </form>
+                            </div>
+
+                            {/* Active Codes Table */}
+                            <div className={styles.contentBreakdown}>
+                                <h3>All Promo Codes ({promoCodes.length})</h3>
+                                {promoLoading ? (
+                                    <p style={{ textAlign: 'center', padding: '20px', color: '#888' }}>Loading codes...</p>
+                                ) : promoCodes.length === 0 ? (
+                                    <p style={{ textAlign: 'center', padding: '20px', color: '#888' }}>No promo codes yet. Create one above!</p>
+                                ) : (
+                                    <div style={{ overflowX: 'auto' }}>
+                                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                                            <thead>
+                                                <tr style={{ borderBottom: '2px solid rgba(255,255,255,0.1)' }}>
+                                                    <th style={{ padding: '10px 12px', textAlign: 'left', color: '#aaa', fontWeight: 600 }}>Code</th>
+                                                    <th style={{ padding: '10px 12px', textAlign: 'left', color: '#aaa', fontWeight: 600 }}>Type</th>
+                                                    <th style={{ padding: '10px 12px', textAlign: 'left', color: '#aaa', fontWeight: 600 }}>Value</th>
+                                                    <th style={{ padding: '10px 12px', textAlign: 'left', color: '#aaa', fontWeight: 600 }}>Uses</th>
+                                                    <th style={{ padding: '10px 12px', textAlign: 'left', color: '#aaa', fontWeight: 600 }}>Status</th>
+                                                    <th style={{ padding: '10px 12px', textAlign: 'left', color: '#aaa', fontWeight: 600 }}>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {promoCodes.map(code => (
+                                                    <tr key={code.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                                        <td style={{ padding: '10px 12px' }}>
+                                                            <span style={{
+                                                                fontFamily: 'monospace',
+                                                                fontWeight: 700,
+                                                                letterSpacing: '1px',
+                                                                color: code.is_active ? '#00E0FF' : '#666',
+                                                                fontSize: '15px',
+                                                            }}>{code.code}</span>
+                                                            {code.description && (
+                                                                <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>{code.description}</div>
+                                                            )}
+                                                        </td>
+                                                        <td style={{ padding: '10px 12px' }}>
+                                                            <span style={{
+                                                                padding: '3px 8px',
+                                                                borderRadius: '4px',
+                                                                fontSize: '11px',
+                                                                fontWeight: 600,
+                                                                background: code.type === 'vip_trial' ? 'rgba(139, 92, 246, 0.2)' : 'rgba(59, 130, 246, 0.2)',
+                                                                color: code.type === 'vip_trial' ? '#a78bfa' : '#60a5fa',
+                                                            }}>
+                                                                {code.type === 'signup_bonus' ? '💎 Signup' : code.type === 'diamonds' ? '💎 Diamonds' : '👑 VIP Trial'}
+                                                            </span>
+                                                        </td>
+                                                        <td style={{ padding: '10px 12px', fontWeight: 600 }}>
+                                                            {code.value} {code.type === 'vip_trial' ? 'days' : '💎'}
+                                                        </td>
+                                                        <td style={{ padding: '10px 12px' }}>
+                                                            {code.current_uses}{code.max_uses ? `/${code.max_uses}` : '/∞'}
+                                                        </td>
+                                                        <td style={{ padding: '10px 12px' }}>
+                                                            <span style={{
+                                                                padding: '3px 8px',
+                                                                borderRadius: '4px',
+                                                                fontSize: '11px',
+                                                                fontWeight: 600,
+                                                                background: code.is_active ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                                                                color: code.is_active ? '#22c55e' : '#ef4444',
+                                                            }}>
+                                                                {code.is_active ? '● Active' : '● Inactive'}
+                                                            </span>
+                                                        </td>
+                                                        <td style={{ padding: '10px 12px' }}>
+                                                            <div style={{ display: 'flex', gap: '6px' }}>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        navigator.clipboard.writeText(code.code);
+                                                                        showNotification(`Copied: ${code.code}`);
+                                                                    }}
+                                                                    style={{
+                                                                        padding: '4px 8px',
+                                                                        background: 'rgba(255,255,255,0.1)',
+                                                                        border: 'none',
+                                                                        borderRadius: '4px',
+                                                                        color: '#fff',
+                                                                        cursor: 'pointer',
+                                                                        fontSize: '12px',
+                                                                    }}
+                                                                    title="Copy code"
+                                                                >📋</button>
+                                                                <button
+                                                                    onClick={async () => {
+                                                                        const { data: { session } } = await supabase.auth.getSession();
+                                                                        await fetch('/api/promo/admin-promo-codes', {
+                                                                            method: 'PATCH',
+                                                                            headers: {
+                                                                                'Content-Type': 'application/json',
+                                                                                'Authorization': `Bearer ${session.access_token}`,
+                                                                            },
+                                                                            body: JSON.stringify({ id: code.id, is_active: !code.is_active }),
+                                                                        });
+                                                                        showNotification(`Code ${code.is_active ? 'deactivated' : 'activated'}`);
+                                                                        await loadPromoCodes();
+                                                                    }}
+                                                                    style={{
+                                                                        padding: '4px 8px',
+                                                                        background: code.is_active ? 'rgba(239, 68, 68, 0.2)' : 'rgba(34, 197, 94, 0.2)',
+                                                                        border: 'none',
+                                                                        borderRadius: '4px',
+                                                                        color: code.is_active ? '#ef4444' : '#22c55e',
+                                                                        cursor: 'pointer',
+                                                                        fontSize: '12px',
+                                                                    }}
+                                                                    title={code.is_active ? 'Deactivate' : 'Activate'}
+                                                                >{code.is_active ? '⏸️' : '▶️'}</button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}

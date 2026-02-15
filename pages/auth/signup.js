@@ -47,6 +47,7 @@ export default function SignUpPage() {
         state: '',
         pokerAlias: '',
         phone: '',
+        promoCode: '',
     });
 
     // UI state
@@ -84,6 +85,12 @@ export default function SignUpPage() {
     const [phoneError, setPhoneError] = useState('');
     const [phoneOtpCooldown, setPhoneOtpCooldown] = useState(0);
     const [showPhoneModal, setShowPhoneModal] = useState(false);
+
+    // Promo Code Validation State
+    const [promoValid, setPromoValid] = useState(null); // null = not checked, true = valid, false = invalid
+    const [promoChecking, setPromoChecking] = useState(false);
+    const [promoError, setPromoError] = useState('');
+    const [promoDetails, setPromoDetails] = useState(null);
 
     // Override global html/body background for Facebook Dark theme
     useEffect(() => {
@@ -256,6 +263,45 @@ export default function SignUpPage() {
             setPhoneError('');
         }
     }, [formData.phone]);
+
+    // Promo code validation with debounce
+    useEffect(() => {
+        if (!formData.promoCode || formData.promoCode.trim().length < 3) {
+            setPromoValid(null);
+            setPromoError('');
+            setPromoDetails(null);
+            return;
+        }
+
+        const timeout = setTimeout(async () => {
+            setPromoChecking(true);
+            setPromoError('');
+            try {
+                const res = await fetch('/api/promo/validate-promo-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: formData.promoCode }),
+                });
+                const data = await res.json();
+                if (res.ok && data.valid) {
+                    setPromoValid(true);
+                    setPromoDetails(data);
+                    setPromoError('');
+                } else {
+                    setPromoValid(false);
+                    setPromoDetails(null);
+                    setPromoError(data.error || 'Invalid promo code');
+                }
+            } catch (err) {
+                console.error('Promo validation error:', err);
+                setPromoValid(null);
+            } finally {
+                setPromoChecking(false);
+            }
+        }, 600);
+
+        return () => clearTimeout(timeout);
+    }, [formData.promoCode]);
 
     // Validate email format
     const isValidEmail = (email) => {
@@ -473,6 +519,23 @@ export default function SignUpPage() {
 
                     // Set the assigned player number
                     setAssignedPlayerNumber(nextPlayerNumber);
+                }
+            }
+
+            // Redeem promo code if provided and valid
+            if (formData.promoCode && promoValid && authData.user) {
+                try {
+                    await fetch('/api/promo/redeem-promo-code', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            code: formData.promoCode,
+                            userId: authData.user.id,
+                        }),
+                    });
+                    console.log('Promo code redeemed:', formData.promoCode);
+                } catch (promoErr) {
+                    console.error('Promo redemption error (non-blocking):', promoErr);
                 }
             }
 
@@ -926,6 +989,57 @@ export default function SignUpPage() {
                                 {/* Phone Error Message */}
                                 {phoneError && (
                                     <span style={{ color: '#F02849', fontSize: '12px', marginTop: '6px', display: 'block' }}>{phoneError}</span>
+                                )}
+                            </div>
+
+                            {/* Promo Code (Optional) */}
+                            <div style={styles.inputGroup}>
+                                <label style={styles.label}>
+                                    Promo Code
+                                    <span style={styles.labelHint}>(optional)</span>
+                                </label>
+                                <div style={styles.aliasInputWrapper}>
+                                    <input
+                                        type="text"
+                                        value={formData.promoCode}
+                                        onChange={(e) => setFormData({ ...formData, promoCode: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') })}
+                                        placeholder="Enter promo code"
+                                        style={{
+                                            ...styles.inputSingle,
+                                            borderColor: promoValid === false ? '#F02849' :
+                                                promoValid === true ? '#31A24C' :
+                                                    '#3E4042',
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '2px',
+                                            fontWeight: 600,
+                                        }}
+                                        maxLength={20}
+                                    />
+                                    {promoChecking && (
+                                        <span style={styles.aliasStatus}>Checking...</span>
+                                    )}
+                                    {!promoChecking && promoValid === true && (
+                                        <span style={{ ...styles.aliasStatus, color: '#31A24C' }}>✓ Valid</span>
+                                    )}
+                                    {!promoChecking && promoValid === false && (
+                                        <span style={{ ...styles.aliasStatus, color: '#F02849' }}>✗ Invalid</span>
+                                    )}
+                                </div>
+                                {promoValid && promoDetails && (
+                                    <div style={{
+                                        marginTop: '6px',
+                                        padding: '8px 12px',
+                                        background: 'rgba(49, 162, 76, 0.15)',
+                                        border: '1px solid rgba(49, 162, 76, 0.3)',
+                                        borderRadius: '6px',
+                                        fontSize: '13px',
+                                        color: '#31A24C',
+                                    }}>
+                                        🎉 {promoDetails.description || `Bonus: ${promoDetails.value} ${promoDetails.type === 'vip_trial' ? 'day VIP trial' : 'diamonds'}`}
+                                    </div>
+                                )}
+                                {promoError && (
+                                    <span style={styles.fieldError}>{promoError}</span>
                                 )}
                             </div>
 
