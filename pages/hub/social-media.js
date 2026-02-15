@@ -1635,11 +1635,11 @@ function ClubPageCreateModal({ C, commanderData, userId, onCreated, onClose }) {
 
 // ===== CLUB PAGE DASHBOARD (Owner Management View) =====
 const AMENITIES_LIST = [
-    { cat: 'Dining', items: [{ k: 'food_service', l: '🍽️ Food Service' }, { k: 'full_bar', l: '🍺 Full Bar' }, { k: 'cocktail_service', l: '🍸 Cocktail Service' }, { k: 'snack_bar', l: '🥪 Snack Bar' }, { k: 'room_service', l: '🛎️ Room Service' }] },
-    { cat: 'Parking', items: [{ k: 'self_parking', l: '🅿️ Self Parking' }, { k: 'valet_parking', l: '🚗 Valet Parking' }, { k: 'free_parking', l: '🆓 Free Parking' }, { k: 'parking_garage', l: '🏗️ Parking Garage' }] },
-    { cat: 'Player Perks', items: [{ k: 'comps_program', l: '💰 Comps Program' }, { k: 'loyalty_program', l: '⭐ Loyalty Program' }, { k: 'rewards_card', l: '💳 Player Rewards Card' }, { k: 'hourly_drawings', l: '🎰 Hourly Drawings' }, { k: 'jackpot_promos', l: '🏆 Jackpot Promotions' }] },
-    { cat: 'Comfort', items: [{ k: 'massage', l: '💆 Massage Service' }, { k: 'charging_stations', l: '🔌 Charging Stations' }, { k: 'wifi', l: '📶 Free WiFi' }, { k: 'coat_check', l: '🧥 Coat Check' }, { k: 'smoking_area', l: '🚬 Smoking Area' }] },
-    { cat: 'Facility', items: [{ k: 'private_room', l: '🚪 Private Card Room' }, { k: 'high_limit', l: '💎 High-Limit Room' }, { k: 'tournament_room', l: '🏟️ Tournament Room' }, { k: 'tvs_at_tables', l: '📺 TVs at Tables' }, { k: 'atm_onsite', l: '🏧 ATM On-Site' }] },
+    { cat: 'Dining', items: [{ k: 'food_service', l: 'Food Service' }, { k: 'full_bar', l: 'Full Bar' }, { k: 'cocktail_service', l: 'Cocktail Service' }, { k: 'snack_bar', l: 'Snack Bar' }, { k: 'room_service', l: 'Room Service' }] },
+    { cat: 'Parking', items: [{ k: 'self_parking', l: 'Self Parking' }, { k: 'valet_parking', l: 'Valet Parking' }, { k: 'free_parking', l: 'Free Parking' }, { k: 'parking_garage', l: 'Parking Garage' }] },
+    { cat: 'Player Perks', items: [{ k: 'comps_program', l: 'Comps Program' }, { k: 'loyalty_program', l: 'Loyalty Program' }, { k: 'rewards_card', l: 'Player Rewards Card' }, { k: 'hourly_drawings', l: 'Hourly Drawings' }, { k: 'jackpot_promos', l: 'Jackpot Promotions' }] },
+    { cat: 'Comfort', items: [{ k: 'massage', l: 'Massage Service' }, { k: 'charging_stations', l: 'Charging Stations' }, { k: 'wifi', l: 'Free WiFi' }, { k: 'coat_check', l: 'Coat Check' }, { k: 'smoking_area', l: 'Smoking Area' }] },
+    { cat: 'Facility', items: [{ k: 'private_room', l: 'Private Card Room' }, { k: 'high_limit', l: 'High-Limit Room' }, { k: 'tournament_room', l: 'Tournament Room' }, { k: 'tvs_at_tables', l: 'TVs at Tables' }, { k: 'atm_onsite', l: 'ATM On-Site' }] },
 ];
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const DAY_LABELS = { monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 'Thu', friday: 'Fri', saturday: 'Sat', sunday: 'Sun' };
@@ -1689,6 +1689,55 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
     const [showQR, setShowQR] = useState(false);
     const [copiedUrl, setCopiedUrl] = useState(false);
     const [texasClubEnabled, setTexasClubEnabled] = useState((page.metadata || {}).texas_club_enabled !== false && (page.metadata || {}).page_type !== 'home_game' && (page.metadata || {}).page_type !== 'charity');
+
+    // Cover photo state
+    const [coverPhoto, setCoverPhoto] = useState((page.metadata || {}).cover_photo_url || '');
+    const [coverUploading, setCoverUploading] = useState(false);
+    const coverInputRef = useRef(null);
+
+    // Post media upload state
+    const [postMedia, setPostMedia] = useState([]);
+    const [postUploading, setPostUploading] = useState(false);
+    const postMediaRef = useRef(null);
+
+    const handleCoverUpload = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setCoverUploading(true);
+        try {
+            const path = `covers/${page.id}/${Date.now()}_${file.name}`;
+            const { error: upErr } = await supabase.storage.from('social-media').upload(path, file);
+            if (!upErr) {
+                const { data } = supabase.storage.from('social-media').getPublicUrl(path);
+                const url = data.publicUrl;
+                setCoverPhoto(url);
+                await saveMetadata({ cover_photo_url: url }, 'Cover photo updated!');
+            }
+        } catch (err) { console.error('Cover upload error:', err); }
+        setCoverUploading(false);
+    };
+
+    const handlePostMediaSelect = async (e) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
+        const remaining = 10 - postMedia.length;
+        if (remaining <= 0) return;
+        const toUpload = files.slice(0, remaining);
+        setPostUploading(true);
+        const uploaded = [];
+        for (const file of toUpload) {
+            const isVideo = file.type.startsWith('video/');
+            const path = `club-posts/${page.id}/${Date.now()}_${file.name}`;
+            const { error: upErr } = await supabase.storage.from('social-media').upload(path, file);
+            if (!upErr) {
+                const { data } = supabase.storage.from('social-media').getPublicUrl(path);
+                uploaded.push({ type: isVideo ? 'video' : 'photo', url: data.publicUrl });
+            }
+        }
+        setPostMedia(prev => [...prev, ...uploaded]);
+        setPostUploading(false);
+        if (postMediaRef.current) postMediaRef.current.value = '';
+    };
 
     // Fetch live games
     useEffect(() => {
@@ -1812,15 +1861,17 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
     }, [page.id, userId]);
 
     const handlePost = async () => {
-        if (!postContent.trim()) return;
+        if (!postContent.trim() && postMedia.length === 0) return;
         setPosting(true);
         try {
+            const mediaUrls = postMedia.map(m => m.url);
+            const contentType = postMedia.some(m => m.type === 'video') ? 'video' : (postMedia.length > 0 ? 'photo' : 'text');
             const res = await fetch('/api/social/pages/posts', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ page_id: page.id, author_id: userId, content: postContent.trim(), content_type: 'text' }),
+                body: JSON.stringify({ page_id: page.id, author_id: userId, content: postContent.trim(), content_type: contentType, media_urls: mediaUrls }),
             });
             const json = await res.json();
-            if (json.success && json.data) { setPosts(prev => [{ ...json.data, author: { username: 'You' }, user_liked: false }, ...prev]); setPostContent(''); }
+            if (json.success && json.data) { setPosts(prev => [{ ...json.data, author: { username: 'You' }, user_liked: false }, ...prev]); setPostContent(''); setPostMedia([]); }
         } catch (e) { console.error('Post error:', e); }
         setPosting(false);
     };
@@ -1857,13 +1908,13 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
     const savedBadge = metaSaved ? <span style={{ fontSize: 12, color: metaSaved === 'Error saving' ? '#F02849' : '#42B72A', fontWeight: 600, marginLeft: 8 }}>{metaSaved}</span> : null;
 
     const tabs = [
-        { key: 'posts', label: '📝 Posts' },
-        { key: 'photos', label: '📸 Photos' },
-        { key: 'schedule', label: '📅 Schedule' },
-        { key: 'tournaments', label: '🏆 Tourneys' },
-        { key: 'amenities', label: '✨ Amenities' },
-        { key: 'live_games', label: '🎮 Live Games' },
-        { key: 'about', label: 'ℹ️ About' },
+        { key: 'posts', label: 'Posts' },
+        { key: 'photos', label: 'Photos' },
+        { key: 'schedule', label: 'Schedule' },
+        { key: 'tournaments', label: 'Tourneys' },
+        { key: 'amenities', label: 'Amenities' },
+        { key: 'live_games', label: 'Live Games' },
+        { key: 'about', label: 'About' },
     ];
 
     return (
@@ -1872,21 +1923,30 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
             <div style={{ background: C.card, borderRadius: 12, overflow: 'hidden', marginBottom: 8 }}>
                 {/* Cover Photo Area */}
                 <div style={{
-                    height: 140, background: 'linear-gradient(135deg, #1877F2 0%, #42B72A 100%)',
+                    height: 200, position: 'relative',
+                    background: coverPhoto ? `url(${coverPhoto}) center/cover no-repeat` : 'linear-gradient(135deg, #1877F2 0%, #166FE5 50%, #1877F2 100%)',
                     display: 'flex', alignItems: 'flex-end', padding: 16
                 }}>
+                    {/* Edit Cover Photo button */}
+                    <input type="file" accept="image/*" ref={coverInputRef} onChange={handleCoverUpload} style={{ display: 'none' }} />
+                    <button onClick={() => coverInputRef.current?.click()} disabled={coverUploading} style={{
+                        position: 'absolute', top: 12, right: 12, display: 'flex', alignItems: 'center', gap: 6,
+                        padding: '6px 14px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                        background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 13, fontWeight: 600,
+                        fontFamily: 'inherit', backdropFilter: 'blur(4px)'
+                    }}>{coverUploading ? 'Uploading...' : 'Edit Cover Photo'}</button>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <div style={{
-                            width: 64, height: 64, borderRadius: 12, background: '#fff',
+                            width: 72, height: 72, borderRadius: 12, background: '#fff',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 28, fontWeight: 800, color: '#1877F2', border: '3px solid #fff',
+                            fontSize: 30, fontWeight: 800, color: '#1877F2', border: '3px solid #fff',
                             boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
                         }}>
                             {(page.name || 'C')[0].toUpperCase()}
                         </div>
                         <div>
-                            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#fff', textShadow: '0 1px 4px rgba(0,0,0,0.3)' }}>{page.name}</h2>
-                            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>
+                            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#fff', textShadow: '0 1px 6px rgba(0,0,0,0.4)' }}>{page.name}</h2>
+                            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)' }}>
                                 {page.follower_count || 0} follower{(page.follower_count || 0) !== 1 ? 's' : ''} · {page.category || 'Club'}
                             </span>
                         </div>
@@ -1975,14 +2035,49 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
                             style={{
                                 width: '100%', padding: '10px 14px', border: '1px solid #CCD0D5', borderRadius: 8,
                                 fontSize: 15, outline: 'none', resize: 'vertical', fontFamily: 'inherit',
-                                boxSizing: 'border-box', lineHeight: 1.4
+                                boxSizing: 'border-box', lineHeight: 1.4, color: '#050505', background: '#fff'
                             }}
                         />
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
-                            <button onClick={handlePost} disabled={posting || !postContent.trim()} style={{
-                                padding: '8px 24px', borderRadius: 8, border: 'none', background: C.blue, color: '#fff',
+
+                        {/* Media preview thumbnails */}
+                        {postMedia.length > 0 && (
+                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+                                {postMedia.map((m, i) => (
+                                    <div key={i} style={{ position: 'relative', width: 80, height: 80, borderRadius: 8, overflow: 'hidden', border: '1px solid #CCD0D5' }}>
+                                        {m.type === 'video' ? (
+                                            <video src={m.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        ) : (
+                                            <img src={m.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        )}
+                                        <button onClick={() => setPostMedia(prev => prev.filter((_, j) => j !== i))} style={{
+                                            position: 'absolute', top: 2, right: 2, width: 20, height: 20, borderRadius: '50%',
+                                            background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', cursor: 'pointer',
+                                            fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1
+                                        }}>x</button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Media toolbar + Post button */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 8, borderTop: '1px solid #E4E6EB' }}>
+                            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                                <input type="file" accept="image/*,video/*" multiple ref={postMediaRef} onChange={handlePostMediaSelect} style={{ display: 'none' }} />
+                                <button onClick={() => postMediaRef.current?.click()} disabled={postUploading} style={{
+                                    display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8,
+                                    border: 'none', background: '#F0F2F5', color: '#1877F2', fontSize: 13,
+                                    fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
+                                }}>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#45BD62" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" />
+                                    </svg>
+                                    {postUploading ? 'Uploading...' : 'Photo/Video'}
+                                </button>
+                            </div>
+                            <button onClick={handlePost} disabled={posting || postUploading || (!postContent.trim() && postMedia.length === 0)} style={{
+                                padding: '8px 24px', borderRadius: 8, border: 'none', background: '#1877F2', color: '#fff',
                                 fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                                opacity: posting || !postContent.trim() ? 0.5 : 1
+                                opacity: (posting || postUploading || (!postContent.trim() && postMedia.length === 0)) ? 0.5 : 1
                             }}>{posting ? 'Posting...' : 'Post'}</button>
                         </div>
                     </div>
@@ -2015,7 +2110,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
                                             </div>
                                             <div style={{ display: 'flex', gap: 6 }}>
                                                 {post.is_pinned && <span style={{ fontSize: 10, background: '#FFB800', color: '#000', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>PINNED</span>}
-                                                <button onClick={() => handleTogglePin(post)} title={post.is_pinned ? 'Unpin' : 'Pin'} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec, fontSize: 14 }}>{post.is_pinned ? '📌' : '📎'}</button>
+                                                <button onClick={() => handleTogglePin(post)} title={post.is_pinned ? 'Unpin' : 'Pin'} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec, fontSize: 13, fontWeight: 600 }}>{post.is_pinned ? 'Unpin' : 'Pin'}</button>
                                                 <button onClick={() => handleDeletePost(post.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec, fontSize: 14 }}>x</button>
                                             </div>
                                         </div>
@@ -2051,7 +2146,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
                     </div>
                     {photos.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
-                            <div style={{ fontSize: 40, marginBottom: 8 }}>📸</div>
+                            <div style={{ fontSize: 24, marginBottom: 8, fontWeight: 700 }}>No photos yet</div>
                             <p style={{ margin: 0, fontSize: 14 }}>No photos yet. Add photos to showcase your venue!</p>
                         </div>
                     ) : (
@@ -2173,7 +2268,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
                     </div>
                     {/* Tournament List */}
                     {tournaments.length === 0 ? (
-                        <div style={{ textAlign: 'center', padding: 30, color: C.textSec }}><div style={{ fontSize: 40, marginBottom: 8 }}>🏆</div><p style={{ margin: 0, fontSize: 14 }}>No tournaments listed yet.</p></div>
+                        <div style={{ textAlign: 'center', padding: 30, color: C.textSec }}><div style={{ fontSize: 24, marginBottom: 8, fontWeight: 700 }}>No tournaments yet</div><p style={{ margin: 0, fontSize: 14 }}>No tournaments listed yet.</p></div>
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                             {tournaments.map((t, i) => (
@@ -2230,7 +2325,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
             {activeTab === 'live_games' && (
                 <div style={cardSt}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>🎮 Live Game Board</h3>
+                        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>Live Game Board</h3>
                         <button onClick={() => setShowCreateGame(!showCreateGame)} style={{ ...btnPrimary, background: showCreateGame ? '#E4E6EB' : C.blue, color: showCreateGame ? C.text : '#fff' }}>
                             {showCreateGame ? 'Cancel' : '+ New Game'}
                         </button>
@@ -2252,9 +2347,9 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
                     {/* Texas Club Features Toggle */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, padding: '10px 12px', borderRadius: 8, background: texasClubEnabled ? '#eef2ff' : '#f5f5f5', border: `1px solid ${texasClubEnabled ? '#818cf8' : '#e4e6eb'}`, transition: 'all 0.2s' }}>
                         <div>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>🏈 Texas Club Style Features</div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Texas Club Style Features</div>
                             <div style={{ fontSize: 11, color: C.textSec, marginTop: 2 }}>Seat fees, time charges, membership dues, rake structure</div>
-                            {(pageType === 'home_game' || pageType === 'charity') && <div style={{ fontSize: 10, color: '#dc2626', fontWeight: 600, marginTop: 2 }}>⚠️ Auto-disabled for {pageType === 'home_game' ? 'Home Game' : 'Charity'} pages</div>}
+                            {(pageType === 'home_game' || pageType === 'charity') && <div style={{ fontSize: 10, color: '#dc2626', fontWeight: 600, marginTop: 2 }}>Auto-disabled for {pageType === 'home_game' ? 'Home Game' : 'Charity'} pages</div>}
                         </div>
                         <button
                             onClick={() => {
@@ -2354,7 +2449,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
                         </div>
                     ) : liveGames.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
-                            <div style={{ fontSize: 48, marginBottom: 8 }}>🎰</div>
+                            <div style={{ fontSize: 24, marginBottom: 8, fontWeight: 700 }}>No live games</div>
                             <p style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>No live games right now</p>
                             <p style={{ margin: '4px 0 0', fontSize: 13 }}>Create a game to start accepting sign-ups!</p>
                         </div>
@@ -2603,7 +2698,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
             <div style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)', borderRadius: 12, padding: 16, marginBottom: 8, color: '#fff' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                     <div>
-                        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>🎰 Live Games</h2>
+                        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>Live Games</h2>
                         <p style={{ margin: '2px 0 0', fontSize: 13, opacity: 0.8 }}>{pageName || 'Club Games'}</p>
                     </div>
                     {onClose && <button onClick={onClose} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.15)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>← Back</button>}
@@ -2649,7 +2744,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                 </div>
             ) : games.length === 0 ? (
                 <div style={{ background: C.card, borderRadius: 12, padding: 40, textAlign: 'center' }}>
-                    <div style={{ fontSize: 48, marginBottom: 8 }}>🎰</div>
+                    <div style={{ fontSize: 24, marginBottom: 8, fontWeight: 700 }}>No live games</div>
                     <p style={{ fontSize: 16, fontWeight: 600, color: C.text, margin: '0 0 4px' }}>No live games right now</p>
                     <p style={{ fontSize: 13, color: C.textSec, margin: 0 }}>Check back soon for upcoming games!</p>
                 </div>
@@ -2725,10 +2820,10 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                                 <div style={{ fontSize: 10, fontWeight: 600, color: C.textSec }}>Seat {seat.number}</div>
                                                 {seat.taken ? (
                                                     <div style={{ fontSize: 12, fontWeight: 700, color: seat.taken.player_name === playerName.trim() ? '#1d4ed8' : '#dc2626', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                        {seat.taken.player_name === playerName.trim() ? '⭐ YOU' : seat.taken.player_name}
+                                                        {seat.taken.player_name === playerName.trim() ? 'YOU' : seat.taken.player_name}
                                                     </div>
                                                 ) : (
-                                                    <div style={{ fontSize: 12, fontWeight: 700, color: canInteract ? '#22c55e' : '#a3a3a3' }}>🪑 OPEN</div>
+                                                    <div style={{ fontSize: 12, fontWeight: 700, color: canInteract ? '#22c55e' : '#a3a3a3' }}>OPEN</div>
                                                 )}
                                             </button>
                                         ))}
@@ -3149,7 +3244,7 @@ export default function SocialMediaPage() {
     // Global unread message count
     const { unreadCount } = useUnreadCount();
 
-    // 📺 LIVE STREAMING STATE
+    // LIVE STREAMING STATE
     const [liveStreams, setLiveStreams] = useState([]);
     const [watchingStream, setWatchingStream] = useState(null);
 
@@ -4702,7 +4797,7 @@ export default function SocialMediaPage() {
                                                 padding: '8px 16px', borderRadius: 8, border: 'none',
                                                 background: 'rgba(255,255,255,0.25)', color: '#fff',
                                                 fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
-                                            }}>🎮 Live Games</button>
+                                            }}>Live Games</button>
                                         </div>
                                     ) : (
                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -4756,7 +4851,7 @@ export default function SocialMediaPage() {
                             </div>
                         )}
 
-                        {/* 📺 LIVE STREAMS SECTION */}
+                        {/* LIVE STREAMS SECTION */}
                         {liveStreams.length > 0 && (
                             <div style={{ marginBottom: 12 }}>
                                 <h4 style={{ margin: '0 0 10px 4px', fontSize: 16, fontWeight: 700, color: C.text, display: 'flex', alignItems: 'center', gap: 8 }}>
