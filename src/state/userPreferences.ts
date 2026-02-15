@@ -3,8 +3,14 @@
    Tracks most visited cards and last card position
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { POKER_IQ_ORBS } from '../orbs/manifest/registry';
+import { POKER_IQ_ORBS, COMMANDER_ORB } from '../orbs/manifest/registry';
 import type { OrbConfig } from '../orbs/manifest/registry';
+
+// Resolve an orb ID to its config — checks both standard orbs and Commander
+function resolveOrb(id: string): OrbConfig | undefined {
+    if (id === 'club-commander') return COMMANDER_ORB;
+    return POKER_IQ_ORBS.find(o => o.id === id);
+}
 
 // Default 6 cards when no user data exists
 const DEFAULT_FOOTER_CARDS = [
@@ -101,7 +107,7 @@ export function getFooterCards(): OrbConfig[] {
 
     // Map IDs to OrbConfig objects
     return cardIds.map(id => {
-        const orb = POKER_IQ_ORBS.find(o => o.id === id);
+        const orb = resolveOrb(id);
         return orb || POKER_IQ_ORBS[0]; // Fallback to first orb if not found
     });
 }
@@ -109,7 +115,7 @@ export function getFooterCards(): OrbConfig[] {
 // Get the default 6 cards (for when no user data exists)
 export function getDefaultFooterCards(): OrbConfig[] {
     return DEFAULT_FOOTER_CARDS.map(id => {
-        const orb = POKER_IQ_ORBS.find(o => o.id === id);
+        const orb = resolveOrb(id);
         return orb || POKER_IQ_ORBS[0];
     });
 }

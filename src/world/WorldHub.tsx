@@ -545,6 +545,12 @@ export default function WorldHub() {
         recordCardVisit(cardId);
         selectOrb(cardId as any);
 
+        // Commander card routes to commander dashboard, not /hub/
+        if (cardId === 'club-commander') {
+            router.push('/commander/dashboard');
+            return;
+        }
+
         // Intro video config - same as handleOrbSelect
         const introVideos: Record<string, string> = {
             'trivia': '/videos/trivia-intro.mp4',

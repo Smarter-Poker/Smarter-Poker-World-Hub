@@ -3059,7 +3059,7 @@ export default function SocialMediaPage() {
     const [searchResults, setSearchResults] = useState([]);
     const [openChats, setOpenChats] = useState([]);
     const [chatMsgs, setChatMsgs] = useState({});
-    const [showMoreMenu, setShowMoreMenu] = useState(false);
+    // showMoreMenu state removed — all sidebar items now always visible
     const [isPosting, setIsPosting] = useState(false);
     const [bottomNavVisible, setBottomNavVisible] = useState(true);
     const [notifications, setNotifications] = useState([]);
