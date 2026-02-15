@@ -930,25 +930,7 @@ export default function DiamondStorePage() {
                                 draggable={false}
                             />
 
-                            {/* VIP 10% Discount Banner */}
-                            {isVip && (
-                                <div style={{
-                                    position: 'absolute',
-                                    top: 8,
-                                    right: 8,
-                                    background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-                                    color: '#000',
-                                    padding: '6px 14px',
-                                    borderRadius: 20,
-                                    fontSize: 12,
-                                    fontWeight: 800,
-                                    zIndex: 5,
-                                    boxShadow: '0 2px 8px rgba(255,215,0,0.4)',
-                                    letterSpacing: '0.5px',
-                                }}>
-                                    👑 VIP — 10% OFF ALL PACKS
-                                </div>
-                            )}
+
 
                             {/* ── Diamond package clickable zones (6 boxes, 2×3 grid) ── */}
                             {[
@@ -1191,6 +1173,24 @@ export default function DiamondStorePage() {
                                     <p style={styles.introText}>
                                         Rep The Smarter.Poker Brand At The Tables. Premium Quality Gear For Serious Players.
                                     </p>
+                                    {isVip && (
+                                        <div style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: 8,
+                                            marginTop: 12,
+                                            background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                                            color: '#000',
+                                            padding: '8px 16px',
+                                            borderRadius: 20,
+                                            fontSize: 13,
+                                            fontWeight: 800,
+                                            boxShadow: '0 2px 8px rgba(255,215,0,0.4)',
+                                            letterSpacing: '0.5px',
+                                        }}>
+                                            👑 VIP — 10% OFF ALL PHYSICAL MERCH
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Apparel Section */}
