@@ -121,6 +121,7 @@ export default function MembershipKiosk() {
   };
 
   return (
+    <CommanderLayout title="Receipt" backHref="/commander/dashboard">
     <><div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter'] flex flex-col items-center justify-center p-6">
 
         {/* ===== HOME ===== */}
@@ -421,5 +422,6 @@ export default function MembershipKiosk() {
       <style jsx>{`
       `}</style>
     </>
+    </CommanderLayout>
   );
 }

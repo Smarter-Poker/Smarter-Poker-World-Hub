@@ -244,6 +244,7 @@ export default function TimeBilling() {
             const balance = charge - paid;
 
             return (
+              <CommanderLayout title="Receipt" backHref="/commander/dashboard">
               <div key={session.id} className="bg-[#242526] rounded-xl border border-[#3A3B3C] p-4">
                 <div className="flex items-center gap-3">
                   {session.status === 'active' ? (
@@ -290,6 +291,7 @@ export default function TimeBilling() {
                   </div>
                 )}
               </div>
+              </CommanderLayout>
             );
           })}
           {filtered.length === 0 && (

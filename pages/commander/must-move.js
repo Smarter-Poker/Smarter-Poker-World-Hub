@@ -190,6 +190,7 @@ export default function MustMoveManager() {
                       const canMove = isLinked && mainOpenSeats > 0 && game.player_count > 0;
 
                       return (
+                        <CommanderLayout title="Must Move" backHref="/commander/dashboard">
                         <div key={game.id} className={`rounded-xl p-3 ${
                           isLinked ? 'bg-[#F59E0B]/10 border border-[#F59E0B]/30' : 'bg-[#3A3B3C]/30 border border-[#3A3B3C]'
                         }`}>
@@ -241,6 +242,7 @@ export default function MustMoveManager() {
                             )}
                           </div>
                         </div>
+                        </CommanderLayout>
                       );
                     })}
                   </div>

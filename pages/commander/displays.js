@@ -25,6 +25,7 @@ import {
   AlertCircle,
   Edit
 } from 'lucide-react';
+import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 function DeviceCard({ device, onConfigure, onPushContent, onRemove }) {
   const isOnline = device.status === 'online';
@@ -233,6 +234,7 @@ export default function DisplaysManagementPage() {
   }
 
   return (
+    <CommanderLayout title="Display Management" backHref="/commander/dashboard">
     <>
       <Head>
         <title>Display Management | Club Commander</title>
@@ -465,5 +467,6 @@ export default function DisplaysManagementPage() {
         </div>
       )}
     </>
+    </CommanderLayout>
   );
 }

@@ -99,6 +99,7 @@ export default function MembersPage() {
     }
 
     return (
+        <CommanderLayout title="Members" backHref="/commander/dashboard">
         <><div className="min-h-screen bg-[#18191A]">
                 {/* Header */}
                 <header className="bg-[#242526] border-b border-[#3A3B3C] sticky top-0 z-30">
@@ -283,5 +284,6 @@ export default function MembersPage() {
               <style jsx>{`
       `}</style>
 </>
+        </CommanderLayout>
     );
 }

@@ -348,6 +348,7 @@ export default function WaitlistDesk() {
                     }
                   }
                   return (
+                    <CommanderLayout title="Desk" backHref="/commander/dashboard">
                     <div key={table.table_number} className="bg-[#3A3B3C]/50 rounded-xl p-3">
                       <p className="text-sm font-medium text-white mb-2">
                         Table {table.table_number}
@@ -363,6 +364,7 @@ export default function WaitlistDesk() {
                         ))}
                       </div>
                     </div>
+                    </CommanderLayout>
                   );
                 })}
               </div>

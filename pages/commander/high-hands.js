@@ -120,6 +120,7 @@ export default function HighHands() {
   const todayHands = highHands.filter(h => h.created_at?.startsWith(today));
 
   return (
+    <CommanderLayout title="High Hands" backHref="/commander/dashboard">
     <><div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
 <div className="flex-1">
@@ -285,5 +286,6 @@ export default function HighHands() {
     <style jsx>{`
       `}</style>
     </>
+    </CommanderLayout>
   );
 }

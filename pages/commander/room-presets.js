@@ -163,6 +163,7 @@ export default function RoomPresetsPage() {
   const canManage = staff?.role === 'owner' || staff?.role === 'manager';
 
   return (
+    <CommanderLayout title="Room Presets" backHref="/commander/dashboard">
     <><div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
         <header className="bg-[#242526] border-b border-[#3A3B3C] sticky top-0 z-50">
           <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -332,5 +333,6 @@ export default function RoomPresetsPage() {
       <style jsx>{`
       `}</style>
     </>
+    </CommanderLayout>
   );
 }

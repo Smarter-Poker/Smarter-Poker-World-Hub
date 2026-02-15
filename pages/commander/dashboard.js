@@ -48,7 +48,7 @@ const CARDS = [
     id: 'floor',
     title: 'Tables & Floor',
     subtitle: 'Tables, Dealers, Floor Ops',
-    image: '/images/commander/card-floor.jpg?v=2',
+    image: '/images/commander/card-floor.jpg?v=3',
     glow: '#EF4444',
     features: [
       { label: 'Tables', href: '/commander/tables', icon: '/images/commander/icons/mg-tables.png' },

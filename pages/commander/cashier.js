@@ -252,6 +252,7 @@ export default function Cashier() {
                   {tableSessions.sort((a, b) => (a.seat_number || 0) - (b.seat_number || 0)).map(session => {
                     const totals = playerTotals[session.id] || { bought: 0, cashed: 0 };
                     return (
+                      <CommanderLayout title="Receipt" backHref="/commander/dashboard">
                       <div key={session.id} className="px-4 py-3">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
@@ -281,6 +282,7 @@ export default function Cashier() {
                           </button>
                         </div>
                       </div>
+                      </CommanderLayout>
                     );
                   })}
                 </div>

@@ -201,6 +201,7 @@ export default function FloorMap() {
                 : null;
 
               return (
+                <CommanderLayout title="Floor" backHref="/commander/dashboard">
                 <button key={table.id || tNum}
                   onClick={() => router.push(`/commander/dealer/${tNum}`)}
                   className={`relative bg-[#242526] border rounded-xl p-3 text-left active:bg-[#2D2E2F] ${
@@ -249,6 +250,7 @@ export default function FloorMap() {
                   {/* Tap indicator */}
                   <ChevronRight className="absolute bottom-2 right-2 w-4 h-4 text-white/10" />
                 </button>
+                </CommanderLayout>
               );
             })}
           </div>

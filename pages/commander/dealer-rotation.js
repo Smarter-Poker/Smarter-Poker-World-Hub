@@ -127,12 +127,17 @@ export default function DealerRotation() {
   const availableDealers = dealers.filter(d => !getAssignment(d.id) && d.status === 'active');
 
   return (
-    <CommanderLayout title="Dealer Rotation" backHref="/commander/dashboard"><div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
+    <>
+      <Head><title>Dealer Rotation | Club Commander</title></Head>
+      <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
         {/* Header */}
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-<div>
+            <button className="cmd-back-btn" onClick={() => router.push('/commander/dashboard')}>
+              <ArrowLeft size={16} /> Back
+            </button>
+            <div>
               <h1 className="text-lg font-bold text-white">Dealer Rotation</h1>
               <p className="text-xs text-[#B0B3B8]">
                 {assignedDealers.length} dealing · {availableDealers.length} available · {unassignedTables.length} tables need dealer
@@ -200,11 +205,13 @@ export default function DealerRotation() {
                               const tNum = t.table_number || t.number;
                               const isCurrentTable = tNum === assignment?.table_number;
                               return (
+                                <CommanderLayout title="Dealer Rotation" backHref="/commander/dashboard">
                                 <button key={tNum} onClick={() => !isCurrentTable && pushDealer(dealer.id, tNum)}
                                   disabled={isCurrentTable}
                                   className={`px-3 py-2 rounded-lg text-sm font-medium ${
                                     isCurrentTable ? 'bg-[#3A3B3C] text-[#6A6B6D]' : 'bg-[#1877F2]/20 text-[#1877F2] active:bg-[#1877F2]/30'
                                   }`}>T{tNum}</button>
+                                </CommanderLayout>
                               );
                             })}
                             <button onClick={() => setPushTarget(null)}
@@ -257,8 +264,25 @@ export default function DealerRotation() {
         </div>
       </div>
     <style jsx>{`
+        .cmd-back-btn {
+          background: none;
+          border: 1px solid #444;
+          border-radius: 10px;
+          padding: 8px 14px;
+          color: #ccc;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
+          font-weight: 600;
+          transition: all 0.2s;
+        }
+        .cmd-back-btn:hover {
+          border-color: #666;
+          color: #fff;
+        }
       `}</style>
     </>
-    </CommanderLayout>
   );
 }

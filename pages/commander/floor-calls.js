@@ -156,6 +156,7 @@ export default function FloorCalls() {
                   const pConfig = PRIORITY_CONFIG[call.priority] || PRIORITY_CONFIG.normal;
                   const sConfig = STATUS_CONFIG[call.status] || STATUS_CONFIG.pending;
                   return (
+                    <CommanderLayout title="Floor Calls" backHref="/commander/dashboard">
                     <div key={call.id}
                       className={`bg-[#242526] border rounded-xl overflow-hidden ${
                         call.priority === 'urgent' ? 'border-[#EF4444]/50 animate-pulse' : 'border-[#3A3B3C]'
@@ -201,6 +202,7 @@ export default function FloorCalls() {
                         )}
                       </div>
                     </div>
+                    </CommanderLayout>
                   );
                 })
               )
