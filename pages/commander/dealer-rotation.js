@@ -79,7 +79,7 @@ export default function DealerRotation() {
         await fetch('/api/commander/dealers/rotations', {
           method: 'PUT', headers,
           body: JSON.stringify({ id: current.id, ended_at: new Date().toISOString() })
-        }).catch(() => {});
+        }).catch(() => { });
       }
 
       // Start new rotation
@@ -91,7 +91,7 @@ export default function DealerRotation() {
             table_number: newTableNumber,
             dealer_name: dealers.find(d => d.id === dealerId)?.name || 'Unknown'
           })
-        }).catch(() => {});
+        }).catch(() => { });
       }
 
       setPushTarget(null);
@@ -108,7 +108,7 @@ export default function DealerRotation() {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({ id: current.id, ended_at: new Date().toISOString(), break_after: true })
-        }).catch(() => {});
+        }).catch(() => { });
         fetchData();
       } catch (err) { console.error(err); }
     }
@@ -127,7 +127,7 @@ export default function DealerRotation() {
   const availableDealers = dealers.filter(d => !getAssignment(d.id) && d.status === 'active');
 
   return (
-    <>
+    <CommanderLayout title="Dealer Rotation" backHref="/commander/dashboard">
       <Head><title>Dealer Rotation | Club Commander</title></Head>
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
@@ -176,13 +176,11 @@ export default function DealerRotation() {
                   const overdue = mins >= PUSH_THRESHOLD;
                   return (
                     <div key={dealer.id}
-                      className={`bg-[#242526] border rounded-xl overflow-hidden ${
-                        overdue ? 'border-[#F59E0B]/50' : 'border-[#3A3B3C]'
-                      }`}>
-                      <div className="px-4 py-3 flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                          overdue ? 'bg-[#F59E0B]/10' : 'bg-[#1877F2]/10'
+                      className={`bg-[#242526] border rounded-xl overflow-hidden ${overdue ? 'border-[#F59E0B]/50' : 'border-[#3A3B3C]'
                         }`}>
+                      <div className="px-4 py-3 flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${overdue ? 'bg-[#F59E0B]/10' : 'bg-[#1877F2]/10'
+                          }`}>
                           <Users className={`w-5 h-5 ${overdue ? 'text-[#F59E0B]' : 'text-[#1877F2]'}`} />
                         </div>
                         <div className="flex-1">
@@ -205,13 +203,10 @@ export default function DealerRotation() {
                               const tNum = t.table_number || t.number;
                               const isCurrentTable = tNum === assignment?.table_number;
                               return (
-                                <CommanderLayout title="Dealer Rotation" backHref="/commander/dashboard">
                                 <button key={tNum} onClick={() => !isCurrentTable && pushDealer(dealer.id, tNum)}
                                   disabled={isCurrentTable}
-                                  className={`px-3 py-2 rounded-lg text-sm font-medium ${
-                                    isCurrentTable ? 'bg-[#3A3B3C] text-[#6A6B6D]' : 'bg-[#1877F2]/20 text-[#1877F2] active:bg-[#1877F2]/30'
-                                  }`}>T{tNum}</button>
-                                </CommanderLayout>
+                                  className={`px-3 py-2 rounded-lg text-sm font-medium ${isCurrentTable ? 'bg-[#3A3B3C] text-[#6A6B6D]' : 'bg-[#1877F2]/20 text-[#1877F2] active:bg-[#1877F2]/30'
+                                    }`}>T{tNum}</button>
                               );
                             })}
                             <button onClick={() => setPushTarget(null)}
@@ -263,7 +258,7 @@ export default function DealerRotation() {
           )}
         </div>
       </div>
-    <style jsx>{`
+      <style jsx>{`
         .cmd-back-btn {
           background: none;
           border: 1px solid #444;
@@ -283,6 +278,6 @@ export default function DealerRotation() {
           color: #fff;
         }
       `}</style>
-    </>
+    </CommanderLayout>
   );
 }
