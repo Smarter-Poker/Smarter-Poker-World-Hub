@@ -54,6 +54,10 @@ export default function HorsesAdmin() {
         maxUses: '',
         expiresAt: '',
     });
+
+    // Economy State
+    const [economyData, setEconomyData] = useState(null);
+    const [economyLoading, setEconomyLoading] = useState(false);
     const [promoCreating, setPromoCreating] = useState(false);
     const [newPersona, setNewPersona] = useState({
         name: '',
@@ -137,6 +141,9 @@ export default function HorsesAdmin() {
 
         // Load promo codes
         await loadPromoCodes();
+
+        // Load economy data
+        await loadEconomyData();
     };
 
     const loadPromoCodes = async () => {
@@ -156,6 +163,21 @@ export default function HorsesAdmin() {
             console.error('Failed to load promo codes:', err);
         } finally {
             setPromoLoading(false);
+        }
+    };
+
+    const loadEconomyData = async () => {
+        setEconomyLoading(true);
+        try {
+            const res = await fetch('/api/admin/economy-stats');
+            if (res.ok) {
+                const data = await res.json();
+                if (data.success) setEconomyData(data);
+            }
+        } catch (err) {
+            console.error('Failed to load economy data:', err);
+        } finally {
+            setEconomyLoading(false);
         }
     };
 
@@ -370,6 +392,9 @@ export default function HorsesAdmin() {
                     </button>
                     <button className={activeTab === 'promo' ? styles.active : ''} onClick={() => setActiveTab('promo')}>
                         🎟️ Promo Codes
+                    </button>
+                    <button className={activeTab === 'economy' ? styles.active : ''} onClick={() => { setActiveTab('economy'); if (!economyData) loadEconomyData(); }}>
+                        💎 Economy
                     </button>
                 </nav>
 
@@ -1077,6 +1102,207 @@ export default function HorsesAdmin() {
                                     </div>
                                 )}
                             </div>
+                        </div>
+                    )}
+
+                    {/* ECONOMY TAB */}
+                    {activeTab === 'economy' && (
+                        <div className={styles.statsView}>
+                            <h2>💎 Diamond Economy Dashboard</h2>
+
+                            {economyLoading ? (
+                                <div className={styles.loadingSpinner}>Loading economy data...</div>
+                            ) : !economyData ? (
+                                <div className={styles.loadingSpinner}>No data available</div>
+                            ) : (
+                                <>
+                                    {/* Stat Cards */}
+                                    <div className={styles.statsOverview}>
+                                        <div className={styles.statCardLarge}>
+                                            <span className={styles.statNumber}>{economyData.stats.totalUsers.toLocaleString()}</span>
+                                            <span className={styles.statLabel}>Total Users</span>
+                                        </div>
+                                        <div className={`${styles.statCardLarge} ${styles.activeBox}`}>
+                                            <span className={styles.statNumber}>+{economyData.stats.newUsers7d.toLocaleString()}</span>
+                                            <span className={styles.statLabel}>New Users (7d)</span>
+                                        </div>
+                                        <div className={styles.statCardLarge}>
+                                            <span className={styles.statNumber} style={{ color: '#22c55e' }}>+{economyData.stats.totalDiamondsEarned.toLocaleString()}</span>
+                                            <span className={styles.statLabel}>💎 Total Earned</span>
+                                        </div>
+                                        <div className={styles.statCardLarge}>
+                                            <span className={styles.statNumber} style={{ color: '#ef4444' }}>-{economyData.stats.totalDiamondsSpent.toLocaleString()}</span>
+                                            <span className={styles.statLabel}>💎 Total Spent</span>
+                                        </div>
+                                    </div>
+
+                                    <div className={styles.statsOverview}>
+                                        <div className={styles.statCardLarge}>
+                                            <span className={styles.statNumber}>{economyData.stats.totalRewardClaims.toLocaleString()}</span>
+                                            <span className={styles.statLabel}>Reward Claims</span>
+                                        </div>
+                                        <div className={styles.statCardLarge}>
+                                            <span className={styles.statNumber} style={{ color: '#8b5cf6' }}>{economyData.stats.diamondPurchaseCount}</span>
+                                            <span className={styles.statLabel}>💎 Purchases</span>
+                                        </div>
+                                        <div className={styles.statCardLarge}>
+                                            <span className={styles.statNumber} style={{ color: '#f59e0b' }}>${(economyData.stats.diamondPurchaseRevenue / 100).toFixed(2)}</span>
+                                            <span className={styles.statLabel}>Purchase Revenue</span>
+                                        </div>
+                                        <div className={styles.statCardLarge}>
+                                            <span className={styles.statNumber} style={{ color: '#00d4ff' }}>{economyData.stats.activeVipCount}/{economyData.stats.vipSubscriptionCount}</span>
+                                            <span className={styles.statLabel}>VIP Active/Total</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Recent Users */}
+                                    {economyData.recentUsers?.length > 0 && (
+                                        <div className={styles.contentBreakdown} style={{ marginTop: '1.5rem' }}>
+                                            <h3>👤 Recent Signups</h3>
+                                            <table className={styles.runsTable}>
+                                                <thead>
+                                                    <tr>
+                                                        <th>Username</th>
+                                                        <th>Name</th>
+                                                        <th>Joined</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {economyData.recentUsers.map(u => (
+                                                        <tr key={u.id}>
+                                                            <td>{u.username || '—'}</td>
+                                                            <td>{u.full_name || '—'}</td>
+                                                            <td>{new Date(u.created_at).toLocaleDateString()}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+
+                                    {/* Diamond Transaction Log */}
+                                    <div className={styles.contentBreakdown} style={{ marginTop: '1.5rem' }}>
+                                        <h3>💎 Diamond Transaction Log (Last 100)</h3>
+                                        <div style={{ maxHeight: '500px', overflowY: 'auto', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)' }}>
+                                            <table className={styles.runsTable}>
+                                                <thead style={{ position: 'sticky', top: 0, background: '#1a1a2e', zIndex: 1 }}>
+                                                    <tr>
+                                                        <th>Date</th>
+                                                        <th>User</th>
+                                                        <th>Type</th>
+                                                        <th>Amount</th>
+                                                        <th>Source</th>
+                                                        <th>Description</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {economyData.transactions.map((tx, i) => (
+                                                        <tr key={tx.id || i}>
+                                                            <td style={{ whiteSpace: 'nowrap', fontSize: '0.85rem' }}>{new Date(tx.created_at).toLocaleString()}</td>
+                                                            <td style={{ fontSize: '0.8rem', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tx.user_id?.slice(0, 8)}...</td>
+                                                            <td>
+                                                                <span style={{
+                                                                    padding: '2px 8px',
+                                                                    borderRadius: 4,
+                                                                    fontSize: '0.75rem',
+                                                                    fontWeight: 600,
+                                                                    background: tx.type === 'earned' || tx.type === 'reward'
+                                                                        ? 'rgba(34, 197, 94, 0.2)'
+                                                                        : tx.type === 'spent' || tx.type === 'purchase'
+                                                                            ? 'rgba(239, 68, 68, 0.2)'
+                                                                            : 'rgba(139, 92, 246, 0.2)',
+                                                                    color: tx.type === 'earned' || tx.type === 'reward'
+                                                                        ? '#22c55e'
+                                                                        : tx.type === 'spent' || tx.type === 'purchase'
+                                                                            ? '#ef4444'
+                                                                            : '#a78bfa'
+                                                                }}>{tx.type}</span>
+                                                            </td>
+                                                            <td style={{
+                                                                fontWeight: 700,
+                                                                color: (tx.amount > 0) ? '#22c55e' : '#ef4444'
+                                                            }}>
+                                                                {tx.amount > 0 ? '+' : ''}{tx.amount}💎
+                                                            </td>
+                                                            <td style={{ fontSize: '0.85rem' }}>{tx.source || '—'}</td>
+                                                            <td style={{ fontSize: '0.8rem', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tx.description || '—'}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    {/* Diamond Purchases */}
+                                    {economyData.recentPurchases?.length > 0 && (
+                                        <div className={styles.contentBreakdown} style={{ marginTop: '1.5rem' }}>
+                                            <h3>🛒 Recent Diamond Purchases</h3>
+                                            <table className={styles.runsTable}>
+                                                <thead>
+                                                    <tr>
+                                                        <th>Date</th>
+                                                        <th>User</th>
+                                                        <th>Paid</th>
+                                                        <th>Diamonds</th>
+                                                        <th>Status</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {economyData.recentPurchases.map((p, i) => (
+                                                        <tr key={p.id || i}>
+                                                            <td>{new Date(p.created_at).toLocaleDateString()}</td>
+                                                            <td style={{ fontSize: '0.8rem' }}>{p.user_id?.slice(0, 8)}...</td>
+                                                            <td style={{ color: '#22c55e', fontWeight: 600 }}>${((p.amount_paid || 0) / 100).toFixed(2)}</td>
+                                                            <td>{p.diamonds_received?.toLocaleString() || '—'}💎</td>
+                                                            <td>{p.status || 'completed'}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+
+                                    {/* VIP Subscriptions */}
+                                    {economyData.vipSubscriptions?.length > 0 && (
+                                        <div className={styles.contentBreakdown} style={{ marginTop: '1.5rem' }}>
+                                            <h3>🏆 VIP Subscriptions</h3>
+                                            <table className={styles.runsTable}>
+                                                <thead>
+                                                    <tr>
+                                                        <th>Date</th>
+                                                        <th>User</th>
+                                                        <th>Plan</th>
+                                                        <th>Status</th>
+                                                        <th>Expires</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {economyData.vipSubscriptions.map((s, i) => (
+                                                        <tr key={s.id || i}>
+                                                            <td>{new Date(s.created_at).toLocaleDateString()}</td>
+                                                            <td style={{ fontSize: '0.8rem' }}>{s.user_id?.slice(0, 8)}...</td>
+                                                            <td><span className={styles.voiceTag}>{s.plan || 'VIP'}</span></td>
+                                                            <td style={{ color: s.status === 'active' ? '#22c55e' : '#ef4444' }}>{s.status}</td>
+                                                            <td>{s.current_period_end ? new Date(s.current_period_end).toLocaleDateString() : '—'}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+
+                                    {/* Refresh Button */}
+                                    <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+                                        <button
+                                            onClick={loadEconomyData}
+                                            className={styles.actionBtn}
+                                            disabled={economyLoading}
+                                        >
+                                            🔄 Refresh Economy Data
+                                        </button>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     )}
                 </main>

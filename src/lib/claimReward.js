@@ -28,6 +28,12 @@ export function claimReward(endpoint, body, reasonLabel) {
         .then(data => {
             if (data?.claimed && data?.diamondsAwarded > 0) {
                 showDiamondToast(data.diamondsAwarded, reasonLabel);
+                // Refresh header diamond balance after toast auto-dismisses (3s)
+                setTimeout(() => {
+                    if (typeof window !== 'undefined') {
+                        window.dispatchEvent(new CustomEvent('diamond-balance-refresh'));
+                    }
+                }, 3000);
             }
         })
         .catch(() => { }); // Non-blocking, silent fail

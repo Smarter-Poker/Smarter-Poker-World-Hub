@@ -295,6 +295,30 @@ export default function UniversalHeader({
         };
     }, []);
 
+    // ── Diamond balance auto-refresh when rewards are earned ──
+    useEffect(() => {
+        const refreshBalance = async () => {
+            if (!user?.id) return;
+            try {
+                const response = await fetch('/api/user/get-header-stats', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: user.id }),
+                });
+                const result = await response.json();
+                if (result.success && result.profile) {
+                    setStats({ diamonds: result.profile.diamonds });
+                    console.log('[UniversalHeader] 💎 Balance refreshed:', result.profile.diamonds);
+                }
+            } catch (e) {
+                console.warn('[UniversalHeader] Balance refresh failed:', e.message);
+            }
+        };
+
+        window.addEventListener('diamond-balance-refresh', refreshBalance);
+        return () => window.removeEventListener('diamond-balance-refresh', refreshBalance);
+    }, [user?.id]);
+
     const handleBack = () => {
         if (typeof window !== 'undefined' && window.history.length > 1) {
             router.back();
