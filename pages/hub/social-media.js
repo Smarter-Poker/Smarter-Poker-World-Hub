@@ -1676,6 +1676,69 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
     const [metaSaving, setMetaSaving] = useState(false);
     const [metaSaved, setMetaSaved] = useState('');
 
+    // Live Games state
+    const [liveGames, setLiveGames] = useState([]);
+    const [loadingGames, setLoadingGames] = useState(false);
+    const [showCreateGame, setShowCreateGame] = useState(false);
+    const [newGameForm, setNewGameForm] = useState({ game_name: '', game_type: 'NLH', stakes: '1/2', max_seats: 9, table_number: '', notes: '' });
+    const [creatingGame, setCreatingGame] = useState(false);
+
+    // Fetch live games
+    useEffect(() => {
+        if (activeTab === 'live_games') {
+            const fetchGames = async () => {
+                setLoadingGames(true);
+                try {
+                    const res = await fetch(`/api/social/pages/games?page_id=${page.id}`);
+                    const json = await res.json();
+                    if (json.success) setLiveGames(json.data || []);
+                } catch (e) { console.error('Games fetch error:', e); }
+                setLoadingGames(false);
+            };
+            fetchGames();
+            const interval = setInterval(fetchGames, 15000);
+            return () => clearInterval(interval);
+        }
+    }, [activeTab, page.id]);
+
+    const handleCreateGame = async () => {
+        if (!newGameForm.game_name.trim()) return;
+        setCreatingGame(true);
+        try {
+            const res = await fetch('/api/social/pages/games', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...newGameForm, page_id: page.id, created_by: userId }),
+            });
+            const json = await res.json();
+            if (json.success && json.data) {
+                setLiveGames(prev => [{ ...json.data, seats: [], seated_count: 0, waitlist_count: 0 }, ...prev]);
+                setNewGameForm({ game_name: '', game_type: 'NLH', stakes: '1/2', max_seats: 9, table_number: '', notes: '' });
+                setShowCreateGame(false);
+            }
+        } catch (e) { console.error('Create game error:', e); }
+        setCreatingGame(false);
+    };
+
+    const handleCloseGame = async (gameId) => {
+        try {
+            await fetch('/api/social/pages/games', {
+                method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: gameId, status: 'closed' }),
+            });
+            setLiveGames(prev => prev.filter(g => g.id !== gameId));
+        } catch (e) { console.error('Close game error:', e); }
+    };
+
+    const handleRemoveSeat = async (gameId, seatId) => {
+        try {
+            await fetch('/api/social/pages/games', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'leave', game_id: gameId, seat_id: seatId }),
+            });
+            setLiveGames(prev => prev.map(g => g.id === gameId ? { ...g, seats: g.seats.filter(s => s.id !== seatId), seated_count: g.seats.filter(s => s.id !== seatId && s.status !== 'waitlist').length, waitlist_count: g.seats.filter(s => s.id !== seatId && s.status === 'waitlist').length } : g));
+        } catch (e) { console.error('Remove seat error:', e); }
+    };
+
     // Save metadata helper
     const saveMetadata = async (newMeta, label) => {
         setMetaSaving(true); setMetaSaved('');
@@ -1756,6 +1819,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
         { key: 'schedule', label: '📅 Schedule' },
         { key: 'tournaments', label: '🏆 Tourneys' },
         { key: 'amenities', label: '✨ Amenities' },
+        { key: 'live_games', label: '🎮 Live Games' },
         { key: 'about', label: 'ℹ️ About' },
     ];
 
@@ -2119,6 +2183,155 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
                 </div>
             )}
 
+            {/* Live Games Tab */}
+            {activeTab === 'live_games' && (
+                <div style={cardSt}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>🎮 Live Game Board</h3>
+                        <button onClick={() => setShowCreateGame(!showCreateGame)} style={{ ...btnPrimary, background: showCreateGame ? '#E4E6EB' : C.blue, color: showCreateGame ? C.text : '#fff' }}>
+                            {showCreateGame ? 'Cancel' : '+ New Game'}
+                        </button>
+                    </div>
+
+                    {/* Create Game Form */}
+                    {showCreateGame && (
+                        <div style={{ background: '#f5f5f5', borderRadius: 10, padding: 12, marginBottom: 12, border: '1px solid #e4e6eb' }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 8 }}>Create Live Game</div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 8 }}>
+                                <div><label style={labelSt}>Game Name</label><input value={newGameForm.game_name} onChange={e => setNewGameForm(p => ({ ...p, game_name: e.target.value }))} placeholder="Friday Night NLH" style={inputSt} /></div>
+                                <div><label style={labelSt}>Type</label>
+                                    <select value={newGameForm.game_type} onChange={e => setNewGameForm(p => ({ ...p, game_type: e.target.value }))} style={inputSt}>
+                                        {['NLH', 'PLO', 'PLO8', 'Mixed', 'Omaha Hi-Lo', 'Stud', 'Other'].map(g => <option key={g}>{g}</option>)}
+                                    </select>
+                                </div>
+                                <div><label style={labelSt}>Stakes</label><input value={newGameForm.stakes} onChange={e => setNewGameForm(p => ({ ...p, stakes: e.target.value }))} placeholder="1/2" style={inputSt} /></div>
+                                <div><label style={labelSt}>Max Seats</label>
+                                    <select value={newGameForm.max_seats} onChange={e => setNewGameForm(p => ({ ...p, max_seats: parseInt(e.target.value) }))} style={inputSt}>
+                                        {[6, 8, 9, 10].map(n => <option key={n} value={n}>{n}-max</option>)}
+                                    </select>
+                                </div>
+                                <div><label style={labelSt}>Table #</label><input value={newGameForm.table_number} onChange={e => setNewGameForm(p => ({ ...p, table_number: e.target.value }))} placeholder="Table 1" style={inputSt} /></div>
+                            </div>
+                            <div style={{ marginTop: 8 }}><label style={labelSt}>Notes</label><input value={newGameForm.notes} onChange={e => setNewGameForm(p => ({ ...p, notes: e.target.value }))} placeholder="$300 max buy-in, $5 rake cap..." style={inputSt} /></div>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
+                                <button onClick={handleCreateGame} disabled={!newGameForm.game_name.trim() || creatingGame} style={{ ...btnPrimary, opacity: !newGameForm.game_name.trim() || creatingGame ? 0.5 : 1 }}>
+                                    {creatingGame ? 'Creating...' : 'Create Game'}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Games List */}
+                    {loadingGames ? (
+                        <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
+                            <div style={{ width: 32, height: 32, border: '3px solid #E4E6EB', borderTopColor: C.blue, borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+                            Loading games...
+                        </div>
+                    ) : liveGames.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
+                            <div style={{ fontSize: 48, marginBottom: 8 }}>🎰</div>
+                            <p style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>No live games right now</p>
+                            <p style={{ margin: '4px 0 0', fontSize: 13 }}>Create a game to start accepting sign-ups!</p>
+                        </div>
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            {liveGames.map(game => {
+                                const seatArr = Array.from({ length: game.max_seats }, (_, i) => {
+                                    const taken = (game.seats || []).find(s => s.seat_number === i + 1 && s.status !== 'waitlist');
+                                    return { number: i + 1, taken };
+                                });
+                                const waitlist = (game.seats || []).filter(s => s.status === 'waitlist').sort((a, b) => (a.waitlist_position || 0) - (b.waitlist_position || 0));
+                                const openSeats = seatArr.filter(s => !s.taken).length;
+
+                                return (
+                                    <div key={game.id} style={{ background: '#f8f9fa', borderRadius: 12, border: '1px solid #e4e6eb', overflow: 'hidden' }}>
+                                        {/* Game Header */}
+                                        <div style={{ padding: '12px 16px', background: game.status === 'running' ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)', color: '#fff' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                <div>
+                                                    <div style={{ fontSize: 16, fontWeight: 800 }}>{game.game_name}</div>
+                                                    <div style={{ fontSize: 13, opacity: 0.9 }}>
+                                                        {game.game_type} · ${game.stakes} · {game.max_seats}-max
+                                                        {game.table_number ? ` · ${game.table_number}` : ''}
+                                                    </div>
+                                                </div>
+                                                <div style={{ display: 'flex', gap: 6 }}>
+                                                    <span style={{ padding: '4px 10px', borderRadius: 12, fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,0.2)', textTransform: 'uppercase' }}>
+                                                        {game.status === 'running' ? '🟢 RUNNING' : '🔵 OPEN'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            {game.notes && <div style={{ fontSize: 12, opacity: 0.85, marginTop: 4 }}>{game.notes}</div>}
+                                        </div>
+
+                                        {/* Seat Map - Visual Grid */}
+                                        <div style={{ padding: 16 }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                                                <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+                                                    Seats: {game.seated_count || 0}/{game.max_seats} filled
+                                                    {openSeats > 0 && <span style={{ color: '#22c55e', marginLeft: 6 }}>({openSeats} open)</span>}
+                                                </span>
+                                                {waitlist.length > 0 && (
+                                                    <span style={{ fontSize: 12, color: '#f59e0b', fontWeight: 600 }}>
+                                                        📋 {waitlist.length} on waitlist
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {/* Seat Grid */}
+                                            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(game.max_seats, 5)}, 1fr)`, gap: 6 }}>
+                                                {seatArr.map(seat => (
+                                                    <div key={seat.number} style={{
+                                                        padding: '8px 6px', borderRadius: 8, textAlign: 'center',
+                                                        background: seat.taken ? 'rgba(24,119,242,0.1)' : '#f0fdf4',
+                                                        border: `2px solid ${seat.taken ? 'rgba(24,119,242,0.3)' : '#86efac'}`,
+                                                        position: 'relative'
+                                                    }}>
+                                                        <div style={{ fontSize: 10, fontWeight: 600, color: C.textSec, marginBottom: 2 }}>Seat {seat.number}</div>
+                                                        {seat.taken ? (
+                                                            <>
+                                                                <div style={{ fontSize: 12, fontWeight: 700, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{seat.taken.player_name}</div>
+                                                                <button onClick={() => handleRemoveSeat(game.id, seat.taken.id)} style={{ position: 'absolute', top: 2, right: 2, width: 16, height: 16, borderRadius: '50%', background: '#F02849', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 10, lineHeight: '16px', padding: 0 }}>×</button>
+                                                            </>
+                                                        ) : (
+                                                            <div style={{ fontSize: 11, color: '#22c55e', fontWeight: 600 }}>OPEN</div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            {/* Waitlist */}
+                                            {waitlist.length > 0 && (
+                                                <div style={{ marginTop: 10, padding: '8px 10px', background: '#fffbeb', borderRadius: 8, border: '1px solid #fde68a' }}>
+                                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#92400e', marginBottom: 4 }}>📋 Waitlist</div>
+                                                    {waitlist.map((w, i) => (
+                                                        <div key={w.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '3px 0', fontSize: 12 }}>
+                                                            <span style={{ color: C.text }}>#{w.waitlist_position || i + 1} — {w.player_name}</span>
+                                                            <button onClick={() => handleRemoveSeat(game.id, w.id)} style={{ background: 'none', border: 'none', color: '#F02849', cursor: 'pointer', fontSize: 12 }}>Remove</button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Game Actions */}
+                                        <div style={{ padding: '8px 16px', borderTop: '1px solid #e4e6eb', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                                            {game.status === 'open' && (
+                                                <button onClick={async () => {
+                                                    await fetch('/api/social/pages/games', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: game.id, status: 'running' }) });
+                                                    setLiveGames(prev => prev.map(g => g.id === game.id ? { ...g, status: 'running' } : g));
+                                                }} style={{ ...btnPrimary, background: '#22c55e' }}>▶ Start Game</button>
+                                            )}
+                                            <button onClick={() => handleCloseGame(game.id)} style={{ ...btnSec, color: '#F02849' }}>Close Game</button>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            )}
+
             {/* About Tab */}
             {activeTab === 'about' && (
                 <div style={{ background: C.card, borderRadius: 12, padding: 16 }}>
@@ -2161,8 +2374,192 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
     );
 }
 
+// ===== PUBLIC GAME BOARD (Player Signup View) =====
+function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
+    const [games, setGames] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [playerName, setPlayerName] = useState(userName || '');
+    const [actionMsg, setActionMsg] = useState('');
+
+    const fetchGames = async () => {
+        try {
+            const res = await fetch(`/api/social/pages/games?page_id=${pageId}`);
+            const json = await res.json();
+            if (json.success) setGames(json.data || []);
+        } catch (e) { console.error('Public games fetch error:', e); }
+        setLoading(false);
+    };
+
+    useEffect(() => {
+        fetchGames();
+        const interval = setInterval(fetchGames, 15000);
+        return () => clearInterval(interval);
+    }, [pageId]);
+
+    const showMsg = (msg) => { setActionMsg(msg); setTimeout(() => setActionMsg(''), 3000); };
+
+    const handleTakeSeat = async (gameId, seatNumber) => {
+        if (!playerName.trim()) { showMsg('Please enter your name first'); return; }
+        try {
+            const res = await fetch('/api/social/pages/games', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'take_seat', game_id: gameId, seat_number: seatNumber, player_id: userId || null, player_name: playerName.trim() }),
+            });
+            const json = await res.json();
+            if (json.success) { showMsg(`Seat ${seatNumber} reserved!`); fetchGames(); }
+            else { showMsg(json.error || 'Could not take seat'); }
+        } catch (e) { showMsg('Error reserving seat'); }
+    };
+
+    const handleJoinWaitlist = async (gameId) => {
+        if (!playerName.trim()) { showMsg('Please enter your name first'); return; }
+        try {
+            const res = await fetch('/api/social/pages/games', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'join_waitlist', game_id: gameId, player_id: userId || null, player_name: playerName.trim() }),
+            });
+            const json = await res.json();
+            if (json.success) { showMsg(`Added to waitlist (position #${json.position})`); fetchGames(); }
+            else { showMsg(json.error || 'Could not join waitlist'); }
+        } catch (e) { showMsg('Error joining waitlist'); }
+    };
+
+    const handleLeave = async (gameId) => {
+        if (!playerName.trim()) return;
+        try {
+            await fetch('/api/social/pages/games', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'leave', game_id: gameId, player_name: playerName.trim() }),
+            });
+            showMsg('You have been removed from the game'); fetchGames();
+        } catch (e) { showMsg('Error leaving game'); }
+    };
+
+    return (
+        <div style={{ paddingBottom: 8 }}>
+            {/* Header */}
+            <div style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)', borderRadius: 12, padding: 16, marginBottom: 8, color: '#fff' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                    <div>
+                        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>🎰 Live Games</h2>
+                        <p style={{ margin: '2px 0 0', fontSize: 13, opacity: 0.8 }}>{pageName || 'Club Games'}</p>
+                    </div>
+                    {onClose && <button onClick={onClose} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.15)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>← Back</button>}
+                </div>
+                {/* Player Name Input */}
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <label style={{ fontSize: 12, fontWeight: 600, opacity: 0.8 }}>Your Name:</label>
+                    <input value={playerName} onChange={e => setPlayerName(e.target.value)} placeholder="Enter your name to sign up" style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: 14, fontFamily: 'inherit', outline: 'none' }} />
+                </div>
+                {actionMsg && <div style={{ marginTop: 8, padding: '6px 12px', borderRadius: 6, background: actionMsg.includes('Error') || actionMsg.includes('Please') || actionMsg.includes('Could not') ? 'rgba(240,40,73,0.2)' : 'rgba(34,197,94,0.2)', fontSize: 13, fontWeight: 600 }}>{actionMsg}</div>}
+            </div>
+
+            {/* Games */}
+            {loading ? (
+                <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
+                    <div style={{ width: 32, height: 32, border: '3px solid #E4E6EB', borderTopColor: '#1877F2', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+                    Loading live games...
+                </div>
+            ) : games.length === 0 ? (
+                <div style={{ background: C.card, borderRadius: 12, padding: 40, textAlign: 'center' }}>
+                    <div style={{ fontSize: 48, marginBottom: 8 }}>🎰</div>
+                    <p style={{ fontSize: 16, fontWeight: 600, color: C.text, margin: '0 0 4px' }}>No live games right now</p>
+                    <p style={{ fontSize: 13, color: C.textSec, margin: 0 }}>Check back soon for upcoming games!</p>
+                </div>
+            ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {games.map(game => {
+                        const seatArr = Array.from({ length: game.max_seats }, (_, i) => {
+                            const taken = (game.seats || []).find(s => s.seat_number === i + 1 && s.status !== 'waitlist');
+                            return { number: i + 1, taken };
+                        });
+                        const waitlist = (game.seats || []).filter(s => s.status === 'waitlist').sort((a, b) => (a.waitlist_position || 0) - (b.waitlist_position || 0));
+                        const openSeats = seatArr.filter(s => !s.taken).length;
+                        const myReservation = (game.seats || []).find(s => s.player_name === playerName.trim());
+
+                        return (
+                            <div key={game.id} style={{ background: C.card, borderRadius: 12, overflow: 'hidden', border: '1px solid #e4e6eb' }}>
+                                {/* Game Header */}
+                                <div style={{ padding: '12px 16px', background: game.status === 'running' ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)', color: '#fff' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <div>
+                                            <div style={{ fontSize: 18, fontWeight: 800 }}>{game.game_name}</div>
+                                            <div style={{ fontSize: 13, opacity: 0.9 }}>{game.game_type} · ${game.stakes} · {game.max_seats}-max{game.table_number ? ` · ${game.table_number}` : ''}</div>
+                                        </div>
+                                        <div style={{ textAlign: 'right' }}>
+                                            <div style={{ padding: '4px 10px', borderRadius: 12, fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,0.2)', textTransform: 'uppercase' }}>
+                                                {game.status === 'running' ? '🟢 RUNNING' : '🔵 SIGN UP'}
+                                            </div>
+                                            <div style={{ fontSize: 11, marginTop: 4, opacity: 0.8 }}>{openSeats} seat{openSeats !== 1 ? 's' : ''} open</div>
+                                        </div>
+                                    </div>
+                                    {game.notes && <div style={{ fontSize: 12, opacity: 0.85, marginTop: 4 }}>{game.notes}</div>}
+                                </div>
+
+                                {/* Seat Selection Grid */}
+                                <div style={{ padding: 16 }}>
+                                    {myReservation && (
+                                        <div style={{ marginBottom: 10, padding: '8px 12px', borderRadius: 8, background: myReservation.status === 'waitlist' ? '#fffbeb' : '#f0fdf4', border: `1px solid ${myReservation.status === 'waitlist' ? '#fde68a' : '#86efac'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                            <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
+                                                {myReservation.status === 'waitlist'
+                                                    ? `📋 You're #${myReservation.waitlist_position} on the waitlist`
+                                                    : `✅ You have Seat ${myReservation.seat_number}`}
+                                            </span>
+                                            <button onClick={() => handleLeave(game.id)} style={{ padding: '4px 12px', borderRadius: 6, border: 'none', background: '#F02849', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Leave</button>
+                                        </div>
+                                    )}
+
+                                    <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 8 }}>
+                                        {openSeats > 0 ? 'Click a seat to reserve it:' : 'All seats taken — join the waitlist!'}
+                                    </div>
+
+                                    {/* Seat Grid */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(game.max_seats, 5)}, 1fr)`, gap: 6 }}>
+                                        {seatArr.map(seat => (
+                                            <button key={seat.number} onClick={() => !seat.taken && !myReservation && handleTakeSeat(game.id, seat.number)} disabled={!!seat.taken || !!myReservation} style={{
+                                                padding: '10px 6px', borderRadius: 8, textAlign: 'center', cursor: seat.taken || myReservation ? 'default' : 'pointer',
+                                                background: seat.taken ? (seat.taken.player_name === playerName.trim() ? '#dbeafe' : '#fee2e2') : '#f0fdf4',
+                                                border: `2px solid ${seat.taken ? (seat.taken.player_name === playerName.trim() ? '#3b82f6' : '#fca5a5') : '#86efac'}`,
+                                                transition: 'all 0.15s', fontFamily: 'inherit',
+                                                transform: !seat.taken && !myReservation ? undefined : undefined,
+                                            }}
+                                                onMouseEnter={e => { if (!seat.taken && !myReservation) e.target.style.transform = 'scale(1.05)'; }}
+                                                onMouseLeave={e => { e.target.style.transform = 'scale(1)'; }}
+                                            >
+                                                <div style={{ fontSize: 10, fontWeight: 600, color: C.textSec }}>Seat {seat.number}</div>
+                                                {seat.taken ? (
+                                                    <div style={{ fontSize: 12, fontWeight: 700, color: seat.taken.player_name === playerName.trim() ? '#1d4ed8' : '#dc2626', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                        {seat.taken.player_name === playerName.trim() ? '⭐ YOU' : seat.taken.player_name}
+                                                    </div>
+                                                ) : (
+                                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#22c55e' }}>🪑 OPEN</div>
+                                                )}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {/* Waitlist */}
+                                    <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <div style={{ fontSize: 12, color: C.textSec }}>
+                                            {waitlist.length > 0 && <span style={{ fontWeight: 600, color: '#f59e0b' }}>📋 Waitlist: {waitlist.map(w => w.player_name).join(', ')}</span>}
+                                        </div>
+                                        {!myReservation && (
+                                            <button onClick={() => handleJoinWaitlist(game.id)} style={{ padding: '6px 16px', borderRadius: 8, border: 'none', background: '#f59e0b', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Join Waitlist</button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+            <style jsx>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+    );
+}
+
 // ===== CLUB PAGES VIEW COMPONENT =====
-function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setCategory, search, setSearch, followingIds, setFollowingIds, onClose }) {
+function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setCategory, search, setSearch, followingIds, setFollowingIds, onClose, onViewLiveGames }) {
     const router = useRouter();
     const [searchInput, setSearchInput] = useState(search);
     const [showFollowedOnly, setShowFollowedOnly] = useState(false);
@@ -2496,6 +2893,7 @@ export default function SocialMediaPage() {
     const [showCreatePage, setShowCreatePage] = useState(false);
     const [showPageDashboard, setShowPageDashboard] = useState(false);
     const [myPageLoading, setMyPageLoading] = useState(false);
+    const [viewingLiveGamesPage, setViewingLiveGamesPage] = useState(null);
 
 
     // ♾️ INFINITE SCROLL STATE
@@ -3981,8 +4379,20 @@ export default function SocialMediaPage() {
                         />
                     )}
 
+                    {/* ===== PUBLIC LIVE GAME BOARD (Any User) ===== */}
+                    {showClubPages && viewingLiveGamesPage && (
+                        <PublicGameBoard
+                            C={C}
+                            pageId={viewingLiveGamesPage.id}
+                            pageName={viewingLiveGamesPage.name}
+                            userId={user?.id}
+                            userName={user?.username || user?.full_name || ''}
+                            onClose={() => setViewingLiveGamesPage(null)}
+                        />
+                    )}
+
                     {/* ===== CLUB PAGES VIEW (Browse) ===== */}
-                    {showClubPages && !showPageDashboard && (
+                    {showClubPages && !showPageDashboard && !viewingLiveGamesPage && (
                         <>
                             {/* Commander Banner — Create or Manage Page */}
                             {isCommander && !myPageLoading && (
@@ -4002,6 +4412,11 @@ export default function SocialMediaPage() {
                                                 fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
                                                 backdropFilter: 'blur(4px)'
                                             }}>Manage Page</button>
+                                            <button onClick={() => setViewingLiveGamesPage(myClubPage)} style={{
+                                                padding: '8px 16px', borderRadius: 8, border: 'none',
+                                                background: 'rgba(255,255,255,0.25)', color: '#fff',
+                                                fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
+                                            }}>🎮 Live Games</button>
                                         </div>
                                     ) : (
                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -4031,6 +4446,7 @@ export default function SocialMediaPage() {
                                 followingIds={clubPagesFollowing}
                                 setFollowingIds={setClubPagesFollowing}
                                 onClose={() => setShowClubPages(false)}
+                                onViewLiveGames={setViewingLiveGamesPage}
                             />
                         </>
                     )}

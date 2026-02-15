@@ -20,7 +20,7 @@ import supabase from '../../src/lib/supabase';
 
 
 // ═══════════════════════════════════════════════════════════════════════════
-// STANDARD DIAMOND REWARDS — 13 Ways to Earn (Daily Cap: 500 💎)
+// STANDARD DIAMOND REWARDS — 14 Ways to Earn (Daily Cap: 500 💎)
 // Streak Multipliers: 1.0x (Days 1-3), 1.5x (Days 4-6), 2.0x (Day 7+)
 // ═══════════════════════════════════════════════════════════════════════════
 const STANDARD_REWARDS = [
@@ -28,7 +28,8 @@ const STANDARD_REWARDS = [
     { id: 'daily_login', icon: '📅', name: 'Daily Login', amount: '5-50 💎', note: 'Scales With Streak (Day 1: 5💎, Day 7+: 50💎)', category: 'Daily' },
     { id: 'daily_trivia', icon: '🧠', name: 'Daily Trivia Challenge', amount: '+15 💎', note: 'Complete The Daily Challenge (Any Score!)', category: 'Daily' },
     // ── Social ──
-    { id: 'social_post_share', icon: '📝', name: 'Share Post', amount: '+10 💎', note: 'Share A Hand, Achievement, Or Thought (3/day)', category: 'Social' },
+    { id: 'social_post', icon: '📝', name: 'Create Post', amount: '+10 💎', note: 'Share A Hand, Achievement, Or Thought (1/day)', category: 'Social' },
+    { id: 'share_content', icon: '📤', name: 'Share Content', amount: '+10 💎', note: 'Share A Post Or Score Card (1/day)', category: 'Social' },
     { id: 'strategy_comment', icon: '💬', name: 'Strategy Comment', amount: '+5 💎', note: 'Leave A Strategy Comment (5/day)', category: 'Social' },
     { id: 'reaction', icon: '👍', name: 'Like / React', amount: '+2 💎', note: 'React To A Post (10/day Max)', category: 'Social' },
     { id: 'follow_user', icon: '👥', name: 'Follow A Player', amount: '+5 💎', note: 'Follow Another Player (3/day Max)', category: 'Social' },
@@ -1390,7 +1391,7 @@ export default function DiamondStorePage() {
                                                 <span style={styles.quickStatLabel}>Easter Eggs</span>
                                             </div>
                                             <div style={styles.quickStat}>
-                                                <span style={styles.quickStatValue}>13</span>
+                                                <span style={styles.quickStatValue}>14</span>
                                                 <span style={styles.quickStatLabel}>Standard Rewards</span>
                                             </div>
                                         </div>
@@ -1402,7 +1403,7 @@ export default function DiamondStorePage() {
                                     <div style={styles.diamondRewardsSection}>
                                         <h2 style={styles.earnTitle}>Diamond Rewards</h2>
                                         <p style={styles.introText}>
-                                            All 13 Ways You Can Earn Diamonds On Smarter.Poker
+                                            All 14 Ways You Can Earn Diamonds On Smarter.Poker
                                         </p>
 
                                         {/* Daily Cap Banner */}
