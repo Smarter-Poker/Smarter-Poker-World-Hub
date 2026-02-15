@@ -91,6 +91,15 @@ export function getSessionToken() {
 }
 
 /**
+ * Get the access token for authenticated API calls.
+ * Alias for getSessionToken — matches the .ts file export name
+ * Both files must export this for dynamic import() consistency.
+ */
+export function getAccessToken() {
+    return getSessionToken();
+}
+
+/**
  * Fetch data from Supabase REST API with authentication
  * Bypasses supabase-js client to avoid AbortError
  */
@@ -234,6 +243,7 @@ import { useState, useEffect } from 'react';
 export default {
     getAuthUser,
     getSessionToken,
+    getAccessToken,
     fetchWithAuth,
     queryProfiles,
     queryDiamondBalance,

@@ -119,7 +119,7 @@ export default function PromotionsPage() {
                 <meta name="description" content="Discover active promotions and deals from poker venues, tours, and series across the poker world." />
             </Head>
 
-            <UniversalHeader onMenuClick={() => setMenuOpen(true)} />
+            <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
             <HamburgerMenu
                 isOpen={menuOpen}
                 onClose={() => setMenuOpen(false)}

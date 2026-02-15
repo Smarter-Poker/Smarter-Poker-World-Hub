@@ -495,7 +495,7 @@ export default function EventsCalendarPage() {
         <title>Events Calendar | Smarter.Poker</title>
         <meta name="description" content="Browse upcoming poker tournaments and events across all venues and series." />
       </Head>
-      <UniversalHeader onMenuClick={() => setMenuOpen(true)} />
+      <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
       <HamburgerMenu
         isOpen={menuOpen}
         onClose={() => setMenuOpen(false)}

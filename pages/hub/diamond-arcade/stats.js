@@ -27,7 +27,7 @@ export default function DiamondArcadeStats() {
 
             <PageTransition>
                 <div style={{ minHeight: '100vh', background: '#0a0e1a' }}>
-                    <UniversalHeader />
+                    <UniversalHeader pageDepth={2} />
 
                     <div style={{ padding: '120px 20px 40px', maxWidth: '1200px', margin: '0 auto' }}>
                         <button
@@ -38,7 +38,7 @@ export default function DiamondArcadeStats() {
                         </button>
 
                         <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#fff', marginBottom: '30px' }}>
-                             My Arcade Stats
+                            My Arcade Stats
                         </h1>
 
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>

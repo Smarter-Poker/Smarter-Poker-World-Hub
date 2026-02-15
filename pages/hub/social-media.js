@@ -1729,7 +1729,18 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
         setPageType(newType);
         const autoDisableTexas = newType === 'home_game' || newType === 'charity';
         if (autoDisableTexas) setTexasClubEnabled(false);
-        await saveMetadata({ page_type: newType, ...(autoDisableTexas ? { texas_club_enabled: false } : {}) }, 'Page type updated!');
+        // Update metadata + top-level page_type column in one PUT
+        setMetaSaving(true); setMetaSaved('');
+        try {
+            const mergedMeta = { ...page.metadata, page_type: newType, ...(autoDisableTexas ? { texas_club_enabled: false } : {}) };
+            const res = await fetch('/api/social/pages', {
+                method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: page.id, owner_id: userId, page_type: newType, metadata: mergedMeta }),
+            });
+            const json = await res.json();
+            if (json.success && json.data) { onPageUpdated(json.data); setMetaSaved('Page type updated!'); setTimeout(() => setMetaSaved(''), 2000); }
+        } catch (e) { console.error('Page type change error:', e); setMetaSaved('Error saving'); }
+        setMetaSaving(false);
     };
 
     const handleCreateGame = async () => {

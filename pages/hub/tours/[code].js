@@ -277,7 +277,7 @@ export default function TourDetailPage() {
         <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </Head>
 
-      <UniversalHeader />
+      <UniversalHeader pageDepth={2} />
 
       <div className="tour-page">
         {loading && (

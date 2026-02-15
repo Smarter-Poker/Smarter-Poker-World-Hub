@@ -24,7 +24,7 @@ export default function DiamondArcadeAchievements() {
 
             <PageTransition>
                 <div style={{ minHeight: '100vh', background: '#0a0e1a' }}>
-                    <UniversalHeader />
+                    <UniversalHeader pageDepth={2} />
 
                     <div style={{ padding: '120px 20px 40px', maxWidth: '1200px', margin: '0 auto' }}>
                         <button
@@ -35,7 +35,7 @@ export default function DiamondArcadeAchievements() {
                         </button>
 
                         <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#fff', marginBottom: '30px' }}>
-                             Arcade Achievements
+                            Arcade Achievements
                         </h1>
 
                         <div style={{ display: 'grid', gap: '16px' }}>
@@ -64,7 +64,7 @@ export default function DiamondArcadeAchievements() {
                                     </div>
                                     {achievement.unlocked && (
                                         <div style={{ marginLeft: 'auto', color: '#10b981', fontWeight: 'bold' }}>
-                                             Unlocked
+                                            Unlocked
                                         </div>
                                     )}
                                 </div>

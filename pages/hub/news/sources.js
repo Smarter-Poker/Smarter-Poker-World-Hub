@@ -24,7 +24,7 @@ export default function NewsSources() {
 
             <PageTransition>
                 <div style={{ minHeight: '100vh', background: '#0a0e1a' }}>
-                    <UniversalHeader />
+                    <UniversalHeader pageDepth={2} />
 
                     <div style={{ padding: '120px 20px 40px', maxWidth: '800px', margin: '0 auto' }}>
                         <button

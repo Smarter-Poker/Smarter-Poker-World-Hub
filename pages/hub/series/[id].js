@@ -306,7 +306,7 @@ export default function SeriesDetailPage() {
     return (
       <>
         <Head><title>Loading Series... | Smarter.Poker</title></Head>
-        <UniversalHeader />
+        <UniversalHeader pageDepth={2} />
         <div className="series-page">
           <div className="loading-container">
             <div className="loading-spinner" />
@@ -323,7 +323,7 @@ export default function SeriesDetailPage() {
     return (
       <>
         <Head><title>Series Not Found | Smarter.Poker</title></Head>
-        <UniversalHeader />
+        <UniversalHeader pageDepth={2} />
         <div className="series-page">
           <div className="error-container">
             <h2 className="error-title">Series Not Found</h2>
@@ -356,7 +356,7 @@ export default function SeriesDetailPage() {
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </Head>
-      <UniversalHeader />
+      <UniversalHeader pageDepth={2} />
 
       <div className="series-page">
         {/* Breadcrumb Navigation */}

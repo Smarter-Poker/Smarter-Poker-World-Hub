@@ -828,7 +828,7 @@ export default function VenueDetailPage() {
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
       </Head>
 
-      <UniversalHeader />
+      <UniversalHeader pageDepth={2} />
 
       <div className="venue-page">
         {loading && (
