@@ -192,6 +192,7 @@ export default async function handler(req, res) {
         }
 
         const slug = generateSlug(name);
+        const referralCode = slug.substring(0, 20) + '-' + Math.random().toString(36).substring(2, 6);
 
         const { data, error } = await supabase
             .from('social_pages')
@@ -213,7 +214,7 @@ export default async function handler(req, res) {
                 is_public: is_public !== false,
                 allow_member_posts: allow_member_posts !== false,
                 require_post_approval: require_post_approval || false,
-                metadata: metadata || {}
+                metadata: { ...(metadata || {}), referral_code: referralCode }
             })
             .select()
             .single();
@@ -224,7 +225,8 @@ export default async function handler(req, res) {
         await supabase.from('social_page_followers').insert({
             page_id: data.id,
             user_id: owner_id,
-            role: 'owner'
+            role: 'owner',
+            status: 'approved'
         });
 
         return res.status(201).json({ success: true, data });

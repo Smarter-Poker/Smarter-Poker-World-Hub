@@ -1684,6 +1684,9 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
     const [creatingGame, setCreatingGame] = useState(false);
     const [pendingFollowers, setPendingFollowers] = useState([]);
     const [pageType, setPageType] = useState((page.metadata || {}).page_type || 'club');
+    const [qrData, setQrData] = useState(null);
+    const [showQR, setShowQR] = useState(false);
+    const [copiedUrl, setCopiedUrl] = useState(false);
 
     // Fetch live games
     useEffect(() => {
@@ -2252,6 +2255,29 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
                             ))}
                         </div>
                     )}
+
+                    {/* QR Code & Referral Panel */}
+                    <div style={{ marginBottom: 12, borderRadius: 10, border: '1px solid #e4e6eb', background: '#f8fafc', padding: 12 }}>
+                        <div onClick={() => { setShowQR(!showQR); if (!qrData) fetch(`/api/social/pages/qrcode?page_id=${page.id}`).then(r => r.json()).then(j => j.success && setQrData(j.data)).catch(() => { }); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+                            <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>📱 QR Code & Referral Link</span>
+                            <span style={{ fontSize: 12, color: C.textSec }}>{showQR ? '▲' : '▼'}</span>
+                        </div>
+                        {showQR && qrData && (
+                            <div style={{ marginTop: 10, textAlign: 'center' }}>
+                                <img src={qrData.qr_code_url} alt="QR Code" style={{ width: 200, height: 200, borderRadius: 8, border: '2px solid #e4e6eb', margin: '0 auto 10px' }} />
+                                <div style={{ fontSize: 11, color: C.textSec, marginBottom: 6 }}>Scan to follow <strong>{qrData.page_name}</strong></div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center', marginBottom: 6 }}>
+                                    <input readOnly value={qrData.follow_url} style={{ flex: 1, maxWidth: 280, padding: '6px 8px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 11, color: C.text, background: '#fff', fontFamily: 'inherit' }} />
+                                    <button onClick={() => { navigator.clipboard.writeText(qrData.follow_url); setCopiedUrl(true); setTimeout(() => setCopiedUrl(false), 2000); }} style={{ padding: '6px 12px', borderRadius: 6, border: 'none', background: copiedUrl ? '#22c55e' : '#1877F2', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                                        {copiedUrl ? '✓ Copied!' : '📋 Copy'}
+                                    </button>
+                                </div>
+                                <div style={{ fontSize: 11, color: C.textSec }}>Referral Code: <strong>{qrData.referral_code}</strong></div>
+                                <div style={{ fontSize: 10, color: '#6b7280', marginTop: 4 }}>Users who sign up via this link are auto-followed to your page</div>
+                            </div>
+                        )}
+                        {showQR && !qrData && <div style={{ padding: 12, textAlign: 'center', fontSize: 12, color: C.textSec }}>Loading QR code...</div>}
+                    </div>
 
                     {/* Create Game Form */}
                     {showCreateGame && (
@@ -3328,7 +3354,32 @@ export default function SocialMediaPage() {
                 if (stored) setShowCreatePage(true);
             }, 500);
         }
-    }, [user, router.query.createPage]);
+
+        // Handle ?ref=<referral_code> query param (from QR code scan)
+        if (router.query.ref && user) {
+            const refCode = router.query.ref;
+            (async () => {
+                try {
+                    // Look up the page by referral code
+                    const res = await fetch(`/api/social/pages/qrcode?ref=${refCode}`);
+                    const json = await res.json();
+                    if (json.success && json.data) {
+                        const refPage = json.data;
+                        // Auto-follow the page
+                        await fetch('/api/social/pages/follow', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ page_id: refPage.id, user_id: user.id, action: 'follow' }),
+                        });
+                        // Show the club pages view and navigate to the referred page's live games
+                        setShowClubPages(true);
+                        setViewingLiveGamesPage(refPage);
+                        // Clean up the URL
+                        router.replace('/hub/social-media', undefined, { shallow: true });
+                    }
+                } catch (e) { console.error('Referral follow error:', e); }
+            })();
+        }
+    }, [user, router.query.createPage, router.query.ref]);
 
     //  AUTO-MARK NOTIFICATIONS AS READ when dropdown opens
     useEffect(() => {

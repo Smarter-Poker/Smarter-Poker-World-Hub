@@ -457,52 +457,18 @@ export default function WorldHub() {
                         setUserAvatarUrl(profile.avatar_url);
                     }
 
-                    // 🔑 Commander account detection — query Supabase if localStorage didn't have it
-                    // Check BOTH tables: commander_staff (staff members) AND commander_subscriptions (venue owners)
+                    // 🔑 Commander account detection — use server-side API to bypass RLS
                     if (!hasCommanderAccount) {
                         try {
-                            // Check 1: commander_staff table (staff with any role)
-                            const { data: staffRecords } = await supabase
-                                .from('commander_staff')
-                                .select('id, venue_id, role, poker_venues(id, name)')
-                                .eq('user_id', user.id)
-                                .eq('is_active', true)
-                                .limit(1);
-
-                            if (staffRecords && staffRecords.length > 0) {
-                                const record = staffRecords[0];
-                                setHasCommanderAccount(true);
-                                try {
-                                    localStorage.setItem('commander_staff', JSON.stringify({
-                                        user_id: user.id,
-                                        id: record.id,
-                                        venue_id: record.venue_id,
-                                        role: record.role,
-                                        venue_name: (record as any).poker_venues?.name || 'My Venue',
-                                    }));
-                                    console.log('[WorldHub] 🏢 Commander staff account detected via Supabase');
-                                } catch { }
-                            } else {
-                                // Check 2: commander_subscriptions table (venue owners who may not be in staff table)
-                                const { data: subs } = await supabase
-                                    .from('commander_subscriptions')
-                                    .select('id, venue_id, billing_name, status, venue:poker_venues(id, name)')
-                                    .eq('owner_id', user.id)
-                                    .in('status', ['active', 'trialing'])
-                                    .limit(1);
-
-                                if (subs && subs.length > 0) {
-                                    const sub = subs[0];
+                            const res = await fetch('/api/commander/check-access');
+                            if (res.ok) {
+                                const data = await res.json();
+                                if (data.hasAccess && data.staff) {
                                     setHasCommanderAccount(true);
+                                    // Backfill localStorage so future visits are instant
                                     try {
-                                        localStorage.setItem('commander_staff', JSON.stringify({
-                                            user_id: user.id,
-                                            role: 'owner',
-                                            venue_id: sub.venue_id,
-                                            venue_name: (sub as any).venue?.name || 'My Venue',
-                                            display_name: sub.billing_name || user.email,
-                                        }));
-                                        console.log('[WorldHub] 🏢 Commander subscription detected via Supabase');
+                                        localStorage.setItem('commander_staff', JSON.stringify(data.staff));
+                                        console.log('[WorldHub] 🏢 Commander account detected via API');
                                     } catch { }
                                 }
                             }
