@@ -865,5 +865,23 @@ export function getMenuConfig(worldKey, user, state = {}, handlers = {}) {
         console.warn(`No menu config found for world: ${worldKey}`);
         return { menuItems: [], bottomLinks: [] };
     }
-    return config(user, state, handlers);
+    const result = config(user, state, handlers);
+
+    // Inject "Refer a Friend" into bottomLinks for logged-in users
+    if (user && result.bottomLinks) {
+        const referralItem = {
+            label: '🤝 Refer a Friend — Copy Link',
+            action: true,
+            onClick: () => copyReferralLink(user),
+        };
+        // Add before the last item (usually Settings)
+        const settingsIdx = result.bottomLinks.findIndex(l => l.label === 'Settings');
+        if (settingsIdx >= 0) {
+            result.bottomLinks.splice(settingsIdx, 0, referralItem);
+        } else {
+            result.bottomLinks.push(referralItem);
+        }
+    }
+
+    return result;
 }

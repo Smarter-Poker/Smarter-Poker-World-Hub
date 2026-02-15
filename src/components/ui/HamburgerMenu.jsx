@@ -408,26 +408,55 @@ export default function HamburgerMenu({
                 {/* Bottom Links */}
                 {bottomLinks.length > 0 && (
                     <div style={{ padding: '0 16px', borderTop: `1px solid ${colors.border}`, paddingTop: 12 }}>
-                        {bottomLinks.map((link, index) => (
-                            <Link
-                                key={index}
-                                href={link.href}
-                                onClick={onClose}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 12,
-                                    padding: '12px 0',
-                                    textDecoration: 'none',
-                                    color: colors.text,
-                                    borderTop: index > 0 ? `1px solid ${colors.border}` : 'none'
-                                }}
-                            >
-                                {link.icon && <div style={{ width: 24, height: 24 }}>{link.icon}</div>}
-                                <span style={{ flex: 1, fontSize: 15 }}>{link.label}</span>
-                                <span style={{ color: colors.textSec }}>›</span>
-                            </Link>
-                        ))}
+                        {bottomLinks.map((link, index) => {
+                            const commonStyle = {
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 12,
+                                padding: '12px 0',
+                                textDecoration: 'none',
+                                color: colors.text,
+                                borderTop: index > 0 ? `1px solid ${colors.border}` : 'none',
+                                width: '100%',
+                                fontSize: 15,
+                                fontFamily: 'inherit',
+                            };
+
+                            if (link.action && link.onClick) {
+                                return (
+                                    <button
+                                        key={index}
+                                        onClick={() => {
+                                            link.onClick();
+                                            onClose();
+                                        }}
+                                        style={{
+                                            ...commonStyle,
+                                            background: 'none',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                        }}
+                                    >
+                                        {link.icon && <div style={{ width: 24, height: 24 }}>{link.icon}</div>}
+                                        <span style={{ flex: 1, fontSize: 15, textAlign: 'left' }}>{link.label}</span>
+                                        <span style={{ color: colors.textSec }}>›</span>
+                                    </button>
+                                );
+                            }
+
+                            return (
+                                <Link
+                                    key={index}
+                                    href={link.href}
+                                    onClick={onClose}
+                                    style={commonStyle}
+                                >
+                                    {link.icon && <div style={{ width: 24, height: 24 }}>{link.icon}</div>}
+                                    <span style={{ flex: 1, fontSize: 15 }}>{link.label}</span>
+                                    <span style={{ color: colors.textSec }}>›</span>
+                                </Link>
+                            );
+                        })}
                     </div>
                 )}
             </div>
