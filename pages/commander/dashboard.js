@@ -1,17 +1,52 @@
 /**
- * Commander Staff Dashboard - 4-Card Main Menu
+ * Commander Staff Dashboard - 6-Card Main Menu
  * Industrial metal card interface with sub-feature navigation
+ * CSS-rendered metal plate icons with Lucide glyphs for perfect consistency
  * NO EMOJIS - Lucide icons only
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { LogOut, ArrowLeft, Settings, Download, Users, QrCode } from 'lucide-react';
+import {
+  ArrowLeft,
+  // Waitlist
+  Monitor, Users, TabletSmartphone, UserPlus, CreditCard, Eye,
+  // Tournaments
+  Trophy, BarChart3, Award, Sparkles,
+  // Tables & Floor
+  LayoutGrid, ArrowLeftRight, Map, DollarSign, Shuffle, PhoneCall,
+  GraduationCap, RotateCcw, Heart,
+  // Staff & Operations
+  UserCog, Gamepad2, CalendarDays, ArrowRightLeft, Wallet, Clock,
+  AlertTriangle, SlidersHorizontal, Dices, Gift,
+  // Displays & Promotions
+  Tv, Table2, Users2, Megaphone, Star, Layers, Video, Bell, Percent,
+  // Reports & System
+  FileText, Sun, TrendingUp, Activity, UserCheck, PieChart, BarChart,
+  Grid3X3, ListChecks, Receipt, Rss, Brain, Settings, Cpu, Power,
+  FolderDown, Download, Shield, ShoppingBag, ThumbsUp,
+} from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 /* ─────────────────────────────────────────────────
+   LUCIDE ICON MAP — maps string names to components
+   ───────────────────────────────────────────────── */
+const ICON_MAP = {
+  Monitor, Users, TabletSmartphone, UserPlus, CreditCard, Eye,
+  Trophy, BarChart3, Award, Sparkles,
+  LayoutGrid, ArrowLeftRight, Map, DollarSign, Shuffle, PhoneCall,
+  GraduationCap, RotateCcw, Heart,
+  UserCog, Gamepad2, CalendarDays, ArrowRightLeft, Wallet, Clock,
+  AlertTriangle, SlidersHorizontal, Dices, Gift,
+  Tv, Table2, Users2, Megaphone, Star, Layers, Video, Bell, Percent,
+  FileText, Sun, TrendingUp, Activity, UserCheck, PieChart, BarChart,
+  Grid3X3, ListChecks, Receipt, Rss, Brain, Settings, Cpu, Power,
+  FolderDown, Download, Shield, ShoppingBag, ThumbsUp,
+};
+
+/* ─────────────────────────────────────────────────
    CARD DEFINITIONS — each card has sub-features
-   that link to pages within Club Commander
+   with Lucide icon names for CSS-rendered plates
    ───────────────────────────────────────────────── */
 const CARDS = [
   {
@@ -21,12 +56,12 @@ const CARDS = [
     image: '/images/commander/card-waitlist.jpg',
     glow: '#22D3EE',
     features: [
-      { label: 'Desk View', href: '/commander/waitlist/desk', icon: '/images/commander/icons/wl-desk-view.png' },
-      { label: 'Player Maintenance', href: '/commander/members', icon: '/images/commander/icons/wl-player-maintenance.png' },
-      { label: 'Player Kiosk', href: '/commander/kiosk', icon: '/images/commander/icons/wl-player-kiosk.png' },
-      { label: 'Member Import', href: '/commander/member-import', icon: '/images/commander/icons/wl-member-import.png' },
-      { label: 'Membership Plans', href: '/commander/membership-plans', icon: '/images/commander/icons/mg-membership-plans.png' },
-      { label: 'Player Display', href: '/commander/displays/waitlist', icon: '/images/commander/icons/wl-player-view.png' },
+      { label: 'Desk View', href: '/commander/waitlist/desk', icon: 'Monitor' },
+      { label: 'Player Maintenance', href: '/commander/members', icon: 'Users' },
+      { label: 'Player Kiosk', href: '/commander/kiosk', icon: 'TabletSmartphone' },
+      { label: 'Member Import', href: '/commander/member-import', icon: 'UserPlus' },
+      { label: 'Membership Plans', href: '/commander/membership-plans', icon: 'CreditCard' },
+      { label: 'Player Display', href: '/commander/displays/waitlist', icon: 'Eye' },
     ],
   },
   {
@@ -36,10 +71,10 @@ const CARDS = [
     image: '/images/commander/card-tournaments.jpg',
     glow: '#F59E0B',
     features: [
-      { label: 'Tournament Manager', href: '/commander/tournaments', icon: '/images/commander/icons/tn-registration.png' },
-      { label: 'Tournament Results', href: '/commander/reports/tournament-results', icon: '/images/commander/icons/rp-tournament.png' },
-      { label: 'Leagues', href: '/commander/leagues', icon: '/images/commander/icons/tn-maintenance.png' },
-      { label: 'High Hands', href: '/commander/high-hands', icon: '/images/commander/icons/tn-high-hands.png' },
+      { label: 'Tournament Manager', href: '/commander/tournaments', icon: 'Trophy' },
+      { label: 'Tournament Results', href: '/commander/reports/tournament-results', icon: 'BarChart3' },
+      { label: 'Leagues', href: '/commander/leagues', icon: 'Award' },
+      { label: 'High Hands', href: '/commander/high-hands', icon: 'Sparkles' },
     ],
   },
   {
@@ -47,17 +82,17 @@ const CARDS = [
     title: 'Tables & Floor',
     subtitle: 'Tables, Dealers, Floor Ops',
     image: '/images/commander/card-floor.jpg?v=4',
-    glow: '#EF4444',
+    glow: '#22C55E',
     features: [
-      { label: 'Tables', href: '/commander/tables', icon: '/images/commander/icons/mg-tables.png' },
-      { label: 'Table Assignments', href: '/commander/table-assignments', icon: '/images/commander/icons/mg-table-assignments.png' },
-      { label: 'Floor Map', href: '/commander/floor', icon: '/images/commander/icons/mg-floor-map.png' },
-      { label: 'Open Cash Game', href: '/commander/open-game', icon: '/images/commander/icons/mg-open-game.png' },
-      { label: 'Must-Move Games', href: '/commander/must-move', icon: '/images/commander/icons/mg-must-move.png' },
-      { label: 'Floor Calls', href: '/commander/floor-calls', icon: '/images/commander/icons/mg-floor-calls.png' },
-      { label: 'Dealers', href: '/commander/dealers', icon: '/images/commander/icons/mg-dealers.png' },
-      { label: 'Dealer Rotation', href: '/commander/dealer-rotation', icon: '/images/commander/icons/mg-dealer-rotation.png' },
-      { label: 'Table Vibes', href: '/commander/table-vibes', icon: '/images/commander/icons/mg-table-vibes.png' },
+      { label: 'Tables', href: '/commander/tables', icon: 'LayoutGrid' },
+      { label: 'Table Assignments', href: '/commander/table-assignments', icon: 'ArrowLeftRight' },
+      { label: 'Floor Map', href: '/commander/floor', icon: 'Map' },
+      { label: 'Open Cash Game', href: '/commander/open-game', icon: 'DollarSign' },
+      { label: 'Must-Move Games', href: '/commander/must-move', icon: 'Shuffle' },
+      { label: 'Floor Calls', href: '/commander/floor-calls', icon: 'PhoneCall' },
+      { label: 'Dealers', href: '/commander/dealers', icon: 'GraduationCap' },
+      { label: 'Dealer Rotation', href: '/commander/dealer-rotation', icon: 'RotateCcw' },
+      { label: 'Table Vibes', href: '/commander/table-vibes', icon: 'Heart' },
     ],
   },
   {
@@ -67,16 +102,16 @@ const CARDS = [
     image: '/images/commander/card-staff.jpg',
     glow: '#DC2626',
     features: [
-      { label: 'Employee Maintenance', href: '/commander/staff', icon: '/images/commander/icons/mg-employee.png' },
-      { label: 'Poker Room Functions', href: '/commander/poker-room', icon: '/images/commander/icons/mg-poker-room.png' },
-      { label: 'Staff Schedule', href: '/commander/schedule', icon: '/images/commander/icons/mg-staff-schedule.png' },
-      { label: 'Shift Handoff', href: '/commander/shift-handoff', icon: '/images/commander/icons/mg-shift-handoff.png' },
-      { label: 'Cashier', href: '/commander/cashier', icon: '/images/commander/icons/mg-cashier.png' },
-      { label: 'Time Billing', href: '/commander/time-billing', icon: '/images/commander/icons/mg-time-billing.png' },
-      { label: 'Incidents', href: '/commander/incidents', icon: '/images/commander/icons/mg-incidents.png' },
-      { label: 'Room Presets', href: '/commander/room-presets', icon: '/images/commander/icons/mg-room-presets.png' },
-      { label: 'Game Types', href: '/commander/game-types', icon: '/images/commander/icons/mg-game-types.png' },
-      { label: 'Comps', href: '/commander/comps', icon: '/images/commander/icons/mg-comps-red.png' },
+      { label: 'Employee Maintenance', href: '/commander/staff', icon: 'UserCog' },
+      { label: 'Poker Room Functions', href: '/commander/poker-room', icon: 'Gamepad2' },
+      { label: 'Staff Schedule', href: '/commander/schedule', icon: 'CalendarDays' },
+      { label: 'Shift Handoff', href: '/commander/shift-handoff', icon: 'ArrowRightLeft' },
+      { label: 'Cashier', href: '/commander/cashier', icon: 'Wallet' },
+      { label: 'Time Billing', href: '/commander/time-billing', icon: 'Clock' },
+      { label: 'Incidents', href: '/commander/incidents', icon: 'AlertTriangle' },
+      { label: 'Room Presets', href: '/commander/room-presets', icon: 'SlidersHorizontal' },
+      { label: 'Game Types', href: '/commander/game-types', icon: 'Dices' },
+      { label: 'Comps', href: '/commander/comps', icon: 'Gift' },
     ],
   },
   {
@@ -86,16 +121,16 @@ const CARDS = [
     image: '/images/commander/card-displays.jpg',
     glow: '#8B5CF6',
     features: [
-      { label: 'TV Displays', href: '/commander/displays', icon: '/images/commander/icons/mg-tv-displays.png' },
-      { label: 'Display: Tables', href: '/commander/displays/tables', icon: '/images/commander/icons/mg-display-tables.png' },
-      { label: 'Display: Dealers', href: '/commander/displays/dealers', icon: '/images/commander/icons/mg-display-dealers.png' },
-      { label: 'Display: Announcements', href: '/commander/displays/announcements', icon: '/images/commander/icons/mg-display-announcements.png' },
-      { label: 'Display: Promotions', href: '/commander/displays/promotions', icon: '/images/commander/icons/mg-display-promotions.png' },
-      { label: 'Display: Leaderboard', href: '/commander/displays/leaderboard', icon: '/images/commander/icons/mg-display-leaderboard.png' },
-      { label: 'Display: Combined', href: '/commander/displays/combined', icon: '/images/commander/icons/mg-display-combined.png' },
-      { label: 'Streaming', href: '/commander/streaming', icon: '/images/commander/icons/mg-streaming.png' },
-      { label: 'Notifications', href: '/commander/notifications', icon: '/images/commander/icons/mg-notifications.png' },
-      { label: 'Promotions', href: '/commander/promotions', icon: '/images/commander/icons/mg-promotions-red.png' },
+      { label: 'TV Displays', href: '/commander/displays', icon: 'Tv' },
+      { label: 'Display: Tables', href: '/commander/displays/tables', icon: 'Table2' },
+      { label: 'Display: Dealers', href: '/commander/displays/dealers', icon: 'Users2' },
+      { label: 'Display: Announcements', href: '/commander/displays/announcements', icon: 'Megaphone' },
+      { label: 'Display: Promotions', href: '/commander/displays/promotions', icon: 'Star' },
+      { label: 'Display: Leaderboard', href: '/commander/displays/leaderboard', icon: 'Trophy' },
+      { label: 'Display: Combined', href: '/commander/displays/combined', icon: 'Layers' },
+      { label: 'Streaming', href: '/commander/streaming', icon: 'Video' },
+      { label: 'Notifications', href: '/commander/notifications', icon: 'Bell' },
+      { label: 'Promotions', href: '/commander/promotions', icon: 'Percent' },
     ],
   },
   {
@@ -105,37 +140,64 @@ const CARDS = [
     image: '/images/commander/card-reports.jpg',
     glow: '#94A3B8',
     features: [
-      { label: 'Reports Hub', href: '/commander/reports', icon: '/images/commander/icons/rp-player.png' },
-      { label: 'Daily Summary', href: '/commander/reports/daily-summary', icon: '/images/commander/icons/rp-daily-summary.png' },
-      { label: 'Revenue Report', href: '/commander/reports/revenue', icon: '/images/commander/icons/rp-revenue.png' },
-      { label: 'Staff Activity', href: '/commander/reports/staff-activity', icon: '/images/commander/icons/rp-activity.png' },
-      { label: 'Player Activity', href: '/commander/reports/player-activity', icon: '/images/commander/icons/rp-player-activity.png' },
-      { label: 'Analytics', href: '/commander/analytics', icon: '/images/commander/icons/rp-custom.png' },
-      { label: 'Analytics Daily', href: '/commander/reports/analytics-daily', icon: '/images/commander/icons/rp-analytics-daily.png' },
-      { label: 'Table Utilization', href: '/commander/reports/table-utilization', icon: '/images/commander/icons/rp-table-utilization.png' },
-      { label: 'Waitlist Metrics', href: '/commander/reports/waitlist-metrics', icon: '/images/commander/icons/rp-waitlist.png' },
-      { label: 'Tax / W-2G', href: '/commander/reports/tax-compliance', icon: '/images/commander/icons/rp-tax.png' },
-      { label: 'Activity Feed', href: '/commander/activity', icon: '/images/commander/icons/rp-activity-feed.png' },
-      { label: 'Churn Prediction', href: '/commander/churn-prediction', icon: '/images/commander/icons/rp-churn-prediction.png' },
-      { label: 'Configuration', href: '/commander/settings', icon: '/images/commander/icons/rp-setups.png' },
-      { label: 'System Info', href: '/commander/system-info', icon: '/images/commander/icons/rp-system.png' },
-      { label: 'Close Day', href: '/commander/close-day', icon: '/images/commander/icons/rp-close-day.png' },
-      { label: 'Exports', href: '/commander/exports', icon: '/images/commander/icons/rp-config.png' },
-      { label: 'Downloads', href: '/commander/downloads', icon: '/images/commander/icons/rp-downloads.png' },
-      { label: 'Responsible Gaming', href: '/commander/responsible-gaming', icon: '/images/commander/icons/rp-responsible-gaming.png' },
-      { label: 'Marketplace', href: '/commander/marketplace', icon: '/images/commander/icons/rp-marketplace.png' },
-      { label: 'Reputation', href: '/commander/reputation', icon: '/images/commander/icons/rp-reputation.png' },
+      { label: 'Reports Hub', href: '/commander/reports', icon: 'FileText' },
+      { label: 'Daily Summary', href: '/commander/reports/daily-summary', icon: 'Sun' },
+      { label: 'Revenue Report', href: '/commander/reports/revenue', icon: 'TrendingUp' },
+      { label: 'Staff Activity', href: '/commander/reports/staff-activity', icon: 'Activity' },
+      { label: 'Player Activity', href: '/commander/reports/player-activity', icon: 'UserCheck' },
+      { label: 'Analytics', href: '/commander/analytics', icon: 'PieChart' },
+      { label: 'Analytics Daily', href: '/commander/reports/analytics-daily', icon: 'BarChart' },
+      { label: 'Table Utilization', href: '/commander/reports/table-utilization', icon: 'Grid3X3' },
+      { label: 'Waitlist Metrics', href: '/commander/reports/waitlist-metrics', icon: 'ListChecks' },
+      { label: 'Tax / W-2G', href: '/commander/reports/tax-compliance', icon: 'Receipt' },
+      { label: 'Activity Feed', href: '/commander/activity', icon: 'Rss' },
+      { label: 'Churn Prediction', href: '/commander/churn-prediction', icon: 'Brain' },
+      { label: 'Configuration', href: '/commander/settings', icon: 'Settings' },
+      { label: 'System Info', href: '/commander/system-info', icon: 'Cpu' },
+      { label: 'Close Day', href: '/commander/close-day', icon: 'Power' },
+      { label: 'Exports', href: '/commander/exports', icon: 'FolderDown' },
+      { label: 'Downloads', href: '/commander/downloads', icon: 'Download' },
+      { label: 'Responsible Gaming', href: '/commander/responsible-gaming', icon: 'Shield' },
+      { label: 'Marketplace', href: '/commander/marketplace', icon: 'ShoppingBag' },
+      { label: 'Reputation', href: '/commander/reputation', icon: 'ThumbsUp' },
     ],
   },
 ];
 
+/* ─────────────────────────────────────────────────
+   METAL PLATE ICON — CSS-rendered, pixel-perfect
+   Same frame for every single icon across all cards
+   ───────────────────────────────────────────────── */
+function MetalPlateIcon({ iconName, label, glowColor, onClick }) {
+  const IconComponent = ICON_MAP[iconName];
+  if (!IconComponent) return null;
+
+  return (
+    <button className="metal-plate-btn" onClick={onClick} style={{ '--glow': glowColor }}>
+      <div className="metal-plate">
+        {/* Corner bolts */}
+        <div className="bolt bolt-tl" />
+        <div className="bolt bolt-tr" />
+        <div className="bolt bolt-bl" />
+        <div className="bolt bolt-br" />
+        {/* Neon border */}
+        <div className="neon-border" />
+        {/* Icon */}
+        <div className="plate-icon">
+          <IconComponent size={40} strokeWidth={1.5} />
+        </div>
+        {/* Label */}
+        <div className="plate-label">{label}</div>
+      </div>
+    </button>
+  );
+}
+
 export default function CommanderDashboard() {
   const router = useRouter();
   const [staff, setStaff] = useState(null);
-  const [activeCard, setActiveCard] = useState(null); // which card is "opened"
+  const [activeCard, setActiveCard] = useState(null);
 
-
-  // Auth guard
   useEffect(() => {
     const stored = localStorage.getItem('commander_staff');
     if (!stored) { router.push('/commander/login'); return; }
@@ -145,14 +207,6 @@ export default function CommanderDashboard() {
       setStaff(data);
     } catch { router.push('/commander/login'); }
   }, [router]);
-
-  const handleLogout = () => {
-    localStorage.removeItem('commander_staff');
-    localStorage.removeItem('commander_venue');
-    localStorage.removeItem('commander_subscription');
-    localStorage.removeItem('commander_remember');
-    router.push('/commander/login');
-  };
 
   if (!staff) return (
     <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -201,7 +255,6 @@ export default function CommanderDashboard() {
           color: #888;
           margin-top: 2px;
         }
-
 
         /* ── 6-CARD GRID ── */
         .cmd-grid {
@@ -311,71 +364,150 @@ export default function CommanderDashboard() {
           letter-spacing: 3px;
         }
 
-        /* ── SUB-FEATURE BUTTONS ── */
+        /* ── SUB-FEATURE GRID ── */
         .cmd-features {
           flex: 1;
           overflow-y: auto;
           padding: 24px 20px;
           display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 14px;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 16px;
           align-content: start;
-          max-width: 700px;
+          max-width: 800px;
           margin: 0 auto;
           width: 100%;
         }
-        @media (max-width: 480px) {
+        @media (max-width: 700px) {
           .cmd-features {
-            grid-template-columns: 1fr;
-            gap: 10px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
             padding: 16px;
           }
         }
-        .cmd-features-stacked {
-          grid-template-columns: 1fr !important;
-          max-width: 90% !important;
-          gap: 24px !important;
-          justify-items: center;
+        @media (max-width: 400px) {
+          .cmd-features {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            padding: 12px;
+          }
         }
-        .cmd-features-stacked .cmd-feature-btn {
+
+        /* ════════════════════════════════════════════
+           METAL PLATE ICON — identical across ALL cards
+           ════════════════════════════════════════════ */
+        .metal-plate-btn {
+          background: none;
+          border: none;
+          padding: 0;
+          cursor: pointer;
+          transition: transform 0.2s, filter 0.2s;
           width: 100%;
-          max-width: 600px;
-          min-height: 200px;
+          aspect-ratio: 1;
         }
-        .cmd-features-stacked .cmd-feature-btn img {
+        .metal-plate-btn:hover {
+          transform: translateY(-4px) scale(1.03);
+          filter: brightness(1.15);
+        }
+        .metal-plate-btn:active {
+          transform: translateY(0) scale(0.98);
+        }
+
+        .metal-plate {
+          position: relative;
           width: 100%;
           height: 100%;
-          object-fit: contain;
-        }
-        .cmd-feature-btn {
-          position: relative;
+          border-radius: 14px;
+          /* Brushed metal background */
+          background:
+            radial-gradient(ellipse at 30% 20%, rgba(180,185,195,0.15) 0%, transparent 50%),
+            linear-gradient(145deg, #2a2d33 0%, #1a1d22 30%, #22252b 50%, #1a1d22 70%, #2a2d33 100%);
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          text-align: center;
-          padding: 0;
-          border-radius: 14px;
-          cursor: pointer;
-          transition: all 0.25s;
-          border: none;
+          gap: 8px;
           overflow: hidden;
-          background: transparent;
-          box-shadow: none;
+          box-shadow:
+            0 0 15px color-mix(in srgb, var(--glow) 30%, transparent),
+            inset 0 1px 0 rgba(255,255,255,0.08),
+            inset 0 -1px 0 rgba(0,0,0,0.3);
         }
-        .cmd-feature-btn img {
-          width: 100%;
-          height: 100%;
-          object-fit: contain;
-          display: block;
+
+        /* Brushed metal texture overlay */
+        .metal-plate::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          border-radius: 14px;
+          background:
+            repeating-linear-gradient(
+              90deg,
+              transparent,
+              rgba(255,255,255,0.015) 1px,
+              transparent 2px,
+              transparent 4px
+            );
+          pointer-events: none;
         }
-        .cmd-feature-btn:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 6px 30px var(--glow-dim), inset 0 1px 0 rgba(255,255,255,0.1);
-          border-color: var(--glow);
+
+        /* Neon border glow */
+        .neon-border {
+          position: absolute;
+          inset: 4px;
+          border-radius: 10px;
+          border: 2px solid var(--glow);
+          box-shadow:
+            0 0 8px color-mix(in srgb, var(--glow) 50%, transparent),
+            inset 0 0 8px color-mix(in srgb, var(--glow) 20%, transparent);
+          pointer-events: none;
         }
-        .cmd-feature-btn:active {
-          transform: translateY(0);
+
+        /* Corner bolts — identical on every plate */
+        .bolt {
+          position: absolute;
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          background: radial-gradient(circle at 40% 35%, #555, #222 60%, #111);
+          box-shadow:
+            inset 0 1px 1px rgba(255,255,255,0.2),
+            0 1px 2px rgba(0,0,0,0.5);
+          z-index: 2;
+        }
+        .bolt-tl { top: 8px; left: 8px; }
+        .bolt-tr { top: 8px; right: 8px; }
+        .bolt-bl { bottom: 8px; left: 8px; }
+        .bolt-br { bottom: 8px; right: 8px; }
+
+        /* Icon glyph */
+        .plate-icon {
+          position: relative;
+          z-index: 1;
+          color: var(--glow);
+          filter: drop-shadow(0 0 10px color-mix(in srgb, var(--glow) 60%, transparent));
+          margin-top: 4px;
+        }
+
+        /* Label text */
+        .plate-label {
+          position: relative;
+          z-index: 1;
+          font-family: 'Orbitron', sans-serif;
+          font-size: 10px;
+          font-weight: 700;
+          color: var(--glow);
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          text-shadow: 0 0 8px color-mix(in srgb, var(--glow) 50%, transparent);
+          padding: 0 12px;
+          text-align: center;
+          line-height: 1.2;
+          max-width: 100%;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
         }
       `}</style>
 
@@ -388,7 +520,7 @@ export default function CommanderDashboard() {
             </div>
           </div>
 
-          {/* ── MAIN: 4-CARD GRID ── */}
+          {/* ── MAIN: 6-CARD GRID ── */}
           {!activeCard && (
             <div className="cmd-grid">
               {CARDS.map(card => (
@@ -405,7 +537,7 @@ export default function CommanderDashboard() {
             </div>
           )}
 
-          {/* ── OPENED CARD: sub-features ── */}
+          {/* ── OPENED CARD: sub-features as metal plate icons ── */}
           {openCard && (
             <div className="cmd-open">
               <div className="cmd-open-header">
@@ -418,17 +550,13 @@ export default function CommanderDashboard() {
               </div>
               <div className="cmd-features">
                 {openCard.features.map((feat, i) => (
-                  <button
+                  <MetalPlateIcon
                     key={i}
-                    className="cmd-feature-btn"
-                    style={{
-                      '--glow': openCard.glow,
-                      '--glow-dim': `${openCard.glow}30`,
-                    }}
+                    iconName={feat.icon}
+                    label={feat.label}
+                    glowColor={openCard.glow}
                     onClick={() => router.push(feat.href)}
-                  >
-                    <img src={feat.icon} alt={feat.label} />
-                  </button>
+                  />
                 ))}
               </div>
             </div>

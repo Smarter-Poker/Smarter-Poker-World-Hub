@@ -6,6 +6,37 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+import { createClient } from '@supabase/supabase-js';
+
+// Helper to copy referral link for the current user
+const copyReferralLink = async (user) => {
+    if (!user?.id) {
+        alert('Please log in to use referral links.');
+        return;
+    }
+    try {
+        const supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        );
+        const { data } = await supabase
+            .from('profiles')
+            .select('player_number')
+            .eq('id', user.id)
+            .single();
+        if (data?.player_number) {
+            const link = `https://smarter.poker/auth/signup?ref=${data.player_number}`;
+            await navigator.clipboard.writeText(link);
+            alert(`Referral link copied!\n\n${link}\n\nShare it with friends — you earn 500💎 per signup!`);
+        } else {
+            alert('Could not find your player number. Please try again.');
+        }
+    } catch (err) {
+        console.error('Copy referral link error:', err);
+        alert('Failed to copy referral link. Please try again.');
+    }
+};
+
 // Helper function to create menu items
 export const createMenuItem = {
     navigation: (label, href, icon = null, badge = null, onClick = null) => ({
@@ -615,7 +646,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('My Friends', '/hub/friends'),
             createMenuItem.navigation('Notifications', '/hub/notifications'),
             createMenuItem.divider(),
-            createMenuItem.navigation('🤝 Refer a Friend', '/hub/settings?section=account')
+            createMenuItem.action('🤝 Refer a Friend — Copy Link', () => copyReferralLink(user), null, false, true)
         ],
         bottomLinks: [
             { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings }
@@ -635,7 +666,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Lives', '/hub/lives'),
             createMenuItem.navigation('Video Library', '/hub/video-library'),
             createMenuItem.divider(),
-            createMenuItem.navigation('🤝 Refer a Friend', '/hub/settings?section=account')
+            createMenuItem.action('🤝 Refer a Friend — Copy Link', () => copyReferralLink(user), null, false, true)
         ],
         bottomLinks: [
             { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings }

@@ -1633,6 +1633,16 @@ function ClubPageCreateModal({ C, commanderData, userId, onCreated, onClose }) {
 }
 
 // ===== CLUB PAGE DASHBOARD (Owner Management View) =====
+const AMENITIES_LIST = [
+    { cat: 'Dining', items: [{ k: 'food_service', l: '🍽️ Food Service' }, { k: 'full_bar', l: '🍺 Full Bar' }, { k: 'cocktail_service', l: '🍸 Cocktail Service' }, { k: 'snack_bar', l: '🥪 Snack Bar' }, { k: 'room_service', l: '🛎️ Room Service' }] },
+    { cat: 'Parking', items: [{ k: 'self_parking', l: '🅿️ Self Parking' }, { k: 'valet_parking', l: '🚗 Valet Parking' }, { k: 'free_parking', l: '🆓 Free Parking' }, { k: 'parking_garage', l: '🏗️ Parking Garage' }] },
+    { cat: 'Player Perks', items: [{ k: 'comps_program', l: '💰 Comps Program' }, { k: 'loyalty_program', l: '⭐ Loyalty Program' }, { k: 'rewards_card', l: '💳 Player Rewards Card' }, { k: 'hourly_drawings', l: '🎰 Hourly Drawings' }, { k: 'jackpot_promos', l: '🏆 Jackpot Promotions' }] },
+    { cat: 'Comfort', items: [{ k: 'massage', l: '💆 Massage Service' }, { k: 'charging_stations', l: '🔌 Charging Stations' }, { k: 'wifi', l: '📶 Free WiFi' }, { k: 'coat_check', l: '🧥 Coat Check' }, { k: 'smoking_area', l: '🚬 Smoking Area' }] },
+    { cat: 'Facility', items: [{ k: 'private_room', l: '🚪 Private Card Room' }, { k: 'high_limit', l: '💎 High-Limit Room' }, { k: 'tournament_room', l: '🏟️ Tournament Room' }, { k: 'tvs_at_tables', l: '📺 TVs at Tables' }, { k: 'atm_onsite', l: '🏧 ATM On-Site' }] },
+];
+const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+const DAY_LABELS = { monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 'Thu', friday: 'Fri', saturday: 'Sat', sunday: 'Sun' };
+
 function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
     const [activeTab, setActiveTab] = useState('posts');
     const [posts, setPosts] = useState([]);
@@ -1645,6 +1655,41 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
     const [editWebsite, setEditWebsite] = useState(page.website || '');
     const [editPhone, setEditPhone] = useState(page.phone || '');
     const [saving, setSaving] = useState(false);
+
+    // Enhanced state — Photos, Schedule, Tournaments, Amenities
+    const meta = page.metadata || {};
+    const [photos, setPhotos] = useState(meta.photos || []);
+    const [newPhotoUrl, setNewPhotoUrl] = useState('');
+    const [newPhotoCaption, setNewPhotoCaption] = useState('');
+    const [schedule, setSchedule] = useState(() => {
+        const s = meta.run_schedule || {};
+        const init = {};
+        DAYS.forEach(d => { init[d] = s[d] || { open: false, hours: '', games: [] }; });
+        return init;
+    });
+    const [newGame, setNewGame] = useState({});
+    const [tournaments, setTournaments] = useState(meta.tournaments || []);
+    const [newTourney, setNewTourney] = useState({ name: '', day: 'Monday', time: '', buyin: '', gtd: '', game: 'NLH', notes: '' });
+    const [editTourneyIdx, setEditTourneyIdx] = useState(-1);
+    const [amenities, setAmenities] = useState(meta.amenities || {});
+    const [socialLinks, setSocialLinks] = useState(meta.social_links || { facebook: '', instagram: '', twitter: '' });
+    const [metaSaving, setMetaSaving] = useState(false);
+    const [metaSaved, setMetaSaved] = useState('');
+
+    // Save metadata helper
+    const saveMetadata = async (newMeta, label) => {
+        setMetaSaving(true); setMetaSaved('');
+        try {
+            const merged = { ...page.metadata, ...newMeta };
+            const res = await fetch('/api/social/pages', {
+                method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: page.id, owner_id: userId, metadata: merged }),
+            });
+            const json = await res.json();
+            if (json.success && json.data) { onPageUpdated(json.data); setMetaSaved(label || 'Saved!'); setTimeout(() => setMetaSaved(''), 2000); }
+        } catch (e) { console.error('Meta save error:', e); setMetaSaved('Error saving'); }
+        setMetaSaving(false);
+    };
 
     // Fetch posts
     useEffect(() => {
@@ -1660,78 +1705,58 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
         fetchPosts();
     }, [page.id, userId]);
 
-    // Create post
     const handlePost = async () => {
         if (!postContent.trim()) return;
         setPosting(true);
         try {
             const res = await fetch('/api/social/pages/posts', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    page_id: page.id,
-                    author_id: userId,
-                    content: postContent.trim(),
-                    content_type: 'text',
-                }),
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ page_id: page.id, author_id: userId, content: postContent.trim(), content_type: 'text' }),
             });
             const json = await res.json();
-            if (json.success && json.data) {
-                setPosts(prev => [{ ...json.data, author: { username: 'You' }, user_liked: false }, ...prev]);
-                setPostContent('');
-            }
+            if (json.success && json.data) { setPosts(prev => [{ ...json.data, author: { username: 'You' }, user_liked: false }, ...prev]); setPostContent(''); }
         } catch (e) { console.error('Post error:', e); }
         setPosting(false);
     };
 
-    // Delete post
     const handleDeletePost = async (postId) => {
-        try {
-            await fetch(`/api/social/pages/posts?id=${postId}&author_id=${userId}`, { method: 'DELETE' });
-            setPosts(prev => prev.filter(p => p.id !== postId));
-        } catch (e) { console.error('Delete error:', e); }
+        try { await fetch(`/api/social/pages/posts?id=${postId}&author_id=${userId}`, { method: 'DELETE' }); setPosts(prev => prev.filter(p => p.id !== postId)); } catch (e) { console.error('Delete error:', e); }
     };
 
-    // Save page edits
     const handleSavePage = async () => {
         setSaving(true);
         try {
             const res = await fetch('/api/social/pages', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    id: page.id,
-                    owner_id: userId,
-                    name: editName.trim(),
-                    description: editDesc.trim(),
-                    website: editWebsite.trim(),
-                    phone: editPhone.trim(),
-                }),
+                method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: page.id, owner_id: userId, name: editName.trim(), description: editDesc.trim(), website: editWebsite.trim(), phone: editPhone.trim() }),
             });
             const json = await res.json();
-            if (json.success && json.data) {
-                onPageUpdated(json.data);
-                setEditingPage(false);
-            }
+            if (json.success && json.data) { onPageUpdated(json.data); setEditingPage(false); }
         } catch (e) { console.error('Save error:', e); }
         setSaving(false);
     };
 
-    // Pin/unpin post
     const handleTogglePin = async (post) => {
         try {
-            await fetch('/api/social/pages/posts', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: post.id, author_id: userId, is_pinned: !post.is_pinned }),
-            });
+            await fetch('/api/social/pages/posts', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: post.id, author_id: userId, is_pinned: !post.is_pinned }) });
             setPosts(prev => prev.map(p => p.id === post.id ? { ...p, is_pinned: !p.is_pinned } : p));
         } catch (e) { console.error('Pin error:', e); }
     };
 
+    const inputSt = { width: '100%', padding: '8px 12px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' };
+    const labelSt = { display: 'block', fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4 };
+    const btnPrimary = { padding: '8px 20px', borderRadius: 8, border: 'none', background: C.blue, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' };
+    const btnSec = { padding: '8px 16px', borderRadius: 8, border: 'none', background: '#E4E6EB', color: C.text, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' };
+    const cardSt = { background: C.card, borderRadius: 12, padding: 16, marginBottom: 8 };
+    const savedBadge = metaSaved ? <span style={{ fontSize: 12, color: metaSaved === 'Error saving' ? '#F02849' : '#42B72A', fontWeight: 600, marginLeft: 8 }}>{metaSaved}</span> : null;
+
     const tabs = [
-        { key: 'posts', label: 'Posts' },
-        { key: 'about', label: 'About' },
+        { key: 'posts', label: '📝 Posts' },
+        { key: 'photos', label: '📸 Photos' },
+        { key: 'schedule', label: '📅 Schedule' },
+        { key: 'tournaments', label: '🏆 Tourneys' },
+        { key: 'amenities', label: '✨ Amenities' },
+        { key: 'about', label: 'ℹ️ About' },
     ];
 
     return (
@@ -1898,6 +1923,200 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
                         </div>
                     )}
                 </>
+            )}
+
+            {/* Photos Tab */}
+            {activeTab === 'photos' && (
+                <div style={cardSt}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>Photo Gallery</h3>
+                        {savedBadge}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+                        <input value={newPhotoUrl} onChange={e => setNewPhotoUrl(e.target.value)} placeholder="Image URL (https://...)" style={{ ...inputSt, flex: 2, minWidth: 200 }} />
+                        <input value={newPhotoCaption} onChange={e => setNewPhotoCaption(e.target.value)} placeholder="Caption (optional)" style={{ ...inputSt, flex: 1, minWidth: 120 }} />
+                        <button onClick={() => {
+                            if (!newPhotoUrl.trim()) return;
+                            const updated = [...photos, { url: newPhotoUrl.trim(), caption: newPhotoCaption.trim(), uploaded_at: new Date().toISOString() }];
+                            setPhotos(updated); setNewPhotoUrl(''); setNewPhotoCaption('');
+                            saveMetadata({ photos: updated }, 'Photo added!');
+                        }} disabled={!newPhotoUrl.trim() || metaSaving} style={{ ...btnPrimary, opacity: !newPhotoUrl.trim() || metaSaving ? 0.5 : 1, whiteSpace: 'nowrap' }}>+ Add Photo</button>
+                    </div>
+                    {photos.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
+                            <div style={{ fontSize: 40, marginBottom: 8 }}>📸</div>
+                            <p style={{ margin: 0, fontSize: 14 }}>No photos yet. Add photos to showcase your venue!</p>
+                        </div>
+                    ) : (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
+                            {photos.map((photo, i) => (
+                                <div key={i} style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', aspectRatio: '1', background: '#1a1a2e' }}>
+                                    <img src={photo.url} alt={photo.caption || 'Club photo'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
+                                    {photo.caption && <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(transparent, rgba(0,0,0,0.8))', padding: '16px 8px 6px', fontSize: 11, color: '#fff' }}>{photo.caption}</div>}
+                                    <button onClick={() => {
+                                        const updated = photos.filter((_, j) => j !== i);
+                                        setPhotos(updated); saveMetadata({ photos: updated }, 'Photo removed');
+                                    }} style={{ position: 'absolute', top: 4, right: 4, width: 24, height: 24, borderRadius: '50%', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Schedule Tab */}
+            {activeTab === 'schedule' && (
+                <div style={cardSt}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>Weekly Run Schedule</h3>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            {savedBadge}
+                            <button onClick={() => saveMetadata({ run_schedule: schedule }, 'Schedule saved!')} disabled={metaSaving} style={{ ...btnPrimary, opacity: metaSaving ? 0.5 : 1 }}>
+                                {metaSaving ? 'Saving...' : 'Save Schedule'}
+                            </button>
+                        </div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {DAYS.map(day => {
+                            const d = schedule[day];
+                            return (
+                                <div key={day} style={{ background: d.open ? 'rgba(24,119,242,0.06)' : '#f5f5f5', borderRadius: 10, padding: '10px 14px', border: `1px solid ${d.open ? 'rgba(24,119,242,0.2)' : '#e4e6eb'}` }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: d.open ? 8 : 0 }}>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', minWidth: 70 }}>
+                                            <input type="checkbox" checked={d.open} onChange={e => setSchedule(prev => ({ ...prev, [day]: { ...prev[day], open: e.target.checked } }))} style={{ width: 18, height: 18, accentColor: C.blue }} />
+                                            <span style={{ fontSize: 14, fontWeight: 700, color: C.text, textTransform: 'capitalize' }}>{day}</span>
+                                        </label>
+                                        {d.open && (
+                                            <input value={d.hours} onChange={e => setSchedule(prev => ({ ...prev, [day]: { ...prev[day], hours: e.target.value } }))} placeholder="e.g. 10am - 4am" style={{ ...inputSt, flex: 1, maxWidth: 180 }} />
+                                        )}
+                                        {!d.open && <span style={{ fontSize: 13, color: C.textSec, fontStyle: 'italic' }}>Closed</span>}
+                                    </div>
+                                    {d.open && (
+                                        <div style={{ marginLeft: 28 }}>
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
+                                                {(d.games || []).map((g, gi) => (
+                                                    <span key={gi} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: C.blue, color: '#fff', padding: '3px 10px', borderRadius: 12, fontSize: 12, fontWeight: 600 }}>
+                                                        {g}
+                                                        <button onClick={() => setSchedule(prev => ({ ...prev, [day]: { ...prev[day], games: prev[day].games.filter((_, k) => k !== gi) } }))} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 12, padding: 0, marginLeft: 2 }}>×</button>
+                                                    </span>
+                                                ))}
+                                            </div>
+                                            <div style={{ display: 'flex', gap: 6 }}>
+                                                <input value={newGame[day] || ''} onChange={e => setNewGame(prev => ({ ...prev, [day]: e.target.value }))} placeholder="Add game (e.g. 1/2 NLH)" onKeyDown={e => {
+                                                    if (e.key === 'Enter' && (newGame[day] || '').trim()) {
+                                                        setSchedule(prev => ({ ...prev, [day]: { ...prev[day], games: [...(prev[day].games || []), newGame[day].trim()] } }));
+                                                        setNewGame(prev => ({ ...prev, [day]: '' }));
+                                                    }
+                                                }} style={{ ...inputSt, flex: 1 }} />
+                                                <button onClick={() => {
+                                                    if (!(newGame[day] || '').trim()) return;
+                                                    setSchedule(prev => ({ ...prev, [day]: { ...prev[day], games: [...(prev[day].games || []), newGame[day].trim()] } }));
+                                                    setNewGame(prev => ({ ...prev, [day]: '' }));
+                                                }} style={btnSec}>Add</button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
+            {/* Tournaments Tab */}
+            {activeTab === 'tournaments' && (
+                <div style={cardSt}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>Tournament Schedule</h3>
+                        {savedBadge}
+                    </div>
+                    {/* Add Tournament Form */}
+                    <div style={{ background: '#f5f5f5', borderRadius: 10, padding: 12, marginBottom: 12 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 8 }}>{editTourneyIdx >= 0 ? 'Edit Tournament' : '+ Add Tournament'}</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
+                            <div><label style={labelSt}>Name</label><input value={newTourney.name} onChange={e => setNewTourney(p => ({ ...p, name: e.target.value }))} placeholder="Daily Deepstack" style={inputSt} /></div>
+                            <div><label style={labelSt}>Day</label>
+                                <select value={newTourney.day} onChange={e => setNewTourney(p => ({ ...p, day: e.target.value }))} style={inputSt}>
+                                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Daily'].map(d => <option key={d} value={d}>{d}</option>)}
+                                </select>
+                            </div>
+                            <div><label style={labelSt}>Time</label><input value={newTourney.time} onChange={e => setNewTourney(p => ({ ...p, time: e.target.value }))} placeholder="7:00 PM" style={inputSt} /></div>
+                            <div><label style={labelSt}>Buy-in</label><input value={newTourney.buyin} onChange={e => setNewTourney(p => ({ ...p, buyin: e.target.value }))} placeholder="$200" style={inputSt} /></div>
+                            <div><label style={labelSt}>Guaranteed</label><input value={newTourney.gtd} onChange={e => setNewTourney(p => ({ ...p, gtd: e.target.value }))} placeholder="$5,000" style={inputSt} /></div>
+                            <div><label style={labelSt}>Game</label>
+                                <select value={newTourney.game} onChange={e => setNewTourney(p => ({ ...p, game: e.target.value }))} style={inputSt}>
+                                    {['NLH', 'PLO', 'PLO8', 'Mixed', 'Omaha Hi-Lo', 'Stud', 'Other'].map(g => <option key={g} value={g}>{g}</option>)}
+                                </select>
+                            </div>
+                        </div>
+                        <div style={{ marginTop: 8 }}><label style={labelSt}>Notes</label><input value={newTourney.notes} onChange={e => setNewTourney(p => ({ ...p, notes: e.target.value }))} placeholder="Re-entry allowed, late reg 6 levels..." style={inputSt} /></div>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 10 }}>
+                            {editTourneyIdx >= 0 && <button onClick={() => { setEditTourneyIdx(-1); setNewTourney({ name: '', day: 'Monday', time: '', buyin: '', gtd: '', game: 'NLH', notes: '' }); }} style={btnSec}>Cancel</button>}
+                            <button onClick={() => {
+                                if (!newTourney.name.trim()) return;
+                                let updated;
+                                if (editTourneyIdx >= 0) { updated = [...tournaments]; updated[editTourneyIdx] = { ...newTourney, id: updated[editTourneyIdx].id }; setEditTourneyIdx(-1); }
+                                else { updated = [...tournaments, { ...newTourney, id: Date.now().toString() }]; }
+                                setTournaments(updated); setNewTourney({ name: '', day: 'Monday', time: '', buyin: '', gtd: '', game: 'NLH', notes: '' });
+                                saveMetadata({ tournaments: updated }, editTourneyIdx >= 0 ? 'Tournament updated!' : 'Tournament added!');
+                            }} disabled={!newTourney.name.trim() || metaSaving} style={{ ...btnPrimary, opacity: !newTourney.name.trim() || metaSaving ? 0.5 : 1 }}>
+                                {editTourneyIdx >= 0 ? 'Update' : 'Add Tournament'}
+                            </button>
+                        </div>
+                    </div>
+                    {/* Tournament List */}
+                    {tournaments.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: 30, color: C.textSec }}><div style={{ fontSize: 40, marginBottom: 8 }}>🏆</div><p style={{ margin: 0, fontSize: 14 }}>No tournaments listed yet.</p></div>
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            {tournaments.map((t, i) => (
+                                <div key={t.id || i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: '#f5f5f5', borderRadius: 8, border: '1px solid #e4e6eb' }}>
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{t.name}</div>
+                                        <div style={{ fontSize: 12, color: C.textSec, marginTop: 2 }}>
+                                            {t.day} · {t.time} · {t.buyin}{t.gtd ? ` · ${t.gtd} GTD` : ''} · {t.game}
+                                        </div>
+                                        {t.notes && <div style={{ fontSize: 11, color: C.textSec, marginTop: 2, fontStyle: 'italic' }}>{t.notes}</div>}
+                                    </div>
+                                    <button onClick={() => { setEditTourneyIdx(i); setNewTourney({ ...t }); }} style={{ ...btnSec, padding: '4px 10px', fontSize: 12 }}>Edit</button>
+                                    <button onClick={() => {
+                                        const updated = tournaments.filter((_, j) => j !== i);
+                                        setTournaments(updated); saveMetadata({ tournaments: updated }, 'Tournament removed');
+                                    }} style={{ ...btnSec, padding: '4px 10px', fontSize: 12, color: '#F02849' }}>×</button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Amenities Tab */}
+            {activeTab === 'amenities' && (
+                <div style={cardSt}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>Venue Amenities</h3>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            {savedBadge}
+                            <button onClick={() => saveMetadata({ amenities }, 'Amenities saved!')} disabled={metaSaving} style={{ ...btnPrimary, opacity: metaSaving ? 0.5 : 1 }}>
+                                {metaSaving ? 'Saving...' : 'Save Amenities'}
+                            </button>
+                        </div>
+                    </div>
+                    <p style={{ margin: '0 0 12px', fontSize: 13, color: C.textSec }}>Toggle the amenities your venue offers. Visitors will see these on your public page.</p>
+                    {AMENITIES_LIST.map(cat => (
+                        <div key={cat.cat} style={{ marginBottom: 12 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: C.blue, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>{cat.cat}</div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 4 }}>
+                                {cat.items.map(item => (
+                                    <label key={item.k} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 8, background: amenities[item.k] ? 'rgba(24,119,242,0.08)' : '#f5f5f5', border: `1px solid ${amenities[item.k] ? 'rgba(24,119,242,0.3)' : '#e4e6eb'}`, cursor: 'pointer', transition: 'all 0.15s' }}>
+                                        <input type="checkbox" checked={!!amenities[item.k]} onChange={e => setAmenities(prev => ({ ...prev, [item.k]: e.target.checked }))} style={{ width: 16, height: 16, accentColor: C.blue }} />
+                                        <span style={{ fontSize: 13, color: C.text }}>{item.l}</span>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
             )}
 
             {/* About Tab */}

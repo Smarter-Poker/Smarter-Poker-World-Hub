@@ -16,6 +16,7 @@ import { HeatMapBorder, GTOMasterGlow } from './HeatMapBorder';
 import { SocialService } from '../SocialService';
 import { FEED_FILTERS, initialFeedState } from '../types';
 import { WarpLoader } from '../../components/WarpLoader';
+import { claimReward } from '../../lib/claimReward';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🎯 EXTENDED FEED FILTERS
@@ -313,6 +314,10 @@ export const EnhancedSpatialFeed = ({
                                         onShare={(postId) => {
                                             const url = `${window.location.origin}/app/post/${postId}`;
                                             navigator.clipboard?.writeText(url);
+                                            // Award share diamonds (fire-and-forget, 1/day max)
+                                            if (user?.id) {
+                                                claimReward('/api/rewards/share', { userId: user.id, shareType: 'post', contentId: postId }, 'Shared a Post');
+                                            }
                                         }}
                                         onAuthorClick={onAuthorClick}
                                         onPostClick={onPostClick}

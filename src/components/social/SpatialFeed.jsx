@@ -13,256 +13,260 @@ import { SocialCard } from './SocialCard';
 import { SocialService } from '../SocialService';
 import { FEED_FILTERS, initialFeedState } from '../types';
 import { WarpLoader } from '../../components/WarpLoader';
+import { claimReward } from '../../lib/claimReward';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 📜 SPATIAL FEED COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const SpatialFeed = ({
-    onCreatePost,
-    onPostClick,
-    onAuthorClick
+  onCreatePost,
+  onPostClick,
+  onAuthorClick
 }) => {
-    const { user, supabase } = useSupabase();
-    const { state: socialState } = useSocialOrb();
+  const { user, supabase } = useSupabase();
+  const { state: socialState } = useSocialOrb();
 
-    const [feedState, setFeedState] = useState(initialFeedState);
-    const [activeFilter, setActiveFilter] = useState('recent');
-    const feedRef = useRef(null);
-    const observerRef = useRef(null);
-    const loadMoreRef = useRef(null);
+  const [feedState, setFeedState] = useState(initialFeedState);
+  const [activeFilter, setActiveFilter] = useState('recent');
+  const feedRef = useRef(null);
+  const observerRef = useRef(null);
+  const loadMoreRef = useRef(null);
 
-    // Social service instance
-    const socialService = useMemo(() => {
-        if (!supabase) return null;
-        return new SocialService(supabase);
-    }, [supabase]);
+  // Social service instance
+  const socialService = useMemo(() => {
+    if (!supabase) return null;
+    return new SocialService(supabase);
+  }, [supabase]);
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // 📰 LOAD FEED
-    // ─────────────────────────────────────────────────────────────────────────
-    const loadFeed = useCallback(async (reset = false) => {
-        if (!socialService || !user) return;
-        if (feedState.isLoading) return;
+  // ─────────────────────────────────────────────────────────────────────────
+  // 📰 LOAD FEED
+  // ─────────────────────────────────────────────────────────────────────────
+  const loadFeed = useCallback(async (reset = false) => {
+    if (!socialService || !user) return;
+    if (feedState.isLoading) return;
 
+    setFeedState(prev => ({
+      ...prev,
+      isLoading: true,
+      error: null,
+      offset: reset ? 0 : prev.offset
+    }));
+
+    try {
+      const offset = reset ? 0 : feedState.offset;
+      const { posts, hasMore } = await socialService.getFeed({
+        userId: user.id,
+        filter: activeFilter,
+        limit: 20,
+        offset
+      });
+
+      setFeedState(prev => ({
+        ...prev,
+        posts: reset ? posts : [...prev.posts, ...posts],
+        hasMore,
+        offset: offset + posts.length,
+        isLoading: false
+      }));
+    } catch (error) {
+      console.error('Feed load error:', error);
+      setFeedState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: 'Failed to load feed'
+      }));
+    }
+  }, [socialService, user, activeFilter, feedState.isLoading, feedState.offset]);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 🔄 FILTER CHANGE
+  // ─────────────────────────────────────────────────────────────────────────
+  const handleFilterChange = useCallback((filter) => {
+    setActiveFilter(filter);
+    setFeedState(prev => ({ ...prev, posts: [], offset: 0, hasMore: true }));
+  }, []);
+
+  // Reload when filter changes
+  useEffect(() => {
+    loadFeed(true);
+  }, [activeFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 👁️ INFINITE SCROLL OBSERVER
+  // ─────────────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!loadMoreRef.current) return;
+
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && feedState.hasMore && !feedState.isLoading) {
+          loadFeed(false);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    observerRef.current.observe(loadMoreRef.current);
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, [feedState.hasMore, feedState.isLoading, loadFeed]);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // ⚡ REAL-TIME SUBSCRIPTION
+  // ─────────────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!socialService) return;
+
+    const unsubscribe = socialService.subscribeFeed(
+      (newPost) => {
+        // Add new post to top of feed
         setFeedState(prev => ({
-            ...prev,
-            isLoading: true,
-            error: null,
-            offset: reset ? 0 : prev.offset
+          ...prev,
+          posts: [newPost, ...prev.posts]
         }));
+      },
+      (updatedPost) => {
+        // Update existing post
+        setFeedState(prev => ({
+          ...prev,
+          posts: prev.posts.map(p =>
+            p.id === updatedPost.id ? { ...p, ...updatedPost } : p
+          )
+        }));
+      }
+    );
 
-        try {
-            const offset = reset ? 0 : feedState.offset;
-            const { posts, hasMore } = await socialService.getFeed({
-                userId: user.id,
-                filter: activeFilter,
-                limit: 20,
-                offset
-            });
+    return unsubscribe;
+  }, [socialService]);
 
-            setFeedState(prev => ({
-                ...prev,
-                posts: reset ? posts : [...prev.posts, ...posts],
-                hasMore,
-                offset: offset + posts.length,
-                isLoading: false
-            }));
-        } catch (error) {
-            console.error('Feed load error:', error);
-            setFeedState(prev => ({
-                ...prev,
-                isLoading: false,
-                error: 'Failed to load feed'
-            }));
-        }
-    }, [socialService, user, activeFilter, feedState.isLoading, feedState.offset]);
+  // ─────────────────────────────────────────────────────────────────────────
+  // 💫 INTERACTION HANDLERS
+  // ─────────────────────────────────────────────────────────────────────────
+  const handleLike = useCallback(async (postId, reactionType) => {
+    if (!socialService || !user) return;
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // 🔄 FILTER CHANGE
-    // ─────────────────────────────────────────────────────────────────────────
-    const handleFilterChange = useCallback((filter) => {
-        setActiveFilter(filter);
-        setFeedState(prev => ({ ...prev, posts: [], offset: 0, hasMore: true }));
-    }, []);
+    try {
+      await socialService.toggleReaction(postId, user.id, reactionType);
+    } catch (error) {
+      console.error('Like error:', error);
+      throw error; // Let card handle rollback
+    }
+  }, [socialService, user]);
 
-    // Reload when filter changes
-    useEffect(() => {
-        loadFeed(true);
-    }, [activeFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+  const handleComment = useCallback((postId) => {
+    onPostClick?.(postId, true); // Open with comment focus
+  }, [onPostClick]);
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // 👁️ INFINITE SCROLL OBSERVER
-    // ─────────────────────────────────────────────────────────────────────────
-    useEffect(() => {
-        if (!loadMoreRef.current) return;
+  const handleShare = useCallback((postId) => {
+    const url = `${window.location.origin}/app/post/${postId}`;
+    navigator.clipboard?.writeText(url);
+    // Award share diamonds (fire-and-forget, 1/day max)
+    if (user?.id) {
+      claimReward('/api/rewards/share', { userId: user.id, shareType: 'post', contentId: postId }, 'Shared a Post');
+    }
+  }, [user?.id]);
 
-        observerRef.current = new IntersectionObserver(
-            (entries) => {
-                if (entries[0].isIntersecting && feedState.hasMore && !feedState.isLoading) {
-                    loadFeed(false);
-                }
-            },
-            { threshold: 0.1 }
-        );
+  // ─────────────────────────────────────────────────────────────────────────
+  // 🎨 RENDER
+  // ─────────────────────────────────────────────────────────────────────────
+  return (
+    <div className="spatial-feed">
+      {/* Filter Sub-Rail */}
+      <nav className="feed-filters glass-panel">
+        {Object.entries(FEED_FILTERS).map(([key, config]) => (
+          <button
+            key={key}
+            className={`filter-tab interactive ${activeFilter === key ? 'active' : ''}`}
+            onClick={() => handleFilterChange(key)}
+          >
+            <span className="filter-icon">{config.icon}</span>
+            <span className="filter-label">{config.label}</span>
+            {activeFilter === key && <div className="filter-indicator" />}
+          </button>
+        ))}
+      </nav>
 
-        observerRef.current.observe(loadMoreRef.current);
+      {/* Create Post Button */}
+      <button
+        className="create-post-btn interactive glow-shift"
+        onClick={onCreatePost}
+      >
+        <span className="create-icon">✍️</span>
+        <span className="create-text">Share with the community...</span>
+      </button>
 
-        return () => {
-            if (observerRef.current) {
-                observerRef.current.disconnect();
-            }
-        };
-    }, [feedState.hasMore, feedState.isLoading, loadFeed]);
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // ⚡ REAL-TIME SUBSCRIPTION
-    // ─────────────────────────────────────────────────────────────────────────
-    useEffect(() => {
-        if (!socialService) return;
-
-        const unsubscribe = socialService.subscribeFeed(
-            (newPost) => {
-                // Add new post to top of feed
-                setFeedState(prev => ({
-                    ...prev,
-                    posts: [newPost, ...prev.posts]
-                }));
-            },
-            (updatedPost) => {
-                // Update existing post
-                setFeedState(prev => ({
-                    ...prev,
-                    posts: prev.posts.map(p =>
-                        p.id === updatedPost.id ? { ...p, ...updatedPost } : p
-                    )
-                }));
-            }
-        );
-
-        return unsubscribe;
-    }, [socialService]);
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // 💫 INTERACTION HANDLERS
-    // ─────────────────────────────────────────────────────────────────────────
-    const handleLike = useCallback(async (postId, reactionType) => {
-        if (!socialService || !user) return;
-
-        try {
-            await socialService.toggleReaction(postId, user.id, reactionType);
-        } catch (error) {
-            console.error('Like error:', error);
-            throw error; // Let card handle rollback
-        }
-    }, [socialService, user]);
-
-    const handleComment = useCallback((postId) => {
-        onPostClick?.(postId, true); // Open with comment focus
-    }, [onPostClick]);
-
-    const handleShare = useCallback((postId) => {
-        const url = `${window.location.origin}/app/post/${postId}`;
-        navigator.clipboard?.writeText(url);
-        // TODO: Show toast notification
-    }, []);
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // 🎨 RENDER
-    // ─────────────────────────────────────────────────────────────────────────
-    return (
-        <div className="spatial-feed">
-            {/* Filter Sub-Rail */}
-            <nav className="feed-filters glass-panel">
-                {Object.entries(FEED_FILTERS).map(([key, config]) => (
-                    <button
-                        key={key}
-                        className={`filter-tab interactive ${activeFilter === key ? 'active' : ''}`}
-                        onClick={() => handleFilterChange(key)}
-                    >
-                        <span className="filter-icon">{config.icon}</span>
-                        <span className="filter-label">{config.label}</span>
-                        {activeFilter === key && <div className="filter-indicator" />}
-                    </button>
-                ))}
-            </nav>
-
-            {/* Create Post Button */}
+      {/* Feed Container */}
+      <div className="feed-container" ref={feedRef}>
+        {/* Empty State */}
+        {!feedState.isLoading && feedState.posts.length === 0 && (
+          <div className="feed-empty glass-card">
+            <div className="empty-icon">🌐</div>
+            <h3>No posts yet</h3>
+            <p>Be the first to share something with the community!</p>
             <button
-                className="create-post-btn interactive glow-shift"
-                onClick={onCreatePost}
+              className="empty-cta interactive glow-shift"
+              onClick={onCreatePost}
             >
-                <span className="create-icon">✍️</span>
-                <span className="create-text">Share with the community...</span>
+              Create Post
             </button>
+          </div>
+        )}
 
-            {/* Feed Container */}
-            <div className="feed-container" ref={feedRef}>
-                {/* Empty State */}
-                {!feedState.isLoading && feedState.posts.length === 0 && (
-                    <div className="feed-empty glass-card">
-                        <div className="empty-icon">🌐</div>
-                        <h3>No posts yet</h3>
-                        <p>Be the first to share something with the community!</p>
-                        <button
-                            className="empty-cta interactive glow-shift"
-                            onClick={onCreatePost}
-                        >
-                            Create Post
-                        </button>
-                    </div>
-                )}
+        {/* Posts */}
+        <div className="posts-stack">
+          {feedState.posts.map((post, index) => (
+            <SocialCard
+              key={post.id}
+              post={post}
+              currentUserId={user?.id}
+              onLike={handleLike}
+              onComment={handleComment}
+              onShare={handleShare}
+              onAuthorClick={onAuthorClick}
+              onPostClick={onPostClick}
+              animationDelay={index * 50}
+            />
+          ))}
+        </div>
 
-                {/* Posts */}
-                <div className="posts-stack">
-                    {feedState.posts.map((post, index) => (
-                        <SocialCard
-                            key={post.id}
-                            post={post}
-                            currentUserId={user?.id}
-                            onLike={handleLike}
-                            onComment={handleComment}
-                            onShare={handleShare}
-                            onAuthorClick={onAuthorClick}
-                            onPostClick={onPostClick}
-                            animationDelay={index * 50}
-                        />
-                    ))}
-                </div>
+        {/* Load More Trigger */}
+        {feedState.hasMore && (
+          <div ref={loadMoreRef} className="load-more-trigger">
+            {feedState.isLoading && (
+              <div className="loading-indicator">
+                <div className="loading-spinner" />
+                <span>Loading more posts...</span>
+              </div>
+            )}
+          </div>
+        )}
 
-                {/* Load More Trigger */}
-                {feedState.hasMore && (
-                    <div ref={loadMoreRef} className="load-more-trigger">
-                        {feedState.isLoading && (
-                            <div className="loading-indicator">
-                                <div className="loading-spinner" />
-                                <span>Loading more posts...</span>
-                            </div>
-                        )}
-                    </div>
-                )}
+        {/* Initial Loading */}
+        {feedState.isLoading && feedState.posts.length === 0 && (
+          <WarpLoader
+            message="Loading Feed..."
+            subMessage="Fetching latest posts"
+            variant="pulse"
+            size="inline"
+          />
+        )}
 
-                {/* Initial Loading */}
-                {feedState.isLoading && feedState.posts.length === 0 && (
-                    <WarpLoader
-                        message="Loading Feed..."
-                        subMessage="Fetching latest posts"
-                        variant="pulse"
-                        size="inline"
-                    />
-                )}
+        {/* Error State */}
+        {feedState.error && (
+          <div className="feed-error glass-card">
+            <span className="error-icon">⚠️</span>
+            <span>{feedState.error}</span>
+            <button onClick={() => loadFeed(true)}>Retry</button>
+          </div>
+        )}
+      </div>
 
-                {/* Error State */}
-                {feedState.error && (
-                    <div className="feed-error glass-card">
-                        <span className="error-icon">⚠️</span>
-                        <span>{feedState.error}</span>
-                        <button onClick={() => loadFeed(true)}>Retry</button>
-                    </div>
-                )}
-            </div>
-
-            <style>{`
+      <style>{`
         .spatial-feed {
           max-width: 680px;
           margin: 0 auto;
@@ -484,8 +488,8 @@ export const SpatialFeed = ({
           }
         }
       `}</style>
-        </div>
-    );
+    </div>
+  );
 };
 
 export default SpatialFeed;
