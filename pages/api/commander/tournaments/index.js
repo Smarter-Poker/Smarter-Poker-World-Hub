@@ -21,7 +21,8 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
-    return createTournament(req, res);
+    // _g is the staff object for writes, true for reads
+    return createTournament(req, res, _g);
   }
 
   res.setHeader('Allow', ['GET', 'POST']);
@@ -74,18 +75,11 @@ async function listTournaments(req, res) {
   }
 }
 
-async function createTournament(req, res) {
+async function createTournament(req, res, staff) {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({ success: false, error: { code: 'AUTH_REQUIRED', message: 'Authorization required' } });
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
-    if (authError || !user) {
-      return res.status(401).json({ success: false, error: { code: 'AUTH_INVALID', message: 'Invalid token' } });
+    // staff is already authenticated by guardWriteStaff middleware
+    if (!staff || staff === true) {
+      return res.status(401).json({ success: false, error: { code: 'AUTH_REQUIRED', message: 'Staff authentication required' } });
     }
 
     const {
@@ -127,16 +121,8 @@ async function createTournament(req, res) {
       });
     }
 
-    // Verify user is staff at this venue
-    const { data: staff, error: staffError } = await supabase
-      .from('commander_staff')
-      .select('id, role')
-      .eq('venue_id', venue_id)
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .single();
-
-    if (staffError || !staff) {
+    // Verify staff belongs to this venue
+    if (staff.venue_id !== undefined && String(staff.venue_id) !== String(venue_id)) {
       return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'You are not staff at this venue' } });
     }
 

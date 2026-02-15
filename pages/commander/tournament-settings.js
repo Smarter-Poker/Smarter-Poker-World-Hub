@@ -55,9 +55,13 @@ export default function TournamentSettingsPage() {
         tomorrow.setHours(19, 0, 0, 0);
 
         try {
+            const staffSession = localStorage.getItem('commander_staff');
             const res = await fetch('/api/commander/tournaments', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-staff-session': staffSession || '',
+                },
                 body: JSON.stringify({
                     venue_id: venue.id,
                     name: template.name,
@@ -90,7 +94,10 @@ export default function TournamentSettingsPage() {
                 try {
                     await fetch('/api/commander/sync-tournament-to-club', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-staff-session': staffSession || '',
+                        },
                         body: JSON.stringify({
                             venue_id: venue.id,
                             tournament: data.data?.tournament || {

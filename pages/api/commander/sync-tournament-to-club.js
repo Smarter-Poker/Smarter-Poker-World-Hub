@@ -5,8 +5,10 @@
  *
  * POST /api/commander/sync-tournament-to-club
  * Body: { venue_id, tournament }
+ * Auth: x-staff-session header (verified via guardStaff)
  */
 import { createClient } from '@supabase/supabase-js';
+import { guardStaff } from '../../../src/lib/commander/auth';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -28,17 +30,36 @@ function formatTournamentPost(tournament) {
         ? `${(tournament.starting_chips / 1000).toFixed(0)}K`
         : tournament.starting_chips;
 
+    // Format the tournament type label properly
+    const typeLabels = {
+        freezeout: 'Freezeout',
+        rebuy: 'Rebuy',
+        bounty: 'Bounty',
+        pko: 'Progressive Knockout',
+        satellite: 'Satellite',
+        shootout: 'Shootout',
+        turbo: 'Turbo',
+        hyper: 'Hyper-Turbo',
+    };
+    const formatLabel = typeLabels[tournament.tournament_type] ||
+        (tournament.tournament_type?.charAt(0).toUpperCase() + tournament.tournament_type?.slice(1)) ||
+        'Freezeout';
+
     let lines = [
         `TOURNAMENT: ${tournament.name}`,
         `Date: ${dateStr}`,
         `Time: ${timeStr}`,
         `Buy-in: ${buyinStr}`,
         `Starting Stack: ${chipsStr} chips`,
-        `Format: ${tournament.tournament_type?.charAt(0).toUpperCase() + tournament.tournament_type?.slice(1) || 'Freezeout'}`,
+        `Format: ${formatLabel}`,
     ];
 
     if (tournament.guaranteed_pool) {
         lines.push(`Guaranteed: $${tournament.guaranteed_pool.toLocaleString()}`);
+    }
+
+    if (tournament.tournament_type === 'pko') {
+        lines.push(`Progressive KO: Bounties grow as players are eliminated`);
     }
 
     if (tournament.status === 'cancelled') {
@@ -52,6 +73,10 @@ export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
+
+    // Auth guard — require staff authentication
+    const staff = await guardStaff(req, res);
+    if (!staff) return;
 
     if (!supabaseUrl || !supabaseServiceKey) {
         return res.status(500).json({ error: 'Server configuration error' });
@@ -84,7 +109,7 @@ export default async function handler(req, res) {
         const clubPage = pages[0];
 
         // 2. Check if a tournament post already exists for this tournament
-        const tournamentId = tournament.id || tournament.name;
+        //    Uses content_type 'event' (matches DB constraint) + metadata.tournament_id
         let existingPost = null;
 
         if (tournament.id) {
@@ -92,8 +117,8 @@ export default async function handler(req, res) {
                 .from('social_page_posts')
                 .select('id')
                 .eq('page_id', clubPage.id)
-                .eq('content_type', 'tournament_schedule')
-                .filter('metadata->>tournament_id', 'eq', tournament.id)
+                .eq('content_type', 'event')
+                .filter('metadata->>tournament_id', 'eq', String(tournament.id))
                 .limit(1);
 
             if (posts && posts.length > 0) {
@@ -111,6 +136,8 @@ export default async function handler(req, res) {
             starting_chips: tournament.starting_chips,
             scheduled_start: tournament.scheduled_start,
             guaranteed_pool: tournament.guaranteed_pool,
+            bounty_amount: tournament.bounty_amount || null,
+            is_pko: tournament.tournament_type === 'pko',
             status: tournament.status || 'scheduled',
             auto_synced: true,
             synced_at: new Date().toISOString(),
@@ -143,7 +170,7 @@ export default async function handler(req, res) {
                     page_id: clubPage.id,
                     author_id: clubPage.owner_id,
                     content: postContent,
-                    content_type: 'tournament_schedule',
+                    content_type: 'event',
                     visibility: 'public',
                     is_pinned: false,
                     is_approved: true,

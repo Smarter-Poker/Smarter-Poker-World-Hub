@@ -151,9 +151,13 @@ export default function CreateTournamentModal({ isOpen, onClose, onSubmit, venue
         broadcast_to_smarter: true,
       };
 
+      const staffSession = localStorage.getItem('commander_staff');
       const res = await fetch('/api/commander/tournaments', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-staff-session': staffSession || '',
+        },
         body: JSON.stringify(payload),
       });
 
@@ -165,7 +169,10 @@ export default function CreateTournamentModal({ isOpen, onClose, onSubmit, venue
           try {
             await fetch('/api/commander/sync-tournament-to-club', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+                'x-staff-session': staffSession || '',
+              },
               body: JSON.stringify({
                 venue_id: venueId,
                 tournament: {
