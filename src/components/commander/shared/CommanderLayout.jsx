@@ -339,7 +339,14 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
             {!hideBack && (
               <button
                 className="cmd-back-btn"
-                onClick={() => router.push(backHref || '/commander/dashboard')}
+                onClick={() => {
+                  // Use real browser history so Back always returns to the actual previous page
+                  if (window.history.length > 1) {
+                    router.back();
+                  } else {
+                    router.push('/commander/dashboard');
+                  }
+                }}
               >
                 <ArrowLeft size={16} /> Back
               </button>
