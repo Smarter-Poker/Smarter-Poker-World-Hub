@@ -16,7 +16,7 @@ import {
   Menu, X, ArrowLeft, Users, Clock, Layout, Map, Bell, Trophy,
   Monitor, DollarSign, Gift, Calendar, Tv, Activity, BarChart3,
   AlertTriangle, PlusCircle, Lock, Upload, QrCode, Settings, LogOut,
-  Package, Briefcase
+  Package, Briefcase, Globe
 } from 'lucide-react';
 import CommanderErrorBoundary from './CommanderErrorBoundary';
 
@@ -252,6 +252,29 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
           background: #222;
           margin: 8px 16px;
         }
+
+        /* ── HUB BUTTON ── */
+        .cmd-hub-btn {
+          background: none;
+          border: 1px solid #22D3EE;
+          border-radius: 10px;
+          padding: 6px 12px;
+          color: #22D3EE;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 12px;
+          font-weight: 600;
+          transition: all 0.2s;
+          text-decoration: none;
+          white-space: nowrap;
+        }
+        .cmd-hub-btn:hover {
+          background: rgba(34,211,238,0.1);
+          color: #fff;
+          border-color: #fff;
+        }
       `}</style>
 
       <CommanderErrorBoundary>
@@ -270,9 +293,18 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
               </button>
             )}
           </div>
-          <div className="cmd-global-right">
-            <div className="cmd-global-title">Club Commander</div>
-            <div className="cmd-global-venue">{venueName}</div>
+          <div className="cmd-global-right" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button
+              className="cmd-hub-btn"
+              onClick={() => router.push('/hub')}
+              title="Back to Smarter.Poker Hub"
+            >
+              <Globe size={16} /> Hub
+            </button>
+            <div>
+              <div className="cmd-global-title">Club Commander</div>
+              <div className="cmd-global-venue">{venueName}</div>
+            </div>
           </div>
         </div>
 
@@ -287,6 +319,14 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
                   <X size={18} />
                 </button>
               </div>
+              <button
+                className="cmd-menu-item"
+                style={{ color: '#22D3EE', fontWeight: 600 }}
+                onClick={() => { setMenuOpen(false); router.push('/hub'); }}
+              >
+                <Globe size={18} /> Back to Hub
+              </button>
+              <div className="cmd-menu-divider" />
               {NAV_ITEMS.map((item, idx) => {
                 if (item.divider) return <div key={`d-${idx}`} className="cmd-menu-divider" />;
                 const Icon = item.icon;

@@ -642,8 +642,8 @@ export default function UniversalHeader({
                                     ? `url(${user.avatar}) center/cover`
                                     : 'linear-gradient(135deg, rgba(0, 136, 255, 0.3) 0%, rgba(0, 245, 255, 0.15) 100%)',
                                 ...(isVip ? {
-                                    border: '2px solid #FFD700',
-                                    boxShadow: '0 0 8px rgba(255, 215, 0, 0.6), 0 0 16px rgba(255, 215, 0, 0.3)',
+                                    border: '2px solid #00E0FF',
+                                    boxShadow: '0 0 8px rgba(0, 224, 255, 0.6), 0 0 16px rgba(0, 224, 255, 0.3)',
                                 } : {})
                             }}
                         >
