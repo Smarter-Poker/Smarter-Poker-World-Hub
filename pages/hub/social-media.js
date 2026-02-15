@@ -4604,7 +4604,7 @@ export default function SocialMediaPage() {
             <div style={{ minHeight: '100vh', background: '#0a0e1a', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif', paddingBottom: 70 }}>
                 {/* Standard Hub Header with Hamburger Menu */}
                 <UniversalHeader
-                    pageDepth={1}
+                    pageDepth={showClubPages ? 2 : 1}
                     showSearch={false}
                     onMenuClick={() => setSidebarOpen(true)}
                 />
