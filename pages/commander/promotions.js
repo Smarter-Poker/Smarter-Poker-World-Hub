@@ -115,7 +115,6 @@ function RecordHighHandModal({ isOpen, onClose, onSubmit, venueId, staff }) {
   if (!isOpen) return null;
 
   return (
-    <CommanderLayout title="Promotions | Commander" backHref="/commander/dashboard">
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
       <div className="cmd-panel cmd-corner-lights w-full max-w-lg max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between p-4 border-b border-[#3A3B3C]">
@@ -516,7 +515,8 @@ export default function PromotionsPage() {
   }
 
   return (
-    <><div className="cmd-page">
+    <CommanderLayout title="Promotions | Commander" backHref="/commander/dashboard">
+      <div className="cmd-page">
         <header className="cmd-header-bar sticky top-0 z-40">
           <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -564,22 +564,20 @@ export default function PromotionsPage() {
           <div className="max-w-4xl mx-auto px-4 flex gap-1 border-t border-[#3A3B3C]">
             <button
               onClick={() => setActiveTab('promotions')}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'promotions'
+              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'promotions'
                   ? 'border-[#1877F2] text-[#1877F2]'
                   : 'border-transparent text-[#B0B3B8] hover:text-white'
-              }`}
+                }`}
             >
               <Gift className="w-4 h-4 inline-block mr-2" />
               Promotions
             </button>
             <button
               onClick={() => setActiveTab('high-hands')}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'high-hands'
+              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'high-hands'
                   ? 'border-[#F59E0B] text-[#F59E0B]'
                   : 'border-transparent text-[#B0B3B8] hover:text-white'
-              }`}
+                }`}
             >
               <Trophy className="w-4 h-4 inline-block mr-2" />
               High Hands
@@ -595,11 +593,10 @@ export default function PromotionsPage() {
                   <button
                     key={f}
                     onClick={() => setFilter(f)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${
-                      filter === f
+                    className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${filter === f
                         ? 'bg-[#1877F2] text-white'
                         : 'cmd-btn cmd-btn-secondary'
-                    }`}
+                      }`}
                   >
                     {f}
                   </button>
@@ -847,13 +844,12 @@ export default function PromotionsPage() {
                             {award.profiles?.display_name || award.player_name || 'Unknown'}
                           </span>
                         </div>
-                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                          award.status === 'approved'
+                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${award.status === 'approved'
                             ? 'bg-[#31A24C]/10 text-[#31A24C]'
                             : award.status === 'pending'
-                            ? 'bg-[#F59E0B]/10 text-[#F59E0B]'
-                            : 'bg-[#3A3B3C]/10 text-[#B0B3B8]'
-                        }`}>
+                              ? 'bg-[#F59E0B]/10 text-[#F59E0B]'
+                              : 'bg-[#3A3B3C]/10 text-[#B0B3B8]'
+                          }`}>
                           {award.status}
                         </span>
                       </div>
@@ -879,7 +875,6 @@ export default function PromotionsPage() {
       )}
       <style jsx>{`
       `}</style>
-    </>
     </CommanderLayout>
   );
 }
