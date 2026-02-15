@@ -646,7 +646,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('My Friends', '/hub/friends'),
             createMenuItem.navigation('Notifications', '/hub/notifications'),
             createMenuItem.divider(),
-            { type: 'action', label: '🤝 Invite Friends', openInviteModal: true, closeOnClick: false }
+            { type: 'action', label: 'Invite Friends', openInviteModal: true, closeOnClick: false }
         ],
         bottomLinks: [
             { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings }
@@ -666,7 +666,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Lives', '/hub/lives'),
             createMenuItem.navigation('Video Library', '/hub/video-library'),
             createMenuItem.divider(),
-            { type: 'action', label: '🤝 Invite Friends', openInviteModal: true, closeOnClick: false }
+            { type: 'action', label: 'Invite Friends', openInviteModal: true, closeOnClick: false }
         ],
         bottomLinks: [
             { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings }
@@ -875,7 +875,7 @@ export function getMenuConfig(worldKey, user, state = {}, handlers = {}) {
             result.bottomLinks.some(l => l?.label?.includes?.('Refer a Friend') || l?.label?.includes?.('Invite Friends') || l?.openInviteModal);
         if (!alreadyHasReferral) {
             const referralItem = {
-                label: '🤝 Invite Friends',
+                label: 'Invite Friends',
                 action: true,
                 openInviteModal: true,
             };

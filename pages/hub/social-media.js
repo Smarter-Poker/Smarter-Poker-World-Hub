@@ -4397,6 +4397,22 @@ export default function SocialMediaPage() {
                             </svg>
                             <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Notifications</span>
                         </Link>
+                        {/* Invite Friends Card */}
+                        <div onClick={() => {
+                            if (!user) { alert('Please log in to invite friends.'); return; }
+                            setShowInviteModal(true);
+                        }} style={{
+                            display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
+                            background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1', cursor: 'pointer'
+                        }}>
+                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
+                                <circle cx="9" cy="7" r="4" fill="#1877F2" />
+                                <path d="M2 21v-2a7 7 0 0114 0v2" fill="#1877F2" opacity="0.5" />
+                                <line x1="19" y1="8" x2="19" y2="14" stroke="#1877F2" strokeWidth="2" strokeLinecap="round" />
+                                <line x1="16" y1="11" x2="22" y2="11" stroke="#1877F2" strokeWidth="2" strokeLinecap="round" />
+                            </svg>
+                            <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Invite Friends</span>
+                        </div>
                     </div>
                 </div>
 
@@ -4411,24 +4427,6 @@ export default function SocialMediaPage() {
                         <span style={{ flex: 1, fontSize: 15 }}>Help and support</span>
                         <span style={{ color: C.textSec }}>›</span>
                     </Link>
-                    <button
-                        onClick={() => {
-                            if (!user) {
-                                alert('Please log in to invite friends.');
-                                return;
-                            }
-                            setShowInviteModal(true);
-                        }}
-                        style={{
-                            padding: '12px 0', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
-                            background: 'none', border: 'none', width: '100%', textAlign: 'left',
-                            color: 'inherit', fontFamily: 'inherit'
-                        }}
-                    >
-                        <span style={{ fontSize: 20, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🤝</span>
-                        <span style={{ flex: 1, fontSize: 15 }}>Invite Friends</span>
-                        <span style={{ color: C.textSec }}>›</span>
-                    </button>
                     <Link href="/hub/settings" onClick={() => setSidebarOpen(false)} style={{
                         padding: '12px 0', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', textDecoration: 'none', color: 'inherit'
                     }}>

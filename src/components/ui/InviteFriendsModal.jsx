@@ -16,8 +16,8 @@ const supabase = createClient(
 );
 
 // Share channel configurations
-const SHARE_MESSAGE = "Join me on Smarter.Poker — the ultimate poker training platform! Use my referral link to get 500💎 free diamonds on signup!";
-const SHARE_TITLE = "Join Smarter.Poker — Get 500💎 Free!";
+const SHARE_MESSAGE = "Join me on Smarter.Poker — the ultimate poker training platform! Use my referral link to get 500 free diamonds on signup!";
+const SHARE_TITLE = "Join Smarter.Poker — Get 500 Free Diamonds!";
 
 export default function InviteFriendsModal({ isOpen, onClose, user }) {
     const [playerNumber, setPlayerNumber] = useState(null);
@@ -177,10 +177,10 @@ export default function InviteFriendsModal({ isOpen, onClose, user }) {
                     width: 'min(420px, 92vw)',
                     maxHeight: '90vh',
                     overflowY: 'auto',
-                    background: 'linear-gradient(160deg, #1a1d2e, #0d0f1a)',
-                    border: '1px solid rgba(0, 212, 255, 0.25)',
+                    background: 'linear-gradient(160deg, #242526, #18191A)',
+                    border: '1px solid rgba(24, 119, 242, 0.3)',
                     borderRadius: 20,
-                    boxShadow: '0 20px 60px rgba(0,0,0,0.6), 0 0 40px rgba(0, 212, 255, 0.1)',
+                    boxShadow: '0 20px 60px rgba(0,0,0,0.6), 0 0 40px rgba(24, 119, 242, 0.1)',
                     zIndex: 10001,
                     animation: 'inviteModalIn 0.3s ease',
                     padding: 0,
@@ -202,14 +202,14 @@ export default function InviteFriendsModal({ isOpen, onClose, user }) {
                             color: '#fff',
                             letterSpacing: '-0.3px',
                         }}>
-                            🤝 Invite Friends
+                            Invite Friends
                         </h2>
                         <p style={{
                             margin: '6px 0 0',
                             fontSize: 13,
                             color: 'rgba(255,255,255,0.5)',
                         }}>
-                            Earn <strong style={{ color: '#FFD700' }}>500 💎</strong> for every friend who signs up!
+                            Earn <strong style={{ color: '#31A24C' }}>500 diamonds</strong> for every friend who signs up!
                         </p>
                     </div>
                     <button
@@ -239,8 +239,8 @@ export default function InviteFriendsModal({ isOpen, onClose, user }) {
                 {/* Referral Link Display */}
                 <div style={{ padding: '16px 24px' }}>
                     <div style={{
-                        background: 'rgba(0, 212, 255, 0.06)',
-                        border: '1px solid rgba(0, 212, 255, 0.15)',
+                        background: 'rgba(24, 119, 242, 0.06)',
+                        border: '1px solid rgba(24, 119, 242, 0.15)',
                         borderRadius: 12,
                         padding: '14px 16px',
                         display: 'flex',
@@ -250,7 +250,7 @@ export default function InviteFriendsModal({ isOpen, onClose, user }) {
                         <div style={{
                             flex: 1,
                             fontSize: 13,
-                            color: 'rgba(0, 212, 255, 0.9)',
+                            color: 'rgba(24, 119, 242, 0.9)',
                             fontFamily: 'monospace',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
@@ -260,13 +260,13 @@ export default function InviteFriendsModal({ isOpen, onClose, user }) {
                         </div>
                         {playerNumber && (
                             <div style={{
-                                background: 'rgba(236, 72, 153, 0.2)',
-                                border: '1px solid rgba(236, 72, 153, 0.3)',
+                                background: 'rgba(24, 119, 242, 0.2)',
+                                border: '1px solid rgba(24, 119, 242, 0.3)',
                                 borderRadius: 8,
                                 padding: '4px 10px',
                                 fontSize: 12,
                                 fontWeight: 700,
-                                color: '#EC4899',
+                                color: '#1877F2',
                                 whiteSpace: 'nowrap',
                             }}>
                                 #{playerNumber}
@@ -285,8 +285,8 @@ export default function InviteFriendsModal({ isOpen, onClose, user }) {
                             flex: 1,
                             padding: '14px 16px',
                             background: copied
-                                ? 'linear-gradient(135deg, #10b981, #059669)'
-                                : 'linear-gradient(135deg, #00D4FF, #0088cc)',
+                                ? 'linear-gradient(135deg, #31A24C, #2b9a45)'
+                                : 'linear-gradient(135deg, #1877F2, #166FE5)',
                             border: 'none',
                             borderRadius: 12,
                             color: '#fff',
@@ -299,11 +299,11 @@ export default function InviteFriendsModal({ isOpen, onClose, user }) {
                             gap: 8,
                             transition: 'all 0.3s',
                             boxShadow: copied
-                                ? '0 4px 16px rgba(16, 185, 129, 0.4)'
-                                : '0 4px 16px rgba(0, 212, 255, 0.3)',
+                                ? '0 4px 16px rgba(49, 162, 76, 0.4)'
+                                : '0 4px 16px rgba(24, 119, 242, 0.3)',
                         }}
                     >
-                        {copied ? '✓ Copied!' : '📋 Copy Link'}
+                        {copied ? 'Copied!' : 'Copy Link'}
                     </button>
 
                     {/* Native Share - only on supported devices */}
@@ -314,7 +314,7 @@ export default function InviteFriendsModal({ isOpen, onClose, user }) {
                             style={{
                                 flex: 1,
                                 padding: '14px 16px',
-                                background: 'linear-gradient(135deg, #8B5CF6, #7C3AED)',
+                                background: 'linear-gradient(135deg, #1877F2, #42B72A)',
                                 border: 'none',
                                 borderRadius: 12,
                                 color: '#fff',
@@ -326,10 +326,10 @@ export default function InviteFriendsModal({ isOpen, onClose, user }) {
                                 justifyContent: 'center',
                                 gap: 8,
                                 transition: 'all 0.3s',
-                                boxShadow: '0 4px 16px rgba(139, 92, 246, 0.3)',
+                                boxShadow: '0 4px 16px rgba(24, 119, 242, 0.3)',
                             }}
                         >
-                            📱 Share
+                            Share
                         </button>
                     )}
                 </div>
@@ -357,7 +357,7 @@ export default function InviteFriendsModal({ isOpen, onClose, user }) {
                         onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
                         onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
                     >
-                        📧 Email
+                        Email
                     </a>
                     <a
                         href={`sms:?body=${encodeURIComponent(fullMessage)}`}
@@ -380,7 +380,7 @@ export default function InviteFriendsModal({ isOpen, onClose, user }) {
                         onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
                         onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
                     >
-                        💬 SMS
+                        SMS
                     </a>
                 </div>
 
@@ -468,9 +468,9 @@ export default function InviteFriendsModal({ isOpen, onClose, user }) {
                         color: 'rgba(255,255,255,0.3)',
                         lineHeight: 1.5,
                     }}>
-                        Your referral code: <strong style={{ color: '#EC4899' }}>#{playerNumber || '...'}</strong>
+                        Your referral code: <strong style={{ color: '#1877F2' }}>#{playerNumber || '...'}</strong>
                         <br />
-                        Friends enter your code during signup • You earn 500💎 each time
+                        Friends enter your code during signup and you earn 500 diamonds each time
                     </p>
                 </div>
             </div>

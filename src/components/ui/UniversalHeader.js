@@ -415,7 +415,7 @@ export default function UniversalHeader({
                 }
 
                 .header-nav-btn img {
-                    /* No filter — render buttons at native colors for solid black interior */
+                    filter: contrast(1.2);
                 }
                 
                 .brand-text {

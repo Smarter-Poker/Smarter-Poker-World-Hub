@@ -745,14 +745,14 @@ export default function SettingsPage() {
                                 {userProfile?.player_number && (
                                     <div style={{
                                         ...styles.card,
-                                        background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(168, 85, 247, 0.15))',
-                                        border: '1px solid rgba(236, 72, 153, 0.4)',
+                                        background: 'linear-gradient(135deg, rgba(24, 119, 242, 0.15), rgba(66, 183, 42, 0.1))',
+                                        border: '1px solid rgba(24, 119, 242, 0.3)',
                                     }}>
-                                        <h3 style={{ ...styles.cardTitle, color: '#EC4899', marginBottom: 8 }}>
-                                            🤝 Refer a Friend
+                                        <h3 style={{ ...styles.cardTitle, color: '#1877F2', marginBottom: 8 }}>
+                                            Refer a Friend
                                         </h3>
                                         <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, marginBottom: 16 }}>
-                                            Share your referral code and earn <strong style={{ color: '#FFD700' }}>500 💎</strong> for every friend who signs up!
+                                            Share your referral code and earn <strong style={{ color: '#42B72A' }}>500 diamonds</strong> for every friend who signs up!
                                         </p>
 
                                         {/* Player Number Display */}
@@ -764,7 +764,7 @@ export default function SettingsPage() {
                                             padding: '12px 16px',
                                             background: 'rgba(0, 0, 0, 0.3)',
                                             borderRadius: 10,
-                                            border: '1px solid rgba(236, 72, 153, 0.3)',
+                                            border: '1px solid rgba(24, 119, 242, 0.3)',
                                         }}>
                                             <div style={{ flex: 1 }}>
                                                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Your Referral Code</div>
@@ -772,7 +772,7 @@ export default function SettingsPage() {
                                                     fontFamily: 'Orbitron, monospace',
                                                     fontSize: 28,
                                                     fontWeight: 700,
-                                                    color: '#EC4899',
+                                                    color: '#1877F2',
                                                     letterSpacing: '3px',
                                                 }}>
                                                     #{userProfile.player_number}
@@ -786,17 +786,17 @@ export default function SettingsPage() {
                                                 }}
                                                 style={{
                                                     padding: '10px 16px',
-                                                    background: referralCopied ? 'rgba(49, 162, 76, 0.3)' : 'rgba(236, 72, 153, 0.2)',
-                                                    border: `1px solid ${referralCopied ? 'rgba(49, 162, 76, 0.5)' : 'rgba(236, 72, 153, 0.4)'}`,
+                                                    background: referralCopied ? 'rgba(49, 162, 76, 0.3)' : 'rgba(24, 119, 242, 0.2)',
+                                                    border: `1px solid ${referralCopied ? 'rgba(49, 162, 76, 0.5)' : 'rgba(24, 119, 242, 0.4)'}`,
                                                     borderRadius: 8,
-                                                    color: referralCopied ? '#31A24C' : '#EC4899',
+                                                    color: referralCopied ? '#31A24C' : '#1877F2',
                                                     fontSize: 13,
                                                     fontWeight: 600,
                                                     cursor: 'pointer',
                                                     transition: 'all 0.2s ease',
                                                 }}
                                             >
-                                                {referralCopied ? '✓ Copied!' : '📋 Copy Code'}
+                                                {referralCopied ? 'Copied!' : 'Copy Code'}
                                             </button>
                                         </div>
 
@@ -811,7 +811,7 @@ export default function SettingsPage() {
                                             style={{
                                                 width: '100%',
                                                 padding: '14px 20px',
-                                                background: 'linear-gradient(135deg, #EC4899, #A855F7)',
+                                                background: 'linear-gradient(135deg, #1877F2, #166FE5)',
                                                 border: 'none',
                                                 borderRadius: 10,
                                                 color: '#fff',
@@ -822,11 +822,11 @@ export default function SettingsPage() {
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
                                                 gap: 8,
-                                                boxShadow: '0 4px 20px rgba(236, 72, 153, 0.3)',
+                                                boxShadow: '0 4px 20px rgba(24, 119, 242, 0.3)',
                                                 transition: 'all 0.3s ease',
                                             }}
                                         >
-                                            🔗 Copy Referral Link
+                                            Copy Referral Link
                                         </button>
                                         {/* Invite Friends Button */}
                                         <button
@@ -834,7 +834,7 @@ export default function SettingsPage() {
                                             style={{
                                                 width: '100%',
                                                 padding: '14px 20px',
-                                                background: 'linear-gradient(135deg, #8B5CF6, #06B6D4)',
+                                                background: 'linear-gradient(135deg, #42B72A, #36A420)',
                                                 border: 'none',
                                                 borderRadius: 10,
                                                 color: '#fff',
@@ -845,15 +845,15 @@ export default function SettingsPage() {
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
                                                 gap: 8,
-                                                boxShadow: '0 4px 20px rgba(139, 92, 246, 0.3)',
+                                                boxShadow: '0 4px 20px rgba(66, 183, 42, 0.3)',
                                                 transition: 'all 0.3s ease',
                                                 marginTop: 10,
                                             }}
                                         >
-                                            📲 Invite Friends — Share via Social, Email & SMS
+                                            Invite Friends — Share via Social, Email & SMS
                                         </button>
                                         <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 10, textAlign: 'center' }}>
-                                            Friends enter your code during signup, you earn 500💎 each time!
+                                            Friends enter your code during signup, you earn 500 diamonds each time!
                                         </p>
                                     </div>
                                 )}
