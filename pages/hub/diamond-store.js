@@ -261,6 +261,12 @@ const VIP_BENEFITS = [
     { icon: '', title: 'Bankroll Manager Pro — All Session Tracking & Analytics', description: 'All Pro Tools For Session Tracking & Analytics', value: '$25/Mo', category: 'Smarter.Poker' },
     { icon: '', title: 'Advanced Poker Near Me Filters & Venue Intelligence', description: 'Premium Filters And Venue Intelligence', value: '$15/Mo', category: 'Smarter.Poker' },
     { icon: '', title: 'Free Entry To All Diamond Arena Freeroll Tournaments', description: 'Unlimited Freeroll Tournament Entries', value: 'Unlimited', category: 'Smarter.Poker' },
+    { icon: '', title: 'Early Access To New Platform Features & Beta Programs', description: 'Be First To Try New Features Before Public Release', value: 'VIP Only', category: 'Smarter.Poker' },
+    // ─── BONUS PERKS (included in Platform) ───
+    { icon: '', title: '500 Bonus Diamonds Credited Every Month', description: '500 Bonus Diamonds Credited Every Month', value: '500/Mo', category: 'Smarter.Poker' },
+    { icon: '', title: 'Up To 5 Custom AI-Generated Avatars', description: 'Create Up To 5 AI-Generated Custom Avatars', value: '5 Slots', category: 'Smarter.Poker' },
+    { icon: '', title: 'Exclusive Gold VIP Profile Badge & Cosmetic Flair', description: 'Exclusive Gold VIP Border, Crown Icon & Profile Cosmetics', value: 'Exclusive', category: 'Smarter.Poker' },
+    { icon: '', title: 'Priority Support With Fast-Track Assistance', description: 'Fast-Track Support And Dedicated Assistance', value: 'VIP Only', category: 'Smarter.Poker' },
     // ─── CLUB & DIAMOND ARENA FEATURES ───
     { icon: '', title: 'Unlimited Rabbit Hunting — See What Cards Would Have Come', description: 'See What Cards Would Have Come After Folding', value: 'Unlimited', category: 'Club & Diamond Arena' },
     { icon: '', title: 'Show Stack In BBs — Always-On Big-Blind Display', description: 'Display Chip Stacks In Big-Blinds For Better Decisions', value: 'Unlimited', category: 'Club & Diamond Arena' },
@@ -271,11 +277,7 @@ const VIP_BENEFITS = [
     { icon: '', title: '3 Exclusive Table Themes Unlocked', description: '3 Exclusive Table Themes Unlocked', value: '3 Themes', category: 'Club & Diamond Arena' },
     { icon: '', title: 'Create Up To 3 Private Clubs', description: 'Create Up To 3 Private Clubs', value: '3 Clubs', category: 'Club & Diamond Arena' },
     { icon: '', title: '1,000 Player Tags Per Month To Track Opponents', description: '1,000 Tags Per Month To Track Opponents', value: '1,000/Mo', category: 'Club & Diamond Arena' },
-    // ─── BONUS PERKS ───
-    { icon: '', title: '500 Bonus Diamonds Credited Every Month', description: '500 Bonus Diamonds Credited Every Month', value: '500/Mo', category: 'Bonus' },
-    { icon: '', title: 'Up To 5 Custom AI-Generated Avatars', description: 'Create Up To 5 AI-Generated Custom Avatars', value: '5 Slots', category: 'Bonus' },
-    { icon: '', title: 'Exclusive Gold VIP Profile Badge & Cosmetic Flair', description: 'Exclusive Gold VIP Border, Crown Icon & Profile Cosmetics', value: 'Exclusive', category: 'Bonus' },
-    { icon: '', title: 'Priority Support With Fast-Track Assistance', description: 'Fast-Track Support And Dedicated Assistance', value: 'VIP Only', category: 'Bonus' },
+    { icon: '', title: 'VIP Priority Tournament Seating & Early Registration', description: 'Get Priority Seating And Early Registration For Tournaments', value: 'VIP Only', category: 'Club & Diamond Arena' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1061,7 +1063,7 @@ export default function DiamondStorePage() {
                                             draggable={false}
                                         />
                                     </div>
-                                    <p style={styles.vipCancelNote}>Cancel Anytime. No Commitment Required.</p>
+
                                 </div>
 
                                 {/* VIP Benefits Table */}
@@ -1101,21 +1103,7 @@ export default function DiamondStorePage() {
                                         ))}
                                     </div>
 
-                                    {/* Bonus Perks */}
-                                    <div style={styles.benefitsCategoryHeader}>
-                                        <span style={styles.benefitsCategoryLabel}>Bonus Perks</span>
-                                    </div>
-                                    <div style={styles.benefitsGrid}>
-                                        {VIP_BENEFITS.filter(b => b.category === 'Bonus').map((benefit, idx) => (
-                                            <div key={idx} style={styles.benefitCard}>
-                                                <div style={styles.benefitInfo}>
-                                                    <div style={styles.benefitTitle}>{benefit.title}</div>
-                                                    <div style={styles.benefitDesc}>{benefit.description}</div>
-                                                </div>
-                                                <div style={styles.benefitValue}>{benefit.value}</div>
-                                            </div>
-                                        ))}
-                                    </div>
+
                                 </div>
 
                                 {/* View in Marketplace Link */}
