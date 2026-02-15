@@ -1606,17 +1606,17 @@ function ClubPageCreateModal({ C, commanderData, userId, onCreated, onClose }) {
 
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 4 }}>Page Name</label>
                 <input value={pageName} onChange={e => setPageName(e.target.value)} placeholder="Your venue name"
-                    style={{ width: '100%', padding: '10px 14px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 15, outline: 'none', marginBottom: 14, boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                    style={{ width: '100%', padding: '10px 14px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 15, outline: 'none', marginBottom: 14, boxSizing: 'border-box', fontFamily: 'inherit', color: '#050505', background: '#fff' }} />
 
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 4 }}>Category</label>
                 <select value={category} onChange={e => setCategory(e.target.value)}
-                    style={{ width: '100%', padding: '10px 14px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 14, outline: 'none', marginBottom: 14, boxSizing: 'border-box', fontFamily: 'inherit', background: '#fff' }}>
+                    style={{ width: '100%', padding: '10px 14px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 14, outline: 'none', marginBottom: 14, boxSizing: 'border-box', fontFamily: 'inherit', background: '#fff', color: '#050505' }}>
                     {categories.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
                 </select>
 
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 4 }}>Description</label>
                 <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Tell people about your venue..."
-                    rows={3} style={{ width: '100%', padding: '10px 14px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 14, outline: 'none', resize: 'vertical', marginBottom: 14, boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                    rows={3} style={{ width: '100%', padding: '10px 14px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 14, outline: 'none', resize: 'vertical', marginBottom: 14, boxSizing: 'border-box', fontFamily: 'inherit', color: '#050505', background: '#fff' }} />
 
                 {error && <p style={{ color: C.red, fontSize: 13, margin: '0 0 10px' }}>{error}</p>}
 
@@ -2860,10 +2860,20 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
                         <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: C.text }}>Club Pages</h2>
                         <p style={{ margin: '2px 0 0', fontSize: 13, color: C.textSec }}>Follow venues, tours, series, home games & more</p>
                     </div>
-                    <button onClick={onClose} style={{
-                        background: '#E4E6EB', border: 'none', borderRadius: 20, padding: '8px 16px',
-                        fontSize: 13, fontWeight: 600, cursor: 'pointer', color: C.text, fontFamily: 'inherit'
-                    }}>Back to Feed</button>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        {(() => { try { return !!JSON.parse(localStorage.getItem('commander_staff') || 'null'); } catch { return false; } })() && (
+                            <button onClick={() => window.location.href = '/commander/dashboard'} style={{
+                                background: 'linear-gradient(135deg, #1a1a2e, #0f0f0f)', border: '1px solid #22D3EE', borderRadius: 20, padding: '8px 14px',
+                                fontSize: 12, fontWeight: 700, cursor: 'pointer', color: '#22D3EE', fontFamily: "'Orbitron', sans-serif",
+                                letterSpacing: 1, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 6,
+                                boxShadow: '0 0 8px rgba(34,211,238,0.2)'
+                            }}>Commander</button>
+                        )}
+                        <button onClick={onClose} style={{
+                            background: '#E4E6EB', border: 'none', borderRadius: 20, padding: '8px 16px',
+                            fontSize: 13, fontWeight: 600, cursor: 'pointer', color: C.text, fontFamily: 'inherit'
+                        }}>Back to Feed</button>
+                    </div>
                 </div>
 
                 {/* Search */}
