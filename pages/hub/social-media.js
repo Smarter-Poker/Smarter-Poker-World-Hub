@@ -1696,6 +1696,11 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
     const [coverUploading, setCoverUploading] = useState(false);
     const coverInputRef = useRef(null);
 
+    // Logo upload state
+    const [logoUrl, setLogoUrl] = useState((page.metadata || {}).logo_url || '');
+    const [logoUploading, setLogoUploading] = useState(false);
+    const logoInputRef = useRef(null);
+
     // Post media upload state
     const [postMedia, setPostMedia] = useState([]);
     const [postUploading, setPostUploading] = useState(false);
@@ -1716,6 +1721,26 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
             }
         } catch (err) { console.error('Cover upload error:', err); }
         setCoverUploading(false);
+    };
+
+    const handleLogoUpload = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setLogoUploading(true);
+        try {
+            const path = `logos/${page.id}/${Date.now()}_${file.name}`;
+            const { error: upErr } = await supabase.storage.from('social-media').upload(path, file);
+            if (!upErr) {
+                const { data } = supabase.storage.from('social-media').getPublicUrl(path);
+                const url = data.publicUrl;
+                setLogoUrl(url);
+                await saveMetadata({ logo_url: url }, 'Logo updated!');
+            } else {
+                alert('Logo upload failed: ' + upErr.message);
+            }
+        } catch (err) { console.error('Logo upload error:', err); alert('Logo upload error: ' + err.message); }
+        setLogoUploading(false);
+        if (logoInputRef.current) logoInputRef.current.value = '';
     };
 
     const handlePostMediaSelect = async (e) => {
@@ -1867,13 +1892,24 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
         try {
             const mediaUrls = postMedia.map(m => m.url);
             const contentType = postMedia.some(m => m.type === 'video') ? 'video' : (postMedia.length > 0 ? 'photo' : 'text');
+            console.log('[ClubPage] Posting:', { page_id: page.id, author_id: userId, content: postContent.trim().substring(0, 50), contentType, mediaUrls });
             const res = await fetch('/api/social/pages/posts', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ page_id: page.id, author_id: userId, content: postContent.trim(), content_type: contentType, media_urls: mediaUrls }),
             });
             const json = await res.json();
-            if (json.success && json.data) { setPosts(prev => [{ ...json.data, author: { username: 'You' }, user_liked: false }, ...prev]); setPostContent(''); setPostMedia([]); }
-        } catch (e) { console.error('Post error:', e); }
+            console.log('[ClubPage] Post response:', json);
+            if (json.success && json.data) {
+                setPosts(prev => [{ ...json.data, author: { username: 'You' }, user_liked: false }, ...prev]);
+                setPostContent('');
+                setPostMedia([]);
+            } else if (json.error) {
+                alert('Post failed: ' + json.error);
+            }
+        } catch (e) {
+            console.error('Post error:', e);
+            alert('Post failed: ' + e.message);
+        }
         setPosting(false);
     };
 
@@ -1942,13 +1978,32 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
                         {coverUploading ? 'Uploading...' : 'Upload Photo'}
                     </button>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div style={{
-                            width: 72, height: 72, borderRadius: 12, background: '#fff',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 30, fontWeight: 800, color: '#1877F2', border: '3px solid #fff',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
-                        }}>
-                            {(page.name || 'C')[0].toUpperCase()}
+                        <input type="file" accept="image/*" ref={logoInputRef} onChange={handleLogoUpload} style={{ display: 'none' }} />
+                        <div
+                            onClick={() => logoInputRef.current?.click()}
+                            title="Click to upload logo"
+                            style={{
+                                width: 72, height: 72, borderRadius: 12, background: '#fff',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontSize: 30, fontWeight: 800, color: '#1877F2', border: '3px solid #fff',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.2)', cursor: 'pointer',
+                                position: 'relative', overflow: 'hidden'
+                            }}
+                        >
+                            {logoUrl ? (
+                                <img src={logoUrl} alt={page.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : (
+                                (page.name || 'C')[0].toUpperCase()
+                            )}
+                            <div style={{
+                                position: 'absolute', bottom: 0, left: 0, right: 0, height: 22,
+                                background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                            }}>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" />
+                                </svg>
+                            </div>
+                            {logoUploading && <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#1877F2' }}>...</div>}
                         </div>
                         <div>
                             <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#fff', textShadow: '0 1px 6px rgba(0,0,0,0.4)' }}>{page.name}</h2>
@@ -4794,9 +4849,13 @@ export default function SocialMediaPage() {
                                                     width: 48, height: 48, borderRadius: 10, background: '#fff',
                                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                     fontSize: 22, fontWeight: 800, color: '#1877F2', flexShrink: 0,
-                                                    boxShadow: '0 1px 4px rgba(0,0,0,0.1)'
+                                                    boxShadow: '0 1px 4px rgba(0,0,0,0.1)', overflow: 'hidden'
                                                 }}>
-                                                    {(myClubPage.name || 'C')[0].toUpperCase()}
+                                                    {(myClubPage.metadata || {}).logo_url ? (
+                                                        <img src={myClubPage.metadata.logo_url} alt={myClubPage.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                    ) : (
+                                                        (myClubPage.name || 'C')[0].toUpperCase()
+                                                    )}
                                                 </div>
                                                 <div>
                                                     <div style={{ fontSize: 16, fontWeight: 700, color: '#050505' }}>{myClubPage.name}</div>
