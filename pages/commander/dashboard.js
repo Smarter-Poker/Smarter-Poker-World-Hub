@@ -40,8 +40,6 @@ const CARDS = [
       { label: 'Tournament Results', href: '/commander/reports/tournament-results', icon: '/images/commander/icons/rp-tournament.png' },
       { label: 'Leagues', href: '/commander/leagues', icon: '/images/commander/icons/tn-maintenance.png' },
       { label: 'High Hands', href: '/commander/high-hands', icon: '/images/commander/icons/tn-high-hands.png' },
-      { label: 'Promotions', href: '/commander/promotions', icon: '/images/commander/icons/mg-promotions.png' },
-      { label: 'Comps', href: '/commander/comps', icon: '/images/commander/icons/mg-comps.png' },
     ],
   },
   {
@@ -58,7 +56,7 @@ const CARDS = [
       { label: 'Must-Move Games', href: '/commander/must-move', icon: '/images/commander/icons/mg-must-move.png' },
       { label: 'Floor Calls', href: '/commander/floor-calls', icon: '/images/commander/icons/mg-floor-calls.png' },
       { label: 'Dealers', href: '/commander/dealers', icon: '/images/commander/icons/mg-dealers.png' },
-      { label: 'Dealer Rotation', href: '/commander/dealer-rotation', icon: '/images/commander/icons/tn-clock.png' },
+      { label: 'Dealer Rotation', href: '/commander/dealer-rotation', icon: '/images/commander/icons/mg-dealer-rotation.png' },
       { label: 'Table Vibes', href: '/commander/table-vibes', icon: '/images/commander/icons/mg-table-vibes.png' },
     ],
   },
@@ -71,13 +69,14 @@ const CARDS = [
     features: [
       { label: 'Employee Maintenance', href: '/commander/staff', icon: '/images/commander/icons/mg-employee.png' },
       { label: 'Poker Room Functions', href: '/commander/poker-room', icon: '/images/commander/icons/mg-poker-room.png' },
-      { label: 'Staff Schedule', href: '/commander/schedule', icon: '/images/commander/icons/tn-clock-setup.png' },
+      { label: 'Staff Schedule', href: '/commander/schedule', icon: '/images/commander/icons/mg-staff-schedule.png' },
       { label: 'Shift Handoff', href: '/commander/shift-handoff', icon: '/images/commander/icons/mg-shift-handoff.png' },
       { label: 'Cashier', href: '/commander/cashier', icon: '/images/commander/icons/mg-cashier.png' },
       { label: 'Time Billing', href: '/commander/time-billing', icon: '/images/commander/icons/mg-time-billing.png' },
       { label: 'Incidents', href: '/commander/incidents', icon: '/images/commander/icons/mg-incidents.png' },
       { label: 'Room Presets', href: '/commander/room-presets', icon: '/images/commander/icons/mg-room-presets.png' },
-      { label: 'Game Types', href: '/commander/game-types', icon: '/images/commander/icons/tn-settings.png' },
+      { label: 'Game Types', href: '/commander/game-types', icon: '/images/commander/icons/mg-game-types.png' },
+      { label: 'Comps', href: '/commander/comps', icon: '/images/commander/icons/mg-comps-red.png' },
     ],
   },
   {
@@ -96,6 +95,7 @@ const CARDS = [
       { label: 'Display: Combined', href: '/commander/displays/combined', icon: '/images/commander/icons/mg-display-combined.png' },
       { label: 'Streaming', href: '/commander/streaming', icon: '/images/commander/icons/mg-streaming.png' },
       { label: 'Notifications', href: '/commander/notifications', icon: '/images/commander/icons/mg-notifications.png' },
+      { label: 'Promotions', href: '/commander/promotions', icon: '/images/commander/icons/mg-promotions-red.png' },
     ],
   },
   {
