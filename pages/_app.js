@@ -34,6 +34,7 @@ import { AvatarProvider } from '../src/contexts/AvatarContext';
 import { ExternalLinkProvider } from '../src/components/ui/ExternalLinkModal';
 import { OneSignalProvider } from '../src/contexts/OneSignalContext';
 import { TrainingSettingsProvider } from '../src/contexts/TrainingSettingsContext';
+import { ActiveIdentityProvider } from '../src/contexts/ActiveIdentityContext';
 import ToastContainer from '../src/components/ui/ToastContainer';
 import GlobalNotificationPrompt from '../src/components/ui/GlobalNotificationPrompt';
 import { WorldThemeProvider } from '../src/components/WorldThemeProvider';
@@ -274,25 +275,27 @@ export default function App({ Component, pageProps }) {
               <OneSignalProvider>
                 <TrainingSettingsProvider>
                   <NavigationGuard>
-                    <WorldThemeProvider>
-                      <Component {...pageProps} />
-                      <CelebrationManager />
-                      <DiamondToast />
-                      <ToastContainer />
-                      <GlobalNotificationPrompt />
-                      <ProactiveHelp
-                        onAccept={() => {
-                          // Open Jarvis when user accepts help
-                          if (typeof window !== 'undefined') {
-                            window.dispatchEvent(new CustomEvent('open-jarvis'));
-                          }
-                        }}
-                        onDismiss={() => {
-                          console.log('[ProactiveHelp] User dismissed help prompt');
-                        }}
-                      />
-                      <JarvisPanel isOpen={isJarvisOpen} onClose={onJarvisClose} />
-                    </WorldThemeProvider>
+                    <ActiveIdentityProvider>
+                      <WorldThemeProvider>
+                        <Component {...pageProps} />
+                        <CelebrationManager />
+                        <DiamondToast />
+                        <ToastContainer />
+                        <GlobalNotificationPrompt />
+                        <ProactiveHelp
+                          onAccept={() => {
+                            // Open Jarvis when user accepts help
+                            if (typeof window !== 'undefined') {
+                              window.dispatchEvent(new CustomEvent('open-jarvis'));
+                            }
+                          }}
+                          onDismiss={() => {
+                            console.log('[ProactiveHelp] User dismissed help prompt');
+                          }}
+                        />
+                        <JarvisPanel isOpen={isJarvisOpen} onClose={onJarvisClose} />
+                      </WorldThemeProvider>
+                    </ActiveIdentityProvider>
                   </NavigationGuard>
                 </TrainingSettingsProvider>
               </OneSignalProvider>

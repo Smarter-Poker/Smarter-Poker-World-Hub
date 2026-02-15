@@ -60,6 +60,7 @@ import ArticleCard, { ArticleCardFromPost, getPostMediaType } from '../../src/co
 import ArticleReaderModal from '../../src/components/social/ArticleReaderModal';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 import InviteFriendsModal from '../../src/components/ui/InviteFriendsModal';
+import { useActiveIdentity } from '../../src/contexts/ActiveIdentityContext';
 
 // God-Mode Stack
 import { useSocialStore } from '../../src/stores/socialStore';
@@ -667,10 +668,14 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
     // 🔗 LINK PREVIEW STATE - Facebook-style auto-detect
     const [linkPreview, setLinkPreview] = useState(null); // { url, title, image, domain }
     const [linkLoading, setLinkLoading] = useState(false);
+    const [showIdentityPicker, setShowIdentityPicker] = useState(false);
     const fileRef = useRef(null);
     const inputRef = useRef(null);
     const mentionTimeout = useRef(null);
     const linkTimeout = useRef(null);
+
+    // Identity switching
+    const { isClubMode, clubPage, hasClubPage, switchToPersonal, switchToClub, activeIdentity } = useActiveIdentity();
 
     const handleFiles = async (e) => {
         const files = Array.from(e.target.files);
@@ -898,18 +903,124 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
         else setError('Unable to post at this time. Please try again later.');
     };
 
+    // Determine display identity
+    const postingAs = isClubMode && clubPage ? { name: clubPage.name, avatar: clubPage.avatar_url } : { name: user?.name, avatar: user?.avatar };
+
     return (
         <div style={{ background: C.card, borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.1)', marginBottom: 2, position: 'relative' }}>
+            {/* Identity Switcher Banner - only for Commander users */}
+            {hasClubPage && (
+                <div style={{ padding: '8px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: C.textSec }}>
+                        <span>Posting as</span>
+                        <button
+                            onClick={() => setShowIdentityPicker(!showIdentityPicker)}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: 6,
+                                background: isClubMode ? '#E7F3FF' : '#F0F2F5',
+                                border: `1px solid ${isClubMode ? '#1877F2' : C.border}`,
+                                borderRadius: 20, padding: '4px 12px 4px 4px',
+                                cursor: 'pointer', fontSize: 13, fontWeight: 600,
+                                color: isClubMode ? '#1877F2' : C.text,
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            <div style={{
+                                width: 24, height: 24, borderRadius: '50%',
+                                background: postingAs.avatar ? `url(${postingAs.avatar}) center/cover` : (isClubMode ? '#1877F2' : '#65676B'),
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                color: 'white', fontSize: 11, fontWeight: 700
+                            }}>
+                                {!postingAs.avatar && (postingAs.name?.[0] || '?')}
+                            </div>
+                            {postingAs.name || 'You'}
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <polyline points="6 9 12 15 18 9" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    {/* Identity Picker Dropdown */}
+                    {showIdentityPicker && (
+                        <div style={{
+                            position: 'absolute', top: '100%', left: 12, zIndex: 1001,
+                            background: C.card, borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+                            border: `1px solid ${C.border}`, minWidth: 220, overflow: 'hidden'
+                        }}>
+                            <div style={{ padding: '8px 12px', fontSize: 12, fontWeight: 600, color: C.textSec, borderBottom: `1px solid ${C.border}` }}>
+                                Switch Identity
+                            </div>
+                            {/* Personal Identity */}
+                            <button
+                                onClick={() => { switchToPersonal(); setShowIdentityPicker(false); }}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+                                    padding: '10px 12px', border: 'none', cursor: 'pointer',
+                                    background: !isClubMode ? '#E7F3FF' : 'transparent',
+                                    textAlign: 'left', transition: 'background 0.15s'
+                                }}
+                                onMouseEnter={e => { if (isClubMode) e.currentTarget.style.background = '#F0F2F5'; }}
+                                onMouseLeave={e => { if (isClubMode) e.currentTarget.style.background = 'transparent'; }}
+                            >
+                                <Avatar src={user?.avatar} name={user?.name} size={36} />
+                                <div>
+                                    <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{user?.name || 'You'}</div>
+                                    <div style={{ fontSize: 12, color: C.textSec }}>Personal Account</div>
+                                </div>
+                                {!isClubMode && <span style={{ marginLeft: 'auto', color: '#1877F2', fontSize: 18 }}>✓</span>}
+                            </button>
+                            {/* Club Page Identity */}
+                            <button
+                                onClick={() => { switchToClub(); setShowIdentityPicker(false); }}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+                                    padding: '10px 12px', border: 'none', cursor: 'pointer',
+                                    background: isClubMode ? '#E7F3FF' : 'transparent',
+                                    textAlign: 'left', transition: 'background 0.15s'
+                                }}
+                                onMouseEnter={e => { if (!isClubMode) e.currentTarget.style.background = '#F0F2F5'; }}
+                                onMouseLeave={e => { if (!isClubMode) e.currentTarget.style.background = 'transparent'; }}
+                            >
+                                <div style={{
+                                    width: 36, height: 36, borderRadius: '50%',
+                                    background: clubPage?.avatar_url ? `url(${clubPage.avatar_url}) center/cover` : '#1877F2',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    color: 'white', fontSize: 14, fontWeight: 700, flexShrink: 0
+                                }}>
+                                    {!clubPage?.avatar_url && (clubPage?.name?.[0] || 'C')}
+                                </div>
+                                <div>
+                                    <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{clubPage?.name || 'Club Page'}</div>
+                                    <div style={{ fontSize: 12, color: C.textSec }}>Club Page</div>
+                                </div>
+                                {isClubMode && <span style={{ marginLeft: 'auto', color: '#1877F2', fontSize: 18 }}>✓</span>}
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
             <div style={{ padding: 12, display: 'flex', gap: 8 }}>
-                <Link href="/hub/profile" style={{ display: 'block', cursor: 'pointer' }}>
-                    <Avatar src={user?.avatar} name={user?.name} size={40} />
-                </Link>
+                {isClubMode && clubPage ? (
+                    <div style={{
+                        width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
+                        background: clubPage.avatar_url ? `url(${clubPage.avatar_url}) center/cover` : '#1877F2',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: 'white', fontSize: 16, fontWeight: 700,
+                        border: '2px solid #1877F2'
+                    }}>
+                        {!clubPage.avatar_url && (clubPage.name?.[0] || 'C')}
+                    </div>
+                ) : (
+                    <Link href="/hub/profile" style={{ display: 'block', cursor: 'pointer' }}>
+                        <Avatar src={user?.avatar} name={user?.name} size={40} />
+                    </Link>
+                )}
                 <div style={{ flex: 1, position: 'relative' }}>
                     <input
                         ref={inputRef}
                         value={content}
                         onChange={handleContentChange}
-                        placeholder={`What's on your mind, ${user?.name || 'Player'}?`}
+                        placeholder={isClubMode ? `Post as ${clubPage?.name || 'Club'}...` : `What's on your mind, ${user?.name || 'Player'}?`}
                         style={{ width: '100%', background: C.bg, border: 'none', borderRadius: 20, padding: '10px 16px', fontSize: 16, outline: 'none', boxSizing: 'border-box', color: C.text }}
                     />
                     {/* @Mention Dropdown */}
@@ -3965,7 +4076,61 @@ export default function SocialMediaPage() {
         }
 
         setIsPosting(true);
+
+        // Check if posting as Club Page
+        let identityStoredRaw = null;
+        try { identityStoredRaw = localStorage.getItem('active-identity'); } catch (e) { }
+        const identityStored = identityStoredRaw ? JSON.parse(identityStoredRaw) : null;
+        const isClubPost = identityStored?.mode === 'club' && identityStored?.clubPage?.id;
+
         try {
+            if (isClubPost) {
+                // ═══ CLUB PAGE POST — route through page posts API ═══
+                const clubPageId = identityStored.clubPage.id;
+                console.log('[Social] 🏢 Posting as Club Page:', identityStored.clubPage.name, clubPageId);
+
+                const res = await fetch('/api/social/pages/posts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        page_id: clubPageId,
+                        author_id: user.id,
+                        content,
+                        content_type: type,
+                        media_urls: urls,
+                        ...(linkPreview ? {
+                            link_url: linkPreview.url || urls[0],
+                            link_title: linkPreview.title || null,
+                            link_description: linkPreview.description || null,
+                            link_image: linkPreview.image || null,
+                        } : {})
+                    }),
+                });
+                const json = await res.json();
+                if (!json.success) throw new Error(json.error || 'Failed to post as club');
+
+                console.log('[Social] ✅ Club page post created:', json.data?.id);
+
+                // Add to feed with club identity
+                setPosts(prev => [{
+                    id: json.data?.id || Date.now(), authorId: user.id, content, contentType: type,
+                    mediaUrls: urls, likeCount: 0, commentCount: 0, shareCount: 0,
+                    timeAgo: 'Just now', isLiked: false, justPosted: true,
+                    author: {
+                        name: identityStored.clubPage.name,
+                        username: null,
+                        avatar: identityStored.clubPage.avatar_url
+                    },
+                    isClubPagePost: true,
+                    clubPageId: clubPageId
+                }, ...prev]);
+
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                toast.success(`Posted as ${identityStored.clubPage.name}!`, 2000);
+                return true;
+            }
+
+            // ═══ PERSONAL POST — existing flow ═══
             // Build base payload
             const insertPayload = {
                 author_id: user.id,
