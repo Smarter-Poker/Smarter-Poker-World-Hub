@@ -9,7 +9,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import {
   Building2, Settings, Download, Shield, Key,
-  ChevronRight, RefreshCw, ArrowLeft, X, Plus, Trash2,
+  ChevronRight, RefreshCw, X, Plus, Trash2,
   Copy, Eye, EyeOff, Loader2, Check
 } from 'lucide-react';
 import MultiVenueDashboard from '../../../src/components/commander/admin/MultiVenueDashboard';
@@ -598,11 +598,10 @@ export default function AdminDashboard() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                      isActive
+                    className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${isActive
                         ? 'border-[#1877F2] text-[#1877F2]'
                         : 'border-transparent text-[#B0B3B8] hover:text-white'
-                    }`}
+                      }`}
                   >
                     <Icon size={18} />
                     {tab.label}
