@@ -8,6 +8,7 @@
  */
 import { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
+import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
 function getSeatPositions(count) {
   const positions = [];
@@ -43,7 +44,7 @@ export default function TablesDisplay() {
     const requestWakeLock = async () => {
       try {
         if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen');
-      } catch (err) {}
+      } catch (err) { }
     };
     requestWakeLock();
     document.addEventListener('visibilitychange', () => {
@@ -66,15 +67,7 @@ export default function TablesDisplay() {
   }, 0);
 
   return (
-    <>
-      <Head>
-        <title>Table Status Display</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-      </Head>
-      <style jsx global>{`
-        * { cursor: none !important; }
-        body { overflow: hidden; }
-      `}</style>
+    <CommanderLayout title="Table Status Display">
 
       <div onClick={goFullscreen}
         className="min-h-screen bg-black text-white font-['Inter'] select-none overflow-hidden flex flex-col">
@@ -107,13 +100,12 @@ export default function TablesDisplay() {
               <p className="text-4xl font-bold text-white/15">No Active Tables</p>
             </div>
           ) : (
-            <div className={`grid gap-4 h-full ${
-              activeTables.length <= 6 ? 'grid-cols-3 grid-rows-2' :
-              activeTables.length <= 9 ? 'grid-cols-3 grid-rows-3' :
-              activeTables.length <= 12 ? 'grid-cols-4 grid-rows-3' :
-              activeTables.length <= 16 ? 'grid-cols-4 grid-rows-4' :
-              'grid-cols-5 grid-rows-4'
-            }`}>
+            <div className={`grid gap-4 h-full ${activeTables.length <= 6 ? 'grid-cols-3 grid-rows-2' :
+                activeTables.length <= 9 ? 'grid-cols-3 grid-rows-3' :
+                  activeTables.length <= 12 ? 'grid-cols-4 grid-rows-3' :
+                    activeTables.length <= 16 ? 'grid-cols-4 grid-rows-4' :
+                      'grid-cols-5 grid-rows-4'
+              }`}>
               {activeTables.map(table => {
                 const maxSeats = table.max_seats || 9;
                 const seats = table.seats || [];
@@ -125,25 +117,22 @@ export default function TablesDisplay() {
 
                 return (
                   <div key={table.id || table.table_number}
-                    className={`relative rounded-2xl p-3 flex flex-col items-center justify-center border-2 ${
-                      isEmpty ? 'bg-white/3 border-white/10' :
-                      isFull ? 'bg-[#1877F2]/10 border-[#1877F2]/30' :
-                      'bg-[#31A24C]/10 border-[#31A24C]/30'
-                    }`}>
+                    className={`relative rounded-2xl p-3 flex flex-col items-center justify-center border-2 ${isEmpty ? 'bg-white/3 border-white/10' :
+                        isFull ? 'bg-[#1877F2]/10 border-[#1877F2]/30' :
+                          'bg-[#31A24C]/10 border-[#31A24C]/30'
+                      }`}>
 
                     {/* Mini seat ring */}
                     <div className="relative w-20 h-16 mb-1">
-                      <div className={`absolute inset-[15%] rounded-[50%] border ${
-                        isEmpty ? 'border-white/10' : isFull ? 'border-[#1877F2]/20' : 'border-[#31A24C]/20'
-                      }`} />
+                      <div className={`absolute inset-[15%] rounded-[50%] border ${isEmpty ? 'border-white/10' : isFull ? 'border-[#1877F2]/20' : 'border-[#31A24C]/20'
+                        }`} />
                       {seatPositions.map((pos, i) => {
                         const seatData = seats.find(s => s.seat_number === i + 1);
                         const isOccupied = seatData?.status === 'occupied' || i < seated;
                         return (
                           <div key={i}
-                            className={`absolute w-2.5 h-2.5 rounded-full ${
-                              isOccupied ? 'bg-[#1877F2]' : 'bg-white/15'
-                            }`}
+                            className={`absolute w-2.5 h-2.5 rounded-full ${isOccupied ? 'bg-[#1877F2]' : 'bg-white/15'
+                              }`}
                             style={{ left: `${pos.x}%`, top: `${pos.y}%`, transform: 'translate(-50%, -50%)' }} />
                         );
                       })}
@@ -184,6 +173,6 @@ export default function TablesDisplay() {
           <p className="text-white/15 text-xs tracking-wider">Powered by Smarter.Poker</p>
         </div>
       </div>
-    </>
+    </CommanderLayout>
   );
 }

@@ -7,6 +7,7 @@
  */
 import { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
+import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
 export default function AnnouncementsDisplay() {
   const [announcements, setAnnouncements] = useState([]);
@@ -33,7 +34,7 @@ export default function AnnouncementsDisplay() {
         const settingsRes = await fetch('/api/commander/settings');
         const settingsJson = await settingsRes.json();
         if (settingsJson.success) setRoomOpen(settingsJson.data?.room_open ?? true);
-      } catch (err) {}
+      } catch (err) { }
 
       setNow(new Date());
     };
@@ -48,7 +49,7 @@ export default function AnnouncementsDisplay() {
     const requestWakeLock = async () => {
       try {
         if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen');
-      } catch (err) {}
+      } catch (err) { }
     };
     requestWakeLock();
     document.addEventListener('visibilitychange', () => {
@@ -67,14 +68,8 @@ export default function AnnouncementsDisplay() {
   };
 
   return (
-    <>
-      <Head>
-        <title>Announcements Display</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-      </Head>
+    <CommanderLayout title="Announcements Display">
       <style jsx global>{`
-        * { cursor: none !important; }
-        body { overflow: hidden; }
         @keyframes pulse-urgent { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
         .urgent-pulse { animation: pulse-urgent 2s ease-in-out infinite; }
         @keyframes scroll-up { from { transform: translateY(100%); } to { transform: translateY(-100%); } }
@@ -151,6 +146,6 @@ export default function AnnouncementsDisplay() {
           <p className="text-white/15 text-xs tracking-wider">Powered by Smarter.Poker</p>
         </div>
       </div>
-    </>
+    </CommanderLayout>
   );
 }

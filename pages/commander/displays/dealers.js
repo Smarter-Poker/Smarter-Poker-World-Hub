@@ -7,6 +7,7 @@
  */
 import { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
+import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
 export default function DealerRotationDisplay() {
   const [dealers, setDealers] = useState([]);
@@ -39,7 +40,7 @@ export default function DealerRotationDisplay() {
     const requestWakeLock = async () => {
       try {
         if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen');
-      } catch (err) {}
+      } catch (err) { }
     };
     requestWakeLock();
     document.addEventListener('visibilitychange', () => {
@@ -62,14 +63,8 @@ export default function DealerRotationDisplay() {
   const minutesUntil = nextRotationTime ? Math.max(0, Math.floor((nextRotationTime - now) / 60000)) : null;
 
   return (
-    <>
-      <Head>
-        <title>Dealer Rotation Display</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-      </Head>
+    <CommanderLayout title="Dealer Rotation Display">
       <style jsx global>{`
-        * { cursor: none !important; }
-        body { overflow: hidden; }
         @keyframes pulse-break { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         .break-pulse { animation: pulse-break 2s ease-in-out infinite; }
       `}</style>
@@ -178,6 +173,6 @@ export default function DealerRotationDisplay() {
           <p className="text-white/15 text-xs tracking-wider">Powered by Smarter.Poker</p>
         </div>
       </div>
-    </>
+    </CommanderLayout>
   );
 }

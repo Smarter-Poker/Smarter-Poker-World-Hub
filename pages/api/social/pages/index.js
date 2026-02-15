@@ -128,8 +128,10 @@ export default async function handler(req, res) {
         // List pages with filters
         let query = supabase
             .from('social_pages')
-            .select('*')
-            .eq('is_public', true);
+            .select('*');
+
+        // Only filter by is_public when NOT fetching own pages
+        if (!owner_id) query = query.eq('is_public', true);
 
         if (page_type) query = query.eq('page_type', page_type);
         if (owner_id) query = query.eq('owner_id', owner_id);

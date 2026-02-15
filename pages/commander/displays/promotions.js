@@ -8,6 +8,7 @@
  */
 import { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
+import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
 export default function PromotionsDisplay() {
   const [promotions, setPromotions] = useState([]);
@@ -47,7 +48,7 @@ export default function PromotionsDisplay() {
     const requestWakeLock = async () => {
       try {
         if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen');
-      } catch (err) {}
+      } catch (err) { }
     };
     requestWakeLock();
     document.addEventListener('visibilitychange', () => {
@@ -69,14 +70,8 @@ export default function PromotionsDisplay() {
   };
 
   return (
-    <>
-      <Head>
-        <title>Promotions Display</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-      </Head>
+    <CommanderLayout title="Promotions Display">
       <style jsx global>{`
-        * { cursor: none !important; }
-        body { overflow: hidden; }
         @keyframes shimmer { 0% { opacity: 0.7; } 50% { opacity: 1; } 100% { opacity: 0.7; } }
         .shimmer { animation: shimmer 3s ease-in-out infinite; }
         @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -110,8 +105,10 @@ export default function PromotionsDisplay() {
             <div key={currentIndex} className={`slide-in w-full max-w-4xl bg-gradient-to-br ${(promoTypeStyles[current.type] || promoTypeStyles.default).bg} rounded-3xl p-12 text-center border border-white/10`}>
               {/* Type Badge */}
               <div className="inline-block px-6 py-2 rounded-full mb-6"
-                style={{ backgroundColor: `${(promoTypeStyles[current.type] || promoTypeStyles.default).accent}30`,
-                  border: `2px solid ${(promoTypeStyles[current.type] || promoTypeStyles.default).accent}50` }}>
+                style={{
+                  backgroundColor: `${(promoTypeStyles[current.type] || promoTypeStyles.default).accent}30`,
+                  border: `2px solid ${(promoTypeStyles[current.type] || promoTypeStyles.default).accent}50`
+                }}>
                 <p className="text-sm font-bold tracking-[0.3em] uppercase"
                   style={{ color: (promoTypeStyles[current.type] || promoTypeStyles.default).accent }}>
                   {(promoTypeStyles[current.type] || promoTypeStyles.default).label}
@@ -145,9 +142,8 @@ export default function PromotionsDisplay() {
                   <h3 className="text-lg text-white/50 uppercase tracking-wider mb-3">Current Leaders</h3>
                   {current.winners.slice(0, 5).map((w, i) => (
                     <div key={i} className="flex items-center justify-center gap-4 text-xl">
-                      <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
-                        i === 0 ? 'bg-yellow-500 text-black' : 'bg-white/10 text-white/60'
-                      }`}>{i + 1}</span>
+                      <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${i === 0 ? 'bg-yellow-500 text-black' : 'bg-white/10 text-white/60'
+                        }`}>{i + 1}</span>
                       <span className="text-white font-medium">{w.player_name}</span>
                       <span className="text-white/50">{w.hand || ''}</span>
                       {w.amount && <span className="text-[#31A24C] font-bold">${w.amount}</span>}
@@ -163,9 +159,8 @@ export default function PromotionsDisplay() {
         {promotions.length > 1 && (
           <div className="flex justify-center gap-2 pb-6">
             {promotions.map((_, i) => (
-              <div key={i} className={`w-3 h-3 rounded-full transition-all ${
-                i === currentIndex ? 'bg-[#1877F2] w-8' : 'bg-white/20'
-              }`} />
+              <div key={i} className={`w-3 h-3 rounded-full transition-all ${i === currentIndex ? 'bg-[#1877F2] w-8' : 'bg-white/20'
+                }`} />
             ))}
           </div>
         )}
@@ -175,6 +170,6 @@ export default function PromotionsDisplay() {
           <p className="text-white/15 text-xs tracking-wider">Powered by Smarter.Poker</p>
         </div>
       </div>
-    </>
+    </CommanderLayout>
   );
 }

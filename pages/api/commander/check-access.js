@@ -1,10 +1,10 @@
 /**
  * Check if the logged-in user has Commander access (staff or subscription)
  * Uses service role key to bypass RLS — called by WorldHub to detect Commander accounts
+ * Accepts Bearer token in Authorization header (same pattern as other Commander APIs)
  * Returns { hasAccess: true/false, staff: {...} } 
  */
 import { createClient } from '@supabase/supabase-js';
-import { createPagesServerClient } from '@supabase/auth-helpers-nextjs';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -17,11 +17,15 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Get the logged-in user from the session cookie
-        const supabaseServerClient = createPagesServerClient({ req, res });
-        const { data: { user } } = await supabaseServerClient.auth.getUser();
+        // Get user from Bearer token (same pattern as other Commander APIs)
+        const authHeader = req.headers.authorization;
+        if (!authHeader) {
+            return res.status(200).json({ hasAccess: false });
+        }
+        const token = authHeader.replace('Bearer ', '');
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
-        if (!user) {
+        if (authError || !user) {
             return res.status(200).json({ hasAccess: false });
         }
 

@@ -12,6 +12,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
 function formatClockTime(seconds) {
   if (!seconds || seconds <= 0) return '0:00';
@@ -81,7 +82,7 @@ export default function CombinedDisplay() {
     const requestWakeLock = async () => {
       try {
         if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen');
-      } catch (err) {}
+      } catch (err) { }
     };
     requestWakeLock();
     document.addEventListener('visibilitychange', () => {
@@ -96,18 +97,12 @@ export default function CombinedDisplay() {
   const gridClass = panels.length <= 2
     ? 'grid-cols-2 grid-rows-1'
     : panels.length === 3
-    ? 'grid-cols-3 grid-rows-1'
-    : 'grid-cols-2 grid-rows-2';
+      ? 'grid-cols-3 grid-rows-1'
+      : 'grid-cols-2 grid-rows-2';
 
   return (
-    <>
-      <Head>
-        <title>Combined Display</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-      </Head>
+    <CommanderLayout title="Combined Display">
       <style jsx global>{`
-        * { cursor: none !important; }
-        body { overflow: hidden; }
         @keyframes pulse-called { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
         .called { animation: pulse-called 1.5s ease-in-out infinite; }
       `}</style>
@@ -142,7 +137,7 @@ export default function CombinedDisplay() {
           })}
         </div>
       </div>
-    </>
+    </CommanderLayout>
   );
 }
 
@@ -205,9 +200,8 @@ function WaitlistPanel({ entries }) {
               </div>
               <div className="space-y-0.5">
                 {players.slice(0, 8).map((p, i) => (
-                  <div key={p.id} className={`flex items-center gap-2 px-2 py-1 rounded ${
-                    p.status === 'called' ? 'bg-[#31A24C]/20 called' : ''
-                  }`}>
+                  <div key={p.id} className={`flex items-center gap-2 px-2 py-1 rounded ${p.status === 'called' ? 'bg-[#31A24C]/20 called' : ''
+                    }`}>
                     <span className="text-xs text-white/40 w-4">{i + 1}</span>
                     <span className={`text-sm ${p.status === 'called' ? 'text-[#31A24C] font-medium' : 'text-white/80'}`}>
                       {p.player_name}
@@ -242,11 +236,10 @@ function TablesPanel({ tables }) {
             const open = max - seated;
             return (
               <div key={t.id || t.table_number}
-                className={`rounded-lg p-2 text-center border ${
-                  open > 0 ? 'bg-[#31A24C]/10 border-[#31A24C]/30' :
-                  seated > 0 ? 'bg-[#1877F2]/10 border-[#1877F2]/30' :
-                  'bg-white/5 border-white/10'
-                }`}>
+                className={`rounded-lg p-2 text-center border ${open > 0 ? 'bg-[#31A24C]/10 border-[#31A24C]/30' :
+                    seated > 0 ? 'bg-[#1877F2]/10 border-[#1877F2]/30' :
+                      'bg-white/5 border-white/10'
+                  }`}>
                 <p className="text-base font-bold text-white">T{t.table_number}</p>
                 <p className="text-[10px] text-white/40">{t.game_type || 'NLH'}</p>
                 <p className="text-xs text-white/60">{seated}/{max}</p>

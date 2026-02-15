@@ -460,16 +460,23 @@ export default function WorldHub() {
                     // 🔑 Commander account detection — use server-side API to bypass RLS
                     if (!hasCommanderAccount) {
                         try {
-                            const res = await fetch('/api/commander/check-access');
-                            if (res.ok) {
-                                const data = await res.json();
-                                if (data.hasAccess && data.staff) {
-                                    setHasCommanderAccount(true);
-                                    // Backfill localStorage so future visits are instant
-                                    try {
-                                        localStorage.setItem('commander_staff', JSON.stringify(data.staff));
-                                        console.log('[WorldHub] 🏢 Commander account detected via API');
-                                    } catch { }
+                            // Get access token from authUtils (same pattern as all Commander APIs)
+                            const { getAccessToken } = await import('../lib/authUtils');
+                            const token = getAccessToken();
+                            if (token) {
+                                const res = await fetch('/api/commander/check-access', {
+                                    headers: { 'Authorization': `Bearer ${token}` },
+                                });
+                                if (res.ok) {
+                                    const data = await res.json();
+                                    if (data.hasAccess && data.staff) {
+                                        setHasCommanderAccount(true);
+                                        // Backfill localStorage so future visits are instant
+                                        try {
+                                            localStorage.setItem('commander_staff', JSON.stringify(data.staff));
+                                            console.log('[WorldHub] 🏢 Commander account detected via API');
+                                        } catch { }
+                                    }
                                 }
                             }
                         } catch (e) {

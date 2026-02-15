@@ -13,6 +13,7 @@
  */
 import { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
+import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
 const MEDAL_COLORS = ['#FFD700', '#C0C0C0', '#CD7F32'];
 
@@ -33,7 +34,7 @@ export default function LeaderboardDisplay() {
   }, [leaderboards.length]);
 
   useEffect(() => {
-    const req = async () => { try { if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch {} };
+    const req = async () => { try { if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch { } };
     req();
     return () => { wakeLockRef.current?.release(); };
   }, []);
@@ -74,11 +75,8 @@ export default function LeaderboardDisplay() {
   const monthName = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   return (
-    <>
-      <Head><title>Leaderboard | Club Commander</title></Head>
+    <CommanderLayout title="Leaderboard Display">
       <style jsx global>{`
-        * { cursor: none !important; }
-        body { overflow: hidden; }
         @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .lb-row { animation: slideIn 0.3s ease-out forwards; }
       `}</style>
@@ -156,6 +154,6 @@ export default function LeaderboardDisplay() {
           <p className="text-white/10 text-xs tracking-wider">Powered by Smarter.Poker</p>
         </div>
       </div>
-    </>
+    </CommanderLayout>
   );
 }

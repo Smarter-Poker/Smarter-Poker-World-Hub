@@ -7,9 +7,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import {
-  ArrowLeft, Plus, Trophy, Clock, Users, DollarSign,
+  Plus, Trophy, Clock, Users, DollarSign,
   Calendar, Play, Pause, ChevronRight, Filter, Loader2, RefreshCw
 } from 'lucide-react';
+import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import CreateTournamentModal from '../../../src/components/commander/modals/CreateTournamentModal';
 
 const STATUS_CONFIG = {
@@ -160,48 +161,26 @@ export default function CommanderTournamentsPage() {
   }
 
   return (
-    <>
-      <Head>
-        <title>Tournaments | {venue?.name || 'Commander'}</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
-
+    <CommanderLayout title={`Tournaments | ${venue?.name || 'Commander'}`}>
       <div className="cmd-page">
-        {/* Header */}
-        <header className="cmd-header-bar sticky top-0 z-50">
-          <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => router.push('/commander/dashboard')}
-                className="cmd-back-btn"
-              >
-                <ArrowLeft size={16} /> Back
-              </button>
-              <div>
-                <h1 className="font-bold text-white text-lg">Tournaments</h1>
-                <p className="text-sm text-[#B0B3B8]">{venue?.name}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => fetchTournaments(true)}
-                disabled={refreshing}
-                className="p-2 hover:bg-[#3A3B3C] rounded-lg transition-colors"
-                title="Refresh"
-              >
-                <RefreshCw className={`w-5 h-5 text-[#B0B3B8] ${refreshing ? 'animate-spin' : ''}`} />
-              </button>
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="flex items-center gap-2 px-4 py-2 cmd-btn cmd-btn-primary font-medium rounded-lg hover:bg-[#1664d9] transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-                Create
-              </button>
-            </div>
-          </div>
-        </header>
+        {/* Action Bar */}
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-end gap-2">
+          <button
+            onClick={() => fetchTournaments(true)}
+            disabled={refreshing}
+            className="p-2 hover:bg-[#3A3B3C] rounded-lg transition-colors"
+            title="Refresh"
+          >
+            <RefreshCw className={`w-5 h-5 text-[#B0B3B8] ${refreshing ? 'animate-spin' : ''}`} />
+          </button>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 px-4 py-2 cmd-btn cmd-btn-primary font-medium rounded-lg hover:bg-[#1664d9] transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Create
+          </button>
+        </div>
 
         {/* Main Content */}
         <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
@@ -232,8 +211,8 @@ export default function CommanderTournamentsPage() {
                 key={opt.value}
                 onClick={() => setFilter(opt.value)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${filter === opt.value
-                    ? 'bg-[#1877F2] text-white'
-                    : 'bg-[#3A3B3C] text-[#B0B3B8] hover:bg-[#3A3B3C]'
+                  ? 'bg-[#1877F2] text-white'
+                  : 'bg-[#3A3B3C] text-[#B0B3B8] hover:bg-[#3A3B3C]'
                   }`}
               >
                 {opt.label}
@@ -369,34 +348,12 @@ export default function CommanderTournamentsPage() {
         </main>
       </div>
 
-      {/* Create Tournament Modal */}
       <CreateTournamentModal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onSubmit={handleTournamentCreated}
         venueId={venueId}
       />
-      <style jsx>{`
-        .cmd-back-btn {
-          background: none;
-          border: 1px solid #444;
-          border-radius: 10px;
-          padding: 8px 14px;
-          color: #ccc;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 13px;
-          font-weight: 600;
-          transition: all 0.2s;
-          text-decoration: none;
-        }
-        .cmd-back-btn:hover {
-          border-color: #666;
-          color: #fff;
-        }
-      `}</style>
-    </>
+    </CommanderLayout>
   );
 }

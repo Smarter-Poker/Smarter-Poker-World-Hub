@@ -3382,6 +3382,27 @@ export default function SocialMediaPage() {
             }, 500);
         }
 
+        // Handle ?viewPage=<pageId> query param (from Commander "Edit Club Page" link)
+        if (router.query.viewPage && user) {
+            const pageId = router.query.viewPage;
+            (async () => {
+                try {
+                    const res = await fetch(`/api/social/pages?id=${pageId}`);
+                    const json = await res.json();
+                    if (json.success && json.data) {
+                        const pageData = Array.isArray(json.data) ? json.data[0] : json.data;
+                        if (pageData) {
+                            setMyClubPage(pageData);
+                            setShowClubPages(true);
+                            setShowPageDashboard(true);
+                        }
+                    }
+                } catch (e) { console.error('viewPage error:', e); }
+                // Clean up the URL
+                router.replace('/hub/social-media', undefined, { shallow: true });
+            })();
+        }
+
         // Handle ?ref=<referral_code> query param (from QR code scan)
         if (router.query.ref && user) {
             const refCode = router.query.ref;
@@ -3406,7 +3427,7 @@ export default function SocialMediaPage() {
                 } catch (e) { console.error('Referral follow error:', e); }
             })();
         }
-    }, [user, router.query.createPage, router.query.ref]);
+    }, [user, router.query.createPage, router.query.ref, router.query.viewPage]);
 
     //  AUTO-MARK NOTIFICATIONS AS READ when dropdown opens
     useEffect(() => {
