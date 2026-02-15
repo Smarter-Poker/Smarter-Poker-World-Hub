@@ -1641,6 +1641,7 @@ const AMENITIES_LIST = [
     { cat: 'Comfort', items: [{ k: 'massage', l: 'Massage Service' }, { k: 'charging_stations', l: 'Charging Stations' }, { k: 'wifi', l: 'Free WiFi' }, { k: 'coat_check', l: 'Coat Check' }, { k: 'smoking_area', l: 'Smoking Area' }] },
     { cat: 'Facility', items: [{ k: 'private_room', l: 'Private Card Room' }, { k: 'high_limit', l: 'High-Limit Room' }, { k: 'tournament_room', l: 'Tournament Room' }, { k: 'tvs_at_tables', l: 'TVs at Tables' }, { k: 'atm_onsite', l: 'ATM On-Site' }] },
 ];
+const CATEGORY_LABELS = { poker_room: 'Poker Room', casino: 'Casino', card_club: 'Card Club', charity: 'Charity Organization', league: 'League / Tour', home_game: 'Home Game', other: 'Other' };
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const DAY_LABELS = { monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 'Thu', friday: 'Fri', saturday: 'Sat', sunday: 'Sun' };
 
@@ -1931,10 +1932,15 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
                     <input type="file" accept="image/*" ref={coverInputRef} onChange={handleCoverUpload} style={{ display: 'none' }} />
                     <button onClick={() => coverInputRef.current?.click()} disabled={coverUploading} style={{
                         position: 'absolute', top: 12, right: 12, display: 'flex', alignItems: 'center', gap: 6,
-                        padding: '6px 14px', borderRadius: 6, border: 'none', cursor: 'pointer',
-                        background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 13, fontWeight: 600,
+                        padding: '8px 16px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                        background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: 13, fontWeight: 600,
                         fontFamily: 'inherit', backdropFilter: 'blur(4px)'
-                    }}>{coverUploading ? 'Uploading...' : 'Edit Cover Photo'}</button>
+                    }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" />
+                        </svg>
+                        {coverUploading ? 'Uploading...' : 'Upload Photo'}
+                    </button>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <div style={{
                             width: 72, height: 72, borderRadius: 12, background: '#fff',
@@ -1947,7 +1953,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
                         <div>
                             <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#fff', textShadow: '0 1px 6px rgba(0,0,0,0.4)' }}>{page.name}</h2>
                             <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)' }}>
-                                {page.follower_count || 0} follower{(page.follower_count || 0) !== 1 ? 's' : ''} · {page.category || 'Club'}
+                                {page.follower_count || 0} follower{(page.follower_count || 0) !== 1 ? 's' : ''}
                             </span>
                         </div>
                     </div>
@@ -4778,32 +4784,45 @@ export default function SocialMediaPage() {
                             {/* Commander Banner — Create or Manage Page */}
                             {isCommander && !myPageLoading && (
                                 <div style={{
-                                    background: 'linear-gradient(135deg, #1877F2 0%, #42B72A 100%)',
-                                    borderRadius: 12, padding: 16, marginBottom: 8
+                                    background: '#FFFFFF', borderRadius: 12, padding: 16, marginBottom: 8,
+                                    border: '1px solid #CCD0D5', boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
                                 }}>
                                     {myClubPage ? (
                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                            <div>
-                                                <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Your Club Page</span>
-                                                <p style={{ margin: '2px 0 0', fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>{myClubPage.name}</p>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                                <div style={{
+                                                    width: 48, height: 48, borderRadius: 10, background: '#fff',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    fontSize: 22, fontWeight: 800, color: '#1877F2', flexShrink: 0,
+                                                    boxShadow: '0 1px 4px rgba(0,0,0,0.1)'
+                                                }}>
+                                                    {(myClubPage.name || 'C')[0].toUpperCase()}
+                                                </div>
+                                                <div>
+                                                    <div style={{ fontSize: 16, fontWeight: 700, color: '#050505' }}>{myClubPage.name}</div>
+                                                    <div style={{ fontSize: 12, color: '#65676B', marginTop: 1 }}>
+                                                        {CATEGORY_LABELS[myClubPage.category] || myClubPage.category || 'Club'} · {myClubPage.follower_count || 0} followers
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <button onClick={() => setShowPageDashboard(true)} style={{
-                                                padding: '8px 20px', borderRadius: 8, border: '2px solid #fff',
-                                                background: 'rgba(255,255,255,0.15)', color: '#fff',
-                                                fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                                                backdropFilter: 'blur(4px)'
-                                            }}>Manage Page</button>
-                                            <button onClick={() => setViewingLiveGamesPage(myClubPage)} style={{
-                                                padding: '8px 16px', borderRadius: 8, border: 'none',
-                                                background: 'rgba(255,255,255,0.25)', color: '#fff',
-                                                fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
-                                            }}>Live Games</button>
+                                            <div style={{ display: 'flex', gap: 8 }}>
+                                                <button onClick={() => setShowPageDashboard(true)} style={{
+                                                    padding: '8px 20px', borderRadius: 8, border: 'none',
+                                                    background: '#1877F2', color: '#fff',
+                                                    fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
+                                                }}>Manage Page</button>
+                                                <button onClick={() => setViewingLiveGamesPage(myClubPage)} style={{
+                                                    padding: '8px 16px', borderRadius: 8, border: 'none',
+                                                    background: '#E4E6EB', color: '#050505',
+                                                    fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
+                                                }}>Live Games</button>
+                                            </div>
                                         </div>
                                     ) : (
                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                             <div>
-                                                <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Create Your Club Page</span>
-                                                <p style={{ margin: '2px 0 0', fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>Set up a public page for your venue</p>
+                                                <span style={{ fontSize: 14, fontWeight: 700, color: '#050505' }}>Create Your Club Page</span>
+                                                <p style={{ margin: '2px 0 0', fontSize: 13, color: '#65676B' }}>Set up a public page for your venue</p>
                                             </div>
                                             <button onClick={() => setShowCreatePage(true)} style={{
                                                 padding: '8px 20px', borderRadius: 8, border: 'none',
