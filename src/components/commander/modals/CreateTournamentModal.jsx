@@ -7,7 +7,7 @@
 import { useState, useEffect } from 'react';
 import {
   X, Trophy, Calendar, DollarSign, Users, Clock, Loader2,
-  ChevronLeft, Zap, Crown, Target, RefreshCw, Rocket,
+  ChevronLeft, Zap, Crown, Target, RefreshCw, Rocket, Crosshair,
   Check, Settings, Layers
 } from 'lucide-react';
 import BlindStructureEditor from '../tournaments/BlindStructureEditor';
@@ -21,7 +21,7 @@ import {
   estimateDuration
 } from '../tournaments/tournamentTemplates';
 
-const ICON_MAP = { Trophy, Zap, Crown, Target, RefreshCw, Rocket };
+const ICON_MAP = { Trophy, Zap, Crown, Target, RefreshCw, Rocket, Crosshair };
 
 // Fallback blind structure for "Start from Scratch"
 const SCRATCH_BLINDS = [
@@ -146,7 +146,7 @@ export default function CreateTournamentModal({ isOpen, onClose, onSubmit, venue
         allows_addon: allowsAddon,
         addon_amount: allowsAddon ? addonAmount : null,
         addon_chips: allowsAddon ? addonChips : null,
-        bounty_amount: tournamentType === 'bounty' ? bountyAmount : null,
+        bounty_amount: (tournamentType === 'bounty' || tournamentType === 'pko') ? bountyAmount : null,
         status: 'scheduled',
         broadcast_to_smarter: true,
       };
@@ -177,7 +177,7 @@ export default function CreateTournamentModal({ isOpen, onClose, onSubmit, venue
                   starting_chips: startingChips,
                   scheduled_start: new Date(scheduledStart).toISOString(),
                   guaranteed_pool: guaranteedPool ? parseInt(guaranteedPool) : null,
-                  bounty_amount: tournamentType === 'bounty' ? bountyAmount : null,
+                  bounty_amount: (tournamentType === 'bounty' || tournamentType === 'pko') ? bountyAmount : null,
                 },
               }),
             });
@@ -342,8 +342,8 @@ export default function CreateTournamentModal({ isOpen, onClose, onSubmit, venue
                     type="button"
                     onClick={() => setTournamentType(type.value)}
                     className={`h-10 rounded-lg text-sm font-medium transition-colors ${tournamentType === type.value
-                        ? 'bg-[#22D3EE] text-white'
-                        : 'bg-[#0D192E] text-white hover:bg-[#132240]'
+                      ? 'bg-[#22D3EE] text-white'
+                      : 'bg-[#0D192E] text-white hover:bg-[#132240]'
                       }`}
                   >
                     {type.label}
@@ -357,8 +357,8 @@ export default function CreateTournamentModal({ isOpen, onClose, onSubmit, venue
                     type="button"
                     onClick={() => setTournamentType(type.value)}
                     className={`h-10 rounded-lg text-sm font-medium transition-colors ${tournamentType === type.value
-                        ? 'bg-[#22D3EE] text-white'
-                        : 'bg-[#0D192E] text-white hover:bg-[#132240]'
+                      ? 'bg-[#22D3EE] text-white'
+                      : 'bg-[#0D192E] text-white hover:bg-[#132240]'
                       }`}
                   >
                     {type.label}
@@ -392,8 +392,8 @@ export default function CreateTournamentModal({ isOpen, onClose, onSubmit, venue
                       setBuyinFee(Math.round(amount * 0.2));
                     }}
                     className={`h-9 rounded-lg text-sm font-medium transition-colors ${buyinAmount === amount
-                        ? 'bg-[#22D3EE] text-white'
-                        : 'bg-[#0D192E] text-white hover:bg-[#132240]'
+                      ? 'bg-[#22D3EE] text-white'
+                      : 'bg-[#0D192E] text-white hover:bg-[#132240]'
                       }`}
                   >
                     ${amount}
@@ -432,8 +432,8 @@ export default function CreateTournamentModal({ isOpen, onClose, onSubmit, venue
                     type="button"
                     onClick={() => setStartingChips(chips)}
                     className={`flex-1 min-w-[50px] h-9 rounded-lg text-xs font-medium transition-colors ${startingChips === chips
-                        ? 'bg-[#22D3EE] text-white'
-                        : 'bg-[#0D192E] text-white hover:bg-[#132240]'
+                      ? 'bg-[#22D3EE] text-white'
+                      : 'bg-[#0D192E] text-white hover:bg-[#132240]'
                       }`}
                   >
                     {formatChips(chips)}
@@ -442,10 +442,12 @@ export default function CreateTournamentModal({ isOpen, onClose, onSubmit, venue
               </div>
             </div>
 
-            {/* Bounty (if bounty type) */}
-            {tournamentType === 'bounty' && (
+            {/* Bounty (if bounty or PKO type) */}
+            {(tournamentType === 'bounty' || tournamentType === 'pko') && (
               <div>
-                <label className="block text-sm font-medium text-white mb-1">Bounty Amount</label>
+                <label className="block text-sm font-medium text-white mb-1">
+                  {tournamentType === 'pko' ? 'Starting Bounty (half of buy-in)' : 'Bounty Amount'}
+                </label>
                 <div className="grid grid-cols-4 gap-2">
                   {[25, 50, 100, 200].map((b) => (
                     <button
@@ -453,14 +455,19 @@ export default function CreateTournamentModal({ isOpen, onClose, onSubmit, venue
                       type="button"
                       onClick={() => setBountyAmount(b)}
                       className={`h-9 rounded-lg text-sm font-medium transition-colors ${bountyAmount === b
-                          ? 'bg-[#EF4444] text-white'
-                          : 'bg-[#0D192E] text-white hover:bg-[#132240]'
+                        ? 'bg-[#EF4444] text-white'
+                        : 'bg-[#0D192E] text-white hover:bg-[#132240]'
                         }`}
                     >
                       ${b}
                     </button>
                   ))}
                 </div>
+                {tournamentType === 'pko' && (
+                  <p className="text-xs text-[#F97316] mt-2">
+                    Progressive KO: When you eliminate a player, you collect half their bounty. The other half is added to your own bounty, making you a bigger target.
+                  </p>
+                )}
               </div>
             )}
 
@@ -557,8 +564,8 @@ export default function CreateTournamentModal({ isOpen, onClose, onSubmit, venue
                     type="button"
                     onClick={() => setLateRegLevels(lvl)}
                     className={`h-9 rounded-lg text-sm font-medium transition-colors ${lateRegLevels === lvl
-                        ? 'bg-[#22D3EE] text-white'
-                        : 'bg-[#0D192E] text-white hover:bg-[#132240]'
+                      ? 'bg-[#22D3EE] text-white'
+                      : 'bg-[#0D192E] text-white hover:bg-[#132240]'
                       }`}
                   >
                     {lvl}

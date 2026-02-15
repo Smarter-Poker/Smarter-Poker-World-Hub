@@ -1,5 +1,5 @@
 /**
- * Tournament Templates — 6 Industry-Standard Tournament Structures
+ * Tournament Templates — 7 Industry-Standard Tournament Structures
  * Expert blind structures with proper antes, breaks, and escalation
  * Used by Tournament Settings page and CreateTournamentModal
  */
@@ -161,6 +161,34 @@ const SATELLITE_QUALIFIER_BLINDS = [
 ];
 
 // ═══════════════════════════════════════════════
+// TEMPLATE 7: Progressive Knockout (PKO)
+// $200+$30 | 15,000 chips | 20-min levels | ~5 hrs
+// Half buy-in starts as bounty, grows when you eliminate
+// ═══════════════════════════════════════════════
+const PKO_BLINDS = [
+    { level: 1, small_blind: 50, big_blind: 100, ante: 0, duration: 20 },
+    { level: 2, small_blind: 75, big_blind: 150, ante: 0, duration: 20 },
+    { level: 3, small_blind: 100, big_blind: 200, ante: 25, duration: 20 },
+    { level: 4, small_blind: 150, big_blind: 300, ante: 50, duration: 20 },
+    { is_break: true, duration: 10, label: 'Break' },
+    { level: 5, small_blind: 200, big_blind: 400, ante: 50, duration: 20 },
+    { level: 6, small_blind: 250, big_blind: 500, ante: 75, duration: 20 },
+    { level: 7, small_blind: 300, big_blind: 600, ante: 100, duration: 20 },
+    { level: 8, small_blind: 400, big_blind: 800, ante: 100, duration: 20 },
+    { is_break: true, duration: 15, label: 'Break + Color Up' },
+    { level: 9, small_blind: 500, big_blind: 1000, ante: 150, duration: 20 },
+    { level: 10, small_blind: 600, big_blind: 1200, ante: 200, duration: 20 },
+    { level: 11, small_blind: 800, big_blind: 1600, ante: 200, duration: 15 },
+    { level: 12, small_blind: 1000, big_blind: 2000, ante: 300, duration: 15 },
+    { is_break: true, duration: 10, label: 'Break' },
+    { level: 13, small_blind: 1500, big_blind: 3000, ante: 400, duration: 15 },
+    { level: 14, small_blind: 2000, big_blind: 4000, ante: 500, duration: 15 },
+    { level: 15, small_blind: 2500, big_blind: 5000, ante: 500, duration: 15 },
+    { level: 16, small_blind: 3000, big_blind: 6000, ante: 1000, duration: 15 },
+    { level: 17, small_blind: 4000, big_blind: 8000, ante: 1000, duration: 15 },
+];
+
+// ═══════════════════════════════════════════════
 // TOURNAMENT TEMPLATES ARRAY
 // ═══════════════════════════════════════════════
 export const TOURNAMENT_TEMPLATES = [
@@ -273,13 +301,32 @@ export const TOURNAMENT_TEMPLATES = [
         icon: 'Rocket',
         color: '#3B82F6',
     },
+    {
+        id: 'progressive-knockout',
+        name: 'Progressive Knockout',
+        description: 'Half the buy-in starts as your bounty. Eliminate a player and win half their bounty — the other half adds to yours. Bounties grow as the tournament progresses.',
+        tournament_type: 'pko',
+        buyin_amount: 200,
+        buyin_fee: 30,
+        starting_chips: 15000,
+        blind_structure: PKO_BLINDS,
+        late_registration_levels: 8,
+        estimated_duration: '~5 hours',
+        allows_rebuys: false,
+        allows_addon: false,
+        bounty_amount: 100,
+        is_progressive_knockout: true,
+        icon: 'Crosshair',
+        color: '#F97316',
+    },
 ];
 
 // All supported tournament types
 export const TOURNAMENT_TYPES = [
     { value: 'freezeout', label: 'Freezeout', description: 'One buy-in, no rebuys' },
     { value: 'rebuy', label: 'Rebuy', description: 'Rebuys allowed during rebuy period' },
-    { value: 'bounty', label: 'Bounty', description: 'Cash bounty for each elimination' },
+    { value: 'bounty', label: 'Bounty', description: 'Fixed cash bounty for each elimination' },
+    { value: 'pko', label: 'Progressive KO', description: 'Bounty grows — half on knock out, half added to yours' },
     { value: 'satellite', label: 'Satellite', description: 'Win a seat to a larger event' },
     { value: 'shootout', label: 'Shootout', description: 'Win your table to advance' },
     { value: 'turbo', label: 'Turbo', description: 'Shorter blind levels (8-12 min)' },

@@ -1,13 +1,13 @@
 /**
  * Tournament Settings — Template picker, blind structure editor, defaults
- * Users can select from 6 pre-built templates or create custom ones
+ * Users can select from 7 pre-built templates or create custom ones
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import {
-    Trophy, Zap, Crown, Target, RefreshCw, Rocket,
+    Trophy, Zap, Crown, Target, RefreshCw, Rocket, Crosshair,
     ChevronRight, Settings, Clock, Loader2, Eye, Copy,
     DollarSign, Layers, Users, Coffee
 } from 'lucide-react';
@@ -22,7 +22,7 @@ import {
 } from '../../src/components/commander/tournaments/tournamentTemplates';
 
 const ICON_MAP = {
-    Trophy, Zap, Crown, Target, RefreshCw, Rocket,
+    Trophy, Zap, Crown, Target, RefreshCw, Rocket, Crosshair,
 };
 
 export default function TournamentSettingsPage() {
