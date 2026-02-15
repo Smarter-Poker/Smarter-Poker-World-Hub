@@ -381,7 +381,7 @@ export default function StreamingPage() {
   }
 
   return (
-    <CommanderLayout title="Streaming" backHref="/commander/dashboard">
+    <CommanderLayout title="Streaming" backHref="/commander/displays">
     <>
       <Head>
         <title>Streaming | Club Commander</title>

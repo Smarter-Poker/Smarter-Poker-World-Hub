@@ -142,7 +142,7 @@ export default function MemberImport() {
   const previewRows = getMappedRows().slice(0, 5);
 
   return (
-    <CommanderLayout title="Import Members" backHref="/commander/dashboard">
+    <CommanderLayout title="Import Members" backHref="/commander/members">
     <>
       <Head><title>Import Members | Club Commander</title></Head>
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">

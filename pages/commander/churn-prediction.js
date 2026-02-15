@@ -126,7 +126,7 @@ export default function ChurnPrediction() {
                 const rc = riskColor(p.risk);
                 const isExpanded = expandedId === p.player_id;
                 return (
-                  <CommanderLayout title="Churn Prediction" backHref="/commander/dashboard">
+                  <CommanderLayout title="Churn Prediction" backHref="/commander/reports">
                   <div key={p.player_id} style={{ background: 'white', borderRadius: 10, border: `1px solid ${p.risk === 'high' ? '#FCA5A5' : '#E4E6EB'}`, overflow: 'hidden' }}>
                     <button onClick={() => setExpandedId(isExpanded ? null : p.player_id)}
                       style={{ width: '100%', padding: '12px 14px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left' }}>

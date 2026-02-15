@@ -238,7 +238,7 @@ export default function CloseDay() {
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, null, 0, 'del'].map((key, i) => {
                   if (key === null) return <div key={i} />;
                   return (
-                    <CommanderLayout title="Close Day" backHref="/commander/dashboard">
+                    <CommanderLayout title="Close Day" backHref="/commander/reports">
                     <button key={i}
                       onClick={() => {
                         if (key === 'del') setPin(pin.slice(0, -1));

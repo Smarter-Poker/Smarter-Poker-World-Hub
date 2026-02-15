@@ -54,7 +54,7 @@ export default function SystemInfoPage() {
   }
 
   return (
-    <CommanderLayout title="System Info | {venueName || 'Commander'}" backHref="/commander/dashboard">
+    <CommanderLayout title="System Info | {venueName || 'Commander'}" backHref="/commander/settings">
     <>
       <Head><title>System Info | {venueName || 'Commander'}</title></Head>
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">

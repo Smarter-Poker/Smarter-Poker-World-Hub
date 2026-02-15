@@ -177,7 +177,7 @@ export default function TableAssignments() {
             const isClosing = closing === table.id;
 
             return (
-              <CommanderLayout title="Table Assignments" backHref="/commander/dashboard">
+              <CommanderLayout title="Table Assignments" backHref="/commander/tables">
               <div key={table.id}
                 className="rounded-2xl border-2 overflow-hidden"
                 style={{ borderColor: mc.border, background: '#242526' }}>

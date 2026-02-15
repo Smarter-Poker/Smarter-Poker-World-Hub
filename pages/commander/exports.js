@@ -205,7 +205,7 @@ export default function ExportsHub() {
                   {exports.map(exp => {
                     const st = STATUS_STYLES[exp.status] || STATUS_STYLES.pending;
                     return (
-                      <CommanderLayout title="Data Exports" backHref="/commander/dashboard">
+                      <CommanderLayout title="Data Exports" backHref="/commander/reports">
                       <div key={exp.id} className="px-4 py-3 flex items-center gap-3">
                         <FileText className="w-5 h-5 text-[#B0B3B8] shrink-0" />
                         <div className="flex-1 min-w-0">

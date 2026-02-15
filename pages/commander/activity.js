@@ -198,7 +198,7 @@ export default function ActivityFeed() {
               const config = EVENT_TYPES[event.type] || EVENT_TYPES.check_in;
               const Icon = config.icon;
               return (
-                <CommanderLayout title="Activity" backHref="/commander/dashboard">
+                <CommanderLayout title="Activity" backHref="/commander/reports">
                 <div key={event.id} className="flex items-start gap-3 py-2.5 border-b border-[#3A3B3C]/50">
                   <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
                     style={{ backgroundColor: `${config.color}15` }}>

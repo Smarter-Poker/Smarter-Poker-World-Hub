@@ -275,7 +275,7 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <CommanderLayout title="Analytics | Commander" backHref="/commander/dashboard">
+    <CommanderLayout title="Analytics | Commander" backHref="/commander/reports">
     <>
       <Head>
         <title>Analytics | Commander</title>

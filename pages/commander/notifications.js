@@ -144,7 +144,7 @@ export default function NotificationCenter() {
                 const Icon = cfg.icon;
                 const isUnread = !n.read_at;
                 return (
-                  <CommanderLayout title="Notifications" backHref="/commander/dashboard">
+                  <CommanderLayout title="Notifications" backHref="/commander/displays">
                   <div key={n.id}
                     onClick={() => isUnread && markAsRead(n.id)}
                     className={`px-4 py-3 flex items-start gap-3 ${isUnread ? 'bg-[#1877F2]/5 cursor-pointer' : ''}`}>

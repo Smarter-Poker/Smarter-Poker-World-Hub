@@ -211,7 +211,7 @@ export default function OpenGame() {
                     const tNum = t.table_number || t.number;
                     const isSelected = selectedTable?.id === t.id;
                     return (
-                      <CommanderLayout title="Open Game" backHref="/commander/dashboard">
+                      <CommanderLayout title="Open Game" backHref="/commander/tables">
                       <button key={t.id || tNum} onClick={() => setSelectedTable(t)}
                         className={`w-full px-4 py-4 rounded-xl text-left flex items-center justify-between border-2 ${
                           isSelected ? 'border-[#1877F2] bg-[#1877F2]/10' : 'border-[#3A3B3C] bg-[#242526]'

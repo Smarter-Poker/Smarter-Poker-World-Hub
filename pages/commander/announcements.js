@@ -112,7 +112,7 @@ export default function CommanderAnnouncementsPage() {
   }
 
   return (
-    <CommanderLayout title="Announcements | {venue?.name || 'Commander'}" backHref="/commander/dashboard">
+    <CommanderLayout title="Announcements | {venue?.name || 'Commander'}" backHref="/commander/displays">
     <>
       <Head>
         <title>Announcements | {venue?.name || 'Commander'}</title>

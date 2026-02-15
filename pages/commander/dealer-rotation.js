@@ -127,7 +127,7 @@ export default function DealerRotation() {
   const availableDealers = dealers.filter(d => !getAssignment(d.id) && d.status === 'active');
 
   return (
-    <CommanderLayout title="Dealer Rotation" backHref="/commander/dashboard">
+    <CommanderLayout title="Dealer Rotation" backHref="/commander/dealers">
       <Head><title>Dealer Rotation | Club Commander</title></Head>
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 

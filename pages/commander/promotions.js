@@ -515,7 +515,7 @@ export default function PromotionsPage() {
   }
 
   return (
-    <CommanderLayout title="Promotions | Commander" backHref="/commander/dashboard">
+    <CommanderLayout title="Promotions | Commander" backHref="/commander/displays">
     <>
       <Head>
         <title>Promotions | Commander</title>
