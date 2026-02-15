@@ -79,6 +79,9 @@ export default async function handler(req, res) {
                         user_id: userId,
                         amount: promo.value,
                         type: 'promo_code',
+                        transaction_type: 'credit',
+                        balance_after: newBalance,
+                        source: 'promo_code',
                         description: `Promo code: ${promo.code} — ${promo.description || 'Bonus diamonds'}`,
                     });
 

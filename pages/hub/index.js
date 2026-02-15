@@ -10,6 +10,7 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getAuthUser } from '../../src/lib/authUtils';
+import { claimReward } from '../../src/lib/claimReward';
 
 // Dynamic import with SSR disabled to prevent hydration mismatches from R3F/WebGL
 const WorldHub = dynamic(() => import('../../src/world/WorldHub'), {
@@ -39,14 +40,10 @@ export default function HubPage() {
         const authUser = getAuthUser();
         setUser(authUser);
 
-        // Award daily login diamonds (fire-and-forget, once per session)
+        // Award daily login diamonds (fire-and-forget, once per session, with toast)
         if (authUser?.id && !sessionStorage.getItem('dailyLoginClaimed')) {
             sessionStorage.setItem('dailyLoginClaimed', 'true');
-            fetch('/api/rewards/daily-login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: authUser.id })
-            }).catch(() => { }); // Non-blocking
+            claimReward('/api/rewards/daily-login', { userId: authUser.id }, 'Daily Login Reward');
         }
     }, []);
 

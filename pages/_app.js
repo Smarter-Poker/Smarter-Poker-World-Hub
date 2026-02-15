@@ -85,6 +85,12 @@ const CelebrationManager = dynamic(
   { ssr: false }
 );
 
+// Dynamic import for DiamondToast (3-second auto-dismiss popup)
+const DiamondToast = dynamic(
+  () => import('../src/components/diamonds/DiamondToast'),
+  { ssr: false }
+);
+
 // ═══════════════════════════════════════════════════════════════════════════
 // NAVIGATION GUARD — Prevents loading freeze when pressing back button
 // Uses SYNCHRONOUS DOM manipulation for instant hiding (no React state delay)
@@ -271,6 +277,7 @@ export default function App({ Component, pageProps }) {
                     <WorldThemeProvider>
                       <Component {...pageProps} />
                       <CelebrationManager />
+                      <DiamondToast />
                       <ToastContainer />
                       <GlobalNotificationPrompt />
                       <ProactiveHelp

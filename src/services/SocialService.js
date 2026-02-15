@@ -6,6 +6,7 @@
  */
 
 import { createPost, createComment, createAuthor } from './social-types';
+import { claimReward } from '../lib/claimReward';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🌐 SOCIAL SERVICE CLASS
@@ -327,6 +328,12 @@ export class SocialService {
                     });
 
                 if (error) throw error;
+
+                // Award reaction diamonds (fire-and-forget, 2💎 max 10/day)
+                if (userId) {
+                    claimReward('/api/rewards/reaction', { userId, postId, interactionType }, 'Liked a Post');
+                }
+
                 return { added: true, type: interactionType };
             }
         } catch (error) {
@@ -435,11 +442,7 @@ export class SocialService {
 
             // Award comment diamonds (fire-and-forget, 5💎 max 3/day)
             if (authorId) {
-                fetch('/api/rewards/comment', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: authorId, commentId: data?.id })
-                }).catch(() => { }); // Non-blocking
+                claimReward('/api/rewards/comment', { userId: authorId, commentId: data?.id }, 'Strategy Comment');
             }
 
             return createComment({
@@ -475,6 +478,12 @@ export class SocialService {
                 });
 
             if (error) throw error;
+
+            // Award follow diamonds (fire-and-forget, 5💎 max 3/day)
+            if (followerId) {
+                claimReward('/api/rewards/follow', { userId: followerId, followingId }, 'Followed a Player');
+            }
+
             return true;
         } catch (error) {
             console.error('Follow error:', error);

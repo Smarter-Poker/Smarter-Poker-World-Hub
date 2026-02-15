@@ -52,6 +52,7 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [staff, setStaff] = useState(null);
+  const [showClubPagePopup, setShowClubPagePopup] = useState(false);
 
   useEffect(() => {
     try {
@@ -59,6 +60,54 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
       if (stored) setStaff(JSON.parse(stored));
     } catch { }
   }, []);
+
+  // Club Page creation reminder popup
+  useEffect(() => {
+    if (!staff || !staff.venue_id) return;
+
+    const checkClubPageReminder = async () => {
+      try {
+        // Check if already dismissed today
+        const dismissKey = 'club_page_popup_dismissed';
+        const lastDismissed = localStorage.getItem(dismissKey);
+        if (lastDismissed) {
+          const dismissDate = new Date(lastDismissed);
+          const now = new Date();
+          // If dismissed today, skip
+          if (dismissDate.toDateString() === now.toDateString()) return;
+        }
+
+        // Check if account is at least 1 hour old
+        if (staff.created_at) {
+          const createdAt = new Date(staff.created_at);
+          const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
+          if (createdAt > hourAgo) return; // Less than 1 hour old, skip
+        }
+
+        // Check if user already has a club page
+        const res = await fetch(`/api/social/pages?linked_venue_id=${staff.venue_id}`);
+        const json = await res.json();
+        if (json.success && json.data && json.data.length > 0) {
+          // Already has a page, no need to remind
+          return;
+        }
+
+        // Show the popup
+        setShowClubPagePopup(true);
+      } catch (e) {
+        console.error('[Commander] Club page popup check error:', e);
+      }
+    };
+
+    // Delay check to not interfere with page load
+    const timer = setTimeout(checkClubPageReminder, 2000);
+    return () => clearTimeout(timer);
+  }, [staff]);
+
+  const dismissClubPagePopup = () => {
+    setShowClubPagePopup(false);
+    localStorage.setItem('club_page_popup_dismissed', new Date().toISOString());
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('commander_staff');
@@ -347,6 +396,45 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
               </button>
             </div>
           </>
+        )}
+
+        {/* ── CLUB PAGE CREATION POPUP ── */}
+        {showClubPagePopup && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div onClick={dismissClubPagePopup} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.7)' }} />
+            <div style={{
+              position: 'relative', background: 'linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%)',
+              borderRadius: 16, width: '90%', maxWidth: 440, padding: 28,
+              boxShadow: '0 12px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1)',
+              border: '1px solid rgba(255,255,255,0.08)'
+            }}>
+              {/* Header icon */}
+              <div style={{ width: 56, height: 56, borderRadius: 14, background: 'linear-gradient(135deg, #1877F2, #42B72A)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
+                  <rect x="2" y="3" width="20" height="18" rx="2" />
+                  <path d="M8 21V3" />
+                  <path d="M16 3v18" />
+                </svg>
+              </div>
+              <h2 style={{ margin: '0 0 6px', fontSize: 20, fontWeight: 800, color: '#fff', textAlign: 'center', fontFamily: 'Inter, sans-serif' }}>Create Your Club Page</h2>
+              <p style={{ margin: '0 0 20px', fontSize: 14, color: '#999', textAlign: 'center', lineHeight: 1.5, fontFamily: 'Inter, sans-serif' }}>
+                Set up a public page for <strong style={{ color: '#ddd' }}>{venueName}</strong> on Smarter.Poker Social. Attract new players and keep your regulars updated.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <button onClick={() => { dismissClubPagePopup(); router.push('/hub/social-media?createPage=true'); }} style={{
+                  padding: '12px 24px', borderRadius: 10, border: 'none',
+                  background: 'linear-gradient(135deg, #1877F2, #166FE5)', color: '#fff',
+                  fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter, sans-serif',
+                  boxShadow: '0 4px 16px rgba(24,119,242,0.4)'
+                }}>Create Club Page</button>
+                <button onClick={dismissClubPagePopup} style={{
+                  padding: '10px 20px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)',
+                  background: 'transparent', color: '#888',
+                  fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'Inter, sans-serif'
+                }}>Remind Me Later</button>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* ── PAGE CONTENT ── */}

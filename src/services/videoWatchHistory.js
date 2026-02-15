@@ -4,6 +4,10 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { claimReward } from '../lib/claimReward';
+
+// Track which videos already triggered a reward this session (avoids duplicate API calls)
+const rewardedVideoIds = new Set();
 
 /**
  * Get watch history for a user
@@ -120,6 +124,12 @@ export async function updateWatchDuration(userId, videoId, additionalSeconds, vi
         if (error) {
             console.error('Error updating watch duration:', error);
             throw error;
+        }
+
+        // Award video watch diamonds when crossing 5-min threshold (3💎, once per video)
+        if (newDuration >= 300 && !rewardedVideoIds.has(videoId) && userId) {
+            rewardedVideoIds.add(videoId);
+            claimReward('/api/rewards/video-watch', { userId, videoId }, 'Watched a Video (5+ min)');
         }
 
         return data;

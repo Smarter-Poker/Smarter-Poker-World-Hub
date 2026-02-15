@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { claimReward } from '../lib/claimReward';
 
 /**
  * Get all favorite videos for a user
@@ -42,6 +43,11 @@ export async function addVideoFavorite(userId, videoId, videoData = {}) {
     if (error) {
         console.error('Error adding video favorite:', error);
         throw error;
+    }
+
+    // Award video favorite diamonds (fire-and-forget, 2💎 max 3/day)
+    if (userId && videoId) {
+        claimReward('/api/rewards/video-favorite', { userId, videoId }, 'Favorited a Video');
     }
 
     return data;

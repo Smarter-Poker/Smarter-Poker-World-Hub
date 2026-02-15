@@ -1,0 +1,91 @@
+/**
+ * 📸 PROFILE PIC UPDATE REWARD API
+ * ═══════════════════════════════════════════════════════════════════════════
+ * Awards 10💎 ONE TIME for uploading/updating a profile picture
+ *
+ * ANTI-FARMING SAFEGUARDS:
+ * - One-time claim only (lifetime)
+ * - avatar_url must be populated in profiles table
+ * - Server-side verification
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+const PROFILE_PIC_REWARD = 10;
+
+export default async function handler(req, res) {
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    const { userId } = req.body;
+
+    if (!userId) {
+        return res.status(400).json({ error: 'userId required' });
+    }
+
+    try {
+        // SAFEGUARD 1: Already claimed (lifetime, one-time reward)
+        const { data: existing } = await supabase
+            .from('diamond_reward_claims')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('reward_type', 'profile_pic')
+            .maybeSingle();
+
+        if (existing) {
+            return res.status(200).json({ success: true, alreadyClaimed: true, message: 'Profile pic reward already claimed' });
+        }
+
+        // SAFEGUARD 2: Verify avatar actually exists in profile
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('avatar_url')
+            .eq('id', userId)
+            .maybeSingle();
+
+        if (!profile || !profile.avatar_url || profile.avatar_url.trim().length === 0) {
+            return res.status(200).json({
+                success: false,
+                message: `Upload a profile picture to earn ${PROFILE_PIC_REWARD}💎!`
+            });
+        }
+
+        // Record & award
+        const now = new Date();
+        const cstDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+        const today = `${cstDate.getFullYear()}-${String(cstDate.getMonth() + 1).padStart(2, '0')}-${String(cstDate.getDate()).padStart(2, '0')}`;
+
+        await supabase.from('diamond_reward_claims').insert({
+            user_id: userId,
+            reward_type: 'profile_pic',
+            diamonds_awarded: PROFILE_PIC_REWARD,
+            claim_date: today,
+            metadata: { avatar_url: profile.avatar_url.substring(0, 100) }
+        });
+
+        await supabase.rpc('add_diamonds_to_balance', {
+            p_user_id: userId,
+            p_amount: PROFILE_PIC_REWARD,
+            p_type: 'profile_pic',
+            p_description: `Profile picture reward — ${PROFILE_PIC_REWARD}💎`,
+            p_reference_id: null
+        });
+
+        return res.status(200).json({
+            success: true,
+            claimed: true,
+            diamondsAwarded: PROFILE_PIC_REWARD,
+            message: `+${PROFILE_PIC_REWARD}💎 Profile Pic Uploaded!`
+        });
+
+    } catch (error) {
+        console.error('[ProfilePicReward] Error:', error.message || error);
+        return res.status(500).json({ error: 'Failed to claim profile pic reward' });
+    }
+}

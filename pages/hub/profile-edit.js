@@ -6,6 +6,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import { claimReward } from '../../src/lib/claimReward';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
@@ -531,14 +532,10 @@ export default function ProfilePage() {
 
         setProfile(prev => ({ ...prev, avatar_url: publicUrl }));
 
-        // Award diamonds/XP for first avatar if this is the first time
-        if (!originalProfile?.avatar_url) {
-            await awardProfileReward('first_avatar', 15, 25);
-            setMessage('Avatar saved! +15 Diamonds +25 XP!');
-            setOriginalProfile(prev => ({ ...prev, avatar_url: publicUrl }));
-        } else {
-            setMessage(' Avatar saved!');
-        }
+        // Award profile pic diamonds (fire-and-forget, 10💎 one-time)
+        claimReward('/api/rewards/profile-pic', { userId: user.id }, 'Profile Picture Uploaded');
+        setMessage('✅ Avatar saved!');
+        setOriginalProfile(prev => ({ ...prev, avatar_url: publicUrl }));
     };
 
     const handleCoverPhotoUpload = async (e) => {
@@ -673,38 +670,28 @@ export default function ProfilePage() {
             setMessage(`Error saving profile: ${error.message || error.code || JSON.stringify(error)}`);
             console.error('Profile save error:', error);
         } else {
-            // Award rewards for first-time profile updates
-            const rewards = [];
+            // Fire Phase 2 diamond reward claims (fire-and-forget with toast)
 
-            // First time setting avatar (15 diamonds, 25 XP)
-            if (profile.avatar_url && (!originalProfile || !originalProfile.avatar_url)) {
-                await awardProfileReward('first_avatar', 15, 25);
-                rewards.push('+15 Diamonds +25 XP for adding profile picture!');
+            // Profile pic reward (10💎, one-time, backend deduplicates)
+            if (profile.avatar_url) {
+                claimReward('/api/rewards/profile-pic', { userId: user.id }, 'Profile Picture Uploaded');
             }
 
-            // First time linking HendonMob (15 diamonds, 25 XP)
-            if (profile.hendon_url && (!originalProfile || !originalProfile.hendon_url)) {
-                await awardProfileReward('hendonmob_linked', 15, 25);
-                rewards.push('+15 Diamonds +25 XP for linking Hendon Mob!');
+            // HendonMob link reward (25💎, one-time)
+            if (profile.hendon_url && profile.hendon_url.trim().length >= 5) {
+                claimReward('/api/rewards/hendonmob-link', { userId: user.id }, 'HendonMob Profile Linked');
             }
 
-            if (rewards.length > 0) {
-                setMessage(rewards.join(' '));
-                // Small delay to show rewards before navigating to profile
-                setTimeout(() => {
-                    if (profile.username) {
-                        router.push(`/hub/user/${profile.username}`);
-                    } else {
-                        router.push('/hub');
-                    }
-                }, 2000);
+            // Profile completion reward (50💎, one-time — avatar + bio + username)
+            if (profile.avatar_url && profile.bio && profile.username) {
+                claimReward('/api/rewards/profile-complete', { userId: user.id }, 'Profile Completed');
+            }
+
+            // Redirect to profile view
+            if (profile.username) {
+                router.push(`/hub/user/${profile.username}`);
             } else {
-                // Redirect to Facebook-style profile view
-                if (profile.username) {
-                    router.push(`/hub/user/${profile.username}`);
-                } else {
-                    router.push('/hub');
-                }
+                router.push('/hub');
             }
         }
     };

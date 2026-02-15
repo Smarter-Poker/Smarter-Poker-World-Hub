@@ -654,7 +654,7 @@ function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLike, onC
 
 const MAX_MEDIA = 10;
 
-function PostCreator({ user, onPost, isPosting, onGoLive }) {
+function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
     const [content, setContent] = useState('');
     const [media, setMedia] = useState([]);
     const [uploading, setUploading] = useState(false);
@@ -1122,6 +1122,20 @@ function PostCreator({ user, onPost, isPosting, onGoLive }) {
                         onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                     >Find Friends</Link>
+                    {onOpenClubPages && <>
+                        <span style={{ color: '#BCC0C4' }}>·</span>
+                        <span
+                            onClick={onOpenClubPages}
+                            style={{
+                                padding: '6px 8px', borderRadius: 6,
+                                background: 'transparent',
+                                color: '#65676B', fontSize: 14, fontWeight: 600,
+                                transition: 'background 0.2s', cursor: 'pointer'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                        >Club Pages</span>
+                    </>}
                 </div>
                 <button onClick={handlePost} disabled={isPosting || (!content.trim() && !media.length && !linkPreview)} style={{ padding: '8px 20px', borderRadius: 6, border: 'none', background: C.blue, color: 'white', fontWeight: 600, cursor: 'pointer', opacity: isPosting || (!content.trim() && !media.length && !linkPreview) ? 0.5 : 1, flexShrink: 0 }}>Post</button>
             </div>
@@ -1532,6 +1546,402 @@ function ContactsSidebar({ contacts, onOpenChat, onSearch, searchResults }) {
     );
 }
 
+// ===== CLUB PAGE CREATE MODAL =====
+function ClubPageCreateModal({ C, commanderData, userId, onCreated, onClose }) {
+    const [pageName, setPageName] = useState(commanderData?.venue_name || '');
+    const [description, setDescription] = useState('');
+    const [category, setCategory] = useState('poker_room');
+    const [creating, setCreating] = useState(false);
+    const [error, setError] = useState('');
+
+    const categories = [
+        { key: 'poker_room', label: 'Poker Room' },
+        { key: 'casino', label: 'Casino' },
+        { key: 'card_club', label: 'Card Club' },
+        { key: 'charity', label: 'Charity Organization' },
+        { key: 'league', label: 'League / Tour' },
+        { key: 'other', label: 'Other' },
+    ];
+
+    const handleCreate = async () => {
+        if (!pageName.trim()) { setError('Page name is required'); return; }
+        setCreating(true);
+        setError('');
+        try {
+            const res = await fetch('/api/social/pages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: pageName.trim(),
+                    page_type: 'club',
+                    description: description.trim(),
+                    category,
+                    owner_id: userId,
+                    linked_venue_id: commanderData?.venue_id ? String(commanderData.venue_id) : undefined,
+                    location_city: commanderData?.venue_city || '',
+                    location_state: commanderData?.venue_state || '',
+                    is_public: true,
+                    allow_member_posts: false,
+                }),
+            });
+            const json = await res.json();
+            if (json.success && json.data) {
+                onCreated(json.data);
+            } else {
+                setError(json.error || 'Failed to create page');
+            }
+        } catch (e) {
+            setError('Network error. Please try again.');
+        }
+        setCreating(false);
+    };
+
+    return (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)' }} />
+            <div style={{ position: 'relative', background: '#fff', borderRadius: 12, width: '90%', maxWidth: 480, padding: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }}>
+                <h2 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 800, color: C.text }}>Create Your Club Page</h2>
+                <p style={{ margin: '0 0 20px', fontSize: 14, color: C.textSec }}>Set up a public page for your venue on Smarter.Poker Social</p>
+
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 4 }}>Page Name</label>
+                <input value={pageName} onChange={e => setPageName(e.target.value)} placeholder="Your venue name"
+                    style={{ width: '100%', padding: '10px 14px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 15, outline: 'none', marginBottom: 14, boxSizing: 'border-box', fontFamily: 'inherit' }} />
+
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 4 }}>Category</label>
+                <select value={category} onChange={e => setCategory(e.target.value)}
+                    style={{ width: '100%', padding: '10px 14px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 14, outline: 'none', marginBottom: 14, boxSizing: 'border-box', fontFamily: 'inherit', background: '#fff' }}>
+                    {categories.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
+                </select>
+
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 4 }}>Description</label>
+                <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Tell people about your venue..."
+                    rows={3} style={{ width: '100%', padding: '10px 14px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 14, outline: 'none', resize: 'vertical', marginBottom: 14, boxSizing: 'border-box', fontFamily: 'inherit' }} />
+
+                {error && <p style={{ color: C.red, fontSize: 13, margin: '0 0 10px' }}>{error}</p>}
+
+                <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                    <button onClick={onClose} style={{ padding: '10px 20px', borderRadius: 8, border: 'none', background: '#E4E6EB', color: C.text, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+                    <button onClick={handleCreate} disabled={creating || !pageName.trim()} style={{
+                        padding: '10px 24px', borderRadius: 8, border: 'none', background: C.blue, color: '#fff',
+                        fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                        opacity: creating || !pageName.trim() ? 0.5 : 1
+                    }}>{creating ? 'Creating...' : 'Create Page'}</button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ===== CLUB PAGE DASHBOARD (Owner Management View) =====
+function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated }) {
+    const [activeTab, setActiveTab] = useState('posts');
+    const [posts, setPosts] = useState([]);
+    const [loadingPosts, setLoadingPosts] = useState(true);
+    const [postContent, setPostContent] = useState('');
+    const [posting, setPosting] = useState(false);
+    const [editingPage, setEditingPage] = useState(false);
+    const [editName, setEditName] = useState(page.name || '');
+    const [editDesc, setEditDesc] = useState(page.description || '');
+    const [editWebsite, setEditWebsite] = useState(page.website || '');
+    const [editPhone, setEditPhone] = useState(page.phone || '');
+    const [saving, setSaving] = useState(false);
+
+    // Fetch posts
+    useEffect(() => {
+        const fetchPosts = async () => {
+            setLoadingPosts(true);
+            try {
+                const res = await fetch(`/api/social/pages/posts?page_id=${page.id}&user_id=${userId}`);
+                const json = await res.json();
+                if (json.success) setPosts(json.data || []);
+            } catch (e) { console.error('Club page posts fetch error:', e); }
+            setLoadingPosts(false);
+        };
+        fetchPosts();
+    }, [page.id, userId]);
+
+    // Create post
+    const handlePost = async () => {
+        if (!postContent.trim()) return;
+        setPosting(true);
+        try {
+            const res = await fetch('/api/social/pages/posts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    page_id: page.id,
+                    author_id: userId,
+                    content: postContent.trim(),
+                    content_type: 'text',
+                }),
+            });
+            const json = await res.json();
+            if (json.success && json.data) {
+                setPosts(prev => [{ ...json.data, author: { username: 'You' }, user_liked: false }, ...prev]);
+                setPostContent('');
+            }
+        } catch (e) { console.error('Post error:', e); }
+        setPosting(false);
+    };
+
+    // Delete post
+    const handleDeletePost = async (postId) => {
+        try {
+            await fetch(`/api/social/pages/posts?id=${postId}&author_id=${userId}`, { method: 'DELETE' });
+            setPosts(prev => prev.filter(p => p.id !== postId));
+        } catch (e) { console.error('Delete error:', e); }
+    };
+
+    // Save page edits
+    const handleSavePage = async () => {
+        setSaving(true);
+        try {
+            const res = await fetch('/api/social/pages', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: page.id,
+                    owner_id: userId,
+                    name: editName.trim(),
+                    description: editDesc.trim(),
+                    website: editWebsite.trim(),
+                    phone: editPhone.trim(),
+                }),
+            });
+            const json = await res.json();
+            if (json.success && json.data) {
+                onPageUpdated(json.data);
+                setEditingPage(false);
+            }
+        } catch (e) { console.error('Save error:', e); }
+        setSaving(false);
+    };
+
+    // Pin/unpin post
+    const handleTogglePin = async (post) => {
+        try {
+            await fetch('/api/social/pages/posts', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: post.id, author_id: userId, is_pinned: !post.is_pinned }),
+            });
+            setPosts(prev => prev.map(p => p.id === post.id ? { ...p, is_pinned: !p.is_pinned } : p));
+        } catch (e) { console.error('Pin error:', e); }
+    };
+
+    const tabs = [
+        { key: 'posts', label: 'Posts' },
+        { key: 'about', label: 'About' },
+    ];
+
+    return (
+        <div style={{ paddingBottom: 8 }}>
+            {/* Header */}
+            <div style={{ background: C.card, borderRadius: 12, overflow: 'hidden', marginBottom: 8 }}>
+                {/* Cover Photo Area */}
+                <div style={{
+                    height: 140, background: 'linear-gradient(135deg, #1877F2 0%, #42B72A 100%)',
+                    display: 'flex', alignItems: 'flex-end', padding: 16
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div style={{
+                            width: 64, height: 64, borderRadius: 12, background: '#fff',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 28, fontWeight: 800, color: '#1877F2', border: '3px solid #fff',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+                        }}>
+                            {(page.name || 'C')[0].toUpperCase()}
+                        </div>
+                        <div>
+                            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#fff', textShadow: '0 1px 4px rgba(0,0,0,0.3)' }}>{page.name}</h2>
+                            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>
+                                {page.follower_count || 0} follower{(page.follower_count || 0) !== 1 ? 's' : ''} · {page.category || 'Club'}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Action Bar */}
+                <div style={{ padding: '10px 16px', display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <button onClick={onBack} style={{
+                        padding: '8px 16px', borderRadius: 8, border: 'none', background: '#E4E6EB',
+                        color: C.text, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
+                    }}>Back</button>
+                    <button onClick={() => setEditingPage(!editingPage)} style={{
+                        padding: '8px 16px', borderRadius: 8, border: 'none',
+                        background: editingPage ? C.blue : '#E4E6EB',
+                        color: editingPage ? '#fff' : C.text,
+                        fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
+                    }}>Edit Page</button>
+                    <button onClick={() => window.open(`/club/${page.slug}`, '_blank')} style={{
+                        padding: '8px 16px', borderRadius: 8, border: 'none', background: '#E4E6EB',
+                        color: C.text, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginLeft: 'auto'
+                    }}>View Public Page</button>
+                </div>
+
+                {/* Tabs */}
+                <div style={{ display: 'flex', borderTop: `1px solid ${C.border}` }}>
+                    {tabs.map(t => (
+                        <button key={t.key} onClick={() => setActiveTab(t.key)} style={{
+                            flex: 1, padding: '12px 0', border: 'none', background: 'transparent',
+                            color: activeTab === t.key ? C.blue : C.textSec,
+                            fontWeight: 600, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit',
+                            borderBottom: activeTab === t.key ? `3px solid ${C.blue}` : '3px solid transparent'
+                        }}>{t.label}</button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Edit Page Panel */}
+            {editingPage && (
+                <div style={{ background: C.card, borderRadius: 12, padding: 16, marginBottom: 8 }}>
+                    <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 700, color: C.text }}>Edit Page Info</h3>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4 }}>Name</label>
+                    <input value={editName} onChange={e => setEditName(e.target.value)}
+                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 14, marginBottom: 10, boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4 }}>Description</label>
+                    <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} rows={3}
+                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 14, resize: 'vertical', marginBottom: 10, boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                    <div style={{ display: 'flex', gap: 10 }}>
+                        <div style={{ flex: 1 }}>
+                            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4 }}>Website</label>
+                            <input value={editWebsite} onChange={e => setEditWebsite(e.target.value)} placeholder="https://..."
+                                style={{ width: '100%', padding: '8px 12px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4 }}>Phone</label>
+                            <input value={editPhone} onChange={e => setEditPhone(e.target.value)} placeholder="(555) 555-5555"
+                                style={{ width: '100%', padding: '8px 12px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                        </div>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
+                        <button onClick={() => setEditingPage(false)} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#E4E6EB', color: C.text, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+                        <button onClick={handleSavePage} disabled={saving} style={{
+                            padding: '8px 20px', borderRadius: 8, border: 'none', background: C.blue, color: '#fff',
+                            fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: saving ? 0.5 : 1
+                        }}>{saving ? 'Saving...' : 'Save Changes'}</button>
+                    </div>
+                </div>
+            )}
+
+            {/* Posts Tab */}
+            {activeTab === 'posts' && (
+                <>
+                    {/* Post Composer */}
+                    <div style={{ background: C.card, borderRadius: 12, padding: 16, marginBottom: 8 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                            <div style={{ width: 36, height: 36, borderRadius: '50%', background: C.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 14 }}>
+                                {(page.name || 'C')[0].toUpperCase()}
+                            </div>
+                            <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>Post as {page.name}</span>
+                        </div>
+                        <textarea
+                            value={postContent}
+                            onChange={e => setPostContent(e.target.value)}
+                            placeholder={`What's happening at ${page.name || 'your venue'}?`}
+                            rows={3}
+                            style={{
+                                width: '100%', padding: '10px 14px', border: '1px solid #CCD0D5', borderRadius: 8,
+                                fontSize: 15, outline: 'none', resize: 'vertical', fontFamily: 'inherit',
+                                boxSizing: 'border-box', lineHeight: 1.4
+                            }}
+                        />
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+                            <button onClick={handlePost} disabled={posting || !postContent.trim()} style={{
+                                padding: '8px 24px', borderRadius: 8, border: 'none', background: C.blue, color: '#fff',
+                                fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                                opacity: posting || !postContent.trim() ? 0.5 : 1
+                            }}>{posting ? 'Posting...' : 'Post'}</button>
+                        </div>
+                    </div>
+
+                    {/* Posts Feed */}
+                    {loadingPosts ? (
+                        <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
+                            <div style={{ width: 32, height: 32, border: '3px solid #E4E6EB', borderTopColor: '#1877F2', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+                            <p>Loading posts...</p>
+                        </div>
+                    ) : posts.length === 0 ? (
+                        <div style={{ background: C.card, borderRadius: 12, padding: 40, textAlign: 'center' }}>
+                            <p style={{ fontSize: 16, fontWeight: 600, color: C.text, margin: '0 0 4px' }}>No posts yet</p>
+                            <p style={{ fontSize: 13, color: C.textSec, margin: 0 }}>Share your first update with your followers!</p>
+                        </div>
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            {posts.map(post => (
+                                <div key={post.id} style={{ background: C.card, borderRadius: 10, border: '1px solid #E4E6EB', overflow: 'hidden' }}>
+                                    <div style={{ padding: '12px 14px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                <div style={{ width: 32, height: 32, borderRadius: '50%', background: C.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 12 }}>
+                                                    {(page.name || 'C')[0].toUpperCase()}
+                                                </div>
+                                                <div>
+                                                    <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{page.name}</div>
+                                                    <div style={{ fontSize: 11, color: C.textSec }}>{timeAgo(post.created_at)}</div>
+                                                </div>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: 6 }}>
+                                                {post.is_pinned && <span style={{ fontSize: 10, background: '#FFB800', color: '#000', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>PINNED</span>}
+                                                <button onClick={() => handleTogglePin(post)} title={post.is_pinned ? 'Unpin' : 'Pin'} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec, fontSize: 14 }}>{post.is_pinned ? '📌' : '📎'}</button>
+                                                <button onClick={() => handleDeletePost(post.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec, fontSize: 14 }}>x</button>
+                                            </div>
+                                        </div>
+                                        <p style={{ margin: 0, fontSize: 15, color: C.text, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{post.content}</p>
+                                    </div>
+                                    <div style={{ borderTop: `1px solid ${C.border}`, padding: '6px 14px', display: 'flex', gap: 16, fontSize: 12, color: C.textSec }}>
+                                        <span>{post.like_count || 0} likes</span>
+                                        <span>{post.comment_count || 0} comments</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </>
+            )}
+
+            {/* About Tab */}
+            {activeTab === 'about' && (
+                <div style={{ background: C.card, borderRadius: 12, padding: 16 }}>
+                    <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 700, color: C.text }}>About</h3>
+                    {page.description && <p style={{ margin: '0 0 12px', fontSize: 14, color: C.text, lineHeight: 1.5 }}>{page.description}</p>}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {page.category && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /></svg>
+                                <span style={{ fontSize: 14, color: C.text }}>{page.category}</span>
+                            </div>
+                        )}
+                        {(page.location_city || page.location_state) && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
+                                <span style={{ fontSize: 14, color: C.text }}>{[page.location_city, page.location_state].filter(Boolean).join(', ')}</span>
+                            </div>
+                        )}
+                        {page.website && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
+                                <a href={page.website} target="_blank" rel="noopener noreferrer" style={{ fontSize: 14, color: C.blue }}>{page.website}</a>
+                            </div>
+                        )}
+                        {page.phone && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72" /></svg>
+                                <span style={{ fontSize: 14, color: C.text }}>{page.phone}</span>
+                            </div>
+                        )}
+                    </div>
+                    <div style={{ marginTop: 16, padding: '12px 0', borderTop: `1px solid ${C.border}` }}>
+                        <span style={{ fontSize: 13, color: C.textSec }}>Page created {page.created_at ? new Date(page.created_at).toLocaleDateString() : 'recently'}</span>
+                    </div>
+                </div>
+            )}
+
+            <style jsx>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+    );
+}
+
 // ===== CLUB PAGES VIEW COMPONENT =====
 function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setCategory, search, setSearch, followingIds, setFollowingIds, onClose }) {
     const router = useRouter();
@@ -1859,6 +2269,15 @@ export default function SocialMediaPage() {
     const [clubPagesSearch, setClubPagesSearch] = useState('');
     const [clubPagesFollowing, setClubPagesFollowing] = useState(new Set());
 
+    // Club Page Management State (Commander users)
+    const [isCommander, setIsCommander] = useState(false);
+    const [commanderData, setCommanderData] = useState(null);
+    const [myClubPage, setMyClubPage] = useState(null);
+    const [showCreatePage, setShowCreatePage] = useState(false);
+    const [showPageDashboard, setShowPageDashboard] = useState(false);
+    const [myPageLoading, setMyPageLoading] = useState(false);
+
+
     // ♾️ INFINITE SCROLL STATE
     const [feedOffset, setFeedOffset] = useState(0);
     const [hasMorePosts, setHasMorePosts] = useState(true);
@@ -2109,6 +2528,58 @@ export default function SocialMediaPage() {
             setLoading(false);
         })();
     }, []);
+
+    // Commander Detection & My Club Page Fetching
+    useEffect(() => {
+        try {
+            const stored = localStorage.getItem('commander_staff');
+            if (stored) {
+                const data = JSON.parse(stored);
+                if (data && data.venue_id) {
+                    setIsCommander(true);
+                    setCommanderData(data);
+                    console.log('[Social] Commander account detected:', data.venue_name);
+
+                    // Fetch if this Commander already has a club page
+                    setMyPageLoading(true);
+                    fetch(`/api/social/pages?linked_venue_id=${data.venue_id}`)
+                        .then(r => r.json())
+                        .then(json => {
+                            if (json.success && json.data && json.data.length > 0) {
+                                setMyClubPage(json.data[0]);
+                                console.log('[Social] Found existing Club Page:', json.data[0].name);
+                            } else if (json.success && json.data) {
+                                // Also check by owner_id if no linked_venue_id match
+                                if (user?.id) {
+                                    fetch(`/api/social/pages?owner_id=${user.id}`)
+                                        .then(r2 => r2.json())
+                                        .then(json2 => {
+                                            if (json2.success && json2.data && json2.data.length > 0) {
+                                                setMyClubPage(json2.data[0]);
+                                            }
+                                        })
+                                        .catch(() => { });
+                                }
+                            }
+                        })
+                        .catch(e => console.error('[Social] Club page fetch error:', e))
+                        .finally(() => setMyPageLoading(false));
+                }
+            }
+        } catch (e) {
+            console.error('[Social] Commander detection error:', e);
+        }
+
+        // Handle ?createPage=true query param (from Commander popup redirect)
+        if (router.query.createPage === 'true') {
+            setShowClubPages(true);
+            // Small delay to let state settle, then open create modal if Commander
+            setTimeout(() => {
+                const stored = localStorage.getItem('commander_staff');
+                if (stored) setShowCreatePage(true);
+            }, 500);
+        }
+    }, [user, router.query.createPage]);
 
     //  AUTO-MARK NOTIFICATIONS AS READ when dropdown opens
     useEffect(() => {
@@ -3264,22 +3735,84 @@ export default function SocialMediaPage() {
                 {/* Main Feed - 800px Design Canvas */}
                 <main className="social-page-container" style={{ padding: '8px' }}>
 
-                    {/* ===== CLUB PAGES VIEW ===== */}
-                    {showClubPages && (
-                        <ClubPagesView
+                    {/* ===== CLUB PAGES: CREATE MODAL ===== */}
+                    {showCreatePage && isCommander && (
+                        <ClubPageCreateModal
                             C={C}
-                            pages={clubPages}
-                            setPages={setClubPages}
-                            loading={clubPagesLoading}
-                            setLoading={setClubPagesLoading}
-                            category={clubPagesCategory}
-                            setCategory={setClubPagesCategory}
-                            search={clubPagesSearch}
-                            setSearch={setClubPagesSearch}
-                            followingIds={clubPagesFollowing}
-                            setFollowingIds={setClubPagesFollowing}
-                            onClose={() => setShowClubPages(false)}
+                            commanderData={commanderData}
+                            userId={user?.id}
+                            onCreated={(page) => {
+                                setMyClubPage(page);
+                                setShowCreatePage(false);
+                                setShowPageDashboard(true);
+                            }}
+                            onClose={() => setShowCreatePage(false)}
                         />
+                    )}
+
+                    {/* ===== CLUB PAGE DASHBOARD (Owner) ===== */}
+                    {showClubPages && showPageDashboard && myClubPage && (
+                        <ClubPageDashboard
+                            C={C}
+                            page={myClubPage}
+                            userId={user?.id}
+                            onBack={() => setShowPageDashboard(false)}
+                            onPageUpdated={(updated) => setMyClubPage(updated)}
+                        />
+                    )}
+
+                    {/* ===== CLUB PAGES VIEW (Browse) ===== */}
+                    {showClubPages && !showPageDashboard && (
+                        <>
+                            {/* Commander Banner — Create or Manage Page */}
+                            {isCommander && !myPageLoading && (
+                                <div style={{
+                                    background: 'linear-gradient(135deg, #1877F2 0%, #42B72A 100%)',
+                                    borderRadius: 12, padding: 16, marginBottom: 8
+                                }}>
+                                    {myClubPage ? (
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                            <div>
+                                                <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Your Club Page</span>
+                                                <p style={{ margin: '2px 0 0', fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>{myClubPage.name}</p>
+                                            </div>
+                                            <button onClick={() => setShowPageDashboard(true)} style={{
+                                                padding: '8px 20px', borderRadius: 8, border: '2px solid #fff',
+                                                background: 'rgba(255,255,255,0.15)', color: '#fff',
+                                                fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                                                backdropFilter: 'blur(4px)'
+                                            }}>Manage Page</button>
+                                        </div>
+                                    ) : (
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                            <div>
+                                                <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Create Your Club Page</span>
+                                                <p style={{ margin: '2px 0 0', fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>Set up a public page for your venue</p>
+                                            </div>
+                                            <button onClick={() => setShowCreatePage(true)} style={{
+                                                padding: '8px 20px', borderRadius: 8, border: 'none',
+                                                background: '#fff', color: '#1877F2',
+                                                fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit'
+                                            }}>Create Page</button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                            <ClubPagesView
+                                C={C}
+                                pages={clubPages}
+                                setPages={setClubPages}
+                                loading={clubPagesLoading}
+                                setLoading={setClubPagesLoading}
+                                category={clubPagesCategory}
+                                setCategory={setClubPagesCategory}
+                                search={clubPagesSearch}
+                                setSearch={setClubPagesSearch}
+                                followingIds={clubPagesFollowing}
+                                setFollowingIds={setClubPagesFollowing}
+                                onClose={() => setShowClubPages(false)}
+                            />
+                        </>
                     )}
 
                     {/* ===== NORMAL FEED ===== */}
@@ -3288,7 +3821,7 @@ export default function SocialMediaPage() {
                         {user && <StoriesBar userId={user.id} userAvatar={user.avatar} />}
 
                         {/* Post Creator */}
-                        {user && <PostCreator user={user} onPost={handlePost} isPosting={isPosting} onGoLive={() => setShowGoLiveModal(true)} />}
+                        {user && <PostCreator user={user} onPost={handlePost} isPosting={isPosting} onGoLive={() => setShowGoLiveModal(true)} onOpenClubPages={() => setShowClubPages(true)} />}
 
                         {/* Login prompt */}
                         {!user && (
