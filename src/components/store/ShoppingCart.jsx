@@ -7,7 +7,7 @@ import { X, Trash2 } from 'lucide-react';
 import useCartStore from '../../stores/cartStore';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export default function ShoppingCartComponent({ onCheckout }) {
+export default function ShoppingCartComponent({ onCheckout, onPayWithDiamonds }) {
     const {
         items,
         isOpen,
@@ -356,6 +356,39 @@ export default function ShoppingCartComponent({ onCheckout }) {
                                     >
                                         Proceed to Checkout
                                     </button>
+
+                                    {/* Pay with Diamonds — only for diamond-type items */}
+                                    {onPayWithDiamonds && items.every(i => i.type === 'diamonds') && (
+                                        <button
+                                            onClick={() => {
+                                                if (onPayWithDiamonds) {
+                                                    onPayWithDiamonds(items);
+                                                }
+                                            }}
+                                            style={{
+                                                width: '100%',
+                                                marginTop: 10,
+                                                padding: '14px 24px',
+                                                background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                                                border: 'none',
+                                                borderRadius: 12,
+                                                color: '#000',
+                                                fontSize: 15,
+                                                fontWeight: 700,
+                                                cursor: 'pointer',
+                                                transition: 'transform 0.2s',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: 8,
+                                            }}
+                                            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                                            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                        >
+                                            <img src="/images/diamond.png" alt="" style={{ width: 20, height: 20 }} />
+                                            Pay with Diamonds
+                                        </button>
+                                    )}
                                 </div>
                             )}
                         </motion.div>

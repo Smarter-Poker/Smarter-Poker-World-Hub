@@ -65,7 +65,7 @@ const CARDS = [
     title: 'Staff & Operations',
     subtitle: 'Employees, Schedule, Config',
     image: '/images/commander/card-staff.jpg',
-    glow: '#10B981',
+    glow: '#DC2626',
     features: [
       { label: 'Employee Maintenance', href: '/commander/staff', icon: '/images/commander/icons/mg-employee.png' },
       { label: 'Poker Room Functions', href: '/commander/poker-room', icon: '/images/commander/icons/mg-poker-room.png' },

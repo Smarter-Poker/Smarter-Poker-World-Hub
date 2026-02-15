@@ -750,41 +750,23 @@ export default function DiamondStorePage() {
         }
     };
 
-    // Direct VIP subscription checkout (no cart)
-    const handleVIPSubscribe = async (tier) => {
-        setIsProcessing(true);
+    // VIP subscription — adds to cart (allows monthly→annual upgrade)
+    const handleVIPSubscribe = () => {
+        const plan = selectedVIP === 'vip-monthly' ? VIP_MEMBERSHIP.monthly : VIP_MEMBERSHIP.annual;
 
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-
-            if (!session) {
-                alert('Please sign in to subscribe to VIP');
-                setIsProcessing(false);
-                return;
-            }
-
-            // Check if user already has an active VIP subscription
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('is_vip, vip_tier, vip_expires_at')
-                .eq('id', session.user.id)
-                .single();
-
-            if (profile?.is_vip && profile?.vip_expires_at && new Date(profile.vip_expires_at) > new Date()) {
-                alert(`You already have an active VIP ${profile.vip_tier || ''} membership! Your subscription is active until ${new Date(profile.vip_expires_at).toLocaleDateString()}.`);
-                setIsProcessing(false);
-                return;
-            }
-
-            // TODO: Add Stripe Price IDs for VIP subscriptions
-            alert('VIP subscriptions launching soon! Stay tuned.');
-            setIsProcessing(false);
-
-        } catch (error) {
-            console.error('VIP subscribe error:', error);
-            alert('Failed to start VIP subscription. Please try again.');
-            setIsProcessing(false);
+        // Haptic feedback
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            navigator.vibrate(50);
         }
+
+        addItem({
+            id: `vip-${plan.id}`,
+            name: plan.name,
+            type: 'vip',
+            price: plan.price,
+            interval: plan.interval,
+            quantity: 1
+        });
     };
 
     // Direct diamond package purchase (adds to cart)
@@ -794,6 +776,60 @@ export default function DiamondStorePage() {
 
     const handleMerchPurchase = (itemId) => {
         alert('Merchandise store coming soon!');
+    };
+
+    // Pay with Diamonds handler — deducts from user's diamond balance
+    const handlePayWithDiamonds = async (items) => {
+        setIsProcessing(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                alert('Please sign in to pay with diamonds');
+                setIsProcessing(false);
+                return;
+            }
+
+            // Get user's diamond balance
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('diamonds')
+                .eq('id', session.user.id)
+                .single();
+
+            const userDiamonds = profile?.diamonds || 0;
+
+            // Calculate total diamond cost (diamond items use their diamond count as the cost)
+            const totalDiamondCost = items.reduce((sum, item) => {
+                return sum + ((item.diamonds || 0) * (item.quantity || 1));
+            }, 0);
+
+            if (userDiamonds < totalDiamondCost) {
+                alert(`Not enough diamonds. You have ${userDiamonds.toLocaleString()} but need ${totalDiamondCost.toLocaleString()}.`);
+                setIsProcessing(false);
+                return;
+            }
+
+            // Deduct diamonds
+            const { error } = await supabase.rpc('deduct_diamonds', {
+                p_user_id: session.user.id,
+                p_amount: totalDiamondCost,
+                p_description: `Diamond Store purchase: ${items.map(i => i.name).join(', ')}`,
+                p_transaction_type: 'purchase'
+            });
+
+            if (error) throw error;
+
+            alert(`Purchase complete! ${totalDiamondCost.toLocaleString()} diamonds deducted.`);
+            // Clear cart after successful purchase
+            const { clearCart } = useCartStore.getState();
+            clearCart();
+
+        } catch (error) {
+            console.error('Diamond payment error:', error);
+            alert(error.message || 'Failed to complete diamond payment. Please try again.');
+        } finally {
+            setIsProcessing(false);
+        }
     };
 
     const selectedPkg = DIAMOND_PACKAGES.find(p => p.id === selectedPackage);
@@ -1542,7 +1578,7 @@ export default function DiamondStorePage() {
             </PageTransition>
 
             {/* Shopping Cart Component */}
-            <ShoppingCart onCheckout={handleCheckout} />
+            <ShoppingCart onCheckout={handleCheckout} onPayWithDiamonds={handlePayWithDiamonds} />
         </>
     );
 }
