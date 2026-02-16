@@ -147,7 +147,15 @@ export default async function handler(req, res) {
                     ...f,
                     profile: profiles[f.user_id] || null
                 }));
-                return res.status(200).json({ success: true, data: enriched, count: enriched.length });
+                // Also check if the owner themselves is following (self-follow)
+                const myFollow = (data || []).find(f => f.user_id === requester_id);
+                return res.status(200).json({
+                    success: true,
+                    data: enriched,
+                    count: enriched.length,
+                    is_following: !!myFollow,
+                    my_status: myFollow ? myFollow.status : null
+                });
             } else {
                 // Non-owners only see the count + their own follow status
                 const myFollow = requester_id ? (data || []).find(f => f.user_id === requester_id) : null;
