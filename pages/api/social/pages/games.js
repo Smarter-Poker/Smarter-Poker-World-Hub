@@ -74,29 +74,68 @@ export default async function handler(req, res) {
                     .eq('id', page_id)
                     .single();
 
-                const venueId = pageData?.linked_venue_id || pageData?.metadata?.linked_venue_id;
-                if (venueId) {
+                const rawVenueId = pageData?.linked_venue_id || pageData?.metadata?.linked_venue_id;
+                const venueId = rawVenueId ? parseInt(rawVenueId, 10) : null;
+                if (venueId && !isNaN(venueId)) {
                     const { data: cmdGames } = await supabase
                         .from('commander_games')
-                        .select('id, game_type, stakes, current_players, max_players, status, started_at')
+                        .select('id, game_type, stakes, current_players, max_players, status, started_at, table_id')
                         .eq('venue_id', venueId)
                         .in('status', ['running', 'waiting'])
                         .order('started_at', { ascending: false });
 
                     if (cmdGames && cmdGames.length > 0) {
-                        const mapped = cmdGames.map(g => ({
-                            id: g.id,
-                            game_name: `${(g.game_type || 'NLH').toUpperCase()} ${g.stakes || ''}`.trim(),
-                            game_type: g.game_type || 'NLH',
-                            stakes: g.stakes || '',
-                            max_seats: g.max_players || 9,
-                            status: g.status === 'running' ? 'running' : 'open',
-                            started_at: g.started_at,
-                            source: 'commander',
-                            seats: [],
-                            seated_count: g.current_players || 0,
-                            waitlist_count: 0,
-                        }));
+                        // Fetch all commander_seats for these games in one batch
+                        const cmdGameIds = cmdGames.map(g => g.id);
+                        const { data: cmdSeats } = await supabase
+                            .from('commander_seats')
+                            .select('id, game_id, seat_number, player_name, player_id, status')
+                            .in('game_id', cmdGameIds)
+                            .order('seat_number', { ascending: true });
+                        const allCmdSeats = cmdSeats || [];
+
+                        // Fetch table names for display
+                        const tableIds = cmdGames.map(g => g.table_id).filter(Boolean);
+                        let tableMap = {};
+                        if (tableIds.length > 0) {
+                            const { data: tables } = await supabase
+                                .from('commander_tables')
+                                .select('id, table_name, table_number')
+                                .in('id', tableIds);
+                            (tables || []).forEach(t => { tableMap[t.id] = t; });
+                        }
+
+                        const mapped = cmdGames.map(g => {
+                            const gameSeats = allCmdSeats.filter(s => s.game_id === g.id);
+                            const occupiedSeats = gameSeats.filter(s => s.status === 'occupied');
+                            const table = g.table_id ? tableMap[g.table_id] : null;
+                            const tableName = table ? (table.table_name || `Table ${table.table_number}`) : null;
+
+                            // Map commander_seats to match club_game_seats shape
+                            const mappedSeats = gameSeats.map(s => ({
+                                id: s.id,
+                                game_id: s.game_id,
+                                seat_number: s.seat_number,
+                                player_name: s.player_name || null,
+                                player_id: s.player_id || null,
+                                status: s.status === 'occupied' ? 'reserved' : s.status === 'empty' ? null : s.status,
+                            })).filter(s => s.status === 'reserved'); // Only include occupied seats
+
+                            return {
+                                id: g.id,
+                                game_name: `${(g.game_type || 'NLH').toUpperCase()} ${g.stakes || ''}`.trim(),
+                                game_type: g.game_type || 'NLH',
+                                stakes: g.stakes || '',
+                                max_seats: g.max_players || 9,
+                                status: g.status === 'running' ? 'running' : 'open',
+                                started_at: g.started_at,
+                                source: 'commander',
+                                table_number: tableName,
+                                seats: mappedSeats,
+                                seated_count: occupiedSeats.length,
+                                waitlist_count: 0,
+                            };
+                        });
                         return res.status(200).json({ success: true, data: mapped, source: 'commander' });
                     }
                 }

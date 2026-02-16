@@ -2614,17 +2614,31 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                             <a href="/hub/commander" style={{ display: 'inline-block', padding: '10px 24px', borderRadius: 8, background: C.blue, color: '#fff', fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>Open Club Commander</a>
                         </div>
                     ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                             {liveGames.map(game => {
                                 const seatArr = Array.from({ length: game.max_seats }, (_, i) => {
                                     const taken = (game.seats || []).find(s => s.seat_number === i + 1 && s.status !== 'waitlist');
                                     return { number: i + 1, taken };
                                 });
                                 const waitlist = (game.seats || []).filter(s => s.status === 'waitlist').sort((a, b) => (a.waitlist_position || 0) - (b.waitlist_position || 0));
-                                const openSeats = seatArr.filter(s => !s.taken).length;
+                                const occupiedCount = seatArr.filter(s => s.taken).length;
+                                const openSeats = game.max_seats - occupiedCount;
+
+                                // 9-max seat positions around oval table (percentage-based)
+                                const seatPositions = [
+                                    { top: '82%', left: '50%' },   // Seat 1 — bottom center (dealer)
+                                    { top: '72%', left: '12%' },   // Seat 2 — bottom-left
+                                    { top: '42%', left: '2%' },    // Seat 3 — mid-left
+                                    { top: '12%', left: '12%' },   // Seat 4 — top-left
+                                    { top: '2%', left: '35%' },    // Seat 5 — top-left-center
+                                    { top: '2%', left: '65%' },    // Seat 6 — top-right-center
+                                    { top: '12%', left: '88%' },   // Seat 7 — top-right
+                                    { top: '42%', left: '98%' },   // Seat 8 — mid-right
+                                    { top: '72%', left: '88%' },   // Seat 9 — bottom-right
+                                ];
 
                                 return (
-                                    <div key={game.id} style={{ background: '#f8f9fa', borderRadius: 12, border: '1px solid #e4e6eb', overflow: 'hidden' }}>
+                                    <div key={game.id} style={{ background: '#1a1a2e', borderRadius: 16, border: '1px solid #2d2d44', overflow: 'hidden' }}>
                                         {/* Game Header */}
                                         <div style={{ padding: '12px 16px', background: game.status === 'running' ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)', color: '#fff' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -2635,57 +2649,98 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                                         {game.table_number ? ` · ${game.table_number}` : ''}
                                                     </div>
                                                 </div>
-                                                <span style={{ padding: '4px 10px', borderRadius: 12, fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,0.2)', textTransform: 'uppercase' }}>
-                                                    {game.status === 'running' ? 'RUNNING' : 'OPEN'}
-                                                </span>
+                                                <div style={{ textAlign: 'right' }}>
+                                                    <span style={{ padding: '4px 10px', borderRadius: 12, fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,0.2)', textTransform: 'uppercase' }}>
+                                                        {game.status === 'running' ? '🟢 RUNNING' : '🔵 OPEN'}
+                                                    </span>
+                                                    <div style={{ fontSize: 11, marginTop: 4, opacity: 0.85 }}>
+                                                        {occupiedCount}/{game.max_seats} seated
+                                                        {openSeats > 0 && <span style={{ color: '#86efac', marginLeft: 4 }}>({openSeats} open)</span>}
+                                                    </div>
+                                                </div>
                                             </div>
-                                            {game.notes && <div style={{ fontSize: 12, opacity: 0.85, marginTop: 4 }}>{game.notes}</div>}
                                         </div>
 
-                                        {/* Read-Only Seat Map */}
-                                        <div style={{ padding: 16 }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                                                <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
-                                                    Seats: {game.seated_count || 0}/{game.max_seats} filled
-                                                    {openSeats > 0 && <span style={{ color: '#22c55e', marginLeft: 6 }}>({openSeats} open)</span>}
-                                                </span>
-                                                {waitlist.length > 0 && (
-                                                    <span style={{ fontSize: 12, color: '#f59e0b', fontWeight: 600 }}>
-                                                        {waitlist.length} on waitlist
-                                                    </span>
-                                                )}
-                                            </div>
+                                        {/* Poker Table Visualization */}
+                                        <div style={{ padding: '20px 16px', background: '#0f0f1a' }}>
+                                            <div style={{ position: 'relative', width: '100%', maxWidth: 480, margin: '0 auto', aspectRatio: '1.6 / 1' }}>
+                                                {/* Table felt — oval */}
+                                                <div style={{
+                                                    position: 'absolute', top: '18%', left: '14%', right: '14%', bottom: '18%',
+                                                    borderRadius: '50%', background: 'radial-gradient(ellipse at center, #1a5c2e 0%, #14532d 60%, #0f4023 100%)',
+                                                    border: '4px solid #8B6914', boxShadow: 'inset 0 0 30px rgba(0,0,0,0.3), 0 0 20px rgba(139,105,20,0.3)',
+                                                }}>
+                                                    {/* Inner rail */}
+                                                    <div style={{
+                                                        position: 'absolute', inset: 6, borderRadius: '50%',
+                                                        border: '2px solid rgba(139,105,20,0.4)',
+                                                    }} />
+                                                    {/* Center label */}
+                                                    <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
+                                                        <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1 }}>
+                                                            {game.table_number || game.game_name}
+                                                        </div>
+                                                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
+                                                            ${game.stakes}
+                                                        </div>
+                                                    </div>
+                                                </div>
 
-                                            {/* Seat Grid — Read Only */}
-                                            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(game.max_seats, 5)}, 1fr)`, gap: 6 }}>
-                                                {seatArr.map(seat => (
-                                                    <div key={seat.number} style={{
-                                                        padding: '8px 6px', borderRadius: 8, textAlign: 'center',
-                                                        background: seat.taken ? 'rgba(24,119,242,0.1)' : '#f0fdf4',
-                                                        border: `2px solid ${seat.taken ? 'rgba(24,119,242,0.3)' : '#86efac'}`
-                                                    }}>
-                                                        <div style={{ fontSize: 10, fontWeight: 600, color: C.textSec, marginBottom: 2 }}>Seat {seat.number}</div>
-                                                        {seat.taken ? (
-                                                            <div style={{ fontSize: 12, fontWeight: 700, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{seat.taken.player_name}</div>
-                                                        ) : (
-                                                            <div style={{ fontSize: 11, color: '#22c55e', fontWeight: 600 }}>OPEN</div>
-                                                        )}
+                                                {/* Seat chips around the table */}
+                                                {seatArr.slice(0, seatPositions.length).map((seat, idx) => {
+                                                    const pos = seatPositions[idx];
+                                                    const isOccupied = !!seat.taken;
+                                                    const firstName = seat.taken?.player_name?.split(' ')[0] || '';
+                                                    return (
+                                                        <div key={seat.number} style={{
+                                                            position: 'absolute', top: pos.top, left: pos.left,
+                                                            transform: 'translate(-50%, -50%)', textAlign: 'center', width: 64,
+                                                        }}>
+                                                            {/* Seat circle */}
+                                                            <div style={{
+                                                                width: 38, height: 38, borderRadius: '50%', margin: '0 auto 3px',
+                                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                                background: isOccupied
+                                                                    ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)'
+                                                                    : 'rgba(255,255,255,0.08)',
+                                                                border: `2px solid ${isOccupied ? '#60a5fa' : 'rgba(255,255,255,0.15)'}`,
+                                                                boxShadow: isOccupied ? '0 0 8px rgba(59,130,246,0.4)' : 'none',
+                                                                transition: 'all 0.2s',
+                                                            }}>
+                                                                {isOccupied ? (
+                                                                    <span style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>
+                                                                        {firstName.charAt(0).toUpperCase()}
+                                                                    </span>
+                                                                ) : (
+                                                                    <span style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.3)' }}>{seat.number}</span>
+                                                                )}
+                                                            </div>
+                                                            {/* Name label */}
+                                                            <div style={{
+                                                                fontSize: 9, fontWeight: 600, lineHeight: 1.1,
+                                                                color: isOccupied ? '#93c5fd' : 'rgba(255,255,255,0.25)',
+                                                                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                                                maxWidth: 64,
+                                                            }}>
+                                                                {isOccupied ? firstName : 'Open'}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        {/* Waitlist — Read Only */}
+                                        {waitlist.length > 0 && (
+                                            <div style={{ padding: '8px 16px 12px', background: '#1a1a2e', borderTop: '1px solid #2d2d44' }}>
+                                                <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b', marginBottom: 4 }}>Waitlist</div>
+                                                {waitlist.map((w, i) => (
+                                                    <div key={w.id} style={{ display: 'flex', alignItems: 'center', padding: '2px 0', fontSize: 11 }}>
+                                                        <span style={{ color: '#d4d4d8' }}>#{w.waitlist_position || i + 1} — {w.player_name}</span>
                                                     </div>
                                                 ))}
                                             </div>
-
-                                            {/* Waitlist — Read Only */}
-                                            {waitlist.length > 0 && (
-                                                <div style={{ marginTop: 10, padding: '8px 10px', background: '#fffbeb', borderRadius: 8, border: '1px solid #fde68a' }}>
-                                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#92400e', marginBottom: 4 }}>Waitlist</div>
-                                                    {waitlist.map((w, i) => (
-                                                        <div key={w.id} style={{ display: 'flex', alignItems: 'center', padding: '3px 0', fontSize: 12 }}>
-                                                            <span style={{ color: C.text }}>#{w.waitlist_position || i + 1} — {w.player_name}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
+                                        )}
                                     </div>
                                 );
                             })}
@@ -2894,18 +2949,32 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                     <p style={{ fontSize: 13, color: C.textSec, margin: 0 }}>Check back soon for upcoming games!</p>
                 </div>
             ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     {games.map(game => {
                         const seatArr = Array.from({ length: game.max_seats }, (_, i) => {
                             const taken = (game.seats || []).find(s => s.seat_number === i + 1 && s.status !== 'waitlist');
                             return { number: i + 1, taken };
                         });
                         const waitlist = (game.seats || []).filter(s => s.status === 'waitlist').sort((a, b) => (a.waitlist_position || 0) - (b.waitlist_position || 0));
-                        const openSeats = seatArr.filter(s => !s.taken).length;
+                        const occupiedCount = seatArr.filter(s => s.taken).length;
+                        const openSeats = game.max_seats - occupiedCount;
                         const myReservation = (game.seats || []).find(s => s.player_name === playerName.trim());
 
+                        // 9-max seat positions around oval table
+                        const seatPositions = [
+                            { top: '82%', left: '50%' },
+                            { top: '72%', left: '12%' },
+                            { top: '42%', left: '2%' },
+                            { top: '12%', left: '12%' },
+                            { top: '2%', left: '35%' },
+                            { top: '2%', left: '65%' },
+                            { top: '12%', left: '88%' },
+                            { top: '42%', left: '98%' },
+                            { top: '72%', left: '88%' },
+                        ];
+
                         return (
-                            <div key={game.id} style={{ background: C.card, borderRadius: 12, overflow: 'hidden', border: '1px solid #e4e6eb' }}>
+                            <div key={game.id} style={{ background: '#1a1a2e', borderRadius: 16, border: '1px solid #2d2d44', overflow: 'hidden' }}>
                                 {/* Game Header */}
                                 <div style={{ padding: '12px 16px', background: game.status === 'running' ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)', color: '#fff' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -2917,25 +2986,28 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                             <div style={{ padding: '4px 10px', borderRadius: 12, fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,0.2)', textTransform: 'uppercase' }}>
                                                 {game.status === 'running' ? '🟢 RUNNING' : '🔵 SIGN UP'}
                                             </div>
-                                            <div style={{ fontSize: 11, marginTop: 4, opacity: 0.8 }}>{openSeats} seat{openSeats !== 1 ? 's' : ''} open</div>
+                                            <div style={{ fontSize: 11, marginTop: 4, opacity: 0.8 }}>
+                                                {occupiedCount}/{game.max_seats} seated
+                                                {openSeats > 0 && <span style={{ color: '#86efac', marginLeft: 4 }}>({openSeats} open)</span>}
+                                            </div>
                                         </div>
                                     </div>
                                     {game.notes && <div style={{ fontSize: 12, opacity: 0.85, marginTop: 4 }}>{game.notes}</div>}
                                 </div>
 
-                                {/* Seat Selection Grid */}
-                                <div style={{ padding: 16 }}>
+                                {/* Poker Table Visualization */}
+                                <div style={{ padding: '20px 16px', background: '#0f0f1a' }}>
                                     {!canInteract && (
-                                        <div style={{ padding: '10px 14px', borderRadius: 8, background: '#fff7ed', border: '1px solid #fed7aa', marginBottom: 10, textAlign: 'center' }}>
-                                            <span style={{ fontSize: 13, fontWeight: 600, color: '#92400e' }}>
+                                        <div style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', marginBottom: 12, textAlign: 'center' }}>
+                                            <span style={{ fontSize: 12, fontWeight: 600, color: '#fbbf24' }}>
                                                 {followStatus === 'pending' ? '⏳ Approval pending — you can view but not join yet' : '🔒 Follow this page to sign up for games'}
                                             </span>
                                         </div>
                                     )}
 
                                     {myReservation && (
-                                        <div style={{ marginBottom: 10, padding: '8px 12px', borderRadius: 8, background: myReservation.status === 'waitlist' ? '#fffbeb' : '#f0fdf4', border: `1px solid ${myReservation.status === 'waitlist' ? '#fde68a' : '#86efac'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                            <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
+                                        <div style={{ marginBottom: 12, padding: '8px 12px', borderRadius: 8, background: myReservation.status === 'waitlist' ? 'rgba(245,158,11,0.15)' : 'rgba(34,197,94,0.15)', border: `1px solid ${myReservation.status === 'waitlist' ? 'rgba(245,158,11,0.3)' : 'rgba(34,197,94,0.3)'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                            <span style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>
                                                 {myReservation.status === 'waitlist'
                                                     ? `📋 You're #${myReservation.waitlist_position} on the waitlist`
                                                     : `✅ You have Seat ${myReservation.seat_number}`}
@@ -2944,43 +3016,84 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                         </div>
                                     )}
 
-                                    <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 8 }}>
-                                        {!canInteract ? 'Current seat map:' : openSeats > 0 ? 'Click a seat to reserve it:' : 'All seats taken — join the waitlist!'}
-                                    </div>
-
-                                    {/* Seat Grid */}
-                                    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(game.max_seats, 5)}, 1fr)`, gap: 6 }}>
-                                        {seatArr.map(seat => (
-                                            <button key={seat.number} onClick={() => canInteract && !seat.taken && !myReservation && handleTakeSeat(game.id, seat.number)} disabled={!canInteract || !!seat.taken || !!myReservation} style={{
-                                                padding: '10px 6px', borderRadius: 8, textAlign: 'center',
-                                                cursor: canInteract && !seat.taken && !myReservation ? 'pointer' : 'default',
-                                                background: seat.taken ? (seat.taken.player_name === playerName.trim() ? '#dbeafe' : '#fee2e2') : canInteract ? '#f0fdf4' : '#f5f5f5',
-                                                border: `2px solid ${seat.taken ? (seat.taken.player_name === playerName.trim() ? '#3b82f6' : '#fca5a5') : canInteract ? '#86efac' : '#d4d4d4'}`,
-                                                transition: 'all 0.15s', fontFamily: 'inherit',
-                                                opacity: canInteract ? 1 : 0.7,
-                                            }}
-                                                onMouseEnter={e => { if (canInteract && !seat.taken && !myReservation) e.target.style.transform = 'scale(1.05)'; }}
-                                                onMouseLeave={e => { e.target.style.transform = 'scale(1)'; }}
-                                            >
-                                                <div style={{ fontSize: 10, fontWeight: 600, color: C.textSec }}>Seat {seat.number}</div>
-                                                {seat.taken ? (
-                                                    <div style={{ fontSize: 12, fontWeight: 700, color: seat.taken.player_name === playerName.trim() ? '#1d4ed8' : '#dc2626', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                        {seat.taken.player_name === playerName.trim() ? 'YOU' : seat.taken.player_name}
-                                                    </div>
-                                                ) : (
-                                                    <div style={{ fontSize: 12, fontWeight: 700, color: canInteract ? '#22c55e' : '#a3a3a3' }}>OPEN</div>
+                                    <div style={{ position: 'relative', width: '100%', maxWidth: 480, margin: '0 auto', aspectRatio: '1.6 / 1' }}>
+                                        {/* Table felt — oval */}
+                                        <div style={{
+                                            position: 'absolute', top: '18%', left: '14%', right: '14%', bottom: '18%',
+                                            borderRadius: '50%', background: 'radial-gradient(ellipse at center, #1a5c2e 0%, #14532d 60%, #0f4023 100%)',
+                                            border: '4px solid #8B6914', boxShadow: 'inset 0 0 30px rgba(0,0,0,0.3), 0 0 20px rgba(139,105,20,0.3)',
+                                        }}>
+                                            <div style={{ position: 'absolute', inset: 6, borderRadius: '50%', border: '2px solid rgba(139,105,20,0.4)' }} />
+                                            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
+                                                <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1 }}>
+                                                    {game.table_number || game.game_name}
+                                                </div>
+                                                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>${game.stakes}</div>
+                                                {canInteract && !myReservation && openSeats > 0 && (
+                                                    <div style={{ fontSize: 8, color: '#86efac', marginTop: 4, fontWeight: 600 }}>TAP SEAT TO JOIN</div>
                                                 )}
-                                            </button>
-                                        ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Seat chips */}
+                                        {seatArr.slice(0, seatPositions.length).map((seat, idx) => {
+                                            const pos = seatPositions[idx];
+                                            const isOccupied = !!seat.taken;
+                                            const isMe = seat.taken?.player_name === playerName.trim();
+                                            const firstName = seat.taken?.player_name?.split(' ')[0] || '';
+                                            const canClick = canInteract && !isOccupied && !myReservation;
+
+                                            return (
+                                                <div key={seat.number} style={{
+                                                    position: 'absolute', top: pos.top, left: pos.left,
+                                                    transform: 'translate(-50%, -50%)', textAlign: 'center', width: 64,
+                                                    cursor: canClick ? 'pointer' : 'default',
+                                                }}
+                                                    onClick={() => canClick && handleTakeSeat(game.id, seat.number)}
+                                                >
+                                                    <div style={{
+                                                        width: 38, height: 38, borderRadius: '50%', margin: '0 auto 3px',
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                        background: isMe
+                                                            ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
+                                                            : isOccupied
+                                                                ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)'
+                                                                : canClick
+                                                                    ? 'rgba(34,197,94,0.15)'
+                                                                    : 'rgba(255,255,255,0.08)',
+                                                        border: `2px solid ${isMe ? '#4ade80' : isOccupied ? '#60a5fa' : canClick ? 'rgba(34,197,94,0.4)' : 'rgba(255,255,255,0.15)'}`,
+                                                        boxShadow: isMe ? '0 0 10px rgba(34,197,94,0.5)' : isOccupied ? '0 0 8px rgba(59,130,246,0.4)' : 'none',
+                                                        transition: 'all 0.2s',
+                                                    }}>
+                                                        {isOccupied ? (
+                                                            <span style={{ fontSize: isMe ? 11 : 14, fontWeight: 800, color: '#fff' }}>
+                                                                {isMe ? 'YOU' : firstName.charAt(0).toUpperCase()}
+                                                            </span>
+                                                        ) : (
+                                                            <span style={{ fontSize: canClick ? 10 : 9, fontWeight: 600, color: canClick ? 'rgba(34,197,94,0.7)' : 'rgba(255,255,255,0.3)' }}>
+                                                                {canClick ? '+' : seat.number}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div style={{
+                                                        fontSize: 9, fontWeight: 600, lineHeight: 1.1,
+                                                        color: isMe ? '#4ade80' : isOccupied ? '#93c5fd' : canClick ? 'rgba(34,197,94,0.5)' : 'rgba(255,255,255,0.25)',
+                                                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 64,
+                                                    }}>
+                                                        {isMe ? 'You' : isOccupied ? firstName : canClick ? 'Join' : 'Open'}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
 
-                                    {/* Waitlist */}
-                                    <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                        <div style={{ fontSize: 12, color: C.textSec }}>
-                                            {waitlist.length > 0 && <span style={{ fontWeight: 600, color: '#f59e0b' }}>📋 Waitlist: {waitlist.map(w => w.player_name).join(', ')}</span>}
+                                    {/* Waitlist + Join Waitlist */}
+                                    <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <div style={{ fontSize: 11, color: '#a1a1aa' }}>
+                                            {waitlist.length > 0 && <span style={{ fontWeight: 600, color: '#fbbf24' }}>📋 Waitlist: {waitlist.map(w => w.player_name?.split(' ')[0]).join(', ')}</span>}
                                         </div>
                                         {canInteract && !myReservation && (
-                                            <button onClick={() => handleJoinWaitlist(game.id)} style={{ padding: '6px 16px', borderRadius: 8, border: 'none', background: '#f59e0b', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Join Waitlist</button>
+                                            <button onClick={() => handleJoinWaitlist(game.id)} style={{ padding: '5px 14px', borderRadius: 8, border: 'none', background: '#f59e0b', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Join Waitlist</button>
                                         )}
                                     </div>
                                 </div>
@@ -3550,11 +3663,12 @@ export default function SocialMediaPage() {
                         .then(() => console.log('[Social] Updated last_active timestamp'));
 
                     // Load notifications with actor profile data
-                    const { data: notifs } = await supabase.from('notifications')
+                    const { data: notifs, error: notifsError } = await supabase.from('notifications')
                         .select('*')
                         .eq('user_id', authUser.id)
                         .order('created_at', { ascending: false })
-                        .limit(20);
+                        .limit(50);
+                    if (notifsError) console.error('[Social] Failed to load notifications:', notifsError);
                     if (notifs && notifs.length > 0) {
                         // Collect actor IDs from notifications
                         // The data is stored in the 'data' JSONB column: data.actor_id (social) or data.sender_id (friend requests)
@@ -3729,6 +3843,46 @@ export default function SocialMediaPage() {
             })();
         }
     }, [user, router.query.createPage, router.query.ref, router.query.viewPage]);
+
+    //  REFRESH NOTIFICATIONS when modal opens — always show latest data
+    useEffect(() => {
+        if (!showNotifications || !user) return;
+        (async () => {
+            try {
+                const { data: notifs, error } = await supabase.from('notifications')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .order('created_at', { ascending: false })
+                    .limit(50);
+                if (error) { console.error('[Social] Notification refresh error:', error); return; }
+                if (!notifs || notifs.length === 0) { setNotifications([]); return; }
+
+                // Enrich with actor profiles
+                const actorIds = [...new Set(notifs.map(n =>
+                    n.data?.actor_id || n.data?.sender_id || n.actor_id
+                ).filter(Boolean))];
+                let profileById = {};
+                if (actorIds.length > 0) {
+                    const { data: profiles } = await supabase.from('profiles')
+                        .select('id, username, full_name, avatar_url')
+                        .in('id', actorIds);
+                    (profiles || []).forEach(p => { profileById[p.id] = p; });
+                }
+                const enriched = notifs.map(n => {
+                    const actorId = n.data?.actor_id || n.data?.sender_id || n.actor_id;
+                    const profile = actorId ? profileById[actorId] : null;
+                    const displayName = n.data?.actor_name || n.data?.sender_name || n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/)?.[1] || n.title;
+                    return {
+                        ...n,
+                        actor_avatar_url: profile?.avatar_url || n.metadata?.actor_avatar || null,
+                        actor_name: profile?.full_name || displayName,
+                        actor_username: profile?.username || null
+                    };
+                });
+                setNotifications(enriched);
+            } catch (e) { console.error('[Social] Notification refresh failed:', e); }
+        })();
+    }, [showNotifications, user]);
 
     //  AUTO-MARK NOTIFICATIONS AS READ when dropdown opens
     useEffect(() => {
