@@ -62,7 +62,7 @@ export default function ClockDisplay() {
   // Wake lock
   useEffect(() => {
     const req = async () => {
-      try { if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch (e) {}
+      try { if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch (e) { }
     };
     req();
     const h = () => { if (document.visibilityState === 'visible') req(); };
@@ -291,7 +291,7 @@ const S = {
     justifyContent: 'center', position: 'relative', padding: '8px 0'
   },
   statCell: {
-    flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
+    flex: 1, background: 'rgba(255,255,255,0.06)', border: '2px solid rgba(255,255,255,0.15)',
     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
     padding: '4px 8px', textAlign: 'center'
   },
@@ -303,7 +303,7 @@ const S = {
     fontFamily: "'Inter', monospace", padding: '8px 0'
   },
   blindsBlock: {
-    background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.1)',
+    background: 'rgba(0,0,0,0.25)', border: '2px solid rgba(255,255,255,0.15)',
     width: '100%', textAlign: 'center', padding: '8px 16px'
   },
   blindsGame: { fontSize: 16, opacity: 0.8, fontWeight: 500 },
@@ -311,7 +311,7 @@ const S = {
   blindsValue: { fontSize: 48, fontWeight: 800, lineHeight: 1.15 },
   blindsAnte: { fontSize: 34, fontWeight: 700 },
   nextRound: {
-    background: 'rgba(0,0,0,0.15)', border: '1px solid rgba(255,255,255,0.08)',
+    background: 'rgba(0,0,0,0.15)', border: '2px solid rgba(255,255,255,0.12)',
     width: '100%', textAlign: 'center', padding: '8px 16px', fontSize: 15, lineHeight: 1.5
   },
   chipStack: { flex: 3, display: 'flex', flexDirection: 'column', gap: 10, padding: 14, justifyContent: 'center' },

@@ -6,7 +6,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { FileText, DollarSign, AlertTriangle, CheckCircle2,
+import {
+  FileText, DollarSign, AlertTriangle, CheckCircle2,
   Loader2, Printer, Download, ChevronDown, ChevronUp, Search
 } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
@@ -213,7 +214,7 @@ export default function TaxCompliance() {
       <div style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: 'Inter, system-ui, sans-serif' }}>
         {/* Header */}
         <div style={{ background: '#1877F2', color: 'white', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-<FileText size={22} />
+          <FileText size={22} />
           <div>
             <div style={{ fontWeight: 700, fontSize: 17 }}>Tax Compliance / W-2G</div>
             <div style={{ fontSize: 12, opacity: 0.85 }}>Tournament wins reporting and withholding</div>
@@ -231,12 +232,12 @@ export default function TaxCompliance() {
           {/* Year + Filter */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
             <select value={year} onChange={e => setYear(parseInt(e.target.value))}
-              style={{ padding: '8px 12px', border: '1px solid #CED0D4', borderRadius: 8, fontSize: 14, fontWeight: 600 }}>
+              style={{ padding: '8px 12px', border: '2px solid #CED0D4', borderRadius: 8, fontSize: 14, fontWeight: 600 }}>
               {[2026, 2025, 2024].map(y => <option key={y} value={y}>{y}</option>)}
             </select>
             {['all', 'pending', 'generated'].map(f => (
               <button key={f} onClick={() => setFilter(f)}
-                style={{ padding: '8px 14px', border: '1px solid', borderColor: filter === f ? '#1877F2' : '#CED0D4', borderRadius: 8, background: filter === f ? '#EBF5FF' : 'white', color: filter === f ? '#1877F2' : '#1C2526', fontSize: 13, fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize' }}>
+                style={{ padding: '8px 14px', border: '2px solid', borderColor: filter === f ? '#1877F2' : '#CED0D4', borderRadius: 8, background: filter === f ? '#EBF5FF' : 'white', color: filter === f ? '#1877F2' : '#1C2526', fontSize: 13, fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize' }}>
                 {f}
               </button>
             ))}
@@ -251,7 +252,7 @@ export default function TaxCompliance() {
                 { label: 'Total Withholding', val: formatMoney(summary.total_withholding), color: '#EF4444', icon: DollarSign },
                 { label: 'W-2G Pending', val: summary.w2g_pending_count, color: '#F59E0B', icon: AlertTriangle }
               ].map(c => (
-                <div key={c.label} style={{ background: 'white', borderRadius: 10, padding: 14, border: '1px solid #E4E6EB' }}>
+                <div key={c.label} style={{ background: 'white', borderRadius: 10, padding: 14, border: '2px solid #E4E6EB' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                     <c.icon size={14} color={c.color} />
                     <span style={{ fontSize: 12, color: '#65676B', fontWeight: 600 }}>{c.label}</span>
@@ -263,7 +264,7 @@ export default function TaxCompliance() {
           )}
 
           {/* IRS Notice */}
-          <div style={{ background: '#FEF3C7', border: '1px solid #F59E0B', borderRadius: 10, padding: 12, marginBottom: 16, fontSize: 12, color: '#92400E', lineHeight: 1.5 }}>
+          <div style={{ background: '#FEF3C7', border: '2px solid #F59E0B', borderRadius: 10, padding: 12, marginBottom: 16, fontSize: 12, color: '#92400E', lineHeight: 1.5 }}>
             <strong>IRS Requirement:</strong> Form W-2G must be issued for poker tournament winnings of $5,000 or more (net of buy-in).
             Federal withholding rate is 24%. The venue must file Copy A with the IRS and provide Copy B to the winner.
           </div>
@@ -282,73 +283,73 @@ export default function TaxCompliance() {
                 const isPending = !evt.w2g_generated && evt.withholding_required;
                 return (
                   <CommanderLayout title="W-2G Form" backHref="/commander/reports">
-                  <div key={evt.id} style={{ background: 'white', borderRadius: 10, border: isPending ? '2px solid #F59E0B' : '1px solid #E4E6EB', overflow: 'hidden' }}>
-                    <button onClick={() => setExpandedId(isExpanded ? null : evt.id)}
-                      style={{ width: '100%', padding: '12px 14px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left' }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 8, background: evt.w2g_generated ? '#DEF7EC' : '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        {evt.w2g_generated ? <CheckCircle2 size={18} color="#03543F" /> : <AlertTriangle size={18} color="#D97706" />}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 700, fontSize: 14, color: '#1C2526' }}>{evt.player_name}</div>
-                        <div style={{ fontSize: 12, color: '#65676B' }}>{evt.event_date} — {evt.event_type}</div>
-                      </div>
-                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <div style={{ fontWeight: 800, fontSize: 16, color: '#31A24C' }}>{formatMoney(evt.gross_amount)}</div>
-                        <div style={{ fontSize: 11, color: evt.w2g_generated ? '#03543F' : '#D97706', fontWeight: 600 }}>
-                          {evt.w2g_generated ? 'W-2G FILED' : 'PENDING'}
+                    <div key={evt.id} style={{ background: 'white', borderRadius: 10, border: isPending ? '2px solid #F59E0B' : '2px solid #E4E6EB', overflow: 'hidden' }}>
+                      <button onClick={() => setExpandedId(isExpanded ? null : evt.id)}
+                        style={{ width: '100%', padding: '12px 14px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left' }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 8, background: evt.w2g_generated ? '#DEF7EC' : '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          {evt.w2g_generated ? <CheckCircle2 size={18} color="#03543F" /> : <AlertTriangle size={18} color="#D97706" />}
                         </div>
-                      </div>
-                      {isExpanded ? <ChevronUp size={16} color="#65676B" /> : <ChevronDown size={16} color="#65676B" />}
-                    </button>
-
-                    {isExpanded && (
-                      <div style={{ padding: '0 14px 14px', borderTop: '1px solid #E4E6EB' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: 12 }}>
-                          <div style={{ padding: 10, background: '#F9FAFB', borderRadius: 8, textAlign: 'center' }}>
-                            <div style={{ fontSize: 11, color: '#65676B', fontWeight: 600 }}>GROSS</div>
-                            <div style={{ fontSize: 16, fontWeight: 800, color: '#1C2526' }}>{formatMoney(evt.gross_amount)}</div>
-                          </div>
-                          <div style={{ padding: 10, background: '#F9FAFB', borderRadius: 8, textAlign: 'center' }}>
-                            <div style={{ fontSize: 11, color: '#65676B', fontWeight: 600 }}>BUY-IN</div>
-                            <div style={{ fontSize: 16, fontWeight: 800, color: '#1C2526' }}>{formatMoney(evt.buy_in)}</div>
-                          </div>
-                          <div style={{ padding: 10, background: '#F9FAFB', borderRadius: 8, textAlign: 'center' }}>
-                            <div style={{ fontSize: 11, color: '#65676B', fontWeight: 600 }}>NET</div>
-                            <div style={{ fontSize: 16, fontWeight: 800, color: '#31A24C' }}>{formatMoney(evt.net_amount)}</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 700, fontSize: 14, color: '#1C2526' }}>{evt.player_name}</div>
+                          <div style={{ fontSize: 12, color: '#65676B' }}>{evt.event_date} — {evt.event_type}</div>
+                        </div>
+                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                          <div style={{ fontWeight: 800, fontSize: 16, color: '#31A24C' }}>{formatMoney(evt.gross_amount)}</div>
+                          <div style={{ fontSize: 11, color: evt.w2g_generated ? '#03543F' : '#D97706', fontWeight: 600 }}>
+                            {evt.w2g_generated ? 'W-2G FILED' : 'PENDING'}
                           </div>
                         </div>
+                        {isExpanded ? <ChevronUp size={16} color="#65676B" /> : <ChevronDown size={16} color="#65676B" />}
+                      </button>
 
-                        {evt.withholding_amount > 0 && (
-                          <div style={{ marginTop: 10, padding: 10, background: '#FEF2F2', borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: 13, fontWeight: 600, color: '#991B1B' }}>Federal Withholding (24%)</span>
-                            <span style={{ fontSize: 16, fontWeight: 800, color: '#EF4444' }}>{formatMoney(evt.withholding_amount)}</span>
+                      {isExpanded && (
+                        <div style={{ padding: '0 14px 14px', borderTop: '2px solid #E4E6EB' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: 12 }}>
+                            <div style={{ padding: 10, background: '#F9FAFB', borderRadius: 8, textAlign: 'center' }}>
+                              <div style={{ fontSize: 11, color: '#65676B', fontWeight: 600 }}>GROSS</div>
+                              <div style={{ fontSize: 16, fontWeight: 800, color: '#1C2526' }}>{formatMoney(evt.gross_amount)}</div>
+                            </div>
+                            <div style={{ padding: 10, background: '#F9FAFB', borderRadius: 8, textAlign: 'center' }}>
+                              <div style={{ fontSize: 11, color: '#65676B', fontWeight: 600 }}>BUY-IN</div>
+                              <div style={{ fontSize: 16, fontWeight: 800, color: '#1C2526' }}>{formatMoney(evt.buy_in)}</div>
+                            </div>
+                            <div style={{ padding: 10, background: '#F9FAFB', borderRadius: 8, textAlign: 'center' }}>
+                              <div style={{ fontSize: 11, color: '#65676B', fontWeight: 600 }}>NET</div>
+                              <div style={{ fontSize: 16, fontWeight: 800, color: '#31A24C' }}>{formatMoney(evt.net_amount)}</div>
+                            </div>
                           </div>
-                        )}
 
-                        {evt.player_ssn_last4 && (
-                          <div style={{ marginTop: 8, fontSize: 13, color: '#65676B' }}>SSN: XXX-XX-{evt.player_ssn_last4}</div>
-                        )}
-                        {evt.notes && (
-                          <div style={{ marginTop: 8, fontSize: 13, color: '#444' }}>Notes: {evt.notes}</div>
-                        )}
-
-                        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                          {!evt.w2g_generated ? (
-                            <button onClick={() => handleGenerate(evt.id)} disabled={generating === evt.id}
-                              style={{ flex: 1, background: '#1877F2', color: 'white', border: 'none', borderRadius: 8, padding: '10px 0', fontSize: 14, fontWeight: 700, cursor: generating === evt.id ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: generating === evt.id ? 0.7 : 1 }}>
-                              {generating === evt.id ? <Loader2 size={16} className="spin" /> : <FileText size={16} />}
-                              Generate W-2G
-                            </button>
-                          ) : (
-                            <button onClick={() => reprintW2G(evt)}
-                              style={{ flex: 1, background: '#31A24C', color: 'white', border: 'none', borderRadius: 8, padding: '10px 0', fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                              <Printer size={16} /> Reprint W-2G
-                            </button>
+                          {evt.withholding_amount > 0 && (
+                            <div style={{ marginTop: 10, padding: 10, background: '#FEF2F2', borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontSize: 13, fontWeight: 600, color: '#991B1B' }}>Federal Withholding (24%)</span>
+                              <span style={{ fontSize: 16, fontWeight: 800, color: '#EF4444' }}>{formatMoney(evt.withholding_amount)}</span>
+                            </div>
                           )}
+
+                          {evt.player_ssn_last4 && (
+                            <div style={{ marginTop: 8, fontSize: 13, color: '#65676B' }}>SSN: XXX-XX-{evt.player_ssn_last4}</div>
+                          )}
+                          {evt.notes && (
+                            <div style={{ marginTop: 8, fontSize: 13, color: '#444' }}>Notes: {evt.notes}</div>
+                          )}
+
+                          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                            {!evt.w2g_generated ? (
+                              <button onClick={() => handleGenerate(evt.id)} disabled={generating === evt.id}
+                                style={{ flex: 1, background: '#1877F2', color: 'white', border: 'none', borderRadius: 8, padding: '10px 0', fontSize: 14, fontWeight: 700, cursor: generating === evt.id ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: generating === evt.id ? 0.7 : 1 }}>
+                                {generating === evt.id ? <Loader2 size={16} className="spin" /> : <FileText size={16} />}
+                                Generate W-2G
+                              </button>
+                            ) : (
+                              <button onClick={() => reprintW2G(evt)}
+                                style={{ flex: 1, background: '#31A24C', color: 'white', border: 'none', borderRadius: 8, padding: '10px 0', fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                                <Printer size={16} /> Reprint W-2G
+                              </button>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
+                      )}
+                    </div>
                   </CommanderLayout>
                 );
               })}

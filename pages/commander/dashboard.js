@@ -489,7 +489,7 @@ export default function CommanderDashboard() {
               background: hardStop.minutesLeft <= 15
                 ? 'linear-gradient(90deg, rgba(239,68,68,0.2), rgba(239,68,68,0.1))'
                 : 'linear-gradient(90deg, rgba(245,158,11,0.2), rgba(245,158,11,0.1))',
-              borderBottom: `1px solid ${hardStop.minutesLeft <= 15 ? '#EF444440' : '#F59E0B40'}`,
+              borderBottom: `2px solid ${hardStop.minutesLeft <= 15 ? '#EF444440' : '#F59E0B40'}`,
               display: 'flex',
               alignItems: 'center',
               gap: 10,
@@ -561,7 +561,7 @@ export default function CommanderDashboard() {
                           <div style={{
                             background: 'rgba(0,0,0,0.7)', borderRadius: 8,
                             padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 5,
-                            border: '1px solid rgba(245,158,11,0.3)',
+                            border: '2px solid rgba(245,158,11,0.3)',
                           }}>
                             <Lock size={14} color="#F59E0B" />
                             <span style={{ color: '#F59E0B', fontSize: 11, fontWeight: 700, letterSpacing: 0.5 }}>UPGRADE</span>
@@ -583,7 +583,7 @@ export default function CommanderDashboard() {
                 position: 'relative', background: 'linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%)',
                 borderRadius: 16, width: '90%', maxWidth: 400, padding: 28,
                 boxShadow: '0 12px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1)',
-                border: '1px solid rgba(255,255,255,0.08)'
+                border: '2px solid rgba(255,255,255,0.12)'
               }}>
                 <div style={{ width: 56, height: 56, borderRadius: 14, background: 'linear-gradient(135deg, #F59E0B, #EF4444)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
                   <Crown size={28} color="#fff" />
@@ -611,7 +611,7 @@ export default function CommanderDashboard() {
                   <button
                     onClick={() => setShowUpgradeModal(null)}
                     style={{
-                      padding: '10px 20px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)',
+                      padding: '10px 20px', borderRadius: 10, border: '2px solid rgba(255,255,255,0.15)',
                       background: 'transparent', color: '#888',
                       fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'Inter, sans-serif'
                     }}

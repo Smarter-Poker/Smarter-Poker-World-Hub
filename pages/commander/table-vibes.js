@@ -6,7 +6,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { Flame, Smile, Zap, Loader2, MessageSquare,
+import {
+  Flame, Smile, Zap, Loader2, MessageSquare,
   Star, BarChart3
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
@@ -18,7 +19,8 @@ const VIBE_COLORS = {
   'Fast Game': { bg: '#EBF5FF', text: '#1E40AF', border: '#3B82F6', emoji: '⚡' },
   'Relaxed Pace': { bg: '#FFFBEB', text: '#92400E', border: '#F59E0B', emoji: '🐢' },
   'Aggressive Game': { bg: '#FEF2F2', text: '#991B1B', border: '#EF4444', emoji: '💪' },
-  'Standard Game': { bg: '#F9FAFB', text: '#4B5563', border: '#D1D5DB', emoji: '♠️' } };
+  'Standard Game': { bg: '#F9FAFB', text: '#4B5563', border: '#D1D5DB', emoji: '♠️' }
+};
 
 export default function TableVibes() {
   const router = useRouter();
@@ -76,7 +78,7 @@ export default function TableVibes() {
       <Head><title>Table Vibes | Club Commander</title></Head>
       <div style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: 'Inter, system-ui, sans-serif' }}>
         <div style={{ background: '#1877F2', color: 'white', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-<Flame size={22} />
+          <Flame size={22} />
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 700, fontSize: 17 }}>Table Vibes</div>
             <div style={{ fontSize: 12, opacity: 0.85 }}>{totalRatings} player ratings in last {days} days</div>
@@ -88,7 +90,7 @@ export default function TableVibes() {
           <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
             {[{ v: 7, l: '7D' }, { v: 14, l: '14D' }, { v: 30, l: '30D' }, { v: 90, l: '90D' }].map(r => (
               <button key={r.v} onClick={() => setDays(r.v)}
-                style={{ flex: 1, padding: '8px 0', border: '1px solid', borderColor: days === r.v ? '#1877F2' : '#CED0D4', borderRadius: 8, background: days === r.v ? '#EBF5FF' : 'white', color: days === r.v ? '#1877F2' : '#65676B', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                style={{ flex: 1, padding: '8px 0', border: '2px solid', borderColor: days === r.v ? '#1877F2' : '#CED0D4', borderRadius: 8, background: days === r.v ? '#EBF5FF' : 'white', color: days === r.v ? '#1877F2' : '#65676B', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
                 {r.l}
               </button>
             ))}
@@ -106,44 +108,44 @@ export default function TableVibes() {
                 const vc = VIBE_COLORS[v.vibe] || VIBE_COLORS['Standard Game'];
                 return (
                   <CommanderLayout title="Table Vibes" backHref="/commander/tables">
-                  <div key={v.table_number} style={{ background: 'white', borderRadius: 12, border: '1px solid #E4E6EB', overflow: 'hidden' }}>
-                    <div style={{ padding: 14 }}>
-                      {/* Header */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                        <div style={{ width: 42, height: 42, borderRadius: 10, background: vc.bg, border: `2px solid ${vc.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
-                          {vc.emoji}
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 700, fontSize: 16, color: '#1C2526' }}>Table {v.table_number}</div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                            <span style={{ fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: vc.bg, color: vc.text, border: `1px solid ${vc.border}` }}>
-                              {v.vibe}
-                            </span>
-                            <span style={{ fontSize: 11, color: '#65676B' }}>{v.rating_count} ratings</span>
+                    <div key={v.table_number} style={{ background: 'white', borderRadius: 12, border: '2px solid #E4E6EB', overflow: 'hidden' }}>
+                      <div style={{ padding: 14 }}>
+                        {/* Header */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                          <div style={{ width: 42, height: 42, borderRadius: 10, background: vc.bg, border: `2px solid ${vc.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
+                            {vc.emoji}
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 700, fontSize: 16, color: '#1C2526' }}>Table {v.table_number}</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                              <span style={{ fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: vc.bg, color: vc.text, border: `2px solid ${vc.border}` }}>
+                                {v.vibe}
+                              </span>
+                              <span style={{ fontSize: 11, color: '#65676B' }}>{v.rating_count} ratings</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      {/* Rating Bars */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        {renderBar(v.avg_action, 'Action', '#EF4444')}
-                        {renderBar(v.avg_friendliness, 'Friendly', '#31A24C')}
-                        {renderBar(v.avg_pace, 'Pace', '#3B82F6')}
-                      </div>
-
-                      {/* Comments */}
-                      {v.recent_comments.length > 0 && (
-                        <div style={{ marginTop: 10, borderTop: '1px solid #F0F2F5', paddingTop: 8 }}>
-                          <div style={{ fontSize: 11, fontWeight: 700, color: '#65676B', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <MessageSquare size={11} /> RECENT COMMENTS
-                          </div>
-                          {v.recent_comments.map((c, i) => (
-                            <div key={i} style={{ fontSize: 13, color: '#444', fontStyle: 'italic', padding: '2px 0' }}>"{c}"</div>
-                          ))}
+                        {/* Rating Bars */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {renderBar(v.avg_action, 'Action', '#EF4444')}
+                          {renderBar(v.avg_friendliness, 'Friendly', '#31A24C')}
+                          {renderBar(v.avg_pace, 'Pace', '#3B82F6')}
                         </div>
-                      )}
+
+                        {/* Comments */}
+                        {v.recent_comments.length > 0 && (
+                          <div style={{ marginTop: 10, borderTop: '2px solid #F0F2F5', paddingTop: 8 }}>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: '#65676B', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <MessageSquare size={11} /> RECENT COMMENTS
+                            </div>
+                            {v.recent_comments.map((c, i) => (
+                              <div key={i} style={{ fontSize: 13, color: '#444', fontStyle: 'italic', padding: '2px 0' }}>"{c}"</div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
                   </CommanderLayout>
                 );
               })}

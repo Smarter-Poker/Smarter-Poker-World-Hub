@@ -6,7 +6,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { Shield, Star, Users, Loader2, ChevronDown, ChevronUp,
+import {
+  Shield, Star, Users, Loader2, ChevronDown, ChevronUp,
   Heart, Award, MessageSquare, Plus, X, Send
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
@@ -15,7 +16,8 @@ const RATING_LABELS = {
   reliability: { label: 'Reliability', desc: 'Shows up, stays committed' },
   sportsmanship: { label: 'Sportsmanship', desc: 'Handles wins/losses well' },
   etiquette: { label: 'Etiquette', desc: 'Follows rules, tips dealers' },
-  communication: { label: 'Communication', desc: 'Clear, responsive' } };
+  communication: { label: 'Communication', desc: 'Clear, responsive' }
+};
 
 export default function PlayerReputation() {
   const router = useRouter();
@@ -133,7 +135,7 @@ export default function PlayerReputation() {
       <Head><title>Player Reputation | Club Commander</title></Head>
       <div style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: 'Inter, system-ui, sans-serif' }}>
         <div style={{ background: '#1877F2', color: 'white', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-<Shield size={22} />
+          <Shield size={22} />
           <div>
             <div style={{ fontWeight: 700, fontSize: 17 }}>Player Reputation</div>
             <div style={{ fontSize: 12, opacity: 0.85 }}>{scores.length} players rated</div>
@@ -154,106 +156,106 @@ export default function PlayerReputation() {
                 const reviews = expandedReviews[s.player_id] || [];
                 return (
                   <CommanderLayout title="Player Reputation" backHref="/commander/dashboard">
-                  <div key={s.player_id} style={{ background: 'white', borderRadius: 10, border: '1px solid #E4E6EB', overflow: 'hidden' }}>
-                    <button onClick={() => toggleExpand(s.player_id)}
-                      style={{ width: '100%', padding: '12px 14px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left' }}>
-                      {/* Score badge */}
-                      <div style={{ width: 42, height: 42, borderRadius: 21, background: `${scoreColor(s.overall_score)}15`, border: `2px solid ${scoreColor(s.overall_score)}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <span style={{ fontSize: 15, fontWeight: 800, color: scoreColor(s.overall_score) }}>{s.overall_score}</span>
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 700, fontSize: 14, color: '#1C2526' }}>{s.player_name}</div>
-                        <div style={{ fontSize: 12, color: '#65676B' }}>{s.total_reviews} reviews</div>
-                      </div>
-                      {/* Mini stars */}
-                      <div style={{ display: 'flex', gap: 1 }}>
-                        {[1, 2, 3, 4, 5].map(n => (
-                          <Star key={n} size={12} fill={n <= Math.round(s.overall_score) ? '#F59E0B' : 'none'} color={n <= Math.round(s.overall_score) ? '#F59E0B' : '#D1D5DB'} />
-                        ))}
-                      </div>
-                      {isExpanded ? <ChevronUp size={16} color="#65676B" /> : <ChevronDown size={16} color="#65676B" />}
-                    </button>
-
-                    {isExpanded && (
-                      <div style={{ padding: '0 14px 14px', borderTop: '1px solid #F0F2F5' }}>
-                        {/* Breakdown */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6, marginTop: 10, marginBottom: 10 }}>
-                          {Object.entries(RATING_LABELS).map(([key, cfg]) => (
-                            <div key={key} style={{ padding: 8, background: '#F9FAFB', borderRadius: 8, textAlign: 'center' }}>
-                              <div style={{ fontSize: 16, fontWeight: 800, color: scoreColor(s[`${key}_avg`]) }}>{s[`${key}_avg`]}</div>
-                              <div style={{ fontSize: 10, color: '#65676B' }}>{cfg.label}</div>
-                            </div>
+                    <div key={s.player_id} style={{ background: 'white', borderRadius: 10, border: '2px solid #E4E6EB', overflow: 'hidden' }}>
+                      <button onClick={() => toggleExpand(s.player_id)}
+                        style={{ width: '100%', padding: '12px 14px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left' }}>
+                        {/* Score badge */}
+                        <div style={{ width: 42, height: 42, borderRadius: 21, background: `${scoreColor(s.overall_score)}15`, border: `2px solid ${scoreColor(s.overall_score)}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <span style={{ fontSize: 15, fontWeight: 800, color: scoreColor(s.overall_score) }}>{s.overall_score}</span>
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 700, fontSize: 14, color: '#1C2526' }}>{s.player_name}</div>
+                          <div style={{ fontSize: 12, color: '#65676B' }}>{s.total_reviews} reviews</div>
+                        </div>
+                        {/* Mini stars */}
+                        <div style={{ display: 'flex', gap: 1 }}>
+                          {[1, 2, 3, 4, 5].map(n => (
+                            <Star key={n} size={12} fill={n <= Math.round(s.overall_score) ? '#F59E0B' : 'none'} color={n <= Math.round(s.overall_score) ? '#F59E0B' : '#D1D5DB'} />
                           ))}
                         </div>
+                        {isExpanded ? <ChevronUp size={16} color="#65676B" /> : <ChevronDown size={16} color="#65676B" />}
+                      </button>
 
-                        {/* Verification badges */}
-                        <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-                          {[
-                            { label: 'ID', verified: s.id_verified },
-                            { label: 'Phone', verified: s.phone_verified },
-                            { label: 'Payment', verified: s.payment_verified },
-                          ].map(v => (
-                            <span key={v.label} style={{
-                              fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 6,
-                              background: v.verified ? '#DCFCE7' : '#F3F4F6',
-                              color: v.verified ? '#166534' : '#9CA3AF',
-                              border: `1px solid ${v.verified ? '#22C55E' : '#E5E7EB'}`
-                            }}>
-                              {v.verified ? '✓' : '○'} {v.label}
-                            </span>
-                          ))}
-                        </div>
-
-                        {/* Recent reviews */}
-                        {reviews.length > 0 && (
-                          <div style={{ marginBottom: 10 }}>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: '#65676B', marginBottom: 4 }}>RECENT REVIEWS</div>
-                            {reviews.slice(0, 3).map((r, i) => (
-                              <div key={i} style={{ padding: '6px 0', borderBottom: i < 2 ? '1px solid #F0F2F5' : 'none' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#65676B' }}>
-                                  <span>{r.reviewer_type} • {r.context || 'general'}</span>
-                                  <span>{new Date(r.created_at).toLocaleDateString()}</span>
-                                </div>
-                                {r.comment && <div style={{ fontSize: 13, color: '#444', marginTop: 2 }}>"{r.comment}"</div>}
+                      {isExpanded && (
+                        <div style={{ padding: '0 14px 14px', borderTop: '2px solid #F0F2F5' }}>
+                          {/* Breakdown */}
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6, marginTop: 10, marginBottom: 10 }}>
+                            {Object.entries(RATING_LABELS).map(([key, cfg]) => (
+                              <div key={key} style={{ padding: 8, background: '#F9FAFB', borderRadius: 8, textAlign: 'center' }}>
+                                <div style={{ fontSize: 16, fontWeight: 800, color: scoreColor(s[`${key}_avg`]) }}>{s[`${key}_avg`]}</div>
+                                <div style={{ fontSize: 10, color: '#65676B' }}>{cfg.label}</div>
                               </div>
                             ))}
                           </div>
-                        )}
 
-                        {/* Add review button */}
-                        {showReviewForm === s.player_id ? (
-                          <div style={{ background: '#F9FAFB', borderRadius: 10, padding: 12, border: '1px solid #E4E6EB' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                              <span style={{ fontSize: 13, fontWeight: 700, color: '#1C2526' }}>Add Review</span>
-                              <button onClick={() => setShowReviewForm(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={16} color="#65676B" /></button>
-                            </div>
-                            <StarRow label="Reliability" value={reviewForm.reliability} onChange={v => setReviewForm(f => ({...f, reliability: v}))} />
-                            <StarRow label="Sportsmanship" value={reviewForm.sportsmanship} onChange={v => setReviewForm(f => ({...f, sportsmanship: v}))} />
-                            <StarRow label="Etiquette" value={reviewForm.etiquette} onChange={v => setReviewForm(f => ({...f, etiquette: v}))} />
-                            <StarRow label="Communication" value={reviewForm.communication} onChange={v => setReviewForm(f => ({...f, communication: v}))} />
-                            <select value={reviewForm.context} onChange={e => setReviewForm(f => ({...f, context: e.target.value}))}
-                              style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #CED0D4', marginBottom: 6, fontSize: 13 }}>
-                              <option value="cash_game">Cash Game</option>
-                              <option value="tournament">Tournament</option>
-                              <option value="home_game">Home Game</option>
-                            </select>
-                            <textarea value={reviewForm.comment} onChange={e => setReviewForm(f => ({...f, comment: e.target.value}))}
-                              rows={2} placeholder="Comments (optional)"
-                              style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #CED0D4', fontSize: 13, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box', marginBottom: 8 }} />
-                            <button onClick={submitReview} disabled={submitting}
-                              style={{ width: '100%', background: '#1877F2', color: 'white', border: 'none', borderRadius: 8, padding: '10px 0', fontSize: 14, fontWeight: 700, cursor: submitting ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                              {submitting ? <Loader2 size={16} className="spin" /> : <Send size={16} />} Submit Review
-                            </button>
+                          {/* Verification badges */}
+                          <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                            {[
+                              { label: 'ID', verified: s.id_verified },
+                              { label: 'Phone', verified: s.phone_verified },
+                              { label: 'Payment', verified: s.payment_verified },
+                            ].map(v => (
+                              <span key={v.label} style={{
+                                fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 6,
+                                background: v.verified ? '#DCFCE7' : '#F3F4F6',
+                                color: v.verified ? '#166534' : '#9CA3AF',
+                                border: `2px solid ${v.verified ? '#22C55E' : '#E5E7EB'}`
+                              }}>
+                                {v.verified ? '✓' : '○'} {v.label}
+                              </span>
+                            ))}
                           </div>
-                        ) : (
-                          <button onClick={() => setShowReviewForm(s.player_id)}
-                            style={{ width: '100%', background: '#EBF5FF', color: '#1877F2', border: '1px solid #1877F2', borderRadius: 8, padding: '8px 0', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                            <Plus size={14} /> Add Review
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
+
+                          {/* Recent reviews */}
+                          {reviews.length > 0 && (
+                            <div style={{ marginBottom: 10 }}>
+                              <div style={{ fontSize: 11, fontWeight: 700, color: '#65676B', marginBottom: 4 }}>RECENT REVIEWS</div>
+                              {reviews.slice(0, 3).map((r, i) => (
+                                <div key={i} style={{ padding: '6px 0', borderBottom: i < 2 ? '2px solid #F0F2F5' : 'none' }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#65676B' }}>
+                                    <span>{r.reviewer_type} • {r.context || 'general'}</span>
+                                    <span>{new Date(r.created_at).toLocaleDateString()}</span>
+                                  </div>
+                                  {r.comment && <div style={{ fontSize: 13, color: '#444', marginTop: 2 }}>"{r.comment}"</div>}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Add review button */}
+                          {showReviewForm === s.player_id ? (
+                            <div style={{ background: '#F9FAFB', borderRadius: 10, padding: 12, border: '2px solid #E4E6EB' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                                <span style={{ fontSize: 13, fontWeight: 700, color: '#1C2526' }}>Add Review</span>
+                                <button onClick={() => setShowReviewForm(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={16} color="#65676B" /></button>
+                              </div>
+                              <StarRow label="Reliability" value={reviewForm.reliability} onChange={v => setReviewForm(f => ({ ...f, reliability: v }))} />
+                              <StarRow label="Sportsmanship" value={reviewForm.sportsmanship} onChange={v => setReviewForm(f => ({ ...f, sportsmanship: v }))} />
+                              <StarRow label="Etiquette" value={reviewForm.etiquette} onChange={v => setReviewForm(f => ({ ...f, etiquette: v }))} />
+                              <StarRow label="Communication" value={reviewForm.communication} onChange={v => setReviewForm(f => ({ ...f, communication: v }))} />
+                              <select value={reviewForm.context} onChange={e => setReviewForm(f => ({ ...f, context: e.target.value }))}
+                                style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '2px solid #CED0D4', marginBottom: 6, fontSize: 13 }}>
+                                <option value="cash_game">Cash Game</option>
+                                <option value="tournament">Tournament</option>
+                                <option value="home_game">Home Game</option>
+                              </select>
+                              <textarea value={reviewForm.comment} onChange={e => setReviewForm(f => ({ ...f, comment: e.target.value }))}
+                                rows={2} placeholder="Comments (optional)"
+                                style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '2px solid #CED0D4', fontSize: 13, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box', marginBottom: 8 }} />
+                              <button onClick={submitReview} disabled={submitting}
+                                style={{ width: '100%', background: '#1877F2', color: 'white', border: 'none', borderRadius: 8, padding: '10px 0', fontSize: 14, fontWeight: 700, cursor: submitting ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                                {submitting ? <Loader2 size={16} className="spin" /> : <Send size={16} />} Submit Review
+                              </button>
+                            </div>
+                          ) : (
+                            <button onClick={() => setShowReviewForm(s.player_id)}
+                              style={{ width: '100%', background: '#EBF5FF', color: '#1877F2', border: '2px solid #1877F2', borderRadius: 8, padding: '8px 0', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                              <Plus size={14} /> Add Review
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </CommanderLayout>
                 );
               })}

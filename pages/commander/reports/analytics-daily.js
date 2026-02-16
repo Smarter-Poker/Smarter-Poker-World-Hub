@@ -137,7 +137,7 @@ export default function AnalyticsDailyReport() {
           <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
             {[{ v: 7, l: '7 Days' }, { v: 14, l: '14 Days' }, { v: 30, l: '30 Days' }, { v: 90, l: '90 Days' }].map(r => (
               <button key={r.v} onClick={() => setRange(r.v)}
-                style={{ flex: 1, padding: '8px 0', border: '1px solid', borderColor: range === r.v ? '#1877F2' : '#CED0D4', borderRadius: 8, background: range === r.v ? '#EBF5FF' : 'white', color: range === r.v ? '#1877F2' : '#65676B', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                style={{ flex: 1, padding: '8px 0', border: '2px solid', borderColor: range === r.v ? '#1877F2' : '#CED0D4', borderRadius: 8, background: range === r.v ? '#EBF5FF' : 'white', color: range === r.v ? '#1877F2' : '#65676B', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
                 {r.l}
               </button>
             ))}
@@ -166,7 +166,7 @@ export default function AnalyticsDailyReport() {
                   { label: 'Waitlist Seated', val: `${totals.waitlistSeated}/${totals.waitlistEntries}`, avg: totals.waitlistEntries > 0 ? `${Math.round(totals.waitlistSeated / totals.waitlistEntries * 100)}% conv` : '', icon: TrendingUp, color: '#1877F2' },
                   { label: 'Incidents', val: totals.incidents, avg: '', icon: AlertTriangle, color: '#EF4444' },
                 ].map(c => (
-                  <div key={c.label} style={{ background: 'white', borderRadius: 10, padding: 14, border: '1px solid #E4E6EB' }}>
+                  <div key={c.label} style={{ background: 'white', borderRadius: 10, padding: 14, border: '2px solid #E4E6EB' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                       <c.icon size={14} color={c.color} />
                       <span style={{ fontSize: 12, color: '#65676B', fontWeight: 600 }}>{c.label}</span>
@@ -178,7 +178,7 @@ export default function AnalyticsDailyReport() {
               </div>
 
               {/* Sessions Trend Chart */}
-              <div style={{ background: 'white', borderRadius: 12, padding: 16, border: '1px solid #E4E6EB', marginBottom: 12 }}>
+              <div style={{ background: 'white', borderRadius: 12, padding: 16, border: '2px solid #E4E6EB', marginBottom: 12 }}>
                 <div style={{ fontWeight: 700, fontSize: 15, color: '#1C2526', marginBottom: 12 }}>Sessions Per Day</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   {[...data].sort((a, b) => a.date > b.date ? 1 : -1).slice(-14).map(d => {
@@ -200,7 +200,7 @@ export default function AnalyticsDailyReport() {
               </div>
 
               {/* Revenue Trend */}
-              <div style={{ background: 'white', borderRadius: 12, padding: 16, border: '1px solid #E4E6EB', marginBottom: 12 }}>
+              <div style={{ background: 'white', borderRadius: 12, padding: 16, border: '2px solid #E4E6EB', marginBottom: 12 }}>
                 <div style={{ fontWeight: 700, fontSize: 15, color: '#1C2526', marginBottom: 12 }}>Revenue Per Day</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   {[...data].sort((a, b) => a.date > b.date ? 1 : -1).slice(-14).map(d => {
@@ -225,7 +225,7 @@ export default function AnalyticsDailyReport() {
               </div>
 
               {/* Day-by-Day Detail */}
-              <div style={{ background: 'white', borderRadius: 12, padding: 16, border: '1px solid #E4E6EB' }}>
+              <div style={{ background: 'white', borderRadius: 12, padding: 16, border: '2px solid #E4E6EB' }}>
                 <div style={{ fontWeight: 700, fontSize: 15, color: '#1C2526', marginBottom: 12 }}>Day-by-Day Detail</div>
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
@@ -238,7 +238,7 @@ export default function AnalyticsDailyReport() {
                     </thead>
                     <tbody>
                       {[...data].sort((a, b) => a.date > b.date ? -1 : 1).map(d => (
-                        <tr key={d.date} style={{ borderBottom: '1px solid #F0F2F5' }}>
+                        <tr key={d.date} style={{ borderBottom: '2px solid #F0F2F5' }}>
                           <td style={{ padding: '8px 6px', fontWeight: 600, color: '#1C2526', whiteSpace: 'nowrap' }}>
                             {new Date(d.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                           </td>

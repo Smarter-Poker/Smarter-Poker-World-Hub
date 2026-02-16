@@ -160,15 +160,15 @@ export default function LeaguesManagement() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
                   placeholder="League Name *"
-                  style={{ padding: '10px 12px', border: '1px solid #CED0D4', borderRadius: 8, fontSize: 15 }} />
+                  style={{ padding: '10px 12px', border: '2px solid #CED0D4', borderRadius: 8, fontSize: 15 }} />
 
                 <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
                   placeholder="Description (optional)" rows={2}
-                  style={{ padding: '10px 12px', border: '1px solid #CED0D4', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', resize: 'vertical' }} />
+                  style={{ padding: '10px 12px', border: '2px solid #CED0D4', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', resize: 'vertical' }} />
 
                 <div style={{ display: 'flex', gap: 8 }}>
                   <select value={form.scoring_system} onChange={e => setForm({ ...form, scoring_system: e.target.value })}
-                    style={{ flex: 1, padding: '10px 12px', border: '1px solid #CED0D4', borderRadius: 8, fontSize: 14 }}>
+                    style={{ flex: 1, padding: '10px 12px', border: '2px solid #CED0D4', borderRadius: 8, fontSize: 14 }}>
                     <option value="points">Points System</option>
                     <option value="bounty">Bounty System</option>
                     <option value="chips">Chip Count</option>
@@ -176,25 +176,25 @@ export default function LeaguesManagement() {
                   </select>
                   <input value={form.prize_pool} onChange={e => setForm({ ...form, prize_pool: e.target.value })}
                     placeholder="Prize Pool $" type="number"
-                    style={{ flex: 1, padding: '10px 12px', border: '1px solid #CED0D4', borderRadius: 8, fontSize: 14 }} />
+                    style={{ flex: 1, padding: '10px 12px', border: '2px solid #CED0D4', borderRadius: 8, fontSize: 14 }} />
                 </div>
 
                 <div style={{ display: 'flex', gap: 8 }}>
                   <div style={{ flex: 1 }}>
                     <label style={{ fontSize: 12, color: '#65676B', fontWeight: 600 }}>Season Start</label>
                     <input type="date" value={form.season_start} onChange={e => setForm({ ...form, season_start: e.target.value })}
-                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #CED0D4', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }} />
+                      style={{ width: '100%', padding: '10px 12px', border: '2px solid #CED0D4', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }} />
                   </div>
                   <div style={{ flex: 1 }}>
                     <label style={{ fontSize: 12, color: '#65676B', fontWeight: 600 }}>Season End</label>
                     <input type="date" value={form.season_end} onChange={e => setForm({ ...form, season_end: e.target.value })}
-                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #CED0D4', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }} />
+                      style={{ width: '100%', padding: '10px 12px', border: '2px solid #CED0D4', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }} />
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
                   <button onClick={() => setShowCreate(false)}
-                    style={{ flex: 1, padding: '10px 0', border: '1px solid #CED0D4', borderRadius: 8, background: 'white', fontSize: 14, fontWeight: 600, cursor: 'pointer', color: '#65676B' }}>
+                    style={{ flex: 1, padding: '10px 0', border: '2px solid #CED0D4', borderRadius: 8, background: 'white', fontSize: 14, fontWeight: 600, cursor: 'pointer', color: '#65676B' }}>
                     Cancel
                   </button>
                   <button onClick={handleCreate} disabled={submitting}
@@ -221,7 +221,7 @@ export default function LeaguesManagement() {
                 const leagueStandings = standings[league.id] || [];
                 return (
                   <CommanderLayout title="Leagues" backHref="/commander/dashboard">
-                  <div key={league.id} style={{ background: 'white', borderRadius: 12, border: '1px solid #E4E6EB', overflow: 'hidden' }}>
+                  <div key={league.id} style={{ background: 'white', borderRadius: 12, border: '2px solid #E4E6EB', overflow: 'hidden' }}>
                     <button onClick={() => handleExpand(league.id)}
                       style={{ width: '100%', padding: '14px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left' }}>
                       <div style={{ width: 42, height: 42, borderRadius: 10, background: '#EBF5FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -241,7 +241,7 @@ export default function LeaguesManagement() {
                     </button>
 
                     {isExpanded && (
-                      <div style={{ padding: '0 14px 14px', borderTop: '1px solid #E4E6EB' }}>
+                      <div style={{ padding: '0 14px 14px', borderTop: '2px solid #E4E6EB' }}>
                         {league.description && (
                           <div style={{ fontSize: 13, color: '#444', marginTop: 10, lineHeight: 1.5 }}>{league.description}</div>
                         )}

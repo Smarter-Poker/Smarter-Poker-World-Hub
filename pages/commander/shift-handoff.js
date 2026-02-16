@@ -6,7 +6,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { ArrowRightLeft, CheckCircle2, Clock, Users, AlertTriangle,
+import {
+  ArrowRightLeft, CheckCircle2, Clock, Users, AlertTriangle,
   Loader2, Send, FileText, Star, ListChecks, MessageSquare, LayoutGrid,
   ChevronDown, ChevronUp
 } from 'lucide-react';
@@ -130,7 +131,7 @@ export default function ShiftHandoff() {
       <div style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: 'Inter, system-ui, sans-serif' }}>
         {/* Header */}
         <div style={{ background: '#1877F2', color: 'white', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-<ArrowRightLeft size={22} />
+          <ArrowRightLeft size={22} />
           <div>
             <div style={{ fontWeight: 700, fontSize: 17 }}>Shift Handoff</div>
             <div style={{ fontSize: 12, opacity: 0.85 }}>Pass floor context to incoming shift</div>
@@ -155,7 +156,7 @@ export default function ShiftHandoff() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {/* Pending alert */}
               {pendingHandoffs.length > 0 && (
-                <div style={{ background: '#FEF3C7', border: '1px solid #F59E0B', borderRadius: 10, padding: 14 }}>
+                <div style={{ background: '#FEF3C7', border: '2px solid #F59E0B', borderRadius: 10, padding: 14 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                     <AlertTriangle size={18} color="#D97706" />
                     <span style={{ fontWeight: 700, color: '#92400E', fontSize: 15 }}>Incoming Handoff Waiting</span>
@@ -188,7 +189,7 @@ export default function ShiftHandoff() {
               </button>
 
               <button onClick={() => setMode('history')}
-                style={{ background: 'white', border: '1px solid #E4E6EB', borderRadius: 12, padding: 20, display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer', textAlign: 'left' }}>
+                style={{ background: 'white', border: '2px solid #E4E6EB', borderRadius: 12, padding: 20, display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer', textAlign: 'left' }}>
                 <div style={{ width: 48, height: 48, borderRadius: 12, background: '#F0F2F5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <FileText size={22} color="#65676B" />
                 </div>
@@ -203,59 +204,59 @@ export default function ShiftHandoff() {
           {/* Create Mode */}
           {mode === 'create' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={{ background: 'white', borderRadius: 12, padding: 16, border: '1px solid #E4E6EB' }}>
+              <div style={{ background: 'white', borderRadius: 12, padding: 16, border: '2px solid #E4E6EB' }}>
                 <div style={{ fontWeight: 700, fontSize: 15, color: '#1C2526', marginBottom: 4 }}>Outgoing Floor: {staff?.name || staff?.display_name || 'Staff'}</div>
                 <div style={{ fontSize: 13, color: '#65676B' }}>{new Date().toLocaleString()}</div>
               </div>
 
               {/* Incoming staff (optional) */}
-              <div style={{ background: 'white', borderRadius: 12, padding: 16, border: '1px solid #E4E6EB' }}>
+              <div style={{ background: 'white', borderRadius: 12, padding: 16, border: '2px solid #E4E6EB' }}>
                 <label style={{ fontWeight: 600, fontSize: 14, color: '#1C2526', display: 'block', marginBottom: 6 }}>
                   <Users size={15} style={{ display: 'inline', verticalAlign: -2 }} /> Incoming Staff Name (optional)
                 </label>
                 <input value={incomingName} onChange={e => setIncomingName(e.target.value)}
                   placeholder="Who's taking over?"
-                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #CED0D4', borderRadius: 8, fontSize: 15, boxSizing: 'border-box' }} />
+                  style={{ width: '100%', padding: '10px 12px', border: '2px solid #CED0D4', borderRadius: 8, fontSize: 15, boxSizing: 'border-box' }} />
               </div>
 
               {/* General notes */}
-              <div style={{ background: 'white', borderRadius: 12, padding: 16, border: '1px solid #E4E6EB' }}>
+              <div style={{ background: 'white', borderRadius: 12, padding: 16, border: '2px solid #E4E6EB' }}>
                 <label style={{ fontWeight: 600, fontSize: 14, color: '#1C2526', display: 'block', marginBottom: 6 }}>
                   <MessageSquare size={15} style={{ display: 'inline', verticalAlign: -2 }} /> Floor Notes *
                 </label>
                 <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={4}
                   placeholder="General floor state — how the room is running, player mood, game quality, upcoming events..."
-                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #CED0D4', borderRadius: 8, fontSize: 14, resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                  style={{ width: '100%', padding: '10px 12px', border: '2px solid #CED0D4', borderRadius: 8, fontSize: 14, resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit' }} />
               </div>
 
               {/* Active issues */}
-              <div style={{ background: 'white', borderRadius: 12, padding: 16, border: '1px solid #E4E6EB' }}>
+              <div style={{ background: 'white', borderRadius: 12, padding: 16, border: '2px solid #E4E6EB' }}>
                 <label style={{ fontWeight: 600, fontSize: 14, color: '#EF4444', display: 'block', marginBottom: 6 }}>
                   <AlertTriangle size={15} style={{ display: 'inline', verticalAlign: -2 }} /> Active Issues
                 </label>
                 <textarea value={issues} onChange={e => setIssues(e.target.value)} rows={3}
                   placeholder="Player disputes, equipment problems, short-staffed, anything needing attention..."
-                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #CED0D4', borderRadius: 8, fontSize: 14, resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                  style={{ width: '100%', padding: '10px 12px', border: '2px solid #CED0D4', borderRadius: 8, fontSize: 14, resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit' }} />
               </div>
 
               {/* VIP alerts */}
-              <div style={{ background: 'white', borderRadius: 12, padding: 16, border: '1px solid #E4E6EB' }}>
+              <div style={{ background: 'white', borderRadius: 12, padding: 16, border: '2px solid #E4E6EB' }}>
                 <label style={{ fontWeight: 600, fontSize: 14, color: '#F59E0B', display: 'block', marginBottom: 6 }}>
                   <Star size={15} style={{ display: 'inline', verticalAlign: -2 }} /> VIP / Player Alerts
                 </label>
                 <textarea value={vipAlerts} onChange={e => setVipAlerts(e.target.value)} rows={2}
                   placeholder="VIPs in the room, player to watch, high rollers expected..."
-                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #CED0D4', borderRadius: 8, fontSize: 14, resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                  style={{ width: '100%', padding: '10px 12px', border: '2px solid #CED0D4', borderRadius: 8, fontSize: 14, resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit' }} />
               </div>
 
               {/* Pending actions */}
-              <div style={{ background: 'white', borderRadius: 12, padding: 16, border: '1px solid #E4E6EB' }}>
+              <div style={{ background: 'white', borderRadius: 12, padding: 16, border: '2px solid #E4E6EB' }}>
                 <label style={{ fontWeight: 600, fontSize: 14, color: '#1877F2', display: 'block', marginBottom: 6 }}>
                   <ListChecks size={15} style={{ display: 'inline', verticalAlign: -2 }} /> Pending Actions
                 </label>
                 <textarea value={pendingActions} onChange={e => setPendingActions(e.target.value)} rows={2}
                   placeholder="Table changes planned, games to open/close, promotions to run..."
-                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #CED0D4', borderRadius: 8, fontSize: 14, resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                  style={{ width: '100%', padding: '10px 12px', border: '2px solid #CED0D4', borderRadius: 8, fontSize: 14, resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit' }} />
               </div>
 
               <button onClick={handleSubmit} disabled={submitting}
@@ -282,105 +283,105 @@ export default function ShiftHandoff() {
                 const tables = h.table_snapshot || [];
                 return (
                   <CommanderLayout title="Shift Handoff" backHref="/commander/dashboard">
-                  <div key={h.id} style={{ background: 'white', borderRadius: 12, border: h.status === 'pending' ? '2px solid #F59E0B' : '1px solid #E4E6EB', overflow: 'hidden' }}>
-                    {/* Header */}
-                    <button onClick={() => setExpandedId(isExpanded ? null : h.id)}
-                      style={{ width: '100%', padding: '12px 14px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left' }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 8, background: h.status === 'acknowledged' ? '#DEF7EC' : '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        {h.status === 'acknowledged' ? <CheckCircle2 size={18} color="#03543F" /> : <Clock size={18} color="#D97706" />}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 700, fontSize: 14, color: '#1C2526' }}>
-                          {h.outgoing_staff_name} {h.incoming_staff_name ? ` → ${h.incoming_staff_name}` : ''}
+                    <div key={h.id} style={{ background: 'white', borderRadius: 12, border: h.status === 'pending' ? '2px solid #F59E0B' : '2px solid #E4E6EB', overflow: 'hidden' }}>
+                      {/* Header */}
+                      <button onClick={() => setExpandedId(isExpanded ? null : h.id)}
+                        style={{ width: '100%', padding: '12px 14px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left' }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 8, background: h.status === 'acknowledged' ? '#DEF7EC' : '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          {h.status === 'acknowledged' ? <CheckCircle2 size={18} color="#03543F" /> : <Clock size={18} color="#D97706" />}
                         </div>
-                        <div style={{ fontSize: 12, color: '#65676B' }}>{formatTime(h.handoff_time)}</div>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 6, background: h.status === 'acknowledged' ? '#DEF7EC' : '#FEF3C7', color: h.status === 'acknowledged' ? '#03543F' : '#92400E' }}>
-                          {h.status === 'acknowledged' ? 'ACK' : 'PENDING'}
-                        </span>
-                        {isExpanded ? <ChevronUp size={16} color="#65676B" /> : <ChevronDown size={16} color="#65676B" />}
-                      </div>
-                    </button>
-
-                    {isExpanded && (
-                      <div style={{ padding: '0 14px 14px', borderTop: '1px solid #E4E6EB' }}>
-                        {/* Floor snapshot */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginTop: 12 }}>
-                          {[
-                            { label: 'Tables', val: h.open_tables_count, icon: LayoutGrid, color: '#1877F2' },
-                            { label: 'Players', val: h.active_players_count, icon: Users, color: '#31A24C' },
-                            { label: 'Waiting', val: h.waitlist_count, icon: Clock, color: '#F59E0B' },
-                            { label: 'Incidents', val: h.open_incidents_count, icon: AlertTriangle, color: '#EF4444' },
-                          ].map(s => (
-                            <div key={s.label} style={{ textAlign: 'center', padding: 8, background: '#F9FAFB', borderRadius: 8 }}>
-                              <s.icon size={16} color={s.color} style={{ margin: '0 auto 2px' }} />
-                              <div style={{ fontSize: 18, fontWeight: 800, color: '#1C2526' }}>{s.val}</div>
-                              <div style={{ fontSize: 10, color: '#65676B' }}>{s.label}</div>
-                            </div>
-                          ))}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 700, fontSize: 14, color: '#1C2526' }}>
+                            {h.outgoing_staff_name} {h.incoming_staff_name ? ` → ${h.incoming_staff_name}` : ''}
+                          </div>
+                          <div style={{ fontSize: 12, color: '#65676B' }}>{formatTime(h.handoff_time)}</div>
                         </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 6, background: h.status === 'acknowledged' ? '#DEF7EC' : '#FEF3C7', color: h.status === 'acknowledged' ? '#03543F' : '#92400E' }}>
+                            {h.status === 'acknowledged' ? 'ACK' : 'PENDING'}
+                          </span>
+                          {isExpanded ? <ChevronUp size={16} color="#65676B" /> : <ChevronDown size={16} color="#65676B" />}
+                        </div>
+                      </button>
 
-                        {/* Table detail */}
-                        {tables.length > 0 && (
-                          <div style={{ marginTop: 12 }}>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: '#65676B', marginBottom: 6 }}>TABLE SNAPSHOT</div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                              {tables.map((t, i) => (
-                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', background: '#F9FAFB', borderRadius: 6, fontSize: 13 }}>
-                                  <span style={{ fontWeight: 700, color: '#1877F2', minWidth: 24 }}>T{t.table_number}</span>
-                                  <span style={{ flex: 1, color: '#444' }}>{t.game}</span>
-                                  <span style={{ fontWeight: 600, color: t.players >= t.max_seats ? '#EF4444' : '#31A24C' }}>
-                                    {t.players}/{t.max_seats}
-                                  </span>
-                                </div>
-                              ))}
+                      {isExpanded && (
+                        <div style={{ padding: '0 14px 14px', borderTop: '2px solid #E4E6EB' }}>
+                          {/* Floor snapshot */}
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginTop: 12 }}>
+                            {[
+                              { label: 'Tables', val: h.open_tables_count, icon: LayoutGrid, color: '#1877F2' },
+                              { label: 'Players', val: h.active_players_count, icon: Users, color: '#31A24C' },
+                              { label: 'Waiting', val: h.waitlist_count, icon: Clock, color: '#F59E0B' },
+                              { label: 'Incidents', val: h.open_incidents_count, icon: AlertTriangle, color: '#EF4444' },
+                            ].map(s => (
+                              <div key={s.label} style={{ textAlign: 'center', padding: 8, background: '#F9FAFB', borderRadius: 8 }}>
+                                <s.icon size={16} color={s.color} style={{ margin: '0 auto 2px' }} />
+                                <div style={{ fontSize: 18, fontWeight: 800, color: '#1C2526' }}>{s.val}</div>
+                                <div style={{ fontSize: 10, color: '#65676B' }}>{s.label}</div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Table detail */}
+                          {tables.length > 0 && (
+                            <div style={{ marginTop: 12 }}>
+                              <div style={{ fontSize: 12, fontWeight: 700, color: '#65676B', marginBottom: 6 }}>TABLE SNAPSHOT</div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                {tables.map((t, i) => (
+                                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', background: '#F9FAFB', borderRadius: 6, fontSize: 13 }}>
+                                    <span style={{ fontWeight: 700, color: '#1877F2', minWidth: 24 }}>T{t.table_number}</span>
+                                    <span style={{ flex: 1, color: '#444' }}>{t.game}</span>
+                                    <span style={{ fontWeight: 600, color: t.players >= t.max_seats ? '#EF4444' : '#31A24C' }}>
+                                      {t.players}/{t.max_seats}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          )}
 
-                        {/* Notes sections */}
-                        {h.notes && (
-                          <div style={{ marginTop: 12 }}>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: '#65676B', marginBottom: 4 }}>FLOOR NOTES</div>
-                            <div style={{ fontSize: 14, color: '#1C2526', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{h.notes}</div>
-                          </div>
-                        )}
-                        {h.issues && (
-                          <div style={{ marginTop: 12 }}>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: '#EF4444', marginBottom: 4 }}>ACTIVE ISSUES</div>
-                            <div style={{ fontSize: 14, color: '#1C2526', whiteSpace: 'pre-wrap', lineHeight: 1.5, background: '#FEF2F2', padding: 10, borderRadius: 8 }}>{h.issues}</div>
-                          </div>
-                        )}
-                        {h.vip_alerts && (
-                          <div style={{ marginTop: 12 }}>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: '#F59E0B', marginBottom: 4 }}>VIP / PLAYER ALERTS</div>
-                            <div style={{ fontSize: 14, color: '#1C2526', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{h.vip_alerts}</div>
-                          </div>
-                        )}
-                        {h.pending_actions && (
-                          <div style={{ marginTop: 12 }}>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: '#1877F2', marginBottom: 4 }}>PENDING ACTIONS</div>
-                            <div style={{ fontSize: 14, color: '#1C2526', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{h.pending_actions}</div>
-                          </div>
-                        )}
+                          {/* Notes sections */}
+                          {h.notes && (
+                            <div style={{ marginTop: 12 }}>
+                              <div style={{ fontSize: 12, fontWeight: 700, color: '#65676B', marginBottom: 4 }}>FLOOR NOTES</div>
+                              <div style={{ fontSize: 14, color: '#1C2526', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{h.notes}</div>
+                            </div>
+                          )}
+                          {h.issues && (
+                            <div style={{ marginTop: 12 }}>
+                              <div style={{ fontSize: 12, fontWeight: 700, color: '#EF4444', marginBottom: 4 }}>ACTIVE ISSUES</div>
+                              <div style={{ fontSize: 14, color: '#1C2526', whiteSpace: 'pre-wrap', lineHeight: 1.5, background: '#FEF2F2', padding: 10, borderRadius: 8 }}>{h.issues}</div>
+                            </div>
+                          )}
+                          {h.vip_alerts && (
+                            <div style={{ marginTop: 12 }}>
+                              <div style={{ fontSize: 12, fontWeight: 700, color: '#F59E0B', marginBottom: 4 }}>VIP / PLAYER ALERTS</div>
+                              <div style={{ fontSize: 14, color: '#1C2526', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{h.vip_alerts}</div>
+                            </div>
+                          )}
+                          {h.pending_actions && (
+                            <div style={{ marginTop: 12 }}>
+                              <div style={{ fontSize: 12, fontWeight: 700, color: '#1877F2', marginBottom: 4 }}>PENDING ACTIONS</div>
+                              <div style={{ fontSize: 14, color: '#1C2526', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{h.pending_actions}</div>
+                            </div>
+                          )}
 
-                        {/* Acknowledge button */}
-                        {h.status === 'pending' && (
-                          <button onClick={() => handleAcknowledge(h.id)}
-                            style={{ marginTop: 14, width: '100%', background: '#31A24C', color: 'white', border: 'none', borderRadius: 8, padding: '12px 0', fontSize: 15, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                            <CheckCircle2 size={18} /> Acknowledge Handoff
-                          </button>
-                        )}
+                          {/* Acknowledge button */}
+                          {h.status === 'pending' && (
+                            <button onClick={() => handleAcknowledge(h.id)}
+                              style={{ marginTop: 14, width: '100%', background: '#31A24C', color: 'white', border: 'none', borderRadius: 8, padding: '12px 0', fontSize: 15, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                              <CheckCircle2 size={18} /> Acknowledge Handoff
+                            </button>
+                          )}
 
-                        {h.acknowledged_at && (
-                          <div style={{ marginTop: 10, fontSize: 12, color: '#31A24C', fontWeight: 600, textAlign: 'center' }}>
-                            Acknowledged by {h.incoming_staff_name} at {formatTime(h.acknowledged_at)}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                          {h.acknowledged_at && (
+                            <div style={{ marginTop: 10, fontSize: 12, color: '#31A24C', fontWeight: 600, textAlign: 'center' }}>
+                              Acknowledged by {h.incoming_staff_name} at {formatTime(h.acknowledged_at)}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </CommanderLayout>
                 );
               })}

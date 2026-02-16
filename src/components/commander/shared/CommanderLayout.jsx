@@ -360,7 +360,7 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
           font-weight: 600;
           color: #22D3EE;
           background: rgba(34,211,238,0.08);
-          border: 1px solid rgba(34,211,238,0.15);
+          border: 2px solid rgba(34,211,238,0.2);
           text-align: center;
           letter-spacing: 0.5px;
           text-transform: uppercase;
@@ -484,7 +484,7 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
               position: 'relative', background: 'linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%)',
               borderRadius: 16, width: '90%', maxWidth: 400, padding: 28,
               boxShadow: '0 12px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1)',
-              border: '1px solid rgba(255,255,255,0.08)'
+              border: '2px solid rgba(255,255,255,0.12)'
             }}>
               <div style={{ width: 56, height: 56, borderRadius: 14, background: 'linear-gradient(135deg, #F59E0B, #EF4444)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
                 <Crown size={28} color="#fff" />
@@ -516,7 +516,7 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
                 <button
                   onClick={() => setShowUpgradeModal(null)}
                   style={{
-                    padding: '10px 20px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)',
+                    padding: '10px 20px', borderRadius: 10, border: '2px solid rgba(255,255,255,0.15)',
                     background: 'transparent', color: '#888',
                     fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'Inter, sans-serif'
                   }}
@@ -536,7 +536,7 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
               position: 'relative', background: 'linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%)',
               borderRadius: 16, width: '90%', maxWidth: 440, padding: 28,
               boxShadow: '0 12px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1)',
-              border: '1px solid rgba(255,255,255,0.08)'
+              border: '2px solid rgba(255,255,255,0.12)'
             }}>
               {/* Header icon */}
               <div style={{ width: 56, height: 56, borderRadius: 14, background: 'linear-gradient(135deg, #1877F2, #42B72A)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
@@ -558,7 +558,7 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
                   boxShadow: '0 4px 16px rgba(24,119,242,0.4)'
                 }}>Create Club Page</button>
                 <button onClick={dismissClubPagePopup} style={{
-                  padding: '10px 20px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)',
+                  padding: '10px 20px', borderRadius: 10, border: '2px solid rgba(255,255,255,0.15)',
                   background: 'transparent', color: '#888',
                   fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'Inter, sans-serif'
                 }}>Remind Me Later</button>

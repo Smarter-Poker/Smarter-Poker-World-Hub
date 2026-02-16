@@ -154,7 +154,7 @@ function QRScannerModal({ onScan, onClose }) {
 
       {error ? (
         <div style={{
-          background: '#3A1010', border: '1px solid #EF4444', borderRadius: '12px',
+          background: '#3A1010', border: '2px solid #EF4444', borderRadius: '12px',
           padding: '20px', color: '#EF4444', maxWidth: '400px', textAlign: 'center'
         }}>
           <p>{error}</p>
@@ -199,7 +199,7 @@ function QRScannerModal({ onScan, onClose }) {
 
       <button onClick={onClose} style={{
         marginTop: '24px', padding: '12px 32px', background: 'transparent',
-        color: '#B0B3B8', border: '1px solid #3A3B3C', borderRadius: '10px',
+        color: '#B0B3B8', border: '2px solid #3A3B3C', borderRadius: '10px',
         cursor: 'pointer', fontWeight: 600, fontSize: '16px'
       }}>Cancel</button>
     </div>
@@ -217,28 +217,25 @@ export default function PlayerTableDisplay() {
   const [scanStatus, setScanStatus] = useState(null); // { type: 'success'|'error', message }
   const wakeLockRef = useRef(null);
 
-  // Fetch sessions + current dealer
+  // Fetch all tablet data (table info, sessions, dealer) in one call
   useEffect(() => {
     if (!tableNumber) return;
     const fetchData = async () => {
       try {
-        const [sessionsRes, tableRes, dealerRes] = await Promise.all([
-          fetch(`/api/commander/dealer/sessions?table=${tableNumber}`),
-          fetch(`/api/commander/tables/${tableNumber}`),
-          fetch(`/api/commander/dealer/current?table=${tableNumber}`)
-        ]);
-        const sessionsJson = await sessionsRes.json();
-        const tableJson = await tableRes.json();
-        const dealerJson = await dealerRes.json();
-        if (sessionsJson.success) setPlayers(sessionsJson.data || []);
-        if (tableJson.success) setTable(tableJson.data);
-        if (dealerJson.success) setDealer(dealerJson.data?.dealer || null);
+        const venueParam = table?.venue_id ? `&venue_id=${table.venue_id}` : '';
+        const res = await fetch(`/api/commander/dealer/tablet-data?table=${tableNumber}${venueParam}`);
+        const json = await res.json();
+        if (json.success) {
+          setPlayers(json.data.players || []);
+          setTable(json.data.table || null);
+          setDealer(json.data.dealer || null);
+        }
       } catch (err) { console.error(err); }
     };
     fetchData();
     const poll = setInterval(fetchData, 3000);
     return () => clearInterval(poll);
-  }, [tableNumber]);
+  }, [tableNumber, table?.venue_id]);
 
   // Local countdown ticker
   useEffect(() => {
@@ -399,7 +396,7 @@ export default function PlayerTableDisplay() {
             position: 'absolute', top: '120px', left: '50%', transform: 'translateX(-50%)',
             padding: '12px 24px', borderRadius: '12px', zIndex: 100,
             background: scanStatus.type === 'success' ? '#1a3a1a' : scanStatus.type === 'error' ? '#3a1a1a' : '#1a1a3a',
-            border: `1px solid ${scanStatus.type === 'success' ? '#31A24C' : scanStatus.type === 'error' ? '#EF4444' : '#22D3EE'}`,
+            border: `2px solid ${scanStatus.type === 'success' ? '#31A24C' : scanStatus.type === 'error' ? '#EF4444' : '#22D3EE'}`,
             color: '#fff', fontWeight: 600, fontSize: '14px',
             animation: 'fadeIn 0.3s ease', whiteSpace: 'nowrap',
             boxShadow: '0 4px 20px rgba(0,0,0,0.5)'
@@ -484,7 +481,7 @@ export default function PlayerTableDisplay() {
                   return (
                     <div key={p.session_id || p.seat_number}
                       className={`flex items-center gap-2 px-4 py-2 rounded-xl ${isExpired ? 'expired-pulse' : ''}`}
-                      style={{ backgroundColor: `${color}10`, border: `1px solid ${color}30` }}>
+                      style={{ backgroundColor: `${color}10`, border: `2px solid ${color}30` }}>
                       <span className="text-xs text-white/50">S{p.seat_number}</span>
                       <span className="text-sm font-medium text-white">{p.player_name?.split(' ')[0]}</span>
                       <span className="text-lg font-mono font-bold" style={{ color }}>
