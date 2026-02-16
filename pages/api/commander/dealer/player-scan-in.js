@@ -60,7 +60,20 @@ export default async function handler(req, res) {
         }
 
         // ── 2. Get venue settings to determine mode ──
-        const resolvedVenueId = venue_id || member.venue_id;
+        // Priority: explicit venue_id > table's venue_id > member's venue_id
+        let resolvedVenueId = venue_id || null;
+
+        // Always look up the table's venue to ensure session venue_id matches tablet queries
+        if (!resolvedVenueId) {
+            const { data: tableInfo } = await supabase
+                .from('commander_tables')
+                .select('venue_id')
+                .eq('table_number', tableNum)
+                .limit(1)
+                .maybeSingle();
+            resolvedVenueId = tableInfo?.venue_id || member.venue_id;
+        }
+
         let venueType = 'texas'; // default
 
         if (resolvedVenueId) {
