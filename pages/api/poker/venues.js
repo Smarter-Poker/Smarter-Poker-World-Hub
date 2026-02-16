@@ -277,6 +277,7 @@ export default async function handler(req, res) {
                         const unlinkedPages = socialPages.filter(sp => !sp.linked_venue_id);
 
                         // --- Enrich JSON venues that have a linked social page ---
+                        const missedLinkedPages = []; // Pages whose linked_venue_id is NOT in JSON
                         for (const sp of linkedPages) {
                             const jsonVenue = venues.find(v => String(v.id) === String(sp.linked_venue_id));
                             if (jsonVenue) {
@@ -303,9 +304,50 @@ export default async function handler(req, res) {
                                     jsonVenue.games_offered = [...new Set([...(jsonVenue.games_offered || []), ...schedGames])];
                                 }
                             } else {
-                                // Linked venue not in JSON dataset — treat as standalone entry
-                                unlinkedPages.push(sp);
+                                // Linked venue not in JSON dataset — try Supabase poker_venues
+                                missedLinkedPages.push(sp);
                             }
+                        }
+
+                        // --- Look up Supabase poker_venues for linked pages not in JSON ---
+                        let supabaseVenuesByIdMap = {};
+                        if (missedLinkedPages.length > 0) {
+                            try {
+                                const missedIds = [...new Set(missedLinkedPages.map(sp => sp.linked_venue_id))];
+                                const { data: pvRows } = await supabase
+                                    .from('poker_venues')
+                                    .select('id, games_offered, stakes_cash, trust_score, is_featured, has_tournaments, hours_weekday, hours_weekend, poker_tables')
+                                    .in('id', missedIds)
+                                    .eq('is_active', true);
+                                if (pvRows) {
+                                    for (const pv of pvRows) supabaseVenuesByIdMap[pv.id] = pv;
+                                }
+                            } catch (pvErr) {
+                                console.warn('[venues] poker_venues lookup for missed linked pages failed (non-fatal):', pvErr.message);
+                            }
+                        }
+
+                        for (const sp of missedLinkedPages) {
+                            const pv = supabaseVenuesByIdMap[sp.linked_venue_id];
+                            const geocoded = (sp.metadata && sp.metadata.geocoded_locations) || {};
+                            const schedule = (sp.metadata && sp.metadata.run_schedule) || {};
+                            const hasTourneys = pageHasTournaments(sp) || (pv ? pv.has_tournaments : false);
+                            const schedGames = extractGames(schedule);
+                            const pvGames = pv ? (pv.games_offered || []) : [];
+                            const allGames = [...new Set([...schedGames, ...pvGames])];
+                            const primaryLocStr = sp.location_city + (sp.location_state ? ', ' + sp.location_state : '');
+                            const primaryCoords = geocoded[primaryLocStr] || geocoded[sp.location_city] || null;
+
+                            unlinkedPages.push({
+                                ...sp,
+                                _enrichedFromPokerVenue: pv || null,
+                                _resolvedGames: allGames,
+                                _resolvedTrustScore: pv ? pv.trust_score : null,
+                                _resolvedIsFeatured: pv ? pv.is_featured : false,
+                                _resolvedHasTournaments: hasTourneys,
+                                _resolvedLatitude: primaryCoords ? primaryCoords.lat : null,
+                                _resolvedLongitude: primaryCoords ? primaryCoords.lng : null,
+                            });
                         }
 
                         // --- Map unlinked pages into venue entries ---
@@ -313,12 +355,22 @@ export default async function handler(req, res) {
                         for (const sp of unlinkedPages) {
                             const geocoded = (sp.metadata && sp.metadata.geocoded_locations) || {};
                             const schedule = (sp.metadata && sp.metadata.run_schedule) || {};
-                            const hasTourneys = pageHasTournaments(sp);
-                            const allGames = extractGames(schedule);
+                            const hasTourneys = sp._resolvedHasTournaments != null ? sp._resolvedHasTournaments : pageHasTournaments(sp);
+                            const schedGames = sp._resolvedGames || extractGames(schedule);
 
-                            // Determine primary lat/lng from geocoded_locations
-                            const primaryLocStr = sp.location_city + (sp.location_state ? ', ' + sp.location_state : '');
-                            const primaryCoords = geocoded[primaryLocStr] || geocoded[sp.location_city] || null;
+                            // Determine primary lat/lng from geocoded_locations (or pre-resolved)
+                            let primaryLat = sp._resolvedLatitude || null;
+                            let primaryLng = sp._resolvedLongitude || null;
+                            if (!primaryLat && !primaryLng) {
+                                const primaryLocStr = sp.location_city + (sp.location_state ? ', ' + sp.location_state : '');
+                                const primaryCoords = geocoded[primaryLocStr] || geocoded[sp.location_city] || null;
+                                primaryLat = primaryCoords ? primaryCoords.lat : null;
+                                primaryLng = primaryCoords ? primaryCoords.lng : null;
+                            }
+
+                            // Use enriched data when available from poker_venues lookup
+                            const trustScore = sp._resolvedTrustScore || null;
+                            const isFeatured = sp._resolvedIsFeatured || false;
 
                             // For charities: create one entry per unique geocoded schedule location
                             if (sp.page_type === 'charity' && Object.keys(schedule).length > 0) {
@@ -339,7 +391,7 @@ export default async function handler(req, res) {
                                         venue_type: 'charity',
                                         profile_photo_url: sp.avatar_url,
                                         about: sp.description,
-                                        trust_score: null,
+                                        trust_score: trustScore,
                                         is_social_page: true,
                                         social_page_id: sp.id,
                                         follower_count: sp.follower_count || 0,
@@ -347,7 +399,7 @@ export default async function handler(req, res) {
                                         longitude: coords ? coords.lng : null,
                                         games_offered: dayData.games || [],
                                         has_tournaments: hasTourneys,
-                                        is_featured: false,
+                                        is_featured: isFeatured,
                                         schedule_location: locKey,
                                         schedule_day: dayKey,
                                         is_today: dayKey === todayKey,
@@ -363,15 +415,15 @@ export default async function handler(req, res) {
                                         venue_type: 'charity',
                                         profile_photo_url: sp.avatar_url,
                                         about: sp.description,
-                                        trust_score: null,
+                                        trust_score: trustScore,
                                         is_social_page: true,
                                         social_page_id: sp.id,
                                         follower_count: sp.follower_count || 0,
-                                        latitude: primaryCoords ? primaryCoords.lat : null,
-                                        longitude: primaryCoords ? primaryCoords.lng : null,
-                                        games_offered: allGames,
+                                        latitude: primaryLat,
+                                        longitude: primaryLng,
+                                        games_offered: schedGames,
                                         has_tournaments: hasTourneys,
-                                        is_featured: false,
+                                        is_featured: isFeatured,
                                     });
                                 }
                             } else {
@@ -384,15 +436,15 @@ export default async function handler(req, res) {
                                     venue_type: sp.page_type === 'club' ? 'poker_club' : sp.page_type,
                                     profile_photo_url: sp.avatar_url || (sp.metadata && sp.metadata.logo_url) || null,
                                     about: sp.description,
-                                    trust_score: null,
+                                    trust_score: trustScore,
                                     is_social_page: true,
                                     social_page_id: sp.id,
                                     follower_count: sp.follower_count || 0,
-                                    latitude: primaryCoords ? primaryCoords.lat : null,
-                                    longitude: primaryCoords ? primaryCoords.lng : null,
-                                    games_offered: allGames,
+                                    latitude: primaryLat,
+                                    longitude: primaryLng,
+                                    games_offered: schedGames,
                                     has_tournaments: hasTourneys,
-                                    is_featured: false,
+                                    is_featured: isFeatured,
                                 });
                             }
                         }
