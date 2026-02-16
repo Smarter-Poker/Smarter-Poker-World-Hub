@@ -66,6 +66,46 @@ export default async function handler(req, res) {
                 waitlist_count: allSeats.filter(s => s.game_id === g.id && s.status === 'waitlist').length,
             }));
 
+            // If no club_live_games, bridge from Commander games via linked_venue_id
+            if (enriched.length === 0) {
+                console.log('[games-api] No club_live_games found, trying Commander fallback for page_id:', page_id);
+                const { data: pageData, error: pageErr } = await supabase
+                    .from('social_pages')
+                    .select('linked_venue_id, metadata')
+                    .eq('id', page_id)
+                    .single();
+
+                console.log('[games-api] social_pages lookup:', { pageData, pageErr: pageErr?.message });
+                const venueId = pageData?.linked_venue_id || pageData?.metadata?.linked_venue_id;
+                console.log('[games-api] resolved venueId:', venueId);
+                if (venueId) {
+                    const { data: cmdGames, error: cmdErr } = await supabase
+                        .from('commander_games')
+                        .select('id, game_type, stakes, current_players, max_players, status, started_at')
+                        .eq('venue_id', venueId)
+                        .in('status', ['running', 'waiting'])
+                        .order('started_at', { ascending: false });
+                    console.log('[games-api] commander_games result:', { count: cmdGames?.length, cmdErr: cmdErr?.message });
+
+                    if (cmdGames && cmdGames.length > 0) {
+                        const mapped = cmdGames.map(g => ({
+                            id: g.id,
+                            game_name: `${(g.game_type || 'NLH').toUpperCase()} ${g.stakes || ''}`.trim(),
+                            game_type: g.game_type || 'NLH',
+                            stakes: g.stakes || '',
+                            max_seats: g.max_players || 9,
+                            status: g.status === 'running' ? 'running' : 'open',
+                            started_at: g.started_at,
+                            source: 'commander',
+                            seats: [],
+                            seated_count: g.current_players || 0,
+                            waitlist_count: 0,
+                        }));
+                        return res.status(200).json({ success: true, data: mapped, source: 'commander' });
+                    }
+                }
+            }
+
             return res.status(200).json({ success: true, data: enriched });
         }
 
