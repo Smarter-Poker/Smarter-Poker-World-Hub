@@ -1802,6 +1802,7 @@ const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'
 const DAY_LABELS = { monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 'Thu', friday: 'Fri', saturday: 'Sat', sunday: 'Sun' };
 
 function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive }) {
+    const router = useRouter();
     const [activeTab, setActiveTab] = useState('posts');
     const [posts, setPosts] = useState([]);
     const [loadingPosts, setLoadingPosts] = useState(true);
@@ -2026,7 +2027,38 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                 body: JSON.stringify({ id: page.id, owner_id: userId, metadata: merged }),
             });
             const json = await res.json();
-            if (json.success && json.data) { onPageUpdated(json.data); setMetaSaved(label || 'Saved!'); setTimeout(() => setMetaSaved(''), 2000); }
+            if (json.success && json.data) {
+                onPageUpdated(json.data);
+                setMetaSaved(label || 'Saved!');
+                setTimeout(() => setMetaSaved(''), 2000);
+
+                // Auto-geocode locations in background (fire-and-forget)
+                try {
+                    const locations = [];
+                    if (json.data.location_city) {
+                        locations.push(json.data.location_city + (json.data.location_state ? ', ' + json.data.location_state : ''));
+                    }
+                    const sched = merged.run_schedule || newMeta.run_schedule;
+                    if (sched) {
+                        Object.values(sched).forEach(day => {
+                            if (day && day.open && day.location && day.location.trim()) {
+                                locations.push(day.location.trim());
+                            }
+                        });
+                    }
+                    const existing = merged.geocoded_locations || {};
+                    const unique = [...new Set(locations)].filter(loc => !existing[loc]);
+                    if (unique.length > 0) {
+                        fetch('/api/social/geocode-locations', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ page_id: page.id, locations: unique }),
+                        }).catch(() => { });
+                    }
+                } catch (geoErr) {
+                    console.warn('[ClubPage] Background geocoding failed:', geoErr);
+                }
+            }
         } catch (e) { console.error('Meta save error:', e); setMetaSaved('Error saving'); }
         setMetaSaving(false);
     };

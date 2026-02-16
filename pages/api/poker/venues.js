@@ -186,6 +186,55 @@ export default async function handler(req, res) {
             // --- Venue listing: use JSON (complete 483-venue dataset) ---
             venues = applyFilters(getJsonVenues(), { state, city, type, tournaments, search, featured });
             venues.sort((a, b) => (b.trust_score || 0) - (a.trust_score || 0));
+
+            // --- Merge public social pages (clubs, charities, home games) ---
+            // Only include pages NOT linked to an existing poker_venue (no duplicates)
+            try {
+                let spQuery = supabase
+                    .from('social_pages')
+                    .select('id, name, description, avatar_url, page_type, location_city, location_state, follower_count, metadata')
+                    .eq('is_public', true)
+                    .is('linked_venue_id', null)
+                    .not('location_city', 'is', null);
+
+                // Apply matching filters to social pages query
+                if (state) spQuery = spQuery.ilike('location_state', state);
+                if (city) spQuery = spQuery.ilike('location_city', `%${city}%`);
+                if (type && ['club', 'charity', 'home_game'].includes(type)) {
+                    spQuery = spQuery.eq('page_type', type);
+                } else if (type && !['club', 'charity', 'home_game'].includes(type)) {
+                    // Type filter is for a poker_venues-only type (e.g. 'casino'), skip social pages
+                    spQuery = null;
+                }
+                if (search) spQuery = spQuery?.ilike('name', `%${search}%`);
+
+                if (spQuery) {
+                    const { data: socialPages } = await spQuery.limit(200);
+                    if (socialPages && socialPages.length > 0) {
+                        const mappedPages = socialPages.map(sp => ({
+                            id: `sp-${sp.id}`,
+                            name: sp.name,
+                            city: sp.location_city,
+                            state: sp.location_state,
+                            venue_type: sp.page_type === 'club' ? 'poker_club' : sp.page_type,
+                            profile_photo_url: sp.avatar_url,
+                            about: sp.description,
+                            trust_score: null,
+                            is_social_page: true,
+                            social_page_id: sp.id,
+                            follower_count: sp.follower_count || 0,
+                            latitude: null,
+                            longitude: null,
+                            games_offered: [],
+                            has_tournaments: false,
+                            is_featured: false,
+                        }));
+                        venues = venues.concat(mappedPages);
+                    }
+                }
+            } catch (spErr) {
+                console.warn('[venues] Social pages merge failed (non-fatal):', spErr.message);
+            }
         }
 
         // --- GPS-based distance calculation and filtering ---

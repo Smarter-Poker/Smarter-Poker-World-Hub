@@ -1181,7 +1181,7 @@ export default function PokerNearMePage() {
                                     <div className="room-card-tags">
                                         <span className="room-tag">• — Tournaments</span>
                                     </div>
-                                    <button className="room-view-btn" onClick={(e) => { e.stopPropagation(); router.push(`/hub/venues/${venue.id}`); }}>View Room</button>
+                                    <button className="room-view-btn" onClick={(e) => { e.stopPropagation(); router.push(venue.is_social_page ? `/club/${venue.social_page_id}` : `/hub/venues/${venue.id}`); }}>View Room</button>
                                 </div>
                             ))}
                         </div>
@@ -1341,7 +1341,7 @@ export default function PokerNearMePage() {
                                 <button className="detail-close" onClick={() => setSelectedRoom(null)}>×</button>
                             </div>
                             <p className="detail-location">{selectedRoom.city}, {selectedRoom.state}</p>
-                            <button className="detail-view-btn" onClick={() => router.push(`/hub/venues/${selectedRoom.id}`)}>View Full Details</button>
+                            <button className="detail-view-btn" onClick={() => router.push(selectedRoom.is_social_page ? `/club/${selectedRoom.social_page_id}` : `/hub/venues/${selectedRoom.id}`)}>View Full Details</button>
                         </div>
                     )}
                 </div>
