@@ -79,13 +79,14 @@ export default async function handler(req, res) {
 
         // ── 3. Check membership (Texas mode only) ──
         if (isTimeBilled) {
-            const membershipActive = member.membership_active !== false &&
+            const membershipActive =
                 member.membership_status !== 'suspended' &&
                 member.membership_status !== 'banned' &&
-                member.membership_status !== 'expired';
+                member.membership_status !== 'expired' &&
+                member.membership_status !== 'inactive';
 
-            const isExpiredByDate = member.membership_expires_at &&
-                new Date(member.membership_expires_at) < new Date();
+            const isExpiredByDate = member.membership_expires &&
+                new Date(member.membership_expires) < new Date();
 
             if (!membershipActive || isExpiredByDate) {
                 return res.status(400).json({

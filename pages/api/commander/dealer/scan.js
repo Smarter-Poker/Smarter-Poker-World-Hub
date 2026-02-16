@@ -36,7 +36,7 @@ export default async function handler(req, res) {
     // Look up member by QR code
     // QR format: CMD-XXXX-XXXXXXXX or a check-in URL containing the code
     let lookupCode = qr_code;
-    
+
     // If it's a URL, extract the code portion
     if (qr_code.includes('/check-in/')) {
       const parts = qr_code.split('/');
@@ -57,14 +57,15 @@ export default async function handler(req, res) {
     }
 
     // Check membership status
-    const membershipActive = member.membership_active !== false && 
+    const membershipActive =
       member.membership_status !== 'suspended' &&
       member.membership_status !== 'banned' &&
-      member.membership_status !== 'expired';
+      member.membership_status !== 'expired' &&
+      member.membership_status !== 'inactive';
 
     // Check if membership has expired by date
-    const isExpiredByDate = member.membership_expires_at && 
-      new Date(member.membership_expires_at) < new Date();
+    const isExpiredByDate = member.membership_expires &&
+      new Date(member.membership_expires) < new Date();
 
     // Check if already seated at another table
     const { data: existingSessions } = await supabase
@@ -94,7 +95,7 @@ export default async function handler(req, res) {
           qr_code: member.qr_code
         },
         membership_active: membershipActive && !isExpiredByDate,
-        membership_expires_at: member.membership_expires_at,
+        membership_expires: member.membership_expires,
         time_balance_minutes: timeBalance,
         already_seated: alreadySeated
       }

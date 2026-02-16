@@ -44,9 +44,10 @@ export default async function handler(req, res) {
     }
 
     // Verify membership is active
-    if (member.membership_active === false || 
-        member.membership_status === 'suspended' || 
-        member.membership_status === 'banned') {
+    if (member.membership_status === 'suspended' ||
+      member.membership_status === 'banned' ||
+      member.membership_status === 'expired' ||
+      member.membership_status === 'inactive') {
       return res.status(400).json({ success: false, error: 'Membership is not active' });
     }
 
@@ -65,9 +66,9 @@ export default async function handler(req, res) {
       .limit(1);
 
     if (existing?.length > 0) {
-      return res.status(400).json({ 
-        success: false, 
-        error: `Player already seated at Table ${existing[0].table_number} Seat ${existing[0].seat_number}` 
+      return res.status(400).json({
+        success: false,
+        error: `Player already seated at Table ${existing[0].table_number} Seat ${existing[0].seat_number}`
       });
     }
 
@@ -81,9 +82,9 @@ export default async function handler(req, res) {
       .limit(1);
 
     if (seatTaken?.length > 0) {
-      return res.status(400).json({ 
-        success: false, 
-        error: `Seat ${seat_number} already occupied by ${seatTaken[0].player_name}` 
+      return res.status(400).json({
+        success: false,
+        error: `Seat ${seat_number} already occupied by ${seatTaken[0].player_name}`
       });
     }
 
@@ -114,7 +115,7 @@ export default async function handler(req, res) {
     // Deduct time from member's balance
     const { error: deductError } = await supabase
       .from('commander_members')
-      .update({ 
+      .update({
         time_balance_minutes: 0, // All time allocated to session
         last_visit: new Date().toISOString(),
         total_visits: (member.total_visits || 0) + 1,
