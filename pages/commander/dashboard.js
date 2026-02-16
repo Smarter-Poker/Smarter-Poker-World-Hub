@@ -99,7 +99,7 @@ const CARDS = [
       { label: 'Notifications', href: '/commander/notifications', icon: '/images/commander/icons/mg-notifications.png' },
       { label: 'Promotions', href: '/commander/promotions', icon: '/images/commander/icons/mg-promotions.png' },
       { label: 'Comps', href: '/commander/comps', icon: '/images/commander/icons/mg-comps.png' },
-      { label: 'High Hands', href: '/commander/high-hands', icon: '/images/commander/icons/tn-high-hands.png' },
+      { label: 'High Hands', href: '/commander/high-hands', icon: '/images/commander/icons/mg-high-hands.png' },
     ],
   },
   {
