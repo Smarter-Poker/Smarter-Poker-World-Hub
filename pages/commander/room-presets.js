@@ -10,7 +10,7 @@ import Head from 'next/head';
 import {
   Plus, Play, Edit2, Trash2, X, Loader2, Save,
   Zap, Copy, Calendar, CheckCircle, AlertCircle, Layout,
-  StopCircle, AlertTriangle
+  StopCircle, AlertTriangle, DollarSign
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { hasFeature } from '../../src/lib/commander/tierConfig';
@@ -34,6 +34,11 @@ export default function RoomPresetsPage() {
   const [hardStopTime, setHardStopTime] = useState('23:00');
   const [hardStopSaving, setHardStopSaving] = useState(false);
   const [hardStopSuccess, setHardStopSuccess] = useState(null);
+
+  // Auto Comp state
+  const [autoCompRate, setAutoCompRate] = useState(0);
+  const [autoCompSaving, setAutoCompSaving] = useState(false);
+  const [autoCompSuccess, setAutoCompSuccess] = useState(null);
 
   const [form, setForm] = useState({ name: '', description: '', tables: [] });
 
@@ -66,6 +71,7 @@ export default function RoomPresetsPage() {
           if (data?.data) {
             setHardStopEnabled(data.data.hard_stop_enabled || false);
             setHardStopTime(data.data.hard_stop_time || '23:00');
+            setAutoCompRate(parseFloat(data.data.auto_comp_rate) || 0);
           }
         })
         .catch(() => { });
@@ -90,6 +96,26 @@ export default function RoomPresetsPage() {
       }
     } catch { }
     finally { setHardStopSaving(false); }
+  }
+
+  async function handleAutoCompSave() {
+    setAutoCompSaving(true);
+    try {
+      const stored = JSON.parse(localStorage.getItem('commander_staff') || '{}');
+      const token = stored.token || stored.access_token;
+      if (!token) return;
+      const res = await fetch('/api/commander/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ auto_comp_rate: autoCompRate })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAutoCompSuccess('Hourly comp rate saved');
+        setTimeout(() => setAutoCompSuccess(null), 3000);
+      }
+    } catch { }
+    finally { setAutoCompSaving(false); }
   }
 
   const fetchData = useCallback(async () => {
@@ -303,6 +329,83 @@ export default function RoomPresetsPage() {
                         </p>
                       </div>
                     </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Hourly Comp Rate */}
+            {hasFeature(currentTier, 'comps') && (
+              <div className="bg-[#242526] rounded-2xl border border-[#3A3B3C] overflow-hidden">
+                <div className="p-4 border-b border-[#3A3B3C] flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#31A24C]/15 flex items-center justify-center">
+                      <DollarSign className="w-5 h-5 text-[#31A24C]" />
+                    </div>
+                    <div>
+                      <h2 className="font-semibold text-white">Hourly Comp Rate</h2>
+                      <p className="text-xs text-[#B0B3B8]">Auto-award comps to all seated players per hour</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleAutoCompSave}
+                    disabled={autoCompSaving}
+                    className="px-4 py-2 bg-[#31A24C] text-white rounded-xl text-sm font-medium flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {autoCompSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    Save
+                  </button>
+                </div>
+                <div className="p-4 space-y-4">
+                  {/* Quick-select buttons */}
+                  <div>
+                    <p className="text-sm text-[#B0B3B8] mb-2">Select rate per hour of play</p>
+                    <div className="flex flex-wrap gap-2">
+                      {[0, 0.5, 1, 1.5, 2].map(rate => (
+                        <button
+                          key={rate}
+                          onClick={() => setAutoCompRate(rate)}
+                          className={`px-4 py-2.5 rounded-xl text-sm font-medium border transition-all ${autoCompRate === rate
+                              ? 'bg-[#31A24C]/20 border-[#31A24C] text-[#31A24C]'
+                              : 'bg-[#3A3B3C] border-[#4A4B4C] text-[#B0B3B8] hover:border-[#31A24C]/50'
+                            }`}
+                        >
+                          {rate === 0 ? 'Off' : `$${rate.toFixed(2)}/hr`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {/* Custom input */}
+                  <div className="flex items-center gap-3">
+                    <p className="text-sm text-[#B0B3B8]">Custom:</p>
+                    <div className="flex items-center bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl overflow-hidden">
+                      <span className="pl-3 text-sm text-[#B0B3B8]">$</span>
+                      <input
+                        type="number"
+                        value={autoCompRate || ''}
+                        onChange={(e) => setAutoCompRate(parseFloat(e.target.value) || 0)}
+                        step="0.25"
+                        min="0"
+                        max="50"
+                        placeholder="0.00"
+                        className="w-20 px-2 py-2 bg-transparent text-sm text-white focus:outline-none"
+                      />
+                      <span className="pr-3 text-sm text-[#B0B3B8]">/hr</span>
+                    </div>
+                  </div>
+                  {autoCompRate > 0 && (
+                    <div className="p-3 bg-[#31A24C]/10 rounded-lg flex items-start gap-2">
+                      <DollarSign className="w-4 h-4 text-[#31A24C] mt-0.5 flex-shrink-0" />
+                      <p className="text-xs text-[#31A24C]">
+                        Players will automatically earn <strong>${autoCompRate.toFixed(2)}</strong> in comps for every hour they are seated at a cash game table.
+                      </p>
+                    </div>
+                  )}
+                  {autoCompSuccess && (
+                    <div className="p-3 bg-[#31A24C]/10 rounded-lg flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-[#31A24C]" />
+                      <p className="text-xs text-[#31A24C]">{autoCompSuccess}</p>
+                    </div>
                   )}
                 </div>
               </div>

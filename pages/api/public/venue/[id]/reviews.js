@@ -69,14 +69,78 @@ export default async function handler(req, res) {
       .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
 
     // Gracefully handle type mismatch (UUID passed to integer column for social pages)
+    // Fall back to social_page_reviews for social pages
     if (error) {
       if (error.code === '22P02') {
+        // Query social_page_reviews instead
+        let spQuery = supabase
+          .from('social_page_reviews')
+          .select(`
+            id,
+            overall_rating,
+            reviewer_id,
+            title,
+            content,
+            helpful_count,
+            created_at
+          `, { count: 'exact' })
+          .eq('page_id', id)
+          .eq('is_published', true);
+
+        if (sort === 'helpful') {
+          spQuery = spQuery.order('helpful_count', { ascending: false });
+        } else if (sort === 'rating_high') {
+          spQuery = spQuery.order('overall_rating', { ascending: false });
+        } else if (sort === 'rating_low') {
+          spQuery = spQuery.order('overall_rating', { ascending: true });
+        } else {
+          spQuery = spQuery.order('created_at', { ascending: false });
+        }
+
+        const { data: spReviews, count: spCount } = await spQuery
+          .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
+
+        // Enrich with reviewer profiles
+        const enrichedReviews = await Promise.all((spReviews || []).map(async (r) => {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('display_name, username, avatar_url')
+            .eq('id', r.reviewer_id)
+            .maybeSingle();
+          return {
+            ...r,
+            reviewer: profile ? {
+              id: r.reviewer_id,
+              display_name: profile.display_name || profile.username || 'Anonymous',
+              avatar_url: profile.avatar_url
+            } : { id: r.reviewer_id, display_name: 'Anonymous', avatar_url: null }
+          };
+        }));
+
+        // Calculate distribution from social page reviews
+        const { data: allSpReviews } = await supabase
+          .from('social_page_reviews')
+          .select('overall_rating')
+          .eq('page_id', id)
+          .eq('is_published', true);
+
+        const spDist = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+        let spTotal = 0;
+        (allSpReviews || []).forEach(r => {
+          spDist[r.overall_rating] = (spDist[r.overall_rating] || 0) + 1;
+          spTotal += r.overall_rating;
+        });
+        const spAvg = allSpReviews?.length > 0 ? spTotal / allSpReviews.length : 0;
+
         return res.status(200).json({
           success: true,
           data: {
-            reviews: [], total: 0, average_rating: 0,
-            distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
-            limit: parseInt(limit), offset: parseInt(offset)
+            reviews: enrichedReviews,
+            total: spCount || 0,
+            average_rating: parseFloat(spAvg.toFixed(1)),
+            distribution: spDist,
+            limit: parseInt(limit),
+            offset: parseInt(offset)
           }
         });
       }

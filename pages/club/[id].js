@@ -6,6 +6,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import { createClient } from '@supabase/supabase-js';
 import Head from 'next/head';
 import Link from 'next/link';
 import {
@@ -30,8 +31,14 @@ import {
   ExternalLink,
   ThumbsUp,
   Send,
-  MoreHorizontal
+  MoreHorizontal,
+  X
 } from 'lucide-react';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
 
 const GAME_TYPE_LABELS = {
   nlh: 'No-Limit Hold\'em',
@@ -258,13 +265,36 @@ export default function ClubPage() {
   const [activeTab, setActiveTab] = useState('posts');
   const [isFollowing, setIsFollowing] = useState(false);
   const [user, setUser] = useState(null);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewTitle, setReviewTitle] = useState('');
+  const [reviewContent, setReviewContent] = useState('');
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewError, setReviewError] = useState('');
+  const [reviewSuccess, setReviewSuccess] = useState('');
 
   useEffect(() => {
-    const token = localStorage.getItem('smarter-poker-auth');
-    if (token) {
-      // Parse user from token if needed
-      setUser({ token });
+    async function loadUser() {
+      try {
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        if (authUser) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('display_name, username, avatar_url')
+            .eq('id', authUser.id)
+            .maybeSingle();
+          setUser({
+            id: authUser.id,
+            email: authUser.email,
+            display_name: profile?.display_name || profile?.username || 'Player',
+            avatar_url: profile?.avatar_url
+          });
+        }
+      } catch (e) {
+        console.error('Auth check error:', e);
+      }
     }
+    loadUser();
   }, []);
 
   useEffect(() => {
@@ -344,6 +374,65 @@ export default function ClubPage() {
     }
     // Like logic here
   }
+
+  // Review submission handler
+  const handleSubmitReview = async () => {
+    if (!user?.id) {
+      setReviewError('You must be signed in to leave a review');
+      return;
+    }
+    if (reviewRating === 0) {
+      setReviewError('Please select a star rating');
+      return;
+    }
+    setReviewSubmitting(true);
+    setReviewError('');
+    setReviewSuccess('');
+    try {
+      const resolvedId = venue?.id || id;
+      const res = await fetch('/api/social/pages/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          page_id: resolvedId,
+          reviewer_id: user.id,
+          overall_rating: reviewRating,
+          title: reviewTitle.trim() || null,
+          content: reviewContent.trim() || null
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setReviewSuccess(data.updated ? 'Review updated!' : 'Review submitted!');
+        setShowReviewForm(false);
+        setReviewRating(0);
+        setReviewTitle('');
+        setReviewContent('');
+        // Refresh reviews
+        const reviewsRes = await fetch(`/api/public/venue/${resolvedId}/reviews?limit=10`);
+        const reviewsData = await reviewsRes.json();
+        if (reviewsData.success) {
+          setReviews(reviewsData.data?.reviews || []);
+        }
+      } else {
+        setReviewError(data.error || 'Failed to submit review');
+      }
+    } catch (e) {
+      setReviewError('Failed to submit review. Please try again.');
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
+
+  const handleWriteReviewClick = () => {
+    if (!user?.id) {
+      router.push('/auth/signin?redirect=' + encodeURIComponent(router.asPath));
+      return;
+    }
+    setShowReviewForm(true);
+    setReviewError('');
+    setReviewSuccess('');
+  };
 
   if (loading) {
     return (
@@ -771,7 +860,10 @@ export default function ClubPage() {
                         <p className="text-sm text-[#6B7280]">{reviews.length} reviews</p>
                       </div>
                       <div className="flex-1">
-                        <button className="w-full h-10 bg-[#1877F2] text-white font-medium rounded-lg hover:bg-[#1664d9] transition-colors">
+                        <button
+                          onClick={handleWriteReviewClick}
+                          className="w-full h-10 bg-[#1877F2] text-white font-medium rounded-lg hover:bg-[#1664d9] transition-colors"
+                        >
                           Write a Review
                         </button>
                       </div>
@@ -784,12 +876,106 @@ export default function ClubPage() {
                       <Star className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
                       <p className="text-[#6B7280]">No reviews yet</p>
                       <p className="text-sm text-[#9CA3AF] mt-1">Be the first to review!</p>
+                      <button onClick={handleWriteReviewClick} className="mt-3 px-4 py-2 bg-[#1877F2] text-white rounded-lg text-sm font-medium hover:bg-[#1664d9] transition-colors">Write a Review</button>
                     </div>
                   ) : (
                     reviews.map((review) => (
                       <ReviewCard key={review.id} review={review} />
                     ))
                   )}
+                  {reviewSuccess && (
+                    <div className="bg-green-50 border border-green-200 text-green-700 p-3 rounded-lg text-sm">{reviewSuccess}</div>
+                  )}
+                </div>
+              )}
+
+              {/* Review Form Modal */}
+              {showReviewForm && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                  <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-[#1F2937]">Write a Review</h3>
+                      <button onClick={() => setShowReviewForm(false)} className="text-[#6B7280] hover:text-[#1F2937]">
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    <p className="text-sm text-[#6B7280] mb-4">Reviewing as <strong>{user?.display_name || 'Player'}</strong></p>
+
+                    {/* Star Rating */}
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-[#1F2937] mb-2">Rating *</label>
+                      <div className="flex items-center gap-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            onClick={() => setReviewRating(star)}
+                            className="p-1 transition-transform hover:scale-110"
+                          >
+                            <Star
+                              className={`w-8 h-8 ${star <= reviewRating
+                                ? 'text-[#F59E0B] fill-current'
+                                : 'text-[#D1D5DB]'
+                                }`}
+                            />
+                          </button>
+                        ))}
+                        {reviewRating > 0 && (
+                          <span className="ml-2 text-sm text-[#6B7280]">
+                            {reviewRating === 1 ? 'Poor' : reviewRating === 2 ? 'Fair' : reviewRating === 3 ? 'Good' : reviewRating === 4 ? 'Very Good' : 'Excellent'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Title */}
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-[#1F2937] mb-1">Title (optional)</label>
+                      <input
+                        type="text"
+                        value={reviewTitle}
+                        onChange={(e) => setReviewTitle(e.target.value)}
+                        placeholder="Sum up your experience"
+                        maxLength={100}
+                        className="w-full px-3 py-2 border border-[#D1D5DB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-transparent"
+                      />
+                    </div>
+
+                    {/* Content */}
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-[#1F2937] mb-1">Your Review (optional)</label>
+                      <textarea
+                        value={reviewContent}
+                        onChange={(e) => setReviewContent(e.target.value)}
+                        placeholder="Tell others about your experience..."
+                        rows={4}
+                        maxLength={2000}
+                        className="w-full px-3 py-2 border border-[#D1D5DB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-transparent resize-none"
+                      />
+                    </div>
+
+                    {reviewError && (
+                      <div className="mb-3 p-2 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg">{reviewError}</div>
+                    )}
+
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setShowReviewForm(false)}
+                        className="flex-1 py-2.5 border border-[#D1D5DB] rounded-lg text-sm font-medium text-[#6B7280] hover:bg-[#F9FAFB] transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleSubmitReview}
+                        disabled={reviewSubmitting || reviewRating === 0}
+                        className="flex-1 py-2.5 bg-[#1877F2] text-white rounded-lg text-sm font-medium hover:bg-[#1664d9] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      >
+                        {reviewSubmitting ? (
+                          <><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</>
+                        ) : 'Submit Review'}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
 

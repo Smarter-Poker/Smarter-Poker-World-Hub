@@ -74,6 +74,58 @@ export default async function handler(req, res) {
       }
     }
 
+    // Auto-comp: award hourly comps based on elapsed play time
+    let compEarned = 0;
+    if (session.member_id && session.venue_id) {
+      try {
+        const { data: venueSettings } = await supabase
+          .from('commander_venue_settings')
+          .select('auto_comp_rate')
+          .eq('venue_id', session.venue_id)
+          .single();
+
+        const rate = parseFloat(venueSettings?.auto_comp_rate || 0);
+        if (rate > 0) {
+          const elapsedMinutes = Math.floor(elapsedSeconds / 60);
+          compEarned = Math.round((elapsedMinutes / 60) * rate * 100) / 100;
+
+          if (compEarned > 0) {
+            // Update member comp balance
+            const { data: member } = await supabase
+              .from('commander_members')
+              .select('comp_balance, comp_lifetime_earned')
+              .eq('id', session.member_id)
+              .single();
+
+            if (member) {
+              await supabase
+                .from('commander_members')
+                .update({
+                  comp_balance: Math.round(((member.comp_balance || 0) + compEarned) * 100) / 100,
+                  comp_lifetime_earned: Math.round(((member.comp_lifetime_earned || 0) + compEarned) * 100) / 100,
+                  updated_at: now.toISOString()
+                })
+                .eq('id', session.member_id);
+
+              // Log the auto-comp transaction
+              await supabase
+                .from('commander_member_comp_log')
+                .insert({
+                  venue_id: session.venue_id,
+                  member_id: session.member_id,
+                  amount: compEarned,
+                  type: 'auto_hourly',
+                  reason: `Auto comp: ${elapsedMinutes} min × $${rate}/hr`,
+                  balance_after: Math.round(((member.comp_balance || 0) + compEarned) * 100) / 100
+                });
+            }
+          }
+        }
+      } catch (compErr) {
+        console.error('Auto-comp award error (non-fatal):', compErr);
+      }
+    }
+
     // Clear the seat
     await supabase
       .from('commander_table_seats')
@@ -92,7 +144,8 @@ export default async function handler(req, res) {
       data: {
         session_id: id,
         elapsed_minutes: Math.floor(elapsedSeconds / 60),
-        unused_minutes_returned: unusedMinutes
+        unused_minutes_returned: unusedMinutes,
+        comp_earned: compEarned
       }
     });
   } catch (err) {

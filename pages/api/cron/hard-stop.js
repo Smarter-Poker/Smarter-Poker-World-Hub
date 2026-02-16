@@ -55,7 +55,7 @@ export default async function handler(req, res) {
         // Get all venues with hard stop enabled
         const { data: venues, error: fetchError } = await supabase
             .from('commander_venue_settings')
-            .select('venue_id, hard_stop_time, room_open, last_hard_stop_date')
+            .select('venue_id, hard_stop_time, room_open, last_hard_stop_date, auto_comp_rate')
             .eq('hard_stop_enabled', true)
             .not('hard_stop_time', 'is', null);
 
@@ -104,7 +104,89 @@ export default async function handler(req, res) {
                 console.log(`[HARD STOP] Closed ${openTables.length} tables for venue ${venue.venue_id}`);
             }
 
-            // 2. End all active sessions for this venue
+            // 2. End all active table sessions (dealer-scanned) + auto-comp awards
+            let compsAwarded = 0;
+            const { data: tableSessions } = await supabase
+                .from('commander_table_sessions')
+                .select('id, member_id, started_at')
+                .eq('venue_id', venue.venue_id)
+                .eq('status', 'active');
+
+            if (tableSessions && tableSessions.length > 0) {
+                // Check if venue has auto-comp enabled
+                const autoCompRate = parseFloat(venue.auto_comp_rate || 0);
+
+                // Award auto-comps before closing
+                if (autoCompRate > 0) {
+                    for (const ts of tableSessions) {
+                        if (!ts.member_id || !ts.started_at) continue;
+                        try {
+                            const elapsedMin = Math.floor((new Date(cst.isoNow) - new Date(ts.started_at)) / 60000);
+                            const compEarned = Math.round((elapsedMin / 60) * autoCompRate * 100) / 100;
+                            if (compEarned <= 0) continue;
+
+                            const { data: member } = await supabase
+                                .from('commander_members')
+                                .select('comp_balance, comp_lifetime_earned')
+                                .eq('id', ts.member_id)
+                                .single();
+
+                            if (member) {
+                                await supabase
+                                    .from('commander_members')
+                                    .update({
+                                        comp_balance: Math.round(((member.comp_balance || 0) + compEarned) * 100) / 100,
+                                        comp_lifetime_earned: Math.round(((member.comp_lifetime_earned || 0) + compEarned) * 100) / 100,
+                                        updated_at: cst.isoNow
+                                    })
+                                    .eq('id', ts.member_id);
+
+                                await supabase
+                                    .from('commander_member_comp_log')
+                                    .insert({
+                                        venue_id: venue.venue_id,
+                                        member_id: ts.member_id,
+                                        amount: compEarned,
+                                        type: 'auto_hourly',
+                                        reason: `Auto comp (hard stop): ${elapsedMin} min × $${autoCompRate}/hr`,
+                                        balance_after: Math.round(((member.comp_balance || 0) + compEarned) * 100) / 100
+                                    });
+
+                                compsAwarded += compEarned;
+                            }
+                        } catch (compErr) {
+                            console.error(`[HARD STOP] Auto-comp error for member ${ts.member_id}:`, compErr);
+                        }
+                    }
+                }
+
+                // End all table sessions
+                await supabase
+                    .from('commander_table_sessions')
+                    .update({
+                        status: 'ended',
+                        ended_at: cst.isoNow,
+                        updated_at: cst.isoNow
+                    })
+                    .eq('venue_id', venue.venue_id)
+                    .eq('status', 'active');
+
+                // Clear all seats
+                await supabase
+                    .from('commander_table_seats')
+                    .update({
+                        status: 'empty',
+                        player_name: null,
+                        member_id: null,
+                        seated_at: null
+                    })
+                    .eq('venue_id', venue.venue_id)
+                    .eq('status', 'occupied');
+
+                console.log(`[HARD STOP] Ended ${tableSessions.length} table sessions, awarded $${compsAwarded.toFixed(2)} in auto-comps for venue ${venue.venue_id}`);
+            }
+
+            // 3. End all active time billing sessions for this venue
             const { data: activeSessions } = await supabase
                 .from('commander_time_sessions')
                 .select('id')
@@ -123,10 +205,10 @@ export default async function handler(req, res) {
                     .eq('venue_id', venue.venue_id)
                     .eq('status', 'active');
 
-                console.log(`[HARD STOP] Ended ${activeSessions.length} sessions for venue ${venue.venue_id}`);
+                console.log(`[HARD STOP] Ended ${activeSessions.length} time sessions for venue ${venue.venue_id}`);
             }
 
-            // 3. Set room to closed + record trigger date for double-trigger prevention
+            // 4. Set room to closed + record trigger date for double-trigger prevention
             await supabase
                 .from('commander_venue_settings')
                 .update({
@@ -136,14 +218,14 @@ export default async function handler(req, res) {
                 })
                 .eq('venue_id', venue.venue_id);
 
-            // 4. Log activity (non-blocking — don't fail if table missing)
+            // 5. Log activity (non-blocking — don't fail if table missing)
             try {
                 await supabase
                     .from('commander_activity_log')
                     .insert({
                         venue_id: venue.venue_id,
                         action: 'hard_stop',
-                        details: `Hard stop triggered at ${stopTime} CST. Closed ${openTables?.length || 0} tables, ended ${activeSessions?.length || 0} sessions.`,
+                        details: `Hard stop triggered at ${stopTime} CST. Closed ${openTables?.length || 0} tables, ended ${tableSessions?.length || 0} table sessions + ${activeSessions?.length || 0} time sessions. Auto-comps: $${compsAwarded.toFixed(2)}.`,
                         created_at: cst.isoNow
                     });
             } catch { /* activity log table may not exist yet */ }
@@ -153,7 +235,9 @@ export default async function handler(req, res) {
                 venue_id: venue.venue_id,
                 status: 'triggered',
                 tables_closed: openTables?.length || 0,
-                sessions_ended: activeSessions?.length || 0
+                table_sessions_ended: tableSessions?.length || 0,
+                time_sessions_ended: activeSessions?.length || 0,
+                comps_awarded: compsAwarded
             });
         }
 
