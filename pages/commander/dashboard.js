@@ -250,7 +250,7 @@ export default function CommanderDashboard() {
           justify-content: space-between;
           padding: 12px 20px;
           background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%);
-          border-bottom: 1px solid #222;
+          border-bottom: 2px solid #333;
         }
         .cmd-topbar-title {
           font-family: 'Orbitron', sans-serif;
@@ -303,7 +303,7 @@ export default function CommanderDashboard() {
           overflow: hidden;
           cursor: pointer;
           transition: transform 0.2s, box-shadow 0.3s;
-          border: 2px solid #222;
+          border: 3px solid #3A3B3C;
           background: #0a0a0a;
           padding: 6px;
         }
@@ -348,13 +348,13 @@ export default function CommanderDashboard() {
           align-items: center;
           gap: 14px;
           padding: 16px 20px;
-          border-bottom: 1px solid #222;
+          border-bottom: 2px solid #333;
           background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%);
           flex-shrink: 0;
         }
         .cmd-open-back {
           background: none;
-          border: 1px solid #444;
+          border: 2px solid #555;
           border-radius: 10px;
           padding: 8px 14px;
           color: #ccc;
@@ -367,7 +367,7 @@ export default function CommanderDashboard() {
           transition: all 0.2s;
         }
         .cmd-open-back:hover {
-          border-color: #666;
+          border-color: #777;
           color: #fff;
         }
         .cmd-open-title {

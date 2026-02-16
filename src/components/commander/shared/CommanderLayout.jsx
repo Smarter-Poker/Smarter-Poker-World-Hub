@@ -166,7 +166,7 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
           align-items: center;
           padding: 10px 16px;
           background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%);
-          border-bottom: 1px solid #222;
+          border-bottom: 2px solid #333;
           position: sticky;
           top: 0;
           z-index: 50;
@@ -222,7 +222,7 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
         /* ── BACK BUTTON ── */
         .cmd-back-btn {
           background: none;
-          border: 1px solid #444;
+          border: 2px solid #555;
           border-radius: 10px;
           padding: 8px 14px;
           color: #ccc;
@@ -237,7 +237,7 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
           white-space: nowrap;
         }
         .cmd-back-btn:hover {
-          border-color: #666;
+          border-color: #777;
           color: #fff;
         }
 
@@ -262,7 +262,7 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
           max-height: 100vh;
           overflow-y: auto;
           background: linear-gradient(180deg, #1a1a1a 0%, #111 100%);
-          border-left: 1px solid #333;
+          border-left: 2px solid #444;
           padding: 16px 0;
           animation: cmdMenuSlide 0.2s ease;
         }
@@ -275,7 +275,7 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
           align-items: center;
           justify-content: space-between;
           padding: 0 16px 12px;
-          border-bottom: 1px solid #222;
+          border-bottom: 2px solid #333;
           margin-bottom: 8px;
         }
         .cmd-menu-header-text {
@@ -337,8 +337,8 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
           background: rgba(239,68,68,0.1);
         }
         .cmd-menu-divider {
-          height: 1px;
-          background: #222;
+          height: 2px;
+          background: #333;
           margin: 8px 16px;
         }
         .cmd-menu-lock-badge {

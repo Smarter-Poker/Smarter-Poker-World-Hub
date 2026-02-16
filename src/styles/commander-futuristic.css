@@ -590,3 +590,113 @@
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GLOBAL BORDER ENFORCEMENT — Thick, Defined Frames
+   Upgrades all Commander borders from thin 1px to thick 2-3px
+   with brighter edge colors for maximum visual definition
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Exterior panels: bg-[#242526] with border-[#3A3B3C] ── */
+[class*="border-[#3A3B3C]"] {
+  border-width: 2px !important;
+  border-color: #4A5568 !important;
+}
+
+/* ── Darker borders upgraded ── */
+[class*="border-[#2D2E2F]"],
+[class*="border-[#333]"] {
+  border-width: 2px !important;
+  border-color: #444 !important;
+}
+
+/* ── Input & select borders ── */
+[class*="border-[#4A4B4C]"],
+[class*="border-[#555]"] {
+  border-width: 2px !important;
+  border-color: #5A5F68 !important;
+}
+
+/* ── Rounded panel cards (interior boxes) ── */
+[class*="rounded-xl"][class*="border"][class*="bg-[#242526]"],
+[class*="rounded-2xl"][class*="border"][class*="bg-[#242526]"],
+[class*="rounded-lg"][class*="border"][class*="bg-[#242526]"] {
+  border-width: 2px !important;
+  border-color: #4A5568 !important;
+  box-shadow: 0 0 8px rgba(74, 85, 104, 0.15), 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* ── Section dividers (border-b, border-t, border-y) ── */
+[class*="border-b"][class*="border-[#3A3B3C]"],
+[class*="border-t"][class*="border-[#3A3B3C]"],
+[class*="border-y"][class*="border-[#3A3B3C]"] {
+  border-width: 0 !important;
+  border-bottom-width: 2px !important;
+  border-color: #4A5568 !important;
+}
+[class*="border-y"][class*="border-[#3A3B3C]"] {
+  border-top-width: 2px !important;
+  border-bottom-width: 2px !important;
+}
+[class*="border-t"][class*="border-[#3A3B3C]"] {
+  border-top-width: 2px !important;
+  border-bottom-width: 0 !important;
+}
+
+/* ── Icon containers (small rounded boxes) ── */
+[class*="rounded-lg"][class*="flex"][class*="items-center"][class*="justify-center"][class*="bg-[#1877F2]"],
+[class*="rounded-xl"][class*="flex"][class*="items-center"][class*="justify-center"] {
+  border: 2px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+/* ── Inline buttons with border styling ── */
+[class*="rounded-lg"][class*="border"][class*="px-"],
+[class*="rounded-xl"][class*="border"][class*="px-"] {
+  border-width: 2px !important;
+}
+
+/* ── Tab/pill selectors ── */
+[class*="rounded-full"][class*="border"] {
+  border-width: 2px !important;
+}
+
+/* ── Modal panels ── */
+[class*="rounded-2xl"][class*="border"][class*="bg-[#1A1B1E]"],
+[class*="rounded-2xl"][class*="border"][class*="bg-[#18191A]"] {
+  border-width: 2px !important;
+  border-color: #4A5568 !important;
+}
+
+/* ── CMD design system upgrades ── */
+.cmd-panel {
+  border-width: 5px !important;
+}
+
+.cmd-btn {
+  border-width: 4px !important;
+}
+
+.cmd-input {
+  border-width: 3px !important;
+  border-color: #5A6A7E !important;
+}
+
+.cmd-input:focus {
+  border-color: var(--cmd-glow-cyan) !important;
+}
+
+.cmd-inset {
+  border-width: 3px !important;
+}
+
+.cmd-badge {
+  border-width: 2px !important;
+}
+
+.cmd-icon-box {
+  border-width: 5px !important;
+}
+
+.cmd-header-full {
+  border-bottom-width: 5px !important;
+}
