@@ -43,21 +43,30 @@ export default async function handler(req, res) {
             lookupCode = parts[parts.length - 1];
         }
 
-        // Look up member by QR code
-        let query = supabase
+        // Look up member by QR code first, then by member number
+        let member = null;
+
+        const { data: byQr, error: qrError } = await supabase
             .from('commander_members')
             .select('*')
-            .or(`qr_code.eq.${lookupCode},member_number.eq.${lookupCode}`);
+            .eq('qr_code', lookupCode)
+            .limit(1);
 
-        if (venue_id) {
-            query = query.eq('venue_id', venue_id);
+        if (qrError) throw qrError;
+        member = byQr?.[0];
+
+        // If not found by QR code, try member number
+        if (!member) {
+            let mnQuery = supabase
+                .from('commander_members')
+                .select('*')
+                .eq('member_number', lookupCode);
+            if (venue_id) mnQuery = mnQuery.eq('venue_id', venue_id);
+            const { data: byMn, error: mnError } = await mnQuery.limit(1);
+            if (mnError) throw mnError;
+            member = byMn?.[0];
         }
 
-        const { data: members, error: memberError } = await query.limit(1);
-
-        if (memberError) throw memberError;
-
-        const member = members?.[0];
         if (!member) {
             return res.status(404).json({
                 success: false,
@@ -135,7 +144,8 @@ export default async function handler(req, res) {
                     name: dealerName,
                     member_number: member.member_number,
                     photo_url: member.photo_url,
-                    member_type: member.member_type
+                    member_type: member.member_type,
+                    started_at: rotation.started_at
                 },
                 rotation_id: rotation.id,
                 table_number: tableNum,
