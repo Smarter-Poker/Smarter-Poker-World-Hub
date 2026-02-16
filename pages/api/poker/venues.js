@@ -302,6 +302,9 @@ export default async function handler(req, res) {
                                 if (schedGames.length > 0) {
                                     jsonVenue.games_offered = [...new Set([...(jsonVenue.games_offered || []), ...schedGames])];
                                 }
+                            } else {
+                                // Linked venue not in JSON dataset — treat as standalone entry
+                                unlinkedPages.push(sp);
                             }
                         }
 
