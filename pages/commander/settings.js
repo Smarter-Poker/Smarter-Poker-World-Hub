@@ -90,7 +90,6 @@ export default function CommanderSettingsPage() {
     setSuccess(null);
 
     try {
-      // Save hard stop settings
       const token = (() => {
         try {
           const stored = JSON.parse(localStorage.getItem('commander_staff') || '{}');
@@ -98,30 +97,19 @@ export default function CommanderSettingsPage() {
         } catch { return null; }
       })();
 
-      if (token) {
-        await fetch('/api/commander/settings', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({
-            hard_stop_enabled: settings.hard_stop_enabled,
-            hard_stop_time: settings.hard_stop_time
-          })
-        });
+      if (!token) {
+        setError('Authentication required. Please log in again.');
+        setSaving(false);
+        return;
       }
 
-      // Save other settings via PATCH
-      const res = await fetch(`/api/commander/settings?venue_id=${venueId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+      // Save all settings via PUT (upserts to commander_venue_settings)
+      const res = await fetch('/api/commander/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
-          waitlist_settings: {
-            auto_refresh_interval: settings.auto_refresh_interval,
-            default_wait_time_per_player: settings.default_wait_time_per_player,
-            max_waitlist_size: settings.max_waitlist_size,
-            call_timeout_minutes: settings.call_timeout_minutes,
-            show_player_names_on_display: settings.show_player_names_on_display
-          },
-          auto_text_enabled: settings.sms_notifications_enabled
+          hard_stop_enabled: settings.hard_stop_enabled,
+          hard_stop_time: settings.hard_stop_time
         })
       });
 

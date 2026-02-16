@@ -2435,50 +2435,24 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                 </div>
             )}
 
-            {/* Tournaments Tab */}
+            {/* Tournaments Tab — Read-Only (managed via Commander) */}
             {activeTab === 'tournaments' && (
                 <div style={cardSt}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                         <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>Tournament Schedule</h3>
-                        {savedBadge}
                     </div>
-                    {/* Add Tournament Form */}
-                    <div style={{ background: '#f5f5f5', borderRadius: 10, padding: 12, marginBottom: 12 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 8 }}>{editTourneyIdx >= 0 ? 'Edit Tournament' : '+ Add Tournament'}</div>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
-                            <div><label style={labelSt}>Name</label><input value={newTourney.name} onChange={e => setNewTourney(p => ({ ...p, name: e.target.value }))} placeholder="Daily Deepstack" style={inputSt} /></div>
-                            <div><label style={labelSt}>Day</label>
-                                <select value={newTourney.day} onChange={e => setNewTourney(p => ({ ...p, day: e.target.value }))} style={inputSt}>
-                                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Daily'].map(d => <option key={d} value={d}>{d}</option>)}
-                                </select>
-                            </div>
-                            <div><label style={labelSt}>Time</label><input value={newTourney.time} onChange={e => setNewTourney(p => ({ ...p, time: e.target.value }))} placeholder="7:00 PM" style={inputSt} /></div>
-                            <div><label style={labelSt}>Buy-in</label><input value={newTourney.buyin} onChange={e => setNewTourney(p => ({ ...p, buyin: e.target.value }))} placeholder="$200" style={inputSt} /></div>
-                            <div><label style={labelSt}>Guaranteed</label><input value={newTourney.gtd} onChange={e => setNewTourney(p => ({ ...p, gtd: e.target.value }))} placeholder="$5,000" style={inputSt} /></div>
-                            <div><label style={labelSt}>Game</label>
-                                <select value={newTourney.game} onChange={e => setNewTourney(p => ({ ...p, game: e.target.value }))} style={inputSt}>
-                                    {['NLH', 'PLO', 'PLO8', 'Mixed', 'Omaha Hi-Lo', 'Stud', 'Other'].map(g => <option key={g} value={g}>{g}</option>)}
-                                </select>
-                            </div>
+                    {/* Commander-only notice */}
+                    <div style={{ background: 'rgba(24,119,242,0.06)', border: '1px solid rgba(24,119,242,0.2)', borderRadius: 10, padding: '12px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ fontSize: 18 }}>&#9432;</span>
+                        <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Tournament schedules are managed through Club Commander</div>
+                            <div style={{ fontSize: 12, color: C.textSec, marginTop: 2 }}>Tournaments added in Commander automatically appear here and on your public page.</div>
                         </div>
-                        <div style={{ marginTop: 8 }}><label style={labelSt}>Notes</label><input value={newTourney.notes} onChange={e => setNewTourney(p => ({ ...p, notes: e.target.value }))} placeholder="Re-entry allowed, late reg 6 levels..." style={inputSt} /></div>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 10 }}>
-                            {editTourneyIdx >= 0 && <button onClick={() => { setEditTourneyIdx(-1); setNewTourney({ name: '', day: 'Monday', time: '', buyin: '', gtd: '', game: 'NLH', notes: '' }); }} style={btnSec}>Cancel</button>}
-                            <button onClick={() => {
-                                if (!newTourney.name.trim()) return;
-                                let updated;
-                                if (editTourneyIdx >= 0) { updated = [...tournaments]; updated[editTourneyIdx] = { ...newTourney, id: updated[editTourneyIdx].id }; setEditTourneyIdx(-1); }
-                                else { updated = [...tournaments, { ...newTourney, id: Date.now().toString() }]; }
-                                setTournaments(updated); setNewTourney({ name: '', day: 'Monday', time: '', buyin: '', gtd: '', game: 'NLH', notes: '' });
-                                saveMetadata({ tournaments: updated }, editTourneyIdx >= 0 ? 'Tournament updated!' : 'Tournament added!');
-                            }} disabled={!newTourney.name.trim() || metaSaving} style={{ ...btnPrimary, opacity: !newTourney.name.trim() || metaSaving ? 0.5 : 1 }}>
-                                {editTourneyIdx >= 0 ? 'Update' : 'Add Tournament'}
-                            </button>
-                        </div>
+                        <button onClick={() => window.open('/commander/tournaments', '_blank')} style={{ ...btnPrimary, whiteSpace: 'nowrap', fontSize: 12 }}>Open Commander</button>
                     </div>
-                    {/* Tournament List */}
+                    {/* Auto-published tournament list (read-only) */}
                     {tournaments.length === 0 ? (
-                        <div style={{ textAlign: 'center', padding: 30, color: C.textSec }}><div style={{ fontSize: 24, marginBottom: 8, fontWeight: 700 }}>No tournaments yet</div><p style={{ margin: 0, fontSize: 14 }}>No tournaments listed yet.</p></div>
+                        <div style={{ textAlign: 'center', padding: 30, color: C.textSec }}><div style={{ fontSize: 24, marginBottom: 8, fontWeight: 700 }}>No tournaments yet</div><p style={{ margin: 0, fontSize: 14 }}>Add tournaments through Club Commander to see them here.</p></div>
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                             {tournaments.map((t, i) => (
@@ -2486,15 +2460,10 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                     <div style={{ flex: 1 }}>
                                         <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{t.name}</div>
                                         <div style={{ fontSize: 12, color: C.textSec, marginTop: 2 }}>
-                                            {t.day} · {t.time} · {t.buyin}{t.gtd ? ` · ${t.gtd} GTD` : ''} · {t.game}
+                                            {t.day ? `${t.day} · ` : ''}{t.time ? `${t.time} · ` : ''}{t.buyin || ''}{t.gtd ? ` · ${t.gtd} GTD` : ''}{t.game ? ` · ${t.game}` : ''}
                                         </div>
                                         {t.notes && <div style={{ fontSize: 11, color: C.textSec, marginTop: 2, fontStyle: 'italic' }}>{t.notes}</div>}
                                     </div>
-                                    <button onClick={() => { setEditTourneyIdx(i); setNewTourney({ ...t }); }} style={{ ...btnSec, padding: '4px 10px', fontSize: 12 }}>Edit</button>
-                                    <button onClick={() => {
-                                        const updated = tournaments.filter((_, j) => j !== i);
-                                        setTournaments(updated); saveMetadata({ tournaments: updated }, 'Tournament removed');
-                                    }} style={{ ...btnSec, padding: '4px 10px', fontSize: 12, color: '#F02849' }}>×</button>
                                 </div>
                             ))}
                         </div>

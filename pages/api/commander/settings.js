@@ -47,7 +47,7 @@ export default async function handler(req, res) {
       const allowedFields = ['room_open', 'default_game_type', 'default_stakes',
         'max_tables', 'default_seats_per_table', 'time_billing_rate',
         'late_reg_levels', 'default_starting_chips', 'house_rules',
-        'hard_stop_enabled', 'hard_stop_time'];
+        'hard_stop_enabled', 'hard_stop_time', 'last_hard_stop_date'];
 
       const filtered = {};
       for (const key of allowedFields) {

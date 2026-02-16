@@ -27,7 +27,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // Fetch published posts, pinned first then by date
+    // Fetch published posts from commander_venue_posts (Commander-managed venues)
     const { data: posts, error, count } = await supabase
       .from('commander_venue_posts')
       .select(`
@@ -51,11 +51,63 @@ export default async function handler(req, res) {
 
     if (error) throw error;
 
+    // If commander posts exist, return them
+    if (posts && posts.length > 0) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          posts,
+          total: count,
+          limit: parseInt(limit),
+          offset: parseInt(offset)
+        }
+      });
+    }
+
+    // Fallback: check social_page_posts (social-media ClubPageDashboard posts)
+    const { data: socialPosts, error: spError, count: spCount } = await supabase
+      .from('social_page_posts')
+      .select(`
+        id,
+        author_id,
+        content,
+        content_type,
+        media_urls,
+        like_count,
+        comment_count,
+        share_count,
+        is_pinned,
+        created_at
+      `, { count: 'exact' })
+      .eq('page_id', id)
+      .eq('is_approved', true)
+      .eq('visibility', 'public')
+      .order('is_pinned', { ascending: false })
+      .order('created_at', { ascending: false })
+      .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
+
+    if (spError) throw spError;
+
+    // Map social_page_posts to the expected response shape
+    const mappedPosts = (socialPosts || []).map(p => ({
+      id: p.id,
+      author_name: 'Venue',
+      content: p.content,
+      post_type: p.content_type || 'text',
+      image_urls: Array.isArray(p.media_urls) ? p.media_urls.filter(u => typeof u === 'string') : [],
+      video_url: null,
+      likes_count: p.like_count || 0,
+      comments_count: p.comment_count || 0,
+      shares_count: p.share_count || 0,
+      is_pinned: p.is_pinned || false,
+      created_at: p.created_at,
+    }));
+
     return res.status(200).json({
       success: true,
       data: {
-        posts: posts || [],
-        total: count,
+        posts: mappedPosts,
+        total: spCount,
         limit: parseInt(limit),
         offset: parseInt(offset)
       }

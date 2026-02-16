@@ -339,6 +339,10 @@ export default function CommanderDashboard() {
           from { opacity: 0; transform: scale(0.95); }
           to { opacity: 1; transform: scale(1); }
         }
+        @keyframes cmdPulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
         .cmd-open-header {
           display: flex;
           align-items: center;

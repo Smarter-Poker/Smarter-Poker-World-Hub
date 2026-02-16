@@ -56,8 +56,8 @@ function LiveGameCard({ game }) {
         </p>
       </div>
       <div className={`px-2 py-1 rounded text-xs font-medium ${game.status === 'running'
-          ? 'bg-[#10B981]/10 text-[#10B981]'
-          : 'bg-[#F59E0B]/10 text-[#F59E0B]'
+        ? 'bg-[#10B981]/10 text-[#10B981]'
+        : 'bg-[#F59E0B]/10 text-[#F59E0B]'
         }`}>
         {game.status === 'running' ? 'Live' : 'Forming'}
       </div>
@@ -213,7 +213,12 @@ function ReviewCard({ review }) {
 }
 
 function TournamentCard({ tournament }) {
-  const startDate = new Date(tournament.scheduled_start);
+  const startDate = new Date(tournament.scheduled_start || tournament.start_time);
+  const buyIn = tournament.buyin_amount || tournament.buy_in_amount || 0;
+  const gtd = tournament.guaranteed_prize;
+  const gameType = tournament.game_type;
+
+  const GAME_LABELS = { NLH: "NL Hold'em", PLO: 'PLO', PLO5: 'PLO-5', PLO8: 'PLO Hi-Lo' };
 
   return (
     <div className="flex items-center gap-3 p-3 bg-[#F3F4F6] rounded-lg">
@@ -228,8 +233,10 @@ function TournamentCard({ tournament }) {
       <div className="flex-1">
         <p className="font-medium text-[#1F2937]">{tournament.name}</p>
         <p className="text-sm text-[#6B7280]">
-          ${tournament.buyin_amount} Buy-in
-          {tournament.guaranteed_prize && ` | $${tournament.guaranteed_prize.toLocaleString()} GTD`}
+          {startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+          {gameType ? ` · ${GAME_LABELS[gameType] || gameType}` : ''}
+          {buyIn ? ` · $${buyIn} Buy-in` : ''}
+          {gtd ? ` · $${gtd.toLocaleString()} GTD` : ''}
         </p>
       </div>
       <ChevronRight className="w-5 h-5 text-[#9CA3AF]" />
@@ -266,34 +273,37 @@ export default function ClubPage() {
     async function fetchVenueData() {
       setLoading(true);
       try {
-        // Fetch venue info
+        // Fetch venue info (works with both UUID and slug via API fallback)
         const res = await fetch(`/api/public/venue/${id}`);
         const data = await res.json();
         if (data.success) {
           setVenue(data.data.venue);
           setLiveGames(data.data.live_games || []);
           setTournaments(data.data.upcoming_tournaments || []);
-        }
 
-        // Fetch posts
-        const postsRes = await fetch(`/api/public/venue/${id}/posts?limit=10`);
-        const postsData = await postsRes.json();
-        if (postsData.success) {
-          setPosts(postsData.data?.posts || []);
-        }
+          // Use the resolved venue ID for subsequent calls (handles slug-based access)
+          const resolvedId = data.data.venue.id || id;
 
-        // Fetch photos
-        const photosRes = await fetch(`/api/public/venue/${id}/photos?limit=20`);
-        const photosData = await photosRes.json();
-        if (photosData.success) {
-          setPhotos(photosData.data?.photos || []);
-        }
+          // Fetch posts
+          const postsRes = await fetch(`/api/public/venue/${resolvedId}/posts?limit=10`);
+          const postsData = await postsRes.json();
+          if (postsData.success) {
+            setPosts(postsData.data?.posts || []);
+          }
 
-        // Fetch reviews
-        const reviewsRes = await fetch(`/api/public/venue/${id}/reviews?limit=10`);
-        const reviewsData = await reviewsRes.json();
-        if (reviewsData.success) {
-          setReviews(reviewsData.data?.reviews || []);
+          // Fetch photos
+          const photosRes = await fetch(`/api/public/venue/${resolvedId}/photos?limit=20`);
+          const photosData = await photosRes.json();
+          if (photosData.success) {
+            setPhotos(photosData.data?.photos || []);
+          }
+
+          // Fetch reviews
+          const reviewsRes = await fetch(`/api/public/venue/${resolvedId}/reviews?limit=10`);
+          const reviewsData = await reviewsRes.json();
+          if (reviewsData.success) {
+            setReviews(reviewsData.data?.reviews || []);
+          }
         }
       } catch (error) {
         console.error('Fetch venue data failed:', error);
@@ -381,6 +391,16 @@ export default function ClubPage() {
               className="w-full h-full object-cover"
             />
           )}
+          {/* Back Button */}
+          <button
+            onClick={() => router.back()}
+            className="absolute top-4 left-4 flex items-center gap-1 px-3 py-2 bg-black/40 hover:bg-black/60 backdrop-blur-sm text-white rounded-lg text-sm font-medium transition-colors"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 12H5" /><polyline points="12 19 5 12 12 5" />
+            </svg>
+            Back
+          </button>
         </div>
 
         {/* Profile Section */}
@@ -410,9 +430,17 @@ export default function ClubPage() {
                   <p className="text-[#6B7280] mb-2">
                     {venue.venue_type === 'casino' ? 'Casino' :
                       venue.venue_type === 'card_room' ? 'Card Room' :
-                        venue.venue_type === 'poker_club' ? 'Poker Club' : 'Venue'}
+                        venue.venue_type === 'poker_club' ? 'Poker Club' :
+                          venue.venue_type === 'charity' ? 'Charity' :
+                            venue.venue_type === 'home_game' ? 'Home Game' : 'Venue'}
                     {venue.city && ` in ${venue.city}, ${venue.state}`}
                   </p>
+                  {venue.address && (
+                    <p className="text-sm text-[#6B7280] mb-2 flex items-center gap-1">
+                      <MapPin className="w-3.5 h-3.5" />
+                      {venue.address}{venue.city ? `, ${venue.city}` : ''}{venue.state ? `, ${venue.state}` : ''}
+                    </p>
+                  )}
                   <div className="flex items-center gap-4 text-sm">
                     <span className="flex items-center gap-1">
                       <Star className="w-4 h-4 text-[#F59E0B] fill-current" />
@@ -431,8 +459,8 @@ export default function ClubPage() {
                   <button
                     onClick={handleFollow}
                     className={`px-4 py-2 rounded-lg font-medium transition-colors ${isFollowing
-                        ? 'bg-[#F3F4F6] text-[#1F2937] hover:bg-[#E5E7EB]'
-                        : 'bg-[#1877F2] text-white hover:bg-[#1664d9]'
+                      ? 'bg-[#F3F4F6] text-[#1F2937] hover:bg-[#E5E7EB]'
+                      : 'bg-[#1877F2] text-white hover:bg-[#1664d9]'
                       }`}
                   >
                     {isFollowing ? 'Following' : 'Follow'}
@@ -486,8 +514,8 @@ export default function ClubPage() {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === tab.id
-                      ? 'border-[#1877F2] text-[#1877F2]'
-                      : 'border-transparent text-[#6B7280] hover:text-[#1F2937]'
+                    ? 'border-[#1877F2] text-[#1877F2]'
+                    : 'border-transparent text-[#6B7280] hover:text-[#1F2937]'
                     }`}
                 >
                   {tab.label}

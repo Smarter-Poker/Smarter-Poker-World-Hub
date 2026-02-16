@@ -68,47 +68,121 @@ export default async function handler(req, res) {
       .single();
 
     if (venueError || !venue) {
-      // Fallback: check social_pages (clubs, charities, home games)
-      const { data: socialPage, error: spError } = await supabase
+      // Fallback: check social_pages by UUID (clubs, charities, home games)
+      let socialPage = null;
+      const { data: spById, error: spError } = await supabase
         .from('social_pages')
-        .select('id, name, description, avatar_url, cover_url, category, page_type, location_city, location_state, website, phone, follower_count, metadata, created_at')
+        .select('id, name, slug, description, avatar_url, cover_url, category, page_type, location_city, location_state, website, phone, follower_count, metadata, owner_id, created_at')
         .eq('id', id)
         .single();
 
-      if (spError || !socialPage) {
+      if (!spError && spById) {
+        socialPage = spById;
+      } else {
+        // Final fallback: try slug-based lookup
+        const { data: spBySlug, error: slugError } = await supabase
+          .from('social_pages')
+          .select('id, name, slug, description, avatar_url, cover_url, category, page_type, location_city, location_state, website, phone, follower_count, metadata, owner_id, created_at')
+          .eq('slug', id)
+          .single();
+
+        if (!slugError && spBySlug) {
+          socialPage = spBySlug;
+        }
+      }
+
+      if (!socialPage) {
         return res.status(404).json({
           success: false,
           error: { code: 'NOT_FOUND', message: 'Page not found' }
         });
       }
 
+      // Look up associated Club Arena club via owner_id + name match to fetch tournaments
+      let upcomingTournaments = [];
+      if (socialPage.owner_id) {
+        // First try matching by both owner_id and name (handles owners with multiple clubs)
+        let { data: club } = await supabase
+          .from('clubs')
+          .select('id')
+          .eq('owner_id', socialPage.owner_id)
+          .ilike('name', socialPage.name)
+          .limit(1)
+          .single();
+
+        // Fallback: if no name match, try owner_id only (single-club owners)
+        if (!club) {
+          const { data: fallbackClub } = await supabase
+            .from('clubs')
+            .select('id')
+            .eq('owner_id', socialPage.owner_id)
+            .limit(1)
+            .single();
+          club = fallbackClub;
+        }
+
+        if (club) {
+          const { data: tourneys } = await supabase
+            .from('tournaments')
+            .select('id, name, game_type, buy_in_amount, buy_in_fee, guaranteed_prize, start_time, status, max_players, current_players')
+            .eq('club_id', club.id)
+            .in('status', ['ANNOUNCED', 'RUNNING', 'SCHEDULED'])
+            .gte('start_time', new Date().toISOString())
+            .order('start_time', { ascending: true })
+            .limit(20);
+
+          upcomingTournaments = (tourneys || []).map(t => ({
+            id: t.id,
+            name: t.name,
+            game_type: t.game_type,
+            buyin_amount: t.buy_in_amount,
+            buy_in_fee: t.buy_in_fee,
+            scheduled_start: t.start_time,
+            guaranteed_prize: t.guaranteed_prize,
+            status: t.status,
+            max_players: t.max_players,
+            current_players: t.current_players,
+          }));
+        }
+      }
+
       // Return social page data in venue-compatible format
+      const meta = socialPage.metadata || {};
       return res.status(200).json({
         success: true,
         data: {
           venue: {
             id: socialPage.id,
             name: socialPage.name,
+            slug: socialPage.slug,
             venue_type: socialPage.page_type === 'club' ? 'poker_club' : socialPage.page_type === 'charity' ? 'charity' : 'home_game',
+            category: socialPage.category,
             city: socialPage.location_city,
             state: socialPage.location_state,
+            address: meta.address || '',
             phone: socialPage.phone,
             website: socialPage.website,
-            profile_photo_url: socialPage.avatar_url,
-            cover_photo_url: socialPage.cover_url,
+            profile_photo_url: socialPage.avatar_url || meta.logo_url,
+            cover_photo_url: socialPage.cover_url || meta.cover_photo_url,
             about: socialPage.description,
             tagline: socialPage.description?.substring(0, 120),
             follower_count: socialPage.follower_count || 0,
             is_social_page: true,
             commander_enabled: false,
+            amenities: meta.amenities || {},
+            photos: meta.photos || [],
+            run_schedule: meta.run_schedule || null,
+            social_links: meta.social_links || {},
           },
           live_games: [],
-          upcoming_tournaments: [],
+          upcoming_tournaments: upcomingTournaments,
           daily_schedule: [],
           promotions: [],
           waitlist_stats: null,
           links: {
-            smarter_poker: `https://smarter.poker/club/${id}`,
+            smarter_poker: socialPage.slug
+              ? `https://smarter.poker/club/${socialPage.slug}`
+              : `https://smarter.poker/club/${socialPage.id}`,
           }
         }
       });
