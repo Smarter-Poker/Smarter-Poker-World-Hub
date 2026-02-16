@@ -7,7 +7,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import {
   MapPin,
@@ -372,7 +372,32 @@ export default function ClubPage() {
   }, [id]);
 
   async function handleFollow() {
-    if (!user?.id) {
+    // Use pre-loaded user if available, otherwise do inline auth check
+    let activeUserId = user?.id;
+    if (!activeUserId) {
+      try {
+        const { data: { user: freshUser } } = await supabase.auth.getUser();
+        if (freshUser) {
+          activeUserId = freshUser.id;
+          // Also populate user state so future clicks are instant
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('display_name, username, avatar_url')
+            .eq('id', freshUser.id)
+            .maybeSingle();
+          setUser({
+            id: freshUser.id,
+            email: freshUser.email,
+            display_name: profile?.display_name || profile?.username || 'Player',
+            avatar_url: profile?.avatar_url
+          });
+        }
+      } catch (e) {
+        console.error('Inline auth check failed:', e);
+      }
+    }
+
+    if (!activeUserId) {
       router.push('/auth/signin?redirect=' + encodeURIComponent(router.asPath));
       return;
     }
@@ -383,7 +408,7 @@ export default function ClubPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           page_id: id,
-          user_id: user.id,
+          user_id: activeUserId,
           action: isFollowing ? 'unfollow' : undefined
         })
       });
@@ -558,14 +583,31 @@ export default function ClubPage() {
 
   return (
     <>
-      <Head>
-        <title>{venue.name} | Smarter Poker</title>
-        <meta name="description" content={venue.tagline || `${venue.name} - Poker room in ${venue.city}, ${venue.state}`} />
-        <meta property="og:title" content={`${venue.name} | Smarter Poker`} />
-        <meta property="og:description" content={venue.tagline || `Poker room in ${venue.city}, ${venue.state}`} />
-        {venue.cover_photo_url && <meta property="og:image" content={venue.cover_photo_url} />}
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
+      <SEOHead
+        title={`${venue.name} — Poker Room`}
+        description={venue.tagline || `${venue.name} — Poker room in ${venue.city}, ${venue.state}. Live games, tournaments, and more on Smarter.Poker.`}
+        canonical={`/club/${id}`}
+        ogImage={venue.cover_photo_url || undefined}
+        jsonLd={{
+          '@type': 'LocalBusiness',
+          name: venue.name,
+          description: venue.tagline || `Poker room in ${venue.city}, ${venue.state}`,
+          address: {
+            '@type': 'PostalAddress',
+            streetAddress: venue.address,
+            addressLocality: venue.city,
+            addressRegion: venue.state,
+          },
+          telephone: venue.phone,
+          url: `https://smarter.poker/club/${id}`,
+          image: venue.cover_photo_url,
+          aggregateRating: reviews.length > 0 ? {
+            '@type': 'AggregateRating',
+            ratingValue: averageRating,
+            reviewCount: reviews.length,
+          } : undefined,
+        }}
+      />
 
       <div className="min-h-screen bg-[#F9FAFB]">
         {/* Cover Photo */}
