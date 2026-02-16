@@ -72,7 +72,7 @@ export default async function handler(req, res) {
       let socialPage = null;
       const { data: spById, error: spError } = await supabase
         .from('social_pages')
-        .select('id, name, slug, description, avatar_url, cover_url, category, page_type, location_city, location_state, website, phone, follower_count, metadata, owner_id, created_at')
+        .select('id, name, slug, description, avatar_url, cover_url, category, page_type, location_city, location_state, website, phone, follower_count, metadata, owner_id, linked_venue_id, created_at')
         .eq('id', id)
         .single();
 
@@ -82,7 +82,7 @@ export default async function handler(req, res) {
         // Final fallback: try slug-based lookup
         const { data: spBySlug, error: slugError } = await supabase
           .from('social_pages')
-          .select('id, name, slug, description, avatar_url, cover_url, category, page_type, location_city, location_state, website, phone, follower_count, metadata, owner_id, created_at')
+          .select('id, name, slug, description, avatar_url, cover_url, category, page_type, location_city, location_state, website, phone, follower_count, metadata, owner_id, linked_venue_id, created_at')
           .eq('slug', id)
           .single();
 
@@ -101,13 +101,13 @@ export default async function handler(req, res) {
       // Bridge: look up linked poker_venue to get Commander data
       const meta = socialPage.metadata || {};
       let linkedVenue = null;
-      let linkedVenueId = meta.linked_venue_id || null;
+      let linkedVenueId = socialPage.linked_venue_id || meta.linked_venue_id || null;
 
       // Try metadata.linked_venue_id first, then name match
       if (linkedVenueId) {
         const { data: lv } = await supabase
           .from('poker_venues')
-          .select('id, commander_enabled, games_offered, stakes_cash, stakes_tournament, poker_tables, hours_weekday, hours_weekend, has_bad_beat_jackpot, has_food_service, has_hotel, has_valet, has_comps, trust_score, google_rating, review_count, is_featured')
+          .select('id, commander_enabled, games_offered, stakes_cash, poker_tables, hours_weekday, hours_weekend, trust_score, is_featured, cover_photo_url, profile_photo_url, tagline, about, follower_count, social_links, slug, has_tournaments')
           .eq('id', linkedVenueId)
           .eq('is_active', true)
           .single();
@@ -118,7 +118,7 @@ export default async function handler(req, res) {
         // Fallback: find poker_venue by name match
         const { data: lv } = await supabase
           .from('poker_venues')
-          .select('id, commander_enabled, games_offered, stakes_cash, stakes_tournament, poker_tables, hours_weekday, hours_weekend, has_bad_beat_jackpot, has_food_service, has_hotel, has_valet, has_comps, trust_score, google_rating, review_count, is_featured')
+          .select('id, commander_enabled, games_offered, stakes_cash, poker_tables, hours_weekday, hours_weekend, trust_score, is_featured, cover_photo_url, profile_photo_url, tagline, about, follower_count, social_links, slug, has_tournaments')
           .ilike('name', socialPage.name)
           .eq('is_active', true)
           .limit(1)
@@ -149,7 +149,7 @@ export default async function handler(req, res) {
       if (commanderEnabled && venueIdForCommander) {
         const { data: tourneys } = await supabase
           .from('commander_tournaments')
-          .select('id, name, tournament_type, buyin_amount, scheduled_start, status, total_entries, max_entries, guaranteed_prize')
+          .select('id, name, tournament_type, buyin_amount, scheduled_start, status, current_entries, max_entries, guaranteed_pool')
           .eq('venue_id', venueIdForCommander)
           .in('status', ['scheduled', 'registering', 'registration'])
           .gte('scheduled_start', new Date().toISOString())
@@ -219,6 +219,11 @@ export default async function handler(req, res) {
         };
       }
 
+      // Extract coordinates from geocoded_locations metadata
+      const geocoded = meta.geocoded_locations || {};
+      const primaryLocStr = socialPage.location_city + (socialPage.location_state ? ', ' + socialPage.location_state : '');
+      const primaryCoords = geocoded[primaryLocStr] || geocoded[socialPage.location_city] || null;
+
       // Return social page data in venue-compatible format
       return res.status(200).json({
         success: true,
@@ -232,6 +237,8 @@ export default async function handler(req, res) {
             city: socialPage.location_city,
             state: socialPage.location_state,
             address: meta.address || '',
+            latitude: primaryCoords ? primaryCoords.lat : null,
+            longitude: primaryCoords ? primaryCoords.lng : null,
             phone: socialPage.phone,
             website: socialPage.website,
             profile_photo_url: socialPage.avatar_url || meta.logo_url,
@@ -249,15 +256,9 @@ export default async function handler(req, res) {
             poker_tables: linkedVenue?.poker_tables || null,
             hours_weekday: linkedVenue?.hours_weekday || null,
             hours_weekend: linkedVenue?.hours_weekend || null,
-            has_bad_beat_jackpot: linkedVenue?.has_bad_beat_jackpot || false,
-            has_food_service: linkedVenue?.has_food_service || false,
-            has_hotel: linkedVenue?.has_hotel || false,
-            has_valet: linkedVenue?.has_valet || false,
-            has_comps: linkedVenue?.has_comps || false,
             trust_score: linkedVenue?.trust_score || null,
-            google_rating: linkedVenue?.google_rating || null,
-            review_count: linkedVenue?.review_count || 0,
             is_featured: linkedVenue?.is_featured || false,
+            has_tournaments: linkedVenue?.has_tournaments || false,
             photos: meta.photos || [],
             run_schedule: meta.run_schedule || null,
             social_links: meta.social_links || {},
@@ -308,9 +309,9 @@ export default async function handler(req, res) {
         buyin_amount,
         scheduled_start,
         status,
-        total_entries,
+        current_entries,
         max_entries,
-        guaranteed_prize
+        guaranteed_pool
       `)
       .eq('venue_id', id)
       .in('status', ['scheduled', 'registering', 'registration'])
