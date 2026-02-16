@@ -72,8 +72,7 @@ export default function DailyPresetsPage() {
   useEffect(() => {
     if (!staff) return;
     try {
-      const stored = JSON.parse(localStorage.getItem('commander_staff') || '{}');
-      const token = stored.token || stored.access_token;
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       if (!token) return;
       fetch('/api/commander/settings', { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json())
@@ -91,8 +90,7 @@ export default function DailyPresetsPage() {
   async function handleHardStopSave() {
     setHardStopSaving(true);
     try {
-      const stored = JSON.parse(localStorage.getItem('commander_staff') || '{}');
-      const token = stored.token || stored.access_token;
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       if (!token) return;
       const res = await fetch('/api/commander/settings', {
         method: 'PUT',
@@ -111,8 +109,7 @@ export default function DailyPresetsPage() {
   async function handleAutoCompSave() {
     setAutoCompSaving(true);
     try {
-      const stored = JSON.parse(localStorage.getItem('commander_staff') || '{}');
-      const token = stored.token || stored.access_token;
+      const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       if (!token) return;
       const res = await fetch('/api/commander/settings', {
         method: 'PUT',
@@ -557,13 +554,13 @@ export default function DailyPresetsPage() {
                           {promotions.map(promo => (
                             <button key={promo.id} onClick={() => togglePromotion(promo.id)}
                               className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${form.promotions.includes(promo.id)
-                                  ? 'bg-[#31A24C]/10 border border-[#31A24C]'
-                                  : 'bg-[#3A3B3C]/30 border border-transparent hover:border-[#4A4B4C]'
+                                ? 'bg-[#31A24C]/10 border border-[#31A24C]'
+                                : 'bg-[#3A3B3C]/30 border border-transparent hover:border-[#4A4B4C]'
                                 }`}>
                               <div className="flex items-center gap-3 text-left">
                                 <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${form.promotions.includes(promo.id)
-                                    ? 'bg-[#31A24C] border-[#31A24C]'
-                                    : 'border-[#4A4B4C]'
+                                  ? 'bg-[#31A24C] border-[#31A24C]'
+                                  : 'border-[#4A4B4C]'
                                   }`}>
                                   {form.promotions.includes(promo.id) && <CheckCircle className="w-3 h-3 text-white" />}
                                 </div>
@@ -676,8 +673,8 @@ export default function DailyPresetsPage() {
                           {DAY_LABELS.map((label, idx) => (
                             <button key={idx} onClick={() => toggleDay(idx)}
                               className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${form.day_of_week.includes(idx)
-                                  ? 'bg-[#8B5CF6]/20 border border-[#8B5CF6] text-[#8B5CF6]'
-                                  : 'bg-[#3A3B3C] border border-[#4A4B4C] text-[#B0B3B8] hover:border-[#8B5CF6]/50'
+                                ? 'bg-[#8B5CF6]/20 border border-[#8B5CF6] text-[#8B5CF6]'
+                                : 'bg-[#3A3B3C] border border-[#4A4B4C] text-[#B0B3B8] hover:border-[#8B5CF6]/50'
                                 }`}>
                               {label}
                             </button>

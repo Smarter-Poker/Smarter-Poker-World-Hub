@@ -34,6 +34,21 @@ export default async function handler(req, res) {
 
     const venueId = staff.venue_id;
 
+    // Helper: normalize a preset row from DB into frontend-friendly shape
+    // DB stores { tables: [...], promotions: [...], tournaments: [...] } all inside `tables` JSONB
+    function normalizePreset(row) {
+      const config = row.tables || {};
+      // Handle old-format presets where tables is the config itself (object like {total:16, nlh_1_2:6})
+      // or new format where tables is an object with .tables, .promotions, .tournaments arrays
+      const isNewFormat = Array.isArray(config?.tables) || Array.isArray(config?.promotions) || Array.isArray(config?.tournaments);
+      return {
+        ...row,
+        tables: isNewFormat ? (config.tables || []) : (Array.isArray(config) ? config : []),
+        promotions: isNewFormat ? (config.promotions || []) : [],
+        tournaments: isNewFormat ? (config.tournaments || []) : [],
+      };
+    }
+
     // GET - List all presets
     if (req.method === 'GET') {
       const { data, error } = await supabase
@@ -43,7 +58,7 @@ export default async function handler(req, res) {
         .order('name', { ascending: true });
 
       if (error) return res.status(500).json({ success: false, error: error.message });
-      return res.status(200).json({ success: true, data: data || [] });
+      return res.status(200).json({ success: true, data: (data || []).map(normalizePreset) });
     }
 
     // POST - Create or Apply
@@ -52,17 +67,18 @@ export default async function handler(req, res) {
       // APPLY PRESET — Opens tables, activates promotions, creates tournaments
       // ═══════════════════════════════════════════════════════════════
       if (req.query.action === 'apply' && req.query.id) {
-        const { data: preset, error: fetchErr } = await supabase
+        const { data: rawPreset, error: fetchErr } = await supabase
           .from('commander_room_presets')
           .select('*')
           .eq('id', req.query.id)
           .eq('venue_id', venueId)
           .single();
 
-        if (fetchErr || !preset) {
+        if (fetchErr || !rawPreset) {
           return res.status(404).json({ success: false, error: 'Preset not found' });
         }
 
+        const preset = normalizePreset(rawPreset);
         const results = { games_opened: 0, promotions_activated: 0, tournaments_created: 0 };
 
         // ── 1. OPEN TABLES ──
@@ -202,15 +218,20 @@ export default async function handler(req, res) {
         is_default, start_time, day_of_week } = req.body;
       if (!name) return res.status(400).json({ success: false, error: 'Preset name required' });
 
+      // Pack tables, promotions, tournaments into single JSONB `tables` column
+      const tablesJsonb = {
+        tables: tableConfigs || [],
+        promotions: promotions || [],
+        tournaments: tournaments || [],
+      };
+
       const { data, error } = await supabase
         .from('commander_room_presets')
         .insert({
           venue_id: venueId,
           name,
           description: description || null,
-          tables: tableConfigs || [],
-          promotions: promotions || [],
-          tournaments: tournaments || [],
+          tables: tablesJsonb,
           is_default: is_default || false,
           auto_apply_schedule: start_time && day_of_week
             ? { start_time, day_of_week }
@@ -221,7 +242,7 @@ export default async function handler(req, res) {
         .single();
 
       if (error) return res.status(500).json({ success: false, error: error.message });
-      return res.status(201).json({ success: true, data });
+      return res.status(201).json({ success: true, data: normalizePreset(data) });
     }
 
     // PUT - Update preset
@@ -234,21 +255,27 @@ export default async function handler(req, res) {
       if (!id) return res.status(400).json({ success: false, error: 'Preset ID required' });
 
       const updates = {};
-      const allowed = ['name', 'description', 'tables', 'promotions', 'tournaments',
-        'is_default', 'start_time', 'day_of_week'];
-      for (const key of allowed) {
-        if (req.body[key] !== undefined) updates[key] = req.body[key];
+      // Simple scalar fields
+      if (req.body.name !== undefined) updates.name = req.body.name;
+      if (req.body.description !== undefined) updates.description = req.body.description;
+      if (req.body.is_default !== undefined) updates.is_default = req.body.is_default;
+
+      // Pack tables/promotions/tournaments into single JSONB `tables` column
+      if (req.body.tables !== undefined || req.body.promotions !== undefined || req.body.tournaments !== undefined) {
+        updates.tables = {
+          tables: req.body.tables || [],
+          promotions: req.body.promotions || [],
+          tournaments: req.body.tournaments || [],
+        };
       }
+
       // Build auto_apply_schedule from start_time + day_of_week
       if (req.body.start_time !== undefined || req.body.day_of_week !== undefined) {
         updates.auto_apply_schedule = {
           start_time: req.body.start_time || null,
           day_of_week: req.body.day_of_week || null
         };
-        delete updates.start_time;
-        delete updates.day_of_week;
       }
-      updates.updated_at = new Date().toISOString();
 
       const { data, error } = await supabase
         .from('commander_room_presets')
@@ -259,7 +286,7 @@ export default async function handler(req, res) {
         .single();
 
       if (error) return res.status(500).json({ success: false, error: error.message });
-      return res.status(200).json({ success: true, data });
+      return res.status(200).json({ success: true, data: normalizePreset(data) });
     }
 
     // DELETE

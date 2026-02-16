@@ -15,7 +15,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import {
-  Menu, X, ArrowLeft, Users, Clock, Layout, Map, Bell, Trophy,
+  Menu, X, Users, Clock, Layout, Map, Bell, Trophy,
   Monitor, DollarSign, Gift, Calendar, Tv, Activity, BarChart3,
   AlertTriangle, PlusCircle, Lock, Upload, QrCode, Settings, LogOut,
   Package, Briefcase, Globe, Crown
@@ -219,26 +219,24 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
           display: block;
         }
 
-        /* ── BACK BUTTON ── */
-        .cmd-back-btn {
+        /* ── BACK IMAGE BUTTON ── */
+        .cmd-back-img-btn {
           background: none;
-          border: 2px solid #555;
-          border-radius: 10px;
-          padding: 8px 14px;
-          color: #ccc;
+          border: none;
+          padding: 0;
           cursor: pointer;
           display: flex;
           align-items: center;
-          gap: 6px;
-          font-size: 13px;
-          font-weight: 600;
           transition: all 0.2s;
-          text-decoration: none;
-          white-space: nowrap;
         }
-        .cmd-back-btn:hover {
-          border-color: #777;
-          color: #fff;
+        .cmd-back-img-btn:hover {
+          transform: scale(1.08);
+          filter: brightness(1.3);
+        }
+        .cmd-back-img-btn img {
+          height: 32px;
+          width: auto;
+          display: block;
         }
 
         /* ── SLIDE-OUT MENU ── */
@@ -366,7 +364,7 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
           text-transform: uppercase;
         }
 
-        /* ── HUB BUTTON ── */
+        /* ── HUB BUTTON (dashboard only) ── */
         .cmd-hub-btn {
           background: none;
           border: none;
@@ -394,26 +392,29 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
             <button className="cmd-hamburger" onClick={() => setMenuOpen(true)}>
               <img src="/images/commander/btn-hamburger.png" alt="Menu" />
             </button>
-            <button
-              className="cmd-hub-btn"
-              onClick={() => router.push('/hub')}
-              title="Back to Smarter.Poker Hub"
-            >
-              <img src="/images/btn-hub.png" alt="Hub" />
-            </button>
-            {!hideBack && (
+            {hideBack ? (
+              /* Dashboard: show HUB button */
               <button
-                className="cmd-back-btn"
+                className="cmd-hub-btn"
+                onClick={() => router.push('/hub')}
+                title="Back to Smarter.Poker Hub"
+              >
+                <img src="/images/btn-hub.png" alt="Hub" />
+              </button>
+            ) : (
+              /* All other pages: show metallic BACK image */
+              <button
+                className="cmd-back-img-btn"
                 onClick={() => {
-                  // Use real browser history so Back always returns to the actual previous page
                   if (window.history.length > 1) {
                     router.back();
                   } else {
                     router.push('/commander/dashboard');
                   }
                 }}
+                title="Go Back"
               >
-                <ArrowLeft size={16} /> Back
+                <img src="/images/commander/btn-back.png" alt="Back" />
               </button>
             )}
           </div>

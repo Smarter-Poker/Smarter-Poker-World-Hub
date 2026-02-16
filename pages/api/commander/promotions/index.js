@@ -37,6 +37,27 @@ async function listPromotions(req, res) {
       offset = 0
     } = req.query;
 
+    // Resolve integer venue_id: prefer query param if it's a valid integer,
+    // otherwise look up from the authenticated user's staff record
+    let resolvedVenueId = venue_id;
+    if (!resolvedVenueId || isNaN(parseInt(resolvedVenueId))) {
+      // Auto-resolve from auth
+      const authHeader = req.headers.authorization;
+      if (authHeader) {
+        const token = authHeader.replace('Bearer ', '');
+        const { data: { user } } = await supabase.auth.getUser(token);
+        if (user) {
+          const { data: staff } = await supabase
+            .from('commander_staff')
+            .select('venue_id')
+            .eq('user_id', user.id)
+            .eq('is_active', true)
+            .single();
+          if (staff) resolvedVenueId = staff.venue_id;
+        }
+      }
+    }
+
     let query = supabase
       .from('commander_promotions')
       .select(`
@@ -47,8 +68,8 @@ async function listPromotions(req, res) {
       .order('created_at', { ascending: false })
       .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
 
-    if (venue_id) {
-      query = query.eq('venue_id', venue_id);
+    if (resolvedVenueId) {
+      query = query.eq('venue_id', resolvedVenueId);
     }
 
     if (status && status !== 'all') {
