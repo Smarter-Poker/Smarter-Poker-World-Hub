@@ -46,6 +46,21 @@ export default async function handler(req, res) {
         // Resolve venue_id from table if not provided
         const resolvedVenueId = venue_id || tableData?.venue_id || null;
 
+        // 1b. Get venue settings for mode detection
+        let venueType = 'texas'; // default
+        let venueSettings = null;
+        if (resolvedVenueId) {
+            try {
+                const { data: vs } = await supabase
+                    .from('commander_venue_settings')
+                    .select('venue_type, time_billing_rate, auto_comp_rate')
+                    .eq('venue_id', resolvedVenueId)
+                    .single();
+                if (vs?.venue_type) venueType = vs.venue_type;
+                venueSettings = vs;
+            } catch (e) { /* settings table might not exist */ }
+        }
+
         // 2. Get active player sessions — try both table names for migration compatibility
         let sessions = [];
         try {
@@ -181,7 +196,8 @@ export default async function handler(req, res) {
                     venue_id: resolvedVenueId
                 },
                 players: playersWithTime,
-                dealer: dealer
+                dealer: dealer,
+                venue_type: venueType
             }
         });
     } catch (err) {

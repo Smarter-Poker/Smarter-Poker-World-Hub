@@ -1,24 +1,35 @@
 /**
- * Player Table Display + Dealer Scan-In
+ * Player Table Display + Dealer Scan-In + Player Scan-In
  * /commander/player/[tableNumber]
  * 
  * Player-facing screen mounted at the table or on a small tablet.
- * Shows ALL seated players at this table with their live countdown timers.
- * Players can see their own time + everyone else's time.
+ * Shows ALL seated players at this table with live timing.
+ * 
+ * DUAL MODE:
+ *   Texas clubs: countdown timers (time remaining from purchased balance)
+ *   Charity/Home: count-up timers (elapsed play duration)
  * 
  * DEALER SCAN-IN:
  * - Shows current dealer in a banner below the header
  * - "Change Dealer" button opens camera QR scanner
- * - Dealer scans their member card QR to assign themselves to this table
+ * - Dealer scans their QR to assign themselves to this table
  * 
- * No authentication required - read-only display + dealer scan-in.
+ * PLAYER SCAN-IN:
+ * - Tap empty seat → opens QR scanner → scans player card → seats player
+ * - Tap occupied seat → shows player info with option to remove
+ * - "Scan Player" button for quick-scan without picking a seat first
+ * 
+ * No authentication required - unauthenticated tablet.
  * Auto-refreshes every 3 seconds, timers tick locally every second.
  * 
- * Color coding:
+ * Color coding (Texas mode):
  *   Green  = plenty of time (> 15 min)
  *   Yellow = running low (< 15 min)
  *   Red    = critical (< 5 min)
  *   Red pulse = expired (0:00)
+ * 
+ * Color coding (Charity/Home mode):
+ *   Cyan for all players (no urgency)
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
@@ -31,6 +42,16 @@ function formatCountdown(seconds) {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const s = seconds % 60;
+  if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+function formatElapsed(startedAt) {
+  if (!startedAt) return '--:--';
+  const elapsed = Math.max(0, Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000));
+  const h = Math.floor(elapsed / 3600);
+  const m = Math.floor((elapsed % 3600) / 60);
+  const s = elapsed % 60;
   if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
@@ -66,7 +87,7 @@ function formatDealerTime(startedAt) {
 }
 
 /* ── QR Scanner Modal ── */
-function QRScannerModal({ onScan, onClose }) {
+function QRScannerModal({ onScan, onClose, title, subtitle }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
@@ -120,7 +141,6 @@ function QRScannerModal({ onScan, onClose }) {
         animFrame = requestAnimationFrame(scan);
       };
 
-      // Wait for video to be ready
       if (videoRef.current) {
         videoRef.current.onloadeddata = () => {
           if (active) scan();
@@ -146,10 +166,10 @@ function QRScannerModal({ onScan, onClose }) {
       alignItems: 'center', justifyContent: 'center', padding: '20px'
     }}>
       <h2 style={{ color: '#fff', fontSize: '20px', fontWeight: 700, marginBottom: '16px' }}>
-        Scan Dealer Card
+        {title || 'Scan Card'}
       </h2>
       <p style={{ color: '#B0B3B8', fontSize: '14px', marginBottom: '20px', textAlign: 'center' }}>
-        Hold the employee card QR code in front of the camera
+        {subtitle || 'Hold the member card QR code in front of the camera'}
       </p>
 
       {error ? (
@@ -177,7 +197,6 @@ function QRScannerModal({ onScan, onClose }) {
               playsInline
               muted
             />
-            {/* Scan line animation */}
             {scanning && (
               <div style={{
                 position: 'absolute', left: '10%', right: '10%', height: '2px',
@@ -185,7 +204,6 @@ function QRScannerModal({ onScan, onClose }) {
                 animation: 'scanLine 2s linear infinite'
               }} />
             )}
-            {/* Corner guides */}
             <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} viewBox="0 0 100 100">
               <path d="M20 5 L5 5 L5 20" fill="none" stroke="#22D3EE" strokeWidth="1.5" strokeLinecap="round" />
               <path d="M80 5 L95 5 L95 20" fill="none" stroke="#22D3EE" strokeWidth="1.5" strokeLinecap="round" />
@@ -206,6 +224,80 @@ function QRScannerModal({ onScan, onClose }) {
   );
 }
 
+/* ── Player Info Modal (tap occupied seat) ── */
+function PlayerInfoModal({ player, venueType, onRemove, onClose }) {
+  const [confirming, setConfirming] = useState(false);
+  const isTexas = venueType === 'texas';
+  const t = player.time_remaining;
+  const color = isTexas ? getTimeColor(t) : '#22D3EE';
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 9998,
+      background: 'rgba(0,0,0,0.85)', display: 'flex',
+      alignItems: 'center', justifyContent: 'center', padding: '20px'
+    }} onClick={onClose}>
+      <div style={{
+        background: '#1C1C1E', borderRadius: '16px', border: `2px solid ${color}40`,
+        padding: '24px', maxWidth: '360px', width: '100%',
+        boxShadow: '0 8px 40px rgba(0,0,0,0.6)'
+      }} onClick={e => e.stopPropagation()}>
+        <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+          <div style={{
+            width: '64px', height: '64px', borderRadius: '50%',
+            background: `${color}15`, border: `3px solid ${color}50`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 12px', fontSize: '24px', fontWeight: 700, color
+          }}>
+            S{player.seat_number}
+          </div>
+          <p style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{player.player_name}</p>
+          {player.membership_tier && (
+            <p style={{ fontSize: '12px', color: '#B0B3B8', marginTop: '4px' }}>
+              {player.membership_tier} member
+            </p>
+          )}
+        </div>
+
+        <div style={{
+          background: `${color}10`, borderRadius: '12px', border: `1px solid ${color}30`,
+          padding: '16px', textAlign: 'center', marginBottom: '16px'
+        }}>
+          <p style={{ fontSize: '12px', color: '#B0B3B8', marginBottom: '4px' }}>
+            {isTexas ? 'Time Remaining' : 'Playing For'}
+          </p>
+          <p style={{ fontSize: '32px', fontFamily: 'monospace', fontWeight: 700, color }}>
+            {isTexas ? formatCountdown(t) : formatElapsed(player.started_at)}
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button onClick={onClose} style={{
+            flex: 1, padding: '12px', borderRadius: '10px',
+            background: '#3A3B3C', color: '#fff', border: 'none',
+            fontWeight: 600, fontSize: '14px', cursor: 'pointer'
+          }}>Close</button>
+
+          {!confirming ? (
+            <button onClick={() => setConfirming(true)} style={{
+              flex: 1, padding: '12px', borderRadius: '10px',
+              background: '#3A1515', color: '#EF4444', border: '2px solid #EF444440',
+              fontWeight: 600, fontSize: '14px', cursor: 'pointer'
+            }}>Remove Player</button>
+          ) : (
+            <button onClick={() => onRemove(player)} style={{
+              flex: 1, padding: '12px', borderRadius: '10px',
+              background: '#EF4444', color: '#fff', border: 'none',
+              fontWeight: 600, fontSize: '14px', cursor: 'pointer',
+              animation: 'fadeIn 0.2s ease'
+            }}>Confirm Remove</button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function PlayerTableDisplay() {
   const router = useRouter();
   const { tableNumber } = router.query;
@@ -213,9 +305,15 @@ export default function PlayerTableDisplay() {
   const [table, setTable] = useState(null);
   const [now, setNow] = useState(new Date());
   const [dealer, setDealer] = useState(null);
+  const [venueType, setVenueType] = useState('texas');
   const [showScanner, setShowScanner] = useState(false);
-  const [scanStatus, setScanStatus] = useState(null); // { type: 'success'|'error', message }
+  const [scanMode, setScanMode] = useState('dealer'); // 'dealer' or 'player'
+  const [targetSeat, setTargetSeat] = useState(null); // seat number for player scan
+  const [scanStatus, setScanStatus] = useState(null); // { type: 'success'|'error'|'loading', message }
+  const [selectedPlayer, setSelectedPlayer] = useState(null); // for player info modal
   const wakeLockRef = useRef(null);
+
+  const isTexas = venueType === 'texas';
 
   // Fetch all tablet data (table info, sessions, dealer) in one call
   useEffect(() => {
@@ -229,6 +327,7 @@ export default function PlayerTableDisplay() {
           setPlayers(json.data.players || []);
           setTable(json.data.table || null);
           setDealer(json.data.dealer || null);
+          if (json.data.venue_type) setVenueType(json.data.venue_type);
         }
       } catch (err) { console.error(err); }
     };
@@ -237,18 +336,20 @@ export default function PlayerTableDisplay() {
     return () => clearInterval(poll);
   }, [tableNumber, table?.venue_id]);
 
-  // Local countdown ticker
+  // Local ticker (countdown for Texas, re-render for elapsed display)
   useEffect(() => {
     const ticker = setInterval(() => {
-      setPlayers(prev => prev.map(p => ({
-        ...p,
-        time_remaining: p.time_remaining !== null && p.time_remaining !== undefined
-          ? Math.max(0, p.time_remaining - 1) : null
-      })));
+      if (isTexas) {
+        setPlayers(prev => prev.map(p => ({
+          ...p,
+          time_remaining: p.time_remaining !== null && p.time_remaining !== undefined
+            ? Math.max(0, p.time_remaining - 1) : null
+        })));
+      }
       setNow(new Date());
     }, 1000);
     return () => clearInterval(ticker);
-  }, []);
+  }, [isTexas]);
 
   // Wake lock
   useEffect(() => {
@@ -264,8 +365,8 @@ export default function PlayerTableDisplay() {
     return () => { wakeLockRef.current?.release(); };
   }, []);
 
-  // Handle QR scan result
-  const handleScan = useCallback(async (qrData) => {
+  // Handle dealer QR scan
+  const handleDealerScan = useCallback(async (qrData) => {
     setShowScanner(false);
     setScanStatus({ type: 'loading', message: 'Scanning...' });
 
@@ -291,9 +392,93 @@ export default function PlayerTableDisplay() {
       setScanStatus({ type: 'error', message: 'Network error. Please try again.' });
     }
 
-    // Clear status after 4 seconds
     setTimeout(() => setScanStatus(null), 4000);
   }, [tableNumber, table]);
+
+  // Handle player QR scan
+  const handlePlayerScan = useCallback(async (qrData) => {
+    setShowScanner(false);
+    setScanStatus({ type: 'loading', message: 'Scanning player...' });
+
+    try {
+      const res = await fetch('/api/commander/dealer/player-scan-in', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          qr_code: qrData,
+          table_number: parseInt(tableNumber),
+          seat_number: targetSeat || undefined,
+          venue_id: table?.venue_id
+        })
+      });
+      const json = await res.json();
+
+      if (json.success) {
+        const d = json.data;
+        setScanStatus({
+          type: 'success',
+          message: `${d.player_name} seated at S${d.seat_number}${d.time_allocated_minutes ? ` (${d.time_allocated_minutes}m)` : ''}`
+        });
+        setTargetSeat(null);
+      } else {
+        setScanStatus({ type: 'error', message: json.error || 'Scan failed' });
+      }
+    } catch (err) {
+      setScanStatus({ type: 'error', message: 'Network error. Please try again.' });
+    }
+
+    setTimeout(() => setScanStatus(null), 4000);
+  }, [tableNumber, table, targetSeat]);
+
+  // Handle player removal
+  const handleRemovePlayer = useCallback(async (player) => {
+    setSelectedPlayer(null);
+    setScanStatus({ type: 'loading', message: 'Removing player...' });
+
+    try {
+      const res = await fetch('/api/commander/dealer/player-unseat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: player.session_id })
+      });
+      const json = await res.json();
+
+      if (json.success) {
+        const d = json.data;
+        let msg = `${d.player_name} removed (${d.elapsed_minutes}m played)`;
+        if (d.unused_minutes_returned > 0) msg += ` · ${d.unused_minutes_returned}m returned`;
+        if (d.comp_earned > 0) msg += ` · $${d.comp_earned} comp`;
+        setScanStatus({ type: 'success', message: msg });
+      } else {
+        setScanStatus({ type: 'error', message: json.error || 'Remove failed' });
+      }
+    } catch (err) {
+      setScanStatus({ type: 'error', message: 'Network error. Please try again.' });
+    }
+
+    setTimeout(() => setScanStatus(null), 5000);
+  }, []);
+
+  // Open scanner
+  const openDealerScanner = (e) => {
+    e.stopPropagation();
+    setScanMode('dealer');
+    setTargetSeat(null);
+    setShowScanner(true);
+  };
+
+  const openPlayerScanner = (e, seatNum) => {
+    e?.stopPropagation();
+    setScanMode('player');
+    setTargetSeat(seatNum || null);
+    setShowScanner(true);
+  };
+
+  // Tap occupied seat
+  const handleSeatTap = (e, player) => {
+    e.stopPropagation();
+    setSelectedPlayer(player);
+  };
 
   const goFullscreen = () => document.documentElement.requestFullscreen?.();
   const maxSeats = table?.max_seats || 9;
@@ -306,7 +491,6 @@ export default function PlayerTableDisplay() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
-      {/* jsQR library for QR code scanning */}
       <Script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" strategy="beforeInteractive" />
 
       <style jsx global>{`
@@ -316,6 +500,8 @@ export default function PlayerTableDisplay() {
         @keyframes ring-pulse { 0% { transform: scale(1); opacity: 0.6; } 100% { transform: scale(1.4); opacity: 0; } }
         @keyframes scanLine { 0% { top: 10%; } 100% { top: 90%; } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes seat-glow { 0%, 100% { border-color: rgba(34,211,238,0.15); } 50% { border-color: rgba(34,211,238,0.4); } }
+        .empty-seat-pulse { animation: seat-glow 3s ease-in-out infinite; }
       `}</style>
 
       <div onClick={goFullscreen}
@@ -328,6 +514,11 @@ export default function PlayerTableDisplay() {
             <span className="text-sm opacity-80">
               {table?.game_type || 'NLH'} {table?.stakes || ''} — {players.length}/{maxSeats}
             </span>
+            {!isTexas && (
+              <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                {venueType === 'charity' ? 'Charity' : 'Home Game'}
+              </span>
+            )}
           </div>
           <p className="text-2xl font-mono font-bold tabular-nums">
             {now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' })}
@@ -343,7 +534,6 @@ export default function PlayerTableDisplay() {
           flexShrink: 0
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            {/* Dealer avatar/icon */}
             <div style={{
               width: '36px', height: '36px', borderRadius: '50%',
               background: dealer ? '#31A24C20' : '#22D3EE15',
@@ -376,18 +566,34 @@ export default function PlayerTableDisplay() {
             </div>
           </div>
 
-          <button
-            onClick={(e) => { e.stopPropagation(); setShowScanner(true); }}
-            style={{
-              padding: '8px 16px', borderRadius: '8px', cursor: 'pointer',
-              fontWeight: 600, fontSize: '13px', border: 'none',
-              background: dealer ? '#3A3B3C' : '#22D3EE',
-              color: dealer ? '#fff' : '#000',
-              transition: 'all 0.2s'
-            }}
-          >
-            {dealer ? 'Change Dealer' : 'Scan In'}
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {/* Scan Player button */}
+            <button
+              onClick={(e) => openPlayerScanner(e)}
+              style={{
+                padding: '8px 16px', borderRadius: '8px', cursor: 'pointer',
+                fontWeight: 600, fontSize: '13px', border: 'none',
+                background: '#22D3EE', color: '#000',
+                transition: 'all 0.2s'
+              }}
+            >
+              Scan Player
+            </button>
+
+            {/* Change Dealer button */}
+            <button
+              onClick={openDealerScanner}
+              style={{
+                padding: '8px 16px', borderRadius: '8px', cursor: 'pointer',
+                fontWeight: 600, fontSize: '13px', border: 'none',
+                background: dealer ? '#3A3B3C' : '#22D3EE',
+                color: dealer ? '#fff' : '#000',
+                transition: 'all 0.2s'
+              }}
+            >
+              {dealer ? 'Change Dealer' : 'Scan Dealer'}
+            </button>
+          </div>
         </div>
 
         {/* Scan Status Toast */}
@@ -406,7 +612,7 @@ export default function PlayerTableDisplay() {
           </div>
         )}
 
-        {/* Main: Seat Map with Large Timers */}
+        {/* Main: Seat Map with Timers */}
         <div className="flex-1 flex items-center justify-center p-6">
           <div className="relative w-full max-w-2xl" style={{ aspectRatio: '16/10' }}>
 
@@ -416,49 +622,63 @@ export default function PlayerTableDisplay() {
             {/* Center label */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
               <p className="text-sm text-white/20 uppercase tracking-[0.3em]">T{tableNumber}</p>
+              {!isTexas && (
+                <p className="text-xs text-[#22D3EE]/30 mt-1">
+                  {venueType === 'charity' ? 'Charity Game' : 'Home Game'}
+                </p>
+              )}
             </div>
 
             {/* Seat positions */}
             {seatPositions.map(pos => {
               const player = players.find(p => p.seat_number === pos.seat);
               const t = player?.time_remaining;
-              const color = getTimeColor(t);
-              const isExpired = t !== null && t !== undefined && t <= 0;
-              const isCritical = t !== null && t !== undefined && t <= 300 && t > 0;
+              const color = isTexas ? getTimeColor(t) : '#22D3EE';
+              const isExpired = isTexas && t !== null && t !== undefined && t <= 0;
+              const isCritical = isTexas && t !== null && t !== undefined && t <= 300 && t > 0;
 
               return (
                 <div key={pos.seat} className="absolute flex flex-col items-center"
                   style={{ left: `${pos.x}%`, top: `${pos.y}%`, transform: 'translate(-50%, -50%)' }}>
 
                   {!player ? (
-                    /* Empty seat */
-                    <div className="w-16 h-16 rounded-full bg-white/3 border border-white/8 flex items-center justify-center">
-                      <span className="text-sm text-white/15">{pos.seat}</span>
+                    /* Empty seat — tappable to scan player */
+                    <div
+                      className="w-16 h-16 rounded-full bg-white/3 border border-white/8 flex items-center justify-center cursor-pointer empty-seat-pulse"
+                      style={{ borderColor: 'rgba(34,211,238,0.15)' }}
+                      onClick={(e) => openPlayerScanner(e, pos.seat)}
+                    >
+                      <div className="flex flex-col items-center">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22D3EE" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.3">
+                          <path d="M12 5v14M5 12h14" />
+                        </svg>
+                        <span className="text-[10px] text-white/15 mt-0.5">{pos.seat}</span>
+                      </div>
                     </div>
                   ) : (
-                    /* Occupied seat with timer */
+                    /* Occupied seat — tappable for player info */
                     <>
-                      <div className={`relative w-16 h-16 rounded-full flex items-center justify-center border-2 ${isExpired ? 'expired-pulse' : ''}`}
-                        style={{ backgroundColor: `${color}15`, borderColor: `${color}60` }}>
-
-                        {/* Timer */}
+                      <div
+                        className={`relative w-16 h-16 rounded-full flex items-center justify-center border-2 cursor-pointer ${isExpired ? 'expired-pulse' : ''}`}
+                        style={{ backgroundColor: `${color}15`, borderColor: `${color}60` }}
+                        onClick={(e) => handleSeatTap(e, player)}
+                      >
                         <span className="text-base font-mono font-bold" style={{ color }}>
-                          {isExpired ? 'OUT' : formatCountdown(t)}
+                          {isTexas
+                            ? (isExpired ? 'OUT' : formatCountdown(t))
+                            : formatElapsed(player.started_at)
+                          }
                         </span>
 
-                        {/* Critical ring animation */}
                         {isCritical && (
                           <div className="absolute inset-0 rounded-full border-2 opacity-0"
                             style={{ borderColor: color, animation: 'ring-pulse 1.5s ease-out infinite' }} />
                         )}
                       </div>
 
-                      {/* Player name */}
                       <span className="text-xs text-white/70 mt-1 max-w-[80px] truncate text-center font-medium">
                         {player.player_name}
                       </span>
-
-                      {/* Seat number */}
                       <span className="text-[9px] text-white/30">S{pos.seat}</span>
                     </>
                   )}
@@ -473,19 +693,28 @@ export default function PlayerTableDisplay() {
           <div className="bg-[#111] border-t border-white/10 px-6 py-3">
             <div className="flex flex-wrap gap-4 justify-center">
               {players
-                .sort((a, b) => (a.time_remaining ?? Infinity) - (b.time_remaining ?? Infinity))
+                .sort((a, b) => {
+                  if (isTexas) return (a.time_remaining ?? Infinity) - (b.time_remaining ?? Infinity);
+                  // Charity: sort by longest playing first
+                  return new Date(a.started_at) - new Date(b.started_at);
+                })
                 .map(p => {
                   const t = p.time_remaining;
-                  const color = getTimeColor(t);
-                  const isExpired = t !== null && t !== undefined && t <= 0;
+                  const color = isTexas ? getTimeColor(t) : '#22D3EE';
+                  const isExpired = isTexas && t !== null && t !== undefined && t <= 0;
                   return (
                     <div key={p.session_id || p.seat_number}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-xl ${isExpired ? 'expired-pulse' : ''}`}
-                      style={{ backgroundColor: `${color}10`, border: `2px solid ${color}30` }}>
+                      className={`flex items-center gap-2 px-4 py-2 rounded-xl cursor-pointer ${isExpired ? 'expired-pulse' : ''}`}
+                      style={{ backgroundColor: `${color}10`, border: `2px solid ${color}30` }}
+                      onClick={(e) => handleSeatTap(e, p)}
+                    >
                       <span className="text-xs text-white/50">S{p.seat_number}</span>
                       <span className="text-sm font-medium text-white">{p.player_name?.split(' ')[0]}</span>
                       <span className="text-lg font-mono font-bold" style={{ color }}>
-                        {isExpired ? 'EXPIRED' : formatCountdown(t)}
+                        {isTexas
+                          ? (isExpired ? 'EXPIRED' : formatCountdown(t))
+                          : formatElapsed(p.started_at)
+                        }
                       </span>
                     </div>
                   );
@@ -503,8 +732,23 @@ export default function PlayerTableDisplay() {
       {/* QR Scanner Modal */}
       {showScanner && (
         <QRScannerModal
-          onScan={handleScan}
-          onClose={() => setShowScanner(false)}
+          onScan={scanMode === 'dealer' ? handleDealerScan : handlePlayerScan}
+          onClose={() => { setShowScanner(false); setTargetSeat(null); }}
+          title={scanMode === 'dealer' ? 'Scan Dealer Card' : `Scan Player Card${targetSeat ? ` — Seat ${targetSeat}` : ''}`}
+          subtitle={scanMode === 'dealer'
+            ? 'Hold the employee card QR code in front of the camera'
+            : 'Hold the player member card QR code in front of the camera'
+          }
+        />
+      )}
+
+      {/* Player Info Modal */}
+      {selectedPlayer && (
+        <PlayerInfoModal
+          player={selectedPlayer}
+          venueType={venueType}
+          onRemove={handleRemovePlayer}
+          onClose={() => setSelectedPlayer(null)}
         />
       )}
     </>
