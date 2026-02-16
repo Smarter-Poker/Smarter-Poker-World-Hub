@@ -36,6 +36,7 @@ import { useOneSignal } from '../../src/contexts/OneSignalContext';
 import { useUnreadCount } from '../../src/hooks/useUnreadCount';
 import { createRingTone } from '../../src/utils/ringTone';
 import { createMultiDeviceAuthListener, withRetry, safeAsync, getCircuit, isOnline, persistSession, getPersistedSession } from '../../src/utils/authGuard';
+import { useActiveIdentity } from '../../src/contexts/ActiveIdentityContext';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🎨 COLOR PALETTE - Premium Poker Theme
@@ -1029,6 +1030,9 @@ export default function MessengerPage() {
     const showSearch = useMessengerStore((s) => s.showSearch);
     const setShowSearch = useMessengerStore((s) => s.setShowSearch);
 
+    // Identity switching
+    const { isClubMode, clubPage, hasClubPage } = useActiveIdentity();
+
     // Local state (keep for data/session)
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -1877,7 +1881,9 @@ export default function MessengerPage() {
             content: content.trim(),
             created_at: new Date().toISOString(),
             sender_id: user.id,
-            profiles: { id: user.id, username: user.username, avatar_url: user.avatar_url },
+            profiles: isClubMode && clubPage
+                ? { id: user.id, username: clubPage.name, avatar_url: clubPage.avatar_url, is_club_identity: true }
+                : { id: user.id, username: user.username, avatar_url: user.avatar_url },
             status: 'sending',
         };
         setMessages(prev => [...prev, optimisticMsg]);
@@ -3249,6 +3255,26 @@ export default function MessengerPage() {
                                     <div ref={messagesEndRef} />
                                 </div>
 
+                                {/* Identity Banner - shows when messaging as Club Page */}
+                                {isClubMode && clubPage && hasClubPage && (
+                                    <div style={{
+                                        display: 'flex', alignItems: 'center', gap: 8,
+                                        padding: '6px 16px',
+                                        background: '#E7F3FF',
+                                        borderTop: `1px solid ${C.border}`,
+                                        fontSize: 13, color: '#1877F2'
+                                    }}>
+                                        <div style={{
+                                            width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
+                                            background: clubPage.avatar_url ? `url(${clubPage.avatar_url}) center/cover` : '#1877F2',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            color: 'white', fontSize: 9, fontWeight: 700
+                                        }}>
+                                            {!clubPage.avatar_url && (clubPage.name?.[0] || 'C')}
+                                        </div>
+                                        <span style={{ fontWeight: 600 }}>Messaging as {clubPage.name}</span>
+                                    </div>
+                                )}
                                 {/* Message Input */}
                                 <MessageInput onSend={handleSendMessage} onTyping={broadcastTyping} onMediaUpload={handleMediaUpload} />
                             </>
