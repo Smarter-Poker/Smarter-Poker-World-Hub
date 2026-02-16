@@ -26,11 +26,16 @@ const supabase = createClient(
 function getCSTTime() {
     const now = new Date();
     const cst = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+    const year = cst.getFullYear();
+    const month = String(cst.getMonth() + 1).padStart(2, '0');
+    const day = String(cst.getDate()).padStart(2, '0');
+    const hour = cst.getHours();
+    const minute = cst.getMinutes();
     return {
-        hour: cst.getHours(),
-        minute: cst.getMinutes(),
-        dateStr: cst.toISOString().slice(0, 10), // "YYYY-MM-DD"
-        timeStr: `${String(cst.getHours()).padStart(2, '0')}:${String(cst.getMinutes()).padStart(2, '0')}`,
+        hour,
+        minute,
+        dateStr: `${year}-${month}-${day}`, // "YYYY-MM-DD" in CST
+        timeStr: `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
         isoNow: now.toISOString()
     };
 }

@@ -118,7 +118,7 @@ export default function CommanderSettingsPage() {
         setSuccess('Settings saved successfully');
         setTimeout(() => setSuccess(null), 3000);
       } else {
-        setError(data.error?.message || 'Failed to save settings');
+        setError(typeof data.error === 'string' ? data.error : (data.error?.message || 'Failed to save settings'));
       }
     } catch (err) {
       setError('Failed to save settings');
