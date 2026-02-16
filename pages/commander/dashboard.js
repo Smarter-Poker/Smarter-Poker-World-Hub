@@ -19,7 +19,7 @@ const CARDS = [
     id: 'waitlist',
     title: 'Waitlist',
     subtitle: 'Players, Memberships, Kiosk',
-    image: '/images/commander/card-waitlist.jpg?v=2',
+    image: '/images/commander/card-waitlist.jpg',
     glow: '#22D3EE',
     features: [
       { label: 'Desk View', href: '/commander/waitlist/desk', icon: '/images/commander/icons/wl-desk-view.png' },
