@@ -208,7 +208,7 @@ export default async function handler(req, res) {
                     // Type filter is for a poker_venues-only type (e.g. 'casino'), skip social pages
                     spQuery = null;
                 }
-                if (search) spQuery = spQuery?.ilike('name', `%${search}%`);
+                if (search) spQuery = spQuery?.or(`name.ilike.%${search}%,location_city.ilike.%${search}%`);
 
                 if (spQuery) {
                     const { data: socialPages } = await spQuery.limit(200);

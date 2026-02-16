@@ -2119,7 +2119,7 @@ export default function PokerNearMePage() {
                         />
                     )}
 
-                    <style jsx>{`
+                    <style jsx global>{`
                     .pnm-page {
                         min-height: 100vh;
                         position: relative;
