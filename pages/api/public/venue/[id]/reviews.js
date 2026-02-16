@@ -68,7 +68,20 @@ export default async function handler(req, res) {
     const { data: reviews, error, count } = await query
       .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
 
-    if (error) throw error;
+    // Gracefully handle type mismatch (UUID passed to integer column for social pages)
+    if (error) {
+      if (error.code === '22P02') {
+        return res.status(200).json({
+          success: true,
+          data: {
+            reviews: [], total: 0, average_rating: 0,
+            distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
+            limit: parseInt(limit), offset: parseInt(offset)
+          }
+        });
+      }
+      throw error;
+    }
 
     // Calculate rating distribution
     const { data: allReviews } = await supabase

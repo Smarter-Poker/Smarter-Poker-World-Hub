@@ -52,7 +52,16 @@ export default async function handler(req, res) {
 
     const { data: photos, error, count } = await query;
 
-    if (error) throw error;
+    // Gracefully handle type mismatch (UUID passed to integer column for social pages)
+    if (error) {
+      if (error.code === '22P02') {
+        return res.status(200).json({
+          success: true,
+          data: { photos: [], total: 0, limit: parseInt(limit), offset: parseInt(offset) }
+        });
+      }
+      throw error;
+    }
 
     return res.status(200).json({
       success: true,

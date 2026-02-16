@@ -305,55 +305,6 @@ export default function CommanderSettingsPage() {
               </div>
             </section>
 
-            {/* Hard Stop — Charity + Club only */}
-            {canHardStop && (
-              <section className="cmd-panel">
-                <div className="p-4 border-b border-[#3A3B3C]">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-[#EF4444]/10 rounded-lg flex items-center justify-center">
-                      <StopCircle className="w-5 h-5 text-[#EF4444]" />
-                    </div>
-                    <div>
-                      <h2 className="font-semibold text-white">Hard Stop</h2>
-                      <p className="text-xs text-[#B0B3B8]">Auto-close all cash games at a set time</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="divide-y divide-[#3A3B3C]">
-                  <SettingToggle
-                    label="Enable Hard Stop"
-                    description="Automatically close all games and log out players at the scheduled time"
-                    enabled={settings.hard_stop_enabled}
-                    onChange={() => handleToggle('hard_stop_enabled')}
-                    disabled={!canManageSettings}
-                  />
-                  {settings.hard_stop_enabled && (
-                    <div className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-white">Stop Time</p>
-                          <p className="text-sm text-[#B0B3B8]">All cash games end at this time</p>
-                        </div>
-                        <input
-                          type="time"
-                          value={settings.hard_stop_time}
-                          onChange={(e) => handleChange('hard_stop_time', e.target.value)}
-                          disabled={!canManageSettings}
-                          className="h-10 px-3 cmd-input text-center disabled:opacity-50 disabled:cursor-not-allowed"
-                          style={{ colorScheme: 'dark' }}
-                        />
-                      </div>
-                      <div className="mt-3 p-3 bg-[#F59E0B]/10 rounded-lg flex items-start gap-2">
-                        <AlertTriangle className="w-4 h-4 text-[#F59E0B] mt-0.5 flex-shrink-0" />
-                        <p className="text-xs text-[#F59E0B]">
-                          At {settings.hard_stop_time ? new Date(`2000-01-01T${settings.hard_stop_time}`).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'the set time'}, all open tables will be closed, all active sessions ended, and the room set to closed.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </section>
-            )}
 
             {/* Navigation Links */}
             <section className="cmd-panel divide-y divide-[#3A3B3C]">

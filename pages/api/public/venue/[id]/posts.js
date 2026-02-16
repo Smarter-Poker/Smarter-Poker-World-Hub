@@ -28,7 +28,10 @@ export default async function handler(req, res) {
     }
 
     // Fetch published posts from commander_venue_posts (Commander-managed venues)
-    const { data: posts, error, count } = await supabase
+    // Note: commander_venue_posts.venue_id may be integer, so UUID strings will cause a type error
+    let posts = null;
+    let count = null;
+    const { data: cmdPosts, error: cmdError, count: cmdCount } = await supabase
       .from('commander_venue_posts')
       .select(`
         id,
@@ -49,7 +52,11 @@ export default async function handler(req, res) {
       .order('created_at', { ascending: false })
       .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
 
-    if (error) throw error;
+    // If no type error, use commander posts
+    if (!cmdError) {
+      posts = cmdPosts;
+      count = cmdCount;
+    }
 
     // If commander posts exist, return them
     if (posts && posts.length > 0) {
