@@ -241,7 +241,10 @@ export default async function handler(req, res) {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ page_id: data.id, locations: [locStr] }),
-                }).catch(() => { });
+                }).then(r => {
+                    if (!r.ok) console.error(`[geocode] Failed for page ${data.id}: HTTP ${r.status}`);
+                    else console.log(`[geocode] Success for page ${data.id}: ${locStr}`);
+                }).catch(e => console.error(`[geocode] Error for page ${data.id}:`, e.message));
             } catch (e) { /* non-critical */ }
         }
 

@@ -188,13 +188,12 @@ export default async function handler(req, res) {
             venues.sort((a, b) => (b.trust_score || 0) - (a.trust_score || 0));
 
             // --- Merge public social pages (clubs, charities, home games) ---
-            // Only include pages NOT linked to an existing poker_venue (no duplicates)
+            // Linked pages enrich their parent JSON venue; unlinked pages create new entries
             try {
                 let spQuery = supabase
                     .from('social_pages')
-                    .select('id, name, description, avatar_url, page_type, location_city, location_state, follower_count, metadata')
+                    .select('id, name, description, avatar_url, page_type, location_city, location_state, follower_count, metadata, linked_venue_id, owner_id')
                     .eq('is_public', true)
-                    .is('linked_venue_id', null)
                     .not('location_city', 'is', null);
 
                 // Apply matching filters to social pages query
@@ -202,7 +201,10 @@ export default async function handler(req, res) {
                 if (city) spQuery = spQuery.ilike('location_city', `%${city}%`);
                 if (type && ['club', 'charity', 'home_game'].includes(type)) {
                     spQuery = spQuery.eq('page_type', type);
-                } else if (type && !['club', 'charity', 'home_game'].includes(type)) {
+                } else if (type && ['poker_club'].includes(type)) {
+                    // poker_club maps to club page_type
+                    spQuery = spQuery.eq('page_type', 'club');
+                } else if (type && !['club', 'charity', 'home_game', 'poker_club'].includes(type)) {
                     // Type filter is for a poker_venues-only type (e.g. 'casino'), skip social pages
                     spQuery = null;
                 }
@@ -215,10 +217,89 @@ export default async function handler(req, res) {
                         const todayIdx = new Date().getDay();
                         const todayKey = DAYS_ORDER[todayIdx];
 
+                        // --- Batch tournament detection ---
+                        // Resolve owner_ids → club_ids → tournament counts
+                        const ownerIds = [...new Set(socialPages.map(sp => sp.owner_id).filter(Boolean))];
+                        let clubsByOwner = {};
+                        let tournamentCountByClub = {};
+                        if (ownerIds.length > 0) {
+                            try {
+                                const { data: clubs } = await supabase
+                                    .from('clubs')
+                                    .select('id, owner_id, name')
+                                    .in('owner_id', ownerIds);
+                                if (clubs) {
+                                    for (const c of clubs) {
+                                        if (!clubsByOwner[c.owner_id]) clubsByOwner[c.owner_id] = [];
+                                        clubsByOwner[c.owner_id].push(c);
+                                    }
+                                    const clubIds = clubs.map(c => c.id);
+                                    if (clubIds.length > 0) {
+                                        const { data: tourneys } = await supabase
+                                            .from('tournaments')
+                                            .select('club_id')
+                                            .in('club_id', clubIds)
+                                            .in('status', ['ANNOUNCED', 'RUNNING', 'SCHEDULED'])
+                                            .gte('start_time', new Date().toISOString());
+                                        if (tourneys) {
+                                            for (const t of tourneys) {
+                                                tournamentCountByClub[t.club_id] = (tournamentCountByClub[t.club_id] || 0) + 1;
+                                            }
+                                        }
+                                    }
+                                }
+                            } catch (clubErr) {
+                                console.warn('[venues] Club/tournament lookup failed (non-fatal):', clubErr.message);
+                            }
+                        }
+
+                        // Helper: check if a social page has upcoming tournaments
+                        const pageHasTournaments = (sp) => {
+                            const ownerClubs = clubsByOwner[sp.owner_id] || [];
+                            // Try name match first, then fallback to any club by this owner
+                            const matchedClub = ownerClubs.find(c => c.name.toLowerCase() === sp.name.toLowerCase()) || ownerClubs[0];
+                            return matchedClub ? (tournamentCountByClub[matchedClub.id] || 0) > 0 : false;
+                        };
+
+                        // Helper: extract game types from run_schedule metadata
+                        const extractGames = (schedule) => {
+                            const games = new Set();
+                            for (const dayData of Object.values(schedule)) {
+                                if (dayData && dayData.games && Array.isArray(dayData.games)) {
+                                    dayData.games.forEach(g => games.add(g));
+                                }
+                            }
+                            return [...games];
+                        };
+
+                        // Separate linked vs unlinked pages
+                        const linkedPages = socialPages.filter(sp => sp.linked_venue_id);
+                        const unlinkedPages = socialPages.filter(sp => !sp.linked_venue_id);
+
+                        // --- Enrich JSON venues that have a linked social page ---
+                        for (const sp of linkedPages) {
+                            const jsonVenue = venues.find(v => String(v.id) === String(sp.linked_venue_id));
+                            if (jsonVenue) {
+                                jsonVenue.is_social_page = true;
+                                jsonVenue.social_page_id = sp.id;
+                                jsonVenue.follower_count = sp.follower_count || jsonVenue.follower_count || 0;
+                                jsonVenue.has_tournaments = jsonVenue.has_tournaments || pageHasTournaments(sp);
+                                if (sp.avatar_url) jsonVenue.profile_photo_url = jsonVenue.profile_photo_url || sp.avatar_url;
+                                const schedule = (sp.metadata && sp.metadata.run_schedule) || {};
+                                const schedGames = extractGames(schedule);
+                                if (schedGames.length > 0) {
+                                    jsonVenue.games_offered = [...new Set([...(jsonVenue.games_offered || []), ...schedGames])];
+                                }
+                            }
+                        }
+
+                        // --- Map unlinked pages into venue entries ---
                         const mappedPages = [];
-                        for (const sp of socialPages) {
+                        for (const sp of unlinkedPages) {
                             const geocoded = (sp.metadata && sp.metadata.geocoded_locations) || {};
                             const schedule = (sp.metadata && sp.metadata.run_schedule) || {};
+                            const hasTourneys = pageHasTournaments(sp);
+                            const allGames = extractGames(schedule);
 
                             // Determine primary lat/lng from geocoded_locations
                             const primaryLocStr = sp.location_city + (sp.location_state ? ', ' + sp.location_state : '');
@@ -250,7 +331,7 @@ export default async function handler(req, res) {
                                         latitude: coords ? coords.lat : null,
                                         longitude: coords ? coords.lng : null,
                                         games_offered: dayData.games || [],
-                                        has_tournaments: false,
+                                        has_tournaments: hasTourneys,
                                         is_featured: false,
                                         schedule_location: locKey,
                                         schedule_day: dayKey,
@@ -273,8 +354,8 @@ export default async function handler(req, res) {
                                         follower_count: sp.follower_count || 0,
                                         latitude: primaryCoords ? primaryCoords.lat : null,
                                         longitude: primaryCoords ? primaryCoords.lng : null,
-                                        games_offered: [],
-                                        has_tournaments: false,
+                                        games_offered: allGames,
+                                        has_tournaments: hasTourneys,
                                         is_featured: false,
                                     });
                                 }
@@ -286,7 +367,7 @@ export default async function handler(req, res) {
                                     city: sp.location_city,
                                     state: sp.location_state,
                                     venue_type: sp.page_type === 'club' ? 'poker_club' : sp.page_type,
-                                    profile_photo_url: sp.avatar_url,
+                                    profile_photo_url: sp.avatar_url || (sp.metadata && sp.metadata.logo_url) || null,
                                     about: sp.description,
                                     trust_score: null,
                                     is_social_page: true,
@@ -294,8 +375,8 @@ export default async function handler(req, res) {
                                     follower_count: sp.follower_count || 0,
                                     latitude: primaryCoords ? primaryCoords.lat : null,
                                     longitude: primaryCoords ? primaryCoords.lng : null,
-                                    games_offered: [],
-                                    has_tournaments: false,
+                                    games_offered: allGames,
+                                    has_tournaments: hasTourneys,
                                     is_featured: false,
                                 });
                             }
