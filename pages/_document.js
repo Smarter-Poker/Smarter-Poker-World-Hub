@@ -27,7 +27,7 @@ export default function Document() {
                 <meta property="og:description" content="Train Smarter. Connect Globally. Manage Everything. The premier poker platform with GTO training, AI coaching, social networking, bankroll tracking, and Club Commander poker room management." />
                 <meta property="og:image" content="https://smarter.poker/images/og-default.png" />
                 <meta property="og:image:width" content="1200" />
-                <meta property="og:image:height" content="630" />
+                <meta property="og:image:height" content="2151" />
 
                 {/* Fallback Twitter Card */}
                 <meta name="twitter:card" content="summary_large_image" />
