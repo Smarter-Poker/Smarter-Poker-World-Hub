@@ -1,24 +1,27 @@
 /**
- * Room Presets Page
+ * Daily Presets Page
  * /commander/room-presets
- * TC equivalent: "Setups" tile — saved room configurations applied with one click
- * Also includes Hard Stop controls (auto-close at set time)
+ * One-click day launcher: opens tables, activates promotions, creates tournaments
+ * Also includes Hard Stop controls and Hourly Comp Rate
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import {
-  Plus, Play, Edit2, Trash2, X, Loader2, Save,
-  Zap, Copy, Calendar, CheckCircle, AlertCircle, Layout,
+  Plus, Save, Trash2, Edit2, Play, X, Loader2, CheckCircle, AlertCircle,
+  Layout, Clock, Calendar, Trophy, Gift,
   StopCircle, AlertTriangle, DollarSign
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { hasFeature } from '../../src/lib/commander/tierConfig';
 
-export default function RoomPresetsPage() {
+const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+export default function DailyPresetsPage() {
   const router = useRouter();
   const [presets, setPresets] = useState([]);
   const [gameTypes, setGameTypes] = useState([]);
+  const [promotions, setPromotions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -40,7 +43,15 @@ export default function RoomPresetsPage() {
   const [autoCompSaving, setAutoCompSaving] = useState(false);
   const [autoCompSuccess, setAutoCompSuccess] = useState(null);
 
-  const [form, setForm] = useState({ name: '', description: '', tables: [] });
+  // Form state — now includes promotions, tournaments, and schedule
+  const [form, setForm] = useState({
+    name: '', description: '',
+    tables: [],
+    promotions: [],
+    tournaments: [],
+    start_time: '',
+    day_of_week: []
+  });
 
   useEffect(() => {
     const stored = localStorage.getItem('commander_staff');
@@ -51,7 +62,6 @@ export default function RoomPresetsPage() {
       setStaff(s);
       setVenueName(s.venue_name || '');
     } catch { router.push('/commander/login'); }
-    // Read tier from commander_subscription (same pattern as dashboard)
     try {
       const sub = JSON.parse(localStorage.getItem('commander_subscription') || '{}');
       if (sub.tier) setCurrentTier(sub.tier);
@@ -122,13 +132,19 @@ export default function RoomPresetsPage() {
     try {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const headers = { Authorization: `Bearer ${token}` };
-      const [presetsRes, typesRes] = await Promise.all([
+      const stored = JSON.parse(localStorage.getItem('commander_staff') || '{}');
+      const venueId = stored.venue_id;
+      const [presetsRes, typesRes, promosRes] = await Promise.all([
         fetch('/api/commander/room-presets', { headers }),
-        fetch('/api/commander/game-types', { headers })
+        fetch('/api/commander/game-types', { headers }),
+        fetch(`/api/commander/promotions?venue_id=${venueId}&status=all`, { headers })
       ]);
-      const [presetsJson, typesJson] = await Promise.all([presetsRes.json(), typesRes.json()]);
+      const [presetsJson, typesJson, promosJson] = await Promise.all([
+        presetsRes.json(), typesRes.json(), promosRes.json()
+      ]);
       if (presetsJson.success) setPresets(presetsJson.data || []);
       if (typesJson.success) setGameTypes(typesJson.data || []);
+      if (promosJson.success) setPromotions(promosJson.data?.promotions || []);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   }, []);
@@ -136,7 +152,15 @@ export default function RoomPresetsPage() {
   useEffect(() => { if (staff) fetchData(); }, [staff, fetchData]);
 
   async function handleApply(preset) {
-    if (!confirm(`Apply "${preset.name}"? This will open tables based on the preset configuration.`)) return;
+    const tableCount = getTotalTables(preset.tables);
+    const promoCount = (preset.promotions || []).length;
+    const tourneyCount = (preset.tournaments || []).length;
+    const parts = [];
+    if (tableCount > 0) parts.push(`${tableCount} table${tableCount !== 1 ? 's' : ''}`);
+    if (promoCount > 0) parts.push(`${promoCount} promotion${promoCount !== 1 ? 's' : ''}`);
+    if (tourneyCount > 0) parts.push(`${tourneyCount} tournament${tourneyCount !== 1 ? 's' : ''}`);
+
+    if (!confirm(`Launch "${preset.name}"?\n\nThis will activate: ${parts.join(', ') || 'nothing configured'}`)) return;
     setApplying(preset.id);
     setError(null);
     try {
@@ -147,7 +171,11 @@ export default function RoomPresetsPage() {
       });
       const json = await res.json();
       if (json.success) {
-        setSuccess(`"${preset.name}" applied — ${json.data.games_opened} games opened`);
+        const results = [];
+        if (json.data.games_opened > 0) results.push(`${json.data.games_opened} games opened`);
+        if (json.data.promotions_activated > 0) results.push(`${json.data.promotions_activated} promotions activated`);
+        if (json.data.tournaments_created > 0) results.push(`${json.data.tournaments_created} tournaments created`);
+        setSuccess(`"${preset.name}" launched — ${results.join(', ') || 'preset applied'}`);
         setTimeout(() => setSuccess(null), 5000);
         fetchData();
       } else {
@@ -157,6 +185,7 @@ export default function RoomPresetsPage() {
     finally { setApplying(null); }
   }
 
+  // ── Table row helpers ──
   function addTableRow() {
     setForm(prev => ({
       ...prev,
@@ -168,7 +197,6 @@ export default function RoomPresetsPage() {
     setForm(prev => {
       const tables = [...prev.tables];
       tables[idx] = { ...tables[idx], [field]: value };
-      // If game type selected, auto-fill from game types
       if (field === 'game_type_id' && value) {
         const gt = gameTypes.find(g => g.id === value);
         if (gt) {
@@ -192,9 +220,57 @@ export default function RoomPresetsPage() {
     setForm(prev => ({ ...prev, tables: prev.tables.filter((_, i) => i !== idx) }));
   }
 
+  // ── Tournament template helpers ──
+  function addTournament() {
+    setForm(prev => ({
+      ...prev,
+      tournaments: [...prev.tournaments, {
+        name: '', tournament_type: 'freezeout', buyin_amount: 0, buyin_fee: 0,
+        starting_chips: 10000, start_time: '', guaranteed_pool: 0, max_entries: null,
+        allows_rebuys: false, allows_addon: false
+      }]
+    }));
+  }
+
+  function updateTournament(idx, field, value) {
+    setForm(prev => {
+      const tournaments = [...prev.tournaments];
+      tournaments[idx] = { ...tournaments[idx], [field]: value };
+      return { ...prev, tournaments };
+    });
+  }
+
+  function removeTournament(idx) {
+    setForm(prev => ({ ...prev, tournaments: prev.tournaments.filter((_, i) => i !== idx) }));
+  }
+
+  // ── Promotion toggle ──
+  function togglePromotion(promoId) {
+    setForm(prev => ({
+      ...prev,
+      promotions: prev.promotions.includes(promoId)
+        ? prev.promotions.filter(id => id !== promoId)
+        : [...prev.promotions, promoId]
+    }));
+  }
+
+  // ── Day toggle ──
+  function toggleDay(dayNum) {
+    setForm(prev => ({
+      ...prev,
+      day_of_week: prev.day_of_week.includes(dayNum)
+        ? prev.day_of_week.filter(d => d !== dayNum)
+        : [...prev.day_of_week, dayNum].sort()
+    }));
+  }
+
+  // ── Save ──
   async function handleSave() {
     if (!form.name) { setError('Preset name required'); return; }
-    if (form.tables.length === 0) { setError('Add at least one table configuration'); return; }
+    if (form.tables.length === 0 && form.promotions.length === 0 && form.tournaments.length === 0) {
+      setError('Add at least one table, promotion, or tournament configuration');
+      return;
+    }
     setError(null);
     try {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
@@ -210,7 +286,7 @@ export default function RoomPresetsPage() {
         setTimeout(() => setSuccess(null), 3000);
         setShowForm(false);
         setEditingId(null);
-        setForm({ name: '', description: '', tables: [] });
+        resetForm();
         fetchData();
       } else {
         setError(json.error || 'Failed to save');
@@ -231,33 +307,50 @@ export default function RoomPresetsPage() {
   }
 
   function startEdit(preset) {
-    setForm({ name: preset.name, description: preset.description || '', tables: preset.tables || [] });
+    setForm({
+      name: preset.name,
+      description: preset.description || '',
+      tables: preset.tables || [],
+      promotions: preset.promotions || [],
+      tournaments: preset.tournaments || [],
+      start_time: preset.auto_apply_schedule?.start_time || '',
+      day_of_week: preset.auto_apply_schedule?.day_of_week || []
+    });
     setEditingId(preset.id);
     setShowForm(true);
+  }
+
+  function resetForm() {
+    setForm({ name: '', description: '', tables: [], promotions: [], tournaments: [], start_time: '', day_of_week: [] });
   }
 
   function getTotalTables(tables) {
     return (tables || []).reduce((sum, t) => sum + (t.count || 1), 0);
   }
 
+  function getPromoName(id) {
+    const p = promotions.find(pr => pr.id === id);
+    return p ? p.name : 'Unknown';
+  }
+
   const canManage = staff?.role === 'owner' || staff?.role === 'manager';
   const canHardStop = hasFeature(currentTier, 'close_day');
 
   return (
-    <CommanderLayout title="Room Presets | {venueName || 'Commander'}" backHref="/commander/dashboard">
+    <CommanderLayout title={`Daily Presets | ${venueName || 'Commander'}`} backHref="/commander/dashboard">
       <>
-        <Head><title>Room Presets | {venueName || 'Commander'}</title></Head>
+        <Head><title>Daily Presets | {venueName || 'Commander'}</title></Head>
         <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
           <header className="bg-[#242526] border-b border-[#3A3B3C] sticky top-0 z-50">
             <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div>
-                  <h1 className="font-bold text-white text-lg">Room Presets</h1>
-                  <p className="text-sm text-[#B0B3B8]">One-Click Room Configurations</p>
+                  <h1 className="font-bold text-white text-lg">Daily Presets</h1>
+                  <p className="text-sm text-[#B0B3B8]">One-Click Day Launcher — Tables, Tournaments, Promotions</p>
                 </div>
               </div>
               {canManage && !showForm && (
-                <button onClick={() => { setForm({ name: '', description: '', tables: [] }); setEditingId(null); setShowForm(true); }}
+                <button onClick={() => { resetForm(); setEditingId(null); setShowForm(true); }}
                   className="flex items-center gap-2 px-4 py-2 bg-[#1877F2] text-white rounded-xl text-sm font-medium">
                   <Plus className="w-4 h-4" /> New Preset
                 </button>
@@ -283,30 +376,22 @@ export default function RoomPresetsPage() {
                       <p className="text-xs text-[#B0B3B8]">Auto-Close All Cash Games At A Set Time</p>
                     </div>
                   </div>
-                  <button
-                    onClick={handleHardStopSave}
-                    disabled={hardStopSaving}
-                    className="px-4 py-2 bg-[#1877F2] text-white rounded-xl text-sm font-medium flex items-center gap-2 disabled:opacity-50"
-                  >
-                    {hardStopSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                    Save
+                  <button onClick={handleHardStopSave} disabled={hardStopSaving}
+                    className="px-4 py-2 bg-[#1877F2] text-white rounded-xl text-sm font-medium flex items-center gap-2 disabled:opacity-50">
+                    {hardStopSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save
                   </button>
                 </div>
                 <div className="p-4 space-y-4">
-                  {/* Enable toggle */}
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium text-white">Enable Hard Stop</p>
                       <p className="text-sm text-[#B0B3B8]">Automatically Close All Games And Log Out Players At The Scheduled Time</p>
                     </div>
-                    <button
-                      onClick={() => setHardStopEnabled(!hardStopEnabled)}
-                      className={`w-12 h-7 rounded-full transition-colors relative ${hardStopEnabled ? 'bg-[#1877F2]' : 'bg-[#3A3B3C]'}`}
-                    >
+                    <button onClick={() => setHardStopEnabled(!hardStopEnabled)}
+                      className={`w-12 h-7 rounded-full transition-colors relative ${hardStopEnabled ? 'bg-[#1877F2]' : 'bg-[#3A3B3C]'}`}>
                       <span className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-transform ${hardStopEnabled ? 'right-1' : 'left-1'}`} />
                     </button>
                   </div>
-                  {/* Time picker — shown when enabled */}
                   {hardStopEnabled && (
                     <>
                       <div className="flex items-center justify-between">
@@ -314,13 +399,9 @@ export default function RoomPresetsPage() {
                           <p className="font-medium text-white">Stop Time</p>
                           <p className="text-sm text-[#B0B3B8]">All Cash Games End At This Time</p>
                         </div>
-                        <input
-                          type="time"
-                          value={hardStopTime}
-                          onChange={(e) => setHardStopTime(e.target.value)}
+                        <input type="time" value={hardStopTime} onChange={(e) => setHardStopTime(e.target.value)}
                           className="h-10 px-3 bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl text-sm text-white text-center focus:outline-none focus:border-[#1877F2]"
-                          style={{ colorScheme: 'dark' }}
-                        />
+                          style={{ colorScheme: 'dark' }} />
                       </div>
                       <div className="p-3 bg-[#F59E0B]/10 rounded-lg flex items-start gap-2">
                         <AlertTriangle className="w-4 h-4 text-[#F59E0B] mt-0.5 flex-shrink-0" />
@@ -347,49 +428,33 @@ export default function RoomPresetsPage() {
                       <p className="text-xs text-[#B0B3B8]">Auto-Award Comps To All Seated Players Per Hour</p>
                     </div>
                   </div>
-                  <button
-                    onClick={handleAutoCompSave}
-                    disabled={autoCompSaving}
-                    className="px-4 py-2 bg-[#31A24C] text-white rounded-xl text-sm font-medium flex items-center gap-2 disabled:opacity-50"
-                  >
-                    {autoCompSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                    Save
+                  <button onClick={handleAutoCompSave} disabled={autoCompSaving}
+                    className="px-4 py-2 bg-[#31A24C] text-white rounded-xl text-sm font-medium flex items-center gap-2 disabled:opacity-50">
+                    {autoCompSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save
                   </button>
                 </div>
                 <div className="p-4 space-y-4">
-                  {/* Quick-select buttons */}
                   <div>
                     <p className="text-sm text-[#B0B3B8] mb-2">Select Rate Per Hour Of Play</p>
                     <div className="flex flex-wrap gap-2">
                       {[0, 0.5, 1, 1.5, 2].map(rate => (
-                        <button
-                          key={rate}
-                          onClick={() => setAutoCompRate(rate)}
+                        <button key={rate} onClick={() => setAutoCompRate(rate)}
                           className={`px-4 py-2.5 rounded-xl text-sm font-medium border transition-all ${autoCompRate === rate
                             ? 'bg-[#31A24C]/20 border-[#31A24C] text-[#31A24C]'
                             : 'bg-[#3A3B3C] border-[#4A4B4C] text-[#B0B3B8] hover:border-[#31A24C]/50'
-                            }`}
-                        >
+                            }`}>
                           {rate === 0 ? 'Off' : `$${rate.toFixed(2)}/hr`}
                         </button>
                       ))}
                     </div>
                   </div>
-                  {/* Custom input */}
                   <div className="flex items-center gap-3">
                     <p className="text-sm text-[#B0B3B8]">Custom:</p>
                     <div className="flex items-center bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl overflow-hidden">
                       <span className="pl-3 text-sm text-[#B0B3B8]">$</span>
-                      <input
-                        type="number"
-                        value={autoCompRate || ''}
-                        onChange={(e) => setAutoCompRate(parseFloat(e.target.value) || 0)}
-                        step="0.25"
-                        min="0"
-                        max="50"
-                        placeholder="0.00"
-                        className="w-20 px-2 py-2 bg-transparent text-sm text-white focus:outline-none"
-                      />
+                      <input type="number" value={autoCompRate || ''} onChange={(e) => setAutoCompRate(parseFloat(e.target.value) || 0)}
+                        step="0.25" min="0" max="50" placeholder="0.00"
+                        className="w-20 px-2 py-2 bg-transparent text-sm text-white focus:outline-none" />
                       <span className="pr-3 text-sm text-[#B0B3B8]">/hr</span>
                     </div>
                   </div>
@@ -411,14 +476,17 @@ export default function RoomPresetsPage() {
               </div>
             )}
 
-            {/* Create/Edit Form */}
+            {/* ════════════════════════════════════════════════════════════════
+                CREATE / EDIT DAILY PRESET FORM
+            ════════════════════════════════════════════════════════════════ */}
             {showForm && (
               <div className="bg-[#242526] rounded-2xl border border-[#3A3B3C] overflow-hidden">
                 <div className="p-4 border-b border-[#3A3B3C] flex items-center justify-between">
-                  <h2 className="font-semibold text-white">{editingId ? 'Edit Preset' : 'Create Preset'}</h2>
+                  <h2 className="font-semibold text-white">{editingId ? 'Edit Daily Preset' : 'Create Daily Preset'}</h2>
                   <button onClick={() => { setShowForm(false); setEditingId(null); }} className="p-1 hover:bg-[#3A3B3C] rounded"><X className="w-5 h-5 text-[#B0B3B8]" /></button>
                 </div>
-                <div className="p-4 space-y-4">
+                <div className="p-4 space-y-6">
+                  {/* Name + Description */}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="text-xs text-[#B0B3B8] uppercase">Preset Name *</label>
@@ -428,50 +496,206 @@ export default function RoomPresetsPage() {
                     <div>
                       <label className="text-xs text-[#B0B3B8] uppercase">Description</label>
                       <input value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
-                        placeholder="Peak Hours Config" className="w-full mt-1 px-3 py-2.5 bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl text-sm text-white placeholder-[#6A6B6D] focus:outline-none focus:border-[#1877F2]" />
+                        placeholder="Peak hours config" className="w-full mt-1 px-3 py-2.5 bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl text-sm text-white placeholder-[#6A6B6D] focus:outline-none focus:border-[#1877F2]" />
                     </div>
                   </div>
 
-                  {/* Table configurations */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-xs text-[#B0B3B8] uppercase">Table Configuration</label>
+                  {/* ── SECTION 1: TABLE CONFIGURATION ── */}
+                  <div className="border border-[#3A3B3C] rounded-xl overflow-hidden">
+                    <div className="p-3 bg-[#1877F2]/5 border-b border-[#3A3B3C] flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Layout className="w-4 h-4 text-[#1877F2]" />
+                        <span className="text-sm font-semibold text-white">Tables</span>
+                        {form.tables.length > 0 && <span className="text-xs text-[#B0B3B8]">({getTotalTables(form.tables)} total)</span>}
+                      </div>
                       <button onClick={addTableRow} className="text-xs text-[#1877F2] hover:text-[#1877F2]/80 flex items-center gap-1">
-                        <Plus className="w-3 h-3" /> Add Row
+                        <Plus className="w-3 h-3" /> Add
                       </button>
                     </div>
-
-                    {form.tables.length === 0 ? (
-                      <div className="py-6 text-center border border-dashed border-[#3A3B3C] rounded-xl">
-                        <p className="text-sm text-[#B0B3B8]">No tables configured. Click "Add Row" to start.</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {form.tables.map((row, idx) => (
-                          <div key={idx} className="flex items-center gap-2 bg-[#3A3B3C]/30 rounded-xl p-3">
-                            <select value={row.game_type_id || ''} onChange={e => updateTableRow(idx, 'game_type_id', e.target.value)}
-                              className="flex-1 px-2 py-2 bg-[#3A3B3C] border border-[#4A4B4C] rounded-lg text-sm text-white">
-                              <option value="">Select Game Type...</option>
-                              {gameTypes.map(gt => (
-                                <option key={gt.id} value={gt.id}>{gt.short_code} — {gt.name} {gt.stakes}</option>
-                              ))}
-                            </select>
-                            <div className="w-20">
-                              <input type="number" value={row.count || 1} min={1} max={20}
-                                onChange={e => updateTableRow(idx, 'count', parseInt(e.target.value) || 1)}
-                                className="w-full px-2 py-2 bg-[#3A3B3C] border border-[#4A4B4C] rounded-lg text-sm text-white text-center" />
-                              <p className="text-[10px] text-[#B0B3B8] text-center mt-0.5">Tables</p>
+                    <div className="p-3">
+                      {form.tables.length === 0 ? (
+                        <p className="text-center text-sm text-[#B0B3B8] py-4">No tables configured</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {form.tables.map((row, idx) => (
+                            <div key={idx} className="flex items-center gap-2 bg-[#3A3B3C]/30 rounded-xl p-3">
+                              <select value={row.game_type_id || ''} onChange={e => updateTableRow(idx, 'game_type_id', e.target.value)}
+                                className="flex-1 px-2 py-2 bg-[#3A3B3C] border border-[#4A4B4C] rounded-lg text-sm text-white">
+                                <option value="">Select Game Type...</option>
+                                {gameTypes.map(gt => (
+                                  <option key={gt.id} value={gt.id}>{gt.short_code} — {gt.name} {gt.stakes}</option>
+                                ))}
+                              </select>
+                              <div className="w-20">
+                                <input type="number" value={row.count || 1} min={1} max={20}
+                                  onChange={e => updateTableRow(idx, 'count', parseInt(e.target.value) || 1)}
+                                  className="w-full px-2 py-2 bg-[#3A3B3C] border border-[#4A4B4C] rounded-lg text-sm text-white text-center" />
+                                <p className="text-[10px] text-[#B0B3B8] text-center mt-0.5">Tables</p>
+                              </div>
+                              <button onClick={() => removeTableRow(idx)} className="p-1.5 hover:bg-[#EF4444]/10 rounded-lg">
+                                <X className="w-4 h-4 text-[#EF4444]" />
+                              </button>
                             </div>
-                            <button onClick={() => removeTableRow(idx)} className="p-1.5 hover:bg-[#EF4444]/10 rounded-lg">
-                              <X className="w-4 h-4 text-[#EF4444]" />
-                            </button>
-                          </div>
-                        ))}
-                        <p className="text-xs text-[#B0B3B8] text-right">Total: {getTotalTables(form.tables)} tables</p>
-                      </div>
-                    )}
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
+                  {/* ── SECTION 2: PROMOTIONS ── */}
+                  <div className="border border-[#3A3B3C] rounded-xl overflow-hidden">
+                    <div className="p-3 bg-[#31A24C]/5 border-b border-[#3A3B3C] flex items-center gap-2">
+                      <Gift className="w-4 h-4 text-[#31A24C]" />
+                      <span className="text-sm font-semibold text-white">Promotions To Activate</span>
+                      {form.promotions.length > 0 && <span className="text-xs text-[#B0B3B8]">({form.promotions.length} selected)</span>}
+                    </div>
+                    <div className="p-3">
+                      {promotions.length === 0 ? (
+                        <p className="text-center text-sm text-[#B0B3B8] py-4">No promotions created yet. Create promotions first on the Promotions page.</p>
+                      ) : (
+                        <div className="space-y-1.5">
+                          {promotions.map(promo => (
+                            <button key={promo.id} onClick={() => togglePromotion(promo.id)}
+                              className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${form.promotions.includes(promo.id)
+                                  ? 'bg-[#31A24C]/10 border border-[#31A24C]'
+                                  : 'bg-[#3A3B3C]/30 border border-transparent hover:border-[#4A4B4C]'
+                                }`}>
+                              <div className="flex items-center gap-3 text-left">
+                                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${form.promotions.includes(promo.id)
+                                    ? 'bg-[#31A24C] border-[#31A24C]'
+                                    : 'border-[#4A4B4C]'
+                                  }`}>
+                                  {form.promotions.includes(promo.id) && <CheckCircle className="w-3 h-3 text-white" />}
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-white">{promo.name}</p>
+                                  <p className="text-xs text-[#B0B3B8]">{promo.promotion_type?.replace(/_/g, ' ')}</p>
+                                </div>
+                              </div>
+                              {promo.is_active && <span className="text-[10px] text-[#31A24C] font-medium">ACTIVE</span>}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* ── SECTION 3: TOURNAMENTS ── */}
+                  <div className="border border-[#3A3B3C] rounded-xl overflow-hidden">
+                    <div className="p-3 bg-[#F59E0B]/5 border-b border-[#3A3B3C] flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Trophy className="w-4 h-4 text-[#F59E0B]" />
+                        <span className="text-sm font-semibold text-white">Tournaments To Create</span>
+                        {form.tournaments.length > 0 && <span className="text-xs text-[#B0B3B8]">({form.tournaments.length})</span>}
+                      </div>
+                      <button onClick={addTournament} className="text-xs text-[#F59E0B] hover:text-[#F59E0B]/80 flex items-center gap-1">
+                        <Plus className="w-3 h-3" /> Add
+                      </button>
+                    </div>
+                    <div className="p-3">
+                      {form.tournaments.length === 0 ? (
+                        <p className="text-center text-sm text-[#B0B3B8] py-4">No tournaments configured</p>
+                      ) : (
+                        <div className="space-y-3">
+                          {form.tournaments.map((tmpl, idx) => (
+                            <div key={idx} className="bg-[#3A3B3C]/30 rounded-xl p-3 space-y-3">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs text-[#F59E0B] font-bold uppercase">Tournament {idx + 1}</span>
+                                <button onClick={() => removeTournament(idx)} className="p-1 hover:bg-[#EF4444]/10 rounded">
+                                  <X className="w-4 h-4 text-[#EF4444]" />
+                                </button>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <label className="text-[10px] text-[#B0B3B8] uppercase">Name *</label>
+                                  <input value={tmpl.name} onChange={e => updateTournament(idx, 'name', e.target.value)}
+                                    placeholder="$200 NLH Freezeout"
+                                    className="w-full mt-0.5 px-2 py-2 bg-[#3A3B3C] border border-[#4A4B4C] rounded-lg text-sm text-white placeholder-[#6A6B6D] focus:outline-none focus:border-[#F59E0B]" />
+                                </div>
+                                <div>
+                                  <label className="text-[10px] text-[#B0B3B8] uppercase">Start Time</label>
+                                  <input type="time" value={tmpl.start_time} onChange={e => updateTournament(idx, 'start_time', e.target.value)}
+                                    className="w-full mt-0.5 px-2 py-2 bg-[#3A3B3C] border border-[#4A4B4C] rounded-lg text-sm text-white focus:outline-none focus:border-[#F59E0B]"
+                                    style={{ colorScheme: 'dark' }} />
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-4 gap-2">
+                                <div>
+                                  <label className="text-[10px] text-[#B0B3B8] uppercase">Type</label>
+                                  <select value={tmpl.tournament_type} onChange={e => updateTournament(idx, 'tournament_type', e.target.value)}
+                                    className="w-full mt-0.5 px-2 py-2 bg-[#3A3B3C] border border-[#4A4B4C] rounded-lg text-xs text-white">
+                                    <option value="freezeout">Freezeout</option>
+                                    <option value="rebuy">Rebuy</option>
+                                    <option value="bounty">Bounty</option>
+                                    <option value="shootout">Shootout</option>
+                                    <option value="sit_n_go">Sit & Go</option>
+                                  </select>
+                                </div>
+                                <div>
+                                  <label className="text-[10px] text-[#B0B3B8] uppercase">Buy-in $</label>
+                                  <input type="number" value={tmpl.buyin_amount || ''} onChange={e => updateTournament(idx, 'buyin_amount', parseInt(e.target.value) || 0)}
+                                    className="w-full mt-0.5 px-2 py-2 bg-[#3A3B3C] border border-[#4A4B4C] rounded-lg text-sm text-white text-center focus:outline-none focus:border-[#F59E0B]" />
+                                </div>
+                                <div>
+                                  <label className="text-[10px] text-[#B0B3B8] uppercase">Starting Chips</label>
+                                  <input type="number" value={tmpl.starting_chips || ''} onChange={e => updateTournament(idx, 'starting_chips', parseInt(e.target.value) || 10000)}
+                                    className="w-full mt-0.5 px-2 py-2 bg-[#3A3B3C] border border-[#4A4B4C] rounded-lg text-sm text-white text-center focus:outline-none focus:border-[#F59E0B]" />
+                                </div>
+                                <div>
+                                  <label className="text-[10px] text-[#B0B3B8] uppercase">GTD Pool $</label>
+                                  <input type="number" value={tmpl.guaranteed_pool || ''} onChange={e => updateTournament(idx, 'guaranteed_pool', parseInt(e.target.value) || 0)}
+                                    className="w-full mt-0.5 px-2 py-2 bg-[#3A3B3C] border border-[#4A4B4C] rounded-lg text-sm text-white text-center focus:outline-none focus:border-[#F59E0B]" />
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* ── SCHEDULE (optional) ── */}
+                  <div className="border border-[#3A3B3C] rounded-xl overflow-hidden">
+                    <div className="p-3 bg-[#8B5CF6]/5 border-b border-[#3A3B3C] flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-[#8B5CF6]" />
+                      <span className="text-sm font-semibold text-white">Auto-Launch Schedule</span>
+                      <span className="text-xs text-[#B0B3B8]">(optional)</span>
+                    </div>
+                    <div className="p-3 space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1">
+                          <label className="text-[10px] text-[#B0B3B8] uppercase">Launch Time</label>
+                          <input type="time" value={form.start_time} onChange={e => setForm(p => ({ ...p, start_time: e.target.value }))}
+                            className="w-full mt-0.5 px-3 py-2.5 bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl text-sm text-white focus:outline-none focus:border-[#8B5CF6]"
+                            style={{ colorScheme: 'dark' }} />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-[#B0B3B8] uppercase mb-1.5 block">Active Days</label>
+                        <div className="flex gap-2">
+                          {DAY_LABELS.map((label, idx) => (
+                            <button key={idx} onClick={() => toggleDay(idx)}
+                              className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${form.day_of_week.includes(idx)
+                                  ? 'bg-[#8B5CF6]/20 border border-[#8B5CF6] text-[#8B5CF6]'
+                                  : 'bg-[#3A3B3C] border border-[#4A4B4C] text-[#B0B3B8] hover:border-[#8B5CF6]/50'
+                                }`}>
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      {form.start_time && form.day_of_week.length > 0 && (
+                        <div className="p-3 bg-[#8B5CF6]/10 rounded-lg flex items-start gap-2">
+                          <Clock className="w-4 h-4 text-[#8B5CF6] mt-0.5 flex-shrink-0" />
+                          <p className="text-xs text-[#8B5CF6]">
+                            This preset will auto-launch at <strong>{new Date(`2000-01-01T${form.start_time}`).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</strong> on {form.day_of_week.map(d => DAY_LABELS[d]).join(', ')}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Save / Cancel */}
                   <div className="flex gap-3 pt-2">
                     <button onClick={handleSave} className="flex-1 py-3 bg-[#1877F2] text-white rounded-xl font-medium text-sm flex items-center justify-center gap-2">
                       <Save className="w-4 h-4" /> {editingId ? 'Update Preset' : 'Save Preset'}
@@ -482,16 +706,18 @@ export default function RoomPresetsPage() {
               </div>
             )}
 
-            {/* Presets List */}
+            {/* ════════════════════════════════════════════════════════════════
+                PRESETS LIST
+            ════════════════════════════════════════════════════════════════ */}
             {loading ? (
               <div className="py-16 text-center"><Loader2 className="w-8 h-8 animate-spin text-[#1877F2] mx-auto" /></div>
             ) : presets.length === 0 && !showForm ? (
               <div className="bg-[#242526] rounded-2xl border border-[#3A3B3C] p-12 text-center">
                 <Layout className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
-                <h3 className="text-lg font-medium text-white mb-1">No Room Presets Yet</h3>
-                <p className="text-sm text-[#B0B3B8] mb-4">Create Presets To Quickly Configure Your Room With One Click</p>
+                <h3 className="text-lg font-medium text-white mb-1">No Daily Presets Yet</h3>
+                <p className="text-sm text-[#B0B3B8] mb-4">Create Presets To Launch Your Entire Room With One Click</p>
                 {canManage && (
-                  <button onClick={() => { setForm({ name: '', description: '', tables: [] }); setShowForm(true); }}
+                  <button onClick={() => { resetForm(); setShowForm(true); }}
                     className="px-6 py-2.5 bg-[#1877F2] text-white rounded-xl text-sm font-medium">
                     <Plus className="w-4 h-4 inline mr-2" /> Create First Preset
                   </button>
@@ -499,62 +725,115 @@ export default function RoomPresetsPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {presets.map(preset => (
-                  <div key={preset.id} className="bg-[#242526] rounded-2xl border border-[#3A3B3C] overflow-hidden">
-                    <div className="p-4">
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <h3 className="font-semibold text-white text-lg">{preset.name}</h3>
-                          {preset.description && <p className="text-xs text-[#B0B3B8] mt-0.5">{preset.description}</p>}
-                        </div>
-                        <span className="px-2 py-1 rounded-lg bg-[#1877F2]/10 text-[#1877F2] text-xs font-medium">
-                          {getTotalTables(preset.tables)} tables
-                        </span>
-                      </div>
+                {presets.map(preset => {
+                  const tableCount = getTotalTables(preset.tables);
+                  const promoCount = (preset.promotions || []).length;
+                  const tourneyCount = (preset.tournaments || []).length;
+                  const schedule = preset.auto_apply_schedule;
+                  const hasSchedule = schedule?.start_time && schedule?.day_of_week?.length > 0;
 
-                      {/* Table breakdown */}
-                      <div className="space-y-1.5 mb-4">
-                        {(preset.tables || []).map((t, i) => (
-                          <div key={i} className="flex items-center justify-between text-sm">
-                            <span className="text-[#E4E6EB]">{t.short_code || t.game_type_name} {t.stakes}</span>
-                            <span className="text-[#B0B3B8]">×{t.count || 1}</span>
+                  return (
+                    <div key={preset.id} className="bg-[#242526] rounded-2xl border border-[#3A3B3C] overflow-hidden">
+                      <div className="p-4">
+                        {/* Header */}
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <h3 className="font-semibold text-white text-lg">{preset.name}</h3>
+                            {preset.description && <p className="text-xs text-[#B0B3B8] mt-0.5">{preset.description}</p>}
                           </div>
-                        ))}
-                      </div>
+                        </div>
 
-                      {preset.last_applied_at && (
-                        <p className="text-[10px] text-[#B0B3B8] mb-3">
-                          Last applied: {new Date(preset.last_applied_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
-                        </p>
-                      )}
+                        {/* Summary badges */}
+                        <div className="flex flex-wrap gap-1.5 mb-3">
+                          {tableCount > 0 && (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#1877F2]/10 text-[#1877F2] text-xs font-medium">
+                              <Layout className="w-3 h-3" /> {tableCount} table{tableCount !== 1 ? 's' : ''}
+                            </span>
+                          )}
+                          {promoCount > 0 && (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#31A24C]/10 text-[#31A24C] text-xs font-medium">
+                              <Gift className="w-3 h-3" /> {promoCount} promo{promoCount !== 1 ? 's' : ''}
+                            </span>
+                          )}
+                          {tourneyCount > 0 && (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#F59E0B]/10 text-[#F59E0B] text-xs font-medium">
+                              <Trophy className="w-3 h-3" /> {tourneyCount} tourney{tourneyCount !== 1 ? 's' : ''}
+                            </span>
+                          )}
+                          {hasSchedule && (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#8B5CF6]/10 text-[#8B5CF6] text-xs font-medium">
+                              <Clock className="w-3 h-3" /> {new Date(`2000-01-01T${schedule.start_time}`).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                              {' '}{schedule.day_of_week.map(d => DAY_LABELS[d]).join(', ')}
+                            </span>
+                          )}
+                        </div>
 
-                      {/* Actions */}
-                      <div className="flex gap-2">
-                        <button onClick={() => handleApply(preset)} disabled={applying === preset.id}
-                          className="flex-1 py-2.5 bg-[#31A24C] text-white rounded-xl text-sm font-medium flex items-center justify-center gap-2 hover:bg-[#31A24C]/80 disabled:opacity-50">
-                          {applying === preset.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-                          Apply Now
-                        </button>
-                        {canManage && (
-                          <>
-                            <button onClick={() => startEdit(preset)} className="p-2.5 bg-[#3A3B3C] rounded-xl hover:bg-[#4A4B4C]">
-                              <Edit2 className="w-4 h-4 text-[#B0B3B8]" />
-                            </button>
-                            <button onClick={() => handleDelete(preset)} className="p-2.5 bg-[#3A3B3C] rounded-xl hover:bg-[#EF4444]/10">
-                              <Trash2 className="w-4 h-4 text-[#EF4444]" />
-                            </button>
-                          </>
+                        {/* Expandable details */}
+                        {tableCount > 0 && (
+                          <div className="space-y-1 mb-3">
+                            {(preset.tables || []).map((t, i) => (
+                              <div key={i} className="flex items-center justify-between text-sm">
+                                <span className="text-[#E4E6EB]">{t.short_code || t.game_type_name} {t.stakes}</span>
+                                <span className="text-[#B0B3B8]">×{t.count || 1}</span>
+                              </div>
+                            ))}
+                          </div>
                         )}
+
+                        {/* Tournament details */}
+                        {tourneyCount > 0 && (
+                          <div className="space-y-1 mb-3">
+                            {(preset.tournaments || []).map((t, i) => (
+                              <div key={i} className="flex items-center justify-between text-sm">
+                                <span className="text-[#E4E6EB]">{t.name || 'Tournament'}</span>
+                                <span className="text-[#B0B3B8]">${t.buyin_amount || 0}{t.start_time ? ` @ ${new Date(`2000-01-01T${t.start_time}`).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : ''}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Promotion names */}
+                        {promoCount > 0 && (
+                          <div className="mb-3">
+                            <p className="text-xs text-[#B0B3B8]">
+                              Promos: {(preset.promotions || []).map(id => getPromoName(id)).join(', ')}
+                            </p>
+                          </div>
+                        )}
+
+                        {preset.last_applied_at && (
+                          <p className="text-[10px] text-[#B0B3B8] mb-3">
+                            Last launched: {new Date(preset.last_applied_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                          </p>
+                        )}
+
+                        {/* Actions */}
+                        <div className="flex gap-2">
+                          <button onClick={() => handleApply(preset)} disabled={applying === preset.id}
+                            className="flex-1 py-2.5 bg-[#31A24C] text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-[#31A24C]/80 disabled:opacity-50">
+                            {applying === preset.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+                            Launch Now
+                          </button>
+                          {canManage && (
+                            <>
+                              <button onClick={() => startEdit(preset)} className="p-2.5 bg-[#3A3B3C] rounded-xl hover:bg-[#4A4B4C]">
+                                <Edit2 className="w-4 h-4 text-[#B0B3B8]" />
+                              </button>
+                              <button onClick={() => handleDelete(preset)} className="p-2.5 bg-[#3A3B3C] rounded-xl hover:bg-[#EF4444]/10">
+                                <Trash2 className="w-4 h-4 text-[#EF4444]" />
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </main>
         </div>
-        <style jsx>{`
-`}</style>
+        <style jsx>{``}</style>
       </>
     </CommanderLayout>
   );

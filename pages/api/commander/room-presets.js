@@ -1,10 +1,10 @@
 /**
- * Room Presets API
+ * Daily Presets API (formerly Room Presets)
  * GET    /api/commander/room-presets - List presets for venue
  * POST   /api/commander/room-presets - Create new preset
  * PUT    /api/commander/room-presets?id=X - Update preset
  * DELETE /api/commander/room-presets?id=X - Delete preset
- * POST   /api/commander/room-presets?id=X&action=apply - Apply preset (opens tables)
+ * POST   /api/commander/room-presets?id=X&action=apply - Apply preset (opens tables, activates promotions, creates tournaments)
  */
 import { createClient } from '@supabase/supabase-js';
 import { guardManager } from '../../../src/lib/commander/auth';
@@ -48,7 +48,9 @@ export default async function handler(req, res) {
 
     // POST - Create or Apply
     if (req.method === 'POST') {
-      // Apply preset
+      // ═══════════════════════════════════════════════════════════════
+      // APPLY PRESET — Opens tables, activates promotions, creates tournaments
+      // ═══════════════════════════════════════════════════════════════
       if (req.query.action === 'apply' && req.query.id) {
         const { data: preset, error: fetchErr } = await supabase
           .from('commander_room_presets')
@@ -61,43 +63,107 @@ export default async function handler(req, res) {
           return res.status(404).json({ success: false, error: 'Preset not found' });
         }
 
+        const results = { games_opened: 0, promotions_activated: 0, tournaments_created: 0 };
+
+        // ── 1. OPEN TABLES ──
         const tables = preset.tables || [];
-        let gamesOpened = 0;
+        if (tables.length > 0) {
+          const { data: availableTables } = await supabase
+            .from('commander_tables')
+            .select('id, table_number, status')
+            .eq('venue_id', venueId)
+            .eq('status', 'available')
+            .order('table_number', { ascending: true });
 
-        // Get available tables
-        const { data: availableTables } = await supabase
-          .from('commander_tables')
-          .select('id, table_number, status')
-          .eq('venue_id', venueId)
-          .eq('status', 'available')
-          .order('table_number', { ascending: true });
+          let tableIdx = 0;
+          for (const config of tables) {
+            for (let i = 0; i < (config.count || 1); i++) {
+              if (tableIdx >= (availableTables || []).length) break;
+              const table = availableTables[tableIdx];
+              tableIdx++;
 
-        let tableIdx = 0;
-        for (const config of tables) {
-          for (let i = 0; i < (config.count || 1); i++) {
-            if (tableIdx >= (availableTables || []).length) break;
-            const table = availableTables[tableIdx];
-            tableIdx++;
+              await supabase.from('commander_games').insert({
+                venue_id: venueId,
+                table_id: table.id,
+                game_type: config.short_code || config.game_type_name || 'NLH',
+                stakes: config.stakes,
+                min_buyin: config.min_buyin || 100,
+                max_buyin: config.max_buyin || 0,
+                max_players: config.max_players || 9,
+                status: 'waiting',
+                started_at: new Date().toISOString()
+              });
 
-            // Open a game on this table
-            await supabase.from('commander_games').insert({
+              await supabase.from('commander_tables')
+                .update({ status: 'in_use' })
+                .eq('id', table.id);
+
+              results.games_opened++;
+            }
+          }
+        }
+
+        // ── 2. ACTIVATE PROMOTIONS ──
+        const promotionIds = preset.promotions || [];
+        if (promotionIds.length > 0) {
+          const { error: promoErr } = await supabase
+            .from('commander_promotions')
+            .update({ is_active: true, status: 'active' })
+            .in('id', promotionIds)
+            .eq('venue_id', venueId);
+
+          if (!promoErr) {
+            results.promotions_activated = promotionIds.length;
+          }
+        }
+
+        // ── 3. CREATE TOURNAMENT INSTANCES ──
+        const tournamentTemplates = preset.tournaments || [];
+        if (tournamentTemplates.length > 0) {
+          const today = new Date();
+          for (const tmpl of tournamentTemplates) {
+            // Calculate scheduled start from offset or explicit time
+            let scheduledStart;
+            if (tmpl.start_time) {
+              // start_time is "HH:MM" format — combine with today's date
+              const [h, m] = tmpl.start_time.split(':').map(Number);
+              scheduledStart = new Date(today.getFullYear(), today.getMonth(), today.getDate(), h, m);
+            } else if (tmpl.start_time_offset_minutes) {
+              scheduledStart = new Date(today.getTime() + tmpl.start_time_offset_minutes * 60000);
+            } else {
+              scheduledStart = new Date(today.getTime() + 3600000); // default: 1 hour from now
+            }
+
+            const { error: tErr } = await supabase.from('commander_tournaments').insert({
               venue_id: venueId,
-              table_id: table.id,
-              game_type: config.short_code || config.game_type_name || 'NLH',
-              stakes: config.stakes,
-              min_buyin: config.min_buyin || 100,
-              max_buyin: config.max_buyin || 0,
-              max_players: config.max_players || 9,
-              status: 'waiting',
-              started_at: new Date().toISOString()
+              name: tmpl.name || 'Daily Tournament',
+              description: tmpl.description || null,
+              tournament_type: tmpl.tournament_type || 'freezeout',
+              buyin_amount: tmpl.buyin_amount || 0,
+              buyin_fee: tmpl.buyin_fee || 0,
+              starting_chips: tmpl.starting_chips || 10000,
+              scheduled_start: scheduledStart.toISOString(),
+              registration_opens: new Date().toISOString(),
+              late_registration_levels: tmpl.late_registration_levels || 6,
+              max_entries: tmpl.max_entries || null,
+              guaranteed_pool: tmpl.guaranteed_pool || 0,
+              blind_structure: tmpl.blind_structure || [],
+              break_schedule: tmpl.break_schedule || [],
+              payout_structure: tmpl.payout_structure || [],
+              allows_rebuys: tmpl.allows_rebuys || false,
+              rebuy_amount: tmpl.rebuy_amount || null,
+              rebuy_chips: tmpl.rebuy_chips || null,
+              max_rebuys: tmpl.max_rebuys || null,
+              allows_addon: tmpl.allows_addon || false,
+              addon_amount: tmpl.addon_amount || null,
+              addon_chips: tmpl.addon_chips || null,
+              bounty_amount: tmpl.bounty_amount || null,
+              broadcast_to_smarter: tmpl.broadcast_to_smarter !== false,
+              status: 'scheduled',
+              settings: tmpl.settings || {}
             });
 
-            // Mark table as in use
-            await supabase.from('commander_tables')
-              .update({ status: 'in_use' })
-              .eq('id', table.id);
-
-            gamesOpened++;
+            if (!tErr) results.tournaments_created++;
           }
         }
 
@@ -109,24 +175,31 @@ export default async function handler(req, res) {
         // Log it
         await supabase.from('commander_system_log').insert({
           venue_id: venueId,
-          action: 'preset_applied',
-          details: { preset_id: preset.id, preset_name: preset.name, games_opened: gamesOpened },
+          action: 'daily_preset_applied',
+          details: {
+            preset_id: preset.id,
+            preset_name: preset.name,
+            ...results
+          },
           performed_by: user.id,
           performed_by_name: staff.name
         });
 
         return res.status(200).json({
           success: true,
-          data: { games_opened: gamesOpened, preset_name: preset.name }
+          data: { preset_name: preset.name, ...results }
         });
       }
 
-      // Create new preset
+      // ═══════════════════════════════════════════════════════════════
+      // CREATE NEW PRESET
+      // ═══════════════════════════════════════════════════════════════
       if (!['owner', 'manager'].includes(staff.role)) {
         return res.status(403).json({ success: false, error: 'Manager access required' });
       }
 
-      const { name, description, tables: tableConfigs, is_default, auto_apply_schedule } = req.body;
+      const { name, description, tables: tableConfigs, promotions, tournaments,
+        is_default, start_time, day_of_week } = req.body;
       if (!name) return res.status(400).json({ success: false, error: 'Preset name required' });
 
       const { data, error } = await supabase
@@ -136,8 +209,12 @@ export default async function handler(req, res) {
           name,
           description: description || null,
           tables: tableConfigs || [],
+          promotions: promotions || [],
+          tournaments: tournaments || [],
           is_default: is_default || false,
-          auto_apply_schedule: auto_apply_schedule || null,
+          auto_apply_schedule: start_time && day_of_week
+            ? { start_time, day_of_week }
+            : null,
           created_by: user.id
         })
         .select()
@@ -157,9 +234,19 @@ export default async function handler(req, res) {
       if (!id) return res.status(400).json({ success: false, error: 'Preset ID required' });
 
       const updates = {};
-      const allowed = ['name', 'description', 'tables', 'is_default', 'auto_apply_schedule'];
+      const allowed = ['name', 'description', 'tables', 'promotions', 'tournaments',
+        'is_default', 'start_time', 'day_of_week'];
       for (const key of allowed) {
         if (req.body[key] !== undefined) updates[key] = req.body[key];
+      }
+      // Build auto_apply_schedule from start_time + day_of_week
+      if (req.body.start_time !== undefined || req.body.day_of_week !== undefined) {
+        updates.auto_apply_schedule = {
+          start_time: req.body.start_time || null,
+          day_of_week: req.body.day_of_week || null
+        };
+        delete updates.start_time;
+        delete updates.day_of_week;
       }
       updates.updated_at = new Date().toISOString();
 
@@ -196,7 +283,7 @@ export default async function handler(req, res) {
 
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   } catch (err) {
-    console.error('Room presets API error:', err);
+    console.error('Daily presets API error:', err);
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
