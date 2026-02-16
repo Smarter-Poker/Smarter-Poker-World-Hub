@@ -24,7 +24,6 @@ import '../src/styles/worlds/trivia.css';
 import '../src/styles/commander-futuristic.css';
 import '../styles/landing.css';
 import dynamic from 'next/dynamic';
-import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useEffect, createContext, useState, useContext } from 'react';
 import { AntiGravityProvider } from '../src/providers/AntiGravityProvider';
@@ -268,60 +267,44 @@ export default function App({ Component, pageProps }) {
   const { isOpen: isJarvisOpen, onClose: onJarvisClose } = useJarvis();
 
   return (
-    <>
-      <Head>
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://smarter.poker" />
-        <meta property="og:title" content="Smarter.Poker | The Future Of The Game" />
-        <meta property="og:description" content="Train Smarter. Connect Globally. Manage Everything. The premier poker platform with GTO training, AI coaching, social networking, bankroll tracking, and Club Commander poker room management." />
-        <meta property="og:image" content="https://smarter.poker/images/og-default.png" />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
-        <meta property="og:site_name" content="Smarter.Poker" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Smarter.Poker | The Future Of The Game" />
-        <meta name="twitter:description" content="Train Smarter. Connect Globally. Manage Everything. The premier poker platform with GTO training, AI coaching, social networking, bankroll tracking, and Club Commander poker room management." />
-        <meta name="twitter:image" content="https://smarter.poker/images/og-default.png" />
-        <title>Smarter.Poker | The Future Of The Game</title>
-      </Head>
-      <AntiGravityProvider>
-        <ThemeProvider>
-          <UnreadProvider>
-            <AvatarProvider>
-              <ExternalLinkProvider>
-                <OneSignalProvider>
-                  <TrainingSettingsProvider>
-                    <NavigationGuard>
-                      <ActiveIdentityProvider>
-                        <WorldThemeProvider>
-                          <Component {...pageProps} />
-                          <CelebrationManager />
-                          <DiamondToast />
-                          <ToastContainer />
-                          <GlobalNotificationPrompt />
-                          <ProactiveHelp
-                            onAccept={() => {
-                              // Open Jarvis when user accepts help
-                              if (typeof window !== 'undefined') {
-                                window.dispatchEvent(new CustomEvent('open-jarvis'));
-                              }
-                            }}
-                            onDismiss={() => {
-                              console.log('[ProactiveHelp] User dismissed help prompt');
-                            }}
-                          />
-                          <JarvisPanel isOpen={isJarvisOpen} onClose={onJarvisClose} />
-                        </WorldThemeProvider>
-                      </ActiveIdentityProvider>
-                    </NavigationGuard>
-                  </TrainingSettingsProvider>
-                </OneSignalProvider>
-              </ExternalLinkProvider>
-            </AvatarProvider>
-          </UnreadProvider>
-        </ThemeProvider>
-      </AntiGravityProvider>
-    </>
+    <AntiGravityProvider>
+      <ThemeProvider>
+        <UnreadProvider>
+          <AvatarProvider>
+            <ExternalLinkProvider>
+              <OneSignalProvider>
+                <TrainingSettingsProvider>
+                  <NavigationGuard>
+                    <ActiveIdentityProvider>
+                      <WorldThemeProvider>
+                        <Component {...pageProps} />
+                        <CelebrationManager />
+                        <DiamondToast />
+                        <ToastContainer />
+                        <GlobalNotificationPrompt />
+                        <ProactiveHelp
+                          onAccept={() => {
+                            // Open Jarvis when user accepts help
+                            if (typeof window !== 'undefined') {
+                              window.dispatchEvent(new CustomEvent('open-jarvis'));
+                            }
+                          }}
+                          onDismiss={() => {
+                            console.log('[ProactiveHelp] User dismissed help prompt');
+                          }}
+                        />
+                        <JarvisPanel isOpen={isJarvisOpen} onClose={onJarvisClose} />
+                      </WorldThemeProvider>
+                    </ActiveIdentityProvider>
+                  </NavigationGuard>
+                </TrainingSettingsProvider>
+              </OneSignalProvider>
+            </ExternalLinkProvider>
+          </AvatarProvider>
+        </UnreadProvider>
+      </ThemeProvider>
+    </AntiGravityProvider>
   );
 }
+
 
