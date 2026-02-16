@@ -515,370 +515,366 @@ export default function PromotionsPage() {
 
   return (
     <CommanderLayout title="Promotions | Commander" backHref="/commander/displays">
-    <>
-      <Head>
-        <title>Promotions | Commander</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
+      <>
+        <Head>
+          <title>Promotions | Commander</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+        </Head>
 
-      <div className="cmd-page">
-        <header className="cmd-header-bar sticky top-0 z-40">
-          <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div>
-                <h1 className="font-bold text-white">Promotions</h1>
-                <p className="text-sm text-[#B0B3B8]">
-                  {activeTab === 'promotions' ? `${promotions.length} promotions` : `${highHands.length} high hands today`}
-                </p>
+        <div className="cmd-page">
+          <header className="cmd-header-bar sticky top-0 z-40">
+            <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div>
+                  <h1 className="font-bold text-white">Promotions</h1>
+                  <p className="text-sm text-[#B0B3B8]">
+                    {activeTab === 'promotions' ? `${promotions.length} promotions` : `${highHands.length} high hands today`}
+                  </p>
+                </div>
               </div>
+              {activeTab === 'promotions' ? (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => { setUseWizard(true); setShowCreateModal(true); }}
+                    className="cmd-btn cmd-btn-secondary flex items-center gap-2"
+                  >
+                    <Zap className="w-4 h-4" />
+                    Wizard
+                  </button>
+                  <button
+                    onClick={() => { setUseWizard(false); setShowCreateModal(true); }}
+                    className="cmd-btn cmd-btn-primary flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    New Promo
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowHighHandModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#F59E0B] text-white font-medium rounded-lg hover:bg-[#D97706]"
+                >
+                  <Trophy className="w-4 h-4" />
+                  Record High Hand
+                </button>
+              )}
             </div>
-            {activeTab === 'promotions' ? (
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => { setUseWizard(true); setShowCreateModal(true); }}
-                  className="cmd-btn cmd-btn-secondary flex items-center gap-2"
-                >
-                  <Zap className="w-4 h-4" />
-                  Wizard
-                </button>
-                <button
-                  onClick={() => { setUseWizard(false); setShowCreateModal(true); }}
-                  className="cmd-btn cmd-btn-primary flex items-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  New Promo
-                </button>
-              </div>
-            ) : (
+
+            <div className="max-w-4xl mx-auto px-4 flex gap-1 border-t border-[#3A3B3C]">
               <button
-                onClick={() => setShowHighHandModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-[#F59E0B] text-white font-medium rounded-lg hover:bg-[#D97706]"
+                onClick={() => setActiveTab('promotions')}
+                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'promotions'
+                    ? 'border-[#1877F2] text-[#1877F2]'
+                    : 'border-transparent text-[#B0B3B8] hover:text-white'
+                  }`}
               >
-                <Trophy className="w-4 h-4" />
-                Record High Hand
+                <Gift className="w-4 h-4 inline-block mr-2" />
+                Promotions
               </button>
-            )}
-          </div>
-
-          <div className="max-w-4xl mx-auto px-4 flex gap-1 border-t border-[#3A3B3C]">
-            <button
-              onClick={() => setActiveTab('promotions')}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'promotions'
-                  ? 'border-[#1877F2] text-[#1877F2]'
-                  : 'border-transparent text-[#B0B3B8] hover:text-white'
-              }`}
-            >
-              <Gift className="w-4 h-4 inline-block mr-2" />
-              Promotions
-            </button>
-            <button
-              onClick={() => setActiveTab('high-hands')}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'high-hands'
-                  ? 'border-[#F59E0B] text-[#F59E0B]'
-                  : 'border-transparent text-[#B0B3B8] hover:text-white'
-              }`}
-            >
-              <Trophy className="w-4 h-4 inline-block mr-2" />
-              High Hands
-            </button>
-          </div>
-        </header>
-
-        <main className="max-w-4xl mx-auto px-4 py-6 space-y-4">
-          {activeTab === 'promotions' ? (
-            <>
-              <div className="flex gap-2">
-                {['all', 'active', 'inactive'].map((f) => (
-                  <button
-                    key={f}
-                    onClick={() => setFilter(f)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${
-                      filter === f
-                        ? 'bg-[#1877F2] text-white'
-                        : 'cmd-btn cmd-btn-secondary'
-                    }`}
-                  >
-                    {f}
-                  </button>
-                ))}
-              </div>
-
-              {loading ? (
-                <div className="flex justify-center py-12">
-                  <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
-                </div>
-              ) : filteredPromos.length === 0 ? (
-                <div className="cmd-panel p-8 text-center">
-                  <Gift className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
-                  <p className="text-[#B0B3B8]">No promotions found</p>
-                  <button
-                    onClick={() => setShowCreateModal(true)}
-                    className="cmd-btn cmd-btn-primary mt-4"
-                  >
-                    Create Promotion
-                  </button>
-                </div>
-              ) : (
-                <div className="grid gap-4 md:grid-cols-2">
-                  {filteredPromos.map((promo) => (
-                    <PromotionCard
-                      key={promo.id}
-                      promotion={promo}
-                      onEdit={handleEdit}
-                      onViewAwards={handleViewAwards}
-                    />
-                  ))}
-                </div>
-              )}
-            </>
-          ) : (
-            <>
-              <HighHandDisplay
-                promotion={highHandPromo}
-                currentHighHand={currentHighHand}
-                recentHighHands={highHands.slice(0, 5)}
-                isStaff={true}
-                onSubmitHand={async (handData) => {
-                  try {
-                    const token = localStorage.getItem('smarter-poker-auth');
-                    await fetch('/api/commander/high-hands', {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${token}`
-                      },
-                      body: JSON.stringify({
-                        venue_id: venueId,
-                        ...handData
-                      })
-                    });
-                    fetchHighHands();
-                  } catch (error) {
-                    console.error('Submit high hand failed:', error);
-                  }
-                }}
-              />
-
-              <CurrentHighHandBanner highHand={currentHighHand} />
-
-              {loading ? (
-                <div className="flex justify-center py-12">
-                  <Loader2 className="w-8 h-8 animate-spin text-[#F59E0B]" />
-                </div>
-              ) : highHands.length === 0 ? (
-                <div className="cmd-panel p-8 text-center">
-                  <Trophy className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
-                  <p className="text-[#B0B3B8]">No high hands recorded today</p>
-                  <button
-                    onClick={() => setShowHighHandModal(true)}
-                    className="mt-4 px-4 py-2 bg-[#F59E0B] text-white font-medium rounded-lg"
-                  >
-                    Record High Hand
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <h3 className="font-semibold text-white">Recent High Hands</h3>
-                  {highHands.map((hh) => (
-                    <HighHandCard
-                      key={hh.id}
-                      highHand={hh}
-                      onVerify={handleVerifyHighHand}
-                    />
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-        </main>
-      </div>
-
-      {showCreateModal && (
-        useWizard ? (
-          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-            <div className="cmd-panel w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-white">Promotion Wizard</h3>
-                <button
-                  onClick={() => { setUseWizard(false); setShowCreateModal(false); }}
-                  className="p-2 hover:bg-[#3A3B3C] rounded-lg"
-                >
-                  <X className="w-5 h-5 text-[#B0B3B8]" />
-                </button>
-              </div>
-              <PromotionBuilder
-                venueId={venueId}
-                onSubmit={async (data) => {
-                  try {
-                    const res = await fetch('/api/commander/promotions', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify(data)
-                    });
-                    const result = await res.json();
-                    if (result.success) {
-                      fetchPromotions();
-                      setShowCreateModal(false);
-                      setUseWizard(false);
-                    }
-                  } catch (error) {
-                    console.error('Create promo failed:', error);
-                  }
-                }}
-                onCancel={() => { setUseWizard(false); setShowCreateModal(false); }}
-              />
+              <button
+                onClick={() => setActiveTab('high-hands')}
+                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'high-hands'
+                    ? 'border-[#F59E0B] text-[#F59E0B]'
+                    : 'border-transparent text-[#B0B3B8] hover:text-white'
+                  }`}
+              >
+                <Trophy className="w-4 h-4 inline-block mr-2" />
+                High Hands
+              </button>
             </div>
-          </div>
-        ) : (
+          </header>
+
+          <main className="max-w-4xl mx-auto px-4 py-6 space-y-4">
+            {activeTab === 'promotions' ? (
+              <>
+                <div className="flex gap-2">
+                  {['all', 'active', 'inactive'].map((f) => (
+                    <button
+                      key={f}
+                      onClick={() => setFilter(f)}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${filter === f
+                          ? 'bg-[#1877F2] text-white'
+                          : 'cmd-btn cmd-btn-secondary'
+                        }`}
+                    >
+                      {f}
+                    </button>
+                  ))}
+                </div>
+
+                {loading ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
+                  </div>
+                ) : filteredPromos.length === 0 ? (
+                  <div className="cmd-panel p-8 text-center">
+                    <Gift className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
+                    <p className="text-[#B0B3B8]">No Promotions Found</p>
+                    <button
+                      onClick={() => setShowCreateModal(true)}
+                      className="cmd-btn cmd-btn-primary mt-4"
+                    >
+                      Create Promotion
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {filteredPromos.map((promo) => (
+                      <PromotionCard
+                        key={promo.id}
+                        promotion={promo}
+                        onEdit={handleEdit}
+                        onViewAwards={handleViewAwards}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <HighHandDisplay
+                  promotion={highHandPromo}
+                  currentHighHand={currentHighHand}
+                  recentHighHands={highHands.slice(0, 5)}
+                  isStaff={true}
+                  onSubmitHand={async (handData) => {
+                    try {
+                      const token = localStorage.getItem('smarter-poker-auth');
+                      await fetch('/api/commander/high-hands', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          Authorization: `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                          venue_id: venueId,
+                          ...handData
+                        })
+                      });
+                      fetchHighHands();
+                    } catch (error) {
+                      console.error('Submit high hand failed:', error);
+                    }
+                  }}
+                />
+
+                <CurrentHighHandBanner highHand={currentHighHand} />
+
+                {loading ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-[#F59E0B]" />
+                  </div>
+                ) : highHands.length === 0 ? (
+                  <div className="cmd-panel p-8 text-center">
+                    <Trophy className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
+                    <p className="text-[#B0B3B8]">No High Hands Recorded Today</p>
+                    <button
+                      onClick={() => setShowHighHandModal(true)}
+                      className="mt-4 px-4 py-2 bg-[#F59E0B] text-white font-medium rounded-lg"
+                    >
+                      Record High Hand
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-white">Recent High Hands</h3>
+                    {highHands.map((hh) => (
+                      <HighHandCard
+                        key={hh.id}
+                        highHand={hh}
+                        onVerify={handleVerifyHighHand}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </main>
+        </div>
+
+        {showCreateModal && (
+          useWizard ? (
+            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+              <div className="cmd-panel w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-white">Promotion Wizard</h3>
+                  <button
+                    onClick={() => { setUseWizard(false); setShowCreateModal(false); }}
+                    className="p-2 hover:bg-[#3A3B3C] rounded-lg"
+                  >
+                    <X className="w-5 h-5 text-[#B0B3B8]" />
+                  </button>
+                </div>
+                <PromotionBuilder
+                  venueId={venueId}
+                  onSubmit={async (data) => {
+                    try {
+                      const res = await fetch('/api/commander/promotions', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                      });
+                      const result = await res.json();
+                      if (result.success) {
+                        fetchPromotions();
+                        setShowCreateModal(false);
+                        setUseWizard(false);
+                      }
+                    } catch (error) {
+                      console.error('Create promo failed:', error);
+                    }
+                  }}
+                  onCancel={() => { setUseWizard(false); setShowCreateModal(false); }}
+                />
+              </div>
+            </div>
+          ) : (
+            <PromotionEditor
+              venueId={venueId}
+              onSave={async (data) => {
+                try {
+                  const res = await fetch('/api/commander/promotions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                  });
+                  const result = await res.json();
+                  if (result.success) {
+                    fetchPromotions();
+                    setShowCreateModal(false);
+                  }
+                } catch (error) {
+                  console.error('Create promo failed:', error);
+                }
+              }}
+              onClose={() => setShowCreateModal(false)}
+            />
+          )
+        )}
+
+        {showEditModal && editingPromo && (
           <PromotionEditor
+            promotion={editingPromo}
             venueId={venueId}
             onSave={async (data) => {
               try {
-                const res = await fetch('/api/commander/promotions', {
-                  method: 'POST',
+                const res = await fetch(`/api/commander/promotions/${editingPromo.id}`, {
+                  method: 'PUT',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify(data)
                 });
                 const result = await res.json();
                 if (result.success) {
                   fetchPromotions();
-                  setShowCreateModal(false);
+                  setShowEditModal(false);
+                  setEditingPromo(null);
                 }
               } catch (error) {
-                console.error('Create promo failed:', error);
+                console.error('Update promo failed:', error);
               }
             }}
-            onClose={() => setShowCreateModal(false)}
-          />
-        )
-      )}
-
-      {showEditModal && editingPromo && (
-        <PromotionEditor
-          promotion={editingPromo}
-          venueId={venueId}
-          onSave={async (data) => {
-            try {
-              const res = await fetch(`/api/commander/promotions/${editingPromo.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-              });
-              const result = await res.json();
-              if (result.success) {
+            onDelete={async (id) => {
+              if (!confirm('Delete this promotion?')) return;
+              try {
+                await fetch(`/api/commander/promotions/${id}`, { method: 'DELETE' });
                 fetchPromotions();
                 setShowEditModal(false);
                 setEditingPromo(null);
+              } catch (error) {
+                console.error('Delete failed:', error);
               }
-            } catch (error) {
-              console.error('Update promo failed:', error);
-            }
-          }}
-          onDelete={async (id) => {
-            if (!confirm('Delete this promotion?')) return;
-            try {
-              await fetch(`/api/commander/promotions/${id}`, { method: 'DELETE' });
-              fetchPromotions();
+            }}
+            onClose={() => {
               setShowEditModal(false);
               setEditingPromo(null);
-            } catch (error) {
-              console.error('Delete failed:', error);
-            }
-          }}
-          onClose={() => {
-            setShowEditModal(false);
-            setEditingPromo(null);
-          }}
+            }}
+          />
+        )}
+
+        <RecordHighHandModal
+          isOpen={showHighHandModal}
+          onClose={() => setShowHighHandModal(false)}
+          onSubmit={() => fetchHighHands()}
+          venueId={venueId}
+          staff={staff}
         />
-      )}
 
-      <RecordHighHandModal
-        isOpen={showHighHandModal}
-        onClose={() => setShowHighHandModal(false)}
-        onSubmit={() => fetchHighHands()}
-        venueId={venueId}
-        staff={staff}
-      />
-
-      {/* Awards Modal */}
-      {showAwardsModal && selectedPromoForAwards && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="cmd-panel cmd-corner-lights w-full max-w-lg max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between p-4 border-b border-[#3A3B3C]">
-              <div>
-                <h3 className="text-lg font-semibold text-white">Awards</h3>
-                <p className="text-sm text-[#B0B3B8]">{selectedPromoForAwards.name}</p>
+        {/* Awards Modal */}
+        {showAwardsModal && selectedPromoForAwards && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="cmd-panel cmd-corner-lights w-full max-w-lg max-h-[90vh] flex flex-col">
+              <div className="flex items-center justify-between p-4 border-b border-[#3A3B3C]">
+                <div>
+                  <h3 className="text-lg font-semibold text-white">Awards</h3>
+                  <p className="text-sm text-[#B0B3B8]">{selectedPromoForAwards.name}</p>
+                </div>
+                <button
+                  onClick={() => { setShowAwardsModal(false); setSelectedPromoForAwards(null); setPromoAwards([]); }}
+                  className="p-2 hover:bg-[#3A3B3C] rounded-lg"
+                >
+                  <X className="w-5 h-5 text-[#B0B3B8]" />
+                </button>
               </div>
-              <button
-                onClick={() => { setShowAwardsModal(false); setSelectedPromoForAwards(null); setPromoAwards([]); }}
-                className="p-2 hover:bg-[#3A3B3C] rounded-lg"
-              >
-                <X className="w-5 h-5 text-[#B0B3B8]" />
-              </button>
-            </div>
 
-            <div className="flex-1 overflow-y-auto p-4">
-              {awardsLoading ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin text-[#1877F2]" />
-                </div>
-              ) : promoAwards.length === 0 ? (
-                <div className="text-center py-8">
-                  <Award className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
-                  <p className="text-[#B0B3B8]">No awards recorded yet</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {promoAwards.map((award) => (
-                    <div key={award.id} className="p-3 bg-[#3A3B3C] rounded-lg">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-[#1877F2]/10 flex items-center justify-center">
-                            {award.profiles?.avatar_url ? (
-                              <img src={award.profiles.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover" />
-                            ) : (
-                              <User className="w-4 h-4 text-[#1877F2]" />
-                            )}
+              <div className="flex-1 overflow-y-auto p-4">
+                {awardsLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin text-[#1877F2]" />
+                  </div>
+                ) : promoAwards.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Award className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
+                    <p className="text-[#B0B3B8]">No Awards Recorded Yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {promoAwards.map((award) => (
+                      <div key={award.id} className="p-3 bg-[#3A3B3C] rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-[#1877F2]/10 flex items-center justify-center">
+                              {award.profiles?.avatar_url ? (
+                                <img src={award.profiles.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+                              ) : (
+                                <User className="w-4 h-4 text-[#1877F2]" />
+                              )}
+                            </div>
+                            <span className="font-medium text-white text-sm">
+                              {award.profiles?.display_name || award.player_name || 'Unknown'}
+                            </span>
                           </div>
-                          <span className="font-medium text-white text-sm">
-                            {award.profiles?.display_name || award.player_name || 'Unknown'}
+                          <span className={`text-xs px-2 py-1 rounded-full font-medium ${award.status === 'approved'
+                              ? 'bg-[#31A24C]/10 text-[#31A24C]'
+                              : award.status === 'pending'
+                                ? 'bg-[#F59E0B]/10 text-[#F59E0B]'
+                                : 'bg-[#3A3B3C]/10 text-[#B0B3B8]'
+                            }`}>
+                            {award.status}
                           </span>
                         </div>
-                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                          award.status === 'approved'
-                            ? 'bg-[#31A24C]/10 text-[#31A24C]'
-                            : award.status === 'pending'
-                            ? 'bg-[#F59E0B]/10 text-[#F59E0B]'
-                            : 'bg-[#3A3B3C]/10 text-[#B0B3B8]'
-                        }`}>
-                          {award.status}
-                        </span>
+                        <div className="flex items-center gap-4 text-sm text-[#B0B3B8]">
+                          <span className="flex items-center gap-1">
+                            <DollarSign className="w-3 h-3" />
+                            ${award.prize_value?.toLocaleString() || 0}
+                          </span>
+                          {award.prize_description && (
+                            <span>{award.prize_description}</span>
+                          )}
+                          <span className="ml-auto">
+                            {new Date(award.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-[#B0B3B8]">
-                        <span className="flex items-center gap-1">
-                          <DollarSign className="w-3 h-3" />
-                          ${award.prize_value?.toLocaleString() || 0}
-                        </span>
-                        {award.prize_description && (
-                          <span>{award.prize_description}</span>
-                        )}
-                        <span className="ml-auto">
-                          {new Date(award.created_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
-      <style jsx>{`
+        )}
+        <style jsx>{`
 `}</style>
-    </>
+      </>
     </CommanderLayout>
   );
 }

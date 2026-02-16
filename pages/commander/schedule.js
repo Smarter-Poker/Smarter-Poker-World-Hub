@@ -12,7 +12,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { Clock, Users, Plus, Check, X, Coffee,
+import {
+  Clock, Users, Plus, Check, X, Coffee,
   RefreshCw, Loader2, ChevronLeft, ChevronRight,
   LogIn, LogOut, Timer, AlertTriangle, Edit2
 } from 'lucide-react';
@@ -125,14 +126,12 @@ export default function StaffSchedule() {
     const currentTable = rotations.find(r => r.dealer_id === person.id && !r.ended_at);
 
     return (
-      <div className={`flex items-center gap-3 px-4 py-3 border-b border-[#3A3B3C] ${
-        isClockedIn ? '' : 'opacity-50'
-      }`}>
+      <div className={`flex items-center gap-3 px-4 py-3 border-b border-[#3A3B3C] ${isClockedIn ? '' : 'opacity-50'
+        }`}>
         {/* Status dot */}
-        <div className={`w-3 h-3 rounded-full flex-shrink-0 ${
-          isOnBreak ? 'bg-[#F59E0B]' :
-          isClockedIn ? 'bg-[#31A24C]' : 'bg-[#3A3B3C]'
-        }`} />
+        <div className={`w-3 h-3 rounded-full flex-shrink-0 ${isOnBreak ? 'bg-[#F59E0B]' :
+            isClockedIn ? 'bg-[#31A24C]' : 'bg-[#3A3B3C]'
+          }`} />
 
         {/* Name + info */}
         <div className="flex-1 min-w-0">
@@ -141,8 +140,8 @@ export default function StaffSchedule() {
           </p>
           <p className="text-[10px] text-[#B0B3B8]">
             {isOnBreak ? 'On Break' :
-             isClockedIn ? (currentTable ? `Table ${currentTable.table_number}` : 'On Duty') :
-             'Off Duty'}
+              isClockedIn ? (currentTable ? `Table ${currentTable.table_number}` : 'On Duty') :
+                'Off Duty'}
             {person.clock_in_time && isClockedIn && ` — ${formatDuration(person.clock_in_time)}`}
           </p>
         </div>
@@ -169,108 +168,108 @@ export default function StaffSchedule() {
 
   return (
     <CommanderLayout title="Schedule" backHref="/commander/dashboard">
-    <>
-      <Head><title>Schedule | Club Commander</title></Head>
-      <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
+      <>
+        <Head><title>Schedule | Club Commander</title></Head>
+        <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
-        {/* Header */}
-        <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-<h1 className="text-lg font-bold text-white">Staff Schedule</h1>
-          </div>
-          <button onClick={fetchAll} className="p-2 rounded-lg active:bg-[#3A3B3C]">
-            <RefreshCw className="w-5 h-5 text-[#B0B3B8]" />
-          </button>
-        </div>
-
-        {/* Date selector */}
-        <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center justify-between">
-          <button onClick={() => changeDate(-1)} className="p-2 rounded-lg active:bg-[#3A3B3C]">
-            <ChevronLeft className="w-5 h-5 text-[#B0B3B8]" />
-          </button>
-          <div className="text-center">
-            <p className="text-base font-semibold text-white">{displayDate}</p>
-            {isToday && <p className="text-xs text-[#1877F2]">Today</p>}
-          </div>
-          <button onClick={() => changeDate(1)} className="p-2 rounded-lg active:bg-[#3A3B3C]">
-            <ChevronRight className="w-5 h-5 text-[#B0B3B8]" />
-          </button>
-        </div>
-
-        {/* Stats */}
-        <div className="px-4 py-3 flex gap-2">
-          <div className="flex-1 bg-[#31A24C]/10 border border-[#31A24C]/30 rounded-xl px-3 py-2 text-center">
-            <p className="text-lg font-bold text-[#31A24C]">{allStaff.filter(s => s.clocked_in || s.status === 'active').length}</p>
-            <p className="text-[10px] text-[#B0B3B8]">Clocked In</p>
-          </div>
-          <div className="flex-1 bg-[#1877F2]/10 border border-[#1877F2]/30 rounded-xl px-3 py-2 text-center">
-            <p className="text-lg font-bold text-[#1877F2]">{dealerList.length}</p>
-            <p className="text-[10px] text-[#B0B3B8]">Dealers</p>
-          </div>
-          <div className="flex-1 bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-xl px-3 py-2 text-center">
-            <p className="text-lg font-bold text-[#F59E0B]">{allStaff.filter(s => s.status === 'break').length}</p>
-            <p className="text-[10px] text-[#B0B3B8]">On Break</p>
-          </div>
-          <div className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-center">
-            <p className="text-lg font-bold text-white">{floorList.length}</p>
-            <p className="text-[10px] text-[#B0B3B8]">Floor</p>
-          </div>
-        </div>
-
-        {loading ? (
-          <div className="py-20 flex justify-center">
-            <Loader2 className="w-8 h-8 text-[#1877F2] animate-spin" />
-          </div>
-        ) : (
-          <div className="pb-20">
-            {/* Dealers */}
-            <div className="px-4 pt-3 pb-1">
-              <h2 className="text-sm font-semibold text-[#B0B3B8] uppercase tracking-wider">Dealers ({dealerList.length})</h2>
+          {/* Header */}
+          <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <h1 className="text-lg font-bold text-white">Staff Schedule</h1>
             </div>
-            <div className="bg-[#242526] border-y border-[#3A3B3C]">
-              {dealerList.length === 0 ? (
-                <p className="px-4 py-6 text-center text-sm text-[#B0B3B8]">No dealers registered</p>
-              ) : dealerList.map(d => <StaffRow key={d.id} person={d} />)}
-            </div>
+            <button onClick={fetchAll} className="p-2 rounded-lg active:bg-[#3A3B3C]">
+              <RefreshCw className="w-5 h-5 text-[#B0B3B8]" />
+            </button>
+          </div>
 
-            {/* Floor Staff */}
-            <div className="px-4 pt-5 pb-1">
-              <h2 className="text-sm font-semibold text-[#B0B3B8] uppercase tracking-wider">Floor & Staff ({floorList.length})</h2>
+          {/* Date selector */}
+          <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center justify-between">
+            <button onClick={() => changeDate(-1)} className="p-2 rounded-lg active:bg-[#3A3B3C]">
+              <ChevronLeft className="w-5 h-5 text-[#B0B3B8]" />
+            </button>
+            <div className="text-center">
+              <p className="text-base font-semibold text-white">{displayDate}</p>
+              {isToday && <p className="text-xs text-[#1877F2]">Today</p>}
             </div>
-            <div className="bg-[#242526] border-y border-[#3A3B3C]">
-              {floorList.length === 0 ? (
-                <p className="px-4 py-6 text-center text-sm text-[#B0B3B8]">No floor staff registered</p>
-              ) : floorList.map(s => <StaffRow key={s.id} person={s} />)}
-            </div>
+            <button onClick={() => changeDate(1)} className="p-2 rounded-lg active:bg-[#3A3B3C]">
+              <ChevronRight className="w-5 h-5 text-[#B0B3B8]" />
+            </button>
+          </div>
 
-            {/* Current Rotation - dealers at tables */}
-            {rotations.filter(r => !r.ended_at).length > 0 && (
-              <>
-                <div className="px-4 pt-5 pb-1">
-                  <h2 className="text-sm font-semibold text-[#B0B3B8] uppercase tracking-wider">Current Table Assignments</h2>
-                </div>
-                <div className="px-4 space-y-2 pt-1">
-                  {rotations.filter(r => !r.ended_at).map(r => (
-                    <div key={r.id} className="bg-[#242526] border border-[#3A3B3C] rounded-xl px-4 py-3 flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-white">Table {r.table_number}</p>
-                        <p className="text-xs text-[#B0B3B8]">{r.dealer_name}</p>
+          {/* Stats */}
+          <div className="px-4 py-3 flex gap-2">
+            <div className="flex-1 bg-[#31A24C]/10 border border-[#31A24C]/30 rounded-xl px-3 py-2 text-center">
+              <p className="text-lg font-bold text-[#31A24C]">{allStaff.filter(s => s.clocked_in || s.status === 'active').length}</p>
+              <p className="text-[10px] text-[#B0B3B8]">Clocked In</p>
+            </div>
+            <div className="flex-1 bg-[#1877F2]/10 border border-[#1877F2]/30 rounded-xl px-3 py-2 text-center">
+              <p className="text-lg font-bold text-[#1877F2]">{dealerList.length}</p>
+              <p className="text-[10px] text-[#B0B3B8]">Dealers</p>
+            </div>
+            <div className="flex-1 bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-xl px-3 py-2 text-center">
+              <p className="text-lg font-bold text-[#F59E0B]">{allStaff.filter(s => s.status === 'break').length}</p>
+              <p className="text-[10px] text-[#B0B3B8]">On Break</p>
+            </div>
+            <div className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-center">
+              <p className="text-lg font-bold text-white">{floorList.length}</p>
+              <p className="text-[10px] text-[#B0B3B8]">Floor</p>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="py-20 flex justify-center">
+              <Loader2 className="w-8 h-8 text-[#1877F2] animate-spin" />
+            </div>
+          ) : (
+            <div className="pb-20">
+              {/* Dealers */}
+              <div className="px-4 pt-3 pb-1">
+                <h2 className="text-sm font-semibold text-[#B0B3B8] uppercase tracking-wider">Dealers ({dealerList.length})</h2>
+              </div>
+              <div className="bg-[#242526] border-y border-[#3A3B3C]">
+                {dealerList.length === 0 ? (
+                  <p className="px-4 py-6 text-center text-sm text-[#B0B3B8]">No Dealers Registered</p>
+                ) : dealerList.map(d => <StaffRow key={d.id} person={d} />)}
+              </div>
+
+              {/* Floor Staff */}
+              <div className="px-4 pt-5 pb-1">
+                <h2 className="text-sm font-semibold text-[#B0B3B8] uppercase tracking-wider">Floor & Staff ({floorList.length})</h2>
+              </div>
+              <div className="bg-[#242526] border-y border-[#3A3B3C]">
+                {floorList.length === 0 ? (
+                  <p className="px-4 py-6 text-center text-sm text-[#B0B3B8]">No Floor Staff Registered</p>
+                ) : floorList.map(s => <StaffRow key={s.id} person={s} />)}
+              </div>
+
+              {/* Current Rotation - dealers at tables */}
+              {rotations.filter(r => !r.ended_at).length > 0 && (
+                <>
+                  <div className="px-4 pt-5 pb-1">
+                    <h2 className="text-sm font-semibold text-[#B0B3B8] uppercase tracking-wider">Current Table Assignments</h2>
+                  </div>
+                  <div className="px-4 space-y-2 pt-1">
+                    {rotations.filter(r => !r.ended_at).map(r => (
+                      <div key={r.id} className="bg-[#242526] border border-[#3A3B3C] rounded-xl px-4 py-3 flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-white">Table {r.table_number}</p>
+                          <p className="text-xs text-[#B0B3B8]">{r.dealer_name}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-[#B0B3B8]">Since {formatTime(r.started_at)}</p>
+                          <p className="text-xs text-[#31A24C]">{formatDuration(r.started_at)}</p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-xs text-[#B0B3B8]">Since {formatTime(r.started_at)}</p>
-                        <p className="text-xs text-[#31A24C]">{formatDuration(r.started_at)}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        )}
-      </div>
-    <style jsx>{`
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+        <style jsx>{`
 `}</style>
-    </>
+      </>
     </CommanderLayout>
   );
 }

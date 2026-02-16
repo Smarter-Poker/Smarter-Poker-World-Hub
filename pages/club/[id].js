@@ -4,7 +4,7 @@
  * Features: Posts, Photos, Events, Reviews, Live Games
  * UI: Facebook color scheme, no emojis, Inter font
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { createClient } from '@supabase/supabase-js';
 import Head from 'next/head';
@@ -171,15 +171,21 @@ function PostCard({ post, onLike, onComment }) {
 }
 
 function ReviewCard({ review }) {
+  const reviewerName = review.reviewer?.display_name || 'Anonymous';
+  const reviewerAvatar = review.reviewer?.avatar_url;
   return (
     <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
       <div className="flex items-start gap-3 mb-3">
-        <div className="w-10 h-10 bg-[#F59E0B]/10 rounded-full flex items-center justify-center">
-          <Star className="w-5 h-5 text-[#F59E0B]" />
-        </div>
+        {reviewerAvatar ? (
+          <img src={reviewerAvatar} alt={reviewerName} className="w-10 h-10 rounded-full object-cover" />
+        ) : (
+          <div className="w-10 h-10 bg-[#1877F2]/10 rounded-full flex items-center justify-center">
+            <span className="text-sm font-semibold text-[#1877F2]">{reviewerName.charAt(0).toUpperCase()}</span>
+          </div>
+        )}
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <p className="font-semibold text-[#1F2937]">Player Review</p>
+            <p className="font-semibold text-[#1F2937]">{reviewerName}</p>
             <div className="flex items-center">
               {[...Array(5)].map((_, i) => (
                 <Star
@@ -273,6 +279,13 @@ export default function ClubPage() {
   const [reviewError, setReviewError] = useState('');
   const [reviewSuccess, setReviewSuccess] = useState('');
 
+  // Post creation state
+  const [postContent, setPostContent] = useState('');
+  const [postMedia, setPostMedia] = useState([]);
+  const [postUploading, setPostUploading] = useState(false);
+  const [posting, setPosting] = useState(false);
+  const postMediaRef = useRef(null);
+
   useEffect(() => {
     async function loadUser() {
       try {
@@ -346,16 +359,17 @@ export default function ClubPage() {
   }, [id]);
 
   async function handleFollow() {
-    if (!user) {
-      router.push('/auth/login?redirect=' + encodeURIComponent(router.asPath));
+    if (!user?.id) {
+      router.push('/auth/signin?redirect=' + encodeURIComponent(router.asPath));
       return;
     }
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(`/api/commander/venues/${id}/follow`, {
         method: isFollowing ? 'DELETE' : 'POST',
         headers: {
-          'Authorization': `Bearer ${user.token}`
+          'Authorization': `Bearer ${session?.access_token || ''}`
         }
       });
       const data = await res.json();
@@ -368,12 +382,80 @@ export default function ClubPage() {
   }
 
   async function handleLike(postId) {
-    if (!user) {
-      router.push('/auth/login?redirect=' + encodeURIComponent(router.asPath));
+    if (!user?.id) {
+      router.push('/auth/signin?redirect=' + encodeURIComponent(router.asPath));
       return;
     }
     // Like logic here
   }
+
+  // Post media upload handler
+  const handlePostMediaSelect = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    const remaining = 10 - postMedia.length;
+    if (remaining <= 0) return;
+    const toUpload = files.slice(0, remaining);
+    setPostUploading(true);
+    const uploaded = [];
+    for (const file of toUpload) {
+      const isVideo = file.type.startsWith('video/');
+      const path = `club-posts/${venue?.social_page_id || id}/${Date.now()}_${file.name}`;
+      const { error: upErr } = await supabase.storage.from('social-media').upload(path, file);
+      if (!upErr) {
+        const { data } = supabase.storage.from('social-media').getPublicUrl(path);
+        uploaded.push({ type: isVideo ? 'video' : 'photo', url: data.publicUrl });
+      } else {
+        console.error('Upload error:', upErr);
+      }
+    }
+    setPostMedia(prev => [...prev, ...uploaded]);
+    setPostUploading(false);
+    if (postMediaRef.current) postMediaRef.current.value = '';
+  };
+
+  // Create post handler
+  const handleCreatePost = async () => {
+    if (!postContent.trim() && postMedia.length === 0) return;
+    if (!user?.id) return;
+    setPosting(true);
+    try {
+      const mediaUrls = postMedia.map(m => m.url);
+      const contentType = postMedia.some(m => m.type === 'video') ? 'video' : (postMedia.length > 0 ? 'image' : 'text');
+      const pageId = venue?.social_page_id || id;
+      const res = await fetch('/api/social/pages/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          page_id: pageId,
+          author_id: user.id,
+          content: postContent.trim(),
+          content_type: contentType,
+          media_urls: mediaUrls
+        }),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        // Add to posts list with mapped shape for PostCard
+        setPosts(prev => [{
+          ...json.data,
+          author_name: user.display_name || 'Venue',
+          image_urls: mediaUrls,
+          likes_count: 0,
+          comments_count: 0,
+          shares_count: 0
+        }, ...prev]);
+        setPostContent('');
+        setPostMedia([]);
+      } else if (json.error) {
+        alert('Post failed: ' + json.error);
+      }
+    } catch (e) {
+      console.error('Post error:', e);
+      alert('Post failed: ' + e.message);
+    }
+    setPosting(false);
+  };
 
   // Review submission handler
   const handleSubmitReview = async () => {
@@ -753,10 +835,78 @@ export default function ClubPage() {
             <div className="md:col-span-2 space-y-4">
               {activeTab === 'posts' && (
                 <>
+                  {/* Post Composer (for page owner) */}
+                  {user?.id && (
+                    <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 mb-4">
+                      <div className="flex items-start gap-3">
+                        {user.avatar_url ? (
+                          <img src={user.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+                        ) : (
+                          <div className="w-10 h-10 bg-[#1877F2]/10 rounded-full flex items-center justify-center">
+                            <span className="text-sm font-semibold text-[#1877F2]">{(user.display_name || 'P').charAt(0).toUpperCase()}</span>
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <textarea
+                            value={postContent}
+                            onChange={(e) => setPostContent(e.target.value)}
+                            placeholder={`Write something about ${venue?.name || 'this club'}...`}
+                            className="w-full p-3 bg-[#F0F2F5] rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-[#1877F2] resize-none text-sm"
+                            rows={2}
+                          />
+                          {/* Image Preview Strip */}
+                          {postMedia.length > 0 && (
+                            <div className="flex gap-2 mt-2 flex-wrap">
+                              {postMedia.map((m, idx) => (
+                                <div key={idx} className="relative w-20 h-20 rounded-lg overflow-hidden">
+                                  <img src={m.url} alt="" className="w-full h-full object-cover" />
+                                  <button
+                                    onClick={() => setPostMedia(prev => prev.filter((_, i) => i !== idx))}
+                                    className="absolute top-0.5 right-0.5 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center"
+                                  >
+                                    <X className="w-3 h-3 text-white" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {/* Action Row */}
+                          <div className="flex items-center justify-between mt-3">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="file"
+                                accept="image/*,video/*"
+                                multiple
+                                ref={postMediaRef}
+                                onChange={handlePostMediaSelect}
+                                className="hidden"
+                              />
+                              <button
+                                onClick={() => postMediaRef.current?.click()}
+                                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#45bd62] hover:bg-[#45bd62]/10 rounded-lg transition-colors"
+                                disabled={postUploading}
+                              >
+                                <ImageIcon className="w-5 h-5" />
+                                {postUploading ? 'Uploading...' : 'Photo/Video'}
+                              </button>
+                            </div>
+                            <button
+                              onClick={handleCreatePost}
+                              disabled={posting || postUploading || (!postContent.trim() && postMedia.length === 0)}
+                              className="px-5 py-1.5 bg-[#1877F2] text-white text-sm font-semibold rounded-lg hover:bg-[#1664d9] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                              {posting ? 'Posting...' : 'Post'}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   {posts.length === 0 ? (
                     <div className="bg-white rounded-xl border border-[#E5E7EB] p-8 text-center">
                       <MessageCircle className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
                       <p className="text-[#6B7280]">No posts yet</p>
+                      {user?.id && <p className="text-sm text-[#9CA3AF] mt-1">Be the first to post!</p>}
                     </div>
                   ) : (
                     posts.map((post) => (

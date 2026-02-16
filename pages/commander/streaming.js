@@ -185,8 +185,8 @@ function ConfigureModal({ stream, onSave, onClose }) {
                     key={platform.id}
                     onClick={() => togglePlatform(platform.id)}
                     className={`flex-1 py-3 rounded-lg border flex flex-col items-center gap-1 transition-colors ${isSelected
-                        ? 'border-2'
-                        : 'border-[#3A3B3C]'
+                      ? 'border-2'
+                      : 'border-[#3A3B3C]'
                       }`}
                     style={{
                       borderColor: isSelected ? platform.color : undefined,
@@ -214,8 +214,8 @@ function ConfigureModal({ stream, onSave, onClose }) {
                   key={mins}
                   onClick={() => setConfig(prev => ({ ...prev, delay_minutes: mins }))}
                   className={`flex-1 py-2 rounded-lg border text-sm font-medium transition-colors ${config.delay_minutes === mins
-                      ? 'border-[#1877F2] bg-[#1877F2]/5 text-[#1877F2]'
-                      : 'border-[#3A3B3C] text-[#B0B3B8]'
+                    ? 'border-[#1877F2] bg-[#1877F2]/5 text-[#1877F2]'
+                    : 'border-[#3A3B3C] text-[#B0B3B8]'
                     }`}
                 >
                   {mins}m
@@ -430,7 +430,7 @@ export default function StreamingPage() {
               {streams.length === 0 && (
                 <div className="cmd-panel p-8 text-center">
                   <Video className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
-                  <p className="text-[#B0B3B8]">No tables configured for streaming</p>
+                  <p className="text-[#B0B3B8]">No Tables Configured For Streaming</p>
                 </div>
               )}
             </>

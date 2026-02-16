@@ -6,7 +6,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { DollarSign, Plus, Minus, Loader2, RefreshCw, Users,
+import {
+  DollarSign, Plus, Minus, Loader2, RefreshCw, Users,
   CheckCircle2, AlertTriangle, Banknote, CreditCard, ArrowDownToLine,
   ArrowUpFromLine, Coins, Receipt
 } from 'lucide-react';
@@ -39,7 +40,7 @@ export default function Cashier() {
     try {
       const s = JSON.parse(localStorage.getItem('commander_staff') || '{}');
       if (s.venue_id) setVenueId(s.venue_id);
-    } catch {}
+    } catch { }
   }, []);
 
   const getToken = () => localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
@@ -96,7 +97,8 @@ export default function Cashier() {
           seat_number: selectedPlayer?.seat_number,
           type: txType,
           amount: parseFloat(amount),
-          payment_method: payMethod })
+          payment_method: payMethod
+        })
       });
       const json = await res.json();
       if (json.success) {
@@ -111,7 +113,8 @@ export default function Cashier() {
           seat_number: selectedPlayer?.seat_number,
           amount: parseFloat(amount),
           payment_method: payMethod,
-          created_at: new Date().toISOString() });
+          created_at: new Date().toISOString()
+        });
         fetchData();
       } else {
         setMessage({ type: 'error', text: json.error || 'Transaction failed' });
@@ -184,7 +187,7 @@ export default function Cashier() {
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
         {/* Header */}
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
-<div className="flex-1">
+          <div className="flex-1">
             <h1 className="text-lg font-bold text-white">Cashier</h1>
             <p className="text-xs text-[#B0B3B8]">{sessions.length} active players</p>
           </div>
@@ -193,9 +196,8 @@ export default function Cashier() {
 
         {/* Message */}
         {message && (
-          <div className={`mx-4 mt-3 px-4 py-3 rounded-xl flex items-center gap-2 text-sm font-medium ${
-            message.type === 'success' ? 'bg-[#31A24C]/15 text-[#31A24C]' : 'bg-[#EF4444]/15 text-[#EF4444]'
-          }`}>
+          <div className={`mx-4 mt-3 px-4 py-3 rounded-xl flex items-center gap-2 text-sm font-medium ${message.type === 'success' ? 'bg-[#31A24C]/15 text-[#31A24C]' : 'bg-[#EF4444]/15 text-[#EF4444]'
+            }`}>
             {message.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertTriangle className="w-4 h-4 shrink-0" />}
             {message.text}
           </div>
@@ -236,7 +238,7 @@ export default function Cashier() {
               </div>
               <div className="text-left">
                 <p className="text-sm font-bold text-white">Walk-up Transaction</p>
-                <p className="text-xs text-[#B0B3B8]">Buy-in or cash-out without a seat</p>
+                <p className="text-xs text-[#B0B3B8]">Buy-In Or Cash-Out Without A Seat</p>
               </div>
             </button>
 
@@ -252,35 +254,35 @@ export default function Cashier() {
                     const totals = playerTotals[session.id] || { bought: 0, cashed: 0 };
                     return (
                       <CommanderLayout title="Receipt" backHref="/commander/dashboard">
-                      <div key={session.id} className="px-4 py-3">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="w-6 h-6 rounded-full bg-[#3A3B3C] text-xs font-bold text-white flex items-center justify-center">
-                              {session.seat_number || '?'}
-                            </span>
-                            <span className="text-sm font-medium text-white">{session.player_name}</span>
+                        <div key={session.id} className="px-4 py-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="w-6 h-6 rounded-full bg-[#3A3B3C] text-xs font-bold text-white flex items-center justify-center">
+                                {session.seat_number || '?'}
+                              </span>
+                              <span className="text-sm font-medium text-white">{session.player_name}</span>
+                            </div>
+                            {totals.bought > 0 && (
+                              <span className="text-xs text-[#B0B3B8]">
+                                In: ${totals.bought.toLocaleString()}{totals.cashed > 0 ? ` / Out: $${totals.cashed.toLocaleString()}` : ''}
+                              </span>
+                            )}
                           </div>
-                          {totals.bought > 0 && (
-                            <span className="text-xs text-[#B0B3B8]">
-                              In: ${totals.bought.toLocaleString()}{totals.cashed > 0 ? ` / Out: $${totals.cashed.toLocaleString()}` : ''}
-                            </span>
-                          )}
+                          <div className="flex gap-2">
+                            <button onClick={() => openForm(session, 'buy_in')}
+                              className="flex-1 py-2 rounded-lg bg-[#31A24C]/10 text-[#31A24C] text-xs font-bold flex items-center justify-center gap-1 active:bg-[#31A24C]/20">
+                              <Plus className="w-3 h-3" /> Buy-In
+                            </button>
+                            <button onClick={() => openForm(session, 'add_on')}
+                              className="flex-1 py-2 rounded-lg bg-[#1877F2]/10 text-[#1877F2] text-xs font-bold flex items-center justify-center gap-1 active:bg-[#1877F2]/20">
+                              <Plus className="w-3 h-3" /> Add-On
+                            </button>
+                            <button onClick={() => openForm(session, 'cash_out')}
+                              className="flex-1 py-2 rounded-lg bg-[#EF4444]/10 text-[#EF4444] text-xs font-bold flex items-center justify-center gap-1 active:bg-[#EF4444]/20">
+                              <Minus className="w-3 h-3" /> Cash Out
+                            </button>
+                          </div>
                         </div>
-                        <div className="flex gap-2">
-                          <button onClick={() => openForm(session, 'buy_in')}
-                            className="flex-1 py-2 rounded-lg bg-[#31A24C]/10 text-[#31A24C] text-xs font-bold flex items-center justify-center gap-1 active:bg-[#31A24C]/20">
-                            <Plus className="w-3 h-3" /> Buy-In
-                          </button>
-                          <button onClick={() => openForm(session, 'add_on')}
-                            className="flex-1 py-2 rounded-lg bg-[#1877F2]/10 text-[#1877F2] text-xs font-bold flex items-center justify-center gap-1 active:bg-[#1877F2]/20">
-                            <Plus className="w-3 h-3" /> Add-On
-                          </button>
-                          <button onClick={() => openForm(session, 'cash_out')}
-                            className="flex-1 py-2 rounded-lg bg-[#EF4444]/10 text-[#EF4444] text-xs font-bold flex items-center justify-center gap-1 active:bg-[#EF4444]/20">
-                            <Minus className="w-3 h-3" /> Cash Out
-                          </button>
-                        </div>
-                      </div>
                       </CommanderLayout>
                     );
                   })}
@@ -291,7 +293,7 @@ export default function Cashier() {
             {sessions.length === 0 && (
               <div className="bg-[#242526] border border-[#3A3B3C] rounded-2xl p-8 text-center">
                 <Users className="w-10 h-10 text-[#3A3B3C] mx-auto mb-3" />
-                <p className="text-[#B0B3B8] text-sm">No active sessions</p>
+                <p className="text-[#B0B3B8] text-sm">No Active Sessions</p>
                 <p className="text-[#6A6B6D] text-xs mt-1">Players need to be seated at a table first</p>
               </div>
             )}
@@ -307,9 +309,8 @@ export default function Cashier() {
                   {transactions.slice(0, 30).map(tx => (
                     <div key={tx.id} className="px-4 py-2.5 flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <div className={`w-7 h-7 rounded-full flex items-center justify-center ${
-                          tx.type === 'cash_out' ? 'bg-[#EF4444]/15' : 'bg-[#31A24C]/15'
-                        }`}>
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center ${tx.type === 'cash_out' ? 'bg-[#EF4444]/15' : 'bg-[#31A24C]/15'
+                          }`}>
                           {tx.type === 'cash_out'
                             ? <ArrowUpFromLine className="w-3.5 h-3.5 text-[#EF4444]" />
                             : <ArrowDownToLine className="w-3.5 h-3.5 text-[#31A24C]" />
@@ -360,9 +361,8 @@ export default function Cashier() {
               <div className="flex flex-wrap gap-2 mb-4">
                 {QUICK_AMOUNTS.map(qa => (
                   <button key={qa} onClick={() => setAmount(String(qa))}
-                    className={`px-4 py-2.5 rounded-lg text-sm font-bold ${
-                      amount === String(qa) ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#E4E6EB] active:bg-[#4A4B4C]'
-                    }`}>
+                    className={`px-4 py-2.5 rounded-lg text-sm font-bold ${amount === String(qa) ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#E4E6EB] active:bg-[#4A4B4C]'
+                      }`}>
                     ${qa}
                   </button>
                 ))}
@@ -381,9 +381,8 @@ export default function Cashier() {
                 <div className="flex gap-2 mb-4">
                   {PAYMENT_METHODS.map(pm => (
                     <button key={pm.id} onClick={() => setPayMethod(pm.id)}
-                      className={`flex-1 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${
-                        payMethod === pm.id ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8] active:bg-[#4A4B4C]'
-                      }`}>
+                      className={`flex-1 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${payMethod === pm.id ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8] active:bg-[#4A4B4C]'
+                        }`}>
                       <pm.icon className="w-4 h-4" /> {pm.label}
                     </button>
                   ))}
@@ -392,11 +391,10 @@ export default function Cashier() {
 
               {/* Submit */}
               <button onClick={submitTransaction} disabled={actionLoading || !amount}
-                className={`w-full py-3.5 rounded-xl text-base font-bold flex items-center justify-center gap-2 ${
-                  txType === 'cash_out'
+                className={`w-full py-3.5 rounded-xl text-base font-bold flex items-center justify-center gap-2 ${txType === 'cash_out'
                     ? 'bg-[#EF4444] text-white active:bg-[#DC2626]'
                     : 'bg-[#31A24C] text-white active:bg-[#2B8C42]'
-                } disabled:opacity-50`}>
+                  } disabled:opacity-50`}>
                 {actionLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
                   txType === 'cash_out' ? <ArrowUpFromLine className="w-5 h-5" /> : <ArrowDownToLine className="w-5 h-5" />
                 )}
@@ -407,7 +405,7 @@ export default function Cashier() {
           </div>
         )}
       </div>
-    <style jsx>{`
+      <style jsx>{`
 `}</style>
     </>
   );

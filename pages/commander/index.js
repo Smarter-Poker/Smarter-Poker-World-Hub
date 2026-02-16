@@ -315,21 +315,21 @@ export default function CommanderLanding() {
                     <Users size={28} style={{ color: '#1877F2' }} />
                   </div>
                   <h3 className="text-lg font-semibold text-white mb-2">Waitlist Management</h3>
-                  <p className="text-sm text-[#B0B3B8]">Players join digitally from anywhere. Real-time position updates and SMS alerts when seats open.</p>
+                  <p className="text-sm text-[#B0B3B8]">Players Join Digitally From Anywhere. Real-Time Position Updates And SMS Alerts When Seats Open.</p>
                 </div>
                 <div className="p-8 text-center">
                   <div className="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#1877F220' }}>
                     <Monitor size={28} style={{ color: '#1877F2' }} />
                   </div>
                   <h3 className="text-lg font-semibold text-white mb-2">Table Tracking</h3>
-                  <p className="text-sm text-[#B0B3B8]">Live view of every table, game type, stakes, and seat availability. One dashboard for your entire floor.</p>
+                  <p className="text-sm text-[#B0B3B8]">Live View Of Every Table, Game Type, Stakes, And Seat Availability. One Dashboard For Your Entire Floor.</p>
                 </div>
                 <div className="p-8 text-center">
                   <div className="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#1877F220' }}>
                     <Trophy size={28} style={{ color: '#1877F2' }} />
                   </div>
                   <h3 className="text-lg font-semibold text-white mb-2">Tournament System</h3>
-                  <p className="text-sm text-[#B0B3B8]">Built-in clock, blind structures, registration, and one-click Hendon Mob export.</p>
+                  <p className="text-sm text-[#B0B3B8]">Built-In Clock, Blind Structures, Registration, And One-Click Hendon Mob Export.</p>
                 </div>
               </div>
             </div>
@@ -518,7 +518,7 @@ export default function CommanderLanding() {
                   </div>
                 </div>
                 <div className="text-center">
-                  <p className="text-sm text-[#B0B3B8] mb-3">Experience the full platform with a free trial</p>
+                  <p className="text-sm text-[#B0B3B8] mb-3">Experience The Full Platform With A Free Trial</p>
                   <button
                     onClick={() => {
                       setShowDemo(false);

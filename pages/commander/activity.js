@@ -16,7 +16,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { RefreshCw, Loader2, Filter,
+import {
+  RefreshCw, Loader2, Filter,
   UserCheck, LogIn, LogOut, Clock, AlertTriangle,
   Users, DollarSign, Bell, Play, Pause, Timer, XCircle
 } from 'lucide-react';
@@ -153,9 +154,9 @@ export default function ActivityFeed() {
         {/* Header */}
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-<div>
+            <div>
               <h1 className="text-lg font-bold text-white">Activity Feed</h1>
-              <p className="text-xs text-[#B0B3B8]">Real-time room events</p>
+              <p className="text-xs text-[#B0B3B8]">Real-Time Room Events</p>
             </div>
           </div>
           <button onClick={fetchEvents} className="p-2 rounded-lg active:bg-[#3A3B3C]">
@@ -173,9 +174,8 @@ export default function ActivityFeed() {
             { key: 'time', label: 'Time' }
           ].map(f => (
             <button key={f.key} onClick={() => setFilter(f.key)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap ${
-                filter === f.key ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'
-              }`}>{f.label}</button>
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap ${filter === f.key ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'
+                }`}>{f.label}</button>
           ))}
         </div>
 
@@ -186,7 +186,7 @@ export default function ActivityFeed() {
           </div>
         ) : filteredEvents.length === 0 ? (
           <div className="py-20 text-center">
-            <p className="text-[#B0B3B8]">No activity yet</p>
+            <p className="text-[#B0B3B8]">No Activity Yet</p>
           </div>
         ) : (
           <div className="px-4 pb-6 space-y-1">
@@ -195,24 +195,24 @@ export default function ActivityFeed() {
               const Icon = config.icon;
               return (
                 <CommanderLayout title="Activity" backHref="/commander/reports">
-                <div key={event.id} className="flex items-start gap-3 py-2.5 border-b border-[#3A3B3C]/50">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: `${config.color}15` }}>
-                    <Icon className="w-4 h-4" style={{ color: config.color }} />
+                  <div key={event.id} className="flex items-start gap-3 py-2.5 border-b border-[#3A3B3C]/50">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                      style={{ backgroundColor: `${config.color}15` }}>
+                      <Icon className="w-4 h-4" style={{ color: config.color }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-white">{event.message}</p>
+                      {event.detail && <p className="text-xs text-[#B0B3B8]">{event.detail}</p>}
+                    </div>
+                    <span className="text-[10px] text-[#B0B3B8] flex-shrink-0 pt-0.5">{timeAgo(event.timestamp)}</span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-white">{event.message}</p>
-                    {event.detail && <p className="text-xs text-[#B0B3B8]">{event.detail}</p>}
-                  </div>
-                  <span className="text-[10px] text-[#B0B3B8] flex-shrink-0 pt-0.5">{timeAgo(event.timestamp)}</span>
-                </div>
                 </CommanderLayout>
               );
             })}
           </div>
         )}
       </div>
-    <style jsx>{`
+      <style jsx>{`
 `}</style>
     </>
   );

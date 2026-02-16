@@ -93,7 +93,7 @@ function RentEquipmentModal({ isOpen, onClose, equipment, venueId }) {
           <div className="p-8 text-center">
             <CheckCircle className="w-12 h-12 text-[#31A24C] mx-auto mb-3" />
             <p className="font-semibold text-white">Rental Request Sent</p>
-            <p className="text-sm text-[#B0B3B8]">The equipment owner will be notified</p>
+            <p className="text-sm text-[#B0B3B8]">The Equipment Owner Will Be Notified</p>
           </div>
         ) : (
           <>
@@ -532,128 +532,128 @@ export default function MarketplacePage() {
 
   return (
     <CommanderLayout title="Marketplace | Commander" backHref="/commander/dashboard">
-    <>
-      <Head>
-        <title>Marketplace | Commander</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
+      <>
+        <Head>
+          <title>Marketplace | Commander</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+        </Head>
 
-      <div className="cmd-page">
-        <header className="cmd-header-bar sticky top-0 z-40">
-          <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div>
-                <h1 className="font-bold text-white">Marketplace</h1>
-                <p className="text-sm text-[#B0B3B8]">
-                  {activeTab === 'dealers' ? `${dealers.length} dealers` : `${equipment.length} items`}
-                </p>
+        <div className="cmd-page">
+          <header className="cmd-header-bar sticky top-0 z-40">
+            <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div>
+                  <h1 className="font-bold text-white">Marketplace</h1>
+                  <p className="text-sm text-[#B0B3B8]">
+                    {activeTab === 'dealers' ? `${dealers.length} dealers` : `${equipment.length} items`}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="max-w-4xl mx-auto px-4 flex gap-1 border-t border-[#3A3B3C]">
-            <button
-              onClick={() => setActiveTab('dealers')}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'dealers'
+            <div className="max-w-4xl mx-auto px-4 flex gap-1 border-t border-[#3A3B3C]">
+              <button
+                onClick={() => setActiveTab('dealers')}
+                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'dealers'
                   ? 'border-[#1877F2] text-[#1877F2]'
                   : 'border-transparent text-[#B0B3B8] hover:text-white'
-                }`}
-            >
-              <Users className="w-4 h-4 inline-block mr-2" />
-              Dealers
-            </button>
-            <button
-              onClick={() => setActiveTab('equipment')}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'equipment'
+                  }`}
+              >
+                <Users className="w-4 h-4 inline-block mr-2" />
+                Dealers
+              </button>
+              <button
+                onClick={() => setActiveTab('equipment')}
+                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'equipment'
                   ? 'border-[#31A24C] text-[#31A24C]'
                   : 'border-transparent text-[#B0B3B8] hover:text-white'
-                }`}
-            >
-              <Package className="w-4 h-4 inline-block mr-2" />
-              Equipment
-            </button>
-          </div>
-        </header>
-
-        <main className="max-w-4xl mx-auto px-4 py-6 space-y-4">
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#B0B3B8]" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder={activeTab === 'dealers' ? 'Search dealers, games...' : 'Search equipment...'}
-              className="cmd-input w-full pl-10"
-            />
-          </div>
-
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
+                  }`}
+              >
+                <Package className="w-4 h-4 inline-block mr-2" />
+                Equipment
+              </button>
             </div>
-          ) : activeTab === 'dealers' ? (
-            filteredDealers.length === 0 ? (
-              <div className="cmd-panel p-8 text-center">
-                <Users className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
-                <p className="text-[#B0B3B8]">No dealers found</p>
-                <p className="text-sm text-[#3A3B3C] mt-1">Try adjusting your search</p>
-              </div>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2">
-                {filteredDealers.map((dealer) => (
-                  <DealerCard
-                    key={dealer.id}
-                    dealer={dealer}
-                    onBook={handleBookDealer}
-                  />
-                ))}
-              </div>
-            )
-          ) : (
-            filteredEquipment.length === 0 ? (
-              <div className="cmd-panel p-8 text-center">
-                <Package className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
-                <p className="text-[#B0B3B8]">No equipment found</p>
-                <p className="text-sm text-[#3A3B3C] mt-1">Try adjusting your search</p>
-              </div>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2">
-                {filteredEquipment.map((item) => (
-                  <EquipmentCard
-                    key={item.id}
-                    equipment={item}
-                    onRent={handleRentEquipment}
-                  />
-                ))}
-              </div>
-            )
-          )}
-        </main>
-      </div>
+          </header>
 
-      <BookDealerModal
-        isOpen={showBookModal}
-        onClose={() => {
-          setShowBookModal(false);
-          setSelectedDealer(null);
-        }}
-        dealer={selectedDealer}
-        venueId={venueId}
-      />
+          <main className="max-w-4xl mx-auto px-4 py-6 space-y-4">
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#B0B3B8]" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder={activeTab === 'dealers' ? 'Search dealers, games...' : 'Search equipment...'}
+                className="cmd-input w-full pl-10"
+              />
+            </div>
 
-      <RentEquipmentModal
-        isOpen={showRentModal}
-        onClose={() => {
-          setShowRentModal(false);
-          setSelectedEquipment(null);
-        }}
-        equipment={selectedEquipment}
-        venueId={venueId}
-      />
-      <style jsx>{`
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
+              </div>
+            ) : activeTab === 'dealers' ? (
+              filteredDealers.length === 0 ? (
+                <div className="cmd-panel p-8 text-center">
+                  <Users className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
+                  <p className="text-[#B0B3B8]">No Dealers Found</p>
+                  <p className="text-sm text-[#3A3B3C] mt-1">Try adjusting your search</p>
+                </div>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {filteredDealers.map((dealer) => (
+                    <DealerCard
+                      key={dealer.id}
+                      dealer={dealer}
+                      onBook={handleBookDealer}
+                    />
+                  ))}
+                </div>
+              )
+            ) : (
+              filteredEquipment.length === 0 ? (
+                <div className="cmd-panel p-8 text-center">
+                  <Package className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
+                  <p className="text-[#B0B3B8]">No Equipment Found</p>
+                  <p className="text-sm text-[#3A3B3C] mt-1">Try adjusting your search</p>
+                </div>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {filteredEquipment.map((item) => (
+                    <EquipmentCard
+                      key={item.id}
+                      equipment={item}
+                      onRent={handleRentEquipment}
+                    />
+                  ))}
+                </div>
+              )
+            )}
+          </main>
+        </div>
+
+        <BookDealerModal
+          isOpen={showBookModal}
+          onClose={() => {
+            setShowBookModal(false);
+            setSelectedDealer(null);
+          }}
+          dealer={selectedDealer}
+          venueId={venueId}
+        />
+
+        <RentEquipmentModal
+          isOpen={showRentModal}
+          onClose={() => {
+            setShowRentModal(false);
+            setSelectedEquipment(null);
+          }}
+          equipment={selectedEquipment}
+          venueId={venueId}
+        />
+        <style jsx>{`
 `}</style>
-    </>
+      </>
     </CommanderLayout>
   );
 }

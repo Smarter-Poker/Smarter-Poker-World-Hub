@@ -7,7 +7,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { Download, FileText, Loader2, RefreshCw, CheckCircle2,
+import {
+  Download, FileText, Loader2, RefreshCw, CheckCircle2,
   AlertTriangle, Clock, Users, Trophy, BarChart3, Gift, Shield, X
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
@@ -25,7 +26,8 @@ const STATUS_STYLES = {
   pending: { bg: 'bg-[#F59E0B]/15', text: 'text-[#F59E0B]', label: 'Pending' },
   processing: { bg: 'bg-[#1877F2]/15', text: 'text-[#1877F2]', label: 'Processing' },
   completed: { bg: 'bg-[#31A24C]/15', text: 'text-[#31A24C]', label: 'Ready' },
-  failed: { bg: 'bg-[#EF4444]/15', text: 'text-[#EF4444]', label: 'Failed' } };
+  failed: { bg: 'bg-[#EF4444]/15', text: 'text-[#EF4444]', label: 'Failed' }
+};
 
 export default function ExportsHub() {
   const router = useRouter();
@@ -41,7 +43,7 @@ export default function ExportsHub() {
   const [format, setFormat] = useState('csv');
 
   useEffect(() => {
-    try { const s = JSON.parse(localStorage.getItem('commander_staff') || '{}'); if (s.venue_id) setVenueId(s.venue_id); } catch {}
+    try { const s = JSON.parse(localStorage.getItem('commander_staff') || '{}'); if (s.venue_id) setVenueId(s.venue_id); } catch { }
   }, []);
 
   const getToken = () => localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
@@ -76,7 +78,8 @@ export default function ExportsHub() {
           export_type: exportType,
           date_from: dateFrom || undefined,
           date_to: dateTo || undefined,
-          format })
+          format
+        })
       });
       const json = await res.json();
       if (json.export) {
@@ -130,17 +133,16 @@ export default function ExportsHub() {
       <Head><title>Data Exports | Club Commander</title></Head>
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
-<div className="flex-1">
+          <div className="flex-1">
             <h1 className="text-lg font-bold text-white">Data Exports</h1>
-            <p className="text-xs text-[#B0B3B8]">Download venue data as CSV or JSON</p>
+            <p className="text-xs text-[#B0B3B8]">Download Venue Data As CSV Or JSON</p>
           </div>
           <button onClick={fetchData} className="p-2 rounded-lg active:bg-[#3A3B3C]"><RefreshCw className="w-5 h-5 text-[#B0B3B8]" /></button>
         </div>
 
         {message && (
-          <div className={`mx-4 mt-3 px-4 py-2.5 rounded-xl text-sm font-medium ${
-            message.type === 'success' ? 'bg-[#31A24C]/15 text-[#31A24C]' : 'bg-[#EF4444]/15 text-[#EF4444]'
-          }`}>{message.text}</div>
+          <div className={`mx-4 mt-3 px-4 py-2.5 rounded-xl text-sm font-medium ${message.type === 'success' ? 'bg-[#31A24C]/15 text-[#31A24C]' : 'bg-[#EF4444]/15 text-[#EF4444]'
+            }`}>{message.text}</div>
         )}
 
         {loading ? (
@@ -168,7 +170,7 @@ export default function ExportsHub() {
             {tournaments.length > 0 && (
               <div className="bg-[#242526] border border-[#3A3B3C] rounded-2xl p-4">
                 <h3 className="text-sm font-bold text-white mb-2">Hendon Mob Export</h3>
-                <p className="text-xs text-[#B0B3B8] mb-3">Export completed tournament results in Hendon Mob format</p>
+                <p className="text-xs text-[#B0B3B8] mb-3">Export Completed Tournament Results In Hendon Mob Format</p>
                 <div className="space-y-2">
                   {tournaments.slice(0, 5).map(t => (
                     <div key={t.id} className="flex items-center justify-between px-3 py-2 bg-[#3A3B3C]/30 rounded-lg">
@@ -200,23 +202,23 @@ export default function ExportsHub() {
                     const st = STATUS_STYLES[exp.status] || STATUS_STYLES.pending;
                     return (
                       <CommanderLayout title="Data Exports" backHref="/commander/reports">
-                      <div key={exp.id} className="px-4 py-3 flex items-center gap-3">
-                        <FileText className="w-5 h-5 text-[#B0B3B8] shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-white capitalize">{exp.export_type?.replace(/_/g, ' ')}</p>
-                          <p className="text-xs text-[#6A6B6D]">
-                            {exp.format?.toUpperCase()} • {exp.row_count != null ? `${exp.row_count} rows` : ''}
-                            {exp.created_at && ` • ${new Date(exp.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`}
-                          </p>
+                        <div key={exp.id} className="px-4 py-3 flex items-center gap-3">
+                          <FileText className="w-5 h-5 text-[#B0B3B8] shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-white capitalize">{exp.export_type?.replace(/_/g, ' ')}</p>
+                            <p className="text-xs text-[#6A6B6D]">
+                              {exp.format?.toUpperCase()} • {exp.row_count != null ? `${exp.row_count} rows` : ''}
+                              {exp.created_at && ` • ${new Date(exp.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`}
+                            </p>
+                          </div>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${st.bg} ${st.text}`}>{st.label}</span>
+                          {exp.status === 'completed' && exp.file_url && (
+                            <button onClick={() => downloadExport(exp)}
+                              className="w-8 h-8 rounded-lg bg-[#31A24C]/10 flex items-center justify-center active:bg-[#31A24C]/20">
+                              <Download className="w-4 h-4 text-[#31A24C]" />
+                            </button>
+                          )}
                         </div>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${st.bg} ${st.text}`}>{st.label}</span>
-                        {exp.status === 'completed' && exp.file_url && (
-                          <button onClick={() => downloadExport(exp)}
-                            className="w-8 h-8 rounded-lg bg-[#31A24C]/10 flex items-center justify-center active:bg-[#31A24C]/20">
-                            <Download className="w-4 h-4 text-[#31A24C]" />
-                          </button>
-                        )}
-                      </div>
                       </CommanderLayout>
                     );
                   })}
@@ -254,9 +256,8 @@ export default function ExportsHub() {
                   <div className="flex gap-2">
                     {['csv', 'json'].map(f => (
                       <button key={f} onClick={() => setFormat(f)}
-                        className={`flex-1 py-2.5 rounded-xl text-sm font-semibold uppercase ${
-                          format === f ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'
-                        }`}>{f}</button>
+                        className={`flex-1 py-2.5 rounded-xl text-sm font-semibold uppercase ${format === f ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'
+                          }`}>{f}</button>
                     ))}
                   </div>
                 </div>
@@ -270,7 +271,7 @@ export default function ExportsHub() {
           </div>
         )}
       </div>
-    <style jsx>{`
+      <style jsx>{`
 `}</style>
     </>
   );

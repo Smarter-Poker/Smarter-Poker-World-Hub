@@ -12,7 +12,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { Power, PowerOff, Trophy, Clock, Users, DollarSign,
+import {
+  Power, PowerOff, Trophy, Clock, Users, DollarSign,
   Settings, FileText, Shield, ChevronRight, Loader2, RefreshCw,
   LayoutGrid, UserCheck, Wifi, WifiOff, AlertTriangle, CheckCircle2,
   Play, Pause, Tablet, ArrowRightLeft
@@ -112,9 +113,9 @@ export default function PokerRoomFunctions() {
 
           {/* Header */}
           <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
-<div className="flex-1">
+            <div className="flex-1">
               <h1 className="text-lg font-bold text-white">Poker Room Functions</h1>
-              <p className="text-xs text-[#B0B3B8]">Room operations and tournament director</p>
+              <p className="text-xs text-[#B0B3B8]">Room Operations And Tournament Director</p>
             </div>
             <button onClick={fetchData} className="p-2 rounded-lg active:bg-[#3A3B3C]">
               <RefreshCw className="w-5 h-5 text-[#B0B3B8]" />
@@ -124,8 +125,8 @@ export default function PokerRoomFunctions() {
           {/* Room Status Toggle */}
           <div className="px-4 py-4">
             <div className={`rounded-2xl border-2 p-5 flex items-center justify-between ${roomOpen
-                ? 'bg-[#31A24C]/10 border-[#31A24C]/30'
-                : 'bg-[#EF4444]/10 border-[#EF4444]/30'
+              ? 'bg-[#31A24C]/10 border-[#31A24C]/30'
+              : 'bg-[#EF4444]/10 border-[#EF4444]/30'
               }`}>
               <div className="flex items-center gap-4">
                 {roomOpen
@@ -191,7 +192,7 @@ export default function PokerRoomFunctions() {
             ) : (
               <div className="bg-[#242526] rounded-xl border border-[#3A3B3C] p-6 text-center">
                 <Trophy className="w-8 h-8 text-[#3A3B3C] mx-auto mb-2" />
-                <p className="text-[#B0B3B8] text-sm">No active tournaments</p>
+                <p className="text-[#B0B3B8] text-sm">No Active Tournaments</p>
                 <button onClick={() => router.push('/commander/tournaments')}
                   className="mt-3 px-4 py-2 rounded-lg bg-[#1877F2] text-white text-sm font-medium active:bg-[#1565D8]">
                   Manage Tournaments

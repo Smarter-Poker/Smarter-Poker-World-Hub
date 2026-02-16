@@ -7,7 +7,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { ArrowRightLeft, Loader2, RefreshCw, Users, Link2, Unlink,
+import {
+  ArrowRightLeft, Loader2, RefreshCw, Users, Link2, Unlink,
   CheckCircle2, AlertTriangle, ChevronRight, Crown, ArrowRight
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
@@ -27,7 +28,7 @@ export default function MustMoveManager() {
     try {
       const s = JSON.parse(localStorage.getItem('commander_staff') || '{}');
       if (s.venue_id) setVenueId(s.venue_id);
-    } catch {}
+    } catch { }
   }, []);
 
   const getToken = () => localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
@@ -127,9 +128,8 @@ export default function MustMoveManager() {
 
         {/* Message */}
         {message && (
-          <div className={`mx-4 mt-3 px-4 py-3 rounded-xl flex items-center gap-2 text-sm font-medium ${
-            message.type === 'success' ? 'bg-[#31A24C]/15 text-[#31A24C]' : 'bg-[#EF4444]/15 text-[#EF4444]'
-          }`}>
+          <div className={`mx-4 mt-3 px-4 py-3 rounded-xl flex items-center gap-2 text-sm font-medium ${message.type === 'success' ? 'bg-[#31A24C]/15 text-[#31A24C]' : 'bg-[#EF4444]/15 text-[#EF4444]'
+            }`}>
             {message.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertTriangle className="w-4 h-4 shrink-0" />}
             {message.text}
           </div>
@@ -189,57 +189,55 @@ export default function MustMoveManager() {
 
                       return (
                         <CommanderLayout title="Must-Move Games" backHref="/commander/tables">
-                        <div key={game.id} className={`rounded-xl p-3 ${
-                          isLinked ? 'bg-[#F59E0B]/10 border border-[#F59E0B]/30' : 'bg-[#3A3B3C]/30 border border-[#3A3B3C]'
-                        }`}>
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              {isLinked && <ArrowRightLeft className="w-4 h-4 text-[#F59E0B]" />}
-                              <div>
-                                <p className="text-sm font-bold text-white">Table {game.table_number}</p>
-                                {isLinked
-                                  ? <p className="text-xs text-[#F59E0B] font-medium">MUST-MOVE → T{mainGame?.table_number}</p>
-                                  : <p className="text-xs text-[#B0B3B8]">Not linked</p>
-                                }
+                          <div key={game.id} className={`rounded-xl p-3 ${isLinked ? 'bg-[#F59E0B]/10 border border-[#F59E0B]/30' : 'bg-[#3A3B3C]/30 border border-[#3A3B3C]'
+                            }`}>
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                {isLinked && <ArrowRightLeft className="w-4 h-4 text-[#F59E0B]" />}
+                                <div>
+                                  <p className="text-sm font-bold text-white">Table {game.table_number}</p>
+                                  {isLinked
+                                    ? <p className="text-xs text-[#F59E0B] font-medium">MUST-MOVE → T{mainGame?.table_number}</p>
+                                    : <p className="text-xs text-[#B0B3B8]">Not Linked</p>
+                                  }
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-sm font-bold text-white">{game.player_count}/{game.max_seats}</p>
+                                <p className="text-xs text-[#B0B3B8]">{game.player_count} players</p>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <p className="text-sm font-bold text-white">{game.player_count}/{game.max_seats}</p>
-                              <p className="text-xs text-[#B0B3B8]">{game.player_count} players</p>
+
+                            <div className="flex gap-2">
+                              {isLinked ? (
+                                <>
+                                  {/* Move next player button */}
+                                  <button onClick={() => movePlayer(game.id, mainGame.id)} disabled={!canMove || moveLoading === game.id}
+                                    className={`flex-1 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${canMove ? 'bg-[#1877F2] text-white active:bg-[#1565D8]' : 'bg-[#3A3B3C] text-[#6A6B6D]'
+                                      }`}>
+                                    {moveLoading === game.id
+                                      ? <Loader2 className="w-3 h-3 animate-spin" />
+                                      : <ArrowRight className="w-3 h-3" />
+                                    }
+                                    {canMove ? 'Move Next Player' : mainOpenSeats === 0 ? 'Main Table Full' : 'No Players'}
+                                  </button>
+                                  {/* Unlink */}
+                                  <button onClick={() => unlinkMustMove(game.id)} disabled={actionLoading === game.id}
+                                    className="px-3 py-2.5 rounded-lg bg-[#3A3B3C] text-[#B0B3B8] text-xs font-bold active:bg-[#4A4B4C] flex items-center gap-1">
+                                    {actionLoading === game.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Unlink className="w-3 h-3" />}
+                                    Remove
+                                  </button>
+                                </>
+                              ) : (
+                                /* Link as must-move */
+                                <button onClick={() => linkMustMove(game.id, mainGame.id)} disabled={actionLoading === game.id}
+                                  className="flex-1 py-2.5 rounded-lg bg-[#F59E0B] text-black text-xs font-bold flex items-center justify-center gap-1.5 active:bg-[#D97706]">
+                                  {actionLoading === game.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Link2 className="w-3 h-3" />}
+                                  Set as Must-Move → T{mainGame?.table_number}
+                                </button>
+                              )}
                             </div>
                           </div>
-
-                          <div className="flex gap-2">
-                            {isLinked ? (
-                              <>
-                                {/* Move next player button */}
-                                <button onClick={() => movePlayer(game.id, mainGame.id)} disabled={!canMove || moveLoading === game.id}
-                                  className={`flex-1 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${
-                                    canMove ? 'bg-[#1877F2] text-white active:bg-[#1565D8]' : 'bg-[#3A3B3C] text-[#6A6B6D]'
-                                  }`}>
-                                  {moveLoading === game.id
-                                    ? <Loader2 className="w-3 h-3 animate-spin" />
-                                    : <ArrowRight className="w-3 h-3" />
-                                  }
-                                  {canMove ? 'Move Next Player' : mainOpenSeats === 0 ? 'Main Table Full' : 'No Players'}
-                                </button>
-                                {/* Unlink */}
-                                <button onClick={() => unlinkMustMove(game.id)} disabled={actionLoading === game.id}
-                                  className="px-3 py-2.5 rounded-lg bg-[#3A3B3C] text-[#B0B3B8] text-xs font-bold active:bg-[#4A4B4C] flex items-center gap-1">
-                                  {actionLoading === game.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Unlink className="w-3 h-3" />}
-                                  Remove
-                                </button>
-                              </>
-                            ) : (
-                              /* Link as must-move */
-                              <button onClick={() => linkMustMove(game.id, mainGame.id)} disabled={actionLoading === game.id}
-                                className="flex-1 py-2.5 rounded-lg bg-[#F59E0B] text-black text-xs font-bold flex items-center justify-center gap-1.5 active:bg-[#D97706]">
-                                {actionLoading === game.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Link2 className="w-3 h-3" />}
-                                Set as Must-Move → T{mainGame?.table_number}
-                              </button>
-                            )}
-                          </div>
-                        </div>
                         </CommanderLayout>
                       );
                     })}
@@ -249,8 +247,8 @@ export default function MustMoveManager() {
             }) : (
               <div className="bg-[#242526] border border-[#3A3B3C] rounded-2xl p-8 text-center">
                 <ArrowRightLeft className="w-10 h-10 text-[#3A3B3C] mx-auto mb-3" />
-                <p className="text-[#B0B3B8] text-sm">No duplicate games running</p>
-                <p className="text-[#6A6B6D] text-xs mt-1">Must-move activates when 2+ tables run the same game type and stakes</p>
+                <p className="text-[#B0B3B8] text-sm">No Duplicate Games Running</p>
+                <p className="text-[#6A6B6D] text-xs mt-1">Must-Move Activates When 2+ Tables Run The Same Game Type And Stakes</p>
               </div>
             )}
 

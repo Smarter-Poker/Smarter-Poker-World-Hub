@@ -315,7 +315,7 @@ export default function StaffReportsPage() {
                       <GameSummaryRow key={i} game={game} />
                     ))
                   ) : (
-                    <div className="p-6 text-center text-[#B0B3B8]">No games recorded</div>
+                    <div className="p-6 text-center text-[#B0B3B8]">No Games Recorded</div>
                   )}
                 </div>
               </section>
@@ -332,7 +332,7 @@ export default function StaffReportsPage() {
                       <PromotionSummaryRow key={i} promotion={promo} />
                     ))
                   ) : (
-                    <div className="p-6 text-center text-[#B0B3B8]">No promotions ran</div>
+                    <div className="p-6 text-center text-[#B0B3B8]">No Promotions Ran</div>
                   )}
                 </div>
               </section>
@@ -383,7 +383,7 @@ export default function StaffReportsPage() {
           ) : (
             <div className="cmd-panel p-8 text-center">
               <FileText className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
-              <p className="text-[#B0B3B8]">No report data available</p>
+              <p className="text-[#B0B3B8]">No Report Data Available</p>
               <p className="text-sm text-[#3A3B3C] mt-1">
                 Reports are generated from daily activity
               </p>

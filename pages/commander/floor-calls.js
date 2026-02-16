@@ -14,7 +14,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useRealtimeUpdates } from '../../src/lib/commander/useRealtimeUpdates';
-import { AlertTriangle, Check, Clock, Loader2,
+import {
+  AlertTriangle, Check, Clock, Loader2,
   RefreshCw, ChevronRight, Bell, XCircle
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
@@ -114,7 +115,7 @@ export default function FloorCalls() {
         {/* Header */}
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-<div>
+            <div>
               <h1 className="text-lg font-bold text-white">Floor Calls</h1>
               {pendingCount > 0 && (
                 <p className="text-xs text-[#EF4444] font-semibold">{pendingCount} pending</p>
@@ -129,13 +130,11 @@ export default function FloorCalls() {
         {/* Tabs */}
         <div className="bg-[#242526] border-b border-[#3A3B3C] flex">
           <button onClick={() => setTab('active')}
-            className={`flex-1 py-3 text-sm font-medium text-center border-b-2 -mb-px ${
-              tab === 'active' ? 'text-[#EF4444] border-[#EF4444]' : 'text-[#B0B3B8] border-transparent'
-            }`}>Active ({calls.length})</button>
+            className={`flex-1 py-3 text-sm font-medium text-center border-b-2 -mb-px ${tab === 'active' ? 'text-[#EF4444] border-[#EF4444]' : 'text-[#B0B3B8] border-transparent'
+              }`}>Active ({calls.length})</button>
           <button onClick={() => setTab('resolved')}
-            className={`flex-1 py-3 text-sm font-medium text-center border-b-2 -mb-px ${
-              tab === 'resolved' ? 'text-[#31A24C] border-[#31A24C]' : 'text-[#B0B3B8] border-transparent'
-            }`}>Resolved ({resolved.length})</button>
+            className={`flex-1 py-3 text-sm font-medium text-center border-b-2 -mb-px ${tab === 'resolved' ? 'text-[#31A24C] border-[#31A24C]' : 'text-[#B0B3B8] border-transparent'
+              }`}>Resolved ({resolved.length})</button>
         </div>
 
         {loading ? (
@@ -150,7 +149,7 @@ export default function FloorCalls() {
                 <div className="py-16 text-center">
                   <Check className="w-12 h-12 text-[#31A24C] mx-auto mb-3" />
                   <p className="text-lg font-bold text-white">All Clear</p>
-                  <p className="text-sm text-[#B0B3B8]">No pending floor calls</p>
+                  <p className="text-sm text-[#B0B3B8]">No Pending Floor Calls</p>
                 </div>
               ) : (
                 calls.map(call => {
@@ -158,51 +157,50 @@ export default function FloorCalls() {
                   const sConfig = STATUS_CONFIG[call.status] || STATUS_CONFIG.pending;
                   return (
                     <CommanderLayout title="Floor Calls{pendingCount > 0 ? ` (${pendingCount})` : ''}" backHref="/commander/dashboard">
-                    <div key={call.id}
-                      className={`bg-[#242526] border rounded-xl overflow-hidden ${
-                        call.priority === 'urgent' ? 'border-[#EF4444]/50 animate-pulse' : 'border-[#3A3B3C]'
-                      }`}>
-                      <div className="px-4 py-3">
-                        <div className="flex items-center justify-between mb-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg font-bold text-white">Table {call.table_number}</span>
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold"
-                              style={{ backgroundColor: `${pConfig.color}20`, color: pConfig.color }}>
-                              {pConfig.label}
-                            </span>
+                      <div key={call.id}
+                        className={`bg-[#242526] border rounded-xl overflow-hidden ${call.priority === 'urgent' ? 'border-[#EF4444]/50 animate-pulse' : 'border-[#3A3B3C]'
+                          }`}>
+                        <div className="px-4 py-3">
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg font-bold text-white">Table {call.table_number}</span>
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold"
+                                style={{ backgroundColor: `${pConfig.color}20`, color: pConfig.color }}>
+                                {pConfig.label}
+                              </span>
+                            </div>
+                            <span className="text-xs text-[#B0B3B8]">{timeAgo(call.created_at)} ago</span>
                           </div>
-                          <span className="text-xs text-[#B0B3B8]">{timeAgo(call.created_at)} ago</span>
+                          <p className="text-sm text-white font-medium capitalize">{call.reason?.replace(/_/g, ' ')}</p>
+                          {call.description && <p className="text-xs text-[#B0B3B8] mt-1">{call.description}</p>}
+                          <div className="flex items-center gap-1 mt-1">
+                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: sConfig.color }} />
+                            <span className="text-[10px]" style={{ color: sConfig.color }}>{sConfig.label}</span>
+                          </div>
                         </div>
-                        <p className="text-sm text-white font-medium capitalize">{call.reason?.replace(/_/g, ' ')}</p>
-                        {call.description && <p className="text-xs text-[#B0B3B8] mt-1">{call.description}</p>}
-                        <div className="flex items-center gap-1 mt-1">
-                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: sConfig.color }} />
-                          <span className="text-[10px]" style={{ color: sConfig.color }}>{sConfig.label}</span>
-                        </div>
-                      </div>
 
-                      {/* Action buttons */}
-                      <div className="flex border-t border-[#3A3B3C]">
-                        {call.status === 'pending' && (
-                          <>
-                            <button onClick={() => updateCall(call.id, 'acknowledged')}
-                              className="flex-1 py-3 text-xs font-semibold text-[#F59E0B] border-r border-[#3A3B3C] active:bg-[#F59E0B]/10">
-                              Acknowledge
+                        {/* Action buttons */}
+                        <div className="flex border-t border-[#3A3B3C]">
+                          {call.status === 'pending' && (
+                            <>
+                              <button onClick={() => updateCall(call.id, 'acknowledged')}
+                                className="flex-1 py-3 text-xs font-semibold text-[#F59E0B] border-r border-[#3A3B3C] active:bg-[#F59E0B]/10">
+                                Acknowledge
+                              </button>
+                              <button onClick={() => updateCall(call.id, 'en_route')}
+                                className="flex-1 py-3 text-xs font-semibold text-[#1877F2] active:bg-[#1877F2]/10">
+                                On My Way
+                              </button>
+                            </>
+                          )}
+                          {(call.status === 'acknowledged' || call.status === 'en_route') && (
+                            <button onClick={() => updateCall(call.id, 'resolved', 'Resolved by floor')}
+                              className="flex-1 py-3 text-xs font-semibold text-[#31A24C] active:bg-[#31A24C]/10">
+                              Mark Resolved
                             </button>
-                            <button onClick={() => updateCall(call.id, 'en_route')}
-                              className="flex-1 py-3 text-xs font-semibold text-[#1877F2] active:bg-[#1877F2]/10">
-                              On My Way
-                            </button>
-                          </>
-                        )}
-                        {(call.status === 'acknowledged' || call.status === 'en_route') && (
-                          <button onClick={() => updateCall(call.id, 'resolved', 'Resolved by floor')}
-                            className="flex-1 py-3 text-xs font-semibold text-[#31A24C] active:bg-[#31A24C]/10">
-                            Mark Resolved
-                          </button>
-                        )}
+                          )}
+                        </div>
                       </div>
-                    </div>
                     </CommanderLayout>
                   );
                 })
@@ -212,7 +210,7 @@ export default function FloorCalls() {
             {/* RESOLVED calls */}
             {tab === 'resolved' && (
               resolved.length === 0 ? (
-                <p className="py-10 text-center text-[#B0B3B8]">No resolved calls today</p>
+                <p className="py-10 text-center text-[#B0B3B8]">No Resolved Calls Today</p>
               ) : (
                 resolved.map(call => (
                   <div key={call.id} className="flex items-center gap-3 px-4 py-3 bg-[#242526] border border-[#3A3B3C] rounded-xl opacity-70">
@@ -229,7 +227,7 @@ export default function FloorCalls() {
           </div>
         )}
       </div>
-    <style jsx>{`
+      <style jsx>{`
 `}</style>
     </>
   );

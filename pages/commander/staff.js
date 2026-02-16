@@ -179,7 +179,7 @@ export default function CommanderStaffPage() {
             <div className="cmd-panel p-8 text-center">
               <User className="w-12 h-12 text-[#3A3B3C] mx-auto mb-4" />
               <h2 className="text-lg font-semibold text-white mb-2">No Staff Yet</h2>
-              <p className="text-[#B0B3B8] mb-4">Add staff members to manage your venue</p>
+              <p className="text-[#B0B3B8] mb-4">Add Staff Members To Manage Your Venue</p>
               {canManageStaff && (
                 <button
                   onClick={() => setShowAddModal(true)}
@@ -217,22 +217,22 @@ export default function CommanderStaffPage() {
                             const isRevealed = revealedPinId === staff.id;
                             return (
                               <CommanderLayout title="Staff | {venue?.name || 'Commander'}" backHref="/commander/dashboard">
-                              <span className="inline-flex items-center gap-1 text-xs text-[#B0B3B8]">
-                                PIN: {isRevealed ? staff.pin_code : '****'}
-                                {canReveal && (
-                                  <button
-                                    type="button"
-                                    onClick={() => setRevealedPinId(isRevealed ? null : staff.id)}
-                                    className="p-0.5 hover:text-[#1877F2] transition-colors"
-                                    title={isRevealed ? 'Hide PIN' : 'Show PIN'}
-                                  >
-                                    {isRevealed
-                                      ? <EyeOff className="w-3.5 h-3.5" />
-                                      : <Eye className="w-3.5 h-3.5" />
-                                    }
-                                  </button>
-                                )}
-                              </span>
+                                <span className="inline-flex items-center gap-1 text-xs text-[#B0B3B8]">
+                                  PIN: {isRevealed ? staff.pin_code : '****'}
+                                  {canReveal && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setRevealedPinId(isRevealed ? null : staff.id)}
+                                      className="p-0.5 hover:text-[#1877F2] transition-colors"
+                                      title={isRevealed ? 'Hide PIN' : 'Show PIN'}
+                                    >
+                                      {isRevealed
+                                        ? <EyeOff className="w-3.5 h-3.5" />
+                                        : <Eye className="w-3.5 h-3.5" />
+                                      }
+                                    </button>
+                                  )}
+                                </span>
                               </CommanderLayout>
                             );
                           })()}
@@ -393,11 +393,10 @@ function StaffModal({ staff, onClose, onSubmit }) {
                   key={r.value}
                   type="button"
                   onClick={() => setRole(r.value)}
-                  className={`p-3 rounded-lg text-sm font-medium transition-colors ${
-                    role === r.value
+                  className={`p-3 rounded-lg text-sm font-medium transition-colors ${role === r.value
                       ? 'bg-[#1877F2] text-white'
                       : 'bg-[#3A3B3C] text-white hover:bg-[#4A4B4C]'
-                  }`}
+                    }`}
                 >
                   {r.label}
                 </button>
@@ -417,7 +416,7 @@ function StaffModal({ staff, onClose, onSubmit }) {
               placeholder="4-6 digits"
               className="w-full h-12 px-3 cmd-input"
             />
-            <p className="text-xs text-[#B0B3B8] mt-1">Used for terminal login and comp authorization</p>
+            <p className="text-xs text-[#B0B3B8] mt-1">Used For Terminal Login And Comp Authorization</p>
           </div>
 
           {/* Active Toggle */}
@@ -426,14 +425,12 @@ function StaffModal({ staff, onClose, onSubmit }) {
             <button
               type="button"
               onClick={() => setIsActive(!isActive)}
-              className={`w-12 h-7 rounded-full transition-colors relative ${
-                isActive ? 'bg-[#1877F2]' : 'bg-[#3A3B3C]'
-              }`}
+              className={`w-12 h-7 rounded-full transition-colors relative ${isActive ? 'bg-[#1877F2]' : 'bg-[#3A3B3C]'
+                }`}
             >
               <span
-                className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                  isActive ? 'right-1' : 'left-1'
-                }`}
+                className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-transform ${isActive ? 'right-1' : 'left-1'
+                  }`}
               />
             </button>
           </div>

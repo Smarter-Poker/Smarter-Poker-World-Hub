@@ -257,10 +257,10 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'id and owner_id are required' });
         }
 
-        // Verify ownership
+        // Verify ownership and get existing data for change detection
         const { data: existing } = await supabase
             .from('social_pages')
-            .select('owner_id')
+            .select('owner_id, name, avatar_url, cover_url, description, location_city, location_state, page_type')
             .eq('id', id)
             .single();
 
@@ -276,6 +276,49 @@ export default async function handler(req, res) {
             .single();
 
         if (error) return res.status(500).json({ error: error.message });
+
+        // Auto-post for profile changes (non-blocking, fire-and-forget)
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
+            || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+        const pageName = data.name || existing.name || 'Page';
+        const entityType = existing.page_type === 'home_game' ? 'home_game' : 'club';
+
+        const createAutoPost = (postType, mediaUrl, location) => {
+            fetch(`${baseUrl}/api/social/auto-post`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: owner_id,
+                    post_type: postType,
+                    media_url: mediaUrl || null,
+                    entity_name: pageName,
+                    entity_type: entityType,
+                    page_id: id,
+                    location: location || null
+                }),
+            }).then(r => {
+                if (!r.ok) console.error(`[AutoPost] Failed ${postType} for page ${id}: HTTP ${r.status}`);
+                else console.log(`[AutoPost] Created ${postType} for page "${pageName}"`);
+            }).catch(e => console.error(`[AutoPost] Error ${postType}:`, e.message));
+        };
+
+        // Detect changes and trigger auto-posts
+        if (updates.avatar_url && updates.avatar_url !== existing.avatar_url) {
+            createAutoPost('profile_pic_update', updates.avatar_url);
+        }
+        if (updates.cover_url && updates.cover_url !== existing.cover_url) {
+            createAutoPost('cover_photo_update', updates.cover_url);
+        }
+        if (updates.description !== undefined && updates.description !== existing.description) {
+            createAutoPost('story_update');
+        }
+        if ((updates.location_city && updates.location_city !== existing.location_city) ||
+            (updates.location_state && updates.location_state !== existing.location_state)) {
+            const newLoc = (updates.location_city || existing.location_city || '') +
+                (updates.location_state || existing.location_state ? ', ' + (updates.location_state || existing.location_state) : '');
+            createAutoPost('location_update', null, newLoc.trim());
+        }
+
         return res.status(200).json({ success: true, data });
 
     } else if (req.method === 'DELETE') {

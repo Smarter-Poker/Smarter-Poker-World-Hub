@@ -89,7 +89,7 @@ export default async function handler(req, res) {
         // Check if page requires approval
         const { data: page } = await supabase
             .from('social_pages')
-            .select('require_post_approval, owner_id, allow_member_posts')
+            .select('require_post_approval, owner_id, allow_member_posts, name, avatar_url, page_type')
             .eq('id', page_id)
             .single();
 
@@ -130,6 +130,36 @@ export default async function handler(req, res) {
             .single();
 
         if (error) return res.status(500).json({ error: error.message });
+
+        // Mirror to social_posts for global feed visibility (non-blocking)
+        // Only mirror approved, public posts
+        if (data && data.is_approved && (data.visibility === 'public' || !data.visibility)) {
+            try {
+                await supabase
+                    .from('social_posts')
+                    .insert({
+                        author_id: page.owner_id,
+                        content: data.content,
+                        content_type: data.content_type || 'text',
+                        media_urls: data.media_urls || [],
+                        visibility: 'public',
+                        metadata: {
+                            ...(data.metadata || {}),
+                            source: 'social_page_post',
+                            source_page_id: page_id,
+                            source_post_id: data.id,
+                            page_name: page.name,
+                            page_avatar_url: page.avatar_url,
+                            page_type: page.page_type
+                        }
+                    });
+                console.log(`[PagePosts] Mirrored post ${data.id} to global feed for page "${page.name}"`);
+            } catch (mirrorErr) {
+                console.error('[PagePosts] Failed to mirror post to global feed:', mirrorErr.message);
+                // Non-fatal — page post was still created successfully
+            }
+        }
+
         return res.status(201).json({ success: true, data });
 
     } else if (req.method === 'PUT') {

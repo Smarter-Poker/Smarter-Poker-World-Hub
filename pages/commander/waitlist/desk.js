@@ -9,7 +9,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useRealtimeUpdates } from '../../../src/lib/commander/useRealtimeUpdates';
-import { RefreshCw, Loader2, Users, Phone, UserPlus,
+import {
+  RefreshCw, Loader2, Users, Phone, UserPlus,
   ChevronRight, Clock, CheckCircle2, X, AlertTriangle,
   Armchair, PhoneCall, MessageSquare, ChevronDown, SkipForward, Trash2
 } from 'lucide-react';
@@ -178,7 +179,7 @@ export default function WaitlistDesk() {
 
         {/* Header */}
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
-<div className="flex-1">
+          <div className="flex-1">
             <h1 className="text-lg font-bold text-white">The Board</h1>
             <p className="text-xs text-[#B0B3B8]">
               {activeTables.length} tables — {waitlists.filter(w => w.status === 'waiting').length} waiting
@@ -195,9 +196,8 @@ export default function WaitlistDesk() {
 
         {/* SMS notification toast */}
         {smsStatus && (
-          <div className={`mx-4 mt-2 px-4 py-2.5 rounded-xl flex items-center gap-2 text-sm font-medium transition-all ${
-            smsStatus.type === 'sent' ? 'bg-[#31A24C]/15 text-[#31A24C]' : 'bg-[#F59E0B]/15 text-[#F59E0B]'
-          }`}>
+          <div className={`mx-4 mt-2 px-4 py-2.5 rounded-xl flex items-center gap-2 text-sm font-medium transition-all ${smsStatus.type === 'sent' ? 'bg-[#31A24C]/15 text-[#31A24C]' : 'bg-[#F59E0B]/15 text-[#F59E0B]'
+            }`}>
             {smsStatus.type === 'sent' ? <MessageSquare className="w-4 h-4" /> : <Phone className="w-4 h-4" />}
             {smsStatus.text}
           </div>
@@ -233,9 +233,8 @@ export default function WaitlistDesk() {
                         const occupied = seatData?.status === 'occupied';
                         return (
                           <div key={pos.seat}
-                            className={`absolute w-3.5 h-3.5 rounded-full border-2 ${
-                              occupied ? 'bg-[#31A24C] border-[#31A24C]/50' : 'bg-transparent border-[#3A3B3C]'
-                            }`}
+                            className={`absolute w-3.5 h-3.5 rounded-full border-2 ${occupied ? 'bg-[#31A24C] border-[#31A24C]/50' : 'bg-transparent border-[#3A3B3C]'
+                              }`}
                             style={{ left: `${pos.x}%`, top: `${pos.y}%`, transform: 'translate(-50%, -50%)' }}
                           />
                         );
@@ -254,7 +253,7 @@ export default function WaitlistDesk() {
             {Object.keys(waitlistByGame).length === 0 ? (
               <div className="text-center py-8">
                 <Users className="w-8 h-8 text-[#3A3B3C] mx-auto mb-2" />
-                <p className="text-sm text-[#B0B3B8]">No players waiting</p>
+                <p className="text-sm text-[#B0B3B8]">No Players Waiting</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -267,11 +266,10 @@ export default function WaitlistDesk() {
                     <div className="space-y-1">
                       {entries.map((entry, idx) => (
                         <div key={entry.id}
-                          className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border ${
-                            entry.status === 'called'
+                          className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border ${entry.status === 'called'
                               ? 'bg-[#F59E0B]/10 border-[#F59E0B]/30'
                               : 'bg-[#242526] border-[#3A3B3C]'
-                          }`}>
+                            }`}>
                           <span className="w-6 h-6 rounded-full bg-[#3A3B3C] flex items-center justify-center text-xs font-bold text-[#B0B3B8]">
                             {idx + 1}
                           </span>
@@ -350,21 +348,21 @@ export default function WaitlistDesk() {
                   }
                   return (
                     <CommanderLayout title="The Board" backHref="/commander/dashboard">
-                    <div key={table.table_number} className="bg-[#3A3B3C]/50 rounded-xl p-3">
-                      <p className="text-sm font-medium text-white mb-2">
-                        Table {table.table_number}
-                        {table.game_type && <span className="text-[#B0B3B8]"> — {table.game_type}</span>}
-                      </p>
-                      <div className="flex gap-1.5 flex-wrap">
-                        {openSeats.map(seat => (
-                          <button key={seat}
-                            onClick={() => handleSeat(seatModal, table.table_number, seat)}
-                            className="w-10 h-10 rounded-lg bg-[#31A24C]/10 border border-[#31A24C]/30 flex items-center justify-center text-sm font-bold text-[#31A24C] active:bg-[#31A24C]/20">
-                            {seat}
-                          </button>
-                        ))}
+                      <div key={table.table_number} className="bg-[#3A3B3C]/50 rounded-xl p-3">
+                        <p className="text-sm font-medium text-white mb-2">
+                          Table {table.table_number}
+                          {table.game_type && <span className="text-[#B0B3B8]"> — {table.game_type}</span>}
+                        </p>
+                        <div className="flex gap-1.5 flex-wrap">
+                          {openSeats.map(seat => (
+                            <button key={seat}
+                              onClick={() => handleSeat(seatModal, table.table_number, seat)}
+                              className="w-10 h-10 rounded-lg bg-[#31A24C]/10 border border-[#31A24C]/30 flex items-center justify-center text-sm font-bold text-[#31A24C] active:bg-[#31A24C]/20">
+                              {seat}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    </div>
                     </CommanderLayout>
                   );
                 })}
@@ -393,7 +391,7 @@ export default function WaitlistDesk() {
           </div>
         )}
       </div>
-    <style jsx>{`
+      <style jsx>{`
 `}</style>
     </>
   );

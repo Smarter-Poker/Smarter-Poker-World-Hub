@@ -305,7 +305,7 @@ const STAFF_DEFS = [
                     : rType === 'hotel' ? 'Hotel room comp — 1 night'
                         : rType === 'cash' ? 'Cash comp payout'
                             : 'Miscellaneous comp redemption',
-            status: i < 12 ? 'completed' : (i === 12 ? 'pending' : 'cancelled'),
+            status: i < 12 ? 'completed' : (i === 12 ? 'pending' : 'denied'),
             processed_by: STAFF_IDS.length ? pick(STAFF_IDS) : null,
             processed_at: i < 12 ? ago(rand(1, 45)) : null,
             created_at: ago(rand(1, 45)),
@@ -391,8 +391,8 @@ const STAFF_DEFS = [
                             : reason === 'player_complaint' ? 'Excessive tanking complaint from multiple players'
                                 : reason === 'table_transfer' ? 'Seat open at 5/10, player requesting transfer'
                                     : 'Player requests extra break time',
-        priority: reason === 'dispute' ? 'high' : (reason === 'rules_question' ? 'medium' : 'normal'),
-        status: i < 5 ? 'resolved' : (i === 5 ? 'in_progress' : 'open'),
+        priority: reason === 'dispute' ? 'high' : (reason === 'rules_question' ? 'urgent' : 'normal'),
+        status: i < 5 ? 'resolved' : (i === 5 ? 'acknowledged' : 'pending'),
         called_by: PLAYER_NAMES[i].first + ' ' + PLAYER_NAMES[i].last,
         responded_by: STAFF_IDS.length ? pick(STAFF_IDS) : null,
         responded_at: i < 5 ? ago(rand(0, 7)) : null,
@@ -510,7 +510,7 @@ const STAFF_DEFS = [
             incoming_staff_name: STAFF_DEFS[inIdx].name,
             shift_date: shiftDate.toISOString().split('T')[0],
             handoff_time: shiftDate.toISOString(),
-            status: 'completed',
+            status: i < 3 ? 'acknowledged' : 'pending',
             open_tables_count: rand(6, 16),
             active_players_count: rand(30, 120),
             waitlist_count: rand(0, 15),
@@ -595,7 +595,7 @@ const STAFF_DEFS = [
             seat_number: rand(1, 9),
             type: isBuyin ? 'buy_in' : 'cash_out',
             amount: isBuyin ? pick([100, 200, 300, 500, 1000]) : pick([150, 350, 600, 1200, 2500]),
-            payment_method: isBuyin ? pick(['cash', 'card', 'app']) : 'cash',
+            payment_method: isBuyin ? pick(['cash', 'card']) : 'cash',
             processed_by: STAFF_IDS.length ? pick(STAFF_IDS) : null,
             created_at: ago(rand(0, 14)),
         });

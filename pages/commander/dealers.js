@@ -53,8 +53,8 @@ function DealerCard({ dealer, onEdit, onRotate }) {
             <Star
               key={level}
               className={`w-4 h-4 ${level <= (dealer.skill_level || 3)
-                  ? 'text-[#F59E0B] fill-[#F59E0B]'
-                  : 'text-[#3A3B3C]'
+                ? 'text-[#F59E0B] fill-[#F59E0B]'
+                : 'text-[#3A3B3C]'
                 }`}
             />
           ))}
@@ -183,8 +183,8 @@ function AddDealerModal({ onSubmit, onClose, dealer = null }) {
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, skill_level: level }))}
                   className={`flex-1 py-3 rounded-lg border text-sm font-medium transition-colors ${formData.skill_level === level
-                      ? 'border-[#F59E0B] bg-[#F59E0B]/10 text-[#F59E0B]'
-                      : 'border-[#3A3B3C] text-[#B0B3B8]'
+                    ? 'border-[#F59E0B] bg-[#F59E0B]/10 text-[#F59E0B]'
+                    : 'border-[#3A3B3C] text-[#B0B3B8]'
                     }`}
                 >
                   {level}
@@ -204,8 +204,8 @@ function AddDealerModal({ onSubmit, onClose, dealer = null }) {
                   type="button"
                   onClick={() => toggleCertification(cert.value)}
                   className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${formData.certified_games.includes(cert.value)
-                      ? 'border-[#31A24C] bg-[#31A24C]/10 text-[#31A24C]'
-                      : 'border-[#3A3B3C] text-[#B0B3B8]'
+                    ? 'border-[#31A24C] bg-[#31A24C]/10 text-[#31A24C]'
+                    : 'border-[#3A3B3C] text-[#B0B3B8]'
                     }`}
                 >
                   {cert.label}
@@ -276,8 +276,8 @@ function RotateModal({ dealer, tables, onSubmit, onClose }) {
               key={table.id}
               onClick={() => setSelectedTable(table.id)}
               className={`w-full p-3 rounded-lg border text-left transition-colors ${selectedTable === table.id
-                  ? 'border-[#1877F2] bg-[#1877F2]/5'
-                  : 'border-[#3A3B3C] hover:border-[#1877F2]'
+                ? 'border-[#1877F2] bg-[#1877F2]/5'
+                : 'border-[#3A3B3C] hover:border-[#1877F2]'
                 }`}
             >
               <div className="flex items-center justify-between">
@@ -486,8 +486,8 @@ export default function DealersPage() {
           <button
             onClick={() => setActiveTab('dealers')}
             className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'dealers'
-                ? 'border-[#1877F2] text-[#1877F2]'
-                : 'border-transparent text-[#B0B3B8] hover:text-white'
+              ? 'border-[#1877F2] text-[#1877F2]'
+              : 'border-transparent text-[#B0B3B8] hover:text-white'
               }`}
           >
             <Users className="w-4 h-4 inline-block mr-2" />
@@ -496,8 +496,8 @@ export default function DealersPage() {
           <button
             onClick={() => setActiveTab('rotations')}
             className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'rotations'
-                ? 'border-[#31A24C] text-[#31A24C]'
-                : 'border-transparent text-[#B0B3B8] hover:text-white'
+              ? 'border-[#31A24C] text-[#31A24C]'
+              : 'border-transparent text-[#B0B3B8] hover:text-white'
               }`}
           >
             <History className="w-4 h-4 inline-block mr-2" />
@@ -568,7 +568,7 @@ export default function DealersPage() {
                   {filteredDealers.length === 0 && (
                     <div className="cmd-panel p-8 text-center">
                       <Users className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
-                      <p className="text-[#B0B3B8]">No dealers found</p>
+                      <p className="text-[#B0B3B8]">No Dealers Found</p>
                       <button
                         onClick={() => setShowAddModal(true)}
                         className="mt-4 px-6 py-2 cmd-btn cmd-btn-primary"
@@ -592,7 +592,7 @@ export default function DealersPage() {
                 {rotations.length === 0 ? (
                   <div className="p-8 text-center">
                     <RotateCw className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
-                    <p className="text-[#B0B3B8]">No rotation history yet</p>
+                    <p className="text-[#B0B3B8]">No Rotation History Yet</p>
                     <p className="text-sm text-[#3A3B3C] mt-1">
                       Rotations will appear here when dealers are moved between tables
                     </p>

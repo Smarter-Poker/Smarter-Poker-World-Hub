@@ -275,149 +275,148 @@ export default function AnalyticsPage() {
 
   return (
     <CommanderLayout title="Analytics | Commander" backHref="/commander/reports">
-    <>
-      <Head>
-        <title>Analytics | Commander</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
+      <>
+        <Head>
+          <title>Analytics | Commander</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+        </Head>
 
-      <div className="cmd-page">
-        <header className="cmd-header-bar sticky top-0 z-40">
-          <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div>
-                <h1 className="font-bold text-white">Analytics</h1>
-                <p className="text-sm text-[#B0B3B8]">Venue performance metrics</p>
+        <div className="cmd-page">
+          <header className="cmd-header-bar sticky top-0 z-40">
+            <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div>
+                  <h1 className="font-bold text-white">Analytics</h1>
+                  <p className="text-sm text-[#B0B3B8]">Venue Performance Metrics</p>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                {['week', 'month', 'year'].map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => setPeriod(p)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${period === p
+                        ? 'bg-[#3A3B3C] text-[#1877F2] border-2 border-[#1877F2]'
+                        : 'bg-[#242526] text-[#B0B3B8] border-2 border-[#3A3B3C] hover:bg-[#3A3B3C]'
+                      }`}
+                  >
+                    {p}
+                  </button>
+                ))}
               </div>
             </div>
+          </header>
 
-            <div className="flex gap-2">
-              {['week', 'month', 'year'].map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setPeriod(p)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${
-                    period === p
-                      ? 'bg-[#3A3B3C] text-[#1877F2] border-2 border-[#1877F2]'
-                      : 'bg-[#242526] text-[#B0B3B8] border-2 border-[#3A3B3C] hover:bg-[#3A3B3C]'
-                  }`}
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
-          </div>
-        </header>
-
-        <main className="max-w-6xl mx-auto px-4 py-6 space-y-6">
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
-            </div>
-          ) : (
-            <>
-              {/* Stats Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <StatCard
-                  title="Unique Players"
-                  value={stats.totalPlayers}
-                  change={stats.playersChange}
-                  icon={Users}
-                  color="#1877F2"
-                />
-                <StatCard
-                  title="Total Sessions"
-                  value={stats.totalSessions}
-                  change={stats.sessionsChange}
-                  icon={Target}
-                  color="#31A24C"
-                />
-                <StatCard
-                  title="Total Hours"
-                  value={`${stats.totalHours}h`}
-                  change={stats.hoursChange}
-                  icon={Clock}
-                  color="#1877F2"
-                />
-                <StatCard
-                  title="Total Buy-ins"
-                  value={`$${stats.totalBuyins.toLocaleString()}`}
-                  change={stats.buyinsChange}
-                  icon={DollarSign}
-                  color="#F59E0B"
-                />
+          <main className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
               </div>
-
-              {/* Charts Row */}
-              <div className="grid md:grid-cols-2 gap-6">
-                {/* Daily Sessions */}
-                <div className="cmd-panel p-6">
-                  <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
-                    <BarChart3 className="w-5 h-5 text-[#1877F2]" />
-                    Daily Sessions
-                  </h3>
-                  <SimpleBarChart data={stats.dailyData} label="Sessions" />
+            ) : (
+              <>
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <StatCard
+                    title="Unique Players"
+                    value={stats.totalPlayers}
+                    change={stats.playersChange}
+                    icon={Users}
+                    color="#1877F2"
+                  />
+                  <StatCard
+                    title="Total Sessions"
+                    value={stats.totalSessions}
+                    change={stats.sessionsChange}
+                    icon={Target}
+                    color="#31A24C"
+                  />
+                  <StatCard
+                    title="Total Hours"
+                    value={`${stats.totalHours}h`}
+                    change={stats.hoursChange}
+                    icon={Clock}
+                    color="#1877F2"
+                  />
+                  <StatCard
+                    title="Total Buy-ins"
+                    value={`$${stats.totalBuyins.toLocaleString()}`}
+                    change={stats.buyinsChange}
+                    icon={DollarSign}
+                    color="#F59E0B"
+                  />
                 </div>
 
-                {/* Game Type Breakdown */}
-                <div className="cmd-panel p-6">
-                  <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
-                    <Trophy className="w-5 h-5 text-[#F59E0B]" />
-                    Game Type Breakdown
-                  </h3>
-                  <SimpleBarChart data={stats.gameTypeBreakdown} label="Sessions" />
-                </div>
-              </div>
+                {/* Charts Row */}
+                <div className="grid md:grid-cols-2 gap-6">
+                  {/* Daily Sessions */}
+                  <div className="cmd-panel p-6">
+                    <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
+                      <BarChart3 className="w-5 h-5 text-[#1877F2]" />
+                      Daily Sessions
+                    </h3>
+                    <SimpleBarChart data={stats.dailyData} label="Sessions" />
+                  </div>
 
-              {/* Quick Stats */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="cmd-panel p-4 text-center">
-                  <p className="text-2xl font-bold text-white">{stats.avgSessionLength}h</p>
-                  <p className="text-sm text-[#B0B3B8]">Avg Session</p>
+                  {/* Game Type Breakdown */}
+                  <div className="cmd-panel p-6">
+                    <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
+                      <Trophy className="w-5 h-5 text-[#F59E0B]" />
+                      Game Type Breakdown
+                    </h3>
+                    <SimpleBarChart data={stats.gameTypeBreakdown} label="Sessions" />
+                  </div>
                 </div>
-                <div className="cmd-panel p-4 text-center">
-                  <p className="text-2xl font-bold text-white">{stats.peakHour}</p>
-                  <p className="text-sm text-[#B0B3B8]">Peak Hour</p>
-                </div>
-                <div className="cmd-panel p-4 text-center">
-                  <p className="text-2xl font-bold text-white">
-                    ${stats.totalSessions > 0 ? Math.round(stats.totalBuyins / stats.totalSessions) : 0}
-                  </p>
-                  <p className="text-sm text-[#B0B3B8]">Avg Buy-in</p>
-                </div>
-                <div className="cmd-panel p-4 text-center">
-                  <p className="text-2xl font-bold text-white">
-                    {stats.totalPlayers > 0 ? (stats.totalSessions / stats.totalPlayers).toFixed(1) : 0}
-                  </p>
-                  <p className="text-sm text-[#B0B3B8]">Sessions/Player</p>
-                </div>
-              </div>
 
-              {/* Top Players */}
-              <div className="cmd-panel">
-                <div className="p-4 border-b border-[#3A3B3C]">
-                  <h3 className="font-semibold text-white flex items-center gap-2">
-                    <Users className="w-5 h-5 text-[#1877F2]" />
-                    Top Players
-                  </h3>
+                {/* Quick Stats */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="cmd-panel p-4 text-center">
+                    <p className="text-2xl font-bold text-white">{stats.avgSessionLength}h</p>
+                    <p className="text-sm text-[#B0B3B8]">Avg Session</p>
+                  </div>
+                  <div className="cmd-panel p-4 text-center">
+                    <p className="text-2xl font-bold text-white">{stats.peakHour}</p>
+                    <p className="text-sm text-[#B0B3B8]">Peak Hour</p>
+                  </div>
+                  <div className="cmd-panel p-4 text-center">
+                    <p className="text-2xl font-bold text-white">
+                      ${stats.totalSessions > 0 ? Math.round(stats.totalBuyins / stats.totalSessions) : 0}
+                    </p>
+                    <p className="text-sm text-[#B0B3B8]">Avg Buy-in</p>
+                  </div>
+                  <div className="cmd-panel p-4 text-center">
+                    <p className="text-2xl font-bold text-white">
+                      {stats.totalPlayers > 0 ? (stats.totalSessions / stats.totalPlayers).toFixed(1) : 0}
+                    </p>
+                    <p className="text-sm text-[#B0B3B8]">Sessions/Player</p>
+                  </div>
                 </div>
-                <TopPlayersTable players={stats.topPlayers} />
-              </div>
 
-              {/* Analytics Dashboard Component */}
-              <AnalyticsDashboard
-                analytics={analytics}
-                summary={summary}
-                isLoading={loading}
-                onPeriodChange={(days) => { /* period change handled by existing code */ }}
-              />
-            </>
-          )}
-        </main>
-      </div>
-      <style jsx>{`
+                {/* Top Players */}
+                <div className="cmd-panel">
+                  <div className="p-4 border-b border-[#3A3B3C]">
+                    <h3 className="font-semibold text-white flex items-center gap-2">
+                      <Users className="w-5 h-5 text-[#1877F2]" />
+                      Top Players
+                    </h3>
+                  </div>
+                  <TopPlayersTable players={stats.topPlayers} />
+                </div>
+
+                {/* Analytics Dashboard Component */}
+                <AnalyticsDashboard
+                  analytics={analytics}
+                  summary={summary}
+                  isLoading={loading}
+                  onPeriodChange={(days) => { /* period change handled by existing code */ }}
+                />
+              </>
+            )}
+          </main>
+        </div>
+        <style jsx>{`
 `}</style>
-    </>
+      </>
     </CommanderLayout>
   );
 }

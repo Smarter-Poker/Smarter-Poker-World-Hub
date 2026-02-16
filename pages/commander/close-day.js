@@ -12,7 +12,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { CheckCircle2, XCircle, AlertTriangle, Loader2,
+import {
+  CheckCircle2, XCircle, AlertTriangle, Loader2,
   Users, DollarSign, Clock, Lock, FileText, ChevronRight
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
@@ -118,7 +119,7 @@ export default function CloseDay() {
 
         {/* Header */}
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
-<div className="flex-1">
+          <div className="flex-1">
             <h1 className="text-lg font-bold text-white">End of Day Close</h1>
             <p className="text-xs text-[#B0B3B8]">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
           </div>
@@ -161,7 +162,7 @@ export default function CloseDay() {
                     <AlertTriangle className="w-5 h-5 text-[#F59E0B]" />
                     <p className="text-sm font-semibold text-[#F59E0B]">Items need attention</p>
                   </div>
-                  <p className="text-xs text-[#B0B3B8] mb-3">Close all open tables and end active sessions before closing the day.</p>
+                  <p className="text-xs text-[#B0B3B8] mb-3">Close All Open Tables And End Active Sessions Before Closing The Day.</p>
                   <button onClick={forceCloseAll} disabled={closing}
                     className="w-full py-3 rounded-xl bg-[#F59E0B] text-white text-sm font-semibold flex items-center justify-center gap-2 active:bg-[#D97706] disabled:opacity-50">
                     {closing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
@@ -216,14 +217,13 @@ export default function CloseDay() {
           {step === 3 && (
             <>
               <h2 className="text-xl font-bold text-white text-center">Manager Sign-Off</h2>
-              <p className="text-sm text-[#B0B3B8] text-center">Enter your 4-digit PIN to confirm close</p>
+              <p className="text-sm text-[#B0B3B8] text-center">Enter Your 4-Digit PIN To Confirm Close</p>
 
               <div className="flex justify-center gap-3 my-6">
                 {[0, 1, 2, 3].map(i => (
                   <div key={i}
-                    className={`w-14 h-14 rounded-xl border-2 flex items-center justify-center text-2xl font-bold ${
-                      pin.length > i ? 'border-[#1877F2] bg-[#1877F2]/10 text-white' : 'border-[#3A3B3C] bg-[#242526] text-[#3A3B3C]'
-                    }`}>
+                    className={`w-14 h-14 rounded-xl border-2 flex items-center justify-center text-2xl font-bold ${pin.length > i ? 'border-[#1877F2] bg-[#1877F2]/10 text-white' : 'border-[#3A3B3C] bg-[#242526] text-[#3A3B3C]'
+                      }`}>
                     {pin[i] ? '*' : ''}
                   </div>
                 ))}
@@ -235,14 +235,14 @@ export default function CloseDay() {
                   if (key === null) return <div key={i} />;
                   return (
                     <CommanderLayout title="Close Day" backHref="/commander/reports">
-                    <button key={i}
-                      onClick={() => {
-                        if (key === 'del') setPin(pin.slice(0, -1));
-                        else if (pin.length < 4) setPin(pin + key);
-                      }}
-                      className="py-4 rounded-xl bg-[#3A3B3C] text-white text-xl font-semibold active:bg-[#4A4B4C]">
-                      {key === 'del' ? 'DEL' : key}
-                    </button>
+                      <button key={i}
+                        onClick={() => {
+                          if (key === 'del') setPin(pin.slice(0, -1));
+                          else if (pin.length < 4) setPin(pin + key);
+                        }}
+                        className="py-4 rounded-xl bg-[#3A3B3C] text-white text-xl font-semibold active:bg-[#4A4B4C]">
+                        {key === 'del' ? 'DEL' : key}
+                      </button>
                     </CommanderLayout>
                   );
                 })}
@@ -282,7 +282,7 @@ export default function CloseDay() {
           )}
         </div>
       </div>
-    <style jsx>{`
+      <style jsx>{`
 `}</style>
     </>
   );
@@ -290,9 +290,8 @@ export default function CloseDay() {
 
 function CheckItem({ label, detail, ok }) {
   return (
-    <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${
-      ok ? 'bg-[#31A24C]/10 border-[#31A24C]/30' : 'bg-[#EF4444]/10 border-[#EF4444]/30'
-    }`}>
+    <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${ok ? 'bg-[#31A24C]/10 border-[#31A24C]/30' : 'bg-[#EF4444]/10 border-[#EF4444]/30'
+      }`}>
       {ok
         ? <CheckCircle2 className="w-6 h-6 text-[#31A24C] flex-shrink-0" />
         : <XCircle className="w-6 h-6 text-[#EF4444] flex-shrink-0" />}

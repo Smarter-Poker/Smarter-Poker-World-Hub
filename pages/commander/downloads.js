@@ -92,7 +92,7 @@ export default function DownloadsPage() {
               <img src="/images/club-commander-logo.jpg" alt="Club Commander" className="w-full max-w-md rounded-lg" />
             </div>
             <h1 className="text-4xl font-bold text-[#E4E6EB] mb-3">Club Commander Desktop</h1>
-            <p className="text-[#B0B3B8] text-lg">The fastest way to manage your poker room</p>
+            <p className="text-[#B0B3B8] text-lg">The Fastest Way To Manage Your Poker Room</p>
             <p className="text-[#31A24C] text-sm mt-2 flex items-center justify-center gap-1"><Check className="w-4 h-4" /> Version 1.0.6 - Released February 2026</p>
           </div>
 

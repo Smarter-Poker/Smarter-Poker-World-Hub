@@ -253,7 +253,7 @@ export default function RoomPresetsPage() {
               <div className="flex items-center gap-3">
                 <div>
                   <h1 className="font-bold text-white text-lg">Room Presets</h1>
-                  <p className="text-sm text-[#B0B3B8]">One-click room configurations</p>
+                  <p className="text-sm text-[#B0B3B8]">One-Click Room Configurations</p>
                 </div>
               </div>
               {canManage && !showForm && (
@@ -280,7 +280,7 @@ export default function RoomPresetsPage() {
                     </div>
                     <div>
                       <h2 className="font-semibold text-white">Hard Stop</h2>
-                      <p className="text-xs text-[#B0B3B8]">Auto-close all cash games at a set time</p>
+                      <p className="text-xs text-[#B0B3B8]">Auto-Close All Cash Games At A Set Time</p>
                     </div>
                   </div>
                   <button
@@ -297,7 +297,7 @@ export default function RoomPresetsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium text-white">Enable Hard Stop</p>
-                      <p className="text-sm text-[#B0B3B8]">Automatically close all games and log out players at the scheduled time</p>
+                      <p className="text-sm text-[#B0B3B8]">Automatically Close All Games And Log Out Players At The Scheduled Time</p>
                     </div>
                     <button
                       onClick={() => setHardStopEnabled(!hardStopEnabled)}
@@ -312,7 +312,7 @@ export default function RoomPresetsPage() {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="font-medium text-white">Stop Time</p>
-                          <p className="text-sm text-[#B0B3B8]">All cash games end at this time</p>
+                          <p className="text-sm text-[#B0B3B8]">All Cash Games End At This Time</p>
                         </div>
                         <input
                           type="time"
@@ -344,7 +344,7 @@ export default function RoomPresetsPage() {
                     </div>
                     <div>
                       <h2 className="font-semibold text-white">Hourly Comp Rate</h2>
-                      <p className="text-xs text-[#B0B3B8]">Auto-award comps to all seated players per hour</p>
+                      <p className="text-xs text-[#B0B3B8]">Auto-Award Comps To All Seated Players Per Hour</p>
                     </div>
                   </div>
                   <button
@@ -359,15 +359,15 @@ export default function RoomPresetsPage() {
                 <div className="p-4 space-y-4">
                   {/* Quick-select buttons */}
                   <div>
-                    <p className="text-sm text-[#B0B3B8] mb-2">Select rate per hour of play</p>
+                    <p className="text-sm text-[#B0B3B8] mb-2">Select Rate Per Hour Of Play</p>
                     <div className="flex flex-wrap gap-2">
                       {[0, 0.5, 1, 1.5, 2].map(rate => (
                         <button
                           key={rate}
                           onClick={() => setAutoCompRate(rate)}
                           className={`px-4 py-2.5 rounded-xl text-sm font-medium border transition-all ${autoCompRate === rate
-                              ? 'bg-[#31A24C]/20 border-[#31A24C] text-[#31A24C]'
-                              : 'bg-[#3A3B3C] border-[#4A4B4C] text-[#B0B3B8] hover:border-[#31A24C]/50'
+                            ? 'bg-[#31A24C]/20 border-[#31A24C] text-[#31A24C]'
+                            : 'bg-[#3A3B3C] border-[#4A4B4C] text-[#B0B3B8] hover:border-[#31A24C]/50'
                             }`}
                         >
                           {rate === 0 ? 'Off' : `$${rate.toFixed(2)}/hr`}
@@ -397,7 +397,7 @@ export default function RoomPresetsPage() {
                     <div className="p-3 bg-[#31A24C]/10 rounded-lg flex items-start gap-2">
                       <DollarSign className="w-4 h-4 text-[#31A24C] mt-0.5 flex-shrink-0" />
                       <p className="text-xs text-[#31A24C]">
-                        Players will automatically earn <strong>${autoCompRate.toFixed(2)}</strong> in comps for every hour they are seated at a cash game table.
+                        Players Will Automatically Earn <strong>${autoCompRate.toFixed(2)}</strong> In Comps For Every Hour They Are Seated At A Cash Game Table.
                       </p>
                     </div>
                   )}
@@ -428,7 +428,7 @@ export default function RoomPresetsPage() {
                     <div>
                       <label className="text-xs text-[#B0B3B8] uppercase">Description</label>
                       <input value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
-                        placeholder="Peak hours config" className="w-full mt-1 px-3 py-2.5 bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl text-sm text-white placeholder-[#6A6B6D] focus:outline-none focus:border-[#1877F2]" />
+                        placeholder="Peak Hours Config" className="w-full mt-1 px-3 py-2.5 bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl text-sm text-white placeholder-[#6A6B6D] focus:outline-none focus:border-[#1877F2]" />
                     </div>
                   </div>
 
@@ -451,7 +451,7 @@ export default function RoomPresetsPage() {
                           <div key={idx} className="flex items-center gap-2 bg-[#3A3B3C]/30 rounded-xl p-3">
                             <select value={row.game_type_id || ''} onChange={e => updateTableRow(idx, 'game_type_id', e.target.value)}
                               className="flex-1 px-2 py-2 bg-[#3A3B3C] border border-[#4A4B4C] rounded-lg text-sm text-white">
-                              <option value="">Select game type...</option>
+                              <option value="">Select Game Type...</option>
                               {gameTypes.map(gt => (
                                 <option key={gt.id} value={gt.id}>{gt.short_code} — {gt.name} {gt.stakes}</option>
                               ))}
@@ -460,7 +460,7 @@ export default function RoomPresetsPage() {
                               <input type="number" value={row.count || 1} min={1} max={20}
                                 onChange={e => updateTableRow(idx, 'count', parseInt(e.target.value) || 1)}
                                 className="w-full px-2 py-2 bg-[#3A3B3C] border border-[#4A4B4C] rounded-lg text-sm text-white text-center" />
-                              <p className="text-[10px] text-[#B0B3B8] text-center mt-0.5">tables</p>
+                              <p className="text-[10px] text-[#B0B3B8] text-center mt-0.5">Tables</p>
                             </div>
                             <button onClick={() => removeTableRow(idx)} className="p-1.5 hover:bg-[#EF4444]/10 rounded-lg">
                               <X className="w-4 h-4 text-[#EF4444]" />
@@ -488,8 +488,8 @@ export default function RoomPresetsPage() {
             ) : presets.length === 0 && !showForm ? (
               <div className="bg-[#242526] rounded-2xl border border-[#3A3B3C] p-12 text-center">
                 <Layout className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
-                <h3 className="text-lg font-medium text-white mb-1">No room presets yet</h3>
-                <p className="text-sm text-[#B0B3B8] mb-4">Create presets to quickly configure your room with one click</p>
+                <h3 className="text-lg font-medium text-white mb-1">No Room Presets Yet</h3>
+                <p className="text-sm text-[#B0B3B8] mb-4">Create Presets To Quickly Configure Your Room With One Click</p>
                 {canManage && (
                   <button onClick={() => { setForm({ name: '', description: '', tables: [] }); setShowForm(true); }}
                     className="px-6 py-2.5 bg-[#1877F2] text-white rounded-xl text-sm font-medium">

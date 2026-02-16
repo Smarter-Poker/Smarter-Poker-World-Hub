@@ -8,7 +8,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { Plus, Save, Loader2, DollarSign, Crown, Star,
+import {
+  Plus, Save, Loader2, DollarSign, Crown, Star,
   Shield, Users, Trash2, ChevronDown, ChevronUp, Gift, Clock,
   Percent, Car, Utensils, Ticket, Armchair, X, Check
 } from 'lucide-react';
@@ -104,7 +105,8 @@ export default function MembershipPlansPage() {
         comp_multiplier: parseFloat(form.comp_multiplier) || 1.0,
         guest_passes_per_month: parseInt(form.guest_passes_per_month) || 0,
         tournament_discount_pct: parseFloat(form.tournament_discount_pct) || 0,
-        max_members: form.max_members ? parseInt(form.max_members) : null };
+        max_members: form.max_members ? parseInt(form.max_members) : null
+      };
 
       const isNew = editing === 'new';
       const url = isNew
@@ -168,7 +170,7 @@ export default function MembershipPlansPage() {
             <div className="flex items-center gap-3">
               <div>
                 <h1 className="font-bold text-white text-lg">Membership Plans</h1>
-                <p className="text-sm text-[#B0B3B8]">Set pricing & perks per tier</p>
+                <p className="text-sm text-[#B0B3B8]">Set Pricing & Perks Per Tier</p>
               </div>
             </div>
             <button onClick={() => startEdit(null)} className="flex items-center gap-2 px-4 py-2 cmd-btn cmd-btn-primary">
@@ -220,7 +222,7 @@ export default function MembershipPlansPage() {
                         </div>
                       </div>
                       <div>
-                        <label className="text-xs text-[#B0B3B8] mb-1 block">Max Members (blank=unlimited)</label>
+                        <label className="text-xs text-[#B0B3B8] mb-1 block">Max Members (Blank=Unlimited)</label>
                         <input type="number" value={form.max_members} onChange={e => f('max_members', e.target.value)}
                           placeholder="∞" className="w-full px-3 py-2 cmd-input text-sm" />
                       </div>
@@ -232,7 +234,7 @@ export default function MembershipPlansPage() {
                     <h3 className="text-sm font-semibold text-[#F59E0B] uppercase tracking-wider flex items-center gap-2">
                       <DollarSign className="w-4 h-4" /> Pricing
                     </h3>
-                    <p className="text-xs text-[#B0B3B8]">Leave blank for intervals you don't offer. Players choose their billing cycle at signup.</p>
+                    <p className="text-xs text-[#B0B3B8]">Leave Blank For Intervals You Don't Offer. Players Choose Their Billing Cycle At Signup.</p>
                     <div className="grid grid-cols-2 gap-3">
                       {[
                         { key: 'price_daily', label: 'Daily Rate' },
@@ -259,7 +261,7 @@ export default function MembershipPlansPage() {
                     </h3>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-xs text-[#B0B3B8] mb-1 block">Override $/hr (blank=default)</label>
+                        <label className="text-xs text-[#B0B3B8] mb-1 block">Override $/Hr (Blank=Default)</label>
                         <div className="relative">
                           <span className="absolute left-3 top-2 text-[#6A6B6D] text-sm">$</span>
                           <input type="number" step="0.50" value={form.seat_fee_override} onChange={e => f('seat_fee_override', e.target.value)}
@@ -341,7 +343,7 @@ export default function MembershipPlansPage() {
             <div className="cmd-panel p-8 text-center">
               <Crown className="w-12 h-12 text-[#F59E0B] mx-auto mb-3" />
               <p className="text-white font-semibold mb-1">No membership plans yet</p>
-              <p className="text-sm text-[#B0B3B8] mb-4">Set up your membership tiers with pricing and perks</p>
+              <p className="text-sm text-[#B0B3B8] mb-4">Set Up Your Membership Tiers With Pricing And Perks</p>
               <button onClick={() => startEdit(null)} className="px-6 py-2 cmd-btn cmd-btn-primary">Create First Plan</button>
             </div>
           ) : (
@@ -358,95 +360,95 @@ export default function MembershipPlansPage() {
 
               return (
                 <CommanderLayout title="Membership Plans | Commander" backHref="/commander/members">
-                <div key={plan.id} className={`cmd-panel overflow-hidden ${!plan.is_active ? 'opacity-50' : ''}`}>
-                  {/* Header row */}
-                  <button onClick={() => setExpandedId(isExpanded ? null : plan.id)}
-                    className="w-full p-4 flex items-center gap-4 hover:bg-[#18191A] transition-colors">
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ backgroundColor: color + '20' }}>
-                      <TierIcon className="w-6 h-6" style={{ color }} />
-                    </div>
-                    <div className="flex-1 text-left">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-white">{plan.name}</h3>
-                        {!plan.is_active && <span className="text-xs px-2 py-0.5 bg-[#EF4444]/20 text-[#EF4444] rounded-full">Inactive</span>}
-                        <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: color + '20', color }}>{plan.tier}</span>
+                  <div key={plan.id} className={`cmd-panel overflow-hidden ${!plan.is_active ? 'opacity-50' : ''}`}>
+                    {/* Header row */}
+                    <button onClick={() => setExpandedId(isExpanded ? null : plan.id)}
+                      className="w-full p-4 flex items-center gap-4 hover:bg-[#18191A] transition-colors">
+                      <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ backgroundColor: color + '20' }}>
+                        <TierIcon className="w-6 h-6" style={{ color }} />
                       </div>
-                      <p className="text-sm text-[#B0B3B8]">
-                        {prices.length > 0 ? prices.join(' · ') : 'Free tier'}
-                      </p>
-                    </div>
-                    {isExpanded ? <ChevronUp className="w-5 h-5 text-[#3A3B3C]" /> : <ChevronDown className="w-5 h-5 text-[#3A3B3C]" />}
-                  </button>
-
-                  {/* Expanded details */}
-                  {isExpanded && (
-                    <div className="px-4 pb-4 space-y-3 border-t border-[#3A3B3C] pt-3">
-                      {plan.description && <p className="text-sm text-[#B0B3B8]">{plan.description}</p>}
-
-                      {/* Pricing grid */}
-                      <div className="grid grid-cols-4 gap-2">
-                        {[
-                          { label: 'Daily', val: plan.price_daily },
-                          { label: 'Weekly', val: plan.price_weekly },
-                          { label: 'Monthly', val: plan.price_monthly },
-                          { label: 'Yearly', val: plan.price_yearly },
-                        ].map(p => (
-                          <div key={p.label} className="bg-[#18191A] rounded-lg p-2 text-center">
-                            <p className="text-[10px] text-[#6A6B6D] uppercase">{p.label}</p>
-                            <p className="text-sm font-bold text-white">{p.val ? `$${p.val}` : '—'}</p>
-                          </div>
-                        ))}
+                      <div className="flex-1 text-left">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold text-white">{plan.name}</h3>
+                          {!plan.is_active && <span className="text-xs px-2 py-0.5 bg-[#EF4444]/20 text-[#EF4444] rounded-full">Inactive</span>}
+                          <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: color + '20', color }}>{plan.tier}</span>
+                        </div>
+                        <p className="text-sm text-[#B0B3B8]">
+                          {prices.length > 0 ? prices.join(' · ') : 'Free tier'}
+                        </p>
                       </div>
+                      {isExpanded ? <ChevronUp className="w-5 h-5 text-[#3A3B3C]" /> : <ChevronDown className="w-5 h-5 text-[#3A3B3C]" />}
+                    </button>
 
-                      {/* Perks summary */}
-                      <div className="flex flex-wrap gap-2">
-                        {plan.comp_multiplier > 1 && (
-                          <span className="text-xs px-2 py-1 rounded-full bg-[#F59E0B]/10 text-[#F59E0B]">
-                            {plan.comp_multiplier}x Comps
-                          </span>
-                        )}
-                        {plan.seat_fee_discount_pct > 0 && (
-                          <span className="text-xs px-2 py-1 rounded-full bg-[#1877F2]/10 text-[#1877F2]">
-                            {plan.seat_fee_discount_pct}% Seat Fee Discount
-                          </span>
-                        )}
-                        {plan.priority_waitlist && <span className="text-xs px-2 py-1 rounded-full bg-[#31A24C]/10 text-[#31A24C]">Priority Waitlist</span>}
-                        {plan.reserved_seating && <span className="text-xs px-2 py-1 rounded-full bg-[#8B5CF6]/10 text-[#8B5CF6]">Reserved Seating</span>}
-                        {plan.free_food_drinks && <span className="text-xs px-2 py-1 rounded-full bg-[#EF4444]/10 text-[#EF4444]">Free F&B</span>}
-                        {plan.free_parking && <span className="text-xs px-2 py-1 rounded-full bg-[#06B6D4]/10 text-[#06B6D4]">Free Parking</span>}
-                        {plan.tournament_discount_pct > 0 && (
-                          <span className="text-xs px-2 py-1 rounded-full bg-[#F59E0B]/10 text-[#F59E0B]">
-                            {plan.tournament_discount_pct}% Tourney Discount
-                          </span>
-                        )}
-                        {plan.guest_passes_per_month > 0 && (
-                          <span className="text-xs px-2 py-1 rounded-full bg-[#B0B3B8]/10 text-[#B0B3B8]">
-                            {plan.guest_passes_per_month} Guest Pass{plan.guest_passes_per_month > 1 ? 'es' : ''}/mo
-                          </span>
-                        )}
-                      </div>
+                    {/* Expanded details */}
+                    {isExpanded && (
+                      <div className="px-4 pb-4 space-y-3 border-t border-[#3A3B3C] pt-3">
+                        {plan.description && <p className="text-sm text-[#B0B3B8]">{plan.description}</p>}
 
-                      {/* Actions */}
-                      <div className="flex items-center gap-2 pt-2">
-                        <button onClick={() => startEdit(plan)}
-                          className="flex-1 py-2 rounded-xl bg-[#1877F2] text-white text-sm font-medium">
-                          Edit Plan
-                        </button>
-                        {plan.is_active ? (
-                          <button onClick={() => handleDelete(plan)}
-                            className="px-4 py-2 rounded-xl bg-[#EF4444]/10 text-[#EF4444] text-sm font-medium">
-                            Deactivate
+                        {/* Pricing grid */}
+                        <div className="grid grid-cols-4 gap-2">
+                          {[
+                            { label: 'Daily', val: plan.price_daily },
+                            { label: 'Weekly', val: plan.price_weekly },
+                            { label: 'Monthly', val: plan.price_monthly },
+                            { label: 'Yearly', val: plan.price_yearly },
+                          ].map(p => (
+                            <div key={p.label} className="bg-[#18191A] rounded-lg p-2 text-center">
+                              <p className="text-[10px] text-[#6A6B6D] uppercase">{p.label}</p>
+                              <p className="text-sm font-bold text-white">{p.val ? `$${p.val}` : '—'}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Perks summary */}
+                        <div className="flex flex-wrap gap-2">
+                          {plan.comp_multiplier > 1 && (
+                            <span className="text-xs px-2 py-1 rounded-full bg-[#F59E0B]/10 text-[#F59E0B]">
+                              {plan.comp_multiplier}x Comps
+                            </span>
+                          )}
+                          {plan.seat_fee_discount_pct > 0 && (
+                            <span className="text-xs px-2 py-1 rounded-full bg-[#1877F2]/10 text-[#1877F2]">
+                              {plan.seat_fee_discount_pct}% Seat Fee Discount
+                            </span>
+                          )}
+                          {plan.priority_waitlist && <span className="text-xs px-2 py-1 rounded-full bg-[#31A24C]/10 text-[#31A24C]">Priority Waitlist</span>}
+                          {plan.reserved_seating && <span className="text-xs px-2 py-1 rounded-full bg-[#8B5CF6]/10 text-[#8B5CF6]">Reserved Seating</span>}
+                          {plan.free_food_drinks && <span className="text-xs px-2 py-1 rounded-full bg-[#EF4444]/10 text-[#EF4444]">Free F&B</span>}
+                          {plan.free_parking && <span className="text-xs px-2 py-1 rounded-full bg-[#06B6D4]/10 text-[#06B6D4]">Free Parking</span>}
+                          {plan.tournament_discount_pct > 0 && (
+                            <span className="text-xs px-2 py-1 rounded-full bg-[#F59E0B]/10 text-[#F59E0B]">
+                              {plan.tournament_discount_pct}% Tourney Discount
+                            </span>
+                          )}
+                          {plan.guest_passes_per_month > 0 && (
+                            <span className="text-xs px-2 py-1 rounded-full bg-[#B0B3B8]/10 text-[#B0B3B8]">
+                              {plan.guest_passes_per_month} Guest Pass{plan.guest_passes_per_month > 1 ? 'es' : ''}/mo
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-2 pt-2">
+                          <button onClick={() => startEdit(plan)}
+                            className="flex-1 py-2 rounded-xl bg-[#1877F2] text-white text-sm font-medium">
+                            Edit Plan
                           </button>
-                        ) : (
-                          <button onClick={() => handleReactivate(plan)}
-                            className="px-4 py-2 rounded-xl bg-[#31A24C]/10 text-[#31A24C] text-sm font-medium">
-                            Reactivate
-                          </button>
-                        )}
+                          {plan.is_active ? (
+                            <button onClick={() => handleDelete(plan)}
+                              className="px-4 py-2 rounded-xl bg-[#EF4444]/10 text-[#EF4444] text-sm font-medium">
+                              Deactivate
+                            </button>
+                          ) : (
+                            <button onClick={() => handleReactivate(plan)}
+                              className="px-4 py-2 rounded-xl bg-[#31A24C]/10 text-[#31A24C] text-sm font-medium">
+                              Reactivate
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </div>
                 </CommanderLayout>
               );
             })

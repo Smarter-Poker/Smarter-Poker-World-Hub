@@ -72,7 +72,7 @@ export default function DisplayManagement() {
 
         {/* Subtitle */}
         <div className="px-4 py-2">
-          <p className="text-xs text-[#B0B3B8]">Configure TV displays for wireless HDMI</p>
+          <p className="text-xs text-[#B0B3B8]">Configure TV Displays For Wireless HDMI</p>
         </div>
 
         {/* Setup Instructions */}
@@ -140,8 +140,8 @@ export default function DisplayManagement() {
           ) : (
             <div className="bg-[#242526] rounded-xl border border-[#3A3B3C] p-6 text-center">
               <Clock className="w-8 h-8 text-[#3A3B3C] mx-auto mb-2" />
-              <p className="text-sm text-[#B0B3B8]">No active tournaments</p>
-              <p className="text-xs text-[#B0B3B8]/60 mt-1">Start a tournament to enable clock display</p>
+              <p className="text-sm text-[#B0B3B8]">No Active Tournaments</p>
+              <p className="text-xs text-[#B0B3B8]/60 mt-1">Start A Tournament To Enable Clock Display</p>
             </div>
           )}
         </div>

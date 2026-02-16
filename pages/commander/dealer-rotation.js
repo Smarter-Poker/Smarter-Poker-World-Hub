@@ -12,7 +12,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { RefreshCw, Clock, Users, Loader2,
+import {
+  RefreshCw, Clock, Users, Loader2,
   ArrowRightLeft, Coffee, CheckCircle2, ChevronRight
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
@@ -133,7 +134,7 @@ export default function DealerRotation() {
         {/* Header */}
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-<div>
+            <div>
               <h1 className="text-lg font-bold text-white">Dealer Rotation</h1>
               <p className="text-xs text-[#B0B3B8]">
                 {assignedDealers.length} dealing · {availableDealers.length} available · {unassignedTables.length} tables need dealer
@@ -163,7 +164,7 @@ export default function DealerRotation() {
           <div>
             <h2 className="text-sm font-semibold text-[#B0B3B8] uppercase tracking-wider mb-2">Currently Dealing</h2>
             {assignedDealers.length === 0 ? (
-              <p className="py-4 text-center text-[#B0B3B8] text-sm">No dealers currently assigned</p>
+              <p className="py-4 text-center text-[#B0B3B8] text-sm">No Dealers Currently Assigned</p>
             ) : (
               <div className="space-y-2">
                 {assignedDealers.map(dealer => {
@@ -193,7 +194,7 @@ export default function DealerRotation() {
                       {/* Push target selection */}
                       {pushTarget === dealer.id ? (
                         <div className="px-4 py-3 border-t border-[#3A3B3C] bg-[#1A1B1C]">
-                          <p className="text-xs text-[#B0B3B8] mb-2">Push to table:</p>
+                          <p className="text-xs text-[#B0B3B8] mb-2">Push To Table:</p>
                           <div className="flex flex-wrap gap-2">
                             {activeTables.map(t => {
                               const tNum = t.table_number || t.number;

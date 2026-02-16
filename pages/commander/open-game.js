@@ -11,7 +11,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { Check, ChevronRight, Loader2, Users,
+import {
+  Check, ChevronRight, Loader2, Users,
   Clock, DollarSign, Play, AlertTriangle
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
@@ -142,11 +143,10 @@ export default function OpenGame() {
                 {GAME_TYPES.map(game => (
                   <button key={game.type}
                     onClick={() => { setSelectedGame(game); setSelectedStakes(null); }}
-                    className={`w-full px-4 py-4 rounded-xl text-left flex items-center gap-3 border-2 ${
-                      selectedGame?.type === game.type
+                    className={`w-full px-4 py-4 rounded-xl text-left flex items-center gap-3 border-2 ${selectedGame?.type === game.type
                         ? `border-[${game.color}] bg-[${game.color}]/10`
                         : 'border-[#3A3B3C] bg-[#242526]'
-                    }`}
+                      }`}
                     style={selectedGame?.type === game.type ? { borderColor: game.color, backgroundColor: `${game.color}10` } : {}}>
                     <div className="w-3 h-3 rounded-full" style={{ backgroundColor: game.color }} />
                     <div>
@@ -163,9 +163,8 @@ export default function OpenGame() {
                   <div className="grid grid-cols-3 gap-2">
                     {(COMMON_STAKES[selectedGame.type] || []).map(s => (
                       <button key={s} onClick={() => { setSelectedStakes(s); setCustomStakes(''); }}
-                        className={`py-3 rounded-xl text-sm font-semibold ${
-                          selectedStakes === s ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#E4E6EB]'
-                        }`}>{s}</button>
+                        className={`py-3 rounded-xl text-sm font-semibold ${selectedStakes === s ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#E4E6EB]'
+                          }`}>{s}</button>
                     ))}
                   </div>
                   <input type="text" value={customStakes}
@@ -199,7 +198,7 @@ export default function OpenGame() {
                 <div className="bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-xl p-4 text-center">
                   <AlertTriangle className="w-8 h-8 text-[#F59E0B] mx-auto mb-2" />
                   <p className="text-[#F59E0B] font-medium">No available tables</p>
-                  <p className="text-sm text-[#B0B3B8] mt-1">All tables are currently in use or need to be added in Table Management.</p>
+                  <p className="text-sm text-[#B0B3B8] mt-1">All Tables Are Currently In Use Or Need To Be Added In Table Management.</p>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -208,16 +207,15 @@ export default function OpenGame() {
                     const isSelected = selectedTable?.id === t.id;
                     return (
                       <CommanderLayout title="Open Game" backHref="/commander/tables">
-                      <button key={t.id || tNum} onClick={() => setSelectedTable(t)}
-                        className={`w-full px-4 py-4 rounded-xl text-left flex items-center justify-between border-2 ${
-                          isSelected ? 'border-[#1877F2] bg-[#1877F2]/10' : 'border-[#3A3B3C] bg-[#242526]'
-                        }`}>
-                        <div>
-                          <p className="text-lg font-bold text-white">Table {tNum}</p>
-                          <p className="text-xs text-[#B0B3B8]">{t.max_seats || t.seats || 9} seats</p>
-                        </div>
-                        {isSelected && <Check className="w-6 h-6 text-[#1877F2]" />}
-                      </button>
+                        <button key={t.id || tNum} onClick={() => setSelectedTable(t)}
+                          className={`w-full px-4 py-4 rounded-xl text-left flex items-center justify-between border-2 ${isSelected ? 'border-[#1877F2] bg-[#1877F2]/10' : 'border-[#3A3B3C] bg-[#242526]'
+                            }`}>
+                          <div>
+                            <p className="text-lg font-bold text-white">Table {tNum}</p>
+                            <p className="text-xs text-[#B0B3B8]">{t.max_seats || t.seats || 9} seats</p>
+                          </div>
+                          {isSelected && <Check className="w-6 h-6 text-[#1877F2]" />}
+                        </button>
                       </CommanderLayout>
                     );
                   })}
