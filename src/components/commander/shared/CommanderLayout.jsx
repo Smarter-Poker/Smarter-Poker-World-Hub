@@ -392,6 +392,13 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
             <button className="cmd-hamburger" onClick={() => setMenuOpen(true)}>
               <Menu size={20} />
             </button>
+            <button
+              className="cmd-hub-btn"
+              onClick={() => router.push('/hub')}
+              title="Back to Smarter.Poker Hub"
+            >
+              <img src="/images/btn-hub.png" alt="Hub" />
+            </button>
             {!hideBack && (
               <button
                 className="cmd-back-btn"
@@ -408,14 +415,7 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
               </button>
             )}
           </div>
-          <div className="cmd-global-right" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <button
-              className="cmd-hub-btn"
-              onClick={() => router.push('/hub')}
-              title="Back to Smarter.Poker Hub"
-            >
-              <img src="/images/btn-hub.png" alt="Hub" />
-            </button>
+          <div className="cmd-global-right">
             <div>
               <div className="cmd-global-title">Club Commander</div>
               <div className="cmd-global-venue">{venueName}</div>
