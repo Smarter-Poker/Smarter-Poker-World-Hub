@@ -4,7 +4,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import gsap from 'gsap';
@@ -2687,20 +2687,13 @@ export default function MemoryGamesPage() {
                     </button>
                 </div>
             )}
-            <Head>
-                <title>Memory Matrix — Smarter.Poker</title>
-                <meta name="description" content="Master GTO ranges through video game training" />
-                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+            <SEOHead
+                title="Poker Memory Games — Train Your Brain"
+                description="Sharpen your poker cognitive skills with memory matrix games. Train pattern recognition, recall speed, and mental agility."
+                canonical="/hub/memory-games"
+            >
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-                <style>{`
-                    .memory-games-page { width: 100%; max-width: 100%; margin: 0 auto; overflow-x: hidden; }
-                    
-                    
-                    
-                    
-                    
-                `}</style>
-            </Head>
+            </SEOHead>
 
             <div className="memory-games-page"
                 ref={containerRef}

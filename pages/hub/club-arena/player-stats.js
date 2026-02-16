@@ -3,7 +3,7 @@
    Facebook Dark Theme | Real Stats from Hand History & Gameplay
    ═══════════════════════════════════════════════════════════════════════════════ */
 import { useState, useEffect, useCallback } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -274,10 +274,12 @@ export default function PlayerStats() {
 
     return (
         <>
-            <Head>
-                <title>My Stats | Club Arena</title>
-                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-            </Head>
+            <SEOHead
+                title="Club Arena — Player Stats"
+                description="View player statistics in Club Arena."
+                canonical="/hub/club-arena/player-stats"
+                noindex={true}
+            />
 
             <div style={S.page}>
                 <UniversalHeader pageDepth={2} />

@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 
 export default function TimerTest() {
     const [timeRemaining, setTimeRemaining] = useState(15);
@@ -58,9 +58,11 @@ export default function TimerTest() {
 
     return (
         <>
-            <Head>
-                <title>Timer Overlay Test</title>
-            </Head>
+            <SEOHead
+                title="Timer Test"
+                description="Trivia timer test page."
+                noindex={true}
+            />
 
             <div style={{
                 width: '100vw',

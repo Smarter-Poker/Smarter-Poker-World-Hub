@@ -6,7 +6,7 @@
 
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import Head from 'next/head';
+import SEOHead from '../src/components/seo/SEOHead';
 
 const TrainingGameTable = dynamic(
     () => import('../src/components/poker/TrainingGameTable'),
@@ -32,9 +32,11 @@ export default function TrainingTableDemo() {
 
     return (
         <>
-            <Head>
-                <title>Training Game Table | Smarter.Poker</title>
-            </Head>
+            <SEOHead
+                title="Training Table Demo"
+                description="Demo training poker table."
+                noindex={true}
+            />
 
             <TrainingGameTable
                 heroCards={['Ah', 'Kh']}

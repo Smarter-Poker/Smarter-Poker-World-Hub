@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { createClient } from '@supabase/supabase-js';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -106,9 +106,11 @@ export default function MemoryGamesLeaderboard() {
 
     return (
         <>
-            <Head>
-                <title>Leaderboard | Memory Games</title>
-            </Head>
+            <SEOHead
+                title="Memory Games Leaderboard"
+                description="See who has the sharpest memory on the Smarter.Poker memory games leaderboard."
+                canonical="/hub/memory-games/leaderboard"
+            />
 
             <PageTransition>
                 <div style={{ minHeight: '100vh', background: '#0a0e1a' }}>

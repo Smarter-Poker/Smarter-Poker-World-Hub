@@ -5,7 +5,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import {
   Shield, Search, Loader2, RefreshCw, AlertTriangle,
   CheckCircle2, Clock, Ban, UserX, Users
@@ -93,7 +93,11 @@ export default function ResponsibleGaming() {
   return (
     <CommanderLayout title="Responsible Gaming" backHref="/commander/dashboard">
       <>
-        <Head><title>Responsible Gaming | Club Commander</title></Head>
+        <SEOHead
+                title="Commander — Responsible Gaming"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
         <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
           <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
             <div className="flex-1">

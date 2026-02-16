@@ -3,7 +3,7 @@
  */
 
 import { useState } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
@@ -114,9 +114,12 @@ export default function BankrollExport() {
 
     return (
         <>
-            <Head>
-                <title>Export Data | Bankroll Manager</title>
-            </Head>
+            <SEOHead
+                title="Export Bankroll Data"
+                description="Export your bankroll data for tax reporting or external analysis."
+                canonical="/hub/bankroll-manager/export"
+                noindex={true}
+            />
 
             <PageTransition>
                 <div style={{ minHeight: '100vh', background: '#0a0e1a' }}>

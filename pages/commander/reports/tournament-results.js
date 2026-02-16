@@ -5,7 +5,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import {
   Trophy, Users, DollarSign, ChevronDown, Loader2, Calendar
 } from 'lucide-react';
@@ -58,7 +58,11 @@ export default function TournamentResultsReport() {
   return (
     <CommanderLayout title="Tournament Results" backHref="/commander/reports">
       <>
-        <Head><title>Tournament Results | Club Commander</title></Head>
+        <SEOHead
+                title="Commander — Tournament Results"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
         <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
           <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
             <h1 className="text-lg font-bold text-white">Tournament Results</h1>

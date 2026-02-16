@@ -5,7 +5,7 @@
  * Enhanced with: optimistic updates, message reactions, sound notifications
  */
 
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -2453,7 +2453,11 @@ export default function MessengerPage() {
     if (!user) {
         return (
             <>
-                <Head><title>Messenger | Smarter.Poker</title></Head>
+                <SEOHead
+                title="Messenger — Direct Messages"
+                description="Chat with friends and poker players directly on Smarter.Poker Messenger."
+                canonical="/hub/messenger"
+            />
                 <div style={{
                     minHeight: '100vh',
                     display: 'flex',

@@ -9,7 +9,7 @@
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../../../src/components/seo/SEOHead';
 import { motion } from 'framer-motion';
 import { getClinicById, getRemediationXPMultiplier } from '../../../../src/data/TRAINING_CLINICS';
 import useTrainingProgress from '../../../../src/hooks/useTrainingProgress';
@@ -241,7 +241,11 @@ export default function ClinicPlayPage() {
 
         return (
             <>
-                <Head><title>{passed ? 'Leak Fixed!' : 'Keep Trying'}</title></Head>
+                <SEOHead
+                title="Training Clinic"
+                description="Smarter.Poker — The Future of the Game."
+                noindex={true}
+            />
                 <style>{EFFECT_STYLES}</style>
                 <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a1628', color: '#fff' }}>
                     <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ textAlign: 'center' }}>

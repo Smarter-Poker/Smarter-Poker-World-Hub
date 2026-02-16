@@ -12,7 +12,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import {
   Loader2, RefreshCw, Table2, Trophy, DollarSign,
   Power, ChevronRight, X, Check, AlertTriangle, Users, Wifi
@@ -131,7 +131,11 @@ export default function TableAssignments() {
 
   return (
     <>
-      <Head><title>Table Assignments | Club Commander</title></Head>
+      <SEOHead
+                title="Commander — Table Assignments"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
         {/* Header */}

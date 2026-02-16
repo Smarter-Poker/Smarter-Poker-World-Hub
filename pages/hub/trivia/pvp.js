@@ -4,7 +4,7 @@
  * Uses Supabase Realtime for live matchmaking
  */
 
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
@@ -672,11 +672,13 @@ export default function PvPPage() {
 
     return (
         <PageTransition>
-            <Head>
-                <title>1v1 Battle - Smarter.Poker Trivia</title>
-                <meta name="description" content="Challenge players to 1v1 trivia battles!" />
+            <SEOHead
+                title="PvP Trivia — Player vs Player"
+                description="Challenge other players to head-to-head poker trivia battles. Prove who knows poker best."
+                canonical="/hub/trivia/pvp"
+            >
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet" />
-            </Head>
+            </SEOHead>
 
             <div className="pvp-page">
                 <div className="bg-overlay" />

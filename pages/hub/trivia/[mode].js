@@ -3,7 +3,7 @@
  * Route: /hub/trivia/[mode]
  */
 
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../../src/lib/supabase';
@@ -631,11 +631,12 @@ export default function TriviaModePage() {
 
     return (
         <PageTransition>
-            <Head>
-                <title>{modeConfig.name} - Smarter.Poker Trivia</title>
-                <meta name="description" content={modeConfig.description} />
-                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-            </Head>
+            <SEOHead
+                title="Poker Trivia Game"
+                description="Play poker trivia on Smarter.Poker. Test your knowledge across multiple game modes."
+                canonical="/hub/trivia"
+                noindex={true}
+            />
 
             <div className="trivia-mode-page">
                 <div className="bg-overlay" />

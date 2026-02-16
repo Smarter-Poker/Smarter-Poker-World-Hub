@@ -10,7 +10,7 @@
 
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import Head from 'next/head';
+import SEOHead from '../src/components/seo/SEOHead';
 
 // Dynamic import to avoid SSR issues with Framer Motion
 const GoldenTemplateTable = dynamic(
@@ -71,10 +71,11 @@ export default function PremiumTableDemo() {
 
     return (
         <>
-            <Head>
-                <title>Premium Poker Table | Smarter.Poker</title>
-                <meta name="description" content="Next-gen poker table UI with cinematic animations" />
-            </Head>
+            <SEOHead
+                title="Premium Table Demo"
+                description="Demo premium poker table."
+                noindex={true}
+            />
 
             <GoldenTemplateTable
                 players={DEMO_PLAYERS}

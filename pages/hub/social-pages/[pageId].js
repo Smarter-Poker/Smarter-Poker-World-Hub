@@ -2,7 +2,7 @@
  * Social Page Detail View - Full page with feed, followers, about, and content management
  * Supports venue, group, community, and brand pages
  */
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
@@ -396,10 +396,11 @@ export default function SocialPageDetail() {
 
     return (
         <>
-            <Head>
-                <title>{page.name} | Smarter.Poker</title>
-                <meta name="description" content={page.description || `${page.name} on Smarter.Poker`} />
-            </Head>
+            <SEOHead
+                title="Social Page"
+                description="View a community page on Smarter.Poker."
+                noindex={true}
+            />
             <UniversalHeader />
 
             <div style={{

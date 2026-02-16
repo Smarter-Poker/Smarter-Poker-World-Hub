@@ -13,7 +13,7 @@
    - Bottom navigation icons
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
@@ -470,38 +470,13 @@ export default function DiamondArcade() {
                     </button>
                 </div>
             )}
-            <Head>
-                <title>Diamond Arcade - Smarter.Poker</title>
-                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+            <SEOHead
+                title="Diamond Arcade — Poker Arcade Games"
+                description="Play arcade-style poker games, earn diamonds, climb leaderboards, and win prizes in the Smarter.Poker Diamond Arcade."
+                canonical="/hub/diamond-arcade"
+            >
                 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-                <style>{`
-                    @keyframes shimmer {
-                        0% { background-position: -200% center; }
-                        100% { background-position: 200% center; }
-                    }
-                    @keyframes float {
-                        0%, 100% { transform: translateY(0) scale(1); }
-                        50% { transform: translateY(-15px) scale(1.05); }
-                    }
-                    @keyframes pulse-glow {
-                        0%, 100% { filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.8)); }
-                        50% { filter: drop-shadow(0 0 40px rgba(59, 130, 246, 1)); }
-                    }
-                    @keyframes shard-float {
-                        0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.6; }
-                        50% { transform: translateY(-8px) rotate(10deg); opacity: 1; }
-                    }
-                    @keyframes border-glow {
-                        0%, 100% { box-shadow: inset 0 0 20px rgba(251, 191, 36, 0.3), 0 0 20px rgba(251, 191, 36, 0.2); }
-                        50% { box-shadow: inset 0 0 30px rgba(251, 191, 36, 0.5), 0 0 30px rgba(251, 191, 36, 0.4); }
-                    }
-                    .arcade-container { width: 100%; max-width: 100%; margin: 0 auto; }
-                    
-                    @media (min-width: 501px) and (max-width: 700px) { .arcade-container { zoom: 0.7; } }
-                    @media (min-width: 701px) and (max-width: 900px) { .arcade-container { zoom: 0.9; } }
-                    @media (min-width: 901px) { .arcade-container { zoom: 1.1; } }
-                `}</style>
-            </Head>
+            </SEOHead>
 
             <div className="arcade-container" style={styles.pageWrapper}>
                 {/* Casino Background Layers */}

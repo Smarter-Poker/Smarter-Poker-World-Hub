@@ -6,7 +6,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../../../src/components/seo/SEOHead';
 import {
   Trophy, LayoutGrid, Users, Scale, UserPlus, Monitor,
   Loader2, RefreshCw, Search, CheckCircle2, AlertTriangle,
@@ -148,7 +148,11 @@ export default function TDRegister() {
 
   return (
     <>
-      <Head><title>TD Register | Club Commander</title></Head>
+      <SEOHead
+                title="Commander — Register"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] pb-20 font-['Inter']">
 
         {/* Header */}

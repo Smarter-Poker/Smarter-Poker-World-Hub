@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { createClient } from '@supabase/supabase-js';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -196,9 +196,12 @@ export default function MemoryGamesStats() {
 
     return (
         <>
-            <Head>
-                <title>My Stats | Memory Games</title>
-            </Head>
+            <SEOHead
+                title="Memory Games Stats"
+                description="View your memory game performance, scores, and improvement trends."
+                canonical="/hub/memory-games/stats"
+                noindex={true}
+            />
 
             <PageTransition>
                 <div style={{ minHeight: '100vh', background: '#0a0e1a' }}>

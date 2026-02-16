@@ -6,7 +6,7 @@
  * Answer until you get one wrong. Diamonds stack with streak multipliers.
  */
 
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
@@ -559,9 +559,11 @@ export default function EndlessModePage() {
 
     return (
         <>
-            <Head>
-                <title>Endless Mode | Smarter.Poker</title>
-            </Head>
+            <SEOHead
+                title="Endless Trivia — Keep the Streak Alive"
+                description="How many poker trivia questions can you answer in a row? Play Endless mode to test your limits."
+                canonical="/hub/trivia/endless"
+            />
 
             <UniversalHeader pageDepth={2} />
 

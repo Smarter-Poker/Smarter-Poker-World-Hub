@@ -11,7 +11,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import {
   Gift, DollarSign, Users, Clock, Search,
   Plus, Loader2, RefreshCw, Check, Star, TrendingUp, Lock, X, Shield
@@ -172,7 +172,11 @@ export default function CompSystem() {
   return (
     <CommanderLayout title="Comp System" backHref="/commander/dashboard">
       <>
-        <Head><title>Comp System | Club Commander</title></Head>
+        <SEOHead
+                title="Commander — Comps & Rewards"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
         <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
           {/* PIN Authorization Modal */}

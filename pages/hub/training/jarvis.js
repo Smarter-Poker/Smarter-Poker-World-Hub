@@ -5,7 +5,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
@@ -45,9 +45,11 @@ export default function JarvisDashboard() {
 
     return (
         <PageTransition>
-            <Head>
-                <title>Jarvis Dashboard — Smarter.Poker</title>
-            </Head>
+            <SEOHead
+                title="Jarvis AI Coach — GTO Analysis"
+                description="Get personalized GTO coaching from Jarvis, your AI poker intelligence. Solver-grade analysis for every hand."
+                canonical="/hub/training/jarvis"
+            />
 
             <div style={styles.container}>
                 <UniversalHeader pageDepth={2} />

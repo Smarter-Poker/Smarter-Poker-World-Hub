@@ -10,7 +10,7 @@
  * - Increasing difficulty as levels progress
  */
 
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
@@ -670,9 +670,12 @@ export default function SurvivalGamePage() {
 
     return (
         <>
-            <Head>
-                <title>Survival Mode | Smarter.Poker</title>
-            </Head>
+            <SEOHead
+                title="Survival Trivia Game"
+                description="Play the Survival Trivia challenge. Answer correctly or lose your streak."
+                canonical="/hub/trivia/survival-game"
+                noindex={true}
+            />
 
             <UniversalHeader pageDepth={2} />
 

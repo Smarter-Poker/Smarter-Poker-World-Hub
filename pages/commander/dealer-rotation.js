@@ -11,7 +11,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import {
   RefreshCw, Clock, Users, Loader2,
   ArrowRightLeft, Coffee, CheckCircle2, ChevronRight
@@ -128,7 +128,11 @@ export default function DealerRotation() {
 
   return (
     <CommanderLayout title="Dealer Rotation" backHref="/commander/dealers">
-      <Head><title>Dealer Rotation | Club Commander</title></Head>
+      <SEOHead
+                title="Commander — Dealer Rotation"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
         {/* Header */}

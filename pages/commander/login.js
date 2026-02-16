@@ -5,7 +5,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../../src/lib/supabase';
@@ -142,9 +142,11 @@ export default function CommanderLogin() {
 
   return (
     <div className="min-h-screen bg-[#18191A] flex items-center justify-center p-4">
-      <Head>
-        <title>Sign In | Club Commander</title>
-      </Head>
+      <SEOHead
+                title="Club Commander — Sign In"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
 
       <div className="max-w-md w-full">
         {/* Logo */}

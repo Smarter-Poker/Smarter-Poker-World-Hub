@@ -12,23 +12,10 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  const _g = await guardManager(req, res); if (!_g) return;
+  const staff = await guardManager(req, res);
+  if (!staff) return;
 
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ success: false, error: 'Authorization required' });
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user } } = await supabase.auth.getUser(token);
-    if (!user) return res.status(401).json({ success: false, error: 'Invalid token' });
-
-    const { data: staff } = await supabase
-      .from('commander_staff')
-      .select('venue_id, role')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .single();
-    if (!staff) return res.status(403).json({ success: false, error: 'Staff access required' });
-
     if (req.method === 'GET') {
       const { data: settings } = await supabase
         .from('commander_venue_settings')
@@ -63,7 +50,7 @@ export default async function handler(req, res) {
           venue_id: staff.venue_id,
           ...filtered,
           updated_at: new Date().toISOString(),
-          updated_by: user.id
+          updated_by: staff.id
         }, { onConflict: 'venue_id' })
         .select()
         .single();

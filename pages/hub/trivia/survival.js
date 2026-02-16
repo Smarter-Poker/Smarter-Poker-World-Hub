@@ -3,7 +3,7 @@
  * Endless trivia until you miss
  */
 
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../../src/lib/supabase';
@@ -195,10 +195,11 @@ export default function SurvivalModePage() {
 
     return (
         <PageTransition>
-            <Head>
-                <title>Survival Mode - Smarter.Poker Trivia</title>
-                <meta name="description" content="Answer until you miss! How long can you survive?" />
-            </Head>
+            <SEOHead
+                title="Survival Trivia — One Life Challenge"
+                description="One wrong answer and you are out. Test your poker knowledge in Survival mode."
+                canonical="/hub/trivia/survival"
+            />
 
             <div className="survival-page">
                 <div className="bg-overlay" />

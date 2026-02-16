@@ -4,7 +4,7 @@
  * Route: /hub/user/[username]
  */
 
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
@@ -772,18 +772,11 @@ export default function UserProfilePage() {
 
     return (
         <PageTransition>
-            <Head>
-                <title>{displayName} | Smarter.Poker</title>
-                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-                <style>{`
-                    .fb-profile-page { width: 100%; max-width: 100%; margin: 0 auto; overflow-x: hidden; }
-                    
-                    
-                    
-                    
-                    
-                `}</style>
-            </Head>
+            <SEOHead
+                title="Player Profile"
+                description="View a poker player profile, stats, and achievements on Smarter.Poker."
+                noindex={true}
+            />
 
             <div className="fb-profile-page" style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
                 <UniversalHeader pageDepth={2} />

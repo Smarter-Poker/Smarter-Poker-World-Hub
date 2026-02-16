@@ -6,7 +6,7 @@
  * Target: 5 pilot venues (2 TX, 1 CA, 1 NV, 1 FL)
  */
 import { useState, useEffect } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import {
   ChevronLeft,
@@ -111,10 +111,11 @@ export default function PilotVenuesPage() {
 
   return (
     <>
-      <Head>
-        <title>Pilot Venues | Club Commander Admin</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
+      <SEOHead
+                title="Commander — Pilots"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
 
       <div className="cmd-page min-h-screen">
         {/* Header */}

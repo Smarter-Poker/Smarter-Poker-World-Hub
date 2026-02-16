@@ -4,7 +4,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
@@ -145,20 +145,13 @@ export default function OrbPage() {
 
     return (
         <PageTransition>
-            <Head>
-                <title>{orbMeta.title} — Smarter.Poker</title>
-                <meta name="description" content={orbMeta.description} />
-                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+            <SEOHead
+                title="Smarter.Poker Feature"
+                description="Explore this Smarter.Poker feature."
+                noindex={true}
+            >
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-                <style>{`
-                    .dynamic-orb-page { width: 100%; max-width: 100%; margin: 0 auto; overflow-x: hidden; }
-                    
-                    
-                    
-                    
-                    
-                `}</style>
-            </Head>
+            </SEOHead>
 
             <div className="dynamic-orb-page" style={styles.container}>
                 {/* Background grid */}

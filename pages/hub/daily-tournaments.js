@@ -3,7 +3,7 @@
  * Source of Truth: data/tournament-venues.json (163 confirmed venues)
  */
 
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
@@ -129,14 +129,15 @@ export default function DailyTournaments() {
 
     return (
         <>
-            <Head>
-                <title>Daily Tournaments | Smarter.Poker</title>
-                <meta name="description" content="Find poker tournaments happening today at 163 verified venues across the US." />
-                {/* Industrial Fonts */}
+            <SEOHead
+                title="Daily Poker Tournaments — Compete Every Day"
+                description="Join daily poker tournaments on Smarter.Poker. Compete against players worldwide with daily challenges and prize pools."
+                canonical="/hub/daily-tournaments"
+            >
                 <link rel="preconnect" href="https://fonts.googleapis.com" />
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
-            </Head>
+            </SEOHead>
 
             <div className="dt-page">
                 {/* Space Background */}

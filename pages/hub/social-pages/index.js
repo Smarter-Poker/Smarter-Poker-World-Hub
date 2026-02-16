@@ -2,7 +2,7 @@
  * Social Pages Hub - Browse, discover, and manage social pages
  * Displays venue pages, group pages, community pages with follow/join
  */
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
@@ -221,10 +221,11 @@ export default function SocialPagesHub() {
 
     return (
         <>
-            <Head>
-                <title>Social Pages | Smarter.Poker</title>
-                <meta name="description" content="Discover and follow poker venues, groups, and community pages" />
-            </Head>
+            <SEOHead
+                title="Social Pages — Community"
+                description="Discover and follow community pages on Smarter.Poker."
+                canonical="/hub/social-pages"
+            />
             <UniversalHeader />
 
             <div style={{

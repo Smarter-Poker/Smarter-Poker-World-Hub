@@ -4,7 +4,7 @@
  * Features Facebook-style follow system with auto-follow on declined requests
  */
 
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
@@ -925,46 +925,11 @@ export default function FriendsPage() {
 
     return (
         <PageTransition>
-            <Head>
-                <title>Friends & Followers | Smarter.Poker</title>
-                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-                <style>{`
-                    /* Facebook-style Responsive Layout - NO ZOOM, proper mobile sizing */
-                    html, body { 
-                        background: ${C.bg} !important; 
-                        margin: 0;
-                        padding: 0;
-                    }
-                    
-                    .friends-page {
-                        width: 100%;
-                        max-width: 680px;
-                        margin: 0 auto;
-                        min-height: 100vh;
-                        overflow-x: hidden;
-                    }
-                    
-                    /* Mobile-first: Full width on phones, centered on larger screens */
-                    @media (max-width: 680px) {
-                        .friends-page {
-                            max-width: 100%;
-                            padding: 0;
-                        }
-                    }
-                    
-                    /* Desktop: Centered column with max-width */
-                    @media (min-width: 681px) {
-                        .friends-page {
-                            padding: 0 16px;
-                        }
-                    }
-                    
-                    @keyframes pulse {
-                        0%, 100% { opacity: 1; }
-                        50% { opacity: 0.5; }
-                    }
-                `}</style>
-            </Head>
+            <SEOHead
+                title="Friends — Your Poker Network"
+                description="Manage your poker friends network. Add friends, view their stats, challenge them to games, and stay connected."
+                canonical="/hub/friends"
+            />
             <div className="friends-page" style={{
                 minHeight: '100vh',
                 background: C.bg,

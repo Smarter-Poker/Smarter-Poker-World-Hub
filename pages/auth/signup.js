@@ -7,7 +7,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import { supabase } from '../../src/lib/supabase';
 
 // US States for dropdown
@@ -679,11 +679,11 @@ export default function SignUpPage() {
     // ─────────────────────────────────────────────────────────────────────────
     return (
         <>
-            <Head>
-                <title>Sign Up — Smarter.Poker</title>
-                <meta name="description" content="Create your Smarter.Poker account and start your GTO training journey" />
-                <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-            </Head>
+            <SEOHead
+                title="Create Account — Smarter.Poker"
+                description="Join Smarter.Poker — the future of poker. Free account with training, trivia, live games, and more."
+                canonical="/auth/signup"
+            />
 
             <div style={styles.container}>
 

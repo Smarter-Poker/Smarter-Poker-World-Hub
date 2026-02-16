@@ -5,7 +5,7 @@
  */
 import { useState } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../../../src/components/seo/SEOHead';
 import {
   ArrowLeft,
   Home,
@@ -117,10 +117,11 @@ export default function CreateHomeGamePage() {
 
   return (
     <>
-      <Head>
-        <title>Host a Home Game | Smarter Poker</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
+      <SEOHead
+                title="Create Home Game"
+                description="Smarter.Poker — The Future of the Game."
+                noindex={true}
+            />
 
       <div className="cmd-page">
         {/* Header */}

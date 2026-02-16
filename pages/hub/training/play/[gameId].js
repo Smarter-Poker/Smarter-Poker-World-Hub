@@ -7,7 +7,7 @@
 
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../../../src/components/seo/SEOHead';
 import LevelSelector from '../../../../src/components/training/LevelSelector';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 
@@ -60,18 +60,11 @@ export default function TrainingPlayPage() {
 
     return (
         <>
-            <Head>
-                <title>Select Level | Smarter.Poker Training</title>
-                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-                <style>{`
-                    .training-play-page { width: 100%; max-width: 100%; margin: 0 auto; overflow-x: hidden; }
-                    
-                    
-                    
-                    
-                    
-                `}</style>
-            </Head>
+            <SEOHead
+                title="Play Training Game"
+                description="Smarter.Poker — The Future of the Game."
+                noindex={true}
+            />
             <div className="training-play-page">
                 <UniversalHeader pageDepth={2} />
                 <LevelSelector

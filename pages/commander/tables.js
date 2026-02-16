@@ -4,7 +4,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import { Plus, Edit2, Trash2, Table2, Users, Loader2 } from 'lucide-react';
 import TableStatus, { TableGrid } from '../../src/components/commander/staff/TableStatus';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
@@ -154,10 +154,11 @@ export default function CommanderTablesPage() {
   return (
     <CommanderLayout title="Tables | {venue?.name || 'Commander'}" backHref="/commander/dashboard">
       <>
-        <Head>
-          <title>Tables | {venue?.name || 'Commander'}</title>
-          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-        </Head>
+        <SEOHead
+                title="Commander — Table Management"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
 
         <div className="cmd-page">
           {/* Header */}

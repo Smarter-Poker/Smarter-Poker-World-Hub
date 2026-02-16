@@ -5,7 +5,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+
 import {
   BarChart3, Users, Trophy, Clock, DollarSign,
   FileText, Activity, ChevronRight, Calendar, TrendingUp,

@@ -6,7 +6,7 @@
  * Auto-refreshes every 5 seconds, auto-dismisses expired messages
  */
 import { useState, useEffect, useRef } from 'react';
-import Head from 'next/head';
+
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
 export default function AnnouncementsDisplay() {

@@ -4,7 +4,7 @@
  * POST /api/commander/time-billing/sessions - Start new session
  */
 import { createClient } from '@supabase/supabase-js';
-import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
+import { guardStaff } from '../../../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -12,22 +12,9 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  const _g = await guardWriteStaff(req, res); if (!_g) return;
+  const staff = await guardStaff(req, res); if (!staff) return;
 
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ success: false, error: 'Authorization required' });
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user } } = await supabase.auth.getUser(token);
-    if (!user) return res.status(401).json({ success: false, error: 'Invalid token' });
-
-    const { data: staff } = await supabase
-      .from('commander_staff')
-      .select('venue_id')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .single();
-    if (!staff) return res.status(403).json({ success: false, error: 'Staff access required' });
 
     if (req.method === 'GET') {
       const { data: sessions, error } = await supabase
@@ -58,7 +45,7 @@ export default async function handler(req, res) {
           rate_per_hour: rate_per_hour || 12,
           status: 'active',
           started_at: new Date().toISOString(),
-          started_by: user.id,
+          started_by: staff.id,
           amount_paid: 0,
           total_charge: 0
         })

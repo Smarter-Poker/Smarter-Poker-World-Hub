@@ -14,7 +14,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../../../src/components/seo/SEOHead';
 import { Clock, Users, CheckCircle2, AlertTriangle, Loader2, Bell, XCircle } from 'lucide-react';
 
 export default function WaitlistStatus() {
@@ -85,10 +85,11 @@ export default function WaitlistStatus() {
 
   return (
     <>
-      <Head>
-        <title>Waitlist Status | Club Commander</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-      </Head>
+      <SEOHead
+                title="Commander — Details"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter'] flex flex-col items-center justify-center p-6">
         <div className="w-full max-w-sm space-y-6">
 

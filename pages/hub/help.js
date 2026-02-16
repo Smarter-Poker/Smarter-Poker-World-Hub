@@ -3,7 +3,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
@@ -97,11 +97,11 @@ export default function HelpPage() {
 
     return (
         <>
-            <Head>
-                <title>Help & Support — Smarter.Poker</title>
-                <meta name="description" content="Get help and support for Smarter.Poker" />
-                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-            </Head>
+            <SEOHead
+                title="Help Center — Support & FAQ"
+                description="Get help with Smarter.Poker features. FAQ, tutorials, and live support with Geeves, your poker help assistant."
+                canonical="/hub/help"
+            />
 
             <div style={{
                 minHeight: '100vh',

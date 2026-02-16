@@ -8,7 +8,7 @@
  */
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../../../src/components/seo/SEOHead';
 
 export default function SeatingDisplay() {
   const router = useRouter();
@@ -65,7 +65,11 @@ export default function SeatingDisplay() {
 
   return (
     <>
-      <Head><title>Seating | {tournament?.name || 'Tournament'}</title></Head>
+      <SEOHead
+                title="Commander — Seating Display"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
       <style jsx global>{`
         * { cursor: none !important; }
         body { overflow: hidden; }

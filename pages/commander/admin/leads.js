@@ -5,7 +5,7 @@
  * Manage venue onboarding pipeline
  */
 import { useState, useEffect } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import {
   ChevronLeft,
@@ -108,10 +108,11 @@ export default function LeadManagementPage() {
 
   return (
     <>
-      <Head>
-        <title>Lead Management | Club Commander Admin</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
+      <SEOHead
+                title="Commander — Leads"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
 
       <div className="cmd-page min-h-screen">
         {/* Header */}

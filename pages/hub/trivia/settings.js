@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { getTriviaPreferences, updateTriviaPreferences } from '../../../src/services/triviaPreferences';
@@ -102,9 +102,12 @@ export default function TriviaSettings() {
 
     return (
         <>
-            <Head>
-                <title>Settings | Trivia</title>
-            </Head>
+            <SEOHead
+                title="Trivia Settings"
+                description="Customize your poker trivia experience with difficulty, sound, and display settings."
+                canonical="/hub/trivia/settings"
+                noindex={true}
+            />
 
             <PageTransition>
                 <div style={{ minHeight: '100vh', background: '#18191a' }}>

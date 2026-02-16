@@ -8,7 +8,7 @@
  */
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import { Upload, FileText, Check, AlertTriangle,
   Loader2, Users, ChevronRight, X, Download
 } from 'lucide-react';
@@ -143,7 +143,11 @@ export default function MemberImport() {
   return (
     <CommanderLayout title="Import Members" backHref="/commander/members">
     <>
-      <Head><title>Import Members | Club Commander</title></Head>
+      <SEOHead
+                title="Commander — Member Import"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
         {/* Header */}

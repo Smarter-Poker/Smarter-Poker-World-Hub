@@ -6,7 +6,7 @@
  * Auto-refreshes every 10 seconds
  */
 import { useState, useEffect, useRef } from 'react';
-import Head from 'next/head';
+
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
 export default function DealerRotationDisplay() {

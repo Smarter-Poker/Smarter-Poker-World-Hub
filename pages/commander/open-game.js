@@ -10,7 +10,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import {
   Check, ChevronRight, Loader2, Users,
   Clock, DollarSign, Play, AlertTriangle
@@ -116,7 +116,11 @@ export default function OpenGame() {
 
   return (
     <>
-      <Head><title>Open Game | Club Commander</title></Head>
+      <SEOHead
+                title="Commander — Open Game"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
         {/* Header */}

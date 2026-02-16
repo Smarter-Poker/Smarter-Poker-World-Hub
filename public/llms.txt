@@ -1,0 +1,61 @@
+# Smarter.Poker
+
+> The ultimate poker platform for GTO training, live venue discovery, bankroll tracking, social connection, and community.
+
+## About
+
+Smarter.Poker is a comprehensive poker ecosystem with 13+ integrated "orbs" (modules) designed to make poker players smarter, more connected, and more profitable. The platform is free to use with optional VIP features.
+
+## Core Features
+
+### GTO Training Engine
+Interactive poker training with 100+ scenario-based games covering MTT, Cash, Spins & SNGs, Mental Game, and Advanced Theory. Powered by AI coaching from Jarvis, the tactical intelligence layer.
+
+### Poker Near Me
+Live poker room and venue finder with real-time game information, tournament schedules, and interactive maps covering venues across the United States.
+
+### Bankroll Manager
+Professional-grade financial tracking for poker players. Track sessions, analyze leaks, monitor ROI, and visualize trends with detailed analytics and variance analysis.
+
+### Poker Trivia
+Test and expand poker knowledge with multiple game modes: Endless, Survival, Time Attack, Mixed, PvP, and Tournaments. Features leaderboards, achievements, and streak tracking.
+
+### Diamond Store
+Premium poker merchandise and gear marketplace with cart, wishlist, and order management.
+
+### Club Arena
+Private online poker clubs with real-time gameplay, tournaments, hand histories, player stats, leaderboards, and club management.
+
+### Club Commander
+Enterprise poker room management suite for live venues with 62+ management tools including waitlist, tournaments, cashier, dealer rotation, floor management, analytics, and more.
+
+### Social Hub
+Full social platform with friends, messaging, social pages, reels, news feed, leaderboards, and community engagement features.
+
+### Poker News
+Aggregated poker news from multiple sources, updated hourly.
+
+### Video Library
+Curated poker video content library with watch history tracking and AI tactical analysis.
+
+### Memory Games
+Poker-themed cognitive training games to improve memory and pattern recognition.
+
+### Diamond Arcade
+Arcade-style poker games with achievements, leaderboards, and prize tracking.
+
+### Events Calendar
+Poker tournament and event calendar with live updates.
+
+## AI Features
+
+- **Jarvis**: Elite tactical GTO intelligence layer providing solver-grade analysis
+- **Geeves**: Robot butler-style live help assistant for user support
+- **Proactive Help**: Context-aware assistance suggestions throughout the platform
+
+## Technical Details
+
+- **URL**: https://smarter.poker
+- **Platform**: Web application (progressive web app)
+- **Framework**: Next.js (World Hub), React + Vite (Club Arena)
+- **Pricing**: Free with optional VIP subscription

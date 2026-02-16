@@ -4,7 +4,7 @@
  * Dark industrial sci-fi gaming theme
  */
 import React, { useState } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import {
@@ -240,11 +240,11 @@ export default function CommanderLanding() {
 
   return (
     <>
-      <Head>
-        <title>Club Commander - Modern Poker Room Management</title>
-        <meta name="description" content="Digital waitlist, tournament clock, promotions, and more. Free for small rooms, powerful for casinos." />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-      </Head>
+      <SEOHead
+                title="Club Commander — Poker Room Management Suite"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
 
       <div className="min-h-screen" style={{ fontFamily: 'Inter, sans-serif', backgroundColor: '#18191A' }}>
         {/* Navigation */}

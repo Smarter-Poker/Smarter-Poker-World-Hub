@@ -5,7 +5,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { supabase } from '../../../src/lib/supabase';
@@ -114,9 +114,12 @@ export default function MessageRequests() {
 
     return (
         <PageTransition>
-            <Head>
-                <title>Message Requests — Smarter.Poker</title>
-            </Head>
+            <SEOHead
+                title="Message Requests"
+                description="View pending message requests."
+                canonical="/hub/messenger/requests"
+                noindex={true}
+            />
 
             <div style={styles.container}>
                 <UniversalHeader pageDepth={2} />

@@ -1,7 +1,7 @@
 /**
  * Create Social Page - Venue, Group, Community, or Brand page
  */
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
@@ -95,7 +95,12 @@ export default function CreateSocialPage() {
 
     return (
         <>
-            <Head><title>Create Page | Smarter.Poker</title></Head>
+            <SEOHead
+                title="Create Social Page"
+                description="Create a new social page on Smarter.Poker to share content and build a community."
+                canonical="/hub/social-pages/create"
+                noindex={true}
+            />
             <UniversalHeader />
 
             <div style={{

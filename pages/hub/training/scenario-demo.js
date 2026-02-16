@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import TrainingHandScenarioPlayer from '../../../src/components/training/TrainingHandScenarioPlayer';
 import { validateScenarioSchema } from '../../../src/utils/training/timelineMapper';
 
@@ -30,9 +30,11 @@ export default function ScenarioDemoPage() {
 
     return (
         <>
-            <Head>
-                <title>Training Scenario Demo | Smarter Poker</title>
-            </Head>
+            <SEOHead
+                title="Training Scenario Demo"
+                description="Preview a GTO training scenario on Smarter.Poker."
+                noindex={true}
+            />
 
             <div style={styles.page}>
                 {/* Debug Toggle */}

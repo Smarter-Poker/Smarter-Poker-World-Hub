@@ -2,7 +2,7 @@
  * Diamond Arcade - Prize Pool
  */
 
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
@@ -19,9 +19,11 @@ export default function DiamondArcadePrizes() {
 
     return (
         <>
-            <Head>
-                <title>Prize Pool | Diamond Arcade</title>
-            </Head>
+            <SEOHead
+                title="Arcade Prizes — Rewards Catalog"
+                description="Browse available prizes and rewards in the Diamond Arcade."
+                canonical="/hub/diamond-arcade/prizes"
+            />
 
             <PageTransition>
                 <div style={{ minHeight: '100vh', background: '#0a0e1a' }}>

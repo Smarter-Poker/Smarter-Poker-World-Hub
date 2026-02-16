@@ -13,7 +13,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -1370,11 +1370,11 @@ export default function NewsHub() {
                         </button>
                     </div>
                 )}
-                <Head>
-                    <title>News | Smarter.Poker</title>
-                    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-                    <meta name="description" content="Latest poker news, tournament updates, strategy tips, and industry insights" />
-                </Head>
+                <SEOHead
+                title="Poker News — Latest Headlines & Updates"
+                description="Stay up to date with the latest poker news, tournament results, industry updates, and strategy articles from top sources."
+                canonical="/hub/news"
+            />
 
                 <div className={`news-hub ${darkMode ? '' : 'light'}`}>
                     <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />

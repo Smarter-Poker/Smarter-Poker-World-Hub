@@ -33,7 +33,7 @@
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import Script from 'next/script';
 
 function formatCountdown(seconds) {
@@ -486,10 +486,11 @@ export default function PlayerTableDisplay() {
 
   return (
     <>
-      <Head>
-        <title>Table {tableNumber} | Player View</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-      </Head>
+      <SEOHead
+                title="Commander — Details"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
 
       <Script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" strategy="beforeInteractive" />
 

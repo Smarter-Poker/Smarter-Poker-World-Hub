@@ -5,7 +5,7 @@
    FIX: Proper cleanup on navigation to prevent page freeze
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
@@ -114,20 +114,13 @@ export default function DiamondArenaPage() {
 
     return (
         <PageTransition>
-            <Head>
-                <title>Diamond Arena — Smarter.Poker</title>
-                <meta name="description" content="High-stakes competitive poker with diamond entry fees and massive prize pools" />
-                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+            <SEOHead
+                title="Diamond Arena — Competitive Poker Games"
+                description="Compete in high-stakes Diamond Arena poker games. Earn diamonds, climb rankings, and prove your skills."
+                canonical="/hub/diamond-arena"
+            >
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-                <style>{`
-                    .diamond-arena-page { width: 100%; max-width: 100%; margin: 0 auto; overflow-x: hidden; }
-                    
-                    
-                    
-                    
-                    
-                `}</style>
-            </Head>
+            </SEOHead>
 
             <div className="diamond-arena-page" style={styles.container}>
                 {/* Universal Header */}

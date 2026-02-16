@@ -5,7 +5,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import {
   Trophy,
   Clock,
@@ -199,10 +199,11 @@ export default function TournamentDetailPage() {
   return (
     <CommanderLayout title="{tournament.name} | Commander" backHref="/commander/tournaments">
     <>
-      <Head>
-        <title>{tournament.name} | Commander</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
+      <SEOHead
+                title="Commander — Details"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
 
       <div className="cmd-page">
         {/* Header */}

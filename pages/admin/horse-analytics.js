@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // STYLES
@@ -187,9 +187,11 @@ export default function HorseAnalytics() {
 
     return (
         <>
-            <Head>
-                <title>Horse Analytics | Smarter Poker</title>
-            </Head>
+            <SEOHead
+                title="Horse Analytics Admin"
+                description="Internal analytics dashboard."
+                noindex={true}
+            />
             <div style={styles.container}>
                 {/* Header */}
                 <div style={styles.header}>

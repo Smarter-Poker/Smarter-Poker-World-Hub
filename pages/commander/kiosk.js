@@ -10,7 +10,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import {
   UserCheck, Users, Search, Phone, ChevronRight, Loader2,
   CheckCircle2, AlertTriangle, Clock, Plus, Timer, DollarSign
@@ -123,10 +123,11 @@ export default function MembershipKiosk() {
   return (
     <CommanderLayout title="Check In" backHref="/commander/dashboard">
       <>
-        <Head>
-          <title>Check In | Club Commander</title>
-          <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-        </Head>
+        <SEOHead
+                title="Commander — Player Kiosk"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
         <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter'] flex flex-col items-center justify-center p-6">
 
           {/* ===== HOME ===== */}

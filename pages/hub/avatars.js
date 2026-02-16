@@ -4,7 +4,7 @@
  * Custom avatars integrated at top for VIP users
  */
 
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
@@ -35,19 +35,12 @@ export default function AvatarsPage() {
 
     return (
         <PageTransition>
-            <Head>
-                <title>Avatar Selection | Smarter Poker</title>
-                <meta name="description" content="Choose your poker avatar from preset options or create a custom AI-generated avatar" />
-                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-                <style>{`
-                    .avatars-page-wrapper { width: 100%; max-width: 100%; margin: 0 auto; overflow-x: hidden; }
-                    
-                    
-                    
-                    
-                    
-                `}</style>
-            </Head>
+            <SEOHead
+                title="Avatar Collection"
+                description="Browse and select from the Smarter.Poker avatar collection. Customize your player identity."
+                canonical="/hub/avatars"
+                noindex={true}
+            />
 
             <div className="avatars-page-wrapper">
                 <div className="avatars-page">

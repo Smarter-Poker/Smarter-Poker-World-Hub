@@ -11,7 +11,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import {
   Power, PowerOff, Trophy, Clock, Users, DollarSign,
   Settings, FileText, Shield, ChevronRight, Loader2, RefreshCw,
@@ -108,7 +108,11 @@ export default function PokerRoomFunctions() {
   return (
     <CommanderLayout title="Poker Room Functions" backHref="/commander/dashboard">
       <>
-        <Head><title>Poker Room Functions | Club Commander</title></Head>
+        <SEOHead
+                title="Commander — Poker Room"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
         <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
           {/* Header */}

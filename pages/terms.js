@@ -1,4 +1,4 @@
-import Head from 'next/head';
+import SEOHead from '../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -14,10 +14,11 @@ export default function TermsOfService() {
 
     return (
         <>
-            <Head>
-                <title>Terms of Service | Smarter.Poker</title>
-                <meta name="description" content="Terms of Service, Privacy Policy, and SMS consent for Smarter.Poker - GTO poker training platform" />
-            </Head>
+            <SEOHead
+                title="Terms of Service"
+                description="Smarter.Poker terms of service. Read our usage policies and user agreements."
+                canonical="/terms"
+            />
 
             <div style={styles.container}>
                 {/* Background Effects */}

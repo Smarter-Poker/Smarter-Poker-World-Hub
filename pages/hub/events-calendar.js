@@ -4,7 +4,7 @@
  * Fetches from /api/poker/series and displays events in chronological order.
  */
 
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
@@ -491,10 +491,11 @@ export default function EventsCalendarPage() {
   /* ---- Render ---- */
   return (
     <>
-      <Head>
-        <title>Events Calendar | Smarter.Poker</title>
-        <meta name="description" content="Browse upcoming poker tournaments and events across all venues and series." />
-      </Head>
+      <SEOHead
+                title="Poker Events Calendar — Tournaments & Series"
+                description="Find upcoming poker tournaments, series, and events. Live updates, schedules, and registration info for events worldwide."
+                canonical="/hub/events-calendar"
+            />
       <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
       <HamburgerMenu
         isOpen={menuOpen}

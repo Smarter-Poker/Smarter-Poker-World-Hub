@@ -2,7 +2,7 @@
  * Social Page Management - Owner/admin dashboard for managing page settings,
  * members, content moderation, and analytics
  */
-import Head from 'next/head';
+import SEOHead from '../../../../src/components/seo/SEOHead';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
@@ -165,7 +165,11 @@ export default function ManageSocialPage() {
 
     return (
         <>
-            <Head><title>Manage {page.name} | Smarter.Poker</title></Head>
+            <SEOHead
+                title="Manage Social Page"
+                description="Smarter.Poker — The Future of the Game."
+                noindex={true}
+            />
             <UniversalHeader />
 
             <div style={{

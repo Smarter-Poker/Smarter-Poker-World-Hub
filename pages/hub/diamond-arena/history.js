@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
@@ -19,9 +19,11 @@ export default function DiamondArenaHistory() {
 
     return (
         <>
-            <Head>
-                <title>Hand History | Diamond Arena</title>
-            </Head>
+            <SEOHead
+                title="Diamond Arena — Game History"
+                description="Smarter.Poker — The Future of the Game."
+                noindex={true}
+            />
 
             <PageTransition>
                 <div style={{ minHeight: '100vh', background: '#0a0e1a' }}>

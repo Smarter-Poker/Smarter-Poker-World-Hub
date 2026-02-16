@@ -5,7 +5,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import {
   BarChart3,
   Users,
@@ -276,10 +276,11 @@ export default function AnalyticsPage() {
   return (
     <CommanderLayout title="Analytics | Commander" backHref="/commander/reports">
       <>
-        <Head>
-          <title>Analytics | Commander</title>
-          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-        </Head>
+        <SEOHead
+                title="Commander — Analytics & Reports"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
 
         <div className="cmd-page">
           <header className="cmd-header-bar sticky top-0 z-40">

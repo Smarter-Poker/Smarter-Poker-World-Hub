@@ -5,7 +5,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
@@ -78,7 +78,11 @@ export default function ChallengesPage() {
     if (!user) {
         return (
             <PageTransition>
-                <Head><title>Goals — Smarter.Poker</title></Head>
+                <SEOHead
+                title="Daily Training Challenges"
+                description="Complete daily GTO training challenges to sharpen your poker skills and earn rewards."
+                canonical="/hub/training/challenges"
+            />
                 <div style={styles.container}>
                     <UniversalHeader pageDepth={2} />
                     <div style={styles.content}>

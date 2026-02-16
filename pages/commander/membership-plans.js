@@ -7,7 +7,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import {
   Plus, Save, Loader2, DollarSign, Crown, Star,
   Shield, Users, Trash2, ChevronDown, ChevronUp, Gift, Clock,
@@ -162,7 +162,11 @@ export default function MembershipPlansPage() {
 
   return (
     <>
-      <Head><title>Membership Plans | Commander</title></Head>
+      <SEOHead
+                title="Commander — Membership Plans"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
       <div className="cmd-page">
         {/* Header */}
         <header className="cmd-header-bar sticky top-0 z-50">

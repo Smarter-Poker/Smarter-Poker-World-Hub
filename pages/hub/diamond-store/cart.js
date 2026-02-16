@@ -5,7 +5,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -163,9 +163,12 @@ export default function ShoppingCart() {
 
     return (
         <PageTransition>
-            <Head>
-                <title>Shopping Cart — Smarter.Poker</title>
-            </Head>
+            <SEOHead
+                title="Shopping Cart — Diamond Store"
+                description="View and manage items in your Diamond Store shopping cart."
+                canonical="/hub/diamond-store/cart"
+                noindex={true}
+            />
 
             <div style={styles.container}>
                 <UniversalHeader pageDepth={2} />

@@ -2,7 +2,7 @@
  * Diamond Arcade - Leaderboard
  */
 
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
@@ -18,9 +18,11 @@ export default function DiamondArcadeLeaderboard() {
 
     return (
         <>
-            <Head>
-                <title>Leaderboard | Diamond Arcade</title>
-            </Head>
+            <SEOHead
+                title="Arcade Leaderboard — Top Scorers"
+                description="See who leads the Diamond Arcade with the highest scores and most wins."
+                canonical="/hub/diamond-arcade/leaderboard"
+            />
 
             <PageTransition>
                 <div style={{ minHeight: '100vh', background: '#0a0e1a' }}>

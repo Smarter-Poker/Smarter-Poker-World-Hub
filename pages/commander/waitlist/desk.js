@@ -7,7 +7,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRealtimeUpdates } from '../../../src/lib/commander/useRealtimeUpdates';
 import {
   RefreshCw, Loader2, Users, Phone, UserPlus,
@@ -174,7 +174,11 @@ export default function WaitlistDesk() {
 
   return (
     <>
-      <Head><title>The Board | Club Commander</title></Head>
+      <SEOHead
+                title="Commander — Desk"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
         {/* Header */}

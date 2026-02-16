@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
 import Link from 'next/link';
@@ -462,7 +462,11 @@ export default function ReelsPage() {
     if (loading) {
         return (
             <>
-                <Head><title>Reels | Smarter Poker</title></Head>
+                <SEOHead
+                title="Poker Reels — Short Poker Content"
+                description="Watch and share short poker videos, highlights, and tips on Smarter.Poker Reels."
+                canonical="/hub/reels"
+            />
                 <div style={{
                     position: 'fixed', inset: 0, background: C.bg,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',

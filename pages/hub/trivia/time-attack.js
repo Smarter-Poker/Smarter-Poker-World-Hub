@@ -3,7 +3,7 @@
  * 30 seconds to answer as many as possible
  */
 
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../src/lib/supabase';
@@ -244,10 +244,11 @@ export default function TimeAttackPage() {
 
     return (
         <PageTransition>
-            <Head>
-                <title>Time Attack - Smarter.Poker Trivia</title>
-                <meta name="description" content="30 seconds to answer as many as you can!" />
-            </Head>
+            <SEOHead
+                title="Time Attack Trivia — Beat the Clock"
+                description="Race against the clock in Time Attack poker trivia. Answer as many questions as possible before time runs out."
+                canonical="/hub/trivia/time-attack"
+            />
 
             <div className="time-attack-page">
                 <div className="bg-overlay" />

@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { claimReward } from '../../src/lib/claimReward';
 import { useRouter } from 'next/router';
@@ -706,19 +706,12 @@ export default function ProfilePage() {
 
     return (
         <>
-            <Head>
-                <title>My Profile | Smarter.Poker</title>
-                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-                <style>{`
-                    /* 800px Design Canvas - CSS Zoom Scaling (Training Page Template) */
-                    .profile-page { width: 100%; max-width: 100%; margin: 0 auto; overflow-x: hidden; }
-                    
-                    
-                    
-                    
-                    
-                `}</style>
-            </Head>
+            <SEOHead
+                title="Edit Profile"
+                description="Update your Smarter.Poker profile information, avatar, and display settings."
+                canonical="/hub/profile-edit"
+                noindex={true}
+            />
             <div className="profile-page" style={{ minHeight: '100vh', background: '#0a0e1a', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
                 {/* Header - Universal Header with Back navigation (nested page) */}
                 <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />

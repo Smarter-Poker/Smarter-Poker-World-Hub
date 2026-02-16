@@ -5,7 +5,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import {
   ArrowRightLeft, CheckCircle2, Clock, Users, AlertTriangle,
   Loader2, Send, FileText, Star, ListChecks, MessageSquare, LayoutGrid,
@@ -127,7 +127,11 @@ export default function ShiftHandoff() {
 
   return (
     <>
-      <Head><title>Shift Handoff | Club Commander</title></Head>
+      <SEOHead
+                title="Commander — Shift Handoff"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
       <div style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: 'Inter, system-ui, sans-serif' }}>
         {/* Header */}
         <div style={{ background: '#1877F2', color: 'white', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>

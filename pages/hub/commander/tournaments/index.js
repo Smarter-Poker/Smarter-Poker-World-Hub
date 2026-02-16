@@ -5,7 +5,7 @@
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import React, { useState, useEffect } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import {
   Trophy, Calendar, Users, DollarSign, Clock, MapPin,
@@ -199,10 +199,11 @@ export default function PlayerTournamentsHub() {
 
   return (
     <>
-      <Head>
-        <title>Tournaments | Smarter Poker</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
+      <SEOHead
+                title="Tournaments"
+                description="Smarter.Poker — The Future of the Game."
+                noindex={true}
+            />
 
       <div className="cmd-page">
         {/* Notification Banner */}

@@ -3,7 +3,7 @@
    Facebook Dark Theme | Time Filters, Multiple Board Types, Member Rankings
    ═══════════════════════════════════════════════════════════════════════════════ */
 import { useState, useEffect, useCallback } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -238,10 +238,12 @@ export default function Leaderboard() {
 
     return (
         <>
-            <Head>
-                <title>Leaderboard | Club Arena</title>
-                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-            </Head>
+            <SEOHead
+                title="Club Arena — Leaderboard"
+                description="View Club Arena leaderboard rankings."
+                canonical="/hub/club-arena/leaderboard"
+                noindex={true}
+            />
 
             <div style={S.page}>
                 <UniversalHeader pageDepth={2} />

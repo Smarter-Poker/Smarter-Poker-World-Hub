@@ -2,7 +2,7 @@
  * Diamond Arena - Table Settings
  */
 
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
@@ -12,9 +12,11 @@ export default function DiamondArenaTableSettings() {
 
     return (
         <>
-            <Head>
-                <title>Table Settings | Diamond Arena</title>
-            </Head>
+            <SEOHead
+                title="Diamond Arena Table Settings"
+                description="Smarter.Poker — The Future of the Game."
+                noindex={true}
+            />
 
             <PageTransition>
                 <div style={{ minHeight: '100vh', background: '#0a0e1a' }}>

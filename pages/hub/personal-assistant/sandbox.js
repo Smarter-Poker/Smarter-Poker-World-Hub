@@ -9,7 +9,7 @@
  */
 
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import PageTransition from '../../../src/components/transitions/PageTransition';
@@ -854,20 +854,14 @@ export default function VirtualSandboxPage() {
 
   return (
     <PageTransition>
-      <Head>
-        <title>Virtual Sandbox — Smarter.Poker</title>
-        <meta name="description" content="Theoretical hand exploration with GTO analysis" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-        <style>{`
-          .sandbox-page { width: 100%; max-width: 100%; margin: 0 auto; overflow-x: hidden; }
-          
-          
-          
-          
-          
-        `}</style>
-      </Head>
+      <SEOHead
+                title="AI Sandbox — Practice with Jarvis"
+                description="Practice poker scenarios in the AI sandbox with Jarvis guidance."
+                canonical="/hub/personal-assistant/sandbox"
+                noindex={true}
+            >
+                <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+            </SEOHead>
 
       <div className="sandbox-page" style={styles.container}>
         <div style={styles.bgGrid} />

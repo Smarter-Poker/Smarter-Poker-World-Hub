@@ -5,7 +5,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../../../src/components/seo/SEOHead';
 import {
   ChevronLeft,
   Users,
@@ -144,10 +144,11 @@ export default function CreateSquadPage() {
 
   return (
     <>
-      <Head>
-        <title>Create Squad | Smarter Poker</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
+      <SEOHead
+                title="Create Squad"
+                description="Smarter.Poker — The Future of the Game."
+                noindex={true}
+            />
 
       <div className="cmd-page">
         {/* Error Banner */}

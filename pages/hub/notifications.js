@@ -3,7 +3,7 @@
  * Full-page view of all user notifications
  */
 
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
@@ -294,41 +294,12 @@ export default function NotificationsPage() {
 
     return (
         <PageTransition>
-            <Head>
-                <title>Notifications | Smarter.Poker</title>
-                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-                <style>{`
-                    /* Facebook-style Responsive Layout - NO ZOOM, proper mobile sizing */
-                    html, body { 
-                        background: ${C.bg} !important; 
-                        margin: 0;
-                        padding: 0;
-                    }
-                    
-                    .notifications-page {
-                        width: 100%;
-                        max-width: 680px;
-                        margin: 0 auto;
-                        min-height: 100vh;
-                        overflow-x: hidden;
-                    }
-                    
-                    /* Mobile-first: Full width on phones, centered on larger screens */
-                    @media (max-width: 680px) {
-                        .notifications-page {
-                            max-width: 100%;
-                            padding: 0;
-                        }
-                    }
-                    
-                    /* Desktop: Centered column with max-width */
-                    @media (min-width: 681px) {
-                        .notifications-page {
-                            padding: 0 16px;
-                        }
-                    }
-                `}</style>
-            </Head>
+            <SEOHead
+                title="Notifications"
+                description="Stay updated with your latest activity, friend requests, game invitations, and community updates."
+                canonical="/hub/notifications"
+                noindex={true}
+            />
             <div className="notifications-page" style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
                 {/* Header - Universal Header */}
                 <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />

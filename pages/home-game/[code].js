@@ -6,7 +6,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import {
   MapPin,
@@ -286,14 +286,12 @@ export default function HomeGamePage() {
 
   return (
     <>
-      <Head>
-        <title>{group.name} | Smarter Poker Home Games</title>
-        <meta name="description" content={group.description || `${group.name} - Home game group in ${group.city}, ${group.state}`} />
-        <meta property="og:title" content={`${group.name} | Smarter Poker`} />
-        <meta property="og:description" content={group.description || `Home game group in ${group.city}, ${group.state}`} />
-        {group.cover_photo_url && <meta property="og:image" content={group.cover_photo_url} />}
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
+      <SEOHead
+        title={`${group.name} — Home Game`}
+        description={group.description || `${group.name} — Home game group in ${group.city}, ${group.state}. Join the group on Smarter.Poker.`}
+        canonical={`/home-game/${code}`}
+        ogImage={group.cover_photo_url || undefined}
+      />
 
       <div className="min-h-screen bg-[#F9FAFB]">
         {/* Cover Photo */}
@@ -407,11 +405,10 @@ export default function HomeGamePage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                    activeTab === tab.id
+                  className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === tab.id
                       ? 'border-[#10B981] text-[#10B981]'
                       : 'border-transparent text-[#6B7280] hover:text-[#1F2937]'
-                  }`}
+                    }`}
                 >
                   {tab.label}
                 </button>

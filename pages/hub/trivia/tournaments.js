@@ -4,7 +4,7 @@
  * Tournaments start daily at 7PM CST, each round lasts 24 hours
  */
 
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
@@ -457,11 +457,13 @@ export default function TournamentsPage() {
 
     return (
         <PageTransition>
-            <Head>
-                <title>Tournaments - Smarter.Poker Trivia</title>
-                <meta name="description" content="Daily bracket tournaments at 7PM CST! Compete for diamond prizes!" />
+            <SEOHead
+                title="Trivia Tournaments — Compete for Prizes"
+                description="Enter poker trivia tournaments. Compete against the community for diamonds, XP, and leaderboard glory."
+                canonical="/hub/trivia/tournaments"
+            >
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet" />
-            </Head>
+            </SEOHead>
 
             <div className="tournaments-page">
                 <div className="bg-overlay" />

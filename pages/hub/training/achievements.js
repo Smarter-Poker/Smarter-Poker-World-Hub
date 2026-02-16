@@ -5,7 +5,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
@@ -70,9 +70,11 @@ export default function TrainingAchievements() {
 
     return (
         <PageTransition>
-            <Head>
-                <title>Training Achievements — Smarter.Poker</title>
-            </Head>
+            <SEOHead
+                title="Training Achievements — Milestones Unlocked"
+                description="Track your GTO training achievements and milestones on Smarter.Poker."
+                canonical="/hub/training/achievements"
+            />
 
             <div style={styles.container}>
                 <UniversalHeader pageDepth={2} />

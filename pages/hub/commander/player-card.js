@@ -5,7 +5,7 @@
  */
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import {
   ArrowLeft, QrCode, CreditCard, Users, Clock, Gift, LogOut,
   Star, ChevronRight, Loader2, RefreshCw, Trophy, Crown
@@ -93,7 +93,11 @@ export default function PlayerCard() {
 
   return (
     <>
-      <Head><title>Player Card | Smarter.Poker</title></Head>
+      <SEOHead
+                title="Player Card"
+                description="Smarter.Poker — The Future of the Game."
+                noindex={true}
+            />
       <div style={{ minHeight: '100vh', background: '#111827', fontFamily: 'Inter, system-ui, sans-serif' }}>
         {/* Header */}
         <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>

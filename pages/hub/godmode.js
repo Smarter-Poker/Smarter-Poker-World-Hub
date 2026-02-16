@@ -6,7 +6,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import {
   ArrowLeft, Lightbulb, Loader2, Target, TrendingUp,
   AlertTriangle, CheckCircle, BarChart3, Zap
@@ -130,10 +130,11 @@ export default function GodModePage() {
 
   return (
     <>
-      <Head>
-        <title>GodMode Analysis | Smarter Poker</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
+      <SEOHead
+                title="God Mode"
+                description="Admin page."
+                noindex={true}
+            />
 
       <div className="cmd-page">
         {/* Header */}

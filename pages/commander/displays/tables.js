@@ -7,7 +7,7 @@
  * Auto-refreshes every 5 seconds
  */
 import { useState, useEffect, useRef } from 'react';
-import Head from 'next/head';
+
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
 function getSeatPositions(count) {

@@ -5,7 +5,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { supabase } from '../../../src/lib/supabase';
@@ -90,9 +90,12 @@ export default function OrderHistory() {
 
     return (
         <PageTransition>
-            <Head>
-                <title>Order History — Smarter.Poker</title>
-            </Head>
+            <SEOHead
+                title="Order History — Diamond Store"
+                description="View your Diamond Store order history and track shipments."
+                canonical="/hub/diamond-store/orders"
+                noindex={true}
+            />
 
             <div style={styles.container}>
                 <UniversalHeader pageDepth={2} />

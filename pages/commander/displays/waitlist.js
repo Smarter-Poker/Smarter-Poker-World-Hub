@@ -11,7 +11,7 @@
  */
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
 function formatTime(date) {

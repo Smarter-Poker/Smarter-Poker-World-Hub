@@ -5,7 +5,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
@@ -423,21 +423,14 @@ export default function SettingsPage() {
 
     return (
         <PageTransition>
-            <Head>
-                <title>Settings — Smarter.Poker</title>
-                <meta name="description" content="Configure your Smarter.Poker experience" />
-                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+            <SEOHead
+                title="Settings — Account & Preferences"
+                description="Manage your Smarter.Poker account settings, preferences, notifications, and privacy options."
+                canonical="/hub/settings"
+                noindex={true}
+            >
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-                <style>{`
-                    /* 800px Design Canvas - CSS Zoom Scaling (Training Page Template) */
-                    .settings-page { width: 100%; max-width: 100%; margin: 0 auto; overflow-x: hidden; }
-                    
-                    
-                    
-                    
-                    
-                `}</style>
-            </Head>
+            </SEOHead>
 
             <div className="settings-page" style={styles.container}>
                 {/* Background */}

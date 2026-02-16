@@ -6,7 +6,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import { supabase } from '../../src/lib/supabase';
 
 export default function ForgotPasswordPage() {
@@ -67,11 +67,12 @@ export default function ForgotPasswordPage() {
 
     return (
         <>
-            <Head>
-                <title>Reset Password — Smarter.Poker</title>
-                <meta name="description" content="Reset your Smarter.Poker password" />
-                <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-            </Head>
+            <SEOHead
+                title="Reset Password — Smarter.Poker"
+                description="Reset your Smarter.Poker password."
+                canonical="/auth/forgot-password"
+                noindex={true}
+            />
 
             <div style={styles.container}>
                 {/* Background */}

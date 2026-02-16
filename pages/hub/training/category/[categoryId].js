@@ -9,7 +9,7 @@
  */
 
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../../../src/components/seo/SEOHead';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
@@ -98,23 +98,11 @@ export default function CategoryPage() {
 
     return (
         <PageTransition>
-            <Head>
-                <title>{categoryMeta.title} — PokerIQ Training</title>
-                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-                <style>{`
-                    * { box-sizing: border-box; margin: 0; padding: 0; }
-                    body {
-                        background: #0a0a15;
-                        overflow-x: hidden;
-                    }
-                    .training-category-page { width: 100%; max-width: 100%; margin: 0 auto; overflow-x: hidden; }
-                    
-                    
-                    
-                    
-                    
-                `}</style>
-            </Head>
+            <SEOHead
+                title="Training Category"
+                description="Smarter.Poker — The Future of the Game."
+                noindex={true}
+            />
 
             {/* Intro Splash */}
             <GameIntroSplash

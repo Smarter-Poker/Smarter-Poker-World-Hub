@@ -5,7 +5,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -48,9 +48,12 @@ export default function MyReels() {
 
     return (
         <PageTransition>
-            <Head>
-                <title>My Reels — Smarter.Poker</title>
-            </Head>
+            <SEOHead
+                title="My Reels"
+                description="Manage your posted poker reels and short clips."
+                canonical="/hub/reels/my-reels"
+                noindex={true}
+            />
 
             <div style={styles.container}>
                 <UniversalHeader pageDepth={2} />

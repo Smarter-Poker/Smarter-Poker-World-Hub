@@ -1,13 +1,14 @@
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 
 export default function OfficialRules() {
     return (
         <>
-            <Head>
-                <title>Official Rules | Smarter.Poker</title>
-                <meta name="description" content="Official Rules for Smarter.Poker Diamond Arena Sweepstakes and Promotions" />
-            </Head>
+            <SEOHead
+                title="Official Rules — Promotions & Contests"
+                description="Official rules for Smarter.Poker promotions, contests, and giveaways."
+                canonical="/legal/official-rules"
+            />
 
             <div style={styles.container}>
                 {/* Background Effects */}

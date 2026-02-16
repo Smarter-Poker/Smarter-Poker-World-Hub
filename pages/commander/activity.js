@@ -15,7 +15,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import {
   RefreshCw, Loader2, Filter,
   UserCheck, LogIn, LogOut, Clock, AlertTriangle,
@@ -148,7 +148,11 @@ export default function ActivityFeed() {
 
   return (
     <>
-      <Head><title>Activity | Club Commander</title></Head>
+      <SEOHead
+                title="Commander — Activity Log"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
         {/* Header */}

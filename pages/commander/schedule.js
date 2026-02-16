@@ -11,7 +11,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import {
   Clock, Users, Plus, Check, X, Coffee,
   RefreshCw, Loader2, ChevronLeft, ChevronRight,
@@ -169,7 +169,11 @@ export default function StaffSchedule() {
   return (
     <CommanderLayout title="Schedule" backHref="/commander/dashboard">
       <>
-        <Head><title>Schedule | Club Commander</title></Head>
+        <SEOHead
+                title="Commander — Game Schedule"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
         <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
           {/* Header */}

@@ -3,7 +3,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { supabase } from '../../src/lib/supabase';
 import FeatureGate from '../../src/components/gates/FeatureGate';
@@ -198,10 +198,11 @@ export default function LivesPage() {
 
     return (
         <>
-            <Head>
-                <title>Lives | Smarter.Poker</title>
-                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-            </Head>
+            <SEOHead
+                title="Live Streams — Watch Poker Live"
+                description="Watch live poker streams and events. Follow your favorite players and catch the action in real time."
+                canonical="/hub/lives"
+            />
 
             <FeatureGate featureKey="lives" userId={userId} cost={25} duration={24} featureName="Lives" description="Watch live poker streams and replays for 24 hours.">
                 <div

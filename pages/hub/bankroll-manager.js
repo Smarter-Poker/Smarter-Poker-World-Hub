@@ -5,7 +5,7 @@
  */
 
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../src/lib/supabase';
@@ -574,142 +574,13 @@ export default function BankrollManagerPage() {
           </button>
         </div>
       )}
-      <Head>
-        <title>Bankroll Manager — Smarter.Poker</title>
-        <meta name="description" content="Professional bankroll tracking and financial truth engine" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
-        <style>{`
-          .bankroll-page { width: 100%; max-width: 100%; margin: 0 auto; overflow-x: hidden; }
-          @keyframes metalGlow { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
-          @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
-          @keyframes scanLine { 0% { top: 0; } 100% { top: 100%; } }
-
-          /* ═══════ MOBILE RESPONSIVE ═══════ */
-          .bankroll-mobile-nav {
-            display: none;
-          }
-
-          @media (max-width: 768px) {
-            .bankroll-sidebar {
-              display: none !important;
-            }
-            .bankroll-main-layout {
-              flex-direction: column !important;
-            }
-            .bankroll-main-content {
-              padding: 12px 12px !important;
-            }
-            .bankroll-content-header {
-              margin-bottom: 12px !important;
-            }
-            .bankroll-page-title {
-              font-size: 18px !important;
-            }
-            .bankroll-log-btn {
-              padding: 8px 16px !important;
-              font-size: 13px !important;
-            }
-            .bankroll-stats-grid {
-              gap: 8px !important;
-              margin-bottom: 16px !important;
-            }
-            .bankroll-mobile-nav {
-              display: flex !important;
-              overflow-x: auto;
-              gap: 6px;
-              padding: 0 0 12px 0;
-              margin-bottom: 8px;
-              border-bottom: 1px solid rgba(255,255,255,0.08);
-              -webkit-overflow-scrolling: touch;
-              scrollbar-width: none;
-            }
-            .bankroll-mobile-nav::-webkit-scrollbar {
-              display: none;
-            }
-            .bankroll-mobile-nav-item {
-              flex-shrink: 0;
-              padding: 7px 14px;
-              border-radius: 20px;
-              border: 1px solid rgba(255,255,255,0.12);
-              background: rgba(255,255,255,0.04);
-              color: rgba(255,255,255,0.6);
-              font-size: 12px;
-              font-weight: 500;
-              cursor: pointer;
-              white-space: nowrap;
-              font-family: Inter, -apple-system, sans-serif;
-              transition: all 0.15s ease;
-            }
-            .bankroll-mobile-nav-item.active {
-              background: rgba(35,116,225,0.2);
-              border-color: #2374e1;
-              color: #2374e1;
-              font-weight: 600;
-            }
-            .bankroll-filters-row {
-              display: grid !important;
-              grid-template-columns: repeat(2, 1fr) !important;
-              gap: 6px !important;
-              margin-bottom: 8px !important;
-              padding-bottom: 4px;
-            }
-            .bankroll-filters-row > div {
-              position: relative;
-              min-width: 0;
-            }
-            .bankroll-filters-row button {
-              padding: 6px 8px !important;
-              font-size: 11px !important;
-              white-space: nowrap;
-              overflow: hidden;
-              text-overflow: ellipsis;
-              width: 100% !important;
-              min-height: 32px;
-              touch-action: manipulation;
-            }
-            .bankroll-dropdown-menu {
-              min-width: 160px !important;
-              z-index: 9999 !important;
-              max-height: 50vh !important;
-            }
-            .bankroll-analytics-slider {
-              display: flex !important;
-              overflow-x: auto;
-              scroll-snap-type: x mandatory;
-              gap: 12px;
-              padding-bottom: 8px;
-              -webkit-overflow-scrolling: touch;
-              scrollbar-width: none;
-            }
-            .bankroll-analytics-slider::-webkit-scrollbar {
-              display: none;
-            }
-            .bankroll-analytics-slider > * {
-              flex: 0 0 85%;
-              scroll-snap-align: start;
-              min-width: 0;
-              height: 300px !important;
-              min-height: 300px !important;
-              max-height: 300px !important;
-              overflow: auto;
-            }
-            .bankroll-active-trip {
-              flex-wrap: wrap;
-              gap: 10px !important;
-            }
-            .bankroll-stat-value {
-              font-size: 20px !important;
-            }
-          }
-
-          @media (min-width: 769px) {
-            .bankroll-mobile-nav {
-              display: none !important;
-            }
-          }
-        `}</style>
-      </Head>
+      <SEOHead
+                title="Bankroll Manager — Track Your Poker Profits"
+                description="Professional bankroll tracking for poker players. Monitor sessions, analyze leaks, track ROI, and visualize trends with detailed analytics and variance analysis."
+                canonical="/hub/bankroll-manager"
+            >
+                <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
+            </SEOHead>
 
       <div className="bankroll-page" style={styles.container}>
         <div style={styles.bgGrid} />

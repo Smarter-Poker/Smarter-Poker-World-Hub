@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { Check } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
@@ -81,9 +81,11 @@ export default function DownloadsPage() {
   return (
     <CommanderLayout title="Download Club Commander - Desktop App" backHref="/commander/dashboard">
       <div className="min-h-screen bg-[#18191A]">
-        <Head>
-          <title>Download Club Commander - Desktop App</title>
-        </Head>
+        <SEOHead
+                title="Commander — Downloads"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
 
         <div className="container mx-auto px-4 py-12">
           {/* Header */}

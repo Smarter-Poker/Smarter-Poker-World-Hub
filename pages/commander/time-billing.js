@@ -9,7 +9,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import { Clock, DollarSign, Play, Square, Users, Search,
   Plus, Minus, ChevronDown, Loader2, RefreshCw, CheckCircle2,
   AlertTriangle, X, Timer, Receipt
@@ -180,7 +180,11 @@ export default function TimeBilling() {
 
   return (
     <>
-      <Head><title>Time Billing | Club Commander</title></Head>
+      <SEOHead
+                title="Commander — Time Billing"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
         {/* Header */}

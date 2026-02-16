@@ -14,7 +14,7 @@
  */
 
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import gsap from 'gsap';
@@ -945,38 +945,11 @@ export default function TrainingPage() {
                     </button>
                 </div>
             )}
-            <Head>
-                <title>Training — PokerIQ | 100 Games to Master</title>
-                {/* 
-                    SMARTER.POKER GLOBAL SCALING MODEL
-                    ---------------------------------
-                    DESIGN WIDTH: 800px (standard desktop build mode)
-                    - 3 cards visible per lane
-                    - All 6 filter pills visible
-                    - Everything fits within 800px with margins
-                    
-                    CSS ZOOM: Scales entire page uniformly for any device
-                    - iPhone (393px): zoom = 393/800 = 0.49x (49% of desktop size)
-                    - iPad (768px): zoom = 768/800 = 0.96x (96% of desktop size)
-                    - Desktop (1440px): zoom = 1440/800 = 1.8x (180% of desktop size - capped)
-                */}
-                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-                <style>{`
-                    /* Scrollbar styling */
-                    ::-webkit-scrollbar { height: 6px; }
-                    ::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
-                    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
-                    
-                    /* MOBILE RESPONSIVE - No zoom scaling */
-                    .training-page {
-                        width: 100%;
-                        max-width: 100%;
-                        margin: 0 auto;
-                        overflow-x: hidden;
-                        box-sizing: border-box;
-                    }
-                `}</style>
-            </Head>
+            <SEOHead
+                title="GTO Poker Training — 100 Games to Master"
+                description="Interactive GTO poker training with 100+ scenario-based games. Master MTT, Cash, Spins, Mental Game, and Advanced Theory with AI coaching from Jarvis."
+                canonical="/hub/training"
+            />
 
             {/*  INLINE ARENA - Takes over entire page when active */}
             {showArena && activeGame && (

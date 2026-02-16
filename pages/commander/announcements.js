@@ -4,7 +4,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import { Send, Bell, Users, Clock, CheckCircle, Loader2 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
@@ -114,10 +114,11 @@ export default function CommanderAnnouncementsPage() {
   return (
     <CommanderLayout title="Announcements | {venue?.name || 'Commander'}" backHref="/commander/displays">
     <>
-      <Head>
-        <title>Announcements | {venue?.name || 'Commander'}</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
+      <SEOHead
+                title="Commander — Announcements"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
 
       <div className="cmd-page">
         {/* Header */}

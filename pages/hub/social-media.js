@@ -38,7 +38,7 @@
  * ╚═══════════════════════════════════════════════════════════════════════════╝
  */
 
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { useRouter } from 'next/router';
@@ -1859,12 +1859,12 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
     const [pendingFollowers, setPendingFollowers] = useState([]);
 
     // Cover photo state
-    const [coverPhoto, setCoverPhoto] = useState((page.metadata || {}).cover_photo_url || '');
+    const [coverPhoto, setCoverPhoto] = useState((page.metadata || {}).cover_photo_url || page.cover_url || '');
     const [coverUploading, setCoverUploading] = useState(false);
     const coverInputRef = useRef(null);
 
     // Logo upload state
-    const [logoUrl, setLogoUrl] = useState((page.metadata || {}).logo_url || '');
+    const [logoUrl, setLogoUrl] = useState((page.metadata || {}).logo_url || page.avatar_url || '');
     const [logoUploading, setLogoUploading] = useState(false);
     const logoInputRef = useRef(null);
 
@@ -1884,7 +1884,22 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                 const { data } = supabase.storage.from('social-media').getPublicUrl(path);
                 const url = data.publicUrl;
                 setCoverPhoto(url);
-                await saveMetadata({ cover_photo_url: url }, 'Cover photo updated!');
+                // Save to both metadata.cover_photo_url AND cover_url column so public page stays in sync
+                const merged = { ...page.metadata, cover_photo_url: url };
+                setMetaSaving(true); setMetaSaved('');
+                try {
+                    const res = await fetch('/api/social/pages', {
+                        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: page.id, owner_id: userId, cover_url: url, metadata: merged }),
+                    });
+                    const json = await res.json();
+                    if (json.success && json.data) {
+                        onPageUpdated(json.data);
+                        setMetaSaved('Cover photo updated!');
+                        setTimeout(() => setMetaSaved(''), 2000);
+                    }
+                } catch (saveErr) { console.error('Cover save error:', saveErr); }
+                setMetaSaving(false);
             }
         } catch (err) { console.error('Cover upload error:', err); }
         setCoverUploading(false);
@@ -1901,7 +1916,22 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                 const { data } = supabase.storage.from('social-media').getPublicUrl(path);
                 const url = data.publicUrl;
                 setLogoUrl(url);
-                await saveMetadata({ logo_url: url }, 'Logo updated!');
+                // Save to both metadata.logo_url AND avatar_url column so public page stays in sync
+                const merged = { ...page.metadata, logo_url: url };
+                setMetaSaving(true); setMetaSaved('');
+                try {
+                    const res = await fetch('/api/social/pages', {
+                        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: page.id, owner_id: userId, avatar_url: url, metadata: merged }),
+                    });
+                    const json = await res.json();
+                    if (json.success && json.data) {
+                        onPageUpdated(json.data);
+                        setMetaSaved('Logo updated!');
+                        setTimeout(() => setMetaSaved(''), 2000);
+                    }
+                } catch (saveErr) { console.error('Logo save error:', saveErr); }
+                setMetaSaving(false);
             } else {
                 alert('Logo upload failed: ' + upErr.message);
             }
@@ -2841,10 +2871,10 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                     </div>
                 ) : (
                     <>
-                        {/* Player Name Input — only for approved followers */}
+                        {/* Player Name — locked to Smarter Poker profile name */}
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                            <label style={{ fontSize: 12, fontWeight: 600, opacity: 0.8 }}>Your Name:</label>
-                            <input value={playerName} onChange={e => setPlayerName(e.target.value)} placeholder="Enter your name to sign up" style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: 14, fontFamily: 'inherit', outline: 'none' }} />
+                            <label style={{ fontSize: 12, fontWeight: 600, opacity: 0.8 }}>Signed in as:</label>
+                            <span style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.06)', color: '#fff', fontSize: 14, fontFamily: 'inherit' }}>{playerName || 'Player'}</span>
                         </div>
                     </>
                 )}
@@ -3775,7 +3805,7 @@ export default function SocialMediaPage() {
             // Use native fetch directly to Supabase REST API
             try {
                 const queryParams = new URLSearchParams({
-                    select: 'id,content,content_type,media_urls,like_count,comment_count,share_count,created_at,author_id,link_url,link_title,link_description,link_image,link_site_name',
+                    select: 'id,content,content_type,media_urls,like_count,comment_count,share_count,created_at,author_id,link_url,link_title,link_description,link_image,link_site_name,metadata',
                     or: '(visibility.eq.public,visibility.is.null)',
                     order: 'created_at.desc',
                     offset: offset.toString(),
@@ -3924,9 +3954,13 @@ export default function SocialMediaPage() {
                     isSuggested: p.isSuggested || false, // Mark as suggested on feed loop
                     isFriend: friendIds.includes(p.author_id),
                     isFollowing: followingIds.includes(p.author_id),
+                    metadata: p.metadata || null,
                     author: {
-                        // Respect display_name_preference: 'full_name' shows full name, 'username' shows username
+                        // For page posts (mirrored/auto-posts), show the page name instead of personal name
                         name: (() => {
+                            const meta = p.metadata;
+                            if (meta?.page_name) return meta.page_name;
+                            if (meta?.auto_generated && meta?.entity_type) return p.content?.split(' updated ')[0] || 'Page';
                             const a = authorMap[p.author_id];
                             if (!a) return 'Player';
                             const pref = a.display_name_preference || 'full_name';
@@ -3934,7 +3968,11 @@ export default function SocialMediaPage() {
                             return a.full_name || a.username || 'Player';
                         })(),
                         username: authorMap[p.author_id]?.username || null,
-                        avatar: authorMap[p.author_id]?.avatar_url || null
+                        avatar: (() => {
+                            const meta = p.metadata;
+                            if (meta?.page_avatar_url) return meta.page_avatar_url;
+                            return authorMap[p.author_id]?.avatar_url || null;
+                        })()
                     }
                 }));
 
@@ -4377,41 +4415,11 @@ export default function SocialMediaPage() {
                     </button>
                 </div>
             )}
-            <Head>
-                <title>Social Hub | Smarter.Poker</title>
-                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-                <style>{`
-                    /* Facebook-style Responsive Layout - NO ZOOM, proper mobile sizing */
-                    html, body { 
-                        background: ${C.bg} !important; 
-                        margin: 0;
-                        padding: 0;
-                    }
-                    
-                    .social-page-container {
-                        width: 100%;
-                        max-width: 680px;
-                        margin: 0 auto;
-                        min-height: 100vh;
-                        overflow-x: hidden;
-                    }
-                    
-                    /* Mobile-first: Full width on phones, centered on larger screens */
-                    @media (max-width: 680px) {
-                        .social-page-container {
-                            max-width: 100%;
-                            padding: 0;
-                        }
-                    }
-                    
-                    /* Desktop: Centered column with max-width */
-                    @media (min-width: 681px) {
-                        .social-page-container {
-                            padding: 0 16px;
-                        }
-                    }
-                `}</style>
-            </Head>
+            <SEOHead
+                title="Social Hub — Poker Community & Feed"
+                description="Connect with poker players worldwide. Share updates, follow friends, join discussions, and build your poker network on the Smarter.Poker social hub."
+                canonical="/hub/social-media"
+            />
 
             {/* Slide-out Sidebar Overlay */}
             {sidebarOpen && (
@@ -4657,16 +4665,16 @@ export default function SocialMediaPage() {
                             </svg>
                             <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Poker Near Me</span>
                         </Link>
-                        <Link href="/hub/notifications" onClick={() => setSidebarOpen(false)} style={{
+                        <div onClick={() => { setSidebarOpen(false); setShowNotifications(true); }} style={{
                             display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
-                            background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
+                            background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1', cursor: 'pointer'
                         }}>
                             <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
                                 <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" fill="#f5a623" />
                                 <path d="M13.73 21a2 2 0 01-3.46 0" stroke="#f5a623" strokeWidth="2" />
                             </svg>
                             <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Notifications</span>
-                        </Link>
+                        </div>
                         {/* Invite Friends Card */}
                         <div onClick={() => {
                             if (!user) { alert('Please log in to invite friends.'); return; }
@@ -4830,79 +4838,89 @@ export default function SocialMediaPage() {
                     </div>
                 )}
 
-                {/* Notification Dropdown */}
+                {/* Notification Full-Screen Modal */}
                 {showNotifications && (
                     <div style={{
-                        position: 'fixed', top: 60, right: 12, width: 360, maxHeight: 480,
-                        background: C.card, borderRadius: 12, boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
-                        zIndex: 1000, overflowY: 'auto'
-                    }}>
-                        <div style={{ padding: 16, borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <h3 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>Notifications</h3>
-                            <button
-                                onClick={() => setShowNotifications(false)}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18 }}
-                            >×</button>
-                        </div>
-                        {notifications.length === 0 ? (
-                            <div style={{ padding: 24, textAlign: 'center', color: C.textSec }}>
-                                No notifications yet
+                        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                        background: 'rgba(0,0,0,0.5)', zIndex: 9999,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }} onClick={(e) => { if (e.target === e.currentTarget) setShowNotifications(false); }}>
+                        <div style={{
+                            position: 'relative', width: '100%', maxWidth: 520, height: '90vh',
+                            background: C.card, borderRadius: 16, boxShadow: '0 8px 40px rgba(0,0,0,0.3)',
+                            display: 'flex', flexDirection: 'column', overflow: 'hidden',
+                            margin: '0 12px'
+                        }}>
+                            {/* Header */}
+                            <div style={{ padding: '16px 20px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+                                <h3 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: C.text }}>Notifications</h3>
+                                <button
+                                    onClick={() => setShowNotifications(false)}
+                                    style={{ background: C.bg, border: 'none', cursor: 'pointer', fontSize: 18, width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.text }}
+                                >✕</button>
                             </div>
-                        ) : (
-                            notifications.map(n => {
-                                // Get action icon based on type
-                                const actionIcon = n.type === 'like' ? '👍' : n.type === 'comment' ? '' : n.type === 'mention' ? '@' : n.type === 'friend_request' ? '' : n.type === 'live' ? '🔴' : '';
-                                const iconBg = n.type === 'like' ? '#1877F2' : n.type === 'comment' ? '#44BD32' : n.type === 'live' ? '#FA383E' : n.type === 'friend_request' ? '#1877F2' : '#65676B';
-
-                                return (
-                                    <div
-                                        key={n.id}
-                                        onClick={() => {
-                                            setShowNotifications(false);
-                                            if (n.actor_username) {
-                                                router.push(`/hub/user/${n.actor_username}`);
-                                            }
-                                        }}
-                                        style={{
-                                            padding: 12, borderBottom: `1px solid ${C.border}`,
-                                            display: 'flex', gap: 12, alignItems: 'flex-start', cursor: 'pointer',
-                                            background: n.read ? 'transparent' : 'rgba(24, 119, 242, 0.08)'
-                                        }}
-                                    >
-                                        {/* Facebook-style avatar with action icon */}
-                                        <div style={{ position: 'relative', flexShrink: 0 }}>
-                                            <img
-                                                src={n.actor_avatar_url || n.metadata?.actor_avatar || '/default-avatar.png'}
-                                                style={{
-                                                    width: 56, height: 56, borderRadius: '50%',
-                                                    objectFit: 'cover', border: '2px solid #ddd'
-                                                }}
-                                            />
-                                            {/* Action type icon overlay */}
-                                            <div style={{
-                                                position: 'absolute', bottom: -2, right: -2,
-                                                width: 24, height: 24, borderRadius: '50%',
-                                                background: iconBg, border: '2px solid white',
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                fontSize: 12
-                                            }}>{actionIcon}</div>
-                                        </div>
-                                        <div style={{ flex: 1 }}>
-                                            <div style={{ fontSize: 14, color: C.text, lineHeight: 1.4 }}>
-                                                <span style={{ fontWeight: 700 }}>{n.actor_name || n.metadata?.actor_name || n.title}</span>
-                                                {' '}{n.message}
-                                            </div>
-                                            <div style={{ fontSize: 12, color: n.read ? C.textSec : C.blue, marginTop: 4, fontWeight: n.read ? 400 : 600 }}>
-                                                {timeAgo(n.created_at)}
-                                            </div>
-                                        </div>
-                                        {!n.read && (
-                                            <div style={{ width: 12, height: 12, borderRadius: '50%', background: C.blue, flexShrink: 0, marginTop: 8 }} />
-                                        )}
+                            {/* Scrollable notification list */}
+                            <div style={{ flex: 1, overflowY: 'auto' }}>
+                                {notifications.length === 0 ? (
+                                    <div style={{ padding: '60px 24px', textAlign: 'center', color: C.textSec }}>
+                                        <div style={{ fontSize: 48, marginBottom: 12 }}>🔔</div>
+                                        <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>No notifications yet</div>
+                                        <div style={{ fontSize: 14 }}>When someone interacts with your posts or profile, you'll see it here.</div>
                                     </div>
-                                );
-                            })
-                        )}
+                                ) : (
+                                    notifications.map(n => {
+                                        const actionIcon = n.type === 'like' ? '👍' : n.type === 'comment' ? '💬' : n.type === 'mention' ? '@' : n.type === 'friend_request' ? '👤' : n.type === 'live' ? '🔴' : '🔔';
+                                        const iconBg = n.type === 'like' ? '#1877F2' : n.type === 'comment' ? '#44BD32' : n.type === 'live' ? '#FA383E' : n.type === 'friend_request' ? '#1877F2' : '#65676B';
+
+                                        return (
+                                            <div
+                                                key={n.id}
+                                                onClick={() => {
+                                                    setShowNotifications(false);
+                                                    if (n.actor_username) {
+                                                        router.push(`/hub/user/${n.actor_username}`);
+                                                    }
+                                                }}
+                                                style={{
+                                                    padding: '14px 20px', borderBottom: `1px solid ${C.border}`,
+                                                    display: 'flex', gap: 14, alignItems: 'flex-start', cursor: 'pointer',
+                                                    background: n.read ? 'transparent' : 'rgba(24, 119, 242, 0.06)',
+                                                    transition: 'background 0.15s'
+                                                }}
+                                                onMouseEnter={e => e.currentTarget.style.background = n.read ? 'rgba(0,0,0,0.03)' : 'rgba(24,119,242,0.1)'}
+                                                onMouseLeave={e => e.currentTarget.style.background = n.read ? 'transparent' : 'rgba(24,119,242,0.06)'}
+                                            >
+                                                <div style={{ position: 'relative', flexShrink: 0 }}>
+                                                    <img
+                                                        src={n.actor_avatar_url || n.metadata?.actor_avatar || '/default-avatar.png'}
+                                                        style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: '2px solid #ddd' }}
+                                                    />
+                                                    <div style={{
+                                                        position: 'absolute', bottom: -2, right: -2,
+                                                        width: 24, height: 24, borderRadius: '50%',
+                                                        background: iconBg, border: '2px solid white',
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                        fontSize: 12
+                                                    }}>{actionIcon}</div>
+                                                </div>
+                                                <div style={{ flex: 1 }}>
+                                                    <div style={{ fontSize: 15, color: C.text, lineHeight: 1.4 }}>
+                                                        <span style={{ fontWeight: 700 }}>{n.actor_name || n.metadata?.actor_name || n.title}</span>
+                                                        {' '}{n.message}
+                                                    </div>
+                                                    <div style={{ fontSize: 12, color: n.read ? C.textSec : C.blue, marginTop: 4, fontWeight: n.read ? 400 : 600 }}>
+                                                        {timeAgo(n.created_at)}
+                                                    </div>
+                                                </div>
+                                                {!n.read && (
+                                                    <div style={{ width: 12, height: 12, borderRadius: '50%', background: C.blue, flexShrink: 0, marginTop: 8 }} />
+                                                )}
+                                            </div>
+                                        );
+                                    })
+                                )}
+                            </div>
+                        </div>
                     </div>
                 )}
 
@@ -5203,9 +5221,9 @@ export default function SocialMediaPage() {
                         <span style={{ fontSize: 10, marginTop: 2, fontWeight: 500 }}>Clubs</span>
                     </Link>
                     {/* Notifications - Filled bell (blue when active) */}
-                    <Link href="/hub/notifications" style={{
+                    <div onClick={() => setShowNotifications(true)} style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                        textDecoration: 'none', color: '#1877f2', flex: 1, padding: '6px 4px', minWidth: 50, position: 'relative'
+                        textDecoration: 'none', color: '#1877f2', flex: 1, padding: '6px 4px', minWidth: 50, position: 'relative', cursor: 'pointer'
                     }}>
                         <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M12 2a7 7 0 00-7 7c0 3.5-1.5 5.5-2.5 7-.3.4-.5.8-.5 1.2 0 .5.5.8 1 .8h18c.5 0 1-.3 1-.8 0-.4-.2-.8-.5-1.2-1-1.5-2.5-3.5-2.5-7a7 7 0 00-7-7z" />
@@ -5215,7 +5233,7 @@ export default function SocialMediaPage() {
                             <div style={{ position: 'absolute', top: 2, right: 'calc(50% - 18px)', background: '#f02849', color: 'white', borderRadius: 10, minWidth: 18, height: 18, fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, padding: '0 5px' }}>{notifications.filter(n => !n.read).length}</div>
                         )}
                         <span style={{ fontSize: 10, marginTop: 2, fontWeight: 600, color: '#1877f2' }}>Notifications</span>
-                    </Link>
+                    </div>
                     {/* Profile - Avatar or person icon */}
                     <Link href="/hub/profile" style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',

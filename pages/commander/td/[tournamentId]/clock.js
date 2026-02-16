@@ -7,7 +7,7 @@
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../../../src/components/seo/SEOHead';
 import {
   Trophy, LayoutGrid, Users, Scale, UserPlus, Monitor,
   Play, Pause, SkipForward, SkipBack, Loader2, RefreshCw,
@@ -168,7 +168,11 @@ export default function TDClock() {
 
   return (
     <>
-      <Head><title>TD Clock | Club Commander</title></Head>
+      <SEOHead
+                title="Commander — Clock"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
       <div ref={containerRef} className={`min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter'] flex flex-col ${isFullscreen ? '' : 'pb-20'}`}>
 
         {/* Fullscreen header bar */}

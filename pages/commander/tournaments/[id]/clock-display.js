@@ -13,7 +13,7 @@
  */
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../../../src/components/seo/SEOHead';
 
 function formatClock(seconds) {
   if (!seconds && seconds !== 0) return '--:--';
@@ -138,11 +138,11 @@ export default function ClockDisplay() {
 
   return (
     <>
-      <Head>
-        <title>{t.name || 'Tournament'} | Clock</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <style>{`* { cursor: none !important; margin: 0; padding: 0; box-sizing: border-box; } body { overflow: hidden; }`}</style>
-      </Head>
+      <SEOHead
+                title="Commander — Clock Display"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
 
       <div style={S.container} onClick={goFullscreen}>
 

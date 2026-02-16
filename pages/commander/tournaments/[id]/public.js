@@ -15,7 +15,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../../../src/components/seo/SEOHead';
 import {
   Clock, Users, DollarSign, Trophy, Loader2,
   ChevronDown, ChevronUp, Timer
@@ -104,10 +104,11 @@ export default function TournamentPublic() {
 
   return (
     <>
-      <Head>
-        <title>{t.name || 'Tournament'} | Club Commander</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-      </Head>
+      <SEOHead
+                title="Commander — Public"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter'] pb-12">
 
         {/* Header */}

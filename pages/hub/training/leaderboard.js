@@ -5,7 +5,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
@@ -77,9 +77,11 @@ export default function TrainingLeaderboard() {
 
     return (
         <PageTransition>
-            <Head>
-                <title>Training Leaderboard — Smarter.Poker</title>
-            </Head>
+            <SEOHead
+                title="Training Leaderboard — Top Students"
+                description="See who leads the GTO training leaderboard on Smarter.Poker."
+                canonical="/hub/training/leaderboard"
+            />
 
             <div style={styles.container}>
                 <UniversalHeader pageDepth={2} />

@@ -4,7 +4,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
@@ -902,21 +902,13 @@ export default function DiamondStorePage() {
                         </button>
                     </div>
                 )}
-                <Head>
-                    <title>Diamond Store — Smarter.Poker</title>
-                    <meta name="description" content="Purchase diamonds to unlock premium features" />
-                    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-                    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-                    <style>{`
-                    /* 800px Design Canvas - CSS Zoom Scaling (Training Page Template) */
-                    .diamond-store-page { width: 100%; max-width: 100%; margin: 0 auto; overflow-x: hidden; }
-                    
-                    
-                    
-                    
-                    
-                `}</style>
-                </Head>
+                <SEOHead
+                title="Diamond Store — Premium Poker Gear & Merchandise"
+                description="Shop premium poker merchandise, gear, and accessories in the Smarter.Poker Diamond Store. Exclusive items for VIP members."
+                canonical="/hub/diamond-store"
+            >
+                <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+            </SEOHead>
 
                 <div className="diamond-store-page" style={styles.container}>
                     {/* Background */}

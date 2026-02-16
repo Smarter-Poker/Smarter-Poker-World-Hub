@@ -5,7 +5,7 @@
  * Frequently asked questions for players using Club Commander
  */
 import { useState } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import {
   ChevronLeft,
@@ -376,14 +376,11 @@ export default function PlayerFAQPage() {
 
   return (
     <>
-      <Head>
-        <title>FAQ | Club Commander</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-        <meta
-          name="description"
-          content="Frequently asked questions about using Club Commander at your favorite poker room"
-        />
-      </Head>
+      <SEOHead
+                title="Commander FAQ"
+                description="Smarter.Poker — The Future of the Game."
+                noindex={true}
+            />
 
       <div className="cmd-page min-h-screen">
         {/* Header */}

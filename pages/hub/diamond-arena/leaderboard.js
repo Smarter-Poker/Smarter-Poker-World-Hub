@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
@@ -22,9 +22,11 @@ export default function DiamondArenaLeaderboard() {
 
     return (
         <>
-            <Head>
-                <title>Leaderboard | Diamond Arena</title>
-            </Head>
+            <SEOHead
+                title="Diamond Arena Leaderboard"
+                description="Smarter.Poker — The Future of the Game."
+                canonical="/hub/diamond-arena/leaderboard"
+            />
 
             <PageTransition>
                 <div style={{ minHeight: '100vh', background: '#0a0e1a' }}>

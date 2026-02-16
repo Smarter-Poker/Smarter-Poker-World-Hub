@@ -4,7 +4,7 @@
  */
 
 import { useState } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import { motion } from 'framer-motion';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
@@ -79,10 +79,11 @@ export default function GodModeDemoPage() {
 
     return (
         <PageTransition>
-            <Head>
-                <title>God-Mode Demo | Smarter.Poker</title>
-                <meta name="viewport" content="width=device-width, initial-scale=1" />
-            </Head>
+            <SEOHead
+                title="God Mode Demo"
+                description="Demo page."
+                noindex={true}
+            />
 
             <div style={{
                 minHeight: '100vh',

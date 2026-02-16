@@ -5,7 +5,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import { Server, Database, Wifi, Shield, Clock, RefreshCw,
   CheckCircle, XCircle, AlertTriangle, Loader2, HelpCircle, Activity,
   Users, Layout, Gamepad2, ExternalLink
@@ -55,7 +55,11 @@ export default function SystemInfoPage() {
   return (
     <CommanderLayout title="System Info | {venueName || 'Commander'}" backHref="/commander/settings">
     <>
-      <Head><title>System Info | {venueName || 'Commander'}</title></Head>
+      <SEOHead
+                title="Commander — System Info"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
         <header className="bg-[#242526] border-b border-[#3A3B3C] sticky top-0 z-50">
           <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">

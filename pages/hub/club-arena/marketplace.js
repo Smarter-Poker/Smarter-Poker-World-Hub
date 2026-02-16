@@ -3,7 +3,7 @@
    Facebook Dark Theme | Club Shop with Real Items & Purchases
    ═══════════════════════════════════════════════════════════════════════════════ */
 import { useState, useEffect, useCallback } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -285,10 +285,12 @@ export default function Marketplace() {
 
     return (
         <>
-            <Head>
-                <title>Marketplace | Club Arena</title>
-                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-            </Head>
+            <SEOHead
+                title="Club Arena — Marketplace"
+                description="Browse the Club Arena marketplace."
+                canonical="/hub/club-arena/marketplace"
+                noindex={true}
+            />
 
             <div style={S.page}>
                 <UniversalHeader pageDepth={2} />

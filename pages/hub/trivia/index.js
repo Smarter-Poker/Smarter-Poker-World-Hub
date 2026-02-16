@@ -3,7 +3,7 @@
  * Route: /hub/trivia
  */
 
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
@@ -120,12 +120,13 @@ export default function TriviaHubPage() {
 
     return (
         <PageTransition>
-            <Head>
-                <title>Trivia - Smarter.Poker</title>
-                <meta name="description" content="Test your poker knowledge with daily trivia and earn rewards" />
-                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+            <SEOHead
+                title="Poker Trivia — Test Your Knowledge"
+                description="Put your poker knowledge to the test with multiple game modes: Endless, Survival, Time Attack, Mixed, PvP, and Tournaments."
+                canonical="/hub/trivia"
+            >
                 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-            </Head>
+            </SEOHead>
 
             <div className="trivia-page">
                 <div className="bg-overlay" />

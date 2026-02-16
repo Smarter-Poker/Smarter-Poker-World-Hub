@@ -5,7 +5,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import { QrCode, Download, Maximize2, Minimize2 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
@@ -102,10 +102,11 @@ export default function VenueQRCodePage() {
   return (
     <CommanderLayout title="Check-In QR Code | {venue?.name || 'Commander'}" backHref="/commander/dashboard">
       <>
-        <Head>
-          <title>Check-In QR Code | {venue?.name || 'Commander'}</title>
-          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-        </Head>
+        <SEOHead
+                title="Commander — QR Code"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
 
         <div className="cmd-page">
           {/* Header */}

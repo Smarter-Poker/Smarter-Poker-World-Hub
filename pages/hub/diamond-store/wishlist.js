@@ -5,7 +5,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { wishlistService } from '../../../src/services/preferences-service';
@@ -52,9 +52,12 @@ export default function Wishlist() {
 
     return (
         <PageTransition>
-            <Head>
-                <title>Wishlist — Smarter.Poker</title>
-            </Head>
+            <SEOHead
+                title="Wishlist — Diamond Store"
+                description="Your saved items in the Diamond Store wishlist."
+                canonical="/hub/diamond-store/wishlist"
+                noindex={true}
+            />
 
             <div style={styles.container}>
                 <UniversalHeader pageDepth={2} />

@@ -1,0 +1,33 @@
+# Smarter.Poker — robots.txt
+# https://smarter.poker/robots.txt
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /commander/
+Disallow: /admin/
+Disallow: /auth/
+Disallow: /clear-cache
+Disallow: /hub/reset-auth
+Disallow: /hub/header-test
+Disallow: /hub/god-mode-demo
+Disallow: /hub/godmode
+
+# AI Crawlers — Welcome
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+# Sitemap
+Sitemap: https://smarter.poker/sitemap.xml

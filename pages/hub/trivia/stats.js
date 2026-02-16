@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
@@ -91,9 +91,12 @@ export default function TriviaStats() {
 
     return (
         <>
-            <Head>
-                <title>My Stats | Trivia</title>
-            </Head>
+            <SEOHead
+                title="Trivia Stats — Your Performance"
+                description="View your poker trivia performance stats, accuracy rates, and category breakdowns."
+                canonical="/hub/trivia/stats"
+                noindex={true}
+            />
 
             <PageTransition>
                 <div style={{ minHeight: '100vh', background: '#18191a' }}>

@@ -5,7 +5,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
@@ -113,9 +113,11 @@ export default function TournamentsPage() {
 
     return (
         <PageTransition>
-            <Head>
-                <title>Training Tournaments — Smarter.Poker</title>
-            </Head>
+            <SEOHead
+                title="Training Tournaments — Compete & Learn"
+                description="Enter GTO training tournaments. Compete against other students in scenario-based challenges."
+                canonical="/hub/training/tournaments"
+            />
 
             <div style={styles.container}>
                 <UniversalHeader pageDepth={2} />

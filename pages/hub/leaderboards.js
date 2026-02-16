@@ -4,7 +4,7 @@
  * Route: /hub/leaderboards
  */
 
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useState, useEffect, useCallback } from 'react';
@@ -338,11 +338,11 @@ export default function LeaderboardsPage() {
 
     return (
         <>
-            <Head>
-                <title>Leaderboards | Smarter.Poker</title>
-                <meta name="description" content="Poker community leaderboards - see who's the most active player" />
-                <meta name="viewport" content="width=device-width, initial-scale=1" />
-            </Head>
+            <SEOHead
+                title="Poker Leaderboards — Global Rankings"
+                description="See who tops the charts across all Smarter.Poker games. Global rankings for training, trivia, memory games, and more."
+                canonical="/hub/leaderboards"
+            />
 
             <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
             <HamburgerMenu

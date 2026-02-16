@@ -10,7 +10,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../../../src/components/seo/SEOHead';
 import { Save, Plus, Trash2, GripVertical, Clock, DollarSign,
   Users, Trophy, Coffee, ChevronUp, ChevronDown, Copy, Download,
   Loader2, Settings, Calculator, FileText, RotateCcw, Check
@@ -320,7 +320,11 @@ export default function TournamentSettings() {
 
   return (
     <>
-      <Head><title>Settings | {name || 'Tournament'}</title></Head>
+      <SEOHead
+                title="Commander — Settings"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter'] flex flex-col">
 
         {/* Header */}

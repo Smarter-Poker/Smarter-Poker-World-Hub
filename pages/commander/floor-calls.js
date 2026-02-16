@@ -12,7 +12,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import { useRealtimeUpdates } from '../../src/lib/commander/useRealtimeUpdates';
 import {
   AlertTriangle, Check, Clock, Loader2,
@@ -109,7 +109,11 @@ export default function FloorCalls() {
 
   return (
     <>
-      <Head><title>Floor Calls{pendingCount > 0 ? ` (${pendingCount})` : ''} | Club Commander</title></Head>
+      <SEOHead
+                title="Commander — Floor Calls"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
         {/* Header */}

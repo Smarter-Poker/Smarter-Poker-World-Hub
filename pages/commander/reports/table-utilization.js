@@ -5,7 +5,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { LayoutGrid, Loader2, RefreshCw, Clock, Users, TrendingUp, Zap } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
@@ -48,7 +48,11 @@ export default function TableUtilization() {
 
   return (
     <>
-      <Head><title>Table Utilization | Club Commander</title></Head>
+      <SEOHead
+                title="Commander — Table Utilization"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
           <div className="flex-1"><h1 className="text-lg font-bold text-white">Table Utilization</h1><p className="text-xs text-[#B0B3B8]">{RANGES.find(r => r.value === range)?.label}</p></div>

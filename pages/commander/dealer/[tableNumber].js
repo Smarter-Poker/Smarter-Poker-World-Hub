@@ -15,7 +15,7 @@
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import {
   AlertTriangle, Coffee, Hash, Loader2, RefreshCw,
   UserX, UserPlus, Clock, Bell, RotateCcw, ScanLine,
@@ -347,7 +347,11 @@ export default function DealerTablet() {
 
   return (
     <>
-      <Head><title>Table {tableNumber} | Dealer Tablet</title></Head>
+      <SEOHead
+                title="Commander — Details"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
       <style jsx global>{`
         @keyframes pulse-warn { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
         .time-warn { animation: pulse-warn 1.5s ease-in-out infinite; }

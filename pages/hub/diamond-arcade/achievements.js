@@ -2,7 +2,7 @@
  * Diamond Arcade - Achievements
  */
 
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
@@ -18,9 +18,11 @@ export default function DiamondArcadeAchievements() {
 
     return (
         <>
-            <Head>
-                <title>Achievements | Diamond Arcade</title>
-            </Head>
+            <SEOHead
+                title="Arcade Achievements"
+                description="Track your Diamond Arcade achievements and unlocked rewards."
+                canonical="/hub/diamond-arcade/achievements"
+            />
 
             <PageTransition>
                 <div style={{ minHeight: '100vh', background: '#0a0e1a' }}>

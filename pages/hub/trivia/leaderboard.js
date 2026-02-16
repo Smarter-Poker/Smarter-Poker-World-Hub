@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
@@ -123,9 +123,11 @@ export default function TriviaLeaderboard() {
 
     return (
         <>
-            <Head>
-                <title>Leaderboard | Trivia</title>
-            </Head>
+            <SEOHead
+                title="Trivia Leaderboard — Top Players"
+                description="See who dominates the poker trivia leaderboard. Global rankings across all game modes."
+                canonical="/hub/trivia/leaderboard"
+            />
 
             <PageTransition>
                 <div style={{ minHeight: '100vh', background: '#18191a' }}>

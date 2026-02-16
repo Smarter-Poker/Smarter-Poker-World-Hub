@@ -6,7 +6,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../../../src/components/seo/SEOHead';
 import {
   ChevronLeft,
   Loader2,
@@ -208,10 +208,11 @@ export default function HandDetailPage() {
 
   return (
     <>
-      <Head>
-        <title>Hand #{hand.hand_number} | Club Commander</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
+      <SEOHead
+                title="Hand History"
+                description="Smarter.Poker — The Future of the Game."
+                noindex={true}
+            />
 
       <div className="cmd-page">
         {/* Header */}

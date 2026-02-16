@@ -4,7 +4,7 @@
  * Cycles through: History → Rules → Pro → History → ...
  */
 
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
@@ -385,10 +385,11 @@ export default function MixedModePage() {
 
     return (
         <PageTransition>
-            <Head>
-                <title>Mixed Mode - Smarter.Poker Trivia</title>
-                <meta name="description" content="Test all your poker knowledge with rotating categories!" />
-            </Head>
+            <SEOHead
+                title="Mixed Trivia — All Categories"
+                description="Challenge yourself with mixed poker trivia covering all categories and difficulty levels."
+                canonical="/hub/trivia/mixed"
+            />
 
             <div className="mixed-page">
                 <div className="bg-overlay" />

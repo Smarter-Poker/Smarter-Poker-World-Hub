@@ -7,7 +7,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../../../src/components/seo/SEOHead';
 import {
   Trophy, LayoutGrid, Users, Scale, UserPlus, Monitor,
   X, ChevronRight, AlertTriangle, Loader2, RefreshCw,
@@ -119,7 +119,11 @@ export default function TDTablesMap() {
 
   return (
     <>
-      <Head><title>TD Tables | Club Commander</title></Head>
+      <SEOHead
+                title="Commander — Tables"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] pb-20 font-['Inter']">
 
         {/* Header */}

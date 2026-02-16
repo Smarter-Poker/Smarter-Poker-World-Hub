@@ -2,7 +2,7 @@
  * News - Sources
  */
 
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
@@ -18,9 +18,11 @@ export default function NewsSources() {
 
     return (
         <>
-            <Head>
-                <title>News Sources | News Hub</title>
-            </Head>
+            <SEOHead
+                title="News Sources — Poker Media Outlets"
+                description="Browse poker news sources and media outlets aggregated on Smarter.Poker."
+                canonical="/hub/news/sources"
+            />
 
             <PageTransition>
                 <div style={{ minHeight: '100vh', background: '#0a0e1a' }}>

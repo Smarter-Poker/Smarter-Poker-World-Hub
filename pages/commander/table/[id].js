@@ -12,7 +12,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { Clock, Users, Plus, Minus, Loader2,
   RefreshCw, Timer, UserPlus, ChevronDown
 } from 'lucide-react';
@@ -111,7 +111,11 @@ export default function TableSeating() {
 
   return (
     <>
-      <Head><title>Table {tableNum} | Club Commander</title></Head>
+      <SEOHead
+                title="Commander — Details"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
         {/* Header */}

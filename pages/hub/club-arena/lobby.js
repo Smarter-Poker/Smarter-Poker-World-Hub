@@ -4,7 +4,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useEffect } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
@@ -142,11 +142,14 @@ export default function ClubLobby() {
 
     return (
         <>
-            <Head>
-                <title>{club?.name || 'Club Lobby'} | Club Arena</title>
-                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+            <SEOHead
+                title="Club Arena — Game Lobby"
+                description="Browse available poker games in Club Arena."
+                canonical="/hub/club-arena/lobby"
+                noindex={true}
+            >
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-            </Head>
+            </SEOHead>
 
             <div style={styles.page}>
                 <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />

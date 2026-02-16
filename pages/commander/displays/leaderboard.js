@@ -12,7 +12,7 @@
  * Auto-scrolls, wake lock, fullscreen.
  */
 import { useState, useEffect, useRef } from 'react';
-import Head from 'next/head';
+
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
 const MEDAL_COLORS = ['#FFD700', '#C0C0C0', '#CD7F32'];

@@ -5,7 +5,7 @@
  * Dark industrial sci-fi gaming theme
  */
 import React, { useState, useEffect } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import {
   Building2, Settings, Download, Shield, Key,
@@ -562,10 +562,13 @@ export default function AdminDashboard() {
 
   return (
     <>
-      <Head>
-        <title>Admin Dashboard | Club Commander</title>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-      </Head>
+      <SEOHead
+                title="Commander — Index"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            >
+                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+            </SEOHead>
 
       <div className="cmd-page" style={{ fontFamily: 'Inter, sans-serif' }}>
         {/* Header */}

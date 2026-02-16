@@ -5,7 +5,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import {
   Flame, Smile, Zap, Loader2, MessageSquare,
   Star, BarChart3
@@ -75,7 +75,11 @@ export default function TableVibes() {
 
   return (
     <>
-      <Head><title>Table Vibes | Club Commander</title></Head>
+      <SEOHead
+                title="Commander — Table Vibes"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
       <div style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: 'Inter, system-ui, sans-serif' }}>
         <div style={{ background: '#1877F2', color: 'white', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
           <Flame size={22} />

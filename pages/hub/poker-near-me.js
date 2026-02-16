@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import { supabase } from '../../src/lib/supabase';
@@ -1802,15 +1802,11 @@ export default function PokerNearMePage() {
                 </div>
             )}
 
-            <Head>
-                <title>Poker Near Me | Smarter.Poker</title>
-                <meta name="description" content="Find poker rooms, tours, tournament series, and daily events near you." />
-                {/* Leaflet CSS */}
-                <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-                <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
-                <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
-                {/* Leaflet JS - loaded dynamically in VenueMap component */}
-            </Head>
+            <SEOHead
+                title="Poker Near Me — Find Live Poker Rooms & Casinos"
+                description="Discover live poker rooms, casinos, and card rooms near you. Real-time game info, tournament schedules, and interactive maps across the United States."
+                canonical="/hub/poker-near-me"
+            />
 
             <div className="pnm-page">
                 <div className="space-bg"></div>

@@ -4,7 +4,7 @@
  * POST /api/commander/cashier - Record buy-in, cash-out, or add-on
  */
 import { createClient } from '@supabase/supabase-js';
-import { guardWriteStaff } from '../../../src/lib/commander/auth';
+import { guardStaff } from '../../../src/lib/commander/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -12,22 +12,17 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  const _g = await guardWriteStaff(req, res); if (!_g) return;
+  const staff = await guardStaff(req, res); if (!staff) return;
 
-  if (req.method === 'GET') return handleGet(req, res);
-  if (req.method === 'POST') return handlePost(req, res);
+  if (req.method === 'GET') return handleGet(req, res, staff);
+  if (req.method === 'POST') return handlePost(req, res, staff);
   return res.status(405).json({ success: false, error: 'Method not allowed' });
 }
 
-async function handleGet(req, res) {
+async function handleGet(req, res, staff) {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ success: false, error: 'Auth required' });
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user } } = await supabase.auth.getUser(token);
-    if (!user) return res.status(401).json({ success: false, error: 'Invalid token' });
-
-    const { venue_id, table_number, session_id, type, date, limit = 100 } = req.query;
+    const { table_number, session_id, type, date, limit = 100 } = req.query;
+    const venue_id = req.query.venue_id || staff.venue_id;
     if (!venue_id) return res.status(400).json({ success: false, error: 'venue_id required' });
 
     let query = supabase
@@ -71,14 +66,8 @@ async function handleGet(req, res) {
   }
 }
 
-async function handlePost(req, res) {
+async function handlePost(req, res, staff) {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ success: false, error: 'Auth required' });
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user } } = await supabase.auth.getUser(token);
-    if (!user) return res.status(401).json({ success: false, error: 'Invalid token' });
-
     const { venue_id, session_id, player_name, table_number, seat_number, type, amount, chip_count, payment_method, notes } = req.body;
 
     if (!venue_id || !player_name || !type || !amount) {
@@ -103,7 +92,7 @@ async function handlePost(req, res) {
         amount: parseFloat(amount),
         chip_count: chip_count ? parseFloat(chip_count) : parseFloat(amount),
         payment_method: payment_method || 'cash',
-        processed_by: user.id,
+        processed_by: staff.id,
         notes: notes || null,
       })
       .select()

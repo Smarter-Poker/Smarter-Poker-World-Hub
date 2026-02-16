@@ -1,7 +1,7 @@
 /**
  * Single Article Page
  */
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
@@ -177,10 +177,11 @@ export default function ArticlePage() {
 
     return (
         <PageTransition>
-            <Head>
-                <title>{article.title} | Smarter.Poker</title>
-                <meta name="description" content={article.excerpt || article.content?.substring(0, 160)} />
-            </Head>
+            <SEOHead
+                title="Poker Article"
+                description="Read poker strategy articles, news stories, and educational content on Smarter.Poker."
+                canonical="/hub/article"
+            />
 
             <div className="article-page">
                 {/* UniversalHeader */}

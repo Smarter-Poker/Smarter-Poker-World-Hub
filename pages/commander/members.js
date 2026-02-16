@@ -5,7 +5,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import {
     Users, UserPlus, ScanLine, Search, Filter,
     ChevronDown, User, Clock, Star, Loader2
@@ -101,10 +101,11 @@ export default function MembersPage() {
     return (
         <CommanderLayout title="Members" backHref="/commander/dashboard">
             <>
-                <Head>
-                    <title>Members | Club Commander</title>
-                    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-                </Head>
+                <SEOHead
+                title="Commander — Member Management"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
 
                 <div className="min-h-screen bg-[#18191A]">
                     {/* Header */}

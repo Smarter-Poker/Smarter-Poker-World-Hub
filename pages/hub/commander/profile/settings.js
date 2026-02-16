@@ -5,7 +5,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../../../src/components/seo/SEOHead';
 import { ArrowLeft, Bell, Eye, Shield, Save, Loader2 } from 'lucide-react';
 
 function ToggleSetting({ label, description, value, onChange }) {
@@ -112,10 +112,11 @@ export default function ProfileSettingsPage() {
 
   return (
     <>
-      <Head>
-        <title>Settings | Smarter Poker</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
+      <SEOHead
+                title="Profile Settings"
+                description="Smarter.Poker — The Future of the Game."
+                noindex={true}
+            />
       <div className="cmd-page" style={{ fontFamily: 'Inter, sans-serif' }}>
         <header className="cmd-header-bar">
           <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-4">

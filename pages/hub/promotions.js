@@ -4,7 +4,7 @@
  * Facebook light theme, Inter font, no emojis.
  */
 
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
@@ -114,10 +114,11 @@ export default function PromotionsPage() {
 
     return (
         <>
-            <Head>
-                <title>Promotions &amp; Deals | Smarter.Poker</title>
-                <meta name="description" content="Discover active promotions and deals from poker venues, tours, and series across the poker world." />
-            </Head>
+            <SEOHead
+                title="Promotions — Current Offers & Rewards"
+                description="Discover current promotions, bonuses, and reward opportunities on Smarter.Poker. VIP offers and special events."
+                canonical="/hub/promotions"
+            />
 
             <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
             <HamburgerMenu

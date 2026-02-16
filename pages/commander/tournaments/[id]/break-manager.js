@@ -17,7 +17,7 @@
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../../../src/components/seo/SEOHead';
 import { AlertTriangle, Loader2, RefreshCw, Printer,
   Users, ArrowRight, Check, X, ChevronRight, Table2, Zap
 } from 'lucide-react';
@@ -148,7 +148,11 @@ ${receipts.map(r => `
   return (
     <CommanderLayout title="Table Break Receipts" backHref="/commander/tournaments">
     <>
-      <Head><title>Table Break Manager | Club Commander</title></Head>
+      <SEOHead
+                title="Commander — Break Manager"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
         {/* Header */}

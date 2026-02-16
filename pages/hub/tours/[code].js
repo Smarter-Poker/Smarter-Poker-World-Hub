@@ -4,7 +4,7 @@
  * activity feed, tournament results, and notification opt-in
  */
 
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -268,14 +268,15 @@ export default function TourDetailPage() {
 
   return (
     <>
-      <Head>
-        <title>{pageTitle}</title>
-        <meta name="description" content={tour ? (tour.tour_name + ' - poker tour details, upcoming series, and more') : 'Poker tour details'} />
-        {/* Industrial Fonts */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
-      </Head>
+      <SEOHead
+                title="Poker Tour Details"
+                description="View details for this poker tour on Smarter.Poker."
+                noindex={true}
+            >
+                <link rel="preconnect" href="https://fonts.googleapis.com" />
+                <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+                <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
+            </SEOHead>
 
       <UniversalHeader pageDepth={2} />
 

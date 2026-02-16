@@ -5,7 +5,7 @@
  * and activity feed.
  */
 
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect, Fragment } from 'react';
 import { useRouter } from 'next/router';
@@ -305,7 +305,11 @@ export default function SeriesDetailPage() {
   if (loading) {
     return (
       <>
-        <Head><title>Loading Series... | Smarter.Poker</title></Head>
+        <SEOHead
+                title="Poker Series Details"
+                description="Smarter.Poker — The Future of the Game."
+                noindex={true}
+            />
         <UniversalHeader pageDepth={2} />
         <div className="series-page">
           <div className="loading-container">

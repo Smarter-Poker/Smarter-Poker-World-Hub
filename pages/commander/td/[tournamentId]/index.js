@@ -8,7 +8,7 @@
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../../../src/components/seo/SEOHead';
 import {
   Play, Pause, SkipForward, SkipBack, Trophy, Users, DollarSign,
   Clock, AlertTriangle, ChevronRight, RefreshCw, Loader2,
@@ -225,10 +225,11 @@ export default function TDControlCenter() {
 
   return (
     <>
-      <Head>
-        <title>TD: {tournament.name} | Club Commander</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-      </Head>
+      <SEOHead
+                title="Commander — Index"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
 
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] pb-20 font-['Inter']">
 

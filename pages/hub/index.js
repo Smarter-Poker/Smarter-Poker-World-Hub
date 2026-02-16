@@ -4,7 +4,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useEffect } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import dynamic from 'next/dynamic';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
@@ -51,10 +51,11 @@ export default function HubPage() {
 
     return (
         <>
-            <Head>
-                <title>World Hub | Smarter.Poker</title>
-                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-            </Head>
+            <SEOHead
+                title="Poker Hub — Your Command Center"
+                description="Access all Smarter.Poker features from one hub: GTO training, poker near me, bankroll tracking, trivia, news, social, and more."
+                canonical="/hub"
+            />
             <UniversalHeader
                 pageDepth={1}
                 onMenuClick={() => setMenuOpen(true)}

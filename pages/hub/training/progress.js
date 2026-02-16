@@ -5,7 +5,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
@@ -147,9 +147,12 @@ export default function TrainingProgress() {
 
     return (
         <PageTransition>
-            <Head>
-                <title>Training Progress — Smarter.Poker</title>
-            </Head>
+            <SEOHead
+                title="Training Progress — Your Journey"
+                description="Track your GTO training progress across all 100 games and categories."
+                canonical="/hub/training/progress"
+                noindex={true}
+            />
 
             <div style={styles.container}>
                 <UniversalHeader pageDepth={2} />

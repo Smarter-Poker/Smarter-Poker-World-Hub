@@ -5,7 +5,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import {
   Plus, Edit2, Trash2, Check, X, Loader2, Save,
   DollarSign, Users, Percent, Clock, GripVertical, ToggleLeft, ToggleRight
@@ -158,7 +158,11 @@ export default function GameTypesPage() {
   return (
     <CommanderLayout title="Game Types | {venueName || 'Commander'}" backHref="/commander/dashboard">
       <>
-        <Head><title>Game Types | {venueName || 'Commander'}</title></Head>
+        <SEOHead
+                title="Commander — Game Types"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
         <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
           {/* Header */}
           <header className="bg-[#242526] border-b border-[#3A3B3C] sticky top-0 z-50">

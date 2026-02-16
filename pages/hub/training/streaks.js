@@ -5,7 +5,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
@@ -154,9 +154,12 @@ export default function StreaksPage() {
 
     return (
         <PageTransition>
-            <Head>
-                <title>Training Streak — Smarter.Poker</title>
-            </Head>
+            <SEOHead
+                title="Training Streaks — Stay Consistent"
+                description="Build and maintain your daily training streaks on Smarter.Poker."
+                canonical="/hub/training/streaks"
+                noindex={true}
+            />
 
             <div style={styles.container}>
                 <UniversalHeader pageDepth={2} />

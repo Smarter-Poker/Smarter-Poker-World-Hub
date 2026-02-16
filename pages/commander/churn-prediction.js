@@ -5,7 +5,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import {
   Brain, AlertTriangle, Users, TrendingDown,
   Loader2, ChevronDown, ChevronUp, Clock, Calendar
@@ -68,7 +68,11 @@ export default function ChurnPrediction() {
 
   return (
     <>
-      <Head><title>Churn Prediction | Club Commander</title></Head>
+      <SEOHead
+                title="Commander — Churn Prediction"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
       <div style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: 'Inter, system-ui, sans-serif' }}>
         <div style={{ background: '#1877F2', color: 'white', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
           <Brain size={22} />

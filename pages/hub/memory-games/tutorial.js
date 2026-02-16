@@ -2,7 +2,7 @@
  * Memory Games - Tutorial
  */
 
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
@@ -18,9 +18,11 @@ export default function MemoryGamesTutorial() {
 
     return (
         <>
-            <Head>
-                <title>Tutorial | Memory Games</title>
-            </Head>
+            <SEOHead
+                title="Memory Games Tutorial — How to Play"
+                description="Learn how to play the Smarter.Poker memory games with this step-by-step tutorial."
+                canonical="/hub/memory-games/tutorial"
+            />
 
             <PageTransition>
                 <div style={{ minHeight: '100vh', background: '#0a0e1a' }}>

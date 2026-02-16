@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import { supabase } from '../../src/lib/supabase';
 import styles from './horses.module.css';
 
@@ -297,11 +297,14 @@ export default function HorsesAdmin() {
     if (!user) {
         return (
             <>
-                <Head>
-                    <title>HORSES | Content Stable</title>
-                    <link rel="preconnect" href="https://fonts.googleapis.com" />
-                    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-                </Head>
+                <SEOHead
+                title="Poker Horses — Fantasy Poker Game"
+                description="Play fantasy poker by picking your horses. Follow live tournament action and compete on leaderboards."
+                canonical="/horses"
+            >
+                <link rel="preconnect" href="https://fonts.googleapis.com" />
+                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+            </SEOHead>
                 <div className={styles.loginContainer}>
                     <div className={styles.loginCard}>
                         <div className={styles.loginHeader}>

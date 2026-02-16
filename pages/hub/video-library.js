@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -881,178 +881,11 @@ export default function VideoLibraryPage() {
                     </button>
                 </div>
             )}
-            <Head>
-                <title>Video Library | Smarter Poker</title>
-                <meta name="description" content="Watch full poker videos from HCL, The Lodge, Triton, and more" />
-                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-                <style>{`
-                    /* 800px Design Canvas - CSS Zoom Scaling (Training Page Template) */
-                    .video-library-page {
-                        width: 100%;
-                        max-width: 100%;
-                        margin: 0 auto;
-                        overflow-x: hidden;
-                    }
-                    
-                    /* Metal Frame Styling - Futuristic Chrome Border */
-                    .metal-frame {
-                        position: relative;
-                        background: #0a0a0a;
-                        border-radius: 16px;
-                        overflow: visible;
-                        padding: 4px;
-                        box-shadow: 
-                            0 0 0 3px rgba(160, 170, 180, 0.8),
-                            0 0 0 4px rgba(80, 90, 100, 0.6),
-                            inset 0 0 0 1px rgba(255, 255, 255, 0.05),
-                            0 8px 32px rgba(0, 0, 0, 0.5);
-                    }
-                    
-                    .metal-frame > * {
-                        border-radius: 12px;
-                        overflow: hidden;
-                    }
-                    
-                    .metal-frame > *:first-child {
-                        border-radius: 12px 12px 0 0;
-                    }
-                    
-                    /* Metal Frame for smaller buttons */
-                    .metal-frame-sm {
-                        position: relative;
-                        background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
-                        border-radius: 10px;
-                        overflow: hidden;
-                    }
-                    
-                    .metal-frame-sm::before {
-                        content: '';
-                        position: absolute;
-                        inset: 0;
-                        border-radius: 10px;
-                        padding: 2px;
-                        background: linear-gradient(
-                            135deg,
-                            rgba(160, 170, 180, 0.8) 0%,
-                            rgba(100, 110, 120, 0.5) 50%,
-                            rgba(160, 170, 180, 0.8) 100%
-                        );
-                        -webkit-mask: 
-                            linear-gradient(#fff 0 0) content-box, 
-                            linear-gradient(#fff 0 0);
-                        -webkit-mask-composite: xor;
-                        mask-composite: exclude;
-                        pointer-events: none;
-                    }
-                    
-                    /* Video card hover effects with metal frame */
-                    .video-card-metal {
-                        transition: transform 0.3s ease, box-shadow 0.3s ease;
-                    }
-                    
-                    .video-card-metal:hover {
-                        transform: translateY(-6px);
-                        box-shadow: 
-                            0 12px 40px rgba(0, 0, 0, 0.4),
-                            0 0 30px rgba(100, 140, 180, 0.15);
-                    }
-
-                    /* ═══════ MOBILE RESPONSIVE (Social Media Template) ═══════ */
-                    @media (max-width: 680px) {
-                        .video-library-page {
-                            padding: 8px 8px !important;
-                        }
-                        .vl-header-area {
-                            margin-bottom: 12px !important;
-                        }
-                        .vl-type-toggle-row {
-                            gap: 6px !important;
-                            margin-bottom: 10px !important;
-                            justify-content: center !important;
-                        }
-                        .vl-type-toggle-row .metal-frame-sm {
-                            padding: 7px 14px !important;
-                            font-size: 12px !important;
-                        }
-                        .vl-type-toggle-row .metal-frame-sm span {
-                            font-size: 16px !important;
-                        }
-                        .vl-search-wrap {
-                            width: 100% !important;
-                            margin-left: 0 !important;
-                            margin-top: 4px !important;
-                        }
-                        .vl-source-pills {
-                            gap: 6px !important;
-                            padding: 6px 0 !important;
-                            scrollbar-width: none;
-                        }
-                        .vl-source-pills::-webkit-scrollbar {
-                            display: none;
-                        }
-                        .vl-source-pills button {
-                            padding: 6px 12px !important;
-                            font-size: 12px !important;
-                            gap: 6px !important;
-                        }
-                        .vl-source-pills button > div {
-                            width: 22px !important;
-                            height: 22px !important;
-                        }
-                        .vl-continue-watching {
-                            margin-bottom: 16px !important;
-                        }
-                        .vl-continue-watching h2 {
-                            font-size: 15px !important;
-                            margin-bottom: 10px !important;
-                        }
-                        .vl-continue-watching .vl-cw-scroll {
-                            gap: 10px !important;
-                        }
-                        .vl-continue-watching .metal-frame {
-                            min-width: 160px !important;
-                        }
-                        .vl-video-grid {
-                            grid-template-columns: 1fr !important;
-                            gap: 12px !important;
-                        }
-                        .metal-frame.video-card-metal {
-                            box-shadow: 0 0 0 2px rgba(160, 170, 180, 0.5), 0 4px 12px rgba(0,0,0,0.3) !important;
-                            border-radius: 12px !important;
-                            padding: 3px !important;
-                        }
-                        .video-card-metal:hover {
-                            transform: none !important;
-                        }
-                        .vl-card-info {
-                            padding: 10px 12px !important;
-                        }
-                        .vl-card-info h3 {
-                            font-size: 14px !important;
-                            margin-bottom: 6px !important;
-                        }
-                        .vl-video-count {
-                            margin-top: 16px !important;
-                            font-size: 12px !important;
-                        }
-                        /* Video modal mobile adjustments */
-                        .vl-modal-close {
-                            top: 8px !important;
-                            right: 8px !important;
-                            width: 40px !important;
-                            height: 40px !important;
-                            font-size: 20px !important;
-                        }
-                        .jarvis-button {
-                            top: 8px !important;
-                            right: 56px !important;
-                            height: 40px !important;
-                            padding: 0 12px !important;
-                            font-size: 12px !important;
-                        }
-                    }
-                `}</style>
-            </Head>
+            <SEOHead
+                title="Poker Video Library — Watch & Learn"
+                description="Curated poker video library with strategy content, tournament coverage, and training videos. Track your watch history and get AI tactical analysis."
+                canonical="/hub/video-library"
+            />
 
             <div className="video-library-page" style={{
                 minHeight: '100vh',

@@ -14,7 +14,7 @@
  */
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 export default function LobbyDisplay() {
@@ -96,7 +96,11 @@ export default function LobbyDisplay() {
 
   return (
     <>
-      <Head><title>Poker Room | Now Playing</title></Head>
+      <SEOHead
+                title="Commander — Player Lobby"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
       <style jsx global>{`
         * { cursor: none !important; }
         body { overflow: hidden; }

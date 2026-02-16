@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
@@ -97,9 +97,11 @@ export default function TriviaAchievements() {
 
     return (
         <>
-            <Head>
-                <title>Achievements | Trivia</title>
-            </Head>
+            <SEOHead
+                title="Trivia Achievements — Unlock Rewards"
+                description="Track your poker trivia achievements. Unlock badges, rewards, and bragging rights."
+                canonical="/hub/trivia/achievements"
+            />
 
             <PageTransition>
                 <div style={{ minHeight: '100vh', background: '#18191a' }}>

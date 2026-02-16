@@ -5,7 +5,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import {
   Users,
   Package,
@@ -533,10 +533,11 @@ export default function MarketplacePage() {
   return (
     <CommanderLayout title="Marketplace | Commander" backHref="/commander/dashboard">
       <>
-        <Head>
-          <title>Marketplace | Commander</title>
-          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-        </Head>
+        <SEOHead
+                title="Commander — Marketplace"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
 
         <div className="cmd-page">
           <header className="cmd-header-bar sticky top-0 z-40">

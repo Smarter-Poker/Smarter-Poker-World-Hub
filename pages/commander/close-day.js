@@ -11,7 +11,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import {
   CheckCircle2, XCircle, AlertTriangle, Loader2,
   Users, DollarSign, Clock, Lock, FileText, ChevronRight
@@ -114,7 +114,11 @@ export default function CloseDay() {
 
   return (
     <>
-      <Head><title>Close Day | Club Commander</title></Head>
+      <SEOHead
+                title="Commander — Close Day"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
         {/* Header */}

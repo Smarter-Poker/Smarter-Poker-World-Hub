@@ -5,7 +5,7 @@
  * Fetches venue data from /api/poker/venues?id=X
  */
 
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
@@ -817,16 +817,15 @@ export default function VenueDetailPage() {
 
   return (
     <>
-      <Head>
-        <title>{pageTitle} | Smarter.Poker</title>
-        <meta name="description" content={venue ? venue.name + ' poker room in ' + venue.city + ', ' + venue.state + '. Find tournaments, hours, and contact info.' : 'Poker venue details'} />
-        {/* Industrial Fonts */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
-        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
-      </Head>
+      <SEOHead
+                title="Poker Venue Details"
+                description="View detailed information about this poker venue including games, tournaments, and hours."
+                noindex={true}
+            >
+                <link rel="preconnect" href="https://fonts.googleapis.com" />
+                <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+                <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
+            </SEOHead>
 
       <UniversalHeader pageDepth={2} />
 

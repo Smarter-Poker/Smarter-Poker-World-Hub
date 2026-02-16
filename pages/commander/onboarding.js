@@ -5,7 +5,7 @@
  * Dark industrial sci-fi gaming theme
  */
 import { useState } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import {
   Building2,
@@ -118,10 +118,11 @@ export default function VenueOnboardingPage() {
   if (submitted) {
     return (
       <>
-        <Head>
-          <title>Request Submitted | Club Commander</title>
-          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-        </Head>
+        <SEOHead
+                title="Club Commander — Onboarding"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
 
         <div className="cmd-page flex items-center justify-center px-4">
           <div className="max-w-md w-full text-center">

@@ -14,7 +14,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import {
   Clock, Shield, Timer, Users, ChevronRight, Loader2,
   CheckCircle2, AlertTriangle, XCircle, CreditCard
@@ -136,10 +136,11 @@ export default function PlayerCheckIn() {
 
   return (
     <>
-      <Head>
-        <title>My Account | Club Commander</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-      </Head>
+      <SEOHead
+                title="Commander — Details"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter'] p-4 pb-12 max-w-md mx-auto">
 
         {/* Header */}

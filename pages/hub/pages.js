@@ -4,7 +4,7 @@
  * Integrated with /api/poker/follow for Supabase persistence.
  */
 
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
@@ -188,10 +188,11 @@ export default function PokerPagesPage() {
 
     return (
         <>
-            <Head>
-                <title>Poker Pages | Smarter.Poker</title>
-                <meta name="description" content="Discover and follow poker venues, tours, and tournament series. Stay updated with your favorite poker rooms." />
-            </Head>
+            <SEOHead
+                title="Social Pages — Community Pages"
+                description="Discover community pages on Smarter.Poker. Follow pages for poker content, strategy, and community discussions."
+                canonical="/hub/pages"
+            />
 
             <UniversalHeader pageDepth={2} />
 

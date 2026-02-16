@@ -5,7 +5,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import {
   Shield, Star, Users, Loader2, ChevronDown, ChevronUp,
   Heart, Award, MessageSquare, Plus, X, Send
@@ -132,7 +132,11 @@ export default function PlayerReputation() {
 
   return (
     <>
-      <Head><title>Player Reputation | Club Commander</title></Head>
+      <SEOHead
+                title="Commander — Player Reputation"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
       <div style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: 'Inter, system-ui, sans-serif' }}>
         <div style={{ background: '#1877F2', color: 'white', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
           <Shield size={22} />

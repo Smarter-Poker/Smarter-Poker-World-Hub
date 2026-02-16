@@ -6,7 +6,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import { supabase } from '../../src/lib/supabase';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -78,10 +78,12 @@ export default function SignInPage() {
 
     return (
         <>
-            <Head>
-                <title>Sign In — Smarter.Poker</title>
-                <meta name="description" content="Sign in to your Smarter.Poker account" />
-            </Head>
+            <SEOHead
+                title="Sign In — Smarter.Poker"
+                description="Sign in to Smarter.Poker — the future of poker. Training, trivia, tournaments, and more."
+                canonical="/auth/signin"
+                noindex={true}
+            />
 
             <div style={styles.container}>
                 {/* Back to Home */}

@@ -11,7 +11,7 @@
  */
 
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from '../../../src/lib/supabase';
@@ -128,20 +128,13 @@ export default function PersonalAssistantPage() {
           </button>
         </div>
       )}
-      <Head>
-        <title>Strategy Hub — Smarter.Poker</title>
-        <meta name="description" content="Virtual Sandbox & Leak Finder - Safe, data-driven tools to refine your poker game" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-        <style>{`
-          .strategy-hub-page { width: 100%; max-width: 100%; margin: 0 auto; overflow-x: hidden; }
-          
-          @keyframes shimmer {
-            0% { left: -100%; }
-            100% { left: 100%; }
-          }
-        `}</style>
-      </Head>
+      <SEOHead
+                title="Personal Poker Assistant — Jarvis AI"
+                description="Get personalized poker coaching, hand analysis, and strategy advice from Jarvis, your AI poker assistant."
+                canonical="/hub/personal-assistant"
+            >
+                <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+            </SEOHead>
 
       <div className="strategy-hub-page" style={styles.container}>
         {/* Background */}

@@ -5,7 +5,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useEffect } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
@@ -381,16 +381,13 @@ export default function ClubArenaPage() {
 
     return (
         <>
-            <Head>
-                <title>Club Arena | Smarter.Poker</title>
-                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+            <SEOHead
+                title="Club Arena — Private Online Poker Clubs"
+                description="Create and join private online poker clubs. Real-time gameplay, tournaments, hand histories, player stats, and club management."
+                canonical="/hub/club-arena"
+            >
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-                <style>{`
-                    @keyframes ca-glow { 0%, 100% { box-shadow: 0 0 20px rgba(0,212,255,0.2); } 50% { box-shadow: 0 0 40px rgba(0,212,255,0.4); } }
-                    .ca-container { width: 100%; max-width: 100%; margin: 0 auto; padding: 0; }
-                    @media (min-width: 700px) { .ca-container { max-width: 600px; } }
-                `}</style>
-            </Head>
+            </SEOHead>
 
             <div style={S.pageWrapper}>
                 {/* Background */}

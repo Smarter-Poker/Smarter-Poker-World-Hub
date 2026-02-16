@@ -12,7 +12,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { Clock, DollarSign, Users, Star, Calendar,
   Shield, AlertTriangle, Loader2, Edit, Plus, Ban, Check
 } from 'lucide-react';
@@ -106,7 +106,11 @@ export default function MemberProfile() {
   return (
     <CommanderLayout title="{m.first_name} {m.last_name}" backHref="/commander/members">
     <>
-      <Head><title>{m.first_name} {m.last_name} | Club Commander</title></Head>
+      <SEOHead
+                title="Commander — Details"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
         {/* Header */}

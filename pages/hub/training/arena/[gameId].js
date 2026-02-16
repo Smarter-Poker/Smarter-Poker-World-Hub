@@ -12,7 +12,7 @@
 
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../../../src/components/seo/SEOHead';
 import dynamic from 'next/dynamic';
 import { getAuthUser } from '../../../../src/lib/authUtils';
 
@@ -119,18 +119,11 @@ export default function TrainingArenaPage() {
 
     return (
         <>
-            <Head>
-                <title>{gameName} | Training Arena</title>
-                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-                <style>{`
-                    html, body {
-                        margin: 0;
-                        padding: 0;
-                        background: #080810;
-                        overflow: hidden;
-                    }
-                `}</style>
-            </Head>
+            <SEOHead
+                title="Training Arena — Play Game"
+                description="Smarter.Poker — The Future of the Game."
+                noindex={true}
+            />
 
             {/*  GOLDEN LOCK: Scaled container wrapper */}
             <div style={{

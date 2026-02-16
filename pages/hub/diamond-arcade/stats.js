@@ -2,7 +2,7 @@
  * Diamond Arcade - Player Stats
  */
 
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
@@ -21,9 +21,12 @@ export default function DiamondArcadeStats() {
 
     return (
         <>
-            <Head>
-                <title>My Stats | Diamond Arcade</title>
-            </Head>
+            <SEOHead
+                title="Arcade Stats — Your Performance"
+                description="View your Diamond Arcade game stats, win rates, and earnings."
+                canonical="/hub/diamond-arcade/stats"
+                noindex={true}
+            />
 
             <PageTransition>
                 <div style={{ minHeight: '100vh', background: '#0a0e1a' }}>

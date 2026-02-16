@@ -14,7 +14,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import { useRealtimeUpdates } from '../../src/lib/commander/useRealtimeUpdates';
 import { RefreshCw, Users, Clock, AlertTriangle,
   ChevronRight, Loader2, Filter, Maximize2
@@ -110,7 +110,11 @@ export default function FloorMap() {
 
   return (
     <>
-      <Head><title>Floor Map | Club Commander</title></Head>
+      <SEOHead
+                title="Commander — Floor Management"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
         {/* Header */}

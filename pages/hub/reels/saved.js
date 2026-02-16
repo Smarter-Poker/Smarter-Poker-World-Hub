@@ -5,7 +5,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useState, useEffect } from 'react';
 import { savedReelsService } from '../../../src/services/preferences-service';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -51,9 +51,12 @@ export default function SavedReels() {
 
     return (
         <PageTransition>
-            <Head>
-                <title>Saved Reels — Smarter.Poker</title>
-            </Head>
+            <SEOHead
+                title="Saved Reels"
+                description="View your saved poker reels and short clips."
+                canonical="/hub/reels/saved"
+                noindex={true}
+            />
 
             <div style={styles.container}>
                 <UniversalHeader pageDepth={2} />

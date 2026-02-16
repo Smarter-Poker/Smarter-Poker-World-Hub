@@ -2,7 +2,7 @@
  * Diamond Arcade - My Winnings
  */
 
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
@@ -17,9 +17,12 @@ export default function DiamondArcadeWinnings() {
 
     return (
         <>
-            <Head>
-                <title>My Winnings | Diamond Arcade</title>
-            </Head>
+            <SEOHead
+                title="Arcade Winnings — Your Earnings"
+                description="Track your Diamond Arcade winnings and prize history."
+                canonical="/hub/diamond-arcade/winnings"
+                noindex={true}
+            />
 
             <PageTransition>
                 <div style={{ minHeight: '100vh', background: '#0a0e1a' }}>

@@ -6,7 +6,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../src/components/seo/SEOHead';
 import {
   Plus, Save, Trash2, Edit2, Play, X, Loader2, CheckCircle, AlertCircle,
   Layout, Clock, Calendar, Trophy, Gift,
@@ -336,7 +336,11 @@ export default function DailyPresetsPage() {
   return (
     <CommanderLayout title={`Daily Presets | ${venueName || 'Commander'}`} backHref="/commander/dashboard">
       <>
-        <Head><title>Daily Presets | {venueName || 'Commander'}</title></Head>
+        <SEOHead
+                title="Commander — Room Presets"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
         <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
           <header className="bg-[#242526] border-b border-[#3A3B3C] sticky top-0 z-50">
             <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">

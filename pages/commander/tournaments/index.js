@@ -5,7 +5,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import {
   Plus, Trophy, Clock, Users, DollarSign,
   Calendar, Play, Pause, ChevronRight, Filter, Loader2, RefreshCw

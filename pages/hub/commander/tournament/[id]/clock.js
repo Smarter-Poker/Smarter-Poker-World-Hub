@@ -5,7 +5,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../../../../src/components/seo/SEOHead';
 import { Users, Trophy, Clock, DollarSign } from 'lucide-react';
 
 export default function TournamentClockDisplay() {
@@ -100,10 +100,11 @@ export default function TournamentClockDisplay() {
 
   return (
     <>
-      <Head>
-        <title>{tournament.name} | Tournament Clock</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
+      <SEOHead
+                title="Tournament Clock"
+                description="Smarter.Poker — The Future of the Game."
+                noindex={true}
+            />
 
       <div className="min-h-screen bg-[#0B1426] text-white p-8 flex flex-col">
         {/* Header */}

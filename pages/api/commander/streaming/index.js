@@ -35,9 +35,8 @@ export default async function handler(req, res) {
     // Get all tables for venue
     const { data: tables, error: tablesError } = await supabase
       .from('commander_tables')
-      .select('id, table_number, status, capacity')
+      .select('id, table_number, status, max_seats')
       .eq('venue_id', venue_id)
-      .eq('is_active', true)
       .order('table_number');
 
     if (tablesError) throw tablesError;

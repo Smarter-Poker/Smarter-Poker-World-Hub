@@ -5,7 +5,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead from '../../../../src/components/seo/SEOHead';
 import {
   Trophy,
   Clock,
@@ -124,10 +124,11 @@ export default function LeaderboardPage() {
 
   return (
     <>
-      <Head>
-        <title>Leaderboard | {venue?.name || 'Poker Room'}</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
+      <SEOHead
+                title="Venue Leaderboard"
+                description="Smarter.Poker — The Future of the Game."
+                noindex={true}
+            />
 
       <div className="cmd-page">
         {/* Header */}

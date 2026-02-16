@@ -5,7 +5,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useState, useEffect } from 'react';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
@@ -58,9 +58,12 @@ export default function BlockedUsers() {
 
     return (
         <PageTransition>
-            <Head>
-                <title>Blocked Users — Smarter.Poker</title>
-            </Head>
+            <SEOHead
+                title="Blocked Users"
+                description="Manage blocked users in Messenger."
+                canonical="/hub/messenger/blocked"
+                noindex={true}
+            />
 
             <div style={styles.container}>
                 <UniversalHeader pageDepth={2} />

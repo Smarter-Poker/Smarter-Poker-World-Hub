@@ -12,7 +12,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+
 import {
   Monitor, Tv, ExternalLink, Copy, CheckCircle2,
   Clock, Users, Trophy, Megaphone, Settings, Plus,

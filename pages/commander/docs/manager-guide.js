@@ -5,7 +5,7 @@
  * Comprehensive guide for venue managers using Club Commander
  */
 import { useState } from 'react';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import {
   ChevronLeft,
@@ -469,10 +469,11 @@ export default function ManagerGuidePage() {
 
   return (
     <>
-      <Head>
-        <title>Manager Admin Guide | Club Commander</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
+      <SEOHead
+                title="Commander — Manager Guide"
+                description="Club Commander poker room management tool."
+                noindex={true}
+            />
 
       <div className="cmd-page min-h-screen">
         {/* Header */}
