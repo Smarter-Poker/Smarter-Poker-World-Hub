@@ -201,10 +201,8 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
         /* ── HAMBURGER BUTTON ── */
         .cmd-hamburger {
           background: none;
-          border: 1px solid #333;
-          padding: 8px;
-          border-radius: 8px;
-          color: #ccc;
+          border: none;
+          padding: 0;
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -212,9 +210,13 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
           transition: all 0.2s;
         }
         .cmd-hamburger:hover {
-          border-color: #555;
-          color: #fff;
-          background: rgba(255,255,255,0.05);
+          transform: scale(1.1);
+          filter: brightness(1.2);
+        }
+        .cmd-hamburger img {
+          height: 32px;
+          width: auto;
+          display: block;
         }
 
         /* ── BACK BUTTON ── */
@@ -390,7 +392,7 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
         <div className="cmd-global-header">
           <div className="cmd-global-left">
             <button className="cmd-hamburger" onClick={() => setMenuOpen(true)}>
-              <Menu size={20} />
+              <img src="/images/commander/btn-hamburger.png" alt="Menu" />
             </button>
             <button
               className="cmd-hub-btn"

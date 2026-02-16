@@ -83,7 +83,7 @@ const CARDS = [
   },
   {
     id: 'displays',
-    title: 'Displays & Promotions',
+    title: 'Promotions & Displays',
     subtitle: 'TV Screens, Streaming, Alerts',
     image: '/images/commander/card-displays.jpg',
     glow: '#8B5CF6',
