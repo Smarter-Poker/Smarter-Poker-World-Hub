@@ -110,45 +110,64 @@ export default async function handler(req, res) {
             };
         });
 
-        // 3. Get current dealer
-        let dealerQuery = supabase
-            .from('commander_dealer_rotations')
-            .select('id, dealer_id, dealer_name, table_number, started_at')
-            .eq('table_number', tableNum)
-            .is('ended_at', null)
-            .order('started_at', { ascending: false })
-            .limit(1);
-
-        if (resolvedVenueId) {
-            dealerQuery = dealerQuery.eq('venue_id', resolvedVenueId);
-        }
-
-        const { data: rotationData, error: rotationError } = await dealerQuery;
-        if (rotationError) throw rotationError;
-
-        const rotation = rotationData?.[0] || null;
-
+        // 3. Get current dealer — handle both old and new schema
         let dealer = null;
-        if (rotation) {
-            // Fetch dealer member details for photo
-            let dealerDetails = null;
-            if (rotation.dealer_id) {
-                const { data: member } = await supabase
-                    .from('commander_members')
-                    .select('id, first_name, last_name, photo_url, member_number')
-                    .eq('id', rotation.dealer_id)
-                    .single();
-                dealerDetails = member;
+        try {
+            let dealerQuery = supabase
+                .from('commander_dealer_rotations')
+                .select('id, dealer_id, dealer_name, table_number, started_at')
+                .eq('table_number', tableNum)
+                .is('ended_at', null)
+                .order('started_at', { ascending: false })
+                .limit(1);
+
+            if (resolvedVenueId) {
+                dealerQuery = dealerQuery.eq('venue_id', resolvedVenueId);
             }
 
-            dealer = {
-                id: rotation.dealer_id,
-                name: rotation.dealer_name,
-                photo_url: dealerDetails?.photo_url || null,
-                member_number: dealerDetails?.member_number || null,
-                started_at: rotation.started_at,
-                rotation_id: rotation.id
-            };
+            let { data: rotationData, error: rotationError } = await dealerQuery;
+
+            // If columns don't exist, try minimal column set
+            if (rotationError && rotationError.message?.includes('does not exist')) {
+                // Old schema: try without dealer_name and table_number in SELECT
+                // Note: table_number may not exist as WHERE column either
+                const { data: fallbackData } = await supabase
+                    .from('commander_dealer_rotations')
+                    .select('id, dealer_id, started_at')
+                    .is('ended_at', null)
+                    .order('started_at', { ascending: false })
+                    .limit(1);
+                rotationData = fallbackData;
+            }
+
+            const rotation = rotationData?.[0] || null;
+
+            if (rotation) {
+                // Fetch dealer member details for name and photo
+                let dealerDetails = null;
+                if (rotation.dealer_id) {
+                    const { data: member } = await supabase
+                        .from('commander_members')
+                        .select('id, first_name, last_name, photo_url, member_number')
+                        .eq('id', rotation.dealer_id)
+                        .single();
+                    dealerDetails = member;
+                }
+
+                const dealerName = rotation.dealer_name ||
+                    (dealerDetails ? `${dealerDetails.first_name || ''} ${dealerDetails.last_name || ''}`.trim() : null);
+
+                dealer = {
+                    id: rotation.dealer_id,
+                    name: dealerName,
+                    photo_url: dealerDetails?.photo_url || null,
+                    member_number: dealerDetails?.member_number || null,
+                    started_at: rotation.started_at,
+                    rotation_id: rotation.id
+                };
+            }
+        } catch (e) {
+            console.warn('Dealer rotation query failed:', e.message);
         }
 
         return res.status(200).json({
