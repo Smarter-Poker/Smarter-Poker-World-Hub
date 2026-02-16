@@ -5,9 +5,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { Bell, Clock, Users, Save, Loader2, ChevronRight, StopCircle, AlertTriangle } from 'lucide-react';
+import { Bell, Clock, Users, Save, Loader2, ChevronRight } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
-import { hasFeature } from '../../src/lib/commander/tierConfig';
 
 export default function CommanderSettingsPage() {
   const router = useRouter();
@@ -28,9 +27,7 @@ export default function CommanderSettingsPage() {
     push_notifications_enabled: true,
     max_waitlist_size: 50,
     call_timeout_minutes: 5,
-    show_player_names_on_display: false,
-    hard_stop_enabled: false,
-    hard_stop_time: '23:00'
+    show_player_names_on_display: false
   });
 
   // Check staff session
@@ -75,8 +72,13 @@ export default function CommanderSettingsPage() {
           if (data?.data) {
             setSettings(prev => ({
               ...prev,
-              hard_stop_enabled: data.data.hard_stop_enabled || false,
-              hard_stop_time: data.data.hard_stop_time || '23:00'
+              auto_refresh_interval: data.data.auto_refresh_interval ?? prev.auto_refresh_interval,
+              show_player_names_on_display: data.data.show_player_names_on_display ?? prev.show_player_names_on_display,
+              sms_notifications_enabled: data.data.sms_notifications_enabled ?? prev.sms_notifications_enabled,
+              push_notifications_enabled: data.data.push_notifications_enabled ?? prev.push_notifications_enabled,
+              max_waitlist_size: data.data.max_waitlist_size ?? prev.max_waitlist_size,
+              call_timeout_minutes: data.data.call_timeout_minutes ?? prev.call_timeout_minutes,
+              default_wait_time_per_player: data.data.default_wait_time_per_player ?? prev.default_wait_time_per_player
             }));
           }
         })
@@ -103,13 +105,19 @@ export default function CommanderSettingsPage() {
         return;
       }
 
-      // Save all settings via PUT (upserts to commander_venue_settings)
+      // Save display/waitlist settings via PUT (upserts to commander_venue_settings)
+      // Note: hard_stop settings managed from Room Presets page
       const res = await fetch('/api/commander/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
-          hard_stop_enabled: settings.hard_stop_enabled,
-          hard_stop_time: settings.hard_stop_time
+          auto_refresh_interval: settings.auto_refresh_interval,
+          show_player_names_on_display: settings.show_player_names_on_display,
+          sms_notifications_enabled: settings.sms_notifications_enabled,
+          push_notifications_enabled: settings.push_notifications_enabled,
+          max_waitlist_size: settings.max_waitlist_size,
+          call_timeout_minutes: settings.call_timeout_minutes,
+          default_wait_time_per_player: settings.default_wait_time_per_player
         })
       });
 
@@ -145,8 +153,6 @@ export default function CommanderSettingsPage() {
 
   // Check if user has settings permission
   const canManageSettings = staff.permissions?.manage_settings !== false;
-  const tier = staff.tier || 'home_game';
-  const canHardStop = hasFeature(tier, 'close_day');
 
   return (
     <CommanderLayout title="Settings | {venue?.name || 'Commander'}" backHref="/commander/dashboard">
