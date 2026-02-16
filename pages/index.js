@@ -8,185 +8,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// HOTSPOT CONFIG — percentage positions over the hero image
-// ─────────────────────────────────────────────────────────────────────────────
-const HOTSPOTS = [
-  {
-    id: 'join-now',
-    label: 'Join Now',
-    // Covers the entire hero panel including the JOIN NOW button
-    top: 0,
-    left: 0,
-    width: 100,
-    height: 36,
-    action: 'navigate',
-    href: '/auth/signup',
-  },
-  {
-    id: 'global-connection',
-    label: 'Global Connection & Competition',
-    top: 36.5,
-    left: 1,
-    width: 48,
-    height: 21,
-    action: 'image-popup',
-    image: '/images/global-connection.jpg',
-  },
-  {
-    id: 'elite-training',
-    label: 'Elite Training & AI Assistance',
-    top: 36.5,
-    left: 51,
-    width: 48,
-    height: 21,
-    action: 'popup',
-  },
-  {
-    id: 'bankroll-discovery',
-    label: 'Total Control: Bankroll & Discovery',
-    top: 58.5,
-    left: 1,
-    width: 98,
-    height: 15,
-    action: 'popup',
-  },
-  {
-    id: 'lifestyle-news',
-    label: 'Lifestyle, News & Rewards',
-    top: 74.5,
-    left: 1,
-    width: 48,
-    height: 24,
-    action: 'popup',
-  },
-  {
-    id: 'club-commander',
-    label: 'Club Commander: Host Management',
-    top: 74.5,
-    left: 51,
-    width: 48,
-    height: 24,
-    action: 'navigate',
-    href: '/commander/login',
-  },
-];
-
-// ── Hotspots overlaid on the Global Connection detail image
-const GC_HOTSPOTS = [
-  {
-    id: 'social-media',
-    label: 'Social Media',
-    top: 15,
-    left: 3,
-    width: 32,
-    height: 33,
-    action: 'popup',
-  },
-  {
-    id: 'poker-trivia',
-    label: 'Poker Trivia',
-    top: 15,
-    left: 35,
-    width: 30,
-    height: 33,
-    action: 'popup',
-  },
-  {
-    id: 'diamond-arena',
-    label: 'Diamond Arena',
-    top: 15,
-    left: 65,
-    width: 32,
-    height: 33,
-    action: 'popup',
-  },
-  {
-    id: 'club-arena',
-    label: 'Club Arena',
-    top: 50,
-    left: 5,
-    width: 43,
-    height: 33,
-    action: 'popup',
-  },
-  {
-    id: 'diamond-arcade',
-    label: 'Diamond Arcade',
-    top: 50,
-    left: 52,
-    width: 43,
-    height: 33,
-    action: 'popup',
-  },
-  {
-    id: 'gc-back',
-    label: 'Back to Main Menu',
-    top: 86,
-    left: 15,
-    width: 70,
-    height: 7,
-    action: 'close',
-  },
-];
-
-// Popup placeholder content
-const POPUP_CONTENT = {
-  'elite-training': {
-    title: 'Elite Training & AI Assistance',
-    icon: '🧠',
-    items: [
-      { name: 'GTO Mastery', desc: 'Over 100 training & memory games' },
-      { name: 'Jarvis AI Assistant', desc: 'Find leaks in your game' },
-      { name: 'Virtual Sandbox', desc: 'Practice scenarios risk-free' },
-      { name: 'Hand Solving', desc: 'AI-powered hand analysis' },
-    ],
-  },
-  'bankroll-discovery': {
-    title: 'Total Control: Bankroll & Discovery',
-    icon: '💎',
-    items: [
-      { name: 'Bankroll Manager', desc: 'Track expenses, wins, trips, series, table games, betting, slots & more' },
-      { name: 'Poker Near Me', desc: 'Revolutionary search engine for venues, series, clubs & home games' },
-    ],
-  },
-  'lifestyle-news': {
-    title: 'Lifestyle, News & Rewards',
-    icon: '📰',
-    items: [
-      { name: 'News Page', desc: 'Stay updated globally' },
-      { name: 'Diamond Store', desc: 'Buy merch, trade diamonds for real world prizes' },
-      { name: 'Video Library', desc: 'Unlimited content from favorite creators' },
-    ],
-  },
-  'social-media': {
-    title: 'Social Media',
-    icon: '👥',
-    items: [{ name: 'Stay Connected', desc: 'Connect with friends & players in the poker world' }],
-  },
-  'poker-trivia': {
-    title: 'Poker Trivia',
-    icon: '❓',
-    items: [{ name: 'Test Your Knowledge', desc: 'Compete in poker trivia challenges' }],
-  },
-  'diamond-arena': {
-    title: 'Diamond Arena',
-    icon: '💎',
-    items: [{ name: 'Live Poker & Tournaments', desc: 'Play live poker and tournaments with your diamonds' }],
-  },
-  'club-arena': {
-    title: 'Club Arena',
-    icon: '🦁',
-    items: [{ name: 'Global Club Competition', desc: 'Play against other players in clubs around the world' }],
-  },
-  'diamond-arcade': {
-    title: 'Diamond Arcade',
-    icon: '🕹️',
-    items: [{ name: 'Compete Under Pressure', desc: 'Win diamonds in arcade-style poker challenges' }],
-  },
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// HAPTIC FEEDBACK HELPER
+// HAPTIC FEEDBACK
 // ─────────────────────────────────────────────────────────────────────────────
 function triggerHaptic() {
   if (typeof navigator !== 'undefined' && navigator.vibrate) {
@@ -195,21 +17,90 @@ function triggerHaptic() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// HOTSPOT CONFIG — Main landing image
+// ─────────────────────────────────────────────────────────────────────────────
+const HOTSPOTS = [
+  {
+    id: 'join-now',
+    top: 0, left: 0, width: 100, height: 36,
+    action: 'navigate', href: '/auth/signup',
+  },
+  {
+    id: 'global-connection',
+    top: 36.5, left: 1, width: 48, height: 21,
+    action: 'overlay', image: '/images/global-connection.jpg', overlayKey: 'gc',
+  },
+  {
+    id: 'elite-training',
+    top: 36.5, left: 51, width: 48, height: 21,
+    action: 'overlay', image: '/images/elite-training.jpg', overlayKey: 'et',
+  },
+  {
+    id: 'bankroll-discovery',
+    top: 58.5, left: 1, width: 98, height: 15,
+    action: 'overlay', image: '/images/total-discovery.jpg', overlayKey: 'td',
+  },
+  {
+    id: 'lifestyle-news',
+    top: 74.5, left: 1, width: 48, height: 24,
+    action: 'overlay', image: '/images/lifestyle-rewards.jpg', overlayKey: 'lr',
+  },
+  {
+    id: 'club-commander',
+    top: 74.5, left: 51, width: 48, height: 24,
+    action: 'navigate', href: '/commander/login',
+  },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OVERLAY HOTSPOT CONFIGS — clickable zones on each detail image
+// Cards go to signup, back/CTA buttons close or go to signup
+// ─────────────────────────────────────────────────────────────────────────────
+const OVERLAY_HOTSPOTS = {
+  // Global Connection
+  gc: [
+    { id: 'gc-social',    top: 15, left: 3,  width: 32, height: 33, action: 'signup' },
+    { id: 'gc-trivia',    top: 15, left: 35, width: 30, height: 33, action: 'signup' },
+    { id: 'gc-diamond',   top: 15, left: 65, width: 32, height: 33, action: 'signup' },
+    { id: 'gc-club',      top: 50, left: 5,  width: 43, height: 33, action: 'signup' },
+    { id: 'gc-arcade',    top: 50, left: 52, width: 43, height: 33, action: 'signup' },
+    { id: 'gc-back',      top: 86, left: 15, width: 70, height: 7,  action: 'close' },
+  ],
+  // Elite Training
+  et: [
+    { id: 'et-training',  top: 20, left: 3,  width: 47, height: 30, action: 'signup' },
+    { id: 'et-memory',    top: 20, left: 52, width: 46, height: 30, action: 'signup' },
+    { id: 'et-assistant', top: 52, left: 3,  width: 47, height: 32, action: 'signup' },
+    { id: 'et-sandbox',   top: 52, left: 52, width: 46, height: 32, action: 'signup' },
+    { id: 'et-cta',       top: 88, left: 10, width: 80, height: 7,  action: 'signup' },
+  ],
+  // Total Control: Bankroll & Discovery
+  td: [
+    { id: 'td-bankroll',  top: 22, left: 3,  width: 46, height: 65, action: 'signup' },
+    { id: 'td-pokernear', top: 22, left: 52, width: 46, height: 65, action: 'signup' },
+    { id: 'td-cta',       top: 90, left: 15, width: 70, height: 7,  action: 'signup' },
+  ],
+  // Lifestyle, News & Rewards
+  lr: [
+    { id: 'lr-news',      top: 16, left: 5,  width: 90, height: 22, action: 'signup' },
+    { id: 'lr-store',     top: 40, left: 5,  width: 90, height: 22, action: 'signup' },
+    { id: 'lr-video',     top: 64, left: 5,  width: 90, height: 22, action: 'signup' },
+    { id: 'lr-cta',       top: 89, left: 10, width: 80, height: 7,  action: 'signup' },
+  ],
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
 export default function LandingPage() {
   const router = useRouter();
-  const [activePopup, setActivePopup] = useState(null);
-  const [imageOverlay, setImageOverlay] = useState(null);
+  const [overlay, setOverlay] = useState(null); // { image, overlayKey }
   const [heroLoaded, setHeroLoaded] = useState(false);
   const [overlayLoaded, setOverlayLoaded] = useState(false);
 
   useEffect(() => {
     const handleKey = (e) => {
-      if (e.key === 'Escape') {
-        setActivePopup(null);
-        setImageOverlay(null);
-      }
+      if (e.key === 'Escape') setOverlay(null);
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
@@ -219,20 +110,18 @@ export default function LandingPage() {
     triggerHaptic();
     if (spot.action === 'navigate') {
       router.push(spot.href);
-    } else if (spot.action === 'image-popup') {
+    } else if (spot.action === 'overlay') {
       setOverlayLoaded(false);
-      setImageOverlay(spot.image);
-    } else if (spot.action === 'popup') {
-      setActivePopup(spot.id);
+      setOverlay({ image: spot.image, overlayKey: spot.overlayKey });
     }
   };
 
-  const handleGcHotspotClick = (spot) => {
+  const handleOverlayHotspotClick = (spot) => {
     triggerHaptic();
     if (spot.action === 'close') {
-      setImageOverlay(null);
-    } else if (spot.action === 'popup') {
-      setActivePopup(spot.id);
+      setOverlay(null);
+    } else if (spot.action === 'signup') {
+      router.push('/auth/signup');
     }
   };
 
@@ -266,16 +155,11 @@ export default function LandingPage() {
           <img
             src="/images/landing-hero.jpg"
             alt="Smarter.Poker — The Future of the Game"
-            style={{
-              ...styles.heroImage,
-              opacity: heroLoaded ? 1 : 0,
-            }}
+            style={{ ...styles.heroImage, opacity: heroLoaded ? 1 : 0 }}
             onLoad={() => setHeroLoaded(true)}
             draggable={false}
           />
-
           {!heroLoaded && <div style={styles.shimmer} />}
-
           {heroLoaded && HOTSPOTS.map((spot) => (
             <div
               key={spot.id}
@@ -294,80 +178,50 @@ export default function LandingPage() {
           ))}
         </div>
 
-        {/* ── FULL-SCREEN IMAGE OVERLAY (Global Connection etc.) ── */}
-        {imageOverlay && (
-          <div style={styles.imageOverlayBackdrop}>
-            <div style={styles.imageOverlayContainer}>
+        {/* ── FULL-SCREEN IMAGE OVERLAY ───────────────────────── */}
+        {overlay && (
+          <div style={styles.overlayBackdrop}>
+            <div style={styles.overlayContainer}>
               <img
-                src={imageOverlay}
+                src={overlay.image}
                 alt="Detail View"
-                style={{
-                  ...styles.imageOverlayImg,
-                  opacity: overlayLoaded ? 1 : 0,
-                }}
+                style={{ ...styles.overlayImg, opacity: overlayLoaded ? 1 : 0 }}
                 onLoad={() => setOverlayLoaded(true)}
                 draggable={false}
               />
-
               {!overlayLoaded && (
                 <div style={styles.overlayLoading}>
                   <div style={styles.spinner} />
                 </div>
               )}
 
-              {overlayLoaded && imageOverlay === '/images/global-connection.jpg' && GC_HOTSPOTS.map((spot) => (
-                <div
-                  key={spot.id}
-                  onClick={() => handleGcHotspotClick(spot)}
-                  style={{
-                    position: 'absolute',
-                    top: `${spot.top}%`,
-                    left: `${spot.left}%`,
-                    width: `${spot.width}%`,
-                    height: `${spot.height}%`,
-                    cursor: 'pointer',
-                    zIndex: 3,
-                    WebkitTapHighlightColor: 'rgba(0, 198, 255, 0.15)',
-                  }}
-                />
-              ))}
+              {/* Overlay hotspots */}
+              {overlayLoaded && OVERLAY_HOTSPOTS[overlay.overlayKey] &&
+                OVERLAY_HOTSPOTS[overlay.overlayKey].map((spot) => (
+                  <div
+                    key={spot.id}
+                    onClick={() => handleOverlayHotspotClick(spot)}
+                    style={{
+                      position: 'absolute',
+                      top: `${spot.top}%`,
+                      left: `${spot.left}%`,
+                      width: `${spot.width}%`,
+                      height: `${spot.height}%`,
+                      cursor: 'pointer',
+                      zIndex: 3,
+                      WebkitTapHighlightColor: 'rgba(0, 198, 255, 0.15)',
+                    }}
+                  />
+                ))
+              }
 
+              {/* Close X button */}
               <button
-                onClick={() => { triggerHaptic(); setImageOverlay(null); }}
+                onClick={() => { triggerHaptic(); setOverlay(null); }}
                 style={styles.overlayCloseBtn}
               >
                 ✕
               </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── TEXT POPUP OVERLAY ───────────────────────────────── */}
-        {activePopup && POPUP_CONTENT[activePopup] && (
-          <div style={styles.popupBackdrop} onClick={() => setActivePopup(null)}>
-            <div style={styles.popupCard} onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setActivePopup(null)} style={styles.popupClose}>✕</button>
-
-              <div style={styles.popupHeader}>
-                <span style={styles.popupIcon}>{POPUP_CONTENT[activePopup].icon}</span>
-                <h2 style={styles.popupTitle}>{POPUP_CONTENT[activePopup].title}</h2>
-              </div>
-
-              <div style={styles.popupBody}>
-                {POPUP_CONTENT[activePopup].items.map((item, i) => (
-                  <div key={i} style={styles.popupItem}>
-                    <div style={styles.popupItemDot} />
-                    <div>
-                      <div style={styles.popupItemName}>{item.name}</div>
-                      <div style={styles.popupItemDesc}>{item.desc}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div style={styles.popupFooter}>
-                <span style={styles.popupComingSoon}>Coming Soon — Full Interactive Details</span>
-              </div>
             </div>
           </div>
         )}
@@ -385,9 +239,7 @@ export default function LandingPage() {
         ::-webkit-scrollbar-track { background: #0a0e17; }
         ::-webkit-scrollbar-thumb { background: #1a2a44; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #00c6ff; }
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
     </>
   );
@@ -405,7 +257,6 @@ const styles = {
     alignItems: 'center',
     fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
   },
-
   nav: {
     width: '100%',
     display: 'flex',
@@ -419,10 +270,7 @@ const styles = {
     backdropFilter: 'blur(12px)',
     borderBottom: '1px solid rgba(0, 198, 255, 0.1)',
   },
-  logo: {
-    display: 'flex',
-    alignItems: 'center',
-  },
+  logo: { display: 'flex', alignItems: 'center' },
   logoText: {
     fontFamily: "'Orbitron', sans-serif",
     fontSize: '16px',
@@ -432,10 +280,7 @@ const styles = {
     WebkitTextFillColor: 'transparent',
     letterSpacing: '2px',
   },
-  navLinks: {
-    display: 'flex',
-    gap: '8px',
-  },
+  navLinks: { display: 'flex', gap: '8px' },
   navButton: {
     background: 'transparent',
     border: '1px solid rgba(0, 198, 255, 0.4)',
@@ -459,11 +304,7 @@ const styles = {
     fontFamily: "'Inter', sans-serif",
     boxShadow: '0 0 20px rgba(0, 198, 255, 0.25)',
   },
-
-  imageWrapper: {
-    position: 'relative',
-    width: '100%',
-  },
+  imageWrapper: { position: 'relative', width: '100%' },
   heroImage: {
     width: '100%',
     height: 'auto',
@@ -477,13 +318,9 @@ const styles = {
     background: 'linear-gradient(90deg, #111827 25%, #1a2540 50%, #111827 75%)',
     backgroundSize: '200% 100%',
   },
-
-  imageOverlayBackdrop: {
+  overlayBackdrop: {
     position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    top: 0, left: 0, right: 0, bottom: 0,
     background: '#0a0e17',
     zIndex: 200,
     display: 'flex',
@@ -492,11 +329,8 @@ const styles = {
     overflowY: 'auto',
     WebkitOverflowScrolling: 'touch',
   },
-  imageOverlayContainer: {
-    position: 'relative',
-    width: '100%',
-  },
-  imageOverlayImg: {
+  overlayContainer: { position: 'relative', width: '100%' },
+  overlayImg: {
     width: '100%',
     height: 'auto',
     display: 'block',
@@ -523,10 +357,7 @@ const styles = {
   },
   overlayLoading: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    top: 0, left: 0, right: 0, bottom: 0,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -540,107 +371,6 @@ const styles = {
     borderRadius: '50%',
     animation: 'spin 0.8s linear infinite',
   },
-
-  popupBackdrop: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: 'rgba(0, 0, 0, 0.75)',
-    backdropFilter: 'blur(6px)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 300,
-    padding: '20px',
-  },
-  popupCard: {
-    background: 'linear-gradient(145deg, #111827 0%, #0d1424 100%)',
-    border: '1px solid rgba(0, 198, 255, 0.3)',
-    borderRadius: '16px',
-    padding: '28px',
-    maxWidth: '480px',
-    width: '100%',
-    position: 'relative',
-    boxShadow: '0 0 40px rgba(0, 198, 255, 0.12), 0 20px 60px rgba(0, 0, 0, 0.5)',
-  },
-  popupClose: {
-    position: 'absolute',
-    top: '12px',
-    right: '16px',
-    background: 'transparent',
-    border: 'none',
-    color: '#64748b',
-    fontSize: '20px',
-    cursor: 'pointer',
-    padding: '4px 8px',
-    borderRadius: '6px',
-  },
-  popupHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    marginBottom: '20px',
-    paddingBottom: '16px',
-    borderBottom: '1px solid rgba(0, 198, 255, 0.15)',
-  },
-  popupIcon: {
-    fontSize: '28px',
-  },
-  popupTitle: {
-    fontFamily: "'Orbitron', sans-serif",
-    fontSize: '16px',
-    fontWeight: 700,
-    color: '#e2e8f0',
-    letterSpacing: '0.5px',
-  },
-  popupBody: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '14px',
-  },
-  popupItem: {
-    display: 'flex',
-    alignItems: 'flex-start',
-    gap: '12px',
-  },
-  popupItemDot: {
-    width: '8px',
-    height: '8px',
-    borderRadius: '50%',
-    background: 'linear-gradient(135deg, #00c6ff, #0072ff)',
-    marginTop: '6px',
-    flexShrink: 0,
-    boxShadow: '0 0 8px rgba(0, 198, 255, 0.4)',
-  },
-  popupItemName: {
-    fontSize: '15px',
-    fontWeight: 600,
-    color: '#e2e8f0',
-    marginBottom: '2px',
-  },
-  popupItemDesc: {
-    fontSize: '13px',
-    color: '#94a3b8',
-    lineHeight: 1.4,
-  },
-  popupFooter: {
-    marginTop: '20px',
-    paddingTop: '16px',
-    borderTop: '1px solid rgba(0, 198, 255, 0.1)',
-    textAlign: 'center',
-  },
-  popupComingSoon: {
-    fontFamily: "'Orbitron', sans-serif",
-    fontSize: '11px',
-    fontWeight: 500,
-    color: '#00c6ff',
-    letterSpacing: '1px',
-    textTransform: 'uppercase',
-    opacity: 0.7,
-  },
-
   footer: {
     width: '100%',
     textAlign: 'center',
