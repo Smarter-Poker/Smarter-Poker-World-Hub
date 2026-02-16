@@ -259,7 +259,15 @@ export default async function handler(req, res) {
                     // Type filter is for a poker_venues-only type (e.g. 'casino'), skip social pages
                     spQuery = null;
                 }
-                if (search) spQuery = spQuery?.or(`name.ilike.%${search}%,location_city.ilike.%${search}%,location_state.ilike.%${search}%`);
+                if (search) {
+                    const searchAbbrev = resolveStateAbbrev(search);
+                    const searchStateName = STATE_ABBREV_TO_NAME[search.toUpperCase()];
+                    // Build OR filter: name, city, state (verbatim), plus abbreviation/full-name if resolved
+                    let orParts = [`name.ilike.%${search}%`, `location_city.ilike.%${search}%`, `location_state.ilike.%${search}%`];
+                    if (searchAbbrev) orParts.push(`location_state.ilike.${searchAbbrev}`);
+                    if (searchStateName) orParts.push(`location_state.ilike.${searchStateName}`);
+                    spQuery = spQuery?.or(orParts.join(','));
+                }
 
                 if (spQuery) {
                     const { data: socialPages } = await spQuery.limit(200);
