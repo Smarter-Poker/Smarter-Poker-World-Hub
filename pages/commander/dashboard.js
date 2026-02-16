@@ -350,11 +350,45 @@ export default function CommanderDashboard() {
           margin: 0 auto;
           width: 100%;
         }
+        /* 3-column grid for cards with 7-12 features */
+        .cmd-features-3col {
+          grid-template-columns: 1fr 1fr 1fr !important;
+          max-width: 900px !important;
+          gap: 12px !important;
+        }
+        /* 4-column grid for cards with 13+ features */
+        .cmd-features-4col {
+          grid-template-columns: 1fr 1fr 1fr 1fr !important;
+          max-width: 1050px !important;
+          gap: 10px !important;
+        }
+        @media (max-width: 900px) {
+          .cmd-features-3col {
+            grid-template-columns: 1fr 1fr !important;
+          }
+          .cmd-features-4col {
+            grid-template-columns: 1fr 1fr 1fr !important;
+          }
+        }
+        @media (max-width: 640px) {
+          .cmd-features-3col {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 10px !important;
+          }
+          .cmd-features-4col {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 8px !important;
+          }
+        }
         @media (max-width: 480px) {
           .cmd-features {
-            grid-template-columns: 1fr;
+            grid-template-columns: 1fr 1fr;
             gap: 10px;
             padding: 16px;
+          }
+          .cmd-features-3col,
+          .cmd-features-4col {
+            grid-template-columns: 1fr 1fr !important;
           }
         }
         .cmd-features-stacked {
@@ -442,7 +476,7 @@ export default function CommanderDashboard() {
                   {openCard.title}
                 </div>
               </div>
-              <div className="cmd-features">
+              <div className={`cmd-features ${openCard.features.length > 12 ? 'cmd-features-4col' : openCard.features.length > 6 ? 'cmd-features-3col' : ''}`}>
                 {openCard.features.map((feat, i) => {
                   const isLocked = !canAccessRoute(currentTier, feat.href);
                   return (
