@@ -24,7 +24,7 @@ export default async function handler(req, res) {
 
     // ===== GET =====
     if (req.method === 'GET') {
-        const { page_id, game_id, debug } = req.query;
+        const { page_id, game_id } = req.query;
 
         if (game_id) {
             // Single game with all seats
@@ -68,25 +68,20 @@ export default async function handler(req, res) {
 
             // If no club_live_games, bridge from Commander games via linked_venue_id
             if (enriched.length === 0) {
-                const _dbg = {};
-                console.log('[games-api] No club_live_games found, trying Commander fallback for page_id:', page_id);
-                const { data: pageData, error: pageErr } = await supabase
+                const { data: pageData } = await supabase
                     .from('social_pages')
                     .select('linked_venue_id, metadata')
                     .eq('id', page_id)
                     .single();
 
-                _dbg.pageData = { linked_venue_id: pageData?.linked_venue_id, hasMetadata: !!pageData?.metadata, pageErr: pageErr?.message };
                 const venueId = pageData?.linked_venue_id || pageData?.metadata?.linked_venue_id;
-                _dbg.venueId = venueId;
                 if (venueId) {
-                    const { data: cmdGames, error: cmdErr } = await supabase
+                    const { data: cmdGames } = await supabase
                         .from('commander_games')
                         .select('id, game_type, stakes, current_players, max_players, status, started_at')
                         .eq('venue_id', venueId)
                         .in('status', ['running', 'waiting'])
                         .order('started_at', { ascending: false });
-                    _dbg.cmdGames = { count: cmdGames?.length, cmdErr: cmdErr?.message };
 
                     if (cmdGames && cmdGames.length > 0) {
                         const mapped = cmdGames.map(g => ({
@@ -102,13 +97,12 @@ export default async function handler(req, res) {
                             seated_count: g.current_players || 0,
                             waitlist_count: 0,
                         }));
-                        return res.status(200).json({ success: true, data: mapped, source: 'commander', ...(debug ? { _debug: _dbg } : {}) });
+                        return res.status(200).json({ success: true, data: mapped, source: 'commander' });
                     }
                 }
-                if (debug) return res.status(200).json({ success: true, data: enriched, _debug: { ..._dbg, enriched_len: 0, page_id, fallback_hit: true } });
             }
 
-            return res.status(200).json({ success: true, data: enriched, ...(debug ? { _debug: { enriched_len: enriched.length, page_id } } : {}) });
+            return res.status(200).json({ success: true, data: enriched });
         }
 
         return res.status(400).json({ error: 'page_id or game_id required' });
