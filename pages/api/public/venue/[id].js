@@ -177,63 +177,78 @@ export default async function handler(req, res) {
 
       // Fallback: look up Club Arena tournaments via owner_id
       if (upcomingTournaments.length === 0 && socialPage.owner_id) {
-        let { data: club } = await supabase
-          .from('clubs')
-          .select('id')
-          .eq('owner_id', socialPage.owner_id)
-          .ilike('name', socialPage.name)
-          .limit(1)
-          .single();
-
-        if (!club) {
-          const { data: fallbackClub } = await supabase
+        try {
+          let { data: club } = await supabase
             .from('clubs')
             .select('id')
             .eq('owner_id', socialPage.owner_id)
+            .ilike('name', socialPage.name)
             .limit(1)
             .single();
-          club = fallbackClub;
-        }
 
-        if (club) {
-          const { data: tourneys } = await supabase
-            .from('tournaments')
-            .select('id, name, game_type, buy_in_amount, buy_in_fee, guaranteed_prize, start_time, status, max_players, current_players')
-            .eq('club_id', club.id)
-            .in('status', ['ANNOUNCED', 'RUNNING', 'SCHEDULED'])
-            .gte('start_time', new Date().toISOString())
-            .order('start_time', { ascending: true })
-            .limit(20);
+          if (!club) {
+            const { data: fallbackClub } = await supabase
+              .from('clubs')
+              .select('id')
+              .eq('owner_id', socialPage.owner_id)
+              .limit(1)
+              .single();
+            club = fallbackClub;
+          }
 
-          upcomingTournaments = (tourneys || []).map(t => ({
-            id: t.id,
-            name: t.name,
-            game_type: t.game_type,
-            buyin_amount: t.buy_in_amount,
-            buy_in_fee: t.buy_in_fee,
-            scheduled_start: t.start_time,
-            guaranteed_prize: t.guaranteed_prize,
-            status: t.status,
-            max_players: t.max_players,
-            current_players: t.current_players,
-          }));
+          if (club) {
+            const { data: tourneys } = await supabase
+              .from('tournaments')
+              .select('id, name, game_type, buy_in_amount, buy_in_fee, guaranteed_prize, start_time, status, max_players, current_players')
+              .eq('club_id', club.id)
+              .in('status', ['ANNOUNCED', 'RUNNING', 'SCHEDULED'])
+              .gte('start_time', new Date().toISOString())
+              .order('start_time', { ascending: true })
+              .limit(20);
+
+            upcomingTournaments = (tourneys || []).map(t => ({
+              id: t.id,
+              name: t.name,
+              game_type: t.game_type,
+              buyin_amount: t.buy_in_amount,
+              buy_in_fee: t.buy_in_fee,
+              scheduled_start: t.start_time,
+              guaranteed_prize: t.guaranteed_prize,
+              status: t.status,
+              max_players: t.max_players,
+              current_players: t.current_players,
+            }));
+          }
+        } catch (clubErr) {
+          console.warn('[venue-detail] Club Arena tournament fallback failed:', clubErr.message);
+          captureError(clubErr, { tags: { api: 'venue-detail', stage: 'club-arena-tournament-fallback', page_id: socialPage.id } });
         }
       }
 
       // Calculate waitlist stats if Commander is enabled
       let waitlistStats = null;
       if (commanderEnabled && venueIdForCommander) {
-        const { count: waitingCount } = await supabase
-          .from('commander_waitlist')
-          .select('*', { count: 'exact', head: true })
-          .eq('venue_id', venueIdForCommander)
-          .eq('status', 'waiting');
+        try {
+          const { count: waitingCount } = await supabase
+            .from('commander_waitlist')
+            .select('*', { count: 'exact', head: true })
+            .eq('venue_id', venueIdForCommander)
+            .eq('status', 'waiting');
 
-        waitlistStats = {
-          total_waiting: waitingCount || 0,
-          games_running: liveGames.filter(g => g.status === 'running').length,
-          tables_available: liveGames.filter(g => g.status === 'waiting').length
-        };
+          waitlistStats = {
+            total_waiting: waitingCount || 0,
+            games_running: liveGames.filter(g => g.status === 'running').length,
+            tables_available: liveGames.filter(g => g.status === 'waiting').length
+          };
+        } catch (cmdErr) {
+          console.warn('[venue-detail] Waitlist query failed (sp path):', cmdErr.message);
+          captureError(cmdErr, { tags: { api: 'venue-detail', stage: 'sp-waitlist', venue_id: String(venueIdForCommander) } });
+          waitlistStats = {
+            total_waiting: 0,
+            games_running: liveGames.filter(g => g.status === 'running').length,
+            tables_available: liveGames.filter(g => g.status === 'waiting').length
+          };
+        }
       }
 
       // Extract coordinates from geocoded_locations metadata
@@ -298,82 +313,119 @@ export default async function handler(req, res) {
     // Fetch active games if Commander is enabled
     let liveGames = [];
     if (venue.commander_enabled) {
-      const { data: games } = await supabase
-        .from('commander_games')
-        .select(`
-          id,
-          game_type,
-          stakes,
-          current_players,
-          max_players,
-          status,
-          started_at
-        `)
-        .eq('venue_id', id)
-        .in('status', ['running', 'waiting'])
-        .order('started_at', { ascending: false });
+      try {
+        const { data: games } = await supabase
+          .from('commander_games')
+          .select(`
+            id,
+            game_type,
+            stakes,
+            current_players,
+            max_players,
+            status,
+            started_at
+          `)
+          .eq('venue_id', id)
+          .in('status', ['running', 'waiting'])
+          .order('started_at', { ascending: false });
 
-      liveGames = games || [];
+        liveGames = games || [];
+      } catch (cmdErr) {
+        console.warn('[venue-detail] Commander live games query failed (pv path):', cmdErr.message);
+        captureError(cmdErr, { tags: { api: 'venue-detail', stage: 'pv-commander-live-games', venue_id: String(id) } });
+      }
     }
 
     // Fetch upcoming tournaments
-    const { data: tournaments } = await supabase
-      .from('commander_tournaments')
-      .select(`
-        id,
-        name,
-        tournament_type,
-        buyin_amount,
-        scheduled_start,
-        status,
-        current_entries,
-        max_entries,
-        guaranteed_pool
-      `)
-      .eq('venue_id', id)
-      .in('status', ['scheduled', 'registering', 'registration'])
-      .gte('scheduled_start', new Date().toISOString())
-      .order('scheduled_start', { ascending: true })
-      .limit(10);
+    let tournaments = [];
+    try {
+      const { data: tourneysData } = await supabase
+        .from('commander_tournaments')
+        .select(`
+          id,
+          name,
+          tournament_type,
+          buyin_amount,
+          scheduled_start,
+          status,
+          current_entries,
+          max_entries,
+          guaranteed_pool
+        `)
+        .eq('venue_id', id)
+        .in('status', ['scheduled', 'registering', 'registration'])
+        .gte('scheduled_start', new Date().toISOString())
+        .order('scheduled_start', { ascending: true })
+        .limit(10);
+      tournaments = tourneysData || [];
+    } catch (cmdErr) {
+      console.warn('[venue-detail] Commander tournaments query failed (pv path):', cmdErr.message);
+      captureError(cmdErr, { tags: { api: 'venue-detail', stage: 'pv-commander-tournaments', venue_id: String(id) } });
+    }
 
     // Fetch daily tournament schedule
-    const { data: dailyTournaments } = await supabase
-      .from('venue_daily_tournaments')
-      .select('*')
-      .eq('venue_id', id)
-      .eq('is_active', true)
-      .order('day_of_week');
+    let dailyTournaments = [];
+    try {
+      const { data: dtData } = await supabase
+        .from('venue_daily_tournaments')
+        .select('*')
+        .eq('venue_id', id)
+        .eq('is_active', true)
+        .order('day_of_week');
+      dailyTournaments = dtData || [];
+    } catch (cmdErr) {
+      console.warn('[venue-detail] Daily tournaments query failed (pv path):', cmdErr.message);
+      captureError(cmdErr, { tags: { api: 'venue-detail', stage: 'pv-daily-schedule', venue_id: String(id) } });
+    }
 
     // Fetch active promotions
-    const { data: promotions } = await supabase
-      .from('commander_promotions')
-      .select(`
-        id,
-        name,
-        description,
-        promo_type,
-        start_time,
-        end_time,
-        days_active
-      `)
-      .eq('venue_id', id)
-      .eq('is_active', true)
-      .limit(5);
+    let promotions = [];
+    try {
+      const { data: promosData } = await supabase
+        .from('commander_promotions')
+        .select(`
+          id,
+          name,
+          description,
+          promo_type,
+          start_time,
+          end_time,
+          days_active
+        `)
+        .eq('venue_id', id)
+        .eq('is_active', true)
+        .limit(5);
+      promotions = promosData || [];
+    } catch (cmdErr) {
+      console.warn('[venue-detail] Promotions query failed (pv path):', cmdErr.message);
+      captureError(cmdErr, { tags: { api: 'venue-detail', stage: 'pv-promotions', venue_id: String(id) } });
+    }
 
     // Calculate waitlist stats if Commander enabled
     let waitlistStats = null;
     if (venue.commander_enabled) {
-      const { count: waitingCount } = await supabase
-        .from('commander_waitlist')
-        .select('*', { count: 'exact', head: true })
-        .eq('venue_id', id)
-        .eq('status', 'waiting');
+      try {
+        const { count: waitingCount } = await supabase
+          .from('commander_waitlist')
+          .select('*', { count: 'exact', head: true })
+          .eq('venue_id', id)
+          .eq('status', 'waiting');
 
-      waitlistStats = {
-        total_waiting: waitingCount || 0,
-        games_running: liveGames.filter(g => g.status === 'running').length,
-        tables_available: liveGames.filter(g => g.status === 'waiting').length
-      };
+        waitlistStats = {
+          total_waiting: waitingCount || 0,
+          games_running: liveGames.filter(g => g.status === 'running').length,
+          tables_available: liveGames.filter(g => g.status === 'waiting').length
+        };
+      } catch (cmdErr) {
+        console.warn('[venue-detail] Waitlist stats query failed (pv path):', cmdErr.message);
+        captureError(cmdErr, { tags: { api: 'venue-detail', stage: 'pv-waitlist', venue_id: String(id) } });
+        // Still return partial stats from the live games we already have
+        waitlistStats = {
+          total_waiting: 0,
+          games_running: liveGames.filter(g => g.status === 'running').length,
+          tables_available: liveGames.filter(g => g.status === 'waiting').length
+        };
+      }
     }
 
     return res.status(200).json({
