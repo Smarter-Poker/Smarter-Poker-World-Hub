@@ -4,6 +4,7 @@
  * No authentication required - returns only public data
  */
 import { createClient } from '@supabase/supabase-js';
+import { captureError, addBreadcrumb } from '../../../../src/lib/sentry';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -103,6 +104,12 @@ export default async function handler(req, res) {
       let linkedVenue = null;
       let linkedVenueId = socialPage.linked_venue_id || meta.linked_venue_id || null;
 
+      addBreadcrumb({
+        category: 'venue-detail',
+        message: `Social page lookup: ${socialPage.name} (${socialPage.page_type}), linked_venue_id=${linkedVenueId}`,
+        data: { page_id: socialPage.id, linked_venue_id: linkedVenueId },
+      });
+
       // Try metadata.linked_venue_id first, then name match
       if (linkedVenueId) {
         const { data: lv } = await supabase
@@ -135,27 +142,37 @@ export default async function handler(req, res) {
       // Fetch Commander live games if linked venue has Commander enabled
       let liveGames = [];
       if (commanderEnabled && venueIdForCommander) {
-        const { data: games } = await supabase
-          .from('commander_games')
-          .select('id, game_type, stakes, current_players, max_players, status, started_at')
-          .eq('venue_id', venueIdForCommander)
-          .in('status', ['running', 'waiting'])
-          .order('started_at', { ascending: false });
-        liveGames = games || [];
+        try {
+          const { data: games } = await supabase
+            .from('commander_games')
+            .select('id, game_type, stakes, current_players, max_players, status, started_at')
+            .eq('venue_id', venueIdForCommander)
+            .in('status', ['running', 'waiting'])
+            .order('started_at', { ascending: false });
+          liveGames = games || [];
+        } catch (cmdErr) {
+          console.warn('[venue-detail] Commander live games query failed:', cmdErr.message);
+          captureError(cmdErr, { tags: { api: 'venue-detail', stage: 'commander-live-games', venue_id: String(venueIdForCommander) } });
+        }
       }
 
       // Fetch Commander tournaments if linked venue exists
       let upcomingTournaments = [];
       if (commanderEnabled && venueIdForCommander) {
-        const { data: tourneys } = await supabase
-          .from('commander_tournaments')
-          .select('id, name, tournament_type, buyin_amount, scheduled_start, status, current_entries, max_entries, guaranteed_pool')
-          .eq('venue_id', venueIdForCommander)
-          .in('status', ['scheduled', 'registering', 'registration'])
-          .gte('scheduled_start', new Date().toISOString())
-          .order('scheduled_start', { ascending: true })
-          .limit(10);
-        upcomingTournaments = tourneys || [];
+        try {
+          const { data: tourneys } = await supabase
+            .from('commander_tournaments')
+            .select('id, name, tournament_type, buyin_amount, scheduled_start, status, current_entries, max_entries, guaranteed_pool')
+            .eq('venue_id', venueIdForCommander)
+            .in('status', ['scheduled', 'registering', 'registration'])
+            .gte('scheduled_start', new Date().toISOString())
+            .order('scheduled_start', { ascending: true })
+            .limit(10);
+          upcomingTournaments = tourneys || [];
+        } catch (cmdErr) {
+          console.warn('[venue-detail] Commander tournaments query failed:', cmdErr.message);
+          captureError(cmdErr, { tags: { api: 'venue-detail', stage: 'commander-tournaments', venue_id: String(venueIdForCommander) } });
+        }
       }
 
       // Fallback: look up Club Arena tournaments via owner_id
@@ -377,6 +394,10 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error('Public venue API error:', error);
+    captureError(error, {
+      tags: { api: 'venue-detail' },
+      extra: { venue_id: req.query?.id },
+    });
     return res.status(500).json({
       success: false,
       error: { code: 'SERVER_ERROR', message: 'Failed to fetch venue' }

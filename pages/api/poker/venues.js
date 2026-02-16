@@ -4,16 +4,17 @@
  *
  * Query params:
  *   id         - return single venue by numeric ID
- *   state      - filter by state code (e.g., NV, CA)
+ *   state      - filter by state code (e.g., NV, CA) or full name (e.g., Kentucky)
  *   city       - filter by city (case-insensitive partial match)
  *   type       - filter by venue_type (casino, card_room, charity, poker_club)
  *   tournaments - if 'true', only venues with has_tournaments=true
- *   search     - search by name or city (case-insensitive partial match)
+ *   search     - search by name, city, address, or state (case-insensitive)
  *   lat + lng + radius (default 100km) - GPS-based search with Haversine distance
  *   limit      - max results (default 500)
  *   featured   - if 'true', only featured venues
  */
 import { createClient } from '@supabase/supabase-js';
+import { captureError, captureMessage, addBreadcrumb } from '../../../src/lib/sentry';
 import allVenuesData from '../../../data/all-venues.json';
 import dailyTournamentData from '../../../data/daily-tournament-schedules.json';
 
@@ -21,6 +22,35 @@ const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
+
+// --- State abbreviation ↔ full name mapping ---
+const STATE_ABBREV_TO_NAME = {
+    AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas', CA: 'California', CO: 'Colorado',
+    CT: 'Connecticut', DE: 'Delaware', FL: 'Florida', GA: 'Georgia', HI: 'Hawaii', ID: 'Idaho',
+    IL: 'Illinois', IN: 'Indiana', IA: 'Iowa', KS: 'Kansas', KY: 'Kentucky', LA: 'Louisiana',
+    ME: 'Maine', MD: 'Maryland', MA: 'Massachusetts', MI: 'Michigan', MN: 'Minnesota', MS: 'Mississippi',
+    MO: 'Missouri', MT: 'Montana', NE: 'Nebraska', NV: 'Nevada', NH: 'New Hampshire', NJ: 'New Jersey',
+    NM: 'New Mexico', NY: 'New York', NC: 'North Carolina', ND: 'North Dakota', OH: 'Ohio', OK: 'Oklahoma',
+    OR: 'Oregon', PA: 'Pennsylvania', RI: 'Rhode Island', SC: 'South Carolina', SD: 'South Dakota',
+    TN: 'Tennessee', TX: 'Texas', UT: 'Utah', VT: 'Vermont', VA: 'Virginia', WA: 'Washington',
+    WV: 'West Virginia', WI: 'Wisconsin', WY: 'Wyoming', DC: 'District of Columbia'
+};
+const STATE_NAME_TO_ABBREV = Object.fromEntries(
+    Object.entries(STATE_ABBREV_TO_NAME).map(([k, v]) => [v.toLowerCase(), k])
+);
+
+/** Resolve a search term to a state abbreviation (if it matches a state name) */
+function resolveStateAbbrev(term) {
+    const upper = term.toUpperCase();
+    if (STATE_ABBREV_TO_NAME[upper]) return upper;
+    return STATE_NAME_TO_ABBREV[term.toLowerCase()] || null;
+}
+
+// --- In-memory cache for JSON venue data with Map index ---
+const CACHE_TTL = 60000; // 60 seconds
+let _jsonVenueCache = null;
+let _jsonVenueCacheTime = 0;
+let _venueByIdMap = null;
 
 // Haversine formula for distance calculation (km)
 function calculateDistance(lat1, lon1, lat2, lon2) {
@@ -87,10 +117,27 @@ function findDailyTournaments(venueName, venueCity, venueState) {
 }
 
 /**
- * Load venues from JSON file data
+ * Load venues from JSON file data with in-memory cache + ID index
  */
 function getJsonVenues() {
-    return allVenuesData?.venues || [];
+    const now = Date.now();
+    if (_jsonVenueCache && (now - _jsonVenueCacheTime) < CACHE_TTL) {
+        return _jsonVenueCache;
+    }
+    _jsonVenueCache = allVenuesData?.venues || [];
+    _jsonVenueCacheTime = now;
+    // Build O(1) lookup Map
+    _venueByIdMap = new Map();
+    for (const v of _jsonVenueCache) {
+        _venueByIdMap.set(String(v.id), v);
+    }
+    return _jsonVenueCache;
+}
+
+/** Get venue by ID in O(1) — returns reference from cached array */
+function getVenueById(venueId) {
+    if (!_venueByIdMap) getJsonVenues(); // ensure map is built
+    return _venueByIdMap.get(String(venueId)) || null;
 }
 
 /**
@@ -122,9 +169,13 @@ function applyFilters(venues, { id, state, city, type, tournaments, search, feat
 
     if (search) {
         const searchLower = search.toLowerCase();
+        // Check if search term is a state name/abbreviation
+        const searchStateAbbrev = resolveStateAbbrev(search);
         filtered = filtered.filter(v =>
             (v.name && v.name.toLowerCase().includes(searchLower)) ||
-            (v.city && v.city.toLowerCase().includes(searchLower))
+            (v.city && v.city.toLowerCase().includes(searchLower)) ||
+            (v.address && v.address.toLowerCase().includes(searchLower)) ||
+            (searchStateAbbrev && v.state && v.state.toUpperCase() === searchStateAbbrev)
         );
     }
 
@@ -137,7 +188,7 @@ function applyFilters(venues, { id, state, city, type, tournaments, search, feat
 
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: { code: 'METHOD_NOT_ALLOWED', message: 'Only GET allowed' } });
     }
 
     try {
@@ -162,7 +213,7 @@ export default async function handler(req, res) {
             // --- Single venue lookup: validate integer ID ---
             const numericId = parseInt(id, 10);
             if (isNaN(numericId) || numericId < 1) {
-                return res.status(400).json({ success: false, error: 'Invalid venue id' });
+                return res.status(400).json({ success: false, error: { code: 'INVALID_ID', message: 'Invalid venue id' } });
             }
 
             // Try Supabase first (has real-time data)
@@ -208,7 +259,7 @@ export default async function handler(req, res) {
                     // Type filter is for a poker_venues-only type (e.g. 'casino'), skip social pages
                     spQuery = null;
                 }
-                if (search) spQuery = spQuery?.or(`name.ilike.%${search}%,location_city.ilike.%${search}%`);
+                if (search) spQuery = spQuery?.or(`name.ilike.%${search}%,location_city.ilike.%${search}%,location_state.ilike.%${search}%`);
 
                 if (spQuery) {
                     const { data: socialPages } = await spQuery.limit(200);
@@ -250,6 +301,7 @@ export default async function handler(req, res) {
                                 }
                             } catch (clubErr) {
                                 console.warn('[venues] Club/tournament lookup failed (non-fatal):', clubErr.message);
+                                captureError(clubErr, { tags: { api: 'poker-venues', stage: 'tournament-detection' } });
                             }
                         }
 
@@ -276,10 +328,16 @@ export default async function handler(req, res) {
                         const linkedPages = socialPages.filter(sp => sp.linked_venue_id);
                         const unlinkedPages = socialPages.filter(sp => !sp.linked_venue_id);
 
+                        addBreadcrumb({
+                            category: 'poker-venues',
+                            message: `Social page merge: ${socialPages.length} total, ${linkedPages.length} linked, ${unlinkedPages.length} unlinked`,
+                            data: { total: socialPages.length, linked: linkedPages.length, unlinked: unlinkedPages.length },
+                        });
+
                         // --- Enrich JSON venues that have a linked social page ---
                         const missedLinkedPages = []; // Pages whose linked_venue_id is NOT in JSON
                         for (const sp of linkedPages) {
-                            const jsonVenue = venues.find(v => String(v.id) === String(sp.linked_venue_id));
+                            const jsonVenue = getVenueById(sp.linked_venue_id);
                             if (jsonVenue) {
                                 jsonVenue.is_social_page = true;
                                 jsonVenue.social_page_id = sp.id;
@@ -324,6 +382,7 @@ export default async function handler(req, res) {
                                 }
                             } catch (pvErr) {
                                 console.warn('[venues] poker_venues lookup for missed linked pages failed (non-fatal):', pvErr.message);
+                                captureError(pvErr, { tags: { api: 'poker-venues', stage: 'missed-linked-enrichment' } });
                             }
                         }
 
@@ -449,10 +508,17 @@ export default async function handler(req, res) {
                             }
                         }
                         venues = venues.concat(mappedPages);
+
+                        addBreadcrumb({
+                            category: 'poker-venues',
+                            message: `Merge complete: ${mappedPages.length} social entries added, ${missedLinkedPages.length} enriched from poker_venues`,
+                            data: { mapped: mappedPages.length, missed: missedLinkedPages.length, enriched: Object.keys(supabaseVenuesByIdMap).length },
+                        });
                     }
                 }
             } catch (spErr) {
                 console.warn('[venues] Social pages merge failed (non-fatal):', spErr.message);
+                captureError(spErr, { tags: { api: 'poker-venues', stage: 'social-merge' }, level: 'warning' });
             }
         }
 
@@ -518,6 +584,10 @@ export default async function handler(req, res) {
         });
     } catch (error) {
         console.error('Venues API error:', error);
+        captureError(error, {
+            tags: { api: 'poker-venues', stage: 'handler' },
+            extra: { query: req.query },
+        });
 
         // Last resort: return JSON data unfiltered
         const fallbackVenues = getJsonVenues();

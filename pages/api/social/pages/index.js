@@ -242,9 +242,27 @@ export default async function handler(req, res) {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ page_id: data.id, locations: [locStr] }),
                 }).then(r => {
-                    if (!r.ok) console.error(`[geocode] Failed for page ${data.id}: HTTP ${r.status}`);
-                    else console.log(`[geocode] Success for page ${data.id}: ${locStr}`);
-                }).catch(e => console.error(`[geocode] Error for page ${data.id}:`, e.message));
+                    if (!r.ok) {
+                        console.error(`[geocode] Failed for page ${data.id}: HTTP ${r.status}`);
+                        // Report to Sentry so we can track geocoding failures
+                        import('../../../../src/lib/sentry').then(({ captureMessage }) => {
+                            captureMessage(`Geocoding failed for page ${data.id}`, 'warning', {
+                                tags: { api: 'social-pages', stage: 'geocoding' },
+                                extra: { page_id: data.id, location: locStr, http_status: r.status },
+                            });
+                        }).catch(() => { });
+                    } else {
+                        console.log(`[geocode] Success for page ${data.id}: ${locStr}`);
+                    }
+                }).catch(e => {
+                    console.error(`[geocode] Error for page ${data.id}:`, e.message);
+                    import('../../../../src/lib/sentry').then(({ captureError }) => {
+                        captureError(e, {
+                            tags: { api: 'social-pages', stage: 'geocoding' },
+                            extra: { page_id: data.id, location: locStr },
+                        });
+                    }).catch(() => { });
+                });
             } catch (e) { /* non-critical */ }
         }
 
@@ -260,7 +278,7 @@ export default async function handler(req, res) {
         // Verify ownership and get existing data for change detection
         const { data: existing } = await supabase
             .from('social_pages')
-            .select('owner_id, name, avatar_url, cover_url, description, location_city, location_state, page_type')
+            .select('owner_id, name, avatar_url, cover_url, description, location_city, location_state, page_type, metadata')
             .eq('id', id)
             .single();
 
@@ -309,13 +327,21 @@ export default async function handler(req, res) {
         if (updates.cover_url && updates.cover_url !== existing.cover_url) {
             createAutoPost('cover_photo_update', updates.cover_url);
         }
+        // Also detect cover photo changes stored in metadata.cover_photo_url
+        // (ClubPageDashboard saves cover photos to metadata, not cover_url)
+        // Only fire if cover_url auto-post didn't already trigger above
+        else if (updates.metadata?.cover_photo_url &&
+            updates.metadata.cover_photo_url !== (existing.metadata?.cover_photo_url || null)) {
+            createAutoPost('cover_photo_update', updates.metadata.cover_photo_url);
+        }
         if (updates.description !== undefined && updates.description !== existing.description) {
             createAutoPost('story_update');
         }
         if ((updates.location_city && updates.location_city !== existing.location_city) ||
             (updates.location_state && updates.location_state !== existing.location_state)) {
-            const newLoc = (updates.location_city || existing.location_city || '') +
-                (updates.location_state || existing.location_state ? ', ' + (updates.location_state || existing.location_state) : '');
+            const city = updates.location_city || existing.location_city || '';
+            const state = updates.location_state || existing.location_state || '';
+            const newLoc = city + (state ? ', ' + state : '');
             createAutoPost('location_update', null, newLoc.trim());
         }
 
