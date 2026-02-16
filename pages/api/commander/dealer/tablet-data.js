@@ -46,20 +46,44 @@ export default async function handler(req, res) {
         // Resolve venue_id from table if not provided
         const resolvedVenueId = venue_id || tableData?.venue_id || null;
 
-        // 2. Get active player sessions
-        let sessionsQuery = supabase
-            .from('commander_table_sessions')
-            .select('*')
-            .eq('table_number', tableNum)
-            .eq('status', 'active')
-            .order('seat_number', { ascending: true });
+        // 2. Get active player sessions — try both table names for migration compatibility
+        let sessions = [];
+        try {
+            let sessionsQuery = supabase
+                .from('commander_table_sessions')
+                .select('*')
+                .eq('table_number', tableNum)
+                .eq('status', 'active')
+                .order('seat_number', { ascending: true });
 
-        if (resolvedVenueId) {
-            sessionsQuery = sessionsQuery.eq('venue_id', resolvedVenueId);
+            if (resolvedVenueId) {
+                sessionsQuery = sessionsQuery.eq('venue_id', resolvedVenueId);
+            }
+
+            const { data, error } = await sessionsQuery;
+            if (error) {
+                // Table doesn't exist — try fallback
+                if (error.message?.includes('schema cache')) {
+                    let fallbackQuery = supabase
+                        .from('commander_time_sessions')
+                        .select('*')
+                        .eq('table_number', tableNum)
+                        .eq('status', 'active')
+                        .order('seat_number', { ascending: true });
+
+                    if (resolvedVenueId) {
+                        fallbackQuery = fallbackQuery.eq('venue_id', resolvedVenueId);
+                    }
+
+                    const { data: fbData } = await fallbackQuery;
+                    sessions = fbData || [];
+                }
+            } else {
+                sessions = data || [];
+            }
+        } catch (e) {
+            console.warn('Sessions query failed, continuing with empty:', e.message);
         }
-
-        const { data: sessions, error: sessionsError } = await sessionsQuery;
-        if (sessionsError) throw sessionsError;
 
         // Calculate time remaining for each session
         const now = new Date();
