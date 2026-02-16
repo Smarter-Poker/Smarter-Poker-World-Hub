@@ -284,7 +284,19 @@ export default async function handler(req, res) {
                                 jsonVenue.social_page_id = sp.id;
                                 jsonVenue.follower_count = sp.follower_count || jsonVenue.follower_count || 0;
                                 jsonVenue.has_tournaments = jsonVenue.has_tournaments || pageHasTournaments(sp);
-                                if (sp.avatar_url) jsonVenue.profile_photo_url = jsonVenue.profile_photo_url || sp.avatar_url;
+                                if (sp.avatar_url || (sp.metadata && sp.metadata.logo_url)) {
+                                    jsonVenue.profile_photo_url = jsonVenue.profile_photo_url || sp.avatar_url || sp.metadata.logo_url;
+                                }
+                                // Inherit coordinates from social page geocoding if JSON venue has none
+                                if (!jsonVenue.latitude && !jsonVenue.longitude) {
+                                    const geocoded = (sp.metadata && sp.metadata.geocoded_locations) || {};
+                                    const locStr = sp.location_city + (sp.location_state ? ', ' + sp.location_state : '');
+                                    const coords = geocoded[locStr] || geocoded[sp.location_city] || null;
+                                    if (coords) {
+                                        jsonVenue.latitude = coords.lat;
+                                        jsonVenue.longitude = coords.lng;
+                                    }
+                                }
                                 const schedule = (sp.metadata && sp.metadata.run_schedule) || {};
                                 const schedGames = extractGames(schedule);
                                 if (schedGames.length > 0) {
