@@ -6,7 +6,7 @@
  */
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../../src/lib/supabase';
 import Head from 'next/head';
 import Link from 'next/link';
 import {
@@ -35,10 +35,6 @@ import {
   X
 } from 'lucide-react';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
 
 const GAME_TYPE_LABELS = {
   nlh: 'No-Limit Hold\'em',
@@ -310,6 +306,23 @@ export default function ClubPage() {
     loadUser();
   }, []);
 
+  // Check follow status when user and page id are available
+  useEffect(() => {
+    if (!id || !user?.id) return;
+    async function checkFollowStatus() {
+      try {
+        const res = await fetch(`/api/social/pages/follow?page_id=${id}&requester_id=${user.id}`);
+        const json = await res.json();
+        if (json.success) {
+          setIsFollowing(json.is_following || false);
+        }
+      } catch (e) {
+        console.error('Follow status check error:', e);
+      }
+    }
+    checkFollowStatus();
+  }, [id, user]);
+
   useEffect(() => {
     if (!id) return;
 
@@ -365,12 +378,14 @@ export default function ClubPage() {
     }
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(`/api/commander/venues/${id}/follow`, {
-        method: isFollowing ? 'DELETE' : 'POST',
-        headers: {
-          'Authorization': `Bearer ${session?.access_token || ''}`
-        }
+      const res = await fetch('/api/social/pages/follow', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          page_id: id,
+          user_id: user.id,
+          action: isFollowing ? 'unfollow' : undefined
+        })
       });
       const data = await res.json();
       if (data.success) {
@@ -714,7 +729,7 @@ export default function ClubPage() {
                     ))}
                   </div>
                   <Link
-                    href={`/hub/commander/waitlist?venue=${id}`}
+                    href={`/hub/commander/waitlist?venue=${venue.linked_venue_id || id}`}
                     className="block mt-3 text-center text-sm font-medium text-[#1877F2] hover:underline"
                   >
                     Join Waitlist
