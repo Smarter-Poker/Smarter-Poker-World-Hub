@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import SEOHead, { schemas } from '../src/components/seo/SEOHead';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HAPTIC FEEDBACK
@@ -59,33 +59,33 @@ const HOTSPOTS = [
 const OVERLAY_HOTSPOTS = {
   // Global Connection
   gc: [
-    { id: 'gc-social',    top: 15, left: 3,  width: 32, height: 33, action: 'signup' },
-    { id: 'gc-trivia',    top: 15, left: 35, width: 30, height: 33, action: 'signup' },
-    { id: 'gc-diamond',   top: 15, left: 65, width: 32, height: 33, action: 'signup' },
-    { id: 'gc-club',      top: 50, left: 5,  width: 43, height: 33, action: 'signup' },
-    { id: 'gc-arcade',    top: 50, left: 52, width: 43, height: 33, action: 'signup' },
-    { id: 'gc-back',      top: 86, left: 15, width: 70, height: 7,  action: 'close' },
+    { id: 'gc-social', top: 15, left: 3, width: 32, height: 33, action: 'signup' },
+    { id: 'gc-trivia', top: 15, left: 35, width: 30, height: 33, action: 'signup' },
+    { id: 'gc-diamond', top: 15, left: 65, width: 32, height: 33, action: 'signup' },
+    { id: 'gc-club', top: 50, left: 5, width: 43, height: 33, action: 'signup' },
+    { id: 'gc-arcade', top: 50, left: 52, width: 43, height: 33, action: 'signup' },
+    { id: 'gc-back', top: 86, left: 15, width: 70, height: 7, action: 'close' },
   ],
   // Elite Training
   et: [
-    { id: 'et-training',  top: 20, left: 3,  width: 47, height: 30, action: 'signup' },
-    { id: 'et-memory',    top: 20, left: 52, width: 46, height: 30, action: 'signup' },
-    { id: 'et-assistant', top: 52, left: 3,  width: 47, height: 32, action: 'signup' },
-    { id: 'et-sandbox',   top: 52, left: 52, width: 46, height: 32, action: 'signup' },
-    { id: 'et-cta',       top: 88, left: 10, width: 80, height: 7,  action: 'signup' },
+    { id: 'et-training', top: 20, left: 3, width: 47, height: 30, action: 'signup' },
+    { id: 'et-memory', top: 20, left: 52, width: 46, height: 30, action: 'signup' },
+    { id: 'et-assistant', top: 52, left: 3, width: 47, height: 32, action: 'signup' },
+    { id: 'et-sandbox', top: 52, left: 52, width: 46, height: 32, action: 'signup' },
+    { id: 'et-cta', top: 88, left: 10, width: 80, height: 7, action: 'signup' },
   ],
   // Total Control: Bankroll & Discovery
   td: [
-    { id: 'td-bankroll',  top: 22, left: 3,  width: 46, height: 65, action: 'signup' },
+    { id: 'td-bankroll', top: 22, left: 3, width: 46, height: 65, action: 'signup' },
     { id: 'td-pokernear', top: 22, left: 52, width: 46, height: 65, action: 'signup' },
-    { id: 'td-cta',       top: 90, left: 15, width: 70, height: 7,  action: 'signup' },
+    { id: 'td-cta', top: 90, left: 15, width: 70, height: 7, action: 'signup' },
   ],
   // Lifestyle, News & Rewards
   lr: [
-    { id: 'lr-news',      top: 16, left: 5,  width: 90, height: 22, action: 'signup' },
-    { id: 'lr-store',     top: 40, left: 5,  width: 90, height: 22, action: 'signup' },
-    { id: 'lr-video',     top: 64, left: 5,  width: 90, height: 22, action: 'signup' },
-    { id: 'lr-cta',       top: 89, left: 10, width: 80, height: 7,  action: 'signup' },
+    { id: 'lr-news', top: 16, left: 5, width: 90, height: 22, action: 'signup' },
+    { id: 'lr-store', top: 40, left: 5, width: 90, height: 22, action: 'signup' },
+    { id: 'lr-video', top: 64, left: 5, width: 90, height: 22, action: 'signup' },
+    { id: 'lr-cta', top: 89, left: 10, width: 80, height: 7, action: 'signup' },
   ],
 };
 
@@ -127,12 +127,14 @@ export default function LandingPage() {
 
   return (
     <>
-      <Head>
-        <title>Smarter.Poker — The Future of the Game</title>
-        <meta name="description" content="Train Smarter, Connect Globally, Manage Everything. The ultimate poker platform." />
-        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+      <SEOHead
+        title="Smarter.Poker — The Future of the Game"
+        description="Train smarter, connect globally, manage everything. The ultimate poker platform for GTO training, live venue discovery, bankroll tracking, trivia, and community."
+        canonical="/"
+        jsonLd={[schemas.organization, schemas.website, schemas.softwareApp]}
+      >
         <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-      </Head>
+      </SEOHead>
 
       <div style={styles.page}>
         {/* ── NAV BAR ─────────────────────────────────────────── */}
@@ -154,7 +156,7 @@ export default function LandingPage() {
         <div style={styles.imageWrapper}>
           <img
             src="/images/landing-hero.jpg"
-            alt="Smarter.Poker — The Future of the Game"
+            alt="Smarter.Poker — The Future Of The Game"
             style={{ ...styles.heroImage, opacity: heroLoaded ? 1 : 0 }}
             onLoad={() => setHeroLoaded(true)}
             draggable={false}
@@ -228,7 +230,7 @@ export default function LandingPage() {
 
         {/* ── FOOTER ──────────────────────────────────────────── */}
         <footer style={styles.footer}>
-          <span style={styles.footerText}>© 2025 Smarter.Poker — The Future of the Game</span>
+          <span style={styles.footerText}>© 2025 Smarter.Poker — The Future Of The Game</span>
         </footer>
       </div>
 
