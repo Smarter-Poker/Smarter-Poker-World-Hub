@@ -98,18 +98,23 @@ async function buildSocialPages(pageType) {
         const { data, error } = await query.order('follower_count', { ascending: false });
         if (error || !data) return [];
 
+        const CATEGORY_LABELS = {
+            poker_room: 'Poker Room', casino: 'Casino', card_club: 'Card Club',
+            charity: 'Charity Organization', league: 'League / Tour',
+            home_game: 'Home Game', other: 'Other'
+        };
+
         return data.map(p => {
             const effectiveType = p.metadata?.page_type || p.page_type || 'club';
-            const subtitle = [p.location_city, p.location_state].filter(Boolean).join(', ') || p.category || '';
+            const locationStr = [p.location_city, p.location_state].filter(Boolean).join(', ');
+            const categoryLabel = CATEGORY_LABELS[p.category] || p.category || 'Club';
             return {
                 page_type: effectiveType,
                 page_id: p.id,
                 name: p.name,
-                subtitle,
-                category: effectiveType === 'home_game' ? 'Home Game'
-                    : effectiveType === 'charity' ? 'Charity Event'
-                        : p.category || 'Club',
-                avatar_url: p.avatar_url,
+                subtitle: locationStr,
+                category: categoryLabel,
+                avatar_url: p.avatar_url || p.metadata?.logo_url || null,
                 cover_url: p.cover_url,
                 description: p.description,
                 follower_count: p.follower_count || 0,
