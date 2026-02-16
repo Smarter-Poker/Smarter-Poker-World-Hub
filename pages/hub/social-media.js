@@ -1831,11 +1831,27 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
         return init;
     });
     const [newGame, setNewGame] = useState({});
-    const [tournaments, setTournaments] = useState(meta.tournaments || []);
+    const [tournaments, setTournaments] = useState([]);
     const [amenities, setAmenities] = useState(meta.amenities || {});
     const [socialLinks, setSocialLinks] = useState(meta.social_links || { facebook: '', instagram: '', twitter: '' });
     const [metaSaving, setMetaSaving] = useState(false);
     const [metaSaved, setMetaSaved] = useState('');
+
+    // Fetch live tournaments from DB when Tournaments tab is active
+    useEffect(() => {
+        if (activeTab !== 'tournaments') return;
+        let cancelled = false;
+        (async () => {
+            try {
+                const res = await fetch(`/api/public/venue/${page.id}`);
+                const data = await res.json();
+                if (!cancelled && data.success) {
+                    setTournaments(data.data.upcoming_tournaments || []);
+                }
+            } catch (err) { console.error('Failed to load tournaments:', err); }
+        })();
+        return () => { cancelled = true; };
+    }, [activeTab, page.id]);
 
     // Live Games state
     const [liveGames, setLiveGames] = useState([]);
@@ -2459,17 +2475,27 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                         <div style={{ textAlign: 'center', padding: 30, color: C.textSec }}><div style={{ fontSize: 24, marginBottom: 8, fontWeight: 700 }}>No tournaments yet</div><p style={{ margin: 0, fontSize: 14 }}>Add tournaments through Club Commander to see them here.</p></div>
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                            {tournaments.map((t, i) => (
-                                <div key={t.id || i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: '#f5f5f5', borderRadius: 8, border: '1px solid #e4e6eb' }}>
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{t.name}</div>
-                                        <div style={{ fontSize: 12, color: C.textSec, marginTop: 2 }}>
-                                            {t.day ? `${t.day} · ` : ''}{t.time ? `${t.time} · ` : ''}{t.buyin || ''}{t.gtd ? ` · ${t.gtd} GTD` : ''}{t.game ? ` · ${t.game}` : ''}
+                            {tournaments.map((t, i) => {
+                                const d = t.scheduled_start ? new Date(t.scheduled_start) : null;
+                                const GLABELS = { NLH: "NL Hold'em", PLO: 'PLO', PLO5: 'PLO-5', PLO8: 'PLO Hi-Lo' };
+                                return (
+                                    <div key={t.id || i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: '#f5f5f5', borderRadius: 8, border: '1px solid #e4e6eb' }}>
+                                        {d && <div style={{ minWidth: 44, textAlign: 'center', background: '#fff', borderRadius: 8, padding: '4px 6px', border: '1px solid #e4e6eb' }}>
+                                            <div style={{ fontSize: 10, color: C.textSec, textTransform: 'uppercase', fontWeight: 700 }}>{d.toLocaleDateString('en-US', { month: 'short' })}</div>
+                                            <div style={{ fontSize: 16, fontWeight: 800, color: C.text }}>{d.getDate()}</div>
+                                        </div>}
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{t.name}</div>
+                                            <div style={{ fontSize: 12, color: C.textSec, marginTop: 2 }}>
+                                                {d ? d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : ''}
+                                                {t.game_type ? ` · ${GLABELS[t.game_type] || t.game_type}` : ''}
+                                                {t.buyin_amount ? ` · $${t.buyin_amount} Buy-in` : ''}
+                                                {t.guaranteed_prize ? ` · $${t.guaranteed_prize.toLocaleString()} GTD` : ''}
+                                            </div>
                                         </div>
-                                        {t.notes && <div style={{ fontSize: 11, color: C.textSec, marginTop: 2, fontStyle: 'italic' }}>{t.notes}</div>}
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                 </div>
