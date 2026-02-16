@@ -597,7 +597,7 @@ export default function MarketplacePage() {
                 <div className="cmd-panel p-8 text-center">
                   <Users className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
                   <p className="text-[#B0B3B8]">No Dealers Found</p>
-                  <p className="text-sm text-[#3A3B3C] mt-1">Try adjusting your search</p>
+                  <p className="text-sm text-[#3A3B3C] mt-1">Try Adjusting Your Search</p>
                 </div>
               ) : (
                 <div className="grid gap-4 md:grid-cols-2">
@@ -615,7 +615,7 @@ export default function MarketplacePage() {
                 <div className="cmd-panel p-8 text-center">
                   <Package className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
                   <p className="text-[#B0B3B8]">No Equipment Found</p>
-                  <p className="text-sm text-[#3A3B3C] mt-1">Try adjusting your search</p>
+                  <p className="text-sm text-[#3A3B3C] mt-1">Try Adjusting Your Search</p>
                 </div>
               ) : (
                 <div className="grid gap-4 md:grid-cols-2">

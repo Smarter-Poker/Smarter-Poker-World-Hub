@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { QrCode, Download, Maximize2, Minimize2} from 'lucide-react';
+import { QrCode, Download, Maximize2, Minimize2 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 export default function VenueQRCodePage() {
@@ -88,105 +88,105 @@ export default function VenueQRCodePage() {
         onClick={toggleFullscreen}
       >
         <h1 className="text-4xl font-bold text-[#1877F2] mb-2">{venue?.name}</h1>
-        <p className="text-xl text-[#B0B3B8] mb-8">Scan to Check In</p>
+        <p className="text-xl text-[#B0B3B8] mb-8">Scan To Check In</p>
         <img
           src={getQRCodeUrl(400)}
           alt="Check-in QR Code"
           className="w-96 h-96"
         />
-        <p className="text-sm text-[#3A3B3C] mt-8">Tap anywhere to exit fullscreen</p>
+        <p className="text-sm text-[#3A3B3C] mt-8">Tap Anywhere To Exit Fullscreen</p>
       </div>
     );
   }
 
   return (
     <CommanderLayout title="Check-In QR Code | {venue?.name || 'Commander'}" backHref="/commander/dashboard">
-    <>
-      <Head>
-        <title>Check-In QR Code | {venue?.name || 'Commander'}</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
+      <>
+        <Head>
+          <title>Check-In QR Code | {venue?.name || 'Commander'}</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+        </Head>
 
-      <div className="cmd-page">
-        {/* Header */}
-        <header className="cmd-header-bar">
-          <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div>
-                <h1 className="font-bold text-white">Check-In QR Code</h1>
-                <p className="text-sm text-[#B0B3B8]">{venue?.name}</p>
+        <div className="cmd-page">
+          {/* Header */}
+          <header className="cmd-header-bar">
+            <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div>
+                  <h1 className="font-bold text-white">Check-In QR Code</h1>
+                  <p className="text-sm text-[#B0B3B8]">{venue?.name}</p>
+                </div>
               </div>
             </div>
-          </div>
-        </header>
+          </header>
 
-        <main className="max-w-2xl mx-auto px-4 py-8">
-          {/* QR Code Display */}
-          <div className="cmd-panel p-8 text-center">
-            <div className="w-20 h-20 bg-[#1877F2]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <QrCode className="w-10 h-10 text-[#1877F2]" />
+          <main className="max-w-2xl mx-auto px-4 py-8">
+            {/* QR Code Display */}
+            <div className="cmd-panel p-8 text-center">
+              <div className="w-20 h-20 bg-[#1877F2]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <QrCode className="w-10 h-10 text-[#1877F2]" />
+              </div>
+
+              <h2 className="text-xl font-bold text-white mb-2">
+                Player Check-In
+              </h2>
+              <p className="text-[#B0B3B8] mb-6">
+                Display this QR code for players to scan and check in
+              </p>
+
+              {/* QR Code Image - keep white background for QR readability */}
+              <div className="bg-white rounded-xl p-6 mb-6 inline-block">
+                {qrUrl ? (
+                  <img
+                    src={getQRCodeUrl(250)}
+                    alt="Check-in QR Code"
+                    className="w-64 h-64 mx-auto"
+                  />
+                ) : (
+                  <div className="w-64 h-64 bg-[#E5E7EB] animate-pulse rounded-lg" />
+                )}
+              </div>
+
+              {/* URL Display */}
+              <div className="bg-[#3A3B3C] rounded-lg p-3 mb-6">
+                <p className="text-xs text-[#B0B3B8] mb-1">Check-in URL</p>
+                <p className="text-sm text-white font-mono break-all">{qrUrl}</p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 justify-center">
+                <button
+                  onClick={handleDownload}
+                  className="cmd-btn cmd-btn-secondary flex items-center gap-2 px-6 py-3"
+                >
+                  <Download className="w-5 h-5" />
+                  Download
+                </button>
+                <button
+                  onClick={toggleFullscreen}
+                  className="cmd-btn cmd-btn-primary flex items-center gap-2 px-6 py-3"
+                >
+                  <Maximize2 className="w-5 h-5" />
+                  Fullscreen
+                </button>
+              </div>
             </div>
 
-            <h2 className="text-xl font-bold text-white mb-2">
-              Player Check-In
-            </h2>
-            <p className="text-[#B0B3B8] mb-6">
-              Display this QR code for players to scan and check in
-            </p>
-
-            {/* QR Code Image - keep white background for QR readability */}
-            <div className="bg-white rounded-xl p-6 mb-6 inline-block">
-              {qrUrl ? (
-                <img
-                  src={getQRCodeUrl(250)}
-                  alt="Check-in QR Code"
-                  className="w-64 h-64 mx-auto"
-                />
-              ) : (
-                <div className="w-64 h-64 bg-[#E5E7EB] animate-pulse rounded-lg" />
-              )}
+            {/* Tips */}
+            <div className="mt-6 bg-[#1877F2]/5 rounded-xl p-4">
+              <h3 className="font-medium text-[#1877F2] mb-2">Tips</h3>
+              <ul className="text-sm text-[#B0B3B8] space-y-1">
+                <li>Display on a tablet near the entrance</li>
+                <li>Print and post at the check-in desk</li>
+                <li>Use fullscreen mode for TV displays</li>
+                <li>Players need to be logged in to check in</li>
+              </ul>
             </div>
-
-            {/* URL Display */}
-            <div className="bg-[#3A3B3C] rounded-lg p-3 mb-6">
-              <p className="text-xs text-[#B0B3B8] mb-1">Check-in URL</p>
-              <p className="text-sm text-white font-mono break-all">{qrUrl}</p>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-3 justify-center">
-              <button
-                onClick={handleDownload}
-                className="cmd-btn cmd-btn-secondary flex items-center gap-2 px-6 py-3"
-              >
-                <Download className="w-5 h-5" />
-                Download
-              </button>
-              <button
-                onClick={toggleFullscreen}
-                className="cmd-btn cmd-btn-primary flex items-center gap-2 px-6 py-3"
-              >
-                <Maximize2 className="w-5 h-5" />
-                Fullscreen
-              </button>
-            </div>
-          </div>
-
-          {/* Tips */}
-          <div className="mt-6 bg-[#1877F2]/5 rounded-xl p-4">
-            <h3 className="font-medium text-[#1877F2] mb-2">Tips</h3>
-            <ul className="text-sm text-[#B0B3B8] space-y-1">
-              <li>Display on a tablet near the entrance</li>
-              <li>Print and post at the check-in desk</li>
-              <li>Use fullscreen mode for TV displays</li>
-              <li>Players need to be logged in to check in</li>
-            </ul>
-          </div>
-        </main>
-      </div>
-      <style jsx>{`
+          </main>
+        </div>
+        <style jsx>{`
 `}</style>
-    </>
+      </>
     </CommanderLayout>
   );
 }

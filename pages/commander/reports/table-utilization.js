@@ -51,7 +51,7 @@ export default function TableUtilization() {
       <Head><title>Table Utilization | Club Commander</title></Head>
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
-<div className="flex-1"><h1 className="text-lg font-bold text-white">Table Utilization</h1><p className="text-xs text-[#B0B3B8]">{RANGES.find(r => r.value === range)?.label}</p></div>
+          <div className="flex-1"><h1 className="text-lg font-bold text-white">Table Utilization</h1><p className="text-xs text-[#B0B3B8]">{RANGES.find(r => r.value === range)?.label}</p></div>
           <button onClick={fetchData} className="p-2 rounded-lg active:bg-[#3A3B3C]"><RefreshCw className="w-5 h-5 text-[#B0B3B8]" /></button>
         </div>
 
@@ -122,7 +122,7 @@ export default function TableUtilization() {
                     </div>
                   );
                 })}
-                {(data?.tables || []).length === 0 && <p className="text-sm text-[#6A6B6D] text-center py-4">No table data for this period</p>}
+                {(data?.tables || []).length === 0 && <p className="text-sm text-[#6A6B6D] text-center py-4">No Table Data For This Period</p>}
               </div>
             </div>
 
@@ -137,23 +137,23 @@ export default function TableUtilization() {
                     const bg = v === 0 ? '#3A3B3C30' : `rgba(24, 119, 242, ${0.15 + intensity * 0.85})`;
                     return (
                       <CommanderLayout title="Table Utilization" backHref="/commander/reports">
-                      <div key={hour} className="flex flex-col items-center gap-1">
-                        <div className="w-full aspect-square rounded-md flex items-center justify-center" style={{ background: bg }}>
-                          <span className="text-[9px] font-bold text-white">{v || ''}</span>
+                        <div key={hour} className="flex flex-col items-center gap-1">
+                          <div className="w-full aspect-square rounded-md flex items-center justify-center" style={{ background: bg }}>
+                            <span className="text-[9px] font-bold text-white">{v || ''}</span>
+                          </div>
+                          <span className="text-[8px] text-[#6A6B6D]">{fmtHour(hour)}</span>
                         </div>
-                        <span className="text-[8px] text-[#6A6B6D]">{fmtHour(hour)}</span>
-                      </div>
                       </CommanderLayout>
                     );
                   })}
                 </div>
-                <p className="text-[10px] text-[#6A6B6D] text-center mt-2">Sessions started per hour (8AM-12AM)</p>
+                <p className="text-[10px] text-[#6A6B6D] text-center mt-2">Sessions Started Per Hour (8AM-12AM)</p>
               </div>
             )}
           </div>
         )}
       </div>
-    <style jsx>{`
+      <style jsx>{`
 `}</style>
     </>
   );

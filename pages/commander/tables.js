@@ -153,149 +153,148 @@ export default function CommanderTablesPage() {
 
   return (
     <CommanderLayout title="Tables | {venue?.name || 'Commander'}" backHref="/commander/dashboard">
-    <>
-      <Head>
-        <title>Tables | {venue?.name || 'Commander'}</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
+      <>
+        <Head>
+          <title>Tables | {venue?.name || 'Commander'}</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+        </Head>
 
-      <div className="cmd-page">
-        {/* Header */}
-        <header className="cmd-header-bar sticky top-0 z-50">
-          <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div>
-                <h1 className="font-bold text-white text-lg">Table Management</h1>
-                <p className="text-sm text-[#B0B3B8]">{venue?.name}</p>
+        <div className="cmd-page">
+          {/* Header */}
+          <header className="cmd-header-bar sticky top-0 z-50">
+            <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div>
+                  <h1 className="font-bold text-white text-lg">Table Management</h1>
+                  <p className="text-sm text-[#B0B3B8]">{venue?.name}</p>
+                </div>
               </div>
-            </div>
 
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-2 px-4 py-2 cmd-btn cmd-btn-primary font-medium rounded-lg hover:bg-[#1664d9] transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              Add Table
-            </button>
-          </div>
-        </header>
-
-        {/* Main Content */}
-        <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-          {/* Visual Table Status Overview */}
-          {tables.length > 0 && (
-            <section>
-              <h2 className="text-lg font-semibold text-white mb-4">Table Overview</h2>
-              <TableGrid
-                tables={tables}
-                games={games}
-                selectedTable={selectedTableId}
-                onSelectTable={(table) => {
-                  setSelectedTableId(table.id);
-                  setEditingTable(table);
-                }}
-              />
-            </section>
-          )}
-
-          {/* Table Management */}
-          {tables.length === 0 ? (
-            <div className="cmd-panel p-8 text-center">
-              <Table2 className="w-12 h-12 text-[#3A3B3C] mx-auto mb-4" />
-              <h2 className="text-lg font-semibold text-white mb-2">No Tables Yet</h2>
-              <p className="text-[#B0B3B8] mb-4">Add tables to start managing your poker room</p>
               <button
                 onClick={() => setShowAddModal(true)}
-                className="px-4 py-2 cmd-btn cmd-btn-primary font-medium rounded-lg hover:bg-[#1664d9] transition-colors"
+                className="flex items-center gap-2 px-4 py-2 cmd-btn cmd-btn-primary font-medium rounded-lg hover:bg-[#1664d9] transition-colors"
               >
-                Add First Table
+                <Plus className="w-4 h-4" />
+                Add Table
               </button>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {tables.map((table) => (
-                <div
-                  key={table.id}
-                  className="cmd-panel p-4"
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h3 className="font-semibold text-white">
-                        {table.table_name || `Table ${table.table_number}`}
-                      </h3>
-                      <p className="text-sm text-[#B0B3B8]">
-                        {table.max_seats} seats
-                      </p>
-                    </div>
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      table.status === 'available'
-                        ? 'bg-[#D1FAE5] text-[#059669]'
-                        : table.status === 'in_use'
-                        ? 'bg-[#DBEAFE] text-[#2563EB]'
-                        : 'bg-[#FEF3C7] text-[#D97706]'
-                    }`}>
-                      {table.status}
-                    </span>
-                  </div>
+          </header>
 
-                  {table.current_game_id && (
-                    <div className="mb-3 p-2 bg-[#3A3B3C] rounded-lg flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-sm text-[#B0B3B8]">
-                        <Users className="w-4 h-4" />
-                        <span>Game in progress</span>
+          {/* Main Content */}
+          <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+            {/* Visual Table Status Overview */}
+            {tables.length > 0 && (
+              <section>
+                <h2 className="text-lg font-semibold text-white mb-4">Table Overview</h2>
+                <TableGrid
+                  tables={tables}
+                  games={games}
+                  selectedTable={selectedTableId}
+                  onSelectTable={(table) => {
+                    setSelectedTableId(table.id);
+                    setEditingTable(table);
+                  }}
+                />
+              </section>
+            )}
+
+            {/* Table Management */}
+            {tables.length === 0 ? (
+              <div className="cmd-panel p-8 text-center">
+                <Table2 className="w-12 h-12 text-[#3A3B3C] mx-auto mb-4" />
+                <h2 className="text-lg font-semibold text-white mb-2">No Tables Yet</h2>
+                <p className="text-[#B0B3B8] mb-4">Add Tables To Start Managing Your Poker Room</p>
+                <button
+                  onClick={() => setShowAddModal(true)}
+                  className="px-4 py-2 cmd-btn cmd-btn-primary font-medium rounded-lg hover:bg-[#1664d9] transition-colors"
+                >
+                  Add First Table
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {tables.map((table) => (
+                  <div
+                    key={table.id}
+                    className="cmd-panel p-4"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h3 className="font-semibold text-white">
+                          {table.table_name || `Table ${table.table_number}`}
+                        </h3>
+                        <p className="text-sm text-[#B0B3B8]">
+                          {table.max_seats} seats
+                        </p>
                       </div>
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${table.status === 'available'
+                          ? 'bg-[#D1FAE5] text-[#059669]'
+                          : table.status === 'in_use'
+                            ? 'bg-[#DBEAFE] text-[#2563EB]'
+                            : 'bg-[#FEF3C7] text-[#D97706]'
+                        }`}>
+                        {table.status}
+                      </span>
+                    </div>
+
+                    {table.current_game_id && (
+                      <div className="mb-3 p-2 bg-[#3A3B3C] rounded-lg flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-sm text-[#B0B3B8]">
+                          <Users className="w-4 h-4" />
+                          <span>Game in progress</span>
+                        </div>
+                        <button
+                          onClick={() => handleCloseGame(table.current_game_id)}
+                          className="px-2.5 py-1 text-xs font-medium text-[#EF4444] bg-[#EF4444]/10 rounded-lg hover:bg-[#EF4444]/20 transition-colors"
+                        >
+                          Close Game
+                        </button>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2">
                       <button
-                        onClick={() => handleCloseGame(table.current_game_id)}
-                        className="px-2.5 py-1 text-xs font-medium text-[#EF4444] bg-[#EF4444]/10 rounded-lg hover:bg-[#EF4444]/20 transition-colors"
+                        onClick={() => setEditingTable(table)}
+                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-sm font-medium text-[#B0B3B8] hover:bg-[#3A3B3C] rounded-lg transition-colors"
                       >
-                        Close Game
+                        <Edit2 className="w-4 h-4" />
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteTable(table.id)}
+                        disabled={table.status === 'in_use'}
+                        className="flex items-center justify-center gap-1 px-3 py-2 text-sm font-medium text-[#EF4444] hover:bg-[#FEF2F2] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
-                  )}
-
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setEditingTable(table)}
-                      className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-sm font-medium text-[#B0B3B8] hover:bg-[#3A3B3C] rounded-lg transition-colors"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDeleteTable(table.id)}
-                      disabled={table.status === 'in_use'}
-                      className="flex items-center justify-center gap-1 px-3 py-2 text-sm font-medium text-[#EF4444] hover:bg-[#FEF2F2] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </main>
-      </div>
+                ))}
+              </div>
+            )}
+          </main>
+        </div>
 
-      {/* Add/Edit Modal */}
-      {(showAddModal || editingTable) && (
-        <TableModal
-          table={editingTable}
-          onClose={() => {
-            setShowAddModal(false);
-            setEditingTable(null);
-          }}
-          onSubmit={(data) => {
-            if (editingTable) {
-              handleUpdateTable(editingTable.id, data);
-            } else {
-              handleAddTable(data);
-            }
-          }}
-        />
-      )}
-      <style jsx>{`
+        {/* Add/Edit Modal */}
+        {(showAddModal || editingTable) && (
+          <TableModal
+            table={editingTable}
+            onClose={() => {
+              setShowAddModal(false);
+              setEditingTable(null);
+            }}
+            onSubmit={(data) => {
+              if (editingTable) {
+                handleUpdateTable(editingTable.id, data);
+              } else {
+                handleAddTable(data);
+              }
+            }}
+          />
+        )}
+        <style jsx>{`
 `}</style>
-    </>
+      </>
     </CommanderLayout>
   );
 }
@@ -364,11 +363,10 @@ function TableModal({ table, onClose, onSubmit }) {
                   key={num}
                   type="button"
                   onClick={() => setMaxSeats(num)}
-                  className={`flex-1 h-10 rounded-lg text-sm font-medium transition-colors ${
-                    maxSeats === num
+                  className={`flex-1 h-10 rounded-lg text-sm font-medium transition-colors ${maxSeats === num
                       ? 'cmd-btn cmd-btn-primary'
                       : 'bg-[#3A3B3C] text-white hover:bg-[#3A3B3C]'
-                  }`}
+                    }`}
                 >
                   {num}
                 </button>

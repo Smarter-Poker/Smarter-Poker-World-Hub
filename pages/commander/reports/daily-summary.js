@@ -6,7 +6,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { BarChart3, Users, DollarSign, Clock, TrendingUp,
+import {
+  BarChart3, Users, DollarSign, Clock, TrendingUp,
   Calendar, Loader2
 } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
@@ -41,7 +42,7 @@ export default function DailySummaryReport() {
       <Head><title>Daily Summary | Club Commander</title></Head>
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
-<div className="flex-1">
+          <div className="flex-1">
             <h1 className="text-lg font-bold text-white">Daily Summary</h1>
           </div>
           <input type="date" value={date} onChange={e => setDate(e.target.value)}
@@ -67,17 +68,17 @@ export default function DailySummaryReport() {
                   const pct = Math.random() * 80 + 10;
                   return (
                     <CommanderLayout title="Daily Summary" backHref="/commander/reports">
-                    <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                      <div className="w-full bg-[#1877F2]/30 rounded-t" style={{ height: `${pct}%` }}>
-                        <div className="w-full bg-[#1877F2] rounded-t" style={{ height: `${pct * 0.7}%` }} />
+                      <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                        <div className="w-full bg-[#1877F2]/30 rounded-t" style={{ height: `${pct}%` }}>
+                          <div className="w-full bg-[#1877F2] rounded-t" style={{ height: `${pct * 0.7}%` }} />
+                        </div>
+                        <span className="text-[8px] text-[#B0B3B8]">{hour > 12 ? hour - 12 : hour}{hour >= 12 ? 'p' : 'a'}</span>
                       </div>
-                      <span className="text-[8px] text-[#B0B3B8]">{hour > 12 ? hour - 12 : hour}{hour >= 12 ? 'p' : 'a'}</span>
-                    </div>
                     </CommanderLayout>
                   );
                 })}
               </div>
-              <p className="text-xs text-[#B0B3B8] mt-2 text-center">Players per hour (blue = seated, light = waiting)</p>
+              <p className="text-xs text-[#B0B3B8] mt-2 text-center">Players Per Hour (Blue = Seated, Light = Waiting)</p>
             </div>
 
             <div className="bg-[#242526] rounded-xl border border-[#3A3B3C] p-4">
@@ -90,7 +91,7 @@ export default function DailySummaryReport() {
           </div>
         )}
       </div>
-    <style jsx>{`
+      <style jsx>{`
 `}</style>
     </>
   );

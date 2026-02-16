@@ -98,10 +98,68 @@ export default async function handler(req, res) {
         });
       }
 
-      // Look up associated Club Arena club via owner_id + name match to fetch tournaments
+      // Bridge: look up linked poker_venue to get Commander data
+      const meta = socialPage.metadata || {};
+      let linkedVenue = null;
+      let linkedVenueId = meta.linked_venue_id || null;
+
+      // Try metadata.linked_venue_id first, then name match
+      if (linkedVenueId) {
+        const { data: lv } = await supabase
+          .from('poker_venues')
+          .select('id, commander_enabled, games_offered, stakes_cash, stakes_tournament, poker_tables, hours_weekday, hours_weekend, has_bad_beat_jackpot, has_food_service, has_hotel, has_valet, has_comps, trust_score, google_rating, review_count, is_featured')
+          .eq('id', linkedVenueId)
+          .eq('is_active', true)
+          .single();
+        if (lv) linkedVenue = lv;
+      }
+
+      if (!linkedVenue) {
+        // Fallback: find poker_venue by name match
+        const { data: lv } = await supabase
+          .from('poker_venues')
+          .select('id, commander_enabled, games_offered, stakes_cash, stakes_tournament, poker_tables, hours_weekday, hours_weekend, has_bad_beat_jackpot, has_food_service, has_hotel, has_valet, has_comps, trust_score, google_rating, review_count, is_featured')
+          .ilike('name', socialPage.name)
+          .eq('is_active', true)
+          .limit(1)
+          .single();
+        if (lv) {
+          linkedVenue = lv;
+          linkedVenueId = lv.id;
+        }
+      }
+
+      const commanderEnabled = linkedVenue?.commander_enabled || false;
+      const venueIdForCommander = linkedVenueId;
+
+      // Fetch Commander live games if linked venue has Commander enabled
+      let liveGames = [];
+      if (commanderEnabled && venueIdForCommander) {
+        const { data: games } = await supabase
+          .from('commander_games')
+          .select('id, game_type, stakes, current_players, max_players, status, started_at')
+          .eq('venue_id', venueIdForCommander)
+          .in('status', ['running', 'waiting'])
+          .order('started_at', { ascending: false });
+        liveGames = games || [];
+      }
+
+      // Fetch Commander tournaments if linked venue exists
       let upcomingTournaments = [];
-      if (socialPage.owner_id) {
-        // First try matching by both owner_id and name (handles owners with multiple clubs)
+      if (commanderEnabled && venueIdForCommander) {
+        const { data: tourneys } = await supabase
+          .from('commander_tournaments')
+          .select('id, name, tournament_type, buyin_amount, scheduled_start, status, total_entries, max_entries, guaranteed_prize')
+          .eq('venue_id', venueIdForCommander)
+          .in('status', ['scheduled', 'registering', 'registration'])
+          .gte('scheduled_start', new Date().toISOString())
+          .order('scheduled_start', { ascending: true })
+          .limit(10);
+        upcomingTournaments = tourneys || [];
+      }
+
+      // Fallback: look up Club Arena tournaments via owner_id
+      if (upcomingTournaments.length === 0 && socialPage.owner_id) {
         let { data: club } = await supabase
           .from('clubs')
           .select('id')
@@ -110,7 +168,6 @@ export default async function handler(req, res) {
           .limit(1)
           .single();
 
-        // Fallback: if no name match, try owner_id only (single-club owners)
         if (!club) {
           const { data: fallbackClub } = await supabase
             .from('clubs')
@@ -146,8 +203,23 @@ export default async function handler(req, res) {
         }
       }
 
+      // Calculate waitlist stats if Commander is enabled
+      let waitlistStats = null;
+      if (commanderEnabled && venueIdForCommander) {
+        const { count: waitingCount } = await supabase
+          .from('commander_waitlist')
+          .select('*', { count: 'exact', head: true })
+          .eq('venue_id', venueIdForCommander)
+          .eq('status', 'waiting');
+
+        waitlistStats = {
+          total_waiting: waitingCount || 0,
+          games_running: liveGames.filter(g => g.status === 'running').length,
+          tables_available: liveGames.filter(g => g.status === 'waiting').length
+        };
+      }
+
       // Return social page data in venue-compatible format
-      const meta = socialPage.metadata || {};
       return res.status(200).json({
         success: true,
         data: {
@@ -168,21 +240,38 @@ export default async function handler(req, res) {
             tagline: socialPage.description?.substring(0, 120),
             follower_count: socialPage.follower_count || 0,
             is_social_page: true,
-            commander_enabled: false,
+            social_page_id: socialPage.id,
+            commander_enabled: commanderEnabled,
+            linked_venue_id: venueIdForCommander,
             amenities: meta.amenities || {},
+            games_offered: linkedVenue?.games_offered || [],
+            stakes_cash: linkedVenue?.stakes_cash || [],
+            poker_tables: linkedVenue?.poker_tables || null,
+            hours_weekday: linkedVenue?.hours_weekday || null,
+            hours_weekend: linkedVenue?.hours_weekend || null,
+            has_bad_beat_jackpot: linkedVenue?.has_bad_beat_jackpot || false,
+            has_food_service: linkedVenue?.has_food_service || false,
+            has_hotel: linkedVenue?.has_hotel || false,
+            has_valet: linkedVenue?.has_valet || false,
+            has_comps: linkedVenue?.has_comps || false,
+            trust_score: linkedVenue?.trust_score || null,
+            google_rating: linkedVenue?.google_rating || null,
+            review_count: linkedVenue?.review_count || 0,
+            is_featured: linkedVenue?.is_featured || false,
             photos: meta.photos || [],
             run_schedule: meta.run_schedule || null,
             social_links: meta.social_links || {},
           },
-          live_games: [],
+          live_games: liveGames,
           upcoming_tournaments: upcomingTournaments,
           daily_schedule: [],
           promotions: [],
-          waitlist_stats: null,
+          waitlist_stats: waitlistStats,
           links: {
             smarter_poker: socialPage.slug
               ? `https://smarter.poker/club/${socialPage.slug}`
               : `https://smarter.poker/club/${socialPage.id}`,
+            waitlist_join: commanderEnabled ? `/hub/commander/waitlist?venue=${venueIdForCommander}` : null
           }
         }
       });
@@ -224,7 +313,7 @@ export default async function handler(req, res) {
         guaranteed_prize
       `)
       .eq('venue_id', id)
-      .in('status', ['scheduled', 'registering'])
+      .in('status', ['scheduled', 'registering', 'registration'])
       .gte('scheduled_start', new Date().toISOString())
       .order('scheduled_start', { ascending: true })
       .limit(10);

@@ -6,7 +6,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { Trophy, Users, DollarSign, ChevronDown, Loader2, Calendar
+import {
+  Trophy, Users, DollarSign, ChevronDown, Loader2, Calendar
 } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
@@ -60,7 +61,7 @@ export default function TournamentResultsReport() {
         <Head><title>Tournament Results | Club Commander</title></Head>
         <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
           <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
-<h1 className="text-lg font-bold text-white">Tournament Results</h1>
+            <h1 className="text-lg font-bold text-white">Tournament Results</h1>
           </div>
 
           {loading ? (
@@ -68,7 +69,7 @@ export default function TournamentResultsReport() {
           ) : tournaments.length === 0 ? (
             <div className="text-center py-20">
               <Trophy className="w-10 h-10 text-[#3A3B3C] mx-auto mb-3" />
-              <p className="text-[#B0B3B8]">No completed tournaments yet</p>
+              <p className="text-[#B0B3B8]">No Completed Tournaments Yet</p>
             </div>
           ) : (
             <div className="p-4 space-y-3">
@@ -98,8 +99,8 @@ export default function TournamentResultsReport() {
                           .map(e => (
                             <div key={e.id} className="flex items-center gap-3 py-2">
                               <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${e.finish_position === 1 ? 'bg-[#F59E0B]/20 text-[#F59E0B]' :
-                                  e.finish_position <= 3 ? 'bg-[#1877F2]/20 text-[#1877F2]' :
-                                    'bg-[#3A3B3C] text-[#B0B3B8]'
+                                e.finish_position <= 3 ? 'bg-[#1877F2]/20 text-[#1877F2]' :
+                                  'bg-[#3A3B3C] text-[#B0B3B8]'
                                 }`}>
                                 {e.finish_position}
                               </span>

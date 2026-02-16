@@ -90,7 +90,7 @@ export default function TournamentPublic() {
 
   if (!tournament) return (
     <div className="min-h-screen bg-[#18191A] flex items-center justify-center p-6">
-      <p className="text-[#B0B3B8] text-lg">Tournament not found</p>
+      <p className="text-[#B0B3B8] text-lg">Tournament Not Found</p>
     </div>
   );
 
@@ -221,10 +221,9 @@ export default function TournamentPublic() {
                       const isCurrent = clock?.current_level === (i + 1);
                       const isBreak = level.is_break;
                       return (
-                        <tr key={i} className={`border-b border-[#3A3B3C]/50 ${
-                          isCurrent ? 'bg-[#1877F2]/10 text-[#1877F2]' :
-                          isBreak ? 'bg-[#F59E0B]/5 text-[#F59E0B]' : 'text-white'
-                        }`}>
+                        <tr key={i} className={`border-b border-[#3A3B3C]/50 ${isCurrent ? 'bg-[#1877F2]/10 text-[#1877F2]' :
+                            isBreak ? 'bg-[#F59E0B]/5 text-[#F59E0B]' : 'text-white'
+                          }`}>
                           <td className="px-3 py-2 font-medium">
                             {isBreak ? 'Break' : i + 1}{isCurrent ? ' *' : ''}
                           </td>

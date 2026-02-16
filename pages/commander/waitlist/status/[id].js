@@ -71,7 +71,7 @@ export default function WaitlistStatus() {
       <div className="text-center">
         <XCircle className="w-16 h-16 text-[#EF4444] mx-auto mb-4" />
         <h2 className="text-xl font-bold text-white mb-2">{error}</h2>
-        <p className="text-sm text-[#B0B3B8]">This link may have expired.</p>
+        <p className="text-sm text-[#B0B3B8]">This Link May Have Expired.</p>
       </div>
     </div>
   );
@@ -117,7 +117,7 @@ export default function WaitlistStatus() {
             <div className="bg-[#1877F2]/10 border-2 border-[#1877F2]/40 rounded-2xl p-6 text-center">
               <CheckCircle2 className="w-12 h-12 text-[#1877F2] mx-auto mb-3" />
               <h2 className="text-2xl font-bold text-white">Seated</h2>
-              <p className="text-[#B0B3B8] mt-1">You've been seated. Enjoy your game!</p>
+              <p className="text-[#B0B3B8] mt-1">You've Been Seated. Enjoy Your Game!</p>
               {entry?.table_number && (
                 <p className="text-lg font-bold text-[#1877F2] mt-3">Table {entry.table_number}</p>
               )}
@@ -128,7 +128,7 @@ export default function WaitlistStatus() {
           {isWaiting && (
             <>
               <div className="bg-[#242526] border border-[#3A3B3C] rounded-2xl p-8 text-center">
-                <p className="text-sm text-[#B0B3B8] mb-2">Your position</p>
+                <p className="text-sm text-[#B0B3B8] mb-2">Your Position</p>
                 <p className="text-7xl font-bold text-[#1877F2]">{position || '—'}</p>
                 <p className="text-sm text-[#B0B3B8] mt-2">
                   {position === 1 ? "You're next!" : position ? `${position - 1} ahead of you` : 'Calculating...'}
@@ -140,14 +140,14 @@ export default function WaitlistStatus() {
                   <Clock className="w-6 h-6 text-[#F59E0B]" />
                   <div>
                     <p className="text-base font-semibold text-white">~{estWait} min estimated</p>
-                    <p className="text-xs text-[#B0B3B8]">We'll notify you when called</p>
+                    <p className="text-xs text-[#B0B3B8]">We'll Notify You When Called</p>
                   </div>
                 </div>
               )}
 
               <div className="bg-[#242526] border border-[#3A3B3C] rounded-xl p-4 text-center">
-                <p className="text-xs text-[#B0B3B8]">Keep this page open for live updates</p>
-                <p className="text-xs text-[#B0B3B8] mt-1">Auto-refreshing every 5 seconds</p>
+                <p className="text-xs text-[#B0B3B8]">Keep This Page Open For Live Updates</p>
+                <p className="text-xs text-[#B0B3B8] mt-1">Auto-Refreshing Every 5 Seconds</p>
               </div>
             </>
           )}

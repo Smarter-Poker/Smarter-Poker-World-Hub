@@ -168,8 +168,8 @@ function CreateIncidentModal({ onSubmit, onClose }) {
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, severity: level.value }))}
                   className={`py-2 rounded-lg border text-sm font-medium transition-colors ${formData.severity === level.value
-                      ? `border-2`
-                      : 'border-[#3A3B3C] text-[#B0B3B8]'
+                    ? `border-2`
+                    : 'border-[#3A3B3C] text-[#B0B3B8]'
                     }`}
                   style={{
                     borderColor: formData.severity === level.value ? level.color : undefined,
@@ -209,7 +209,7 @@ function CreateIncidentModal({ onSubmit, onClose }) {
               placeholder="e.g., John D., Mike S."
               className="w-full h-12 px-4 cmd-input"
             />
-            <p className="text-xs text-[#3A3B3C] mt-1">Separate names with commas</p>
+            <p className="text-xs text-[#3A3B3C] mt-1">Separate Names With Commas</p>
           </div>
 
           {/* Description */}
@@ -325,7 +325,7 @@ function IncidentDetailModal({ incident, onResolve, onClose }) {
               )}
             </div>
             <div>
-              <p className="text-sm text-[#B0B3B8]">Reported by</p>
+              <p className="text-sm text-[#B0B3B8]">Reported By</p>
               <p className="font-medium text-white">{incident.reported_by_name || 'Staff Member'}</p>
             </div>
             {incident.players_involved?.length > 0 && (
@@ -543,8 +543,8 @@ export default function IncidentsPage() {
                   key={f.value}
                   onClick={() => setFilter(f.value)}
                   className={`px-4 py-2 rounded-lg font-medium transition-colors ${filter === f.value
-                      ? 'bg-[#1877F2] text-white'
-                      : 'bg-[#242526] border border-[#3A3B3C] text-[#B0B3B8] hover:border-[#1877F2]'
+                    ? 'bg-[#1877F2] text-white'
+                    : 'bg-[#242526] border border-[#3A3B3C] text-[#B0B3B8] hover:border-[#1877F2]'
                     }`}
                 >
                   {f.label}

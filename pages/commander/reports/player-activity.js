@@ -6,7 +6,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { Users, Clock, TrendingUp, Star, Loader2,
+import {
+  Users, Clock, TrendingUp, Star, Loader2,
   BarChart3, Repeat, ChevronDown, Search
 } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
@@ -87,14 +88,13 @@ export default function PlayerActivityReport() {
         <header className="bg-[#242526] border-b border-[#3A3B3C] sticky top-0 z-50">
           <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
-<h1 className="text-lg font-bold text-white">Player Activity</h1>
+              <h1 className="text-lg font-bold text-white">Player Activity</h1>
             </div>
             <div className="flex items-center gap-2">
               {['7d', '30d', '90d', '1y'].map(r => (
                 <button key={r} onClick={() => setDateRange(r)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                    dateRange === r ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8] hover:bg-[#4A4B4C]'
-                  }`}>{r}</button>
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${dateRange === r ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8] hover:bg-[#4A4B4C]'
+                    }`}>{r}</button>
               ))}
             </div>
           </div>
@@ -129,7 +129,7 @@ export default function PlayerActivityReport() {
                     <BarChart3 className="w-4 h-4 text-[#1877F2]" /> Game Preferences
                   </h3>
                   {sortedGames.length === 0 ? (
-                    <p className="text-sm text-[#B0B3B8] text-center py-4">No session data yet</p>
+                    <p className="text-sm text-[#B0B3B8] text-center py-4">No Session Data Yet</p>
                   ) : (
                     <div className="space-y-2">
                       {sortedGames.slice(0, 6).map(([game, count]) => {
@@ -208,64 +208,64 @@ export default function PlayerActivityReport() {
 
                     return (
                       <CommanderLayout title="Player Activity" backHref="/commander/reports">
-                      <div key={p.id}>
-                        <button onClick={() => setExpandedPlayer(isExpanded ? null : p.id)}
-                          className="w-full px-4 py-3 grid grid-cols-12 items-center hover:bg-[#18191A] transition-colors text-left">
-                          <span className="col-span-1 text-sm text-[#B0B3B8]">{idx + 1}</span>
-                          <span className="col-span-4 text-sm text-[#E4E6EB] font-medium truncate flex items-center gap-2">
-                            {name}
-                            {(p.visit_count || 0) >= 20 && <Star className="w-3 h-3 text-[#F59E0B]" />}
-                          </span>
-                          <span className="col-span-2 text-center text-sm font-bold text-white">{p.visit_count || 0}</span>
-                          <span className="col-span-2 text-center text-xs text-[#B0B3B8]">
-                            {p.created_at ? new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }) : '--'}
-                          </span>
-                          <span className="col-span-3 text-right text-xs text-[#B0B3B8] flex items-center justify-end gap-1">
-                            {p.last_checkin ? new Date(p.last_checkin).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '--'}
-                            <ChevronDown className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                          </span>
-                        </button>
+                        <div key={p.id}>
+                          <button onClick={() => setExpandedPlayer(isExpanded ? null : p.id)}
+                            className="w-full px-4 py-3 grid grid-cols-12 items-center hover:bg-[#18191A] transition-colors text-left">
+                            <span className="col-span-1 text-sm text-[#B0B3B8]">{idx + 1}</span>
+                            <span className="col-span-4 text-sm text-[#E4E6EB] font-medium truncate flex items-center gap-2">
+                              {name}
+                              {(p.visit_count || 0) >= 20 && <Star className="w-3 h-3 text-[#F59E0B]" />}
+                            </span>
+                            <span className="col-span-2 text-center text-sm font-bold text-white">{p.visit_count || 0}</span>
+                            <span className="col-span-2 text-center text-xs text-[#B0B3B8]">
+                              {p.created_at ? new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }) : '--'}
+                            </span>
+                            <span className="col-span-3 text-right text-xs text-[#B0B3B8] flex items-center justify-end gap-1">
+                              {p.last_checkin ? new Date(p.last_checkin).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '--'}
+                              <ChevronDown className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                            </span>
+                          </button>
 
-                        {isExpanded && (
-                          <div className="px-4 pb-4 bg-[#18191A]">
-                            <div className="grid grid-cols-3 gap-2 mb-3">
-                              <div className="bg-[#242526] rounded-lg p-2 text-center">
-                                <p className="text-xs text-[#B0B3B8]">Phone</p>
-                                <p className="text-sm text-white">{p.phone || '—'}</p>
-                              </div>
-                              <div className="bg-[#242526] rounded-lg p-2 text-center">
-                                <p className="text-xs text-[#B0B3B8]">Email</p>
-                                <p className="text-sm text-white truncate">{p.email || '—'}</p>
-                              </div>
-                              <div className="bg-[#242526] rounded-lg p-2 text-center">
-                                <p className="text-xs text-[#B0B3B8]">Tier</p>
-                                <p className="text-sm text-white capitalize">{p.tier || 'bronze'}</p>
-                              </div>
-                            </div>
-                            {playerSessions.length > 0 ? (
-                              <div>
-                                <p className="text-xs text-[#B0B3B8] uppercase mb-2">Recent Sessions</p>
-                                <div className="space-y-1">
-                                  {playerSessions.map(s => (
-                                    <div key={s.id} className="flex items-center justify-between bg-[#242526] rounded-lg px-3 py-2 text-xs">
-                                      <span className="text-white">{s.game_type || 'Cash'} {s.stakes || ''}</span>
-                                      <span className="text-[#B0B3B8]">{s.duration_minutes ? `${s.duration_minutes}m` : '—'}</span>
-                                      <span className="text-[#B0B3B8]">{s.started_at ? new Date(s.started_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}</span>
-                                    </div>
-                                  ))}
+                          {isExpanded && (
+                            <div className="px-4 pb-4 bg-[#18191A]">
+                              <div className="grid grid-cols-3 gap-2 mb-3">
+                                <div className="bg-[#242526] rounded-lg p-2 text-center">
+                                  <p className="text-xs text-[#B0B3B8]">Phone</p>
+                                  <p className="text-sm text-white">{p.phone || '—'}</p>
+                                </div>
+                                <div className="bg-[#242526] rounded-lg p-2 text-center">
+                                  <p className="text-xs text-[#B0B3B8]">Email</p>
+                                  <p className="text-sm text-white truncate">{p.email || '—'}</p>
+                                </div>
+                                <div className="bg-[#242526] rounded-lg p-2 text-center">
+                                  <p className="text-xs text-[#B0B3B8]">Tier</p>
+                                  <p className="text-sm text-white capitalize">{p.tier || 'bronze'}</p>
                                 </div>
                               </div>
-                            ) : (
-                              <p className="text-xs text-[#B0B3B8] text-center py-2">No session history available</p>
-                            )}
-                          </div>
-                        )}
-                      </div>
+                              {playerSessions.length > 0 ? (
+                                <div>
+                                  <p className="text-xs text-[#B0B3B8] uppercase mb-2">Recent Sessions</p>
+                                  <div className="space-y-1">
+                                    {playerSessions.map(s => (
+                                      <div key={s.id} className="flex items-center justify-between bg-[#242526] rounded-lg px-3 py-2 text-xs">
+                                        <span className="text-white">{s.game_type || 'Cash'} {s.stakes || ''}</span>
+                                        <span className="text-[#B0B3B8]">{s.duration_minutes ? `${s.duration_minutes}m` : '—'}</span>
+                                        <span className="text-[#B0B3B8]">{s.started_at ? new Date(s.started_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className="text-xs text-[#B0B3B8] text-center py-2">No Session History Available</p>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </CommanderLayout>
                     );
                   })}
                   {filteredPlayers.length === 0 && (
-                    <div className="py-8 text-center text-[#B0B3B8] text-sm">No players found</div>
+                    <div className="py-8 text-center text-[#B0B3B8] text-sm">No Players Found</div>
                   )}
                 </div>
               </div>
@@ -273,7 +273,7 @@ export default function PlayerActivityReport() {
           )}
         </main>
       </div>
-    <style jsx>{`
+      <style jsx>{`
 `}</style>
     </>
   );
