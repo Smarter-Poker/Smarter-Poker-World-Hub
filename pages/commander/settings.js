@@ -55,7 +55,7 @@ export default function CommanderSettingsPage() {
     }
   }, [router]);
 
-  // Load venue settings including hard stop
+  // Load venue settings
   useEffect(() => {
     if (!venueId) return;
     const storedStaffData = localStorage.getItem('commander_staff');
