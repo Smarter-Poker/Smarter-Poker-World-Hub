@@ -231,6 +231,20 @@ export default async function handler(req, res) {
             status: 'approved'
         });
 
+        // Auto-geocode primary location in background (non-blocking)
+        if (data.location_city) {
+            const locStr = data.location_city + (data.location_state ? ', ' + data.location_state : '');
+            try {
+                const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
+                    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+                fetch(`${baseUrl}/api/social/geocode-locations`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ page_id: data.id, locations: [locStr] }),
+                }).catch(() => { });
+            } catch (e) { /* non-critical */ }
+        }
+
         return res.status(201).json({ success: true, data });
 
     } else if (req.method === 'PUT') {

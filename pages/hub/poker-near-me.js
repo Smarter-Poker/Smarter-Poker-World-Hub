@@ -340,6 +340,10 @@ function VenueMap({ venues, userLocation }) {
             const trust = getTrustLevel(venue.trust_score);
             const typeBadge = VENUE_TYPE_LABELS[venue.venue_type] || venue.venue_type || '';
 
+            const detailPath = venue.is_social_page
+                ? '/club/' + venue.social_page_id
+                : '/hub/venues/' + venue.id;
+
             const popupHtml = '<div style="font-family:Inter,-apple-system,sans-serif;min-width:200px;max-width:280px;">' +
                 '<div style="font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:4px;">' + (venue.name || '') + '</div>' +
                 '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">' +
@@ -348,9 +352,9 @@ function VenueMap({ venues, userLocation }) {
                 '</div>' +
                 '<div style="font-size:12px;color:' + trust.color + ';font-weight:600;margin-bottom:8px;">Trust: ' + trust.label + ' (' + (venue.trust_score || '-') + '/5)</div>' +
                 '<div style="display:flex;gap:6px;">' +
-                '<a href="/hub/venues/' + venue.id + '" style="padding:6px 12px;border-radius:6px;background:#d4a853;color:#000;text-decoration:none;font-size:12px;font-weight:600;">View Details</a>' +
-                '<a href="/hub/venues/' + venue.id + '?action=checkin" style="padding:6px 12px;border-radius:6px;background:#1e40af;color:#fff;text-decoration:none;font-size:12px;font-weight:600;">Check In</a>' +
-                '<a href="/hub/venues/' + venue.id + '?action=review" style="padding:6px 12px;border-radius:6px;background:#374151;color:#fff;text-decoration:none;font-size:12px;font-weight:600;">Review</a>' +
+                '<a href="' + detailPath + '" style="padding:6px 12px;border-radius:6px;background:#d4a853;color:#000;text-decoration:none;font-size:12px;font-weight:600;">View Details</a>' +
+                '<a href="' + detailPath + '?action=checkin" style="padding:6px 12px;border-radius:6px;background:#1e40af;color:#fff;text-decoration:none;font-size:12px;font-weight:600;">Check In</a>' +
+                '<a href="' + detailPath + '?action=review" style="padding:6px 12px;border-radius:6px;background:#374151;color:#fff;text-decoration:none;font-size:12px;font-weight:600;">Review</a>' +
                 '</div>' +
                 '</div>';
 
@@ -678,6 +682,21 @@ export default function PokerNearMePage() {
             }
         };
     }, [userLocation, allVenuesForMap]);
+
+    // --- Merge geocoded social pages into geofence feed ---
+    useEffect(() => {
+        if (!venues || venues.length === 0) return;
+        const socialWithCoords = venues.filter(v =>
+            v.is_social_page && v.latitude && v.longitude
+        );
+        if (socialWithCoords.length === 0) return;
+
+        setAllVenuesForMap(prev => {
+            // Remove any previously merged social pages, then add fresh ones
+            const withoutSocial = prev.filter(v => !String(v.id).startsWith('sp-'));
+            return [...withoutSocial, ...socialWithCoords];
+        });
+    }, [venues]);
 
     // --- NEW: Persist favorites to localStorage ---
     useEffect(() => {
@@ -2083,11 +2102,17 @@ export default function PokerNearMePage() {
                         <GeofenceAlertBanner
                             venue={geofenceAlert}
                             onCheckin={() => {
-                                router.push('/hub/venues/' + geofenceAlert.id + '?action=checkin');
+                                const gfUrl = geofenceAlert.is_social_page
+                                    ? '/club/' + geofenceAlert.social_page_id
+                                    : '/hub/venues/' + geofenceAlert.id;
+                                router.push(gfUrl + '?action=checkin');
                                 setGeofenceAlert(null);
                             }}
                             onReview={() => {
-                                router.push('/hub/venues/' + geofenceAlert.id + '?action=review');
+                                const gfUrl = geofenceAlert.is_social_page
+                                    ? '/club/' + geofenceAlert.social_page_id
+                                    : '/hub/venues/' + geofenceAlert.id;
+                                router.push(gfUrl + '?action=review');
                                 setGeofenceAlert(null);
                             }}
                             onDismiss={() => setGeofenceAlert(null)}

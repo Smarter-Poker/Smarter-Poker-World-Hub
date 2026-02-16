@@ -1841,15 +1841,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
     // Live Games state
     const [liveGames, setLiveGames] = useState([]);
     const [loadingGames, setLoadingGames] = useState(false);
-    const [showCreateGame, setShowCreateGame] = useState(false);
-    const [newGameForm, setNewGameForm] = useState({ game_name: '', game_type: 'NLH', stakes: '1/2', max_seats: 9, table_number: '', notes: '' });
-    const [creatingGame, setCreatingGame] = useState(false);
     const [pendingFollowers, setPendingFollowers] = useState([]);
-    const [pageType, setPageType] = useState((page.metadata || {}).page_type || 'club');
-    const [qrData, setQrData] = useState(null);
-    const [showQR, setShowQR] = useState(false);
-    const [copiedUrl, setCopiedUrl] = useState(false);
-    const [texasClubEnabled, setTexasClubEnabled] = useState((page.metadata || {}).texas_club_enabled !== false && (page.metadata || {}).page_type !== 'home_game' && (page.metadata || {}).page_type !== 'charity');
 
     // Cover photo state
     const [coverPhoto, setCoverPhoto] = useState((page.metadata || {}).cover_photo_url || '');
@@ -1959,62 +1951,6 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
             });
             setPendingFollowers(prev => prev.filter(f => f.user_id !== followerId));
         } catch (e) { console.error('Approve/reject error:', e); }
-    };
-
-    const handlePageTypeChange = async (newType) => {
-        setPageType(newType);
-        const autoDisableTexas = newType === 'home_game' || newType === 'charity';
-        if (autoDisableTexas) setTexasClubEnabled(false);
-        // Update metadata + top-level page_type column in one PUT
-        setMetaSaving(true); setMetaSaved('');
-        try {
-            const mergedMeta = { ...page.metadata, page_type: newType, ...(autoDisableTexas ? { texas_club_enabled: false } : {}) };
-            const res = await fetch('/api/social/pages', {
-                method: 'PUT', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: page.id, owner_id: userId, page_type: newType, metadata: mergedMeta }),
-            });
-            const json = await res.json();
-            if (json.success && json.data) { onPageUpdated(json.data); setMetaSaved('Page type updated!'); setTimeout(() => setMetaSaved(''), 2000); }
-        } catch (e) { console.error('Page type change error:', e); setMetaSaved('Error saving'); }
-        setMetaSaving(false);
-    };
-
-    const handleCreateGame = async () => {
-        if (!newGameForm.game_name.trim()) return;
-        setCreatingGame(true);
-        try {
-            const res = await fetch('/api/social/pages/games', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...newGameForm, page_id: page.id, created_by: userId }),
-            });
-            const json = await res.json();
-            if (json.success && json.data) {
-                setLiveGames(prev => [{ ...json.data, seats: [], seated_count: 0, waitlist_count: 0 }, ...prev]);
-                setNewGameForm({ game_name: '', game_type: 'NLH', stakes: '1/2', max_seats: 9, table_number: '', notes: '' });
-                setShowCreateGame(false);
-            }
-        } catch (e) { console.error('Create game error:', e); }
-        setCreatingGame(false);
-    };
-
-    const handleCloseGame = async (gameId) => {
-        try {
-            await fetch('/api/social/pages/games', {
-                method: 'PUT', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: gameId, status: 'closed' }),
-            });
-            setLiveGames(prev => prev.filter(g => g.id !== gameId));
-        } catch (e) { console.error('Close game error:', e); }
-    };
-
-    const handleRemoveSeat = async (gameId, seatId) => {
-        try {
-            await fetch('/api/social/pages/games', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'leave', game_id: gameId, seat_id: seatId }),
-            });
-            setLiveGames(prev => prev.map(g => g.id === gameId ? { ...g, seats: g.seats.filter(s => s.id !== seatId), seated_count: g.seats.filter(s => s.id !== seatId && s.status !== 'waitlist').length, waitlist_count: g.seats.filter(s => s.id !== seatId && s.status === 'waitlist').length } : g));
-        } catch (e) { console.error('Remove seat error:', e); }
     };
 
     // Save metadata helper
@@ -2595,127 +2531,45 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                 </div>
             )}
 
-            {/* Live Games Tab */}
+            {/* Pending Follow Requests — visible above all tabs */}
+            {pendingFollowers.length > 0 && (
+                <div style={{ ...cardSt, marginBottom: 8 }}>
+                    <div style={{ marginBottom: 0, borderRadius: 10, border: '2px solid #f59e0b', background: '#fffbeb', padding: 12 }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#92400e', marginBottom: 8 }}>Pending Follow Requests ({pendingFollowers.length})</div>
+                        {pendingFollowers.map(f => (
+                            <div key={f.user_id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #fde68a' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#fed7aa', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#92400e" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{f.profile?.full_name || f.profile?.username || 'Unknown'}</div>
+                                        <div style={{ fontSize: 11, color: C.textSec }}>{f.profile?.username ? `@${f.profile.username}` : `Requested ${new Date(f.created_at).toLocaleDateString()}`}</div>
+                                    </div>
+                                </div>
+                                <div style={{ display: 'flex', gap: 6 }}>
+                                    <button onClick={() => handleApproveFollower(f.user_id, 'approve')} style={{ padding: '4px 14px', borderRadius: 6, border: 'none', background: '#22c55e', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Approve</button>
+                                    <button onClick={() => handleApproveFollower(f.user_id, 'reject')} style={{ padding: '4px 14px', borderRadius: 6, border: 'none', background: '#ef4444', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Reject</button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Live Games Tab — Read-Only Commander Status */}
             {activeTab === 'live_games' && (
                 <div style={cardSt}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                         <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>Live Game Board</h3>
-                        <button onClick={() => setShowCreateGame(!showCreateGame)} style={{ ...btnPrimary, background: showCreateGame ? '#E4E6EB' : C.blue, color: showCreateGame ? C.text : '#fff' }}>
-                            {showCreateGame ? 'Cancel' : '+ New Game'}
-                        </button>
+                        <a href="/hub/commander" style={{ fontSize: 13, fontWeight: 600, color: C.blue, textDecoration: 'none' }}>Manage in Club Commander &rarr;</a>
                     </div>
 
-                    {/* Page Type Selector */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, padding: '8px 12px', borderRadius: 8, background: '#f5f5f5', border: '1px solid #e4e6eb' }}>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Page Type:</span>
-                        {['club', 'home_game', 'charity'].map(t => (
-                            <button key={t} onClick={() => handlePageTypeChange(t)} style={{
-                                padding: '4px 12px', borderRadius: 6, border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                                background: pageType === t ? (t === 'home_game' ? '#f59e0b' : '#1877F2') : '#E4E6EB',
-                                color: pageType === t ? '#fff' : C.text
-                            }}>{t === 'club' ? '🏢 Club' : t === 'home_game' ? '🏠 Home Game' : '💝 Charity'}</button>
-                        ))}
-                        {pageType === 'home_game' && <span style={{ fontSize: 11, color: '#92400e', fontWeight: 600 }}>🔒 Followers require approval</span>}
+                    <div style={{ fontSize: 12, color: C.textSec, padding: '8px 12px', background: '#f0f7ff', borderRadius: 8, marginBottom: 12 }}>
+                        Live games are managed through Club Commander. This board shows the current game status in real-time.
                     </div>
 
-                    {/* Texas Club Features Toggle */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, padding: '10px 12px', borderRadius: 8, background: texasClubEnabled ? '#eef2ff' : '#f5f5f5', border: `1px solid ${texasClubEnabled ? '#818cf8' : '#e4e6eb'}`, transition: 'all 0.2s' }}>
-                        <div>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Texas Club Style Features</div>
-                            <div style={{ fontSize: 11, color: C.textSec, marginTop: 2 }}>Seat fees, time charges, membership dues, rake structure</div>
-                            {(pageType === 'home_game' || pageType === 'charity') && <div style={{ fontSize: 10, color: '#dc2626', fontWeight: 600, marginTop: 2 }}>Auto-disabled for {pageType === 'home_game' ? 'Home Game' : 'Charity'} pages</div>}
-                        </div>
-                        <button
-                            onClick={() => {
-                                const newVal = !texasClubEnabled;
-                                setTexasClubEnabled(newVal);
-                                saveMetadata({ texas_club_enabled: newVal }, `Texas Club features ${newVal ? 'enabled' : 'disabled'}`);
-                            }}
-                            disabled={pageType === 'home_game' || pageType === 'charity'}
-                            style={{
-                                width: 52, height: 28, borderRadius: 14, border: 'none', padding: 2, cursor: (pageType === 'home_game' || pageType === 'charity') ? 'not-allowed' : 'pointer',
-                                backgroundColor: texasClubEnabled ? '#6366f1' : '#94a3b8', opacity: (pageType === 'home_game' || pageType === 'charity') ? 0.5 : 1,
-                                transition: 'background-color 0.2s ease', display: 'flex', alignItems: 'center', flexShrink: 0
-                            }}
-                        >
-                            <span style={{ width: 24, height: 24, borderRadius: '50%', backgroundColor: 'white', boxShadow: '0 2px 4px rgba(0,0,0,0.2)', transform: texasClubEnabled ? 'translateX(24px)' : 'translateX(0)', transition: 'transform 0.2s ease' }} />
-                        </button>
-                    </div>
-
-                    {/* Pending Approval Requests */}
-                    {pendingFollowers.length > 0 && (
-                        <div style={{ marginBottom: 12, borderRadius: 10, border: '2px solid #f59e0b', background: '#fffbeb', padding: 12 }}>
-                            <div style={{ fontSize: 14, fontWeight: 700, color: '#92400e', marginBottom: 8 }}>⏳ Pending Follow Requests ({pendingFollowers.length})</div>
-                            {pendingFollowers.map(f => (
-                                <div key={f.user_id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #fde68a' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                        <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#fed7aa', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>👤</div>
-                                        <div>
-                                            <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{f.profile?.full_name || f.profile?.username || 'Unknown'}</div>
-                                            <div style={{ fontSize: 11, color: C.textSec }}>{f.profile?.username ? `@${f.profile.username}` : `Requested ${new Date(f.created_at).toLocaleDateString()}`}</div>
-                                        </div>
-                                    </div>
-                                    <div style={{ display: 'flex', gap: 6 }}>
-                                        <button onClick={() => handleApproveFollower(f.user_id, 'approve')} style={{ padding: '4px 14px', borderRadius: 6, border: 'none', background: '#22c55e', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>✓ Approve</button>
-                                        <button onClick={() => handleApproveFollower(f.user_id, 'reject')} style={{ padding: '4px 14px', borderRadius: 6, border: 'none', background: '#ef4444', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>✕ Reject</button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {/* QR Code & Referral Panel */}
-                    <div style={{ marginBottom: 12, borderRadius: 10, border: '1px solid #e4e6eb', background: '#f8fafc', padding: 12 }}>
-                        <div onClick={() => { setShowQR(!showQR); if (!qrData) fetch(`/api/social/pages/qrcode?page_id=${page.id}`).then(r => r.json()).then(j => j.success && setQrData(j.data)).catch(() => { }); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
-                            <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>📱 QR Code & Referral Link</span>
-                            <span style={{ fontSize: 12, color: C.textSec }}>{showQR ? '▲' : '▼'}</span>
-                        </div>
-                        {showQR && qrData && (
-                            <div style={{ marginTop: 10, textAlign: 'center' }}>
-                                <img src={qrData.qr_code_url} alt="QR Code" style={{ width: 200, height: 200, borderRadius: 8, border: '2px solid #e4e6eb', margin: '0 auto 10px' }} />
-                                <div style={{ fontSize: 11, color: C.textSec, marginBottom: 6 }}>Scan to follow <strong>{qrData.page_name}</strong></div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center', marginBottom: 6 }}>
-                                    <input readOnly value={qrData.follow_url} style={{ flex: 1, maxWidth: 280, padding: '6px 8px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 11, color: C.text, background: '#fff', fontFamily: 'inherit' }} />
-                                    <button onClick={() => { navigator.clipboard.writeText(qrData.follow_url); setCopiedUrl(true); setTimeout(() => setCopiedUrl(false), 2000); }} style={{ padding: '6px 12px', borderRadius: 6, border: 'none', background: copiedUrl ? '#22c55e' : '#1877F2', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-                                        {copiedUrl ? '✓ Copied!' : '📋 Copy'}
-                                    </button>
-                                </div>
-                                <div style={{ fontSize: 11, color: C.textSec }}>Referral Code: <strong>{qrData.referral_code}</strong></div>
-                                <div style={{ fontSize: 10, color: '#6b7280', marginTop: 4 }}>Users who sign up via this link are auto-followed to your page</div>
-                            </div>
-                        )}
-                        {showQR && !qrData && <div style={{ padding: 12, textAlign: 'center', fontSize: 12, color: C.textSec }}>Loading QR code...</div>}
-                    </div>
-
-                    {/* Create Game Form */}
-                    {showCreateGame && (
-                        <div style={{ background: '#f5f5f5', borderRadius: 10, padding: 12, marginBottom: 12, border: '1px solid #e4e6eb' }}>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 8 }}>Create Live Game</div>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 8 }}>
-                                <div><label style={labelSt}>Game Name</label><input value={newGameForm.game_name} onChange={e => setNewGameForm(p => ({ ...p, game_name: e.target.value }))} placeholder="Friday Night NLH" style={inputSt} /></div>
-                                <div><label style={labelSt}>Type</label>
-                                    <select value={newGameForm.game_type} onChange={e => setNewGameForm(p => ({ ...p, game_type: e.target.value }))} style={inputSt}>
-                                        {['NLH', 'PLO', 'PLO8', 'Mixed', 'Omaha Hi-Lo', 'Stud', 'Other'].map(g => <option key={g}>{g}</option>)}
-                                    </select>
-                                </div>
-                                <div><label style={labelSt}>Stakes</label><input value={newGameForm.stakes} onChange={e => setNewGameForm(p => ({ ...p, stakes: e.target.value }))} placeholder="1/2" style={inputSt} /></div>
-                                <div><label style={labelSt}>Max Seats</label>
-                                    <select value={newGameForm.max_seats} onChange={e => setNewGameForm(p => ({ ...p, max_seats: parseInt(e.target.value) }))} style={inputSt}>
-                                        {[6, 8, 9, 10].map(n => <option key={n} value={n}>{n}-max</option>)}
-                                    </select>
-                                </div>
-                                <div><label style={labelSt}>Table #</label><input value={newGameForm.table_number} onChange={e => setNewGameForm(p => ({ ...p, table_number: e.target.value }))} placeholder="Table 1" style={inputSt} /></div>
-                            </div>
-                            <div style={{ marginTop: 8 }}><label style={labelSt}>Notes</label><input value={newGameForm.notes} onChange={e => setNewGameForm(p => ({ ...p, notes: e.target.value }))} placeholder="$300 max buy-in, $5 rake cap..." style={inputSt} /></div>
-                            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
-                                <button onClick={handleCreateGame} disabled={!newGameForm.game_name.trim() || creatingGame} style={{ ...btnPrimary, opacity: !newGameForm.game_name.trim() || creatingGame ? 0.5 : 1 }}>
-                                    {creatingGame ? 'Creating...' : 'Create Game'}
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Games List */}
+                    {/* Read-Only Games List */}
                     {loadingGames ? (
                         <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
                             <div style={{ width: 32, height: 32, border: '3px solid #E4E6EB', borderTopColor: C.blue, borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
@@ -2723,12 +2577,15 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                         </div>
                     ) : liveGames.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
-                            <div style={{ fontSize: 24, marginBottom: 8, fontWeight: 700 }}>No live games</div>
-                            <p style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>No live games right now</p>
-                            <p style={{ margin: '4px 0 0', fontSize: 13 }}>Create a game to start accepting sign-ups!</p>
+                            <div style={{ fontSize: 48, marginBottom: 12, opacity: 0.4 }}>
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="M12 8v4l3 3" /></svg>
+                            </div>
+                            <div style={{ fontSize: 18, marginBottom: 6, fontWeight: 700, color: C.text }}>No active games</div>
+                            <p style={{ margin: '0 0 12px', fontSize: 14 }}>Open Club Commander to create and manage live games</p>
+                            <a href="/hub/commander" style={{ display: 'inline-block', padding: '10px 24px', borderRadius: 8, background: C.blue, color: '#fff', fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>Open Club Commander</a>
                         </div>
                     ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                             {liveGames.map(game => {
                                 const seatArr = Array.from({ length: game.max_seats }, (_, i) => {
                                     const taken = (game.seats || []).find(s => s.seat_number === i + 1 && s.status !== 'waitlist');
@@ -2745,20 +2602,18 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                                 <div>
                                                     <div style={{ fontSize: 16, fontWeight: 800 }}>{game.game_name}</div>
                                                     <div style={{ fontSize: 13, opacity: 0.9 }}>
-                                                        {game.game_type} · ${game.stakes} · {game.max_seats}-max
+                                                        {game.game_type} &middot; ${game.stakes} &middot; {game.max_seats}-max
                                                         {game.table_number ? ` · ${game.table_number}` : ''}
                                                     </div>
                                                 </div>
-                                                <div style={{ display: 'flex', gap: 6 }}>
-                                                    <span style={{ padding: '4px 10px', borderRadius: 12, fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,0.2)', textTransform: 'uppercase' }}>
-                                                        {game.status === 'running' ? '🟢 RUNNING' : '🔵 OPEN'}
-                                                    </span>
-                                                </div>
+                                                <span style={{ padding: '4px 10px', borderRadius: 12, fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,0.2)', textTransform: 'uppercase' }}>
+                                                    {game.status === 'running' ? 'RUNNING' : 'OPEN'}
+                                                </span>
                                             </div>
                                             {game.notes && <div style={{ fontSize: 12, opacity: 0.85, marginTop: 4 }}>{game.notes}</div>}
                                         </div>
 
-                                        {/* Seat Map - Visual Grid */}
+                                        {/* Read-Only Seat Map */}
                                         <div style={{ padding: 16 }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                                                 <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
@@ -2767,26 +2622,22 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                                 </span>
                                                 {waitlist.length > 0 && (
                                                     <span style={{ fontSize: 12, color: '#f59e0b', fontWeight: 600 }}>
-                                                        📋 {waitlist.length} on waitlist
+                                                        {waitlist.length} on waitlist
                                                     </span>
                                                 )}
                                             </div>
 
-                                            {/* Seat Grid */}
+                                            {/* Seat Grid — Read Only */}
                                             <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(game.max_seats, 5)}, 1fr)`, gap: 6 }}>
                                                 {seatArr.map(seat => (
                                                     <div key={seat.number} style={{
                                                         padding: '8px 6px', borderRadius: 8, textAlign: 'center',
                                                         background: seat.taken ? 'rgba(24,119,242,0.1)' : '#f0fdf4',
-                                                        border: `2px solid ${seat.taken ? 'rgba(24,119,242,0.3)' : '#86efac'}`,
-                                                        position: 'relative'
+                                                        border: `2px solid ${seat.taken ? 'rgba(24,119,242,0.3)' : '#86efac'}`
                                                     }}>
                                                         <div style={{ fontSize: 10, fontWeight: 600, color: C.textSec, marginBottom: 2 }}>Seat {seat.number}</div>
                                                         {seat.taken ? (
-                                                            <>
-                                                                <div style={{ fontSize: 12, fontWeight: 700, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{seat.taken.player_name}</div>
-                                                                <button onClick={() => handleRemoveSeat(game.id, seat.taken.id)} style={{ position: 'absolute', top: 2, right: 2, width: 16, height: 16, borderRadius: '50%', background: '#F02849', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 10, lineHeight: '16px', padding: 0 }}>×</button>
-                                                            </>
+                                                            <div style={{ fontSize: 12, fontWeight: 700, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{seat.taken.player_name}</div>
                                                         ) : (
                                                             <div style={{ fontSize: 11, color: '#22c55e', fontWeight: 600 }}>OPEN</div>
                                                         )}
@@ -2794,29 +2645,17 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                                 ))}
                                             </div>
 
-                                            {/* Waitlist */}
+                                            {/* Waitlist — Read Only */}
                                             {waitlist.length > 0 && (
                                                 <div style={{ marginTop: 10, padding: '8px 10px', background: '#fffbeb', borderRadius: 8, border: '1px solid #fde68a' }}>
-                                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#92400e', marginBottom: 4 }}>📋 Waitlist</div>
+                                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#92400e', marginBottom: 4 }}>Waitlist</div>
                                                     {waitlist.map((w, i) => (
-                                                        <div key={w.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '3px 0', fontSize: 12 }}>
+                                                        <div key={w.id} style={{ display: 'flex', alignItems: 'center', padding: '3px 0', fontSize: 12 }}>
                                                             <span style={{ color: C.text }}>#{w.waitlist_position || i + 1} — {w.player_name}</span>
-                                                            <button onClick={() => handleRemoveSeat(game.id, w.id)} style={{ background: 'none', border: 'none', color: '#F02849', cursor: 'pointer', fontSize: 12 }}>Remove</button>
                                                         </div>
                                                     ))}
                                                 </div>
                                             )}
-                                        </div>
-
-                                        {/* Game Actions */}
-                                        <div style={{ padding: '8px 16px', borderTop: '1px solid #e4e6eb', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                                            {game.status === 'open' && (
-                                                <button onClick={async () => {
-                                                    await fetch('/api/social/pages/games', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: game.id, status: 'running' }) });
-                                                    setLiveGames(prev => prev.map(g => g.id === game.id ? { ...g, status: 'running' } : g));
-                                                }} style={{ ...btnPrimary, background: '#22c55e' }}>▶ Start Game</button>
-                                            )}
-                                            <button onClick={() => handleCloseGame(game.id)} style={{ ...btnSec, color: '#F02849' }}>Close Game</button>
                                         </div>
                                     </div>
                                 );
@@ -2826,45 +2665,48 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                 </div>
             )}
 
+
             {/* About Tab */}
-            {activeTab === 'about' && (
-                <div style={{ background: C.card, borderRadius: 12, padding: 16 }}>
-                    <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 700, color: C.text }}>About</h3>
-                    {page.description && <p style={{ margin: '0 0 12px', fontSize: 14, color: C.text, lineHeight: 1.5 }}>{page.description}</p>}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {page.category && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /></svg>
-                                <span style={{ fontSize: 14, color: C.text }}>{CATEGORY_LABELS[page.category] || page.category}</span>
-                            </div>
-                        )}
-                        {(page.location_city || page.location_state) && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
-                                <span style={{ fontSize: 14, color: C.text }}>{[page.location_city, page.location_state].filter(Boolean).join(', ')}</span>
-                            </div>
-                        )}
-                        {page.website && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
-                                <a href={page.website} target="_blank" rel="noopener noreferrer" style={{ fontSize: 14, color: C.blue }}>{page.website}</a>
-                            </div>
-                        )}
-                        {page.phone && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72" /></svg>
-                                <span style={{ fontSize: 14, color: C.text }}>{page.phone}</span>
-                            </div>
-                        )}
+            {
+                activeTab === 'about' && (
+                    <div style={{ background: C.card, borderRadius: 12, padding: 16 }}>
+                        <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 700, color: C.text }}>About</h3>
+                        {page.description && <p style={{ margin: '0 0 12px', fontSize: 14, color: C.text, lineHeight: 1.5 }}>{page.description}</p>}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            {page.category && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /></svg>
+                                    <span style={{ fontSize: 14, color: C.text }}>{CATEGORY_LABELS[page.category] || page.category}</span>
+                                </div>
+                            )}
+                            {(page.location_city || page.location_state) && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
+                                    <span style={{ fontSize: 14, color: C.text }}>{[page.location_city, page.location_state].filter(Boolean).join(', ')}</span>
+                                </div>
+                            )}
+                            {page.website && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
+                                    <a href={page.website} target="_blank" rel="noopener noreferrer" style={{ fontSize: 14, color: C.blue }}>{page.website}</a>
+                                </div>
+                            )}
+                            {page.phone && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72" /></svg>
+                                    <span style={{ fontSize: 14, color: C.text }}>{page.phone}</span>
+                                </div>
+                            )}
+                        </div>
+                        <div style={{ marginTop: 16, padding: '12px 0', borderTop: `1px solid ${C.border}` }}>
+                            <span style={{ fontSize: 13, color: C.textSec }}>Page created {page.created_at ? new Date(page.created_at).toLocaleDateString() : 'recently'}</span>
+                        </div>
                     </div>
-                    <div style={{ marginTop: 16, padding: '12px 0', borderTop: `1px solid ${C.border}` }}>
-                        <span style={{ fontSize: 13, color: C.textSec }}>Page created {page.created_at ? new Date(page.created_at).toLocaleDateString() : 'recently'}</span>
-                    </div>
-                </div>
-            )}
+                )
+            }
 
             <style jsx>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        </div>
+        </div >
     );
 }
 
@@ -3890,7 +3732,7 @@ export default function SocialMediaPage() {
                 if (!authUser) {
                     const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
                     if (sbKeys.length > 0) {
-                        const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+                        const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{ }');
                         authUser = tokenData?.user || null;
                     }
                 }

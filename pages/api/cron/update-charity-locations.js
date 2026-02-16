@@ -128,6 +128,33 @@ export default async function handler(req, res) {
                 results.push({ id: page.id, name: page.name, status: 'error', error: updateError.message });
             } else {
                 updatedCount++;
+
+                // Geocode the new location and cache coordinates (non-fatal)
+                try {
+                    const locStr = `${newLoc.city}, ${newLoc.state}`;
+                    const existingGeo = (page.metadata && page.metadata.geocoded_locations) || {};
+                    if (!existingGeo[locStr]) {
+                        const geoRes = await fetch(
+                            `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(locStr)}&format=json&limit=1&countrycodes=us`,
+                            { headers: { 'User-Agent': 'SmarterPoker/1.0 (https://smarter.poker)' } }
+                        );
+                        const geoData = await geoRes.json();
+                        if (geoData && geoData.length > 0) {
+                            existingGeo[locStr] = {
+                                lat: parseFloat(geoData[0].lat),
+                                lng: parseFloat(geoData[0].lon),
+                            };
+                            await supabase.from('social_pages').update({
+                                metadata: { ...page.metadata, geocoded_locations: existingGeo },
+                            }).eq('id', page.id);
+                        }
+                        // Rate limit: wait 1.1s between Nominatim calls
+                        await new Promise(r => setTimeout(r, 1100));
+                    }
+                } catch (geoErr) {
+                    console.warn(`[update-charity-locations] Geocoding non-fatal error for ${page.id}:`, geoErr.message);
+                }
+
                 results.push({
                     id: page.id,
                     name: page.name,

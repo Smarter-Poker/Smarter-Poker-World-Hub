@@ -211,24 +211,95 @@ export default async function handler(req, res) {
                 if (spQuery) {
                     const { data: socialPages } = await spQuery.limit(200);
                     if (socialPages && socialPages.length > 0) {
-                        const mappedPages = socialPages.map(sp => ({
-                            id: `sp-${sp.id}`,
-                            name: sp.name,
-                            city: sp.location_city,
-                            state: sp.location_state,
-                            venue_type: sp.page_type === 'club' ? 'poker_club' : sp.page_type,
-                            profile_photo_url: sp.avatar_url,
-                            about: sp.description,
-                            trust_score: null,
-                            is_social_page: true,
-                            social_page_id: sp.id,
-                            follower_count: sp.follower_count || 0,
-                            latitude: null,
-                            longitude: null,
-                            games_offered: [],
-                            has_tournaments: false,
-                            is_featured: false,
-                        }));
+                        const DAYS_ORDER = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                        const todayIdx = new Date().getDay();
+                        const todayKey = DAYS_ORDER[todayIdx];
+
+                        const mappedPages = [];
+                        for (const sp of socialPages) {
+                            const geocoded = (sp.metadata && sp.metadata.geocoded_locations) || {};
+                            const schedule = (sp.metadata && sp.metadata.run_schedule) || {};
+
+                            // Determine primary lat/lng from geocoded_locations
+                            const primaryLocStr = sp.location_city + (sp.location_state ? ', ' + sp.location_state : '');
+                            const primaryCoords = geocoded[primaryLocStr] || geocoded[sp.location_city] || null;
+
+                            // For charities: create one entry per unique geocoded schedule location
+                            if (sp.page_type === 'charity' && Object.keys(schedule).length > 0) {
+                                const seenLocs = new Set();
+                                for (const dayKey of DAYS_ORDER) {
+                                    const dayData = schedule[dayKey];
+                                    if (!dayData || !dayData.open || !dayData.location) continue;
+                                    const locKey = dayData.location.trim();
+                                    if (seenLocs.has(locKey)) continue;
+                                    seenLocs.add(locKey);
+
+                                    const coords = geocoded[locKey] || null;
+                                    mappedPages.push({
+                                        id: `sp-${sp.id}-${dayKey}`,
+                                        name: sp.name,
+                                        city: locKey.split(',')[0]?.trim() || sp.location_city,
+                                        state: locKey.split(',')[1]?.trim() || sp.location_state,
+                                        venue_type: 'charity',
+                                        profile_photo_url: sp.avatar_url,
+                                        about: sp.description,
+                                        trust_score: null,
+                                        is_social_page: true,
+                                        social_page_id: sp.id,
+                                        follower_count: sp.follower_count || 0,
+                                        latitude: coords ? coords.lat : null,
+                                        longitude: coords ? coords.lng : null,
+                                        games_offered: dayData.games || [],
+                                        has_tournaments: false,
+                                        is_featured: false,
+                                        schedule_location: locKey,
+                                        schedule_day: dayKey,
+                                        is_today: dayKey === todayKey,
+                                    });
+                                }
+                                // If no schedule locations found, still add primary entry
+                                if (seenLocs.size === 0) {
+                                    mappedPages.push({
+                                        id: `sp-${sp.id}`,
+                                        name: sp.name,
+                                        city: sp.location_city,
+                                        state: sp.location_state,
+                                        venue_type: 'charity',
+                                        profile_photo_url: sp.avatar_url,
+                                        about: sp.description,
+                                        trust_score: null,
+                                        is_social_page: true,
+                                        social_page_id: sp.id,
+                                        follower_count: sp.follower_count || 0,
+                                        latitude: primaryCoords ? primaryCoords.lat : null,
+                                        longitude: primaryCoords ? primaryCoords.lng : null,
+                                        games_offered: [],
+                                        has_tournaments: false,
+                                        is_featured: false,
+                                    });
+                                }
+                            } else {
+                                // Clubs and home games: single entry with primary coords
+                                mappedPages.push({
+                                    id: `sp-${sp.id}`,
+                                    name: sp.name,
+                                    city: sp.location_city,
+                                    state: sp.location_state,
+                                    venue_type: sp.page_type === 'club' ? 'poker_club' : sp.page_type,
+                                    profile_photo_url: sp.avatar_url,
+                                    about: sp.description,
+                                    trust_score: null,
+                                    is_social_page: true,
+                                    social_page_id: sp.id,
+                                    follower_count: sp.follower_count || 0,
+                                    latitude: primaryCoords ? primaryCoords.lat : null,
+                                    longitude: primaryCoords ? primaryCoords.lng : null,
+                                    games_offered: [],
+                                    has_tournaments: false,
+                                    is_featured: false,
+                                });
+                            }
+                        }
                         venues = venues.concat(mappedPages);
                     }
                 }

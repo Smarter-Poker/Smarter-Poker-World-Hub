@@ -5,8 +5,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { Bell, Clock, Users, Save, Loader2, ChevronRight } from 'lucide-react';
+import { Bell, Clock, Users, Save, Loader2, ChevronRight, StopCircle, AlertTriangle } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { hasFeature } from '../../src/lib/commander/tierConfig';
 
 export default function CommanderSettingsPage() {
   const router = useRouter();
@@ -27,7 +28,9 @@ export default function CommanderSettingsPage() {
     push_notifications_enabled: true,
     max_waitlist_size: 50,
     call_timeout_minutes: 5,
-    show_player_names_on_display: false
+    show_player_names_on_display: false,
+    hard_stop_enabled: false,
+    hard_stop_time: '23:00'
   });
 
   // Check staff session
@@ -55,12 +58,58 @@ export default function CommanderSettingsPage() {
     }
   }, [router]);
 
+  // Load venue settings including hard stop
+  useEffect(() => {
+    if (!venueId) return;
+    const storedStaffData = localStorage.getItem('commander_staff');
+    if (!storedStaffData) return;
+    try {
+      const parsed = JSON.parse(storedStaffData);
+      const token = parsed.token || parsed.access_token;
+      if (!token) return;
+      fetch('/api/commander/settings', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (data?.data) {
+            setSettings(prev => ({
+              ...prev,
+              hard_stop_enabled: data.data.hard_stop_enabled || false,
+              hard_stop_time: data.data.hard_stop_time || '23:00'
+            }));
+          }
+        })
+        .catch(() => { });
+    } catch (e) { }
+  }, [venueId]);
+
   async function handleSave() {
     setSaving(true);
     setError(null);
     setSuccess(null);
 
     try {
+      // Save hard stop settings
+      const token = (() => {
+        try {
+          const stored = JSON.parse(localStorage.getItem('commander_staff') || '{}');
+          return stored.token || stored.access_token;
+        } catch { return null; }
+      })();
+
+      if (token) {
+        await fetch('/api/commander/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            hard_stop_enabled: settings.hard_stop_enabled,
+            hard_stop_time: settings.hard_stop_time
+          })
+        });
+      }
+
+      // Save other settings via PATCH
       const res = await fetch(`/api/commander/settings?venue_id=${venueId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -108,244 +157,296 @@ export default function CommanderSettingsPage() {
 
   // Check if user has settings permission
   const canManageSettings = staff.permissions?.manage_settings !== false;
+  const tier = staff.tier || 'home_game';
+  const canHardStop = hasFeature(tier, 'close_day');
 
   return (
     <CommanderLayout title="Settings | {venue?.name || 'Commander'}" backHref="/commander/dashboard">
-    <>
-      <Head>
-        <title>Settings | {venue?.name || 'Commander'}</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
+      <>
+        <Head>
+          <title>Settings | {venue?.name || 'Commander'}</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+        </Head>
 
-      <div className="cmd-page">
-        {/* Header */}
-        <header className="cmd-header-bar sticky top-0 z-50">
-          <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div>
-                <h1 className="font-bold text-white text-lg">Settings</h1>
-                <p className="text-sm text-[#B0B3B8]">{venue?.name}</p>
+        <div className="cmd-page">
+          {/* Header */}
+          <header className="cmd-header-bar sticky top-0 z-50">
+            <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div>
+                  <h1 className="font-bold text-white text-lg">Settings</h1>
+                  <p className="text-sm text-[#B0B3B8]">{venue?.name}</p>
+                </div>
               </div>
-            </div>
 
-            {canManageSettings && (
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="flex items-center gap-2 px-4 py-2 cmd-btn cmd-btn-primary disabled:opacity-50"
-              >
-                {saving ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Save className="w-4 h-4" />
-                )}
-                Save
-              </button>
+              {canManageSettings && (
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="flex items-center gap-2 px-4 py-2 cmd-btn cmd-btn-primary disabled:opacity-50"
+                >
+                  {saving ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  Save
+                </button>
+              )}
+            </div>
+          </header>
+
+          {/* Main Content */}
+          <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+            {/* Alerts */}
+            {success && (
+              <div className="p-4 bg-[#31A24C]/10 rounded-xl">
+                <p className="text-sm text-[#31A24C] font-medium">{success}</p>
+              </div>
             )}
-          </div>
-        </header>
+            {error && (
+              <div className="p-4 bg-[#EF4444]/10 rounded-xl">
+                <p className="text-sm text-[#EF4444]">{error}</p>
+              </div>
+            )}
 
-        {/* Main Content */}
-        <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
-          {/* Alerts */}
-          {success && (
-            <div className="p-4 bg-[#31A24C]/10 rounded-xl">
-              <p className="text-sm text-[#31A24C] font-medium">{success}</p>
-            </div>
-          )}
-          {error && (
-            <div className="p-4 bg-[#EF4444]/10 rounded-xl">
-              <p className="text-sm text-[#EF4444]">{error}</p>
-            </div>
-          )}
+            {!canManageSettings && (
+              <div className="p-4 bg-[#F59E0B]/10 rounded-xl">
+                <p className="text-sm text-[#F59E0B]">
+                  You don't have permission to modify settings. Contact a manager.
+                </p>
+              </div>
+            )}
 
-          {!canManageSettings && (
-            <div className="p-4 bg-[#F59E0B]/10 rounded-xl">
-              <p className="text-sm text-[#F59E0B]">
-                You don't have permission to modify settings. Contact a manager.
-              </p>
-            </div>
-          )}
-
-          {/* Notifications */}
-          <section className="cmd-panel">
-            <div className="p-4 border-b border-[#3A3B3C]">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-[#1877F2]/10 rounded-lg flex items-center justify-center">
-                  <Bell className="w-5 h-5 text-[#1877F2]" />
+            {/* Notifications */}
+            <section className="cmd-panel">
+              <div className="p-4 border-b border-[#3A3B3C]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-[#1877F2]/10 rounded-lg flex items-center justify-center">
+                    <Bell className="w-5 h-5 text-[#1877F2]" />
+                  </div>
+                  <h2 className="font-semibold text-white">Notifications</h2>
                 </div>
-                <h2 className="font-semibold text-white">Notifications</h2>
               </div>
-            </div>
-            <div className="divide-y divide-[#3A3B3C]">
-              <SettingToggle
-                label="SMS Notifications"
-                description="Send text messages when calling players"
-                enabled={settings.sms_notifications_enabled}
-                onChange={() => handleToggle('sms_notifications_enabled')}
-                disabled={!canManageSettings}
-              />
-              <SettingToggle
-                label="Push Notifications"
-                description="Send app notifications to players"
-                enabled={settings.push_notifications_enabled}
-                onChange={() => handleToggle('push_notifications_enabled')}
-                disabled={!canManageSettings}
-              />
-            </div>
-          </section>
+              <div className="divide-y divide-[#3A3B3C]">
+                <SettingToggle
+                  label="SMS Notifications"
+                  description="Send text messages when calling players"
+                  enabled={settings.sms_notifications_enabled}
+                  onChange={() => handleToggle('sms_notifications_enabled')}
+                  disabled={!canManageSettings}
+                />
+                <SettingToggle
+                  label="Push Notifications"
+                  description="Send app notifications to players"
+                  enabled={settings.push_notifications_enabled}
+                  onChange={() => handleToggle('push_notifications_enabled')}
+                  disabled={!canManageSettings}
+                />
+              </div>
+            </section>
 
-          {/* Waitlist */}
-          <section className="cmd-panel">
-            <div className="p-4 border-b border-[#3A3B3C]">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-[#F59E0B]/10 rounded-lg flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-[#F59E0B]" />
+            {/* Waitlist */}
+            <section className="cmd-panel">
+              <div className="p-4 border-b border-[#3A3B3C]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-[#F59E0B]/10 rounded-lg flex items-center justify-center">
+                    <Clock className="w-5 h-5 text-[#F59E0B]" />
+                  </div>
+                  <h2 className="font-semibold text-white">Waitlist</h2>
                 </div>
-                <h2 className="font-semibold text-white">Waitlist</h2>
               </div>
-            </div>
-            <div className="divide-y divide-[#3A3B3C]">
-              <SettingNumber
-                label="Call Timeout (minutes)"
-                description="Time player has to respond after being called"
-                value={settings.call_timeout_minutes}
-                onChange={(v) => handleChange('call_timeout_minutes', v)}
-                min={1}
-                max={15}
-                disabled={!canManageSettings}
-              />
-              <SettingNumber
-                label="Max Waitlist Size"
-                description="Maximum players per waitlist"
-                value={settings.max_waitlist_size}
-                onChange={(v) => handleChange('max_waitlist_size', v)}
-                min={10}
-                max={100}
-                disabled={!canManageSettings}
-              />
-              <SettingNumber
-                label="Est. Wait Per Player (min)"
-                description="Used to calculate wait times"
-                value={settings.default_wait_time_per_player}
-                onChange={(v) => handleChange('default_wait_time_per_player', v)}
-                min={5}
-                max={60}
-                disabled={!canManageSettings}
-              />
-            </div>
-          </section>
+              <div className="divide-y divide-[#3A3B3C]">
+                <SettingNumber
+                  label="Call Timeout (minutes)"
+                  description="Time player has to respond after being called"
+                  value={settings.call_timeout_minutes}
+                  onChange={(v) => handleChange('call_timeout_minutes', v)}
+                  min={1}
+                  max={15}
+                  disabled={!canManageSettings}
+                />
+                <SettingNumber
+                  label="Max Waitlist Size"
+                  description="Maximum players per waitlist"
+                  value={settings.max_waitlist_size}
+                  onChange={(v) => handleChange('max_waitlist_size', v)}
+                  min={10}
+                  max={100}
+                  disabled={!canManageSettings}
+                />
+                <SettingNumber
+                  label="Est. Wait Per Player (min)"
+                  description="Used to calculate wait times"
+                  value={settings.default_wait_time_per_player}
+                  onChange={(v) => handleChange('default_wait_time_per_player', v)}
+                  min={5}
+                  max={60}
+                  disabled={!canManageSettings}
+                />
+              </div>
+            </section>
 
-          {/* Display */}
-          <section className="cmd-panel">
-            <div className="p-4 border-b border-[#3A3B3C]">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-[#31A24C]/10 rounded-lg flex items-center justify-center">
-                  <Users className="w-5 h-5 text-[#31A24C]" />
+            {/* Display */}
+            <section className="cmd-panel">
+              <div className="p-4 border-b border-[#3A3B3C]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-[#31A24C]/10 rounded-lg flex items-center justify-center">
+                    <Users className="w-5 h-5 text-[#31A24C]" />
+                  </div>
+                  <h2 className="font-semibold text-white">Display</h2>
                 </div>
-                <h2 className="font-semibold text-white">Display</h2>
               </div>
-            </div>
-            <div className="divide-y divide-[#3A3B3C]">
-              <SettingToggle
-                label="Show Player Names"
-                description="Display full names on public screens"
-                enabled={settings.show_player_names_on_display}
-                onChange={() => handleToggle('show_player_names_on_display')}
-                disabled={!canManageSettings}
-              />
-              <SettingNumber
-                label="Auto-Refresh Interval (sec)"
-                description="How often to refresh data"
-                value={settings.auto_refresh_interval}
-                onChange={(v) => handleChange('auto_refresh_interval', v)}
-                min={10}
-                max={120}
-                disabled={!canManageSettings}
-              />
-            </div>
-          </section>
+              <div className="divide-y divide-[#3A3B3C]">
+                <SettingToggle
+                  label="Show Player Names"
+                  description="Display full names on public screens"
+                  enabled={settings.show_player_names_on_display}
+                  onChange={() => handleToggle('show_player_names_on_display')}
+                  disabled={!canManageSettings}
+                />
+                <SettingNumber
+                  label="Auto-Refresh Interval (sec)"
+                  description="How often to refresh data"
+                  value={settings.auto_refresh_interval}
+                  onChange={(v) => handleChange('auto_refresh_interval', v)}
+                  min={10}
+                  max={120}
+                  disabled={!canManageSettings}
+                />
+              </div>
+            </section>
 
-          {/* Navigation Links */}
-          <section className="cmd-panel divide-y divide-[#3A3B3C]">
-            <button onClick={() => router.push('/commander/membership-plans')}
-              className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
-              <div>
-                <span className="font-medium text-white">Membership Plans</span>
-                <p className="text-xs text-[#B0B3B8]">Set daily/weekly/monthly/yearly pricing per tier</p>
-              </div>
-              <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
-            </button>
-            <button onClick={() => router.push('/commander/game-types')}
-              className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
-              <div>
-                <span className="font-medium text-white">Game Types</span>
-                <p className="text-xs text-[#B0B3B8]">Configure games, stakes, buy-ins, rake</p>
-              </div>
-              <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
-            </button>
-            <button onClick={() => router.push('/commander/room-presets')}
-              className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
-              <div>
-                <span className="font-medium text-white">Room Presets</span>
-                <p className="text-xs text-[#B0B3B8]">Saved room configurations for quick setup</p>
-              </div>
-              <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
-            </button>
-            <button onClick={() => router.push('/commander/tables')}
-              className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
-              <span className="font-medium text-white">Manage Tables</span>
-              <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
-            </button>
-            <button onClick={() => router.push('/commander/staff')}
-              className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
-              <span className="font-medium text-white">Manage Staff</span>
-              <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
-            </button>
-            <button onClick={() => router.push('/commander/dealers')}
-              className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
-              <span className="font-medium text-white">Manage Dealers</span>
-              <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
-            </button>
-            <button onClick={() => router.push('/commander/members')}
-              className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
-              <span className="font-medium text-white">Members</span>
-              <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
-            </button>
-            <button onClick={() => router.push('/commander/promotions')}
-              className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
-              <span className="font-medium text-white">Promotions</span>
-              <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
-            </button>
-            <button onClick={() => router.push('/commander/displays')}
-              className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
-              <span className="font-medium text-white">TV Displays</span>
-              <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
-            </button>
-            <button onClick={() => router.push('/commander/reports')}
-              className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
-              <span className="font-medium text-white">Reports</span>
-              <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
-            </button>
-            <button onClick={() => router.push('/commander/time-billing')}
-              className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
-              <span className="font-medium text-white">Time Billing</span>
-              <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
-            </button>
-            <button onClick={() => router.push('/commander/system-info')}
-              className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
-              <div>
-                <span className="font-medium text-white">System Information</span>
-                <p className="text-xs text-[#B0B3B8]">Version, diagnostics, health checks</p>
-              </div>
-              <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
-            </button>
-          </section>
-        </main>
-      </div>
-      <style jsx>{`
+            {/* Hard Stop — Charity + Club only */}
+            {canHardStop && (
+              <section className="cmd-panel">
+                <div className="p-4 border-b border-[#3A3B3C]">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-[#EF4444]/10 rounded-lg flex items-center justify-center">
+                      <StopCircle className="w-5 h-5 text-[#EF4444]" />
+                    </div>
+                    <div>
+                      <h2 className="font-semibold text-white">Hard Stop</h2>
+                      <p className="text-xs text-[#B0B3B8]">Auto-close all cash games at a set time</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="divide-y divide-[#3A3B3C]">
+                  <SettingToggle
+                    label="Enable Hard Stop"
+                    description="Automatically close all games and log out players at the scheduled time"
+                    enabled={settings.hard_stop_enabled}
+                    onChange={() => handleToggle('hard_stop_enabled')}
+                    disabled={!canManageSettings}
+                  />
+                  {settings.hard_stop_enabled && (
+                    <div className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-white">Stop Time</p>
+                          <p className="text-sm text-[#B0B3B8]">All cash games end at this time</p>
+                        </div>
+                        <input
+                          type="time"
+                          value={settings.hard_stop_time}
+                          onChange={(e) => handleChange('hard_stop_time', e.target.value)}
+                          disabled={!canManageSettings}
+                          className="h-10 px-3 cmd-input text-center disabled:opacity-50 disabled:cursor-not-allowed"
+                          style={{ colorScheme: 'dark' }}
+                        />
+                      </div>
+                      <div className="mt-3 p-3 bg-[#F59E0B]/10 rounded-lg flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 text-[#F59E0B] mt-0.5 flex-shrink-0" />
+                        <p className="text-xs text-[#F59E0B]">
+                          At {settings.hard_stop_time ? new Date(`2000-01-01T${settings.hard_stop_time}`).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'the set time'}, all open tables will be closed, all active sessions ended, and the room set to closed.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
+
+            {/* Navigation Links */}
+            <section className="cmd-panel divide-y divide-[#3A3B3C]">
+              <button onClick={() => router.push('/commander/membership-plans')}
+                className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
+                <div>
+                  <span className="font-medium text-white">Membership Plans</span>
+                  <p className="text-xs text-[#B0B3B8]">Set daily/weekly/monthly/yearly pricing per tier</p>
+                </div>
+                <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
+              </button>
+              <button onClick={() => router.push('/commander/game-types')}
+                className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
+                <div>
+                  <span className="font-medium text-white">Game Types</span>
+                  <p className="text-xs text-[#B0B3B8]">Configure games, stakes, buy-ins, rake</p>
+                </div>
+                <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
+              </button>
+              <button onClick={() => router.push('/commander/room-presets')}
+                className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
+                <div>
+                  <span className="font-medium text-white">Room Presets</span>
+                  <p className="text-xs text-[#B0B3B8]">Saved room configurations for quick setup</p>
+                </div>
+                <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
+              </button>
+              <button onClick={() => router.push('/commander/tables')}
+                className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
+                <span className="font-medium text-white">Manage Tables</span>
+                <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
+              </button>
+              <button onClick={() => router.push('/commander/staff')}
+                className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
+                <span className="font-medium text-white">Manage Staff</span>
+                <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
+              </button>
+              <button onClick={() => router.push('/commander/dealers')}
+                className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
+                <span className="font-medium text-white">Manage Dealers</span>
+                <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
+              </button>
+              <button onClick={() => router.push('/commander/members')}
+                className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
+                <span className="font-medium text-white">Members</span>
+                <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
+              </button>
+              <button onClick={() => router.push('/commander/promotions')}
+                className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
+                <span className="font-medium text-white">Promotions</span>
+                <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
+              </button>
+              <button onClick={() => router.push('/commander/displays')}
+                className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
+                <span className="font-medium text-white">TV Displays</span>
+                <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
+              </button>
+              <button onClick={() => router.push('/commander/reports')}
+                className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
+                <span className="font-medium text-white">Reports</span>
+                <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
+              </button>
+              <button onClick={() => router.push('/commander/time-billing')}
+                className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
+                <span className="font-medium text-white">Time Billing</span>
+                <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
+              </button>
+              <button onClick={() => router.push('/commander/system-info')}
+                className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
+                <div>
+                  <span className="font-medium text-white">System Information</span>
+                  <p className="text-xs text-[#B0B3B8]">Version, diagnostics, health checks</p>
+                </div>
+                <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
+              </button>
+            </section>
+          </main>
+        </div>
+        <style jsx>{`
 `}</style>
-    </>
+      </>
     </CommanderLayout>
   );
 }
@@ -360,14 +461,12 @@ function SettingToggle({ label, description, enabled, onChange, disabled }) {
       <button
         onClick={onChange}
         disabled={disabled}
-        className={`w-12 h-7 rounded-full transition-colors relative ${
-          enabled ? 'bg-[#1877F2]' : 'bg-[#3A3B3C]'
-        } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+        className={`w-12 h-7 rounded-full transition-colors relative ${enabled ? 'bg-[#1877F2]' : 'bg-[#3A3B3C]'
+          } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         <span
-          className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-            enabled ? 'right-1' : 'left-1'
-          }`}
+          className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-transform ${enabled ? 'right-1' : 'left-1'
+            }`}
         />
       </button>
     </div>

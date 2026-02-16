@@ -6,9 +6,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { LogOut, ArrowLeft, Settings, Download, Users, QrCode, Lock, Crown } from 'lucide-react';
+import { LogOut, ArrowLeft, Settings, Download, Users, QrCode, Lock, Crown, StopCircle } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
-import { canAccessRoute, getUpgradeTier, getTierConfig } from '../../src/lib/commander/tierConfig';
+import { canAccessRoute, getUpgradeTier, getTierConfig, hasFeature } from '../../src/lib/commander/tierConfig';
 
 /* ─────────────────────────────────────────────────
    CARD DEFINITIONS — each card has sub-features
@@ -140,6 +140,7 @@ export default function CommanderDashboard() {
   const [activeCard, setActiveCard] = useState(null); // which card is "opened"
   const [currentTier, setCurrentTier] = useState('home_game');
   const [showUpgradeModal, setShowUpgradeModal] = useState(null);
+  const [hardStop, setHardStop] = useState(null); // { enabled, time, minutesLeft }
 
 
   // Auth guard
@@ -156,6 +157,43 @@ export default function CommanderDashboard() {
       if (sub.tier) setCurrentTier(sub.tier);
     } catch { }
   }, [router]);
+
+  // Hard Stop countdown
+  useEffect(() => {
+    if (!staff) return;
+    const fetchHardStop = () => {
+      try {
+        const stored = JSON.parse(localStorage.getItem('commander_staff') || '{}');
+        const token = stored.token || stored.access_token;
+        if (!token) return;
+        fetch('/api/commander/settings', { headers: { Authorization: `Bearer ${token}` } })
+          .then(r => r.json())
+          .then(data => {
+            if (data?.data?.hard_stop_enabled && data.data.hard_stop_time) {
+              const [h, m] = data.data.hard_stop_time.split(':').map(Number);
+              const now = new Date();
+              const stopDate = new Date(now);
+              stopDate.setHours(h, m, 0, 0);
+              // If stop time already passed today, it's for tomorrow
+              if (stopDate <= now) stopDate.setDate(stopDate.getDate() + 1);
+              const diff = Math.round((stopDate - now) / 60000);
+              setHardStop({
+                enabled: true,
+                time: data.data.hard_stop_time,
+                minutesLeft: diff,
+                timeFormatted: stopDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+              });
+            } else {
+              setHardStop(null);
+            }
+          })
+          .catch(() => { });
+      } catch { }
+    };
+    fetchHardStop();
+    const interval = setInterval(fetchHardStop, 60000); // refresh every minute
+    return () => clearInterval(interval);
+  }, [staff]);
 
   const handleLogout = () => {
     localStorage.removeItem('commander_staff');
@@ -447,6 +485,32 @@ export default function CommanderDashboard() {
               <div className="cmd-topbar-venue">{staff.venue_name || 'Poker Room'}</div>
             </div>
           </div>
+
+          {/* Hard Stop Countdown Banner */}
+          {hardStop && hardStop.minutesLeft <= 30 && !activeCard && (
+            <div style={{
+              padding: '10px 20px',
+              background: hardStop.minutesLeft <= 15
+                ? 'linear-gradient(90deg, rgba(239,68,68,0.2), rgba(239,68,68,0.1))'
+                : 'linear-gradient(90deg, rgba(245,158,11,0.2), rgba(245,158,11,0.1))',
+              borderBottom: `1px solid ${hardStop.minutesLeft <= 15 ? '#EF444440' : '#F59E0B40'}`,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              justifyContent: 'center',
+              animation: hardStop.minutesLeft <= 5 ? 'cmdPulse 2s infinite' : 'none'
+            }}>
+              <StopCircle size={16} color={hardStop.minutesLeft <= 15 ? '#EF4444' : '#F59E0B'} />
+              <span style={{
+                color: hardStop.minutesLeft <= 15 ? '#EF4444' : '#F59E0B',
+                fontWeight: 700,
+                fontSize: 13,
+                fontFamily: 'Inter, sans-serif'
+              }}>
+                Hard Stop in {hardStop.minutesLeft} min — All games close at {hardStop.timeFormatted}
+              </span>
+            </div>
+          )}
 
           {/* ── MAIN: 4-CARD GRID ── */}
           {!activeCard && (
