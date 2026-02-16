@@ -1816,6 +1816,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
     const [editAvatarUrl, setEditAvatarUrl] = useState(page.avatar_url || '');
     const [editCity, setEditCity] = useState(page.location_city || '');
     const [editState, setEditState] = useState(page.location_state || '');
+    const [editAddress, setEditAddress] = useState((page.metadata || {}).address || '');
     const [saving, setSaving] = useState(false);
 
     // Enhanced state — Photos, Schedule, Tournaments, Amenities
@@ -1831,8 +1832,6 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
     });
     const [newGame, setNewGame] = useState({});
     const [tournaments, setTournaments] = useState(meta.tournaments || []);
-    const [newTourney, setNewTourney] = useState({ name: '', day: 'Monday', time: '', buyin: '', gtd: '', game: 'NLH', notes: '' });
-    const [editTourneyIdx, setEditTourneyIdx] = useState(-1);
     const [amenities, setAmenities] = useState(meta.amenities || {});
     const [socialLinks, setSocialLinks] = useState(meta.social_links || { facebook: '', instagram: '', twitter: '' });
     const [metaSaving, setMetaSaving] = useState(false);
@@ -2047,9 +2046,11 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
     const handleSavePage = async () => {
         setSaving(true);
         try {
+            // Merge address into metadata
+            const updatedMetadata = { ...page.metadata, address: editAddress.trim() };
             const res = await fetch('/api/social/pages', {
                 method: 'PUT', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: page.id, owner_id: userId, name: editName.trim(), description: editDesc.trim(), website: editWebsite.trim(), phone: editPhone.trim(), avatar_url: editAvatarUrl.trim() || null, location_city: editCity.trim(), location_state: editState.trim() }),
+                body: JSON.stringify({ id: page.id, owner_id: userId, name: editName.trim(), description: editDesc.trim(), website: editWebsite.trim(), phone: editPhone.trim(), avatar_url: editAvatarUrl.trim() || null, location_city: editCity.trim(), location_state: editState.trim(), metadata: updatedMetadata }),
             });
             const json = await res.json();
             if (json.success && json.data) { onPageUpdated(json.data); setEditingPage(false); }
@@ -2202,6 +2203,9 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                     </div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4, marginTop: 10 }}>Profile Image URL</label>
                     <input value={editAvatarUrl} onChange={e => setEditAvatarUrl(e.target.value)} placeholder="https://your-image-url.com/logo.png"
+                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 14, marginBottom: 10, boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4 }}>Street Address</label>
+                    <input value={editAddress} onChange={e => setEditAddress(e.target.value)} placeholder="123 Main St"
                         style={{ width: '100%', padding: '8px 12px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 14, marginBottom: 10, boxSizing: 'border-box', fontFamily: 'inherit' }} />
                     <div style={{ display: 'flex', gap: 10 }}>
                         <div style={{ flex: 1 }}>
