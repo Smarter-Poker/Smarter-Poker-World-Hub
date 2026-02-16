@@ -2436,6 +2436,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                     </div>
                                     {d.open && (
                                         <div style={{ marginLeft: 28 }}>
+                                            <input value={d.location || ''} onChange={e => setSchedule(prev => ({ ...prev, [day]: { ...prev[day], location: e.target.value } }))} placeholder="Location (e.g. Chicago, IL)" style={{ ...inputSt, marginBottom: 6, maxWidth: 260 }} />
                                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
                                                 {(d.games || []).map((g, gi) => (
                                                     <span key={gi} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: C.blue, color: '#fff', padding: '3px 10px', borderRadius: 12, fontSize: 12, fontWeight: 600 }}>

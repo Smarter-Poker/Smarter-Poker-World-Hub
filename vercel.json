@@ -191,6 +191,10 @@
     {
       "path": "/api/cron/vip-diamond-stipend",
       "schedule": "5 0 1 * *"
+    },
+    {
+      "path": "/api/cron/update-charity-locations",
+      "schedule": "0 6 * * *"
     }
   ]
 }

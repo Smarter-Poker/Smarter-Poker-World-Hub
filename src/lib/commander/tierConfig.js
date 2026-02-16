@@ -9,7 +9,20 @@ export const TIER_NAMES = {
     HOME_GAME: 'home_game',
     CHARITY: 'charity',
     CLUB: 'club',
+    ENTERPRISE: 'enterprise', // alias → treated as 'club'
 };
+
+/**
+ * Normalize tier names — maps unknown/legacy tiers to valid ones.
+ * 'enterprise' and any unrecognized tier get mapped to 'club' (highest).
+ */
+export function normalizeTier(tier) {
+    if (!tier) return TIER_NAMES.HOME_GAME;
+    if (TIERS[tier]) return tier;
+    // Enterprise, pro, premium, etc. → treat as club (highest tier)
+    if (tier === 'enterprise' || tier === 'pro' || tier === 'premium') return TIER_NAMES.CLUB;
+    return TIER_NAMES.HOME_GAME; // unknown defaults to lowest
+}
 
 /**
  * Tier definitions with pricing, limits, and feature flags
@@ -233,7 +246,8 @@ export const NAV_ROUTE_FEATURES = {
  * @returns {boolean}
  */
 export function hasFeature(tier, featureKey) {
-    const tierConfig = TIERS[tier];
+    const normalized = normalizeTier(tier);
+    const tierConfig = TIERS[normalized];
     if (!tierConfig) return false;
     if (!featureKey) return true; // null featureKey = allowed for all
     return !!tierConfig.features[featureKey];
@@ -256,7 +270,8 @@ export function canAccessRoute(tier, route) {
  * @returns {object|null}
  */
 export function getTierConfig(tier) {
-    return TIERS[tier] || null;
+    const normalized = normalizeTier(tier);
+    return TIERS[normalized] || null;
 }
 
 /**
@@ -275,7 +290,8 @@ export function getMinimumTier(featureKey) {
  * Get the upgrade target for a given tier
  */
 export function getUpgradeTier(currentTier) {
-    if (currentTier === TIER_NAMES.HOME_GAME) return TIER_NAMES.CHARITY;
-    if (currentTier === TIER_NAMES.CHARITY) return TIER_NAMES.CLUB;
-    return null; // Already on highest tier
+    const normalized = normalizeTier(currentTier);
+    if (normalized === TIER_NAMES.HOME_GAME) return TIER_NAMES.CHARITY;
+    if (normalized === TIER_NAMES.CHARITY) return TIER_NAMES.CLUB;
+    return null; // Already on highest tier (club/enterprise)
 }
