@@ -55,11 +55,10 @@ function LiveGameCard({ game }) {
           {game.current_players}/{game.max_players} players
         </p>
       </div>
-      <div className={`px-2 py-1 rounded text-xs font-medium ${
-        game.status === 'running'
+      <div className={`px-2 py-1 rounded text-xs font-medium ${game.status === 'running'
           ? 'bg-[#10B981]/10 text-[#10B981]'
           : 'bg-[#F59E0B]/10 text-[#F59E0B]'
-      }`}>
+        }`}>
         {game.status === 'running' ? 'Live' : 'Forming'}
       </div>
     </div>
@@ -410,8 +409,8 @@ export default function ClubPage() {
                   </div>
                   <p className="text-[#6B7280] mb-2">
                     {venue.venue_type === 'casino' ? 'Casino' :
-                     venue.venue_type === 'card_room' ? 'Card Room' :
-                     venue.venue_type === 'poker_club' ? 'Poker Club' : 'Venue'}
+                      venue.venue_type === 'card_room' ? 'Card Room' :
+                        venue.venue_type === 'poker_club' ? 'Poker Club' : 'Venue'}
                     {venue.city && ` in ${venue.city}, ${venue.state}`}
                   </p>
                   <div className="flex items-center gap-4 text-sm">
@@ -431,11 +430,10 @@ export default function ClubPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={handleFollow}
-                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                      isFollowing
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${isFollowing
                         ? 'bg-[#F3F4F6] text-[#1F2937] hover:bg-[#E5E7EB]'
                         : 'bg-[#1877F2] text-white hover:bg-[#1664d9]'
-                    }`}
+                      }`}
                   >
                     {isFollowing ? 'Following' : 'Follow'}
                   </button>
@@ -487,11 +485,10 @@ export default function ClubPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                    activeTab === tab.id
+                  className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === tab.id
                       ? 'border-[#1877F2] text-[#1877F2]'
                       : 'border-transparent text-[#6B7280] hover:text-[#1F2937]'
-                  }`}
+                    }`}
                 >
                   {tab.label}
                 </button>
@@ -552,37 +549,78 @@ export default function ClubPage() {
 
               {/* Amenities */}
               <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
-                <h3 className="font-semibold text-[#1F2937] mb-3">Amenities</h3>
+                <h3 className="font-semibold text-[#1F2937] mb-3">Poker Room Features</h3>
                 <div className="space-y-2">
-                  {venue.has_bad_beat_jackpot && (
-                    <div className="flex items-center gap-2 text-sm text-[#6B7280]">
-                      <Trophy className="w-4 h-4 text-[#F59E0B]" />
-                      Bad Beat Jackpot
-                    </div>
-                  )}
-                  {venue.has_food_service && (
-                    <div className="flex items-center gap-2 text-sm text-[#6B7280]">
-                      <CheckCircle className="w-4 h-4 text-[#10B981]" />
-                      Food Service
-                    </div>
-                  )}
-                  {venue.has_hotel && (
-                    <div className="flex items-center gap-2 text-sm text-[#6B7280]">
-                      <CheckCircle className="w-4 h-4 text-[#10B981]" />
-                      Hotel On-Site
-                    </div>
-                  )}
-                  {venue.has_valet && (
-                    <div className="flex items-center gap-2 text-sm text-[#6B7280]">
-                      <CheckCircle className="w-4 h-4 text-[#10B981]" />
-                      Valet Parking
-                    </div>
-                  )}
-                  {venue.has_comps && (
-                    <div className="flex items-center gap-2 text-sm text-[#6B7280]">
-                      <CheckCircle className="w-4 h-4 text-[#10B981]" />
-                      Comps Available
-                    </div>
+                  {/* Dynamic amenities from JSON metadata */}
+                  {venue.amenities && Object.entries(venue.amenities)
+                    .filter(([, v]) => v === true)
+                    .map(([key]) => {
+                      const labels = {
+                        food_service: 'Food Service', food_tableside: 'Food Tableside',
+                        order_food_at_table: 'Order Food at Table', full_bar: 'Full Bar',
+                        cocktail_service: 'Cocktail Service', self_serve_drinks: 'Self Serve Drink Station',
+                        snack_bar: 'Snack Bar', room_service: 'Room Service',
+                        free_parking: 'Free Parking', self_parking: 'Self Parking',
+                        valet_parking: 'Valet Parking', parking_garage: 'Parking Garage',
+                        hotel_onsite: 'Hotel On-Site', discounted_hotel: 'Discounted Hotel Rates',
+                        phone_in_list: 'Phone-in Waitlist', check_cashing: 'Check Cashing',
+                        currency_exchange: 'Currency Exchange', safe_deposit: 'Safe Deposit Boxes',
+                        atm_onsite: 'ATM On-Site', coat_check: 'Coat Check',
+                        comps_program: 'Comps Program', loyalty_program: 'Loyalty Program',
+                        rewards_card: 'Player Rewards Card', hourly_drawings: 'Hourly Drawings',
+                        jackpot_promos: 'Jackpot Promotions',
+                        non_smoking: 'Non-Smoking', smoking_area: 'Smoking Area',
+                        massage: 'Massage Service', nearby_restrooms: 'Nearby Restrooms',
+                        wifi: 'Free WiFi', usb_chargers: 'USB Chargers',
+                        charging_stations: 'Charging Stations', televisions: 'Televisions',
+                        tvs_at_tables: 'TVs at Tables',
+                        auto_shufflers: 'Auto Shufflers', rfid_tables: 'RFID Tables',
+                        live_streaming: 'Live Streaming',
+                        private_room: 'Private Card Room', high_limit: 'High-Limit Room',
+                        tournament_room: 'Tournament Room', membership_required: 'Membership Required',
+                      };
+                      return (
+                        <div key={key} className="flex items-center gap-2 text-sm text-[#6B7280]">
+                          <CheckCircle className="w-4 h-4 text-[#10B981]" />
+                          {labels[key] || key.replace(/_/g, ' ')}
+                        </div>
+                      );
+                    })
+                  }
+                  {/* Fallback: legacy hardcoded fields for venues not yet using JSON amenities */}
+                  {!venue.amenities && (
+                    <>
+                      {venue.has_bad_beat_jackpot && (
+                        <div className="flex items-center gap-2 text-sm text-[#6B7280]">
+                          <Trophy className="w-4 h-4 text-[#F59E0B]" />
+                          Bad Beat Jackpot
+                        </div>
+                      )}
+                      {venue.has_food_service && (
+                        <div className="flex items-center gap-2 text-sm text-[#6B7280]">
+                          <CheckCircle className="w-4 h-4 text-[#10B981]" />
+                          Food Service
+                        </div>
+                      )}
+                      {venue.has_hotel && (
+                        <div className="flex items-center gap-2 text-sm text-[#6B7280]">
+                          <CheckCircle className="w-4 h-4 text-[#10B981]" />
+                          Hotel On-Site
+                        </div>
+                      )}
+                      {venue.has_valet && (
+                        <div className="flex items-center gap-2 text-sm text-[#6B7280]">
+                          <CheckCircle className="w-4 h-4 text-[#10B981]" />
+                          Valet Parking
+                        </div>
+                      )}
+                      {venue.has_comps && (
+                        <div className="flex items-center gap-2 text-sm text-[#6B7280]">
+                          <CheckCircle className="w-4 h-4 text-[#10B981]" />
+                          Comps Available
+                        </div>
+                      )}
+                    </>
                   )}
                   {venue.poker_tables && (
                     <div className="flex items-center gap-2 text-sm text-[#6B7280]">

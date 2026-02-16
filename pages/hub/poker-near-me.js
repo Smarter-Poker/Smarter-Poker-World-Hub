@@ -1253,7 +1253,7 @@ export default function PokerNearMePage() {
                                         checked={sidebarFilters.hasFood}
                                         onChange={e => setSidebarFilters(p => ({ ...p, hasFood: e.target.checked }))}
                                     />
-                                    <span>Food</span>
+                                    <span>Food Tableside</span>
                                 </label>
                                 <label className="sidebar-checkbox">
                                     <input
@@ -1269,7 +1269,7 @@ export default function PokerNearMePage() {
                                         checked={sidebarFilters.hasParking}
                                         onChange={e => setSidebarFilters(p => ({ ...p, hasParking: e.target.checked }))}
                                     />
-                                    <span>Parking</span>
+                                    <span>Free Parking</span>
                                 </label>
                                 <label className="sidebar-checkbox">
                                     <input
@@ -1278,6 +1278,54 @@ export default function PokerNearMePage() {
                                         onChange={e => setSidebarFilters(p => ({ ...p, is24Hours: e.target.checked }))}
                                     />
                                     <span>24/7</span>
+                                </label>
+                                <label className="sidebar-checkbox">
+                                    <input
+                                        type="checkbox"
+                                        checked={sidebarFilters.hasWifi}
+                                        onChange={e => setSidebarFilters(p => ({ ...p, hasWifi: e.target.checked }))}
+                                    />
+                                    <span>WiFi</span>
+                                </label>
+                                <label className="sidebar-checkbox">
+                                    <input
+                                        type="checkbox"
+                                        checked={sidebarFilters.hasMassage}
+                                        onChange={e => setSidebarFilters(p => ({ ...p, hasMassage: e.target.checked }))}
+                                    />
+                                    <span>Massage</span>
+                                </label>
+                                <label className="sidebar-checkbox">
+                                    <input
+                                        type="checkbox"
+                                        checked={sidebarFilters.nonSmoking}
+                                        onChange={e => setSidebarFilters(p => ({ ...p, nonSmoking: e.target.checked }))}
+                                    />
+                                    <span>Non-Smoking</span>
+                                </label>
+                                <label className="sidebar-checkbox">
+                                    <input
+                                        type="checkbox"
+                                        checked={sidebarFilters.autoShufflers}
+                                        onChange={e => setSidebarFilters(p => ({ ...p, autoShufflers: e.target.checked }))}
+                                    />
+                                    <span>Auto Shufflers</span>
+                                </label>
+                                <label className="sidebar-checkbox">
+                                    <input
+                                        type="checkbox"
+                                        checked={sidebarFilters.usbChargers}
+                                        onChange={e => setSidebarFilters(p => ({ ...p, usbChargers: e.target.checked }))}
+                                    />
+                                    <span>USB Chargers</span>
+                                </label>
+                                <label className="sidebar-checkbox">
+                                    <input
+                                        type="checkbox"
+                                        checked={sidebarFilters.phoneInList}
+                                        onChange={e => setSidebarFilters(p => ({ ...p, phoneInList: e.target.checked }))}
+                                    />
+                                    <span>Phone-in Waitlist</span>
                                 </label>
                             </div>
                         </div>

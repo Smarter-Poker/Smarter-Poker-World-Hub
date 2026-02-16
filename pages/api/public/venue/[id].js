@@ -68,9 +68,49 @@ export default async function handler(req, res) {
       .single();
 
     if (venueError || !venue) {
-      return res.status(404).json({
-        success: false,
-        error: { code: 'NOT_FOUND', message: 'Venue not found' }
+      // Fallback: check social_pages (clubs, charities, home games)
+      const { data: socialPage, error: spError } = await supabase
+        .from('social_pages')
+        .select('id, name, description, avatar_url, cover_url, category, page_type, location_city, location_state, website, phone, follower_count, metadata, created_at')
+        .eq('id', id)
+        .single();
+
+      if (spError || !socialPage) {
+        return res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'Page not found' }
+        });
+      }
+
+      // Return social page data in venue-compatible format
+      return res.status(200).json({
+        success: true,
+        data: {
+          venue: {
+            id: socialPage.id,
+            name: socialPage.name,
+            venue_type: socialPage.page_type === 'club' ? 'poker_club' : socialPage.page_type === 'charity' ? 'charity' : 'home_game',
+            city: socialPage.location_city,
+            state: socialPage.location_state,
+            phone: socialPage.phone,
+            website: socialPage.website,
+            profile_photo_url: socialPage.avatar_url,
+            cover_photo_url: socialPage.cover_url,
+            about: socialPage.description,
+            tagline: socialPage.description?.substring(0, 120),
+            follower_count: socialPage.follower_count || 0,
+            is_social_page: true,
+            commander_enabled: false,
+          },
+          live_games: [],
+          upcoming_tournaments: [],
+          daily_schedule: [],
+          promotions: [],
+          waitlist_stats: null,
+          links: {
+            smarter_poker: `https://smarter.poker/club/${id}`,
+          }
+        }
       });
     }
 

@@ -1746,11 +1746,56 @@ function ClubPageCreateModal({ C, commanderData, userId, onCreated, onClose }) {
 
 // ===== CLUB PAGE DASHBOARD (Owner Management View) =====
 const AMENITIES_LIST = [
-    { cat: 'Dining', items: [{ k: 'food_service', l: 'Food Service' }, { k: 'full_bar', l: 'Full Bar' }, { k: 'cocktail_service', l: 'Cocktail Service' }, { k: 'snack_bar', l: 'Snack Bar' }, { k: 'room_service', l: 'Room Service' }] },
-    { cat: 'Parking', items: [{ k: 'self_parking', l: 'Self Parking' }, { k: 'valet_parking', l: 'Valet Parking' }, { k: 'free_parking', l: 'Free Parking' }, { k: 'parking_garage', l: 'Parking Garage' }] },
-    { cat: 'Player Perks', items: [{ k: 'comps_program', l: 'Comps Program' }, { k: 'loyalty_program', l: 'Loyalty Program' }, { k: 'rewards_card', l: 'Player Rewards Card' }, { k: 'hourly_drawings', l: 'Hourly Drawings' }, { k: 'jackpot_promos', l: 'Jackpot Promotions' }] },
-    { cat: 'Comfort', items: [{ k: 'massage', l: 'Massage Service' }, { k: 'charging_stations', l: 'Charging Stations' }, { k: 'wifi', l: 'Free WiFi' }, { k: 'coat_check', l: 'Coat Check' }, { k: 'smoking_area', l: 'Smoking Area' }] },
-    { cat: 'Facility', items: [{ k: 'private_room', l: 'Private Card Room' }, { k: 'high_limit', l: 'High-Limit Room' }, { k: 'tournament_room', l: 'Tournament Room' }, { k: 'tvs_at_tables', l: 'TVs at Tables' }, { k: 'atm_onsite', l: 'ATM On-Site' }] },
+    {
+        cat: 'Dining & Beverages', items: [
+            { k: 'food_service', l: 'Food Service' }, { k: 'food_tableside', l: 'Food Tableside' },
+            { k: 'order_food_at_table', l: 'Order Food at Table' }, { k: 'full_bar', l: 'Full Bar' },
+            { k: 'cocktail_service', l: 'Cocktail Service' }, { k: 'self_serve_drinks', l: 'Self Serve Drink Station' },
+            { k: 'snack_bar', l: 'Snack Bar' }, { k: 'room_service', l: 'Room Service' },
+        ]
+    },
+    {
+        cat: 'Parking & Lodging', items: [
+            { k: 'free_parking', l: 'Free Parking' }, { k: 'self_parking', l: 'Self Parking' },
+            { k: 'valet_parking', l: 'Valet Parking' }, { k: 'parking_garage', l: 'Parking Garage' },
+            { k: 'hotel_onsite', l: 'Hotel On-Site' }, { k: 'discounted_hotel', l: 'Discounted Hotel Rates' },
+        ]
+    },
+    {
+        cat: 'Player Services', items: [
+            { k: 'phone_in_list', l: 'Phone-in Waitlist' }, { k: 'check_cashing', l: 'Check Cashing' },
+            { k: 'currency_exchange', l: 'Currency Exchange' }, { k: 'safe_deposit', l: 'Safe Deposit Boxes' },
+            { k: 'atm_onsite', l: 'ATM On-Site' }, { k: 'coat_check', l: 'Coat Check' },
+        ]
+    },
+    {
+        cat: 'Player Perks', items: [
+            { k: 'comps_program', l: 'Comps Program' }, { k: 'loyalty_program', l: 'Loyalty Program' },
+            { k: 'rewards_card', l: 'Player Rewards Card' }, { k: 'hourly_drawings', l: 'Hourly Drawings' },
+            { k: 'jackpot_promos', l: 'Jackpot Promotions' },
+        ]
+    },
+    {
+        cat: 'Comfort & Environment', items: [
+            { k: 'non_smoking', l: 'Non-Smoking' }, { k: 'smoking_area', l: 'Smoking Area' },
+            { k: 'massage', l: 'Massage Service' }, { k: 'nearby_restrooms', l: 'Nearby Restrooms' },
+            { k: 'wifi', l: 'Free WiFi' }, { k: 'usb_chargers', l: 'USB Chargers' },
+            { k: 'charging_stations', l: 'Charging Stations' }, { k: 'televisions', l: 'Televisions' },
+            { k: 'tvs_at_tables', l: 'TVs at Tables' },
+        ]
+    },
+    {
+        cat: 'Table Features', items: [
+            { k: 'auto_shufflers', l: 'Auto Shufflers' }, { k: 'rfid_tables', l: 'RFID Tables' },
+            { k: 'live_streaming', l: 'Live Streaming' },
+        ]
+    },
+    {
+        cat: 'Facility', items: [
+            { k: 'private_room', l: 'Private Card Room' }, { k: 'high_limit', l: 'High-Limit Room' },
+            { k: 'tournament_room', l: 'Tournament Room' }, { k: 'membership_required', l: 'Membership Required' },
+        ]
+    },
 ];
 const CATEGORY_LABELS = { poker_room: 'Poker Room', casino: 'Casino', card_club: 'Card Club', charity: 'Charity Organization', league: 'League / Tour', home_game: 'Home Game', other: 'Other' };
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
@@ -1767,6 +1812,9 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
     const [editDesc, setEditDesc] = useState(page.description || '');
     const [editWebsite, setEditWebsite] = useState(page.website || '');
     const [editPhone, setEditPhone] = useState(page.phone || '');
+    const [editAvatarUrl, setEditAvatarUrl] = useState(page.avatar_url || '');
+    const [editCity, setEditCity] = useState(page.location_city || '');
+    const [editState, setEditState] = useState(page.location_state || '');
     const [saving, setSaving] = useState(false);
 
     // Enhanced state — Photos, Schedule, Tournaments, Amenities
@@ -1777,7 +1825,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
     const [schedule, setSchedule] = useState(() => {
         const s = meta.run_schedule || {};
         const init = {};
-        DAYS.forEach(d => { init[d] = s[d] || { open: false, hours: '', games: [] }; });
+        DAYS.forEach(d => { init[d] = { open: false, hours: '', games: [], location: '', ...(s[d] || {}) }; });
         return init;
     });
     const [newGame, setNewGame] = useState({});
@@ -2033,7 +2081,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
         try {
             const res = await fetch('/api/social/pages', {
                 method: 'PUT', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: page.id, owner_id: userId, name: editName.trim(), description: editDesc.trim(), website: editWebsite.trim(), phone: editPhone.trim() }),
+                body: JSON.stringify({ id: page.id, owner_id: userId, name: editName.trim(), description: editDesc.trim(), website: editWebsite.trim(), phone: editPhone.trim(), avatar_url: editAvatarUrl.trim() || null, location_city: editCity.trim(), location_state: editState.trim() }),
             });
             const json = await res.json();
             if (json.success && json.data) { onPageUpdated(json.data); setEditingPage(false); }
@@ -2143,7 +2191,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                         color: '#E53935', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
                         display: 'flex', alignItems: 'center', gap: 6
                     }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#E53935', display: 'inline-block' }}></span>Go Live</button>}
-                    <button onClick={() => window.open(`/club/${page.slug}`, '_blank')} style={{
+                    <button onClick={() => router.push(`/club/${page.id}`)} style={{
                         padding: '8px 16px', borderRadius: 8, border: 'none', background: '#E4E6EB',
                         color: C.text, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginLeft: 'auto'
                     }}>View Public Page</button>
@@ -2181,6 +2229,21 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                         <div style={{ flex: 1 }}>
                             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4 }}>Phone</label>
                             <input value={editPhone} onChange={e => setEditPhone(e.target.value)} placeholder="(555) 555-5555"
+                                style={{ width: '100%', padding: '8px 12px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                        </div>
+                    </div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4, marginTop: 10 }}>Profile Image URL</label>
+                    <input value={editAvatarUrl} onChange={e => setEditAvatarUrl(e.target.value)} placeholder="https://your-image-url.com/logo.png"
+                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 14, marginBottom: 10, boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                    <div style={{ display: 'flex', gap: 10 }}>
+                        <div style={{ flex: 1 }}>
+                            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4 }}>City</label>
+                            <input value={editCity} onChange={e => setEditCity(e.target.value)} placeholder="Las Vegas"
+                                style={{ width: '100%', padding: '8px 12px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4 }}>State</label>
+                            <input value={editState} onChange={e => setEditState(e.target.value)} placeholder="NV"
                                 style={{ width: '100%', padding: '8px 12px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' }} />
                         </div>
                     </div>
@@ -5249,7 +5312,7 @@ export default function SocialMediaPage() {
                         <span style={{ fontSize: 10, marginTop: 2, fontWeight: 500 }}>Friends</span>
                     </Link>
                     {/* Clubs - Star in rounded box (Events-style) */}
-                    <Link href="/hub/club-arena" style={{
+                    <Link href="/hub/social-media?view=club-pages" style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                         textDecoration: 'none', color: '#65676b', flex: 1, padding: '6px 4px', minWidth: 50
                     }}>
