@@ -367,24 +367,21 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
         /* ── HUB BUTTON ── */
         .cmd-hub-btn {
           background: none;
-          border: 1px solid #22D3EE;
-          border-radius: 10px;
-          padding: 6px 12px;
-          color: #22D3EE;
+          border: none;
+          padding: 0;
           cursor: pointer;
           display: flex;
           align-items: center;
-          gap: 5px;
-          font-size: 12px;
-          font-weight: 600;
           transition: all 0.2s;
-          text-decoration: none;
-          white-space: nowrap;
         }
         .cmd-hub-btn:hover {
-          background: rgba(34,211,238,0.1);
-          color: #fff;
-          border-color: #fff;
+          transform: scale(1.08);
+          filter: brightness(1.2);
+        }
+        .cmd-hub-btn img {
+          height: 32px;
+          width: auto;
+          display: block;
         }
       `}</style>
 
@@ -417,7 +414,7 @@ export default function CommanderLayout({ children, title, backHref, hideBack })
               onClick={() => router.push('/hub')}
               title="Back to Smarter.Poker Hub"
             >
-              <Globe size={16} /> Hub
+              <img src="/images/btn-hub.png" alt="Hub" />
             </button>
             <div>
               <div className="cmd-global-title">Club Commander</div>

@@ -482,14 +482,6 @@ export default function CommanderDashboard() {
       `}</style>
 
         <div className="cmd-dashboard">
-          {/* TOP BAR */}
-          <div className="cmd-topbar">
-            <div style={{ textAlign: 'right' }}>
-              <div className="cmd-topbar-title">Club Commander</div>
-              <div className="cmd-topbar-venue">{staff.venue_name || 'Poker Room'}</div>
-            </div>
-          </div>
-
           {/* Hard Stop Countdown Banner */}
           {hardStop && hardStop.minutesLeft <= 30 && !activeCard && (
             <div style={{
