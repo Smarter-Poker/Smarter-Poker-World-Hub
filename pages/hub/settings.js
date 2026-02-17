@@ -100,6 +100,13 @@ export default function SettingsPage() {
     const [referralCopied, setReferralCopied] = useState(false);
     const [showInviteModal, setShowInviteModal] = useState(false);
 
+    // Promo Code State
+    const [promoCode, setPromoCode] = useState('');
+    const [promoLoading, setPromoLoading] = useState(false);
+    const [promoResult, setPromoResult] = useState(null); // { success, message, reward }
+    const [promoHistory, setPromoHistory] = useState([]);
+    const [promoHistoryLoading, setPromoHistoryLoading] = useState(false);
+
     //  Use context user or localStorage fallback
     const user = contextUser || localUser;
 
@@ -408,6 +415,57 @@ export default function SettingsPage() {
         }
     };
 
+    // ── PROMO CODE FUNCTIONS ──
+    const loadPromoHistory = async () => {
+        if (!user?.id) return;
+        setPromoHistoryLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('promo_code_redemptions')
+                .select('*, promo_codes(code, description, reward_type, reward_value)')
+                .eq('user_id', user.id)
+                .order('redeemed_at', { ascending: false });
+            if (!error && data) setPromoHistory(data);
+        } catch (err) {
+            console.error('[Settings] Error loading promo history:', err);
+        } finally {
+            setPromoHistoryLoading(false);
+        }
+    };
+
+    const redeemPromoCode = async () => {
+        if (!promoCode.trim()) return;
+        setPromoLoading(true);
+        setPromoResult(null);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                setPromoResult({ success: false, message: 'Please log in to redeem a promo code.' });
+                return;
+            }
+            const res = await fetch('/api/promo/redeem', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({ code: promoCode.trim() })
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                setPromoResult({ success: true, message: data.reward.message, reward: data.reward });
+                setPromoCode('');
+                loadPromoHistory();
+            } else {
+                setPromoResult({ success: false, message: data.error || 'Failed to redeem code.' });
+            }
+        } catch (err) {
+            setPromoResult({ success: false, message: 'Network error. Please try again.' });
+        } finally {
+            setPromoLoading(false);
+        }
+    };
+
     const sections = [
         { id: 'account', label: 'Account', icon: '👤' },
         { id: 'notifications', label: 'Notifications', icon: '' },
@@ -415,6 +473,7 @@ export default function SettingsPage() {
         { id: 'appearance', label: 'Appearance', icon: '🎨' },
         { id: 'display', label: 'Display & Sound', icon: '🎵' },
         { id: 'gameplay', label: 'Gameplay', icon: '' },
+        { id: 'promos', label: 'Promo Code', icon: '🎁' },
         { id: 'billing', label: 'Billing & Payments', icon: '💳' },
         { id: 'blocked', label: 'Blocked Users', icon: '🚫' },
         { id: 'data', label: 'Data Export', icon: '📦' },
@@ -1171,6 +1230,167 @@ export default function SettingsPage() {
                                         </div>
                                     </div>
                                 )}
+                            </div>
+                        )}
+
+                        {/* Promo Code Section */}
+                        {activeSection === 'promos' && (
+                            <div style={styles.section}>
+                                <h2 style={styles.sectionTitle}>🎁 Redeem Promo Code</h2>
+
+                                <div style={{
+                                    ...styles.card,
+                                    background: 'linear-gradient(135deg, rgba(138, 43, 226, 0.12), rgba(0, 212, 255, 0.08))',
+                                    border: '1px solid rgba(138, 43, 226, 0.3)',
+                                }}>
+                                    <h3 style={{ color: '#fff', fontSize: 16, fontWeight: 600, marginBottom: 8 }}>
+                                        Have a promo code?
+                                    </h3>
+                                    <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, marginBottom: 20 }}>
+                                        Enter your code below to unlock rewards like free diamonds, VIP access, and more.
+                                    </p>
+
+                                    {/* Input + Button Row */}
+                                    <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+                                        <input
+                                            type="text"
+                                            value={promoCode}
+                                            onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                                            onKeyDown={(e) => e.key === 'Enter' && redeemPromoCode()}
+                                            placeholder="ENTER CODE"
+                                            maxLength={30}
+                                            style={{
+                                                flex: 1,
+                                                padding: '14px 16px',
+                                                background: 'rgba(0, 0, 0, 0.4)',
+                                                border: '1px solid rgba(138, 43, 226, 0.4)',
+                                                borderRadius: 10,
+                                                color: '#fff',
+                                                fontSize: 16,
+                                                fontFamily: 'Orbitron, monospace',
+                                                letterSpacing: '2px',
+                                                textTransform: 'uppercase',
+                                                outline: 'none',
+                                            }}
+                                        />
+                                        <button
+                                            onClick={redeemPromoCode}
+                                            disabled={promoLoading || !promoCode.trim()}
+                                            style={{
+                                                padding: '14px 28px',
+                                                background: promoLoading
+                                                    ? 'rgba(138, 43, 226, 0.3)'
+                                                    : 'linear-gradient(135deg, #8a2be2, #6a1fb4)',
+                                                border: 'none',
+                                                borderRadius: 10,
+                                                color: '#fff',
+                                                fontSize: 14,
+                                                fontWeight: 700,
+                                                cursor: promoLoading ? 'wait' : 'pointer',
+                                                opacity: !promoCode.trim() ? 0.5 : 1,
+                                                transition: 'all 0.3s ease',
+                                                boxShadow: '0 4px 20px rgba(138, 43, 226, 0.3)',
+                                                whiteSpace: 'nowrap',
+                                            }}
+                                        >
+                                            {promoLoading ? '⏳ Checking...' : '🎁 Redeem'}
+                                        </button>
+                                    </div>
+
+                                    {/* Result Feedback */}
+                                    {promoResult && (
+                                        <div style={{
+                                            padding: '14px 18px',
+                                            borderRadius: 10,
+                                            background: promoResult.success
+                                                ? 'rgba(49, 162, 76, 0.15)'
+                                                : 'rgba(255, 71, 87, 0.15)',
+                                            border: `1px solid ${promoResult.success ? 'rgba(49, 162, 76, 0.4)' : 'rgba(255, 71, 87, 0.4)'}`,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 12,
+                                            animation: 'fadeIn 0.3s ease',
+                                        }}>
+                                            <span style={{ fontSize: 24 }}>
+                                                {promoResult.success ? '🎉' : '❌'}
+                                            </span>
+                                            <div>
+                                                <div style={{
+                                                    color: promoResult.success ? '#31A24C' : '#ff4757',
+                                                    fontWeight: 600,
+                                                    fontSize: 14,
+                                                }}>
+                                                    {promoResult.success ? 'Code Redeemed!' : 'Invalid Code'}
+                                                </div>
+                                                <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, marginTop: 2 }}>
+                                                    {promoResult.message}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Redemption History */}
+                                <div style={styles.card}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                                        <h3 style={{ color: '#fff', fontSize: 16, fontWeight: 600 }}>Redemption History</h3>
+                                        <button
+                                            onClick={loadPromoHistory}
+                                            style={{
+                                                padding: '6px 14px',
+                                                background: 'rgba(0, 212, 255, 0.15)',
+                                                border: '1px solid rgba(0, 212, 255, 0.3)',
+                                                borderRadius: 6,
+                                                color: '#00D4FF',
+                                                fontSize: 12,
+                                                cursor: 'pointer',
+                                            }}
+                                        >
+                                            {promoHistoryLoading ? 'Loading...' : 'Refresh'}
+                                        </button>
+                                    </div>
+
+                                    {promoHistory.length === 0 ? (
+                                        <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14, textAlign: 'center', padding: '20px 0' }}>
+                                            No promo codes redeemed yet.
+                                        </p>
+                                    ) : (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                            {promoHistory.map((item) => (
+                                                <div
+                                                    key={item.id}
+                                                    style={{
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
+                                                        alignItems: 'center',
+                                                        padding: '12px 16px',
+                                                        background: 'rgba(255, 255, 255, 0.04)',
+                                                        borderRadius: 8,
+                                                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                                                    }}
+                                                >
+                                                    <div>
+                                                        <div style={{
+                                                            fontFamily: 'Orbitron, monospace',
+                                                            fontSize: 14,
+                                                            fontWeight: 600,
+                                                            color: '#8a2be2',
+                                                            letterSpacing: '1px',
+                                                        }}>
+                                                            {item.promo_codes?.code || item.reward_applied?.code || 'CODE'}
+                                                        </div>
+                                                        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 4 }}>
+                                                            {item.reward_applied?.message || item.promo_codes?.description || ''}
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, textAlign: 'right' }}>
+                                                        {new Date(item.redeemed_at).toLocaleDateString()}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         )}
 

@@ -22,7 +22,8 @@ import {
   BarChart3,
   Shield,
   Smartphone,
-  Zap
+  Zap,
+  Tag
 } from 'lucide-react';
 
 const FEATURES = [
@@ -80,7 +81,8 @@ export default function VenueOnboardingPage() {
     state: '',
     tableCount: '',
     currentSystem: '',
-    notes: ''
+    notes: '',
+    promoCode: ''
   });
 
   function handleChange(e) {
@@ -119,10 +121,10 @@ export default function VenueOnboardingPage() {
     return (
       <>
         <SEOHead
-                title="Club Commander — Onboarding"
-                description="Club Commander poker room management tool."
-                noindex={true}
-            />
+          title="Club Commander — Onboarding"
+          description="Club Commander poker room management tool."
+          noindex={true}
+        />
 
         <div className="cmd-page flex items-center justify-center px-4">
           <div className="max-w-md w-full text-center">
@@ -139,9 +141,8 @@ export default function VenueOnboardingPage() {
               <div className="space-y-3 text-left">
                 {STEPS.map((s, i) => (
                   <div key={s.id} className="flex items-center gap-3">
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
-                      i === 0 ? 'bg-[#31A24C] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'
-                    }`}>
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${i === 0 ? 'bg-[#31A24C] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'
+                      }`}>
                       {i === 0 ? <Check className="w-3 h-3" /> : s.id}
                     </div>
                     <span className={i === 0 ? 'text-[#31A24C]' : 'text-[#B0B3B8]'}>{s.label}</span>
@@ -434,6 +435,27 @@ export default function VenueOnboardingPage() {
                       placeholder="Tell us about your needs or questions..."
                       className="cmd-input w-full resize-none"
                     />
+                  </div>
+
+                  {/* Promo Code */}
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-1">
+                      Promo Code <span className="text-[#B0B3B8] font-normal">(optional)</span>
+                    </label>
+                    <div className="relative">
+                      <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#3A3B3C]" />
+                      <input
+                        type="text"
+                        name="promoCode"
+                        value={formData.promoCode}
+                        onChange={(e) => setFormData(prev => ({ ...prev, promoCode: e.target.value.toUpperCase() }))}
+                        placeholder="ENTER CODE"
+                        maxLength={30}
+                        className="cmd-input w-full pl-10 uppercase tracking-wider"
+                        style={{ fontFamily: 'monospace', letterSpacing: '2px' }}
+                      />
+                    </div>
+                    <p className="text-xs text-[#B0B3B8] mt-1">Have a promo code? Enter it here for special pricing or perks.</p>
                   </div>
 
                   {error && (

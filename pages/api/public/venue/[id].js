@@ -80,15 +80,27 @@ export default async function handler(req, res) {
       if (!spError && spById) {
         socialPage = spById;
       } else {
-        // Final fallback: try slug-based lookup
-        const { data: spBySlug, error: slugError } = await supabase
+        // Second fallback: check if id is a linked_venue_id (integer venue ID → social page)
+        const { data: spByLinked, error: linkedError } = await supabase
           .from('social_pages')
           .select('id, name, slug, description, avatar_url, cover_url, category, page_type, location_city, location_state, website, phone, follower_count, metadata, owner_id, linked_venue_id, created_at')
-          .eq('slug', id)
+          .eq('linked_venue_id', id)
+          .limit(1)
           .single();
 
-        if (!slugError && spBySlug) {
-          socialPage = spBySlug;
+        if (!linkedError && spByLinked) {
+          socialPage = spByLinked;
+        } else {
+          // Final fallback: try slug-based lookup
+          const { data: spBySlug, error: slugError } = await supabase
+            .from('social_pages')
+            .select('id, name, slug, description, avatar_url, cover_url, category, page_type, location_city, location_state, website, phone, follower_count, metadata, owner_id, linked_venue_id, created_at')
+            .eq('slug', id)
+            .single();
+
+          if (!slugError && spBySlug) {
+            socialPage = spBySlug;
+          }
         }
       }
 

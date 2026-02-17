@@ -51,21 +51,25 @@ export default function PlayerWaitlistPage() {
 
   async function fetchData() {
     try {
-      // Public data - no auth needed
-      const [venueRes, gamesRes, waitlistRes] = await Promise.all([
-        fetch(`/api/commander/venues/${venueId}`),
-        fetch(`/api/commander/games/venue/${venueId}`),
+      // Fetch venue info + live games from public API (no auth needed)
+      // AND waitlist entries from commander API (guardWriteStaff allows GET)
+      const [publicRes, waitlistRes] = await Promise.all([
+        fetch(`/api/public/venue/${venueId}`),
         fetch(`/api/commander/waitlist/venue/${venueId}`)
       ]);
 
-      const [venueData, gamesData, waitlistData] = await Promise.all([
-        venueRes.json(),
-        gamesRes.json(),
+      const [publicData, waitlistData] = await Promise.all([
+        publicRes.json(),
         waitlistRes.json()
       ]);
 
-      if (venueData.success) setVenue(venueData.data.venue);
-      if (gamesData.success) setGames(gamesData.data.games || []);
+      if (publicData.success) {
+        const v = publicData.data.venue;
+        setVenue(v);
+        // Use live_games from public API as game options
+        const liveGames = publicData.data.live_games || [];
+        setGames(liveGames);
+      }
       if (waitlistData.success) setWaitlists(waitlistData.data.waitlists || []);
 
       // Authenticated data - fetch my entries only if logged in
@@ -243,10 +247,10 @@ export default function PlayerWaitlistPage() {
   return (
     <>
       <SEOHead
-                title="Waitlist"
-                description="Smarter.Poker — The Future of the Game."
-                noindex={true}
-            />
+        title="Waitlist"
+        description="Smarter.Poker — The Future of the Game."
+        noindex={true}
+      />
 
       <div className="cmd-page">
         {/* Header with chrome rail and glow strip */}
@@ -376,7 +380,7 @@ export default function PlayerWaitlistPage() {
                                     type="text"
                                     placeholder="Preferred seats (e.g. 1, 9)"
                                     value={seatPrefs.preferred_seats}
-                                    onChange={e => setSeatPrefs(p => ({...p, preferred_seats: e.target.value}))}
+                                    onChange={e => setSeatPrefs(p => ({ ...p, preferred_seats: e.target.value }))}
                                     className="flex-1 bg-[#161B22] border border-[#30363D] rounded-md px-3 py-2 text-sm text-white placeholder-[#484F58] focus:border-[#22D3EE] outline-none"
                                   />
                                 </div>
@@ -384,7 +388,7 @@ export default function PlayerWaitlistPage() {
                                   <input
                                     type="checkbox"
                                     checked={seatPrefs.left_handed}
-                                    onChange={e => setSeatPrefs(p => ({...p, left_handed: e.target.checked}))}
+                                    onChange={e => setSeatPrefs(p => ({ ...p, left_handed: e.target.checked }))}
                                     className="rounded border-[#30363D]"
                                   />
                                   Left-handed seating
@@ -393,7 +397,7 @@ export default function PlayerWaitlistPage() {
                                   type="text"
                                   placeholder="Other notes..."
                                   value={seatPrefs.notes}
-                                  onChange={e => setSeatPrefs(p => ({...p, notes: e.target.value}))}
+                                  onChange={e => setSeatPrefs(p => ({ ...p, notes: e.target.value }))}
                                   className="w-full bg-[#161B22] border border-[#30363D] rounded-md px-3 py-2 text-sm text-white placeholder-[#484F58] focus:border-[#22D3EE] outline-none"
                                 />
                               </div>
