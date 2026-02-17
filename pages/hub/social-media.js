@@ -2628,7 +2628,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                 // Table ellipse: center=(50%,50%), rx=36%, ry=32%
                                 // Angles distributed for natural poker seating
                                 const seatAngles = [90, 135, 180, 215, 245, 295, 325, 0, 45]; // degrees, 0=right, 90=bottom
-                                const cx = 50, cy = 50, rx = 35, ry = 31;
+                                const cx = 50, cy = 50, rx = 33, ry = 28;
                                 const seatPositions = seatAngles.map(deg => {
                                     const rad = deg * Math.PI / 180;
                                     return {
