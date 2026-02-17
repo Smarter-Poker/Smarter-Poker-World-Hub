@@ -89,7 +89,8 @@ export default async function handler(req, res) {
                 break;
             }
 
-            case 'vip_trial': {
+            case 'vip_trial':
+            case 'vip_days': {
                 // Grant VIP for X days (reward_value = number of days)
                 const trialEnd = new Date();
                 trialEnd.setDate(trialEnd.getDate() + promo.reward_value);
