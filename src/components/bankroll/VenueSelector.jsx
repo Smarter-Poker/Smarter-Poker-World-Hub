@@ -112,6 +112,13 @@ export default function VenueSelector({ value, venueType, onChange, userId }) {
             debounceRef.current = setTimeout(() => searchVenues(val), 300);
         }
 
+        // Show saved-location suggestions while typing (especially for home games)
+        if (val.trim().length > 0) {
+            setShowSuggestions(true);
+        } else {
+            setShowSuggestions(false);
+        }
+
         // For home game or when typing custom, fire onChange immediately
         onChange(val, selectedType, null, homeCoords?.lat || null, homeCoords?.lng || null);
     };
@@ -127,12 +134,14 @@ export default function VenueSelector({ value, venueType, onChange, userId }) {
 
     // Select a saved location (from bankroll_locations)
     const handleSelectSavedLocation = (loc) => {
+        const locType = loc.venue_type || selectedType;
         setSearchQuery(loc.name);
+        setSelectedType(locType);
         setShowSuggestions(false);
         if (loc.latitude && loc.longitude) {
             setHomeCoords({ lat: loc.latitude, lng: loc.longitude });
         }
-        onChange(loc.name, selectedType, null, loc.latitude || null, loc.longitude || null);
+        onChange(loc.name, locType, null, loc.latitude || null, loc.longitude || null);
     };
 
     const handleTypeChange = (type) => {
@@ -254,27 +263,54 @@ export default function VenueSelector({ value, venueType, onChange, userId }) {
                 </div>
             )}
 
-            {/* Auto-Suggest Dropdown */}
-            {showSuggestions && suggestions.length > 0 && (
+            {/* Auto-Suggest Dropdown — merges saved locations + venue search results */}
+            {showSuggestions && (filteredSavedLocations.length > 0 || suggestions.length > 0) && searchQuery.trim().length > 0 && (
                 <div style={styles.dropdown}>
-                    {suggestions.map((venue) => (
-                        <button
-                            key={venue.id}
-                            type="button"
-                            onClick={() => handleSelectVenue(venue)}
-                            style={styles.suggestion}
-                        >
-                            <div style={styles.suggestionName}>{venue.name}</div>
-                            <div style={styles.suggestionMeta}>
-                                {venue.city}{venue.state ? `, ${venue.state}` : ''}
-                                {venue.venue_type && (
-                                    <span style={styles.venueType}>
-                                        {' · '}{venue.venue_type.replace('_', ' ')}
-                                    </span>
-                                )}
-                            </div>
-                        </button>
-                    ))}
+                    {/* Saved locations matching the query */}
+                    {filteredSavedLocations.length > 0 && (
+                        <>
+                            <div style={styles.dropdownSectionLabel}>Your Saved Locations</div>
+                            {filteredSavedLocations.map((loc) => (
+                                <button
+                                    key={`saved-${loc.id}`}
+                                    type="button"
+                                    onClick={() => handleSelectSavedLocation(loc)}
+                                    style={styles.suggestion}
+                                >
+                                    <div style={styles.suggestionName}>📍 {loc.name}</div>
+                                    <div style={styles.suggestionMeta}>
+                                        {(loc.venue_type || 'home_game').replace('_', ' ')}
+                                    </div>
+                                </button>
+                            ))}
+                        </>
+                    )}
+                    {/* Venue search results */}
+                    {suggestions.length > 0 && (
+                        <>
+                            {filteredSavedLocations.length > 0 && (
+                                <div style={styles.dropdownSectionLabel}>Search Results</div>
+                            )}
+                            {suggestions.map((venue) => (
+                                <button
+                                    key={venue.id}
+                                    type="button"
+                                    onClick={() => handleSelectVenue(venue)}
+                                    style={styles.suggestion}
+                                >
+                                    <div style={styles.suggestionName}>{venue.name}</div>
+                                    <div style={styles.suggestionMeta}>
+                                        {venue.city}{venue.state ? `, ${venue.state}` : ''}
+                                        {venue.venue_type && (
+                                            <span style={styles.venueType}>
+                                                {' · '}{venue.venue_type.replace('_', ' ')}
+                                            </span>
+                                        )}
+                                    </div>
+                                </button>
+                            ))}
+                        </>
+                    )}
                 </div>
             )}
 
@@ -445,6 +481,15 @@ const styles = {
     },
     venueType: {
         color: '#65676b',
+    },
+    dropdownSectionLabel: {
+        padding: '6px 14px 4px',
+        fontSize: 10,
+        fontWeight: 700,
+        color: 'rgba(255,255,255,0.35)',
+        textTransform: 'uppercase',
+        letterSpacing: '0.5px',
+        borderBottom: '1px solid rgba(255,255,255,0.05)',
     },
     savedRow: {
         display: 'flex',
