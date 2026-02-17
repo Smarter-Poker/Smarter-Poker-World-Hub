@@ -397,7 +397,7 @@ export default function HamburgerMenu({
                                 {user.name}
                             </div>
                             <div style={{ fontSize: 13, color: colors.textSec }}>
-                                View your profile
+                                View Your Profile
                             </div>
                         </div>
                     </Link>

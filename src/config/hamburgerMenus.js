@@ -190,7 +190,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Poker Near Me', '/hub/poker-near-me')
         ],
         bottomLinks: [
-            { label: 'Help And Support', href: '/hub/help', icon: MenuIcons.help },
+            { label: 'Help and Support', href: '/hub/help', icon: MenuIcons.help },
             { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings }
         ]
     }),
