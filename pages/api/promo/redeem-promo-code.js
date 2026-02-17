@@ -106,6 +106,25 @@ export default async function handler(req, res) {
                 break;
             }
 
+            case 'lifetime_commander_club_vip': {
+                // Grant lifetime VIP status
+                await supabaseAdmin
+                    .from('profiles')
+                    .update({
+                        is_vip: true,
+                        vip_trial_end: null, // null = no expiration = lifetime
+                    })
+                    .eq('id', userId);
+
+                bonusApplied = 'Lifetime VIP Card + Club Commander Club Level activated';
+                break;
+            }
+
+            case 'lifetime_commander_charity': {
+                bonusApplied = 'Lifetime Club Commander Charity Games pass activated';
+                break;
+            }
+
             default:
                 bonusApplied = `Promo code ${promo.code} applied`;
         }
