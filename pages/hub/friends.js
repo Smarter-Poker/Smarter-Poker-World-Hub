@@ -172,7 +172,7 @@ function FriendRequestCard({ request, onAccept, onDecline }) {
                         cursor: 'pointer',
                         transition: 'all 0.2s',
                     }}
-                    title="They'll become your follower"
+                    title="They'll Become Your Follower"
                 >
                     Decline
                 </button>

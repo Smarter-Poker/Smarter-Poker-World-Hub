@@ -219,7 +219,7 @@ export default function ShiftHandoff() {
                   <Users size={15} style={{ display: 'inline', verticalAlign: -2 }} /> Incoming Staff Name (optional)
                 </label>
                 <input value={incomingName} onChange={e => setIncomingName(e.target.value)}
-                  placeholder="Who's taking over?"
+                  placeholder="Who's Taking Over?"
                   style={{ width: '100%', padding: '10px 12px', border: '2px solid #CED0D4', borderRadius: 8, fontSize: 15, boxSizing: 'border-box' }} />
               </div>
 

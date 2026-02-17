@@ -128,6 +128,12 @@ def process_line(line):
     if any(x in stripped for x in ['console.', 'import ', 'require(', '// ', '/* ', '.then(', '.catch(', 'module.exports']):
         return line
     
+    # Skip lines with JS string concatenation containing HTML (e.g., '<div>' + var + '</div>')
+    # These corrupt variable names and quote syntax
+    if ("' + " in stripped or "' +" in stripped) and ("+ '" in stripped or "+'" in stripped):
+        if re.search(r'<\w', stripped):
+            return line
+
     # Pattern 1: Text between JSX tags >text<
     def fix_tag_text(match):
         text = match.group(1)

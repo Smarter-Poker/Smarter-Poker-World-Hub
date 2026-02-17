@@ -327,7 +327,7 @@ function VenueMap({ venues, userLocation }) {
                 if (count > 50) size = 48;
                 else if (count > 20) size = 42;
                 return L.divIcon({
-                    html: '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;background:rgba(212,168,83,0.85);border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#000;box-shadow:0 2px 10px rgba(0,0,0,0.4);"> + count + </div>',
+                    html: '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;background:rgba(212,168,83,0.85);border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#000;box-shadow:0 2px 10px rgba(0,0,0,0.4);">' + count + '</div>',
                     className: 'venue-cluster-icon',
                     iconSize: [size, size],
                 });
@@ -347,10 +347,10 @@ function VenueMap({ venues, userLocation }) {
             const popupHtml = '<div style="font-family:Inter,-apple-system,sans-serif;min-width:200px;max-width:280px;">' +
                 '<div style="font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:4px;">' + (venue.name || '') + '</div>' +
                 '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">' +
-                '<span style="padding:2px 8px;border-radius:4px;background:#eef2ff;color:#4338ca;font-size:11px;font-weight:600;">''' + typeBadge + '''</span>' +
+                '<span style="padding:2px 8px;border-radius:4px;background:#eef2ff;color:#4338ca;font-size:11px;font-weight:600;">' + typeBadge + '</span>' +
                 '<span style="font-size:12px;color:#666;">' + (venue.city || '') + ', ' + (venue.state || '') + '</span>' +
                 '</div>' +
-                '<div style="font-size:12px;color:' + trust.color + ';font-weight:600;margin-bottom:8px;">Trust: '' + trust.label + '' (' + (venue.trust_score || ''-') + ''/5)</div>' +
+                '<div style="font-size:12px;color:' + trust.color + ';font-weight:600;margin-bottom:8px;">Trust: ' + trust.label + ' (' + (venue.trust_score || '-') + '/5)</div>' +
                 '<div style="display:flex;gap:6px;">' +
                 '<a href="' + detailPath + '" style="padding:6px 12px;border-radius:6px;background:#d4a853;color:#000;text-decoration:none;font-size:12px;font-weight:600;">View Details</a>' +
                 '<a href="' + detailPath + '?action=checkin" style="padding:6px 12px;border-radius:6px;background:#1e40af;color:#fff;text-decoration:none;font-size:12px;font-weight:600;">Check In</a>' +

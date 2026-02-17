@@ -215,7 +215,7 @@ export default function MembershipPlansPage() {
                     <div>
                       <label className="text-xs text-[#B0B3B8] mb-1 block">Description</label>
                       <input value={form.description || ''} onChange={e => f('description', e.target.value)}
-                        placeholder="What's included..." className="w-full px-3 py-2 cmd-input text-sm" />
+                        placeholder="What's Included..." className="w-full px-3 py-2 cmd-input text-sm" />
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
