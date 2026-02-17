@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     try {
         const { data, error } = await supabaseAdmin
             .from('promo_codes')
-            .select('id, code, description, type, value, max_uses, current_uses, is_active, expires_at')
+            .select('id, code, description, reward_type, reward_value, max_uses, times_used, is_active, expires_at')
             .eq('code', code.toUpperCase().trim())
             .single();
 
@@ -36,7 +36,7 @@ export default async function handler(req, res) {
         }
 
         // Check usage limit
-        if (data.max_uses !== null && data.current_uses >= data.max_uses) {
+        if (data.max_uses !== null && data.times_used >= data.max_uses) {
             return res.status(400).json({ valid: false, error: 'This promo code has reached its usage limit' });
         }
 
@@ -44,8 +44,8 @@ export default async function handler(req, res) {
             valid: true,
             code: data.code,
             description: data.description,
-            type: data.type,
-            value: data.value,
+            type: data.reward_type,
+            value: data.reward_value,
         });
     } catch (err) {
         console.error('Validate promo code error:', err);

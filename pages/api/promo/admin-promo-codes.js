@@ -56,11 +56,10 @@ export default async function handler(req, res) {
                 .insert({
                     code: promoCode,
                     description: description || '',
-                    type: type || 'signup_bonus',
-                    value: parseInt(value) || 0,
+                    reward_type: type || 'signup_bonus',
+                    reward_value: parseInt(value) || 0,
                     max_uses: maxUses ? parseInt(maxUses) : null,
                     expires_at: expiresAt || null,
-                    created_by: user.id,
                 })
                 .select()
                 .single();

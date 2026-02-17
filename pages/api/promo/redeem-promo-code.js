@@ -29,7 +29,7 @@ export default async function handler(req, res) {
         // Validate again
         if (!promo.is_active) return res.status(400).json({ error: 'Code is no longer active' });
         if (promo.expires_at && new Date(promo.expires_at) < new Date()) return res.status(400).json({ error: 'Code has expired' });
-        if (promo.max_uses !== null && promo.current_uses >= promo.max_uses) return res.status(400).json({ error: 'Code usage limit reached' });
+        if (promo.max_uses !== null && promo.times_used >= promo.max_uses) return res.status(400).json({ error: 'Code usage limit reached' });
 
         // 2. Check if user already redeemed this code
         const { data: existing } = await supabaseAdmin
@@ -43,10 +43,10 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'You have already used this promo code' });
         }
 
-        // 3. Apply the bonus based on type
+        // 3. Apply the bonus based on reward_type
         let bonusApplied = '';
 
-        switch (promo.type) {
+        switch (promo.reward_type) {
             case 'signup_bonus':
             case 'diamonds': {
                 // Add diamonds to user's balance
@@ -56,7 +56,7 @@ export default async function handler(req, res) {
                     .eq('user_id', userId)
                     .single();
 
-                const newBalance = (currentBalance?.balance || 0) + promo.value;
+                const newBalance = (currentBalance?.balance || 0) + promo.reward_value;
 
                 await supabaseAdmin
                     .from('user_diamond_balance')
@@ -77,7 +77,7 @@ export default async function handler(req, res) {
                     .from('diamond_transactions')
                     .insert({
                         user_id: userId,
-                        amount: promo.value,
+                        amount: promo.reward_value,
                         type: 'promo_code',
                         transaction_type: 'credit',
                         balance_after: newBalance,
@@ -85,14 +85,14 @@ export default async function handler(req, res) {
                         description: `Promo code: ${promo.code} — ${promo.description || 'Bonus diamonds'}`,
                     });
 
-                bonusApplied = `${promo.value} diamonds added`;
+                bonusApplied = `${promo.reward_value} diamonds added`;
                 break;
             }
 
             case 'vip_trial': {
-                // Grant VIP for X days (value = number of days)
+                // Grant VIP for X days (reward_value = number of days)
                 const trialEnd = new Date();
-                trialEnd.setDate(trialEnd.getDate() + promo.value);
+                trialEnd.setDate(trialEnd.getDate() + promo.reward_value);
 
                 await supabaseAdmin
                     .from('profiles')
@@ -102,7 +102,7 @@ export default async function handler(req, res) {
                     })
                     .eq('id', userId);
 
-                bonusApplied = `${promo.value}-day VIP trial activated`;
+                bonusApplied = `${promo.reward_value}-day VIP trial activated`;
                 break;
             }
 
@@ -140,14 +140,14 @@ export default async function handler(req, res) {
         // 5. Increment usage count
         await supabaseAdmin
             .from('promo_codes')
-            .update({ current_uses: promo.current_uses + 1 })
+            .update({ times_used: promo.times_used + 1 })
             .eq('id', promo.id);
 
         return res.status(200).json({
             success: true,
             message: bonusApplied,
-            type: promo.type,
-            value: promo.value,
+            type: promo.reward_type,
+            value: promo.reward_value,
         });
     } catch (err) {
         console.error('Redeem promo code error:', err);
