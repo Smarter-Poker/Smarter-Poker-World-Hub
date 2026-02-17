@@ -92,7 +92,7 @@ export default function VenueDetail() {
       if (data.success) {
         setMessage({
           type: 'success',
-          text: `Joined waitlist! Position: ${data.data.position}, Est. wait: ${data.data.estimated_wait} minutes`
+          text: `Joined waitlist! position: ${data.data.position}, Est. wait: ${data.data.estimated_wait} minutes`
         });
         fetchData();
       } else {

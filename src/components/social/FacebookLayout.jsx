@@ -27,7 +27,7 @@ const FBNavBar = ({
 
     return (
         <nav className="fb-navbar">
-            {/* Left: Logo + Search */}
+            {/* left: Logo + Search */}
             <div className="fb-nav-left">
                 <div className="fb-logo" onClick={() => onNavigate?.('/app')} style={{ cursor: 'pointer' }}>
                     <span className="logo-icon">&#x1F0CF;</span>
@@ -86,7 +86,7 @@ const FBNavBar = ({
                 </button>
             </div>
 
-            {/* Right: User Actions */}
+            {/* right: User Actions */}
             <div className="fb-nav-right">
                 <button className="fb-nav-icon" title="Menu">&#x229E;</button>
 

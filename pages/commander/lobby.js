@@ -125,7 +125,7 @@ export default function LobbyDisplay() {
         {/* Main content */}
         <div className="flex-1 flex overflow-hidden">
 
-          {/* Left: Running Games */}
+          {/* left: Running Games */}
           <div className="flex-1 p-6 overflow-y-auto">
             {Object.keys(gameGroups).length === 0 ? (
               <div className="h-full flex items-center justify-center">

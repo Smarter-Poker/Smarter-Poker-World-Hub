@@ -199,7 +199,7 @@ export default function EliminatePlayerModal({
               <div className="flex items-center gap-2">
                 <Trophy className="w-5 h-5 text-[#EF4444]" />
                 <span className="font-medium text-white">
-                  Finishing Position: {activeEntries.length}
+                  Finishing position: {activeEntries.length}
                   {activeEntries.length === 1 ? 'st' :
                    activeEntries.length === 2 ? 'nd' :
                    activeEntries.length === 3 ? 'rd' : 'th'}
