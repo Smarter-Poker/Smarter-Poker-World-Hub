@@ -2664,52 +2664,38 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
 
                                         {/* Poker Table Visualization */}
                                         <div style={{ padding: '20px 16px', background: '#0f0f1a' }}>
-                                            <div style={{ position: 'relative', width: '100%', maxWidth: 480, margin: '0 auto', aspectRatio: '1.6 / 1' }}>
-                                                {/* Table felt — oval */}
+                                            <div style={{ position: 'relative', width: '100%', maxWidth: 520, margin: '0 auto', aspectRatio: '1.7 / 1' }}>
+                                                {/* Table image background */}
+                                                <img
+                                                    src="/images/poker-table-black-gold.png"
+                                                    alt="Poker Table"
+                                                    style={{
+                                                        position: 'absolute', top: '4%', left: '4%', width: '92%', height: '92%',
+                                                        objectFit: 'contain', pointerEvents: 'none', zIndex: 0,
+                                                    }}
+                                                />
+
+                                                {/* Dealer in center of table */}
                                                 <div style={{
-                                                    position: 'absolute', top: '18%', left: '14%', right: '14%', bottom: '18%',
-                                                    borderRadius: '50%', background: 'radial-gradient(ellipse at center, #1a5c2e 0%, #14532d 60%, #0f4023 100%)',
-                                                    border: '4px solid #8B6914', boxShadow: 'inset 0 0 30px rgba(0,0,0,0.3), 0 0 20px rgba(139,105,20,0.3)',
+                                                    position: 'absolute', top: '50%', left: '50%',
+                                                    transform: 'translate(-50%, -50%)', zIndex: 5, textAlign: 'center',
                                                 }}>
-                                                    {/* Inner rail */}
                                                     <div style={{
-                                                        position: 'absolute', inset: 6, borderRadius: '50%',
-                                                        border: '2px solid rgba(139,105,20,0.4)',
-                                                    }} />
-                                                    {/* Center label */}
-                                                    <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
-                                                        <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1 }}>
-                                                            {game.table_number || game.game_name}
-                                                        </div>
-                                                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
-                                                            ${game.stakes}
-                                                        </div>
+                                                        width: 36, height: 36, borderRadius: '50%', margin: '0 auto 4px',
+                                                        background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)',
+                                                        border: '2px solid #fff',
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                        boxShadow: '0 2px 8px rgba(0,0,0,0.6), 0 0 12px rgba(251,191,36,0.3)',
+                                                        fontSize: 14, fontWeight: 900, color: '#fff',
+                                                        letterSpacing: 0.5,
+                                                    }}>D</div>
+                                                    <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1 }}>
+                                                        {game.table_number || game.game_name}
+                                                    </div>
+                                                    <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.35)', marginTop: 1 }}>
+                                                        ${game.stakes}
                                                     </div>
                                                 </div>
-
-                                                {/* Dealer button */}
-                                                {(() => {
-                                                    const dIdx = dealerSeat - 1;
-                                                    if (dIdx >= 0 && dIdx < seatPositions.length) {
-                                                        const dPos = seatPositions[dIdx];
-                                                        const dRad = seatAngles[dIdx] * Math.PI / 180;
-                                                        // Place dealer button slightly inside from the seat
-                                                        const bx = cx + (rx - 9) * Math.cos(dRad);
-                                                        const by = cy + (ry - 8) * Math.sin(dRad);
-                                                        return (
-                                                            <div style={{
-                                                                position: 'absolute', top: `${by}%`, left: `${bx}%`,
-                                                                transform: 'translate(-50%, -50%)', zIndex: 5,
-                                                                width: 20, height: 20, borderRadius: '50%',
-                                                                background: '#fff', border: '2px solid #333',
-                                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                                boxShadow: '0 1px 4px rgba(0,0,0,0.5)',
-                                                                fontSize: 10, fontWeight: 900, color: '#111',
-                                                            }}>D</div>
-                                                        );
-                                                    }
-                                                    return null;
-                                                })()}
 
                                                 {/* Seat chips on the table rail */}
                                                 {seatArr.slice(0, seatPositions.length).map((seat, idx) => {
@@ -3042,46 +3028,39 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                         </div>
                                     )}
 
-                                    <div style={{ position: 'relative', width: '100%', maxWidth: 480, margin: '0 auto', aspectRatio: '1.6 / 1' }}>
-                                        {/* Table felt — oval */}
-                                        <div style={{
-                                            position: 'absolute', top: '18%', left: '14%', right: '14%', bottom: '18%',
-                                            borderRadius: '50%', background: 'radial-gradient(ellipse at center, #1a5c2e 0%, #14532d 60%, #0f4023 100%)',
-                                            border: '4px solid #8B6914', boxShadow: 'inset 0 0 30px rgba(0,0,0,0.3), 0 0 20px rgba(139,105,20,0.3)',
-                                        }}>
-                                            <div style={{ position: 'absolute', inset: 6, borderRadius: '50%', border: '2px solid rgba(139,105,20,0.4)' }} />
-                                            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
-                                                <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1 }}>
-                                                    {game.table_number || game.game_name}
-                                                </div>
-                                                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>${game.stakes}</div>
-                                                {canInteract && !myReservation && openSeats > 0 && (
-                                                    <div style={{ fontSize: 8, color: '#86efac', marginTop: 4, fontWeight: 600 }}>TAP SEAT TO JOIN</div>
-                                                )}
-                                            </div>
-                                        </div>
+                                    <div style={{ position: 'relative', width: '100%', maxWidth: 520, margin: '0 auto', aspectRatio: '1.7 / 1' }}>
+                                        {/* Table image background */}
+                                        <img
+                                            src="/images/poker-table-black-gold.png"
+                                            alt="Poker Table"
+                                            style={{
+                                                position: 'absolute', top: '4%', left: '4%', width: '92%', height: '92%',
+                                                objectFit: 'contain', pointerEvents: 'none', zIndex: 0,
+                                            }}
+                                        />
 
-                                        {/* Dealer button */}
-                                        {(() => {
-                                            const dIdx = dealerSeat - 1;
-                                            if (dIdx >= 0 && dIdx < seatPositions.length) {
-                                                const dRad = seatAngles[dIdx] * Math.PI / 180;
-                                                const bx = cx + (rx - 9) * Math.cos(dRad);
-                                                const by = cy + (ry - 8) * Math.sin(dRad);
-                                                return (
-                                                    <div style={{
-                                                        position: 'absolute', top: `${by}%`, left: `${bx}%`,
-                                                        transform: 'translate(-50%, -50%)', zIndex: 5,
-                                                        width: 20, height: 20, borderRadius: '50%',
-                                                        background: '#fff', border: '2px solid #333',
-                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                        boxShadow: '0 1px 4px rgba(0,0,0,0.5)',
-                                                        fontSize: 10, fontWeight: 900, color: '#111',
-                                                    }}>D</div>
-                                                );
-                                            }
-                                            return null;
-                                        })()}
+                                        {/* Dealer in center of table */}
+                                        <div style={{
+                                            position: 'absolute', top: '50%', left: '50%',
+                                            transform: 'translate(-50%, -50%)', zIndex: 5, textAlign: 'center',
+                                        }}>
+                                            <div style={{
+                                                width: 36, height: 36, borderRadius: '50%', margin: '0 auto 4px',
+                                                background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)',
+                                                border: '2px solid #fff',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                boxShadow: '0 2px 8px rgba(0,0,0,0.6), 0 0 12px rgba(251,191,36,0.3)',
+                                                fontSize: 14, fontWeight: 900, color: '#fff',
+                                                letterSpacing: 0.5,
+                                            }}>D</div>
+                                            <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1 }}>
+                                                {game.table_number || game.game_name}
+                                            </div>
+                                            <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.35)', marginTop: 1 }}>${game.stakes}</div>
+                                            {canInteract && !myReservation && openSeats > 0 && (
+                                                <div style={{ fontSize: 8, color: '#86efac', marginTop: 4, fontWeight: 600 }}>TAP SEAT TO JOIN</div>
+                                            )}
+                                        </div>
 
                                         {/* Seat chips on the table rail */}
                                         {seatArr.slice(0, seatPositions.length).map((seat, idx) => {
