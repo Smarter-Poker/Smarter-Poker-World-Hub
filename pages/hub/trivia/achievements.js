@@ -99,7 +99,7 @@ export default function TriviaAchievements() {
         <>
             <SEOHead
                 title="Trivia Achievements — Unlock Rewards"
-                description="Track your poker trivia achievements. Unlock badges, rewards, and bragging rights."
+                description="Track Your Poker Trivia Achievements. Unlock Badges, Rewards, And Bragging Rights."
                 canonical="/hub/trivia/achievements"
             />
 

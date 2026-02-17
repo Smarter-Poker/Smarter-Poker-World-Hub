@@ -198,7 +198,7 @@ export default function MemoryGamesStats() {
         <>
             <SEOHead
                 title="Memory Games Stats"
-                description="View your memory game performance, scores, and improvement trends."
+                description="View Your Memory Game Performance, Scores, And Improvement Trends."
                 canonical="/hub/memory-games/stats"
                 noindex={true}
             />

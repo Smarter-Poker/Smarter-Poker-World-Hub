@@ -681,7 +681,7 @@ export default function SignUpPage() {
         <>
             <SEOHead
                 title="Create Account — Smarter.Poker"
-                description="Join Smarter.Poker — the future of poker. Free account with training, trivia, live games, and more."
+                description="Join Smarter.Poker — The Future Of Poker. Free Account With Training, Trivia, Live Games, And More."
                 canonical="/auth/signup"
             />
 
@@ -750,7 +750,7 @@ export default function SignUpPage() {
                             {/* Divider */}
                             <div style={styles.socialDivider}>
                                 <div style={styles.socialDividerLine} />
-                                <span style={styles.socialDividerText}>or sign up with email</span>
+                                <span style={styles.socialDividerText}>Or Sign Up With Email</span>
                                 <div style={styles.socialDividerLine} />
                             </div>
                             {/* Full Name */}
@@ -857,7 +857,7 @@ export default function SignUpPage() {
 
                             {/* Birthdate - 18+ Verification - Dropdown Selectors */}
                             <div style={styles.inputGroup}>
-                                <label style={styles.label}>Date of Birth <span style={styles.labelHint}>(must be 18+)</span></label>
+                                <label style={styles.label}>Date Of Birth <span style={styles.labelHint}>(must Be 18+)</span></label>
                                 <div style={{ display: 'flex', gap: '10px' }}>
                                     {/* Month Dropdown */}
                                     <select
@@ -940,7 +940,7 @@ export default function SignUpPage() {
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>
                                     Poker Alias
-                                    <span style={styles.labelHint}>(you can change this later)</span>
+                                    <span style={styles.labelHint}>(you Can Change This Later)</span>
                                 </label>
                                 <div style={styles.aliasInputWrapper}>
                                     <input
@@ -1117,7 +1117,7 @@ export default function SignUpPage() {
                                         required
                                     />
                                     <span style={styles.ageLabelText}>
-                                        I confirm that I am <strong>18 years of age or older</strong> and agree
+                                        I confirm that I am <strong>18 Years Of Age Or Older</strong> and agree
                                         to the platform's terms.
                                     </span>
                                 </label>
@@ -1145,7 +1145,7 @@ export default function SignUpPage() {
 
                             <p style={styles.terms}>
                                 By signing up, you agree to our{' '}
-                                <a href="/terms" target="_blank" style={styles.termsLink}>Terms of Service</a>
+                                <a href="/terms" target="_blank" style={styles.termsLink}>Terms Of Service</a>
                                 {' '}and{' '}
                                 <a href="/terms" target="_blank" style={styles.termsLink}>Privacy Policy</a>
                             </p>
@@ -1173,7 +1173,7 @@ export default function SignUpPage() {
                                         type="text"
                                         value={verificationCode}
                                         onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
-                                        placeholder="Enter 6-8 digit code"
+                                        placeholder="Enter 6-8 Digit Code"
                                         style={{
                                             ...styles.inputSingle,
                                             textAlign: 'center',
@@ -1229,7 +1229,7 @@ export default function SignUpPage() {
                         <div style={styles.successContainer}>
                             <div style={styles.successIcon}>🎉</div>
 
-                            <h2 style={styles.successTitle}>Welcome to Smarter.Poker!</h2>
+                            <h2 style={styles.successTitle}>Welcome To Smarter.Poker!</h2>
 
                             <div style={styles.playerNumberCard}>
                                 <span style={styles.playerNumberLabel}>Your Player Number</span>
@@ -1280,7 +1280,7 @@ export default function SignUpPage() {
                     {step !== 'success' && step !== 'email_pending' && (
                         <>
                             <div style={styles.divider}>
-                                <span>or</span>
+                                <span>Or</span>
                             </div>
 
                             <button

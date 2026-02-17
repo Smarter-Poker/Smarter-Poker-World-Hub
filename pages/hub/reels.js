@@ -464,7 +464,7 @@ export default function ReelsPage() {
             <>
                 <SEOHead
                 title="Poker Reels — Short Poker Content"
-                description="Watch and share short poker videos, highlights, and tips on Smarter.Poker Reels."
+                description="Watch And Share Short Poker Videos, Highlights, And Tips On Smarter.Poker Reels."
                 canonical="/hub/reels"
             />
                 <div style={{
@@ -654,7 +654,7 @@ export default function ReelsPage() {
                     }}>
                         <div style={{ textAlign: 'center' }}>
                             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="1.5"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="M10 9l5 3-5 3V9z" fill="#666" /></svg>
-                            <div>Video loading...</div>
+                            <div>Video Loading...</div>
                         </div>
                     </div>
                 )}
@@ -794,7 +794,7 @@ export default function ReelsPage() {
                                 value={commentText}
                                 onChange={e => setCommentText(e.target.value)}
                                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitComment(); } }}
-                                placeholder="Add a comment..."
+                                placeholder="Add A Comment..."
                                 style={{
                                     flex: 1, padding: '10px 14px', background: 'rgba(255,255,255,0.1)',
                                     border: 'none', borderRadius: 20, fontSize: 14, color: 'white', outline: 'none'
@@ -820,7 +820,7 @@ export default function ReelsPage() {
                         position: 'absolute', bottom: 60, left: '50%', transform: 'translateX(-50%)',
                         display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 100,
                     }}>
-                        <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Swipe up for next</span>
+                        <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Swipe Up For Next</span>
                         <span style={{ fontSize: 20, marginTop: 4, color: 'rgba(255,255,255,0.6)' }}>↑</span>
                     </div>
                 )}

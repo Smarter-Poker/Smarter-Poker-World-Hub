@@ -148,7 +148,7 @@ export default function VenueDiscoveryPage() {
     <>
       <SEOHead
                 title="Venues"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
 
@@ -170,7 +170,7 @@ export default function VenueDiscoveryPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by name or city..."
+                placeholder="Search By Name Or City..."
                 className="w-full h-12 pl-12 pr-4 cmd-input"
               />
             </div>
@@ -207,7 +207,7 @@ export default function VenueDiscoveryPage() {
           ) : filteredVenues.length === 0 ? (
             <div className="cmd-panel p-8 text-center">
               <MapPin className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
-              <p className="text-[#64748B]">No venues found</p>
+              <p className="text-[#64748B]">No Venues Found</p>
               <p className="text-sm text-[#4A5E78] mt-1">
                 Try adjusting your search or filters
               </p>
@@ -226,7 +226,7 @@ export default function VenueDiscoveryPage() {
 
           {/* Info */}
           <div className="text-center text-sm text-[#64748B] pt-4">
-            <p>Tap a venue to check in and join waitlists</p>
+            <p>Tap A Venue To Check In And Join Waitlists</p>
           </div>
         </main>
       </div>

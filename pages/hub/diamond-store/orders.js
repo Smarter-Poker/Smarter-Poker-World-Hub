@@ -92,7 +92,7 @@ export default function OrderHistory() {
         <PageTransition>
             <SEOHead
                 title="Order History — Diamond Store"
-                description="View your Diamond Store order history and track shipments."
+                description="View Your Diamond Store Order History And Track Shipments."
                 canonical="/hub/diamond-store/orders"
                 noindex={true}
             />

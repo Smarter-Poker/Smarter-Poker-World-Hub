@@ -116,7 +116,7 @@ export default function PromotionsPage() {
         <>
             <SEOHead
                 title="Promotions — Current Offers & Rewards"
-                description="Discover current promotions, bonuses, and reward opportunities on Smarter.Poker. VIP offers and special events."
+                description="Discover Current Promotions, Bonuses, And Reward Opportunities On Smarter.Poker. VIP Offers And Special Events."
                 canonical="/hub/promotions"
             />
 
@@ -137,7 +137,7 @@ export default function PromotionsPage() {
                         <div className="header-top-row">
                             <div>
                                 <h1 className="page-title">Promotions &amp; Deals</h1>
-                                <p className="page-subtitle">Active promotions from venues, tours, and series</p>
+                                <p className="page-subtitle">Active Promotions From Venues, Tours, And Series</p>
                             </div>
                             <Link href="/hub/pages" legacyBehavior>
                                 <a className="back-link">
@@ -157,7 +157,7 @@ export default function PromotionsPage() {
                             </svg>
                             <input
                                 type="text"
-                                placeholder="Search promotions..."
+                                placeholder="Search Promotions..."
                                 value={searchInput}
                                 onChange={e => setSearchInput(e.target.value)}
                                 className="search-input"
@@ -197,7 +197,7 @@ export default function PromotionsPage() {
                     {loading ? (
                         <div className="state-box">
                             <div className="spinner" />
-                            <p>Loading promotions...</p>
+                            <p>Loading Promotions...</p>
                         </div>
                     ) : error ? (
                         <div className="state-box">
@@ -206,8 +206,8 @@ export default function PromotionsPage() {
                                 <line x1="12" y1="8" x2="12" y2="12" />
                                 <line x1="12" y1="16" x2="12.01" y2="16" />
                             </svg>
-                            <h3>Unable to load promotions</h3>
-                            <p>Please try again later.</p>
+                            <h3>Unable To Load Promotions</h3>
+                            <p>Please Try Again Later.</p>
                         </div>
                     ) : filtered.length === 0 ? (
                         <div className="state-box">
@@ -217,8 +217,8 @@ export default function PromotionsPage() {
                                 <line x1="6" y1="14" x2="10" y2="14" />
                                 <line x1="14" y1="14" x2="18" y2="14" />
                             </svg>
-                            <h3>No active promotions</h3>
-                            <p>Follow venues to see their latest deals.</p>
+                            <h3>No Active Promotions</h3>
+                            <p>Follow Venues To See Their Latest Deals.</p>
                             <Link href="/hub/pages" legacyBehavior>
                                 <a className="browse-btn">Browse Pages</a>
                             </Link>

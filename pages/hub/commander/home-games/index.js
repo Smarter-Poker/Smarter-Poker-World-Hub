@@ -76,7 +76,7 @@ export default function PlayerHomeGamesHub() {
 
     // Max buyin filter
     if (filters.maxBuyin) {
-      result = result.filter(game => !game.max_buyin || game.max_buyin <= parseInt(filters.maxBuyin));
+      result = result.filter(game => !game.max_buyin || Game.max_buyin <= parseInt(filters.maxBuyin));
     }
 
     // Days ahead filter
@@ -187,7 +187,7 @@ export default function PlayerHomeGamesHub() {
     <>
       <SEOHead
                 title="Home Games"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
 
@@ -213,7 +213,7 @@ export default function PlayerHomeGamesHub() {
                 </div>
                 <div>
                   <h1 className="text-xl font-extrabold text-white tracking-wider cmd-text-glow">HOME GAMES</h1>
-                  <p className="text-sm text-[#64748B] font-medium tracking-wide">Find or host private poker games</p>
+                  <p className="text-sm text-[#64748B] font-medium tracking-wide">Find Or Host Private Poker Games</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -244,7 +244,7 @@ export default function PlayerHomeGamesHub() {
                 <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#64748B]" />
                 <input
                   type="text"
-                  placeholder="Search by city, game type, or host..."
+                  placeholder="Search By City, Game Type, Or Host..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="cmd-input pl-12"
@@ -334,8 +334,8 @@ export default function PlayerHomeGamesHub() {
                 <div className="cmd-icon-box mx-auto mb-4">
                   <Globe className="w-8 h-8" />
                 </div>
-                <h3 className="text-lg font-bold text-white">No public games found</h3>
-                <p className="text-[#64748B] mt-1">Check back later or host your own game</p>
+                <h3 className="text-lg font-bold text-white">No Public Games Found</h3>
+                <p className="text-[#64748B] mt-1">Check Back Later Or Host Your Own Game</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -421,13 +421,13 @@ export default function PlayerHomeGamesHub() {
             <div className="cmd-panel cmd-corner-lights p-6 w-full max-w-md mx-4">
               <span className="cmd-light cmd-light-tl" />
               <span className="cmd-light cmd-light-br" />
-              <h3 className="text-lg font-bold text-white mb-4 uppercase tracking-wide">Join by Invite Code</h3>
+              <h3 className="text-lg font-bold text-white mb-4 uppercase tracking-wide">Join By Invite Code</h3>
               <p className="text-sm text-[#64748B] mb-4">
                 Enter the invite code or club code shared by the host
               </p>
               <input
                 type="text"
-                placeholder="Enter code (e.g., ABC123)"
+                placeholder="Enter Code (e.g., ABC123)"
                 value={joinCode}
                 onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
                 className="cmd-input text-center text-lg font-mono tracking-wider"
@@ -477,17 +477,17 @@ export default function PlayerHomeGamesHub() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-[#CBD5E1] mb-2 uppercase tracking-wide">Max Buy-in</label>
+                  <label className="block text-sm font-bold text-[#CBD5E1] mb-2 uppercase tracking-wide">Max Buy-In</label>
                   <select
                     value={filters.maxBuyin}
                     onChange={(e) => setFilters(prev => ({ ...prev, maxBuyin: e.target.value }))}
                     className="cmd-input"
                   >
                     <option value="">Any Amount</option>
-                    <option value="100">Up to $100</option>
-                    <option value="200">Up to $200</option>
-                    <option value="500">Up to $500</option>
-                    <option value="1000">Up to $1,000</option>
+                    <option value="100">Up To $100</option>
+                    <option value="200">Up To $200</option>
+                    <option value="500">Up To $500</option>
+                    <option value="1000">Up To $1,000</option>
                   </select>
                 </div>
 
@@ -498,10 +498,10 @@ export default function PlayerHomeGamesHub() {
                     onChange={(e) => setFilters(prev => ({ ...prev, daysAhead: parseInt(e.target.value) }))}
                     className="cmd-input"
                   >
-                    <option value="7">Next 7 days</option>
-                    <option value="14">Next 14 days</option>
-                    <option value="30">Next 30 days</option>
-                    <option value="90">Next 90 days</option>
+                    <option value="7">Next 7 Days</option>
+                    <option value="14">Next 14 Days</option>
+                    <option value="30">Next 30 Days</option>
+                    <option value="90">Next 90 Days</option>
                   </select>
                 </div>
               </div>

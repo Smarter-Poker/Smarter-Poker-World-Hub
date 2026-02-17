@@ -354,7 +354,7 @@ export default function Cashier() {
         <>
             <SEOHead
                 title="Club Arena — Cashier"
-                description="Club Arena cashier for deposits and withdrawals."
+                description="Club Arena Cashier For Deposits And Withdrawals."
                 canonical="/hub/club-arena/cashier"
                 noindex={true}
             />
@@ -372,9 +372,9 @@ export default function Cashier() {
                     {isLoading ? (
                         <div style={S.loading}>Loading...</div>
                     ) : !user ? (
-                        <div style={S.emptyState}><p>Sign in to access the cashier</p></div>
+                        <div style={S.emptyState}><p>Sign In To Access The Cashier</p></div>
                     ) : !membership ? (
-                        <div style={S.emptyState}><p>You're not a member of this club</p></div>
+                        <div style={S.emptyState}><p>You're Not A Member Of This Club</p></div>
                     ) : (
                         <>
                             {/* Balance Cards */}
@@ -391,7 +391,7 @@ export default function Cashier() {
                                     <div style={{ ...S.balanceAmount, color: '#00D4FF' }}>
                                         {diamondBalance.toLocaleString()} 💎
                                     </div>
-                                    <div style={S.balanceNote}>38💎 = 100 chips</div>
+                                    <div style={S.balanceNote}>38💎 = 100 Chips</div>
                                 </div>
                             </div>
 
@@ -433,7 +433,7 @@ export default function Cashier() {
                             )) : (
                                 <div style={S.emptyState}>
                                     <span style={{ fontSize: '40px', display: 'block', marginBottom: '12px' }}>📋</span>
-                                    <p>No transactions yet</p>
+                                    <p>No Transactions Yet</p>
                                 </div>
                             )}
                         </>
@@ -454,12 +454,12 @@ export default function Cashier() {
                             <button style={S.modalClose} onClick={() => !processing && setShowBuyInModal(false)}>&times;</button>
                         </div>
                         <div style={S.modalBody}>
-                            <label style={S.modalLabel}>How many chips?</label>
+                            <label style={S.modalLabel}>How Many Chips?</label>
                             <input
                                 type="number"
                                 value={buyInAmount}
                                 onChange={e => setBuyInAmount(e.target.value)}
-                                placeholder="Enter amount"
+                                placeholder="Enter Amount"
                                 style={S.modalInput}
                                 min="100"
                                 step="100"
@@ -516,12 +516,12 @@ export default function Cashier() {
                             <button style={S.modalClose} onClick={() => !processing && setShowCashOutModal(false)}>&times;</button>
                         </div>
                         <div style={S.modalBody}>
-                            <label style={S.modalLabel}>How many chips to cash out?</label>
+                            <label style={S.modalLabel}>How Many Chips To Cash Out?</label>
                             <input
                                 type="number"
                                 value={cashOutAmount === 'All' ? chipBalance : cashOutAmount}
                                 onChange={e => setCashOutAmount(e.target.value)}
-                                placeholder="Enter amount"
+                                placeholder="Enter Amount"
                                 style={S.modalInput}
                                 min="100"
                                 max={chipBalance}

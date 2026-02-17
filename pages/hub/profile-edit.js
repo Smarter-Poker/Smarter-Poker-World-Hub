@@ -699,7 +699,7 @@ export default function ProfilePage() {
     if (loading) return <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading...</div>;
     if (!user) return <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ textAlign: 'center' }}>
-            <h2>Please log in to view your profile</h2>
+            <h2>Please Log In To View Your Profile</h2>
             <Link href="/auth/login" style={{ color: C.blue }}>Log In</Link>
         </div>
     </div>;
@@ -708,7 +708,7 @@ export default function ProfilePage() {
         <>
             <SEOHead
                 title="Edit Profile"
-                description="Update your Smarter.Poker profile information, avatar, and display settings."
+                description="Update Your Smarter.Poker Profile Information, Avatar, And Display Settings."
                 canonical="/hub/profile-edit"
                 noindex={true}
             />
@@ -986,7 +986,7 @@ export default function ProfilePage() {
                             <ProfileField label="Full Name" value={profile.full_name} onChange={updateField('full_name')} placeholder="John Doe" icon="📛" />
                             <ProfileField label="Username" value={profile.username} onChange={updateField('username')} placeholder="@johndoe" icon="@" />
                         </div>
-                        <ProfileField label="Bio" value={profile.bio} onChange={updateField('bio')} type="textarea" placeholder="Tell us about yourself and your poker journey..." icon="" />
+                        <ProfileField label="Bio" value={profile.bio} onChange={updateField('bio')} type="textarea" placeholder="Tell Us About Yourself And Your Poker Journey..." icon="" />
 
                         {/* Profile Picture History */}
                         <ProfilePictureHistory
@@ -1072,7 +1072,7 @@ export default function ProfilePage() {
                         <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 600, color: C.text }}>Poker Info</h3>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
                             <ProfileField label="Favorite Game" value={profile.favorite_game} onChange={updateField('favorite_game')} placeholder="No Limit Hold'em" icon="" />
-                            <ProfileField label="Favorite Hand" value={profile.favorite_hand} onChange={(val) => updateField('favorite_hand')(formatFavoriteHand(val))} placeholder="As Ks or type AsKs" icon="" />
+                            <ProfileField label="Favorite Hand" value={profile.favorite_hand} onChange={(val) => updateField('favorite_hand')(formatFavoriteHand(val))} placeholder="As Ks Or Type AsKs" icon="" />
                             <ProfileField label="Home Casino" value={profile.home_casino} onChange={updateField('home_casino')} placeholder="Bellagio" icon="🏨" />
                             <ProfileField label="Birth Year" value={profile.birth_year} onChange={updateField('birth_year')} placeholder="1990" icon="🎂" />
                         </div>
@@ -1196,7 +1196,7 @@ export default function ProfilePage() {
                                 padding: 60
                             }}>
                                 <div style={{ fontSize: 48, marginBottom: 16 }}>📷</div>
-                                <div style={{ fontSize: 18 }}>No photos yet</div>
+                                <div style={{ fontSize: 18 }}>No Photos Yet</div>
                                 <div style={{ fontSize: 14, color: '#666', marginTop: 8 }}>
                                     Photos from your posts will appear here
                                 </div>
@@ -1258,7 +1258,7 @@ export default function ProfilePage() {
                                 padding: 60
                             }}>
                                 <div style={{ fontSize: 48, marginBottom: 16 }}></div>
-                                <div style={{ fontSize: 18 }}>No reels yet</div>
+                                <div style={{ fontSize: 18 }}>No Reels Yet</div>
                                 <div style={{ fontSize: 14, color: '#666', marginTop: 8 }}>
                                     Videos from your posts will appear here
                                 </div>
@@ -1324,7 +1324,7 @@ export default function ProfilePage() {
                                 padding: 60
                             }}>
                                 <div style={{ fontSize: 48, marginBottom: 16 }}>🔴</div>
-                                <div style={{ fontSize: 18 }}>No saved lives yet</div>
+                                <div style={{ fontSize: 18 }}>No Saved Lives Yet</div>
                                 <div style={{ fontSize: 14, color: '#666', marginTop: 8 }}>
                                     When you end a live stream, you can save it here
                                 </div>

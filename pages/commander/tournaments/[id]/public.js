@@ -106,7 +106,7 @@ export default function TournamentPublic() {
     <>
       <SEOHead
                 title="Commander — Public"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter'] pb-12">
@@ -153,7 +153,7 @@ export default function TournamentPublic() {
             <p className="text-lg font-bold text-white">
               ${t.buyin_amount || 0}{t.buyin_fee ? `+$${t.buyin_fee}` : ''}
             </p>
-            <p className="text-[10px] text-[#B0B3B8]">Buy-in</p>
+            <p className="text-[10px] text-[#B0B3B8]">Buy-In</p>
           </div>
           <div className="bg-[#242526] border border-[#3A3B3C] rounded-xl p-3 text-center">
             <Users className="w-5 h-5 text-[#1877F2] mx-auto mb-1" />
@@ -277,7 +277,7 @@ export default function TournamentPublic() {
 
         {/* Branding */}
         <div className="mt-8 text-center">
-          <p className="text-white/10 text-xs tracking-wider">Powered by Smarter.Poker</p>
+          <p className="text-white/10 text-xs tracking-wider">Powered By Smarter.Poker</p>
         </div>
       </div>
     </>

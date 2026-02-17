@@ -78,7 +78,7 @@ export default function SquadJoinPage() {
     <>
       <SEOHead
                 title="Join Squad"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
       <div className="cmd-page" style={{ fontFamily: 'Inter, sans-serif' }}>
@@ -96,7 +96,7 @@ export default function SquadJoinPage() {
             {status === 'loading' && (
               <>
                 <Loader2 size={48} className="mx-auto text-[#22D3EE] animate-spin mb-4" />
-                <p className="text-[#64748B]">Looking up invite code...</p>
+                <p className="text-[#64748B]">Looking Up Invite Code...</p>
               </>
             )}
 
@@ -126,14 +126,14 @@ export default function SquadJoinPage() {
               <>
                 <CheckCircle size={48} className="mx-auto text-[#10B981] mb-4" />
                 <h2 className="text-xl font-bold text-white">Joined</h2>
-                <p className="text-sm text-[#64748B] mt-2">Redirecting to your squad...</p>
+                <p className="text-sm text-[#64748B] mt-2">Redirecting To Your Squad...</p>
               </>
             )}
 
             {status === 'error' && (
               <>
                 <XCircle size={48} className="mx-auto text-[#EF4444] mb-4" />
-                <h2 className="text-xl font-bold text-white">Could not join</h2>
+                <h2 className="text-xl font-bold text-white">Could Not Join</h2>
                 <p className="text-sm text-[#EF4444] mt-2">{error}</p>
                 <button
                   onClick={() => router.push('/hub/commander/squads')}

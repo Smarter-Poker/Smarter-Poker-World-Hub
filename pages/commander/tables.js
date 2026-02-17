@@ -156,7 +156,7 @@ export default function CommanderTablesPage() {
       <>
         <SEOHead
                 title="Commander — Table Management"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
 
@@ -242,7 +242,7 @@ export default function CommanderTablesPage() {
                       <div className="mb-3 p-2 bg-[#3A3B3C] rounded-lg flex items-center justify-between">
                         <div className="flex items-center gap-2 text-sm text-[#B0B3B8]">
                           <Users className="w-4 h-4" />
-                          <span>Game in progress</span>
+                          <span>Game In Progress</span>
                         </div>
                         <button
                           onClick={() => handleCloseGame(table.current_game_id)}

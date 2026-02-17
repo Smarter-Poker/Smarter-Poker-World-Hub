@@ -14,7 +14,7 @@ export default function DiamondArenaTableSettings() {
         <>
             <SEOHead
                 title="Diamond Arena Table Settings"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
 
@@ -36,7 +36,7 @@ export default function DiamondArenaTableSettings() {
                                 <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}>
                                     <div>
                                         <div style={{ color: '#fff', fontWeight: 'bold', marginBottom: '4px' }}>Sound Effects</div>
-                                        <div style={{ color: '#9ca3af', fontSize: '14px' }}>Play sounds for actions and wins</div>
+                                        <div style={{ color: '#9ca3af', fontSize: '14px' }}>Play Sounds For Actions And Wins</div>
                                     </div>
                                     <input type="checkbox" defaultChecked style={{ width: '20px', height: '20px', cursor: 'pointer' }} />
                                 </label>
@@ -46,7 +46,7 @@ export default function DiamondArenaTableSettings() {
                                 <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}>
                                     <div>
                                         <div style={{ color: '#fff', fontWeight: 'bold', marginBottom: '4px' }}>Animations</div>
-                                        <div style={{ color: '#9ca3af', fontSize: '14px' }}>Enable card dealing and chip animations</div>
+                                        <div style={{ color: '#9ca3af', fontSize: '14px' }}>Enable Card Dealing And Chip Animations</div>
                                     </div>
                                     <input type="checkbox" defaultChecked style={{ width: '20px', height: '20px', cursor: 'pointer' }} />
                                 </label>
@@ -56,7 +56,7 @@ export default function DiamondArenaTableSettings() {
                                 <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}>
                                     <div>
                                         <div style={{ color: '#fff', fontWeight: 'bold', marginBottom: '4px' }}>Auto Rebuy</div>
-                                        <div style={{ color: '#9ca3af', fontSize: '14px' }}>Automatically rebuy when stack is low</div>
+                                        <div style={{ color: '#9ca3af', fontSize: '14px' }}>Automatically Rebuy When Stack Is Low</div>
                                     </div>
                                     <input type="checkbox" style={{ width: '20px', height: '20px', cursor: 'pointer' }} />
                                 </label>

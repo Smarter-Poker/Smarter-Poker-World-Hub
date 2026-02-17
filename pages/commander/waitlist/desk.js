@@ -176,7 +176,7 @@ export default function WaitlistDesk() {
     <>
       <SEOHead
                 title="Commander — Desk"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
@@ -289,7 +289,7 @@ export default function WaitlistDesk() {
                               <button onClick={() => handleCall(entry)}
                                 disabled={callLoading === entry.id}
                                 className="w-9 h-9 rounded-lg bg-[#F59E0B]/10 flex items-center justify-center active:bg-[#F59E0B]/20 disabled:opacity-50"
-                                title="Call player">
+                                title="Call Player">
                                 {callLoading === entry.id
                                   ? <Loader2 className="w-4 h-4 text-[#F59E0B] animate-spin" />
                                   : <PhoneCall className="w-4 h-4 text-[#F59E0B]" />
@@ -298,7 +298,7 @@ export default function WaitlistDesk() {
                             )}
                             <button onClick={() => setSeatModal(entry)}
                               className="w-9 h-9 rounded-lg bg-[#31A24C]/10 flex items-center justify-center active:bg-[#31A24C]/20"
-                              title="Seat player">
+                              title="Seat Player">
                               <Armchair className="w-4 h-4 text-[#31A24C]" />
                             </button>
                             <button onClick={() => handlePass(entry)}
@@ -308,7 +308,7 @@ export default function WaitlistDesk() {
                             </button>
                             <button onClick={() => handleRemove(entry)}
                               className="w-9 h-9 rounded-lg bg-[#EF4444]/10 flex items-center justify-center active:bg-[#EF4444]/20"
-                              title="Remove from list">
+                              title="Remove From List">
                               <Trash2 className="w-4 h-4 text-[#EF4444]" />
                             </button>
                           </div>
@@ -381,7 +381,7 @@ export default function WaitlistDesk() {
             onClick={() => setShowAddWalkIn(false)}>
             <div className="bg-[#242526] rounded-2xl w-full max-w-md p-5" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-white">Add Player to Waitlist</h3>
+                <h3 className="text-lg font-bold text-white">Add Player To Waitlist</h3>
                 <button onClick={() => setShowAddWalkIn(false)}
                   className="w-8 h-8 rounded-full bg-[#3A3B3C] flex items-center justify-center">
                   <X className="w-4 h-4 text-[#B0B3B8]" />

@@ -220,7 +220,7 @@ function CreateIncidentModal({ onSubmit, onClose }) {
             <textarea
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="Describe what happened..."
+              placeholder="Describe What Happened..."
               rows={4}
               required
               className="w-full px-4 py-3 cmd-input resize-none"
@@ -359,7 +359,7 @@ function IncidentDetailModal({ incident, onResolve, onClose }) {
               <textarea
                 value={resolution}
                 onChange={(e) => setResolution(e.target.value)}
-                placeholder="Describe how this incident was resolved..."
+                placeholder="Describe How This Incident Was Resolved..."
                 rows={3}
                 className="w-full px-4 py-3 cmd-input resize-none"
               />
@@ -529,7 +529,7 @@ export default function IncidentsPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search incidents..."
+                placeholder="Search Incidents..."
                 className="w-full h-12 pl-12 pr-4 cmd-input"
               />
             </div>

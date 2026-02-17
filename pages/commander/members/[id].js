@@ -91,7 +91,7 @@ export default function MemberProfile() {
   );
 
   if (!member) return (
-    <div className="min-h-screen bg-[#18191A] flex items-center justify-center text-white">Member not found</div>
+    <div className="min-h-screen bg-[#18191A] flex items-center justify-center text-white">Member Not Found</div>
   );
 
   const m = member;
@@ -108,7 +108,7 @@ export default function MemberProfile() {
     <>
       <SEOHead
                 title="Commander — Details"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
@@ -202,7 +202,7 @@ export default function MemberProfile() {
               </div>
               <div className="flex gap-2">
                 <input type="number" value={addTimeAmount} onChange={e => setAddTimeAmount(e.target.value)}
-                  placeholder="Custom minutes"
+                  placeholder="Custom Minutes"
                   className="flex-1 px-3 py-2 bg-[#3A3B3C] border border-[#4A4B4C] rounded-lg text-white text-sm focus:outline-none focus:border-[#1877F2]" />
                 <button onClick={addTime} className="px-4 py-2 bg-[#1877F2] rounded-lg text-white text-sm font-semibold">Add</button>
               </div>
@@ -238,7 +238,7 @@ export default function MemberProfile() {
           {tab === 'sessions' && (
             <div className="space-y-2">
               {sessions.length === 0 ? (
-                <p className="py-6 text-center text-[#B0B3B8]">No session history</p>
+                <p className="py-6 text-center text-[#B0B3B8]">No Session History</p>
               ) : (
                 sessions.slice(0, 20).map((s, i) => (
                   <div key={s.id || i} className="flex items-center justify-between px-4 py-2.5 bg-[#242526] border border-[#3A3B3C] rounded-lg">
@@ -264,7 +264,7 @@ export default function MemberProfile() {
           {tab === 'tournaments' && (
             <div className="space-y-2">
               {tournamentResults.length === 0 ? (
-                <p className="py-6 text-center text-[#B0B3B8]">No tournament results</p>
+                <p className="py-6 text-center text-[#B0B3B8]">No Tournament Results</p>
               ) : (
                 tournamentResults.slice(0, 30).map((t, i) => (
                   <div key={t.id || i} className="flex items-center justify-between px-4 py-2.5 bg-[#242526] border border-[#3A3B3C] rounded-lg">

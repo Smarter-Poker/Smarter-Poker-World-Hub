@@ -20,7 +20,7 @@ export default function DiamondArcadeAchievements() {
         <>
             <SEOHead
                 title="Arcade Achievements"
-                description="Track your Diamond Arcade achievements and unlocked rewards."
+                description="Track Your Diamond Arcade Achievements And Unlocked Rewards."
                 canonical="/hub/diamond-arcade/achievements"
             />
 

@@ -492,7 +492,7 @@ export default function SettingsPage() {
         <PageTransition>
             <SEOHead
                 title="Settings — Account & Preferences"
-                description="Manage your Smarter.Poker account settings, preferences, notifications, and privacy options."
+                description="Manage Your Smarter.Poker Account Settings, Preferences, Notifications, And Privacy Options."
                 canonical="/hub/settings"
                 noindex={true}
             >
@@ -812,7 +812,7 @@ export default function SettingsPage() {
                                             Refer a Friend
                                         </h3>
                                         <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, marginBottom: 16 }}>
-                                            Share your referral code and earn <strong style={{ color: '#42B72A' }}>500 diamonds</strong> for every friend who signs up!
+                                            Share your referral code and earn <strong style={{ color: '#42B72A' }}>500 Diamonds</strong> for every friend who signs up!
                                         </p>
 
                                         {/* Player Number Display */}
@@ -983,31 +983,31 @@ export default function SettingsPage() {
                                 <div style={styles.card}>
                                     <Toggle
                                         label="Email Notifications"
-                                        description="Receive updates via email"
+                                        description="Receive Updates Via Email"
                                         value={settings.emailNotifications}
                                         onChange={(v) => updateSetting('emailNotifications', v)}
                                     />
                                     <Toggle
                                         label="Push Notifications"
-                                        description="Browser and mobile alerts"
+                                        description="Browser And Mobile Alerts"
                                         value={settings.pushNotifications}
                                         onChange={(v) => updateSetting('pushNotifications', v)}
                                     />
                                     <Toggle
                                         label="Sound Effects"
-                                        description="In-app sound effects"
+                                        description="In-app Sound Effects"
                                         value={settings.soundEffects}
                                         onChange={(v) => updateSetting('soundEffects', v)}
                                     />
                                     <Toggle
                                         label="Tournament Alerts"
-                                        description="Get notified about tournaments"
+                                        description="Get Notified About Tournaments"
                                         value={settings.tournamentAlerts}
                                         onChange={(v) => updateSetting('tournamentAlerts', v)}
                                     />
                                     <Toggle
                                         label="Friend Activity"
-                                        description="See when friends are online"
+                                        description="See When Friends Are Online"
                                         value={settings.friendActivity}
                                         onChange={(v) => updateSetting('friendActivity', v)}
                                     />
@@ -1070,7 +1070,7 @@ export default function SettingsPage() {
                                     <div style={styles.settingRow}>
                                         <div style={styles.settingInfo}>
                                             <span style={styles.settingLabel}>Theme</span>
-                                            <span style={styles.settingDesc}>Switch between light and dark mode</span>
+                                            <span style={styles.settingDesc}>Switch Between Light And Dark Mode</span>
                                         </div>
                                         <DarkModeToggle size="medium" />
                                     </div>
@@ -1153,13 +1153,13 @@ export default function SettingsPage() {
                                     />
                                     <Toggle
                                         label="Animations"
-                                        description="Enable smooth transitions and animations"
+                                        description="Enable Smooth Transitions And Animations"
                                         value={settings.animations !== false}
                                         onChange={(val) => updateSetting('animations', val)}
                                     />
                                     <Toggle
                                         label="Reduce Motion"
-                                        description="Minimize animations for accessibility"
+                                        description="Minimize Animations For Accessibility"
                                         value={settings.reduceMotion || false}
                                         onChange={(val) => updateSetting('reduceMotion', val)}
                                     />
@@ -1169,13 +1169,13 @@ export default function SettingsPage() {
                                     <h3 style={styles.groupTitle}>Sound</h3>
                                     <Toggle
                                         label="Sound Effects"
-                                        description="Play sounds for actions and notifications"
+                                        description="Play Sounds For Actions And Notifications"
                                         value={settings.soundEffects !== false}
                                         onChange={(val) => updateSetting('soundEffects', val)}
                                     />
                                     <Toggle
                                         label="Notification Sounds"
-                                        description="Play sound when you receive notifications"
+                                        description="Play Sound When You Receive Notifications"
                                         value={settings.notificationSounds !== false}
                                         onChange={(val) => updateSetting('notificationSounds', val)}
                                     />
@@ -1233,7 +1233,7 @@ export default function SettingsPage() {
                                             <span style={styles.vipIcon}></span>
                                             <div>
                                                 <div style={styles.vipTitle}>Active VIP Member</div>
-                                                <div style={styles.vipSubtitle}>Enjoying premium benefits</div>
+                                                <div style={styles.vipSubtitle}>Enjoying Premium Benefits</div>
                                             </div>
                                         </div>
                                     </div>
@@ -1422,10 +1422,10 @@ export default function SettingsPage() {
                                 <div style={styles.settingGroup}>
                                     <h3 style={styles.groupTitle}>Blocking Information</h3>
                                     <ul style={styles.infoList}>
-                                        <li>Blocked users cannot send you messages</li>
-                                        <li>They won't see your online status</li>
-                                        <li>They cannot view your profile or posts</li>
-                                        <li>You can unblock users at any time</li>
+                                        <li>Blocked Users Cannot Send You Messages</li>
+                                        <li>They Won't See Your Online Status</li>
+                                        <li>They Cannot View Your Profile Or Posts</li>
+                                        <li>You Can Unblock Users At Any Time</li>
                                     </ul>
                                 </div>
                             </div>
@@ -1470,23 +1470,23 @@ export default function SettingsPage() {
                                     </div>
 
                                     <div style={styles.settingGroup}>
-                                        <h3 style={styles.groupTitle}>What will be deleted:</h3>
+                                        <h3 style={styles.groupTitle}>What Will Be Deleted:</h3>
                                         <ul style={styles.infoList}>
-                                            <li>Your profile and all personal information</li>
-                                            <li>All your posts, reels, and comments</li>
-                                            <li>Your training progress and statistics</li>
-                                            <li>Your messages and conversations</li>
-                                            <li>Your friends and connections</li>
-                                            <li>Your Diamond balance and VIP status</li>
+                                            <li>Your Profile And All Personal Information</li>
+                                            <li>All Your Posts, Reels, And Comments</li>
+                                            <li>Your Training Progress And Statistics</li>
+                                            <li>Your Messages And Conversations</li>
+                                            <li>Your Friends And Connections</li>
+                                            <li>Your Diamond Balance And VIP Status</li>
                                         </ul>
                                     </div>
 
                                     <div style={styles.settingGroup}>
-                                        <h3 style={styles.groupTitle}>Before you delete:</h3>
+                                        <h3 style={styles.groupTitle}>Before You Delete:</h3>
                                         <ul style={styles.infoList}>
-                                            <li>Download your data using the Data Export feature</li>
-                                            <li>Withdraw any remaining Diamond balance</li>
-                                            <li>Cancel any active VIP subscriptions</li>
+                                            <li>Download Your Data Using The Data Export Feature</li>
+                                            <li>Withdraw Any Remaining Diamond Balance</li>
+                                            <li>Cancel Any Active VIP Subscriptions</li>
                                         </ul>
                                     </div>
 
@@ -1518,7 +1518,7 @@ export default function SettingsPage() {
                                     <div style={styles.dataRow}>
                                         <div>
                                             <h4 style={styles.dataTitle}>Export Hand History</h4>
-                                            <p style={styles.dataDesc}>Download all your hand histories</p>
+                                            <p style={styles.dataDesc}>Download All Your Hand Histories</p>
                                         </div>
                                         <button
                                             style={styles.exportButton}
@@ -1546,7 +1546,7 @@ export default function SettingsPage() {
                                     <div style={styles.dataRow}>
                                         <div>
                                             <h4 style={styles.dataTitle}>Export Statistics</h4>
-                                            <p style={styles.dataDesc}>Download your gameplay statistics</p>
+                                            <p style={styles.dataDesc}>Download Your Gameplay Statistics</p>
                                         </div>
                                         <button
                                             style={styles.exportButton}
@@ -1574,7 +1574,7 @@ export default function SettingsPage() {
                                     <div style={styles.dataRow}>
                                         <div>
                                             <h4 style={styles.dataTitle}>Export All Data</h4>
-                                            <p style={styles.dataDesc}>Full GDPR-compliant data export</p>
+                                            <p style={styles.dataDesc}>Full GDPR-compliant Data Export</p>
                                         </div>
                                         <button
                                             style={styles.exportButton}
@@ -1725,9 +1725,9 @@ export default function SettingsPage() {
                                 }}>
                                     <h3 style={{ color: '#00D4FF', fontSize: 16, marginBottom: 12 }}>Setup Instructions:</h3>
                                     <ol style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, paddingLeft: 20, margin: 0 }}>
-                                        <li style={{ marginBottom: 8 }}>Download an authenticator app (Google Authenticator, Authy, etc.)</li>
-                                        <li style={{ marginBottom: 8 }}>Scan the QR code below with your app</li>
-                                        <li>Enter the 6-digit code to verify</li>
+                                        <li style={{ marginBottom: 8 }}>Download An Authenticator App (Google Authenticator, Authy, Etc.)</li>
+                                        <li style={{ marginBottom: 8 }}>Scan The QR Code Below With Your App</li>
+                                        <li>Enter The 6-digit Code To Verify</li>
                                     </ol>
                                 </div>
 
@@ -1739,23 +1739,23 @@ export default function SettingsPage() {
                                     textAlign: 'center'
                                 }}>
                                     {loadingMFA ? (
-                                        <div style={{ fontSize: 14, color: '#666', padding: 40 }}>Loading QR code...</div>
+                                        <div style={{ fontSize: 14, color: '#666', padding: 40 }}>Loading QR Code...</div>
                                     ) : qrCode ? (
                                         <>
-                                            <div style={{ fontSize: 12, color: '#666', marginBottom: 8 }}>Scan with your authenticator app</div>
+                                            <div style={{ fontSize: 12, color: '#666', marginBottom: 8 }}>Scan With Your Authenticator App</div>
                                             <img src={qrCode} alt="QR Code" style={{ width: 200, height: 200, margin: '0 auto' }} />
                                             <p style={{ fontSize: 12, color: '#666', marginTop: 12 }}>
                                                 Manual entry key: {manualEntryKey || 'Loading...'}
                                             </p>
                                         </>
                                     ) : (
-                                        <div style={{ fontSize: 14, color: '#666', padding: 40 }}>Failed to generate QR code</div>
+                                        <div style={{ fontSize: 14, color: '#666', padding: 40 }}>Failed To Generate QR Code</div>
                                     )}
                                 </div>
 
                                 <input
                                     type="text"
-                                    placeholder="Enter 6-digit code"
+                                    placeholder="Enter 6-digit Code"
                                     value={verificationCode}
                                     onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                                     style={{
@@ -1822,7 +1822,7 @@ export default function SettingsPage() {
                                     textAlign: 'center'
                                 }}>
                                     <div style={{ fontSize: 48, marginBottom: 12 }}></div>
-                                    <h3 style={{ color: '#0f0', fontSize: 18, marginBottom: 8 }}>2FA is Active</h3>
+                                    <h3 style={{ color: '#0f0', fontSize: 18, marginBottom: 8 }}>2FA Is Active</h3>
                                     <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, margin: 0 }}>
                                         Your account is protected with two-factor authentication
                                     </p>

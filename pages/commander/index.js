@@ -242,7 +242,7 @@ export default function CommanderLanding() {
     <>
       <SEOHead
                 title="Club Commander — Poker Room Management Suite"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
 
@@ -436,7 +436,7 @@ export default function CommanderLanding() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <input
                 type="email"
-                placeholder="Enter your email"
+                placeholder="Enter Your Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleEmailSubmit()}
@@ -469,7 +469,7 @@ export default function CommanderLanding() {
                 <a href="mailto:support@smarter.poker" className="hover:text-white">Support</a>
                 <a href="mailto:contact@smarter.poker" className="hover:text-white">Contact</a>
               </div>
-              <p className="text-sm">Part of Smarter.Poker</p>
+              <p className="text-sm">Part Of Smarter.Poker</p>
             </div>
           </div>
         </footer>

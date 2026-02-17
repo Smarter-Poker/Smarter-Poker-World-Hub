@@ -79,7 +79,7 @@ export default function TableSeating() {
   );
 
   if (!table) return (
-    <div className="min-h-screen bg-[#18191A] flex items-center justify-center text-white">Table not found</div>
+    <div className="min-h-screen bg-[#18191A] flex items-center justify-center text-white">Table Not Found</div>
   );
 
   const maxSeats = table.max_seats || table.seats || 9;
@@ -113,7 +113,7 @@ export default function TableSeating() {
     <>
       <SEOHead
                 title="Commander — Details"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
@@ -206,7 +206,7 @@ export default function TableSeating() {
 
               {waitlist.length > 0 && (
                 <>
-                  <p className="text-xs text-[#B0B3B8] mb-2">From waitlist:</p>
+                  <p className="text-xs text-[#B0B3B8] mb-2">From Waitlist:</p>
                   <div className="space-y-1 max-h-40 overflow-y-auto mb-3">
                     {waitlist.slice(0, 8).map(w => (
                       <button key={w.id}

@@ -85,7 +85,7 @@ function NotificationCard({ notification, onMarkRead, onDelete }) {
                 <button
                   onClick={() => onMarkRead?.(notification)}
                   className="p-1.5 text-[#64748B] hover:text-[#10B981] hover:bg-[#10B981]/10 rounded transition-colors"
-                  title="Mark as read"
+                  title="Mark As Read"
                 >
                   <Check className="w-4 h-4" />
                 </button>
@@ -242,7 +242,7 @@ export default function PlayerNotificationsPage() {
     <>
       <SEOHead
                 title="Commander Notifications"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
 

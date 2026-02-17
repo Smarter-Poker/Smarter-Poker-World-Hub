@@ -83,7 +83,7 @@ export default function DownloadsPage() {
       <div className="min-h-screen bg-[#18191A]">
         <SEOHead
                 title="Commander — Downloads"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
 

@@ -633,7 +633,7 @@ export default function TriviaModePage() {
         <PageTransition>
             <SEOHead
                 title="Poker Trivia Game"
-                description="Play poker trivia on Smarter.Poker. Test your knowledge across multiple game modes."
+                description="Play Poker Trivia On Smarter.Poker. Test Your Knowledge Across Multiple Game Modes."
                 canonical="/hub/trivia"
                 noindex={true}
             />
@@ -649,8 +649,8 @@ export default function TriviaModePage() {
                     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <div style={{ background: '#1a1a2e', borderRadius: 16, padding: 32, maxWidth: 340, textAlign: 'center', border: '1px solid rgba(255,255,255,0.1)' }}>
                             <div style={{ fontSize: 48, marginBottom: 16 }}>💎</div>
-                            <h3 style={{ color: '#fff', margin: '0 0 12px' }}>Out of Diamonds</h3>
-                            <p style={{ color: 'rgba(255,255,255,0.7)', margin: '0 0 20px', fontSize: 14 }}>You need 10💎 to play this mode. Visit the Diamond Store to get more!</p>
+                            <h3 style={{ color: '#fff', margin: '0 0 12px' }}>Out Of Diamonds</h3>
+                            <p style={{ color: 'rgba(255,255,255,0.7)', margin: '0 0 20px', fontSize: 14 }}>You Need 10💎 To Play This Mode. Visit The Diamond Store To Get More!</p>
                             <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
                                 <button onClick={() => setShowOutOfDiamonds(false)} style={{ padding: '10px 20px', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer' }}>Close</button>
                                 <button onClick={() => router.push('/hub/diamond-store')} style={{ padding: '10px 20px', background: 'linear-gradient(135deg, #00D4FF, #7B2FFF)', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', fontWeight: 600 }}>Get Diamonds</button>
@@ -663,7 +663,7 @@ export default function TriviaModePage() {
                     {gameState === 'loading' && (
                         <div className="loading">
                             <div className="spinner" />
-                            <p>Loading trivia...</p>
+                            <p>Loading Trivia...</p>
                         </div>
                     )}
 

@@ -189,7 +189,7 @@ export default function HorseAnalytics() {
         <>
             <SEOHead
                 title="Horse Analytics Admin"
-                description="Internal analytics dashboard."
+                description="Internal Analytics Dashboard."
                 noindex={true}
             />
             <div style={styles.container}>
@@ -211,8 +211,8 @@ export default function HorseAnalytics() {
                             }}
                         >
                             <option value="1">Last 24h</option>
-                            <option value="7">Last 7 days</option>
-                            <option value="30">Last 30 days</option>
+                            <option value="7">Last 7 Days</option>
+                            <option value="30">Last 30 Days</option>
                         </select>
                         <button style={styles.refreshBtn} onClick={fetchData}>
                             🔄 Refresh

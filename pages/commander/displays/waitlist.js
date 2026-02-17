@@ -145,7 +145,7 @@ export default function WaitlistDisplay() {
                 );
               })}
               {gameTypes.length === 0 && (
-                <p className="text-xl text-white/30 text-center py-8">No games running</p>
+                <p className="text-xl text-white/30 text-center py-8">No Games Running</p>
               )}
             </div>
           </div>
@@ -158,7 +158,7 @@ export default function WaitlistDisplay() {
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
                   <p className="text-4xl text-white/20 font-bold mb-2">No Wait</p>
-                  <p className="text-xl text-white/10">Seats available — see the front desk</p>
+                  <p className="text-xl text-white/10">Seats Available — See The Front Desk</p>
                 </div>
               </div>
             ) : (

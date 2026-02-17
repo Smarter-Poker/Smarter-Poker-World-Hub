@@ -218,7 +218,7 @@ export default function HandHistoryPage() {
     <>
       <SEOHead
                 title="Hand History"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
 
@@ -317,7 +317,7 @@ export default function HandHistoryPage() {
                   <div className="cmd-icon-box mx-auto mb-3">
                     <Spade className="w-12 h-12 text-[#64748B]" />
                   </div>
-                  <p className="text-[#64748B]">No hands match your filter</p>
+                  <p className="text-[#64748B]">No Hands Match Your Filter</p>
                 </div>
               )}
             </div>
@@ -341,7 +341,7 @@ export default function HandHistoryPage() {
                   <div className="cmd-icon-box mx-auto mb-3">
                     <FileText className="w-12 h-12 text-[#64748B]" />
                   </div>
-                  <p className="text-[#64748B]">No sessions with hand history</p>
+                  <p className="text-[#64748B]">No Sessions With Hand History</p>
                   <p className="text-sm text-[#64748B] mt-1">
                     Play at a venue with RFID tables to capture hands
                   </p>

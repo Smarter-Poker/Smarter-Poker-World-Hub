@@ -378,7 +378,7 @@ export default function PlayerFAQPage() {
     <>
       <SEOHead
                 title="Commander FAQ"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
 
@@ -399,7 +399,7 @@ export default function PlayerFAQPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#64748B]" />
               <input
                 type="text"
-                placeholder="Search questions..."
+                placeholder="Search Questions..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="cmd-input w-full pl-10 h-9 text-sm"
@@ -493,7 +493,7 @@ export default function PlayerFAQPage() {
 
           {/* Contact Support */}
           <div className="mt-8 cmd-panel p-6 text-center">
-            <h3 className="font-semibold text-white mb-2">Still have questions?</h3>
+            <h3 className="font-semibold text-white mb-2">Still Have Questions?</h3>
             <p className="text-[#64748B] mb-4">
               Contact the poker room staff or reach out to our support team.
             </p>

@@ -288,7 +288,7 @@ export default function StaffReportsPage() {
               <section>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <div className="cmd-panel p-4">
-                    <p className="text-sm text-[#B0B3B8]">Check-ins</p>
+                    <p className="text-sm text-[#B0B3B8]">Check-Ins</p>
                     <p className="text-xl font-bold text-white">{report.summary?.totalCheckIns || 0}</p>
                   </div>
                   <div className="cmd-panel p-4">
@@ -308,7 +308,7 @@ export default function StaffReportsPage() {
 
               {/* Games by Stakes */}
               <section>
-                <h2 className="font-semibold text-white mb-3">Games by Stakes</h2>
+                <h2 className="font-semibold text-white mb-3">Games By Stakes</h2>
                 <div className="cmd-panel overflow-hidden">
                   {report.gamesByStakes?.length > 0 ? (
                     report.gamesByStakes.map((game, i) => (

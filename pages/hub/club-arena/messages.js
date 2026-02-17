@@ -192,7 +192,7 @@ function MessageInput({ onSend, onMediaUpload, disabled }) {
                     finally { setUploading(false); e.target.value = ''; }
                 }}
             />
-            <button onClick={() => fileInputRef.current?.click()} disabled={uploading} title="Send photo or video"
+            <button onClick={() => fileInputRef.current?.click()} disabled={uploading} title="Send Photo Or Video"
                 style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: 'transparent', cursor: uploading ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: uploading ? 0.5 : 1, padding: 0 }}>
                 {uploading ? (
                     <svg width="20" height="20" viewBox="0 0 24 24" fill={C.blue}>
@@ -220,7 +220,7 @@ function MessageInput({ onSend, onMediaUpload, disabled }) {
                 <input ref={inputRef} type="text" value={text} onChange={(e) => setText(e.target.value)} onKeyDown={handleKeyDown} placeholder="Aa" disabled={disabled}
                     style={{ flex: 1, border: 'none', background: 'transparent', padding: '10px 0', fontSize: 15, outline: 'none', color: C.text }} />
 
-                <button onClick={() => setShowEmoji(!showEmoji)} title="Choose emoji"
+                <button onClick={() => setShowEmoji(!showEmoji)} title="Choose Emoji"
                     style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                         <circle cx="12" cy="12" r="10" stroke={C.blue} strokeWidth="1.5" />
@@ -800,7 +800,7 @@ export default function ClubMessages() {
             <>
                 <SEOHead
                 title="Club Arena — Messages"
-                description="View your Club Arena messages."
+                description="View Your Club Arena Messages."
                 canonical="/hub/club-arena/messages"
                 noindex={true}
             />
@@ -836,16 +836,16 @@ export default function ClubMessages() {
 
                         {/* Action Buttons */}
                         <div style={{ display: 'flex', gap: 8 }}>
-                            <button onClick={() => setShowMessageSearch(!showMessageSearch)} style={S.iconBtn} title="Search messages">
+                            <button onClick={() => setShowMessageSearch(!showMessageSearch)} style={S.iconBtn} title="Search Messages">
                                 <SearchIcon size={20} />
                             </button>
-                            <button onClick={() => startCall('audio')} style={S.iconBtn} title="Voice call">
+                            <button onClick={() => startCall('audio')} style={S.iconBtn} title="Voice Call">
                                 <PhoneIcon size={20} />
                             </button>
-                            <button onClick={() => startCall('video')} style={S.iconBtn} title="Video call">
+                            <button onClick={() => startCall('video')} style={S.iconBtn} title="Video Call">
                                 <VideoIcon size={20} />
                             </button>
-                            <button onClick={() => setShowUserInfo(!showUserInfo)} style={S.iconBtn} title="User info">
+                            <button onClick={() => setShowUserInfo(!showUserInfo)} style={S.iconBtn} title="User Info">
                                 <InfoIcon size={20} />
                             </button>
                         </div>
@@ -857,7 +857,7 @@ export default function ClubMessages() {
                             <div style={{ ...S.emptyState, padding: '40px 20px' }}>
                                 <Avatar src={otherUser?.avatar_url} name={otherUser?.username} size={80} showOnline={false} />
                                 <p style={{ marginTop: 16, fontSize: 16, fontWeight: 600, color: C.text }}>{otherUser?.alias || otherUser?.username}</p>
-                                <p style={{ fontSize: 14, color: C.textSec }}>Start your conversation</p>
+                                <p style={{ fontSize: 14, color: C.textSec }}>Start Your Conversation</p>
                             </div>
                         ) : (
                             messages.map((msg, i) => {
@@ -915,7 +915,7 @@ export default function ClubMessages() {
                 </div>
 
                 <div style={S.searchBar}>
-                    <input type="text" placeholder="🔍  Search club members..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={S.searchInput} />
+                    <input type="text" placeholder="🔍  Search Club Members..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={S.searchInput} />
 
                     {searchResults.length > 0 && (
                         <div style={{ marginTop: 8, background: C.card, borderRadius: 12, overflow: 'hidden', boxShadow: '0 4px 16px rgba(0,0,0,0.3)' }}>
@@ -937,14 +937,14 @@ export default function ClubMessages() {
                 ) : user ? (
                     <div style={S.emptyState}>
                         <div style={S.emptyIcon}>💬</div>
-                        <p style={{ fontSize: 16, fontWeight: 500 }}>No club conversations yet</p>
-                        <p style={{ fontSize: 14, marginTop: 8 }}>Search for a club member above to start chatting</p>
+                        <p style={{ fontSize: 16, fontWeight: 500 }}>No Club Conversations Yet</p>
+                        <p style={{ fontSize: 14, marginTop: 8 }}>Search For A Club Member Above To Start Chatting</p>
                     </div>
                 ) : (
                     <div style={S.emptyState}>
                         <div style={S.emptyIcon}>💬</div>
-                        <p style={{ fontSize: 16, fontWeight: 500 }}>Loading your session...</p>
-                        <p style={{ fontSize: 14, marginTop: 8 }}>If you're logged in, your chats will appear shortly</p>
+                        <p style={{ fontSize: 16, fontWeight: 500 }}>Loading Your Session...</p>
+                        <p style={{ fontSize: 14, marginTop: 8 }}>If You're Logged In, Your Chats Will Appear Shortly</p>
                     </div>
                 )}
 

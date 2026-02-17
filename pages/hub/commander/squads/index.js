@@ -157,7 +157,7 @@ export default function SquadsPage() {
     <>
       <SEOHead
                 title="Squads"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
 
@@ -168,7 +168,7 @@ export default function SquadsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-xl font-extrabold text-white tracking-wider cmd-text-glow">Squads</h1>
-                <p className="text-[#64748B] text-sm">Join waitlists with friends</p>
+                <p className="text-[#64748B] text-sm">Join Waitlists With Friends</p>
               </div>
               <button
                 onClick={handleCreateSquad}

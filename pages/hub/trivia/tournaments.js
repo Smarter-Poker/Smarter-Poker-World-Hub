@@ -458,8 +458,8 @@ export default function TournamentsPage() {
     return (
         <PageTransition>
             <SEOHead
-                title="Trivia Tournaments — Compete for Prizes"
-                description="Enter poker trivia tournaments. Compete against the community for diamonds, XP, and leaderboard glory."
+                title="Trivia Tournaments — Compete For Prizes"
+                description="Enter Poker Trivia Tournaments. Compete Against The Community For Diamonds, XP, And Leaderboard Glory."
                 canonical="/hub/trivia/tournaments"
             >
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet" />
@@ -486,7 +486,7 @@ export default function TournamentsPage() {
                     {gameState === 'loading' && (
                         <div className="loading">
                             <div className="spinner" />
-                            <p>Loading tournaments...</p>
+                            <p>Loading Tournaments...</p>
                         </div>
                     )}
 
@@ -552,12 +552,12 @@ export default function TournamentsPage() {
                                             {myMatchup.is_bye ? (
                                                 <div className="bye-notice">
                                                     <CheckCircle size={20} color="#22c55e" />
-                                                    <span>BYE — You advance automatically!</span>
+                                                    <span>BYE — You Advance Automatically!</span>
                                                 </div>
                                             ) : hasPlayedThisRound ? (
                                                 <div className="already-played">
                                                     <CheckCircle size={20} color="#22c55e" />
-                                                    <span>Score submitted! Waiting for opponent...</span>
+                                                    <span>Score Submitted! Waiting For Opponent...</span>
                                                 </div>
                                             ) : (
                                                 <HexButton
@@ -704,8 +704,8 @@ export default function TournamentsPage() {
                                 <MetalFrame padding="32px" showBolts={true}>
                                     <div className="no-tournaments">
                                         <Trophy size={48} color="rgba(255,255,255,0.2)" />
-                                        <p>No tournaments scheduled yet.</p>
-                                        <span>Daily tournaments start at 7 PM CST!</span>
+                                        <p>No Tournaments Scheduled Yet.</p>
+                                        <span>Daily Tournaments Start At 7 PM CST!</span>
                                     </div>
                                 </MetalFrame>
                             )}

@@ -269,7 +269,7 @@ function MessageInput({ onSend, onTyping, onMediaUpload, disabled }) {
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     opacity: uploading ? 0.5 : 1, padding: 0,
                 }}
-                title="Send photo or video"
+                title="Send Photo Or Video"
             >
                 {uploading ? (
                     <svg width="20" height="20" viewBox="0 0 24 24" fill={C.blue}>
@@ -339,7 +339,7 @@ function MessageInput({ onSend, onTyping, onMediaUpload, disabled }) {
                         alignItems: 'center',
                         justifyContent: 'center',
                     }}
-                    title="Choose emoji"
+                    title="Choose Emoji"
                 >
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                         <circle cx="12" cy="12" r="10" stroke={C.blue} strokeWidth="1.5" />
@@ -494,7 +494,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
             <span
                 onClick={() => onRetry?.(message)}
                 style={{ color: '#E41E3F', fontSize: 10, cursor: 'pointer' }}
-                title="Failed - tap to retry"
+                title="Failed - Tap To Retry"
             >⚠</span>
         );
         if (status === 'read' || message.is_read) {
@@ -646,7 +646,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                             }}
                             onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
                             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                        >Delete for Me</button>
+                        >Delete For Me</button>
                         <button
                             onClick={() => {
                                 onDelete(message.id, 'for_everyone');
@@ -665,7 +665,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                             }}
                             onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
                             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                        >Delete for Everyone</button>
+                        >Delete For Everyone</button>
                     </div>
                 )}
 
@@ -735,7 +735,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                                         onClick={() => window.open(url, '_blank')}
                                         onError={(e) => {
                                             e.target.style.display = 'none';
-                                            e.target.insertAdjacentHTML('afterend', '<span>Image failed to load</span>');
+                                            e.target.insertAdjacentHTML('afterend', '<span>Image Failed To Load</span>');
                                         }}
                                     />
                                 </div>
@@ -757,7 +757,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                                         }}
                                         onError={(e) => {
                                             e.target.style.display = 'none';
-                                            e.target.insertAdjacentHTML('afterend', '<span>Video failed to load</span>');
+                                            e.target.insertAdjacentHTML('afterend', '<span>Video Failed To Load</span>');
                                         }}
                                     />
                                 </div>
@@ -1116,7 +1116,7 @@ export default function MessengerPage() {
 
     // Check for mobile
     useEffect(() => {
-        const check = () => setIsMobile(window.innerWidth < 768);
+        const check = () => SetIsMobile(window.innerWidth < 768);
         check();
         window.addEventListener('resize', check);
         return () => window.removeEventListener('resize', check);
@@ -2455,7 +2455,7 @@ export default function MessengerPage() {
             <>
                 <SEOHead
                 title="Messenger — Direct Messages"
-                description="Chat with friends and poker players directly on Smarter.Poker Messenger."
+                description="Chat With Friends And Poker Players Directly On Smarter.Poker Messenger."
                 canonical="/hub/messenger"
             />
                 <div style={{
@@ -2473,8 +2473,8 @@ export default function MessengerPage() {
                         boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
                     }}>
                         <div style={{ fontSize: 64, marginBottom: 16 }}></div>
-                        <h2 style={{ margin: '0 0 8px', color: C.text }}>Sign in to Messenger</h2>
-                        <p style={{ color: C.textSec, marginBottom: 24 }}>Connect with your poker network</p>
+                        <h2 style={{ margin: '0 0 8px', color: C.text }}>Sign In To Messenger</h2>
+                        <p style={{ color: C.textSec, marginBottom: 24 }}>Connect With Your Poker Network</p>
                         <Link href="/auth/login" style={{
                             display: 'inline-block',
                             padding: '12px 32px',
@@ -2585,7 +2585,7 @@ export default function MessengerPage() {
                     <span style={{ fontSize: 28 }}></span>
                     <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: 600, marginBottom: 2 }}>Enable Call Notifications</div>
-                        <div style={{ fontSize: 12, opacity: 0.9 }}>Get notified when someone calls you</div>
+                        <div style={{ fontSize: 12, opacity: 0.9 }}>Get Notified When Someone Calls You</div>
                     </div>
                     <button
                         onClick={async () => {
@@ -2853,7 +2853,7 @@ export default function MessengerPage() {
                                     fontSize: 18, color: C.text,
                                 }}>←</button>
                             </Link>
-                            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700, color: C.blue }}>messenger</h1>
+                            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700, color: C.blue }}>Messenger</h1>
                         </div>
                         <button
                             onClick={() => {
@@ -2890,8 +2890,8 @@ export default function MessengerPage() {
                         {conversations.length === 0 ? (
                             <div style={{ padding: 40, textAlign: 'center' }}>
                                 <div style={{ fontSize: 48, marginBottom: 12 }}></div>
-                                <div style={{ color: C.text, fontWeight: 500, marginBottom: 4 }}>No conversations yet</div>
-                                <div style={{ fontSize: 13, color: C.textSec, marginBottom: 20 }}>Search for people to start messaging!</div>
+                                <div style={{ color: C.text, fontWeight: 500, marginBottom: 4 }}>No Conversations Yet</div>
+                                <div style={{ fontSize: 13, color: C.textSec, marginBottom: 20 }}>Search For People To Start Messaging!</div>
                                 <button
                                     onClick={() => {
                                         setComposing(true);
@@ -2907,7 +2907,7 @@ export default function MessengerPage() {
                                         fontSize: 15,
                                         cursor: 'pointer',
                                         marginTop: 16,
-                                    }}>Search for people</button>
+                                    }}>Search For People</button>
                             </div>
                         ) : (
                             <>
@@ -3019,7 +3019,7 @@ export default function MessengerPage() {
                     }}>
                         <Link href="/hub/social-media" style={{
                             color: C.blue, fontSize: 14, fontWeight: 500, textDecoration: 'none',
-                        }}>Back to Social Hub</Link>
+                        }}>Back To Social Hub</Link>
                     </div>
                 </aside>
 
@@ -3060,7 +3060,7 @@ export default function MessengerPage() {
 
                                     <div style={{ flex: 1 }}>
                                         <div style={{ fontWeight: 600, fontSize: 15 }}>{otherUser?.username}</div>
-                                        <div style={{ fontSize: 12, color: C.textSec }}>Active now</div>
+                                        <div style={{ fontSize: 12, color: C.textSec }}>Active Now</div>
                                     </div>
 
                                     <div style={{ display: 'flex', gap: 8 }}>
@@ -3072,11 +3072,11 @@ export default function MessengerPage() {
                                                 border: 'none', cursor: 'pointer',
                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                             }}
-                                            title="Search messages"
+                                            title="Search Messages"
                                         ><SearchIcon size={20} /></button>
                                         <button
                                             onClick={() => startCall('audio')}
-                                            title="Voice call"
+                                            title="Voice Call"
                                             style={{
                                                 width: 36, height: 36, borderRadius: '50%',
                                                 background: 'transparent', border: 'none', cursor: 'pointer',
@@ -3084,7 +3084,7 @@ export default function MessengerPage() {
                                             }}><PhoneIcon size={20} /></button>
                                         <button
                                             onClick={() => startCall('video')}
-                                            title="Video call"
+                                            title="Video Call"
                                             style={{
                                                 width: 36, height: 36, borderRadius: '50%',
                                                 background: 'transparent', border: 'none', cursor: 'pointer',
@@ -3092,7 +3092,7 @@ export default function MessengerPage() {
                                             }}><VideoIcon size={20} /></button>
                                         <button
                                             onClick={() => setShowUserInfo(!showUserInfo)}
-                                            title="User info"
+                                            title="User Info"
                                             style={{
                                                 width: 36, height: 36, borderRadius: '50%',
                                                 background: showUserInfo ? C.bg : 'transparent', border: 'none', cursor: 'pointer',
@@ -3126,7 +3126,7 @@ export default function MessengerPage() {
                                                         setMessageSearchQuery(e.target.value);
                                                         handleMessageSearch(e.target.value);
                                                     }}
-                                                    placeholder="Search in this conversation..."
+                                                    placeholder="Search In This Conversation..."
                                                     style={{
                                                         flex: 1,
                                                         border: 'none',
@@ -3293,8 +3293,8 @@ export default function MessengerPage() {
                                 color: C.textSec,
                             }}>
                                 <div style={{ fontSize: 80, marginBottom: 16 }}></div>
-                                <h2 style={{ margin: 0, color: C.text, fontWeight: 600 }}>Select a conversation</h2>
-                                <p style={{ marginTop: 8, color: C.textSec }}>Choose from your existing chats or search for someone new</p>
+                                <h2 style={{ margin: 0, color: C.text, fontWeight: 600 }}>Select A Conversation</h2>
+                                <p style={{ marginTop: 8, color: C.textSec }}>Choose From Your Existing Chats Or Search For Someone New</p>
                             </div>
                         )}
                 </main >

@@ -343,7 +343,7 @@ export default function HomeGameDetailPage() {
       <div className="cmd-page flex items-center justify-center">
         <div className="text-center">
           <Home className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
-          <p className="text-[#64748B]">Group not found</p>
+          <p className="text-[#64748B]">Group Not Found</p>
           <button
             onClick={() => router.push('/hub/commander/home-games')}
             className="mt-4 cmd-btn cmd-btn-primary"
@@ -362,7 +362,7 @@ export default function HomeGameDetailPage() {
     <>
       <SEOHead
                 title="Home Game Details"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
 
@@ -457,7 +457,7 @@ export default function HomeGameDetailPage() {
             {isMember && !isHost && (
               <div className="flex items-center gap-2 p-3 bg-[#10B981]/10 rounded-lg">
                 <Check className="w-5 h-5 text-[#10B981]" />
-                <span className="text-[#10B981] font-medium">You are a member</span>
+                <span className="text-[#10B981] font-medium">You Are A Member</span>
               </div>
             )}
           </div>
@@ -472,7 +472,7 @@ export default function HomeGameDetailPage() {
             {events.length === 0 ? (
               <div className="cmd-panel p-8 text-center">
                 <Calendar className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
-                <p className="text-[#64748B]">No upcoming games scheduled</p>
+                <p className="text-[#64748B]">No Upcoming Games Scheduled</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -527,7 +527,7 @@ export default function HomeGameDetailPage() {
                     type="text"
                     value={newPost}
                     onChange={(e) => setNewPost(e.target.value)}
-                    placeholder="Share an update with the group..."
+                    placeholder="Share An Update With The Group..."
                     className="flex-1 h-10 px-3 cmd-input"
                   />
                   <button
@@ -634,7 +634,7 @@ export default function HomeGameDetailPage() {
             ) : eventReviews.length === 0 ? (
               <div className="cmd-panel p-8 text-center">
                 <MessageSquare className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
-                <p className="text-[#64748B]">No reviews yet</p>
+                <p className="text-[#64748B]">No Reviews Yet</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -681,7 +681,7 @@ export default function HomeGameDetailPage() {
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="cmd-panel cmd-corner-lights w-full max-w-md p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-white">RSVP to Game</h3>
+              <h3 className="text-lg font-semibold text-white">RSVP To Game</h3>
               <button
                 onClick={() => setSelectedRsvpEvent(null)}
                 className="p-2 hover:bg-[#132240] rounded-lg transition-colors"

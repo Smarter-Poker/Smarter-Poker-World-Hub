@@ -223,7 +223,7 @@ export default function SocialPagesHub() {
         <>
             <SEOHead
                 title="Social Pages — Community"
-                description="Discover and follow community pages on Smarter.Poker."
+                description="Discover And Follow Community Pages On Smarter.Poker."
                 canonical="/hub/social-pages"
             />
             <UniversalHeader />
@@ -263,7 +263,7 @@ export default function SocialPagesHub() {
                                 <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
                             </svg>
                             <input
-                                type="text" placeholder="Search pages..."
+                                type="text" placeholder="Search Pages..."
                                 value={searchInput} onChange={e => setSearchInput(e.target.value)}
                                 style={{
                                     width: '100%', padding: '10px 12px 10px 40px', borderRadius: 20,
@@ -321,7 +321,7 @@ export default function SocialPagesHub() {
                                 borderTopColor: C.blue, borderRadius: '50%',
                                 animation: 'spin 0.8s linear infinite', margin: '0 auto',
                             }}/>
-                            <p style={{ color: C.textSec, fontSize: 14, marginTop: 12 }}>Loading pages...</p>
+                            <p style={{ color: C.textSec, fontSize: 14, marginTop: 12 }}>Loading Pages...</p>
                         </div>
                     ) : pages.length === 0 ? (
                         <div style={{

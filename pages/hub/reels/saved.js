@@ -53,7 +53,7 @@ export default function SavedReels() {
         <PageTransition>
             <SEOHead
                 title="Saved Reels"
-                description="View your saved poker reels and short clips."
+                description="View Your Saved Poker Reels And Short Clips."
                 canonical="/hub/reels/saved"
                 noindex={true}
             />
@@ -67,13 +67,13 @@ export default function SavedReels() {
                     {loading ? (
                         <div style={styles.loadingContainer}>
                             <div style={styles.spinner}>💾</div>
-                            <p style={styles.loadingText}>Loading saved reels...</p>
+                            <p style={styles.loadingText}>Loading Saved Reels...</p>
                         </div>
                     ) : savedReels.length === 0 ? (
                         <div style={styles.emptyState}>
                             <div style={styles.emptyIcon}>💾</div>
-                            <h2 style={styles.emptyTitle}>No saved reels</h2>
-                            <p style={styles.emptyText}>Save reels you love to watch later</p>
+                            <h2 style={styles.emptyTitle}>No Saved Reels</h2>
+                            <p style={styles.emptyText}>Save Reels You Love To Watch Later</p>
                         </div>
                     ) : (
                         <div style={styles.reelsGrid}>

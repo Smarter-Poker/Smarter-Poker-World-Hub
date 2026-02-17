@@ -21,7 +21,7 @@ export default function DiamondArenaHistory() {
         <>
             <SEOHead
                 title="Diamond Arena — Game History"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
 

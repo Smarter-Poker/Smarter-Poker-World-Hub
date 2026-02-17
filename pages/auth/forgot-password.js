@@ -69,7 +69,7 @@ export default function ForgotPasswordPage() {
         <>
             <SEOHead
                 title="Reset Password — Smarter.Poker"
-                description="Reset your Smarter.Poker password."
+                description="Reset Your Smarter.Poker Password."
                 canonical="/auth/forgot-password"
                 noindex={true}
             />
@@ -87,7 +87,7 @@ export default function ForgotPasswordPage() {
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M19 12H5M12 19l-7-7 7-7" />
                     </svg>
-                    <span>Back to Sign In</span>
+                    <span>Back To Sign In</span>
                 </button>
 
                 {/* Card */}

@@ -116,7 +116,7 @@ export default function DiamondArenaPage() {
         <PageTransition>
             <SEOHead
                 title="Diamond Arena — Competitive Poker Games"
-                description="Compete in high-stakes Diamond Arena poker games. Earn diamonds, climb rankings, and prove your skills."
+                description="Compete In High-stakes Diamond Arena Poker Games. Earn Diamonds, Climb Rankings, And Prove Your Skills."
                 canonical="/hub/diamond-arena"
             >
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -146,7 +146,7 @@ export default function DiamondArenaPage() {
                         <div style={styles.loadingContent}>
                             <div style={styles.diamondPulse}>Diamonds</div>
                             <h2 style={styles.loadingTitle}>DIAMOND ARENA</h2>
-                            <p style={styles.loadingSubtitle}>Entering the Arena...</p>
+                            <p style={styles.loadingSubtitle}>Entering The Arena...</p>
                             <div style={styles.progressBar}>
                                 <div style={styles.progressFill} />
                             </div>

@@ -130,7 +130,7 @@ export default function PersonalAssistantPage() {
       )}
       <SEOHead
                 title="Personal Poker Assistant — Jarvis AI"
-                description="Get personalized poker coaching, hand analysis, and strategy advice from Jarvis, your AI poker assistant."
+                description="Get Personalized Poker Coaching, Hand Analysis, And Strategy Advice From Jarvis, Your AI Poker Assistant."
                 canonical="/hub/personal-assistant"
             >
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -228,12 +228,12 @@ export default function PersonalAssistantPage() {
         )}
 
         {/* Main Content — Gated behind 100💎 day pass */}
-        <FeatureGate featureKey="personal_assistant" userId={user?.id} cost={100} duration={24} featureName="Strategy Hub" description="Access Virtual Sandbox, Leak Finder, and Jarvis coaching tools for 24 hours.">
+        <FeatureGate featureKey="personal_assistant" userId={user?.id} cost={100} duration={24} featureName="Strategy Hub" description="Access Virtual Sandbox, Leak Finder, And Jarvis Coaching Tools For 24 Hours.">
           <main style={styles.main}>
             {/* Page Title */}
             <div style={styles.titleSection}>
               <h1 style={styles.pageTitle}>Strategy Hub</h1>
-              <p style={styles.pageSubtitle}>Safe, data-driven tools to refine your poker game the right way.</p>
+              <p style={styles.pageSubtitle}>Safe, Data-driven Tools To Refine Your Poker Game The Right Way.</p>
             </div>
 
             {/* Dashboard Overview */}
@@ -276,7 +276,7 @@ export default function PersonalAssistantPage() {
                 <button style={styles.toolButton}>
                   Enter Sandbox
                 </button>
-                <span style={styles.toolFooter}>Not live play - Experiment freely</span>
+                <span style={styles.toolFooter}>Not Live Play - Experiment Freely</span>
               </motion.div>
 
               {/* Leak Finder Card */}
@@ -318,7 +318,7 @@ export default function PersonalAssistantPage() {
                 <button style={styles.toolButton}>
                   View Leaks
                 </button>
-                <span style={styles.toolFooter}>Post-play review only - Track and improve</span>
+                <span style={styles.toolFooter}>Post-play Review Only - Track And Improve</span>
               </motion.div>
             </div>
 
@@ -342,7 +342,7 @@ export default function PersonalAssistantPage() {
                     </svg>
                   </div>
                   <h4 style={styles.pillarTitle}>GTO Anchored</h4>
-                  <p style={styles.pillarText}>Tied to solver analysis<br />AI fill-in clearly labeled</p>
+                  <p style={styles.pillarText}>Tied To Solver Analysis<br />AI Fill-in Clearly Labeled</p>
                 </div>
 
                 <div style={styles.pillar}>
@@ -353,7 +353,7 @@ export default function PersonalAssistantPage() {
                     </svg>
                   </div>
                   <h4 style={styles.pillarTitle}>Safe & Fair</h4>
-                  <p style={styles.pillarText}>No live assist - No exploit hunting<br />Test in peace</p>
+                  <p style={styles.pillarText}>No Live Assist - No Exploit Hunting<br />Test In Peace</p>
                 </div>
 
                 <div style={styles.pillar}>
@@ -364,7 +364,7 @@ export default function PersonalAssistantPage() {
                     </svg>
                   </div>
                   <h4 style={styles.pillarTitle}>Results-Driven</h4>
-                  <p style={styles.pillarText}>Identify leaks - Track improvement<br />Train smarter</p>
+                  <p style={styles.pillarText}>Identify Leaks - Track Improvement<br />Train Smarter</p>
                 </div>
               </div>
             </div>
@@ -380,10 +380,10 @@ export default function PersonalAssistantPage() {
               </div>
 
               {isLoading ? (
-                <div style={styles.loadingState}>Loading sessions...</div>
+                <div style={styles.loadingState}>Loading Sessions...</div>
               ) : recentSessions.length === 0 ? (
                 <div style={styles.emptyState}>
-                  <p>No sessions yet. Start exploring in the Virtual Sandbox!</p>
+                  <p>No Sessions Yet. Start Exploring In The Virtual Sandbox!</p>
                 </div>
               ) : (
                 <div style={styles.sessionsList}>
@@ -436,7 +436,7 @@ export default function PersonalAssistantPage() {
                 <a href="/terms" style={styles.footerLink}>Terms</a>
                 <a href="/privacy" style={styles.footerLink}>Privacy</a>
               </div>
-              <p style={styles.footerCopyright}>2024 Smarter.Poker. All rights reserved.</p>
+              <p style={styles.footerCopyright}>2024 Smarter.Poker. All Rights Reserved.</p>
             </footer>
           </main>
         </FeatureGate>

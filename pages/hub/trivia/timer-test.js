@@ -60,7 +60,7 @@ export default function TimerTest() {
         <>
             <SEOHead
                 title="Timer Test"
-                description="Trivia timer test page."
+                description="Trivia Timer Test Page."
                 noindex={true}
             />
 

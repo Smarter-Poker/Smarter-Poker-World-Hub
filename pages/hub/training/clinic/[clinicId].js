@@ -243,7 +243,7 @@ export default function ClinicPlayPage() {
             <>
                 <SEOHead
                 title="Training Clinic"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
                 <style>{EFFECT_STYLES}</style>

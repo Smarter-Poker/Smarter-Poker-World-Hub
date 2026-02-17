@@ -54,7 +54,7 @@ export default function Wishlist() {
         <PageTransition>
             <SEOHead
                 title="Wishlist — Diamond Store"
-                description="Your saved items in the Diamond Store wishlist."
+                description="Your Saved Items In The Diamond Store Wishlist."
                 canonical="/hub/diamond-store/wishlist"
                 noindex={true}
             />

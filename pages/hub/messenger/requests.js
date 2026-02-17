@@ -116,7 +116,7 @@ export default function MessageRequests() {
         <PageTransition>
             <SEOHead
                 title="Message Requests"
-                description="View pending message requests."
+                description="View Pending Message Requests."
                 canonical="/hub/messenger/requests"
                 noindex={true}
             />
@@ -140,12 +140,12 @@ export default function MessageRequests() {
                     {loading ? (
                         <div style={styles.loadingContainer}>
                             <div style={styles.spinner}>📬</div>
-                            <p style={styles.loadingText}>Loading requests...</p>
+                            <p style={styles.loadingText}>Loading Requests...</p>
                         </div>
                     ) : requests.length === 0 ? (
                         <div style={styles.emptyState}>
                             <div style={styles.emptyIcon}>📬</div>
-                            <h2 style={styles.emptyTitle}>No message requests</h2>
+                            <h2 style={styles.emptyTitle}>No Message Requests</h2>
                             <p style={styles.emptyText}>
                                 When someone who isn't your friend sends you a message,
                                 it will appear here for you to review.

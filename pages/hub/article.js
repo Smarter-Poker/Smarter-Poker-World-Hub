@@ -165,7 +165,7 @@ export default function ArticlePage() {
         return (
             <div className="article-page not-found">
                 <h1>Article Not Found</h1>
-                <Link href="/hub/news">← Back to News</Link>
+                <Link href="/hub/news">← Back To News</Link>
                 <style jsx>{`
                     .article-page { min-height: 100vh; background: #0a0a12; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
                     h1 { font-size: 24px; }
@@ -179,7 +179,7 @@ export default function ArticlePage() {
         <PageTransition>
             <SEOHead
                 title="Poker Article"
-                description="Read poker strategy articles, news stories, and educational content on Smarter.Poker."
+                description="Read Poker Strategy Articles, News Stories, And Educational Content On Smarter.Poker."
                 canonical="/hub/article"
             />
 

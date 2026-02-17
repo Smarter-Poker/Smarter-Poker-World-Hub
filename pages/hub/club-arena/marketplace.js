@@ -287,7 +287,7 @@ export default function Marketplace() {
         <>
             <SEOHead
                 title="Club Arena — Marketplace"
-                description="Browse the Club Arena marketplace."
+                description="Browse The Club Arena Marketplace."
                 canonical="/hub/club-arena/marketplace"
                 noindex={true}
             />
@@ -301,12 +301,12 @@ export default function Marketplace() {
                     </button>
 
                     <h1 style={S.pageTitle}>🛒 Marketplace</h1>
-                    <p style={S.pageSubtitle}>Spend your chips on exclusive items</p>
+                    <p style={S.pageSubtitle}>Spend Your Chips On Exclusive Items</p>
 
                     {isLoading ? (
-                        <div style={S.loading}>Loading shop...</div>
+                        <div style={S.loading}>Loading Shop...</div>
                     ) : !user ? (
-                        <div style={S.emptyState}><p>Sign in to shop</p></div>
+                        <div style={S.emptyState}><p>Sign In To Shop</p></div>
                     ) : (
                         <>
                             {/* Balance Bar */}

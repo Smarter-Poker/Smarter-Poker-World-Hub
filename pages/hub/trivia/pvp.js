@@ -674,7 +674,7 @@ export default function PvPPage() {
         <PageTransition>
             <SEOHead
                 title="PvP Trivia — Player vs Player"
-                description="Challenge other players to head-to-head poker trivia battles. Prove who knows poker best."
+                description="Challenge Other Players To Head-to-head Poker Trivia Battles. Prove Who Knows Poker Best."
                 canonical="/hub/trivia/pvp"
             >
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet" />
@@ -762,7 +762,7 @@ export default function PvPPage() {
                                     <span className="finding-stake-value">{stakeAmount} 💎</span>
                                 </div>
                                 {/* Invisible cancel hitbox over baked-in CANCEL button */}
-                                <button className="finding-cancel-hitbox" onClick={handleCancelSearch} aria-label="Cancel search" />
+                                <button className="finding-cancel-hitbox" onClick={handleCancelSearch} aria-label="Cancel Search" />
                             </div>
                         </div>
                     )}
@@ -842,7 +842,7 @@ export default function PvPPage() {
                                 <p>Your Score: <strong>{playerScore}</strong></p>
                                 <div className="waiting-spinner">
                                     <div className="spinner" />
-                                    <span>Waiting for opponent to finish...</span>
+                                    <span>Waiting For Opponent To Finish...</span>
                                 </div>
                             </MetalFrame>
                         </div>
@@ -891,7 +891,7 @@ export default function PvPPage() {
                                 </div>
                                 {/* Invisible hitboxes over baked-in PLAY AGAIN and BACK TO TRIVIA buttons */}
                                 <button className="result-play-again-hitbox" onClick={() => { setGameState('lobby'); setResult(null); }} aria-label="Play Again" />
-                                <button className="result-back-hitbox" onClick={() => router.push('/hub/trivia')} aria-label="Back to Trivia" />
+                                <button className="result-back-hitbox" onClick={() => router.push('/hub/trivia')} aria-label="Back To Trivia" />
                             </div>
                         </div>
                     )}

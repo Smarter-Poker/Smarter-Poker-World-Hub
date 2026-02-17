@@ -47,7 +47,7 @@ export default function JarvisDashboard() {
         <PageTransition>
             <SEOHead
                 title="Jarvis AI Coach — GTO Analysis"
-                description="Get personalized GTO coaching from Jarvis, your AI poker intelligence. Solver-grade analysis for every hand."
+                description="Get Personalized GTO Coaching From Jarvis, Your AI Poker Intelligence. Solver-grade Analysis For Every Hand."
                 canonical="/hub/training/jarvis"
             />
 
@@ -64,11 +64,11 @@ export default function JarvisDashboard() {
                     {loading ? (
                         <div style={styles.loading}>
                             <img src="/images/jarvis-avatar.png" alt="Jarvis" style={{ width: 48, height: 48, borderRadius: '50%' }} />
-                            <p>Analyzing your training data...</p>
+                            <p>Analyzing Your Training Data...</p>
                         </div>
                     ) : !user ? (
                         <div style={styles.emptyState}>
-                            <p>Sign in to see your personalized insights</p>
+                            <p>Sign In To See Your Personalized Insights</p>
                             <Link href="/hub/login" style={styles.signInBtn}>Sign In</Link>
                         </div>
                     ) : (
@@ -113,7 +113,7 @@ export default function JarvisDashboard() {
                             {/* Top Leaks */}
                             {insights?.topLeaks?.length > 0 && (
                                 <div style={styles.section}>
-                                    <h2 style={styles.sectionTitle}>🔍 Top Leaks to Fix</h2>
+                                    <h2 style={styles.sectionTitle}>🔍 Top Leaks To Fix</h2>
                                     <div style={styles.leaksList}>
                                         {insights.topLeaks.map((leak, i) => (
                                             <div key={i} style={styles.leakCard}>
@@ -134,7 +134,7 @@ export default function JarvisDashboard() {
                                             <div key={i} style={styles.gameCard}>
                                                 <div style={styles.gameName}>{game.name}</div>
                                                 <div style={styles.gameAccuracy}>{game.accuracy}%</div>
-                                                <div style={styles.gameLabel}>accuracy</div>
+                                                <div style={styles.gameLabel}>Accuracy</div>
                                             </div>
                                         ))}
                                     </div>

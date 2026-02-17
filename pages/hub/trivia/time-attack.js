@@ -245,8 +245,8 @@ export default function TimeAttackPage() {
     return (
         <PageTransition>
             <SEOHead
-                title="Time Attack Trivia — Beat the Clock"
-                description="Race against the clock in Time Attack poker trivia. Answer as many questions as possible before time runs out."
+                title="Time Attack Trivia — Beat The Clock"
+                description="Race Against The Clock In Time Attack Poker Trivia. Answer As Many Questions As Possible Before Time Runs Out."
                 canonical="/hub/trivia/time-attack"
             />
 
@@ -265,7 +265,7 @@ export default function TimeAttackPage() {
                         <div style={{ background: '#1a1a2e', border: '1px solid rgba(0,212,255,0.3)', borderRadius: 16, padding: 32, textAlign: 'center', maxWidth: 360 }}>
                             <div style={{ fontSize: 48, marginBottom: 16 }}>💎</div>
                             <h3 style={{ color: '#fff', marginBottom: 8 }}>Not Enough Diamonds</h3>
-                            <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: 20 }}>Each game costs 10💎. Get more diamonds or upgrade to VIP for unlimited access!</p>
+                            <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: 20 }}>Each Game Costs 10💎. Get More Diamonds Or Upgrade To VIP For Unlimited Access!</p>
                             <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
                                 <button onClick={() => router.push('/hub/diamond-store')} style={{ padding: '10px 20px', background: 'linear-gradient(135deg, #00D4FF, #0088FF)', border: 'none', borderRadius: 8, color: '#fff', fontWeight: 600, cursor: 'pointer' }}>Get Diamonds</button>
                                 <button onClick={() => setShowOutOfDiamonds(false)} style={{ padding: '10px 20px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, color: '#fff', cursor: 'pointer' }}>Close</button>
@@ -281,7 +281,7 @@ export default function TimeAttackPage() {
                                 <div className="lobby-header">
                                     <Timer size={48} className="mode-icon" />
                                     <h1>TIME ATTACK</h1>
-                                    <p>30 seconds. How many can you answer?</p>
+                                    <p>30 Seconds. How Many Can You Answer?</p>
                                 </div>
 
                                 <div className="stats-row">
@@ -300,9 +300,9 @@ export default function TimeAttackPage() {
                                 <div className="rewards-info">
                                     <h3>Rewards</h3>
                                     <ul>
-                                        <li>+1💎 for every 3 correct answers</li>
+                                        <li>+1💎 For Every 3 Correct Answers</li>
                                         <li>Max {DAILY_DIAMOND_CAP}💎 per day</li>
-                                        <li>Speed is everything!</li>
+                                        <li>Speed Is Everything!</li>
                                     </ul>
                                 </div>
 

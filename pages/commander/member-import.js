@@ -145,7 +145,7 @@ export default function MemberImport() {
     <>
       <SEOHead
                 title="Commander — Member Import"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
@@ -178,7 +178,7 @@ export default function MemberImport() {
 
               <div className="bg-[#242526] border border-[#3A3B3C] rounded-xl p-4">
                 <p className="text-xs text-[#B0B3B8] uppercase tracking-wider mb-2">Expected Format</p>
-                <p className="text-sm text-white mb-2">CSV with headers. Required: First Name, Last Name</p>
+                <p className="text-sm text-white mb-2">CSV With Headers. Required: First Name, Last Name</p>
                 <p className="text-xs text-[#B0B3B8]">Optional: Phone, Email, Member Number, Tier, Notes, Address</p>
               </div>
             </>
@@ -216,7 +216,7 @@ export default function MemberImport() {
               {!hasRequired && (
                 <div className="bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-xl p-3 flex items-center gap-2">
                   <AlertTriangle className="w-5 h-5 text-[#EF4444] flex-shrink-0" />
-                  <p className="text-sm text-[#EF4444]">Map both first_name and last_name to continue</p>
+                  <p className="text-sm text-[#EF4444]">Map Both First_name And Last_name To Continue</p>
                 </div>
               )}
 

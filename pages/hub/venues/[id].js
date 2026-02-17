@@ -790,7 +790,7 @@ export default function VenueDetailPage() {
     var dist = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
     reviews.forEach(function (r) {
       var star = Math.round(r.rating || 0);
-      if (star >= 1 && star <= 5) dist[star]++;
+      if (star >= 1 && Star <= 5) dist[star]++;
     });
     return dist;
   };
@@ -819,7 +819,7 @@ export default function VenueDetailPage() {
     <>
       <SEOHead
                 title="Poker Venue Details"
-                description="View detailed information about this poker venue including games, tournaments, and hours."
+                description="View Detailed Information About This Poker Venue Including Games, Tournaments, And Hours."
                 noindex={true}
             >
                 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -833,7 +833,7 @@ export default function VenueDetailPage() {
         {loading && (
           <div className="loading-state">
             <div className="spinner" />
-            <p>Loading venue...</p>
+            <p>Loading Venue...</p>
           </div>
         )}
 
@@ -843,7 +843,7 @@ export default function VenueDetailPage() {
             <h2>Venue Not Found</h2>
             <p>{error}</p>
             <Link href="/hub/poker-near-me" legacyBehavior>
-              <a className="back-link-btn">Back to Poker Near Me</a>
+              <a className="back-link-btn">Back To Poker Near Me</a>
             </Link>
           </div>
         )}
@@ -980,7 +980,7 @@ export default function VenueDetailPage() {
                     {venue.phone ? (
                       <a href={'tel:' + venue.phone} className="info-value info-link">{venue.phone}</a>
                     ) : (
-                      <span className="info-value muted">Not available</span>
+                      <span className="info-value muted">Not Available</span>
                     )}
                   </div>
                 </div>
@@ -1001,7 +1001,7 @@ export default function VenueDetailPage() {
                         {venue.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}
                       </a>
                     ) : (
-                      <span className="info-value muted">Not available</span>
+                      <span className="info-value muted">Not Available</span>
                     )}
                   </div>
                 </div>
@@ -1036,7 +1036,7 @@ export default function VenueDetailPage() {
                         View on PokerAtlas
                       </a>
                     ) : (
-                      <span className="info-value muted">Not listed</span>
+                      <span className="info-value muted">Not Listed</span>
                     )}
                   </div>
                 </div>
@@ -1161,7 +1161,7 @@ export default function VenueDetailPage() {
               <section className="tournaments-section">
                 <h2 className="section-title">Daily Tournament Schedule</h2>
                 <div className="empty-tournaments">
-                  <p>Tournament schedule data is being collected for this venue.</p>
+                  <p>Tournament Schedule Data Is Being Collected For This Venue.</p>
                   {venue.poker_atlas_url && (
                     <a href={venue.poker_atlas_url} target="_blank" rel="noopener noreferrer" className="pa-link">
                       Check PokerAtlas for current schedule
@@ -1254,7 +1254,7 @@ export default function VenueDetailPage() {
                     <input
                       type="text"
                       className="form-input"
-                      placeholder="Optional notes..."
+                      placeholder="Optional Notes..."
                       value={reportForm.notes}
                       onChange={function (e) { setReportForm(Object.assign({}, reportForm, { notes: e.target.value })); }}
                     />
@@ -1310,7 +1310,7 @@ export default function VenueDetailPage() {
                     <circle cx="12" cy="12" r="10" />
                     <circle cx="12" cy="12" r="3" />
                   </svg>
-                  <p>No live game reports. Be the first to report what&apos;s running!</p>
+                  <p>No Live Game Reports. Be The First To Report What&apos;s Running!</p>
                 </div>
               )}
             </section>
@@ -1366,7 +1366,7 @@ export default function VenueDetailPage() {
                       <input
                         type="text"
                         className="form-input"
-                        placeholder="Display name..."
+                        placeholder="Display Name..."
                         value={checkinName}
                         onChange={function (e) { setCheckinName(e.target.value); }}
                       />
@@ -1377,7 +1377,7 @@ export default function VenueDetailPage() {
                     <input
                       type="text"
                       className="form-input"
-                      placeholder="What are you playing? Looking for a game?"
+                      placeholder="What Are You Playing? Looking For A Game?"
                       value={checkinMessage}
                       onChange={function (e) { setCheckinMessage(e.target.value); }}
                     />
@@ -1414,7 +1414,7 @@ export default function VenueDetailPage() {
                     <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
                     <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                   </svg>
-                  <p>No check-ins yet today. Be the first to check in!</p>
+                  <p>No Check-Ins Yet Today. Be The First To Check In!</p>
                 </div>
               )}
             </section>
@@ -1496,7 +1496,7 @@ export default function VenueDetailPage() {
                     <input
                       type="text"
                       className="form-input"
-                      placeholder="Display name..."
+                      placeholder="Display Name..."
                       value={reviewForm.reviewer_name}
                       onChange={function (e) { setReviewForm(Object.assign({}, reviewForm, { reviewer_name: e.target.value })); }}
                     />
@@ -1506,7 +1506,7 @@ export default function VenueDetailPage() {
                     <textarea
                       className="form-textarea"
                       rows="4"
-                      placeholder="Share your experience at this venue..."
+                      placeholder="Share Your Experience At This Venue..."
                       value={reviewForm.review_text}
                       onChange={function (e) { setReviewForm(Object.assign({}, reviewForm, { review_text: e.target.value })); }}
                       required
@@ -1559,7 +1559,7 @@ export default function VenueDetailPage() {
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                   </svg>
-                  <p>No reviews yet. Be the first to review this venue!</p>
+                  <p>No Reviews Yet. Be The First To Review This Venue!</p>
                 </div>
               )}
             </section>
@@ -1587,11 +1587,11 @@ export default function VenueDetailPage() {
               {showPostForm && (
                 <form className="inline-form" onSubmit={handlePostActivity}>
                   <div className="form-group">
-                    <label className="form-label">What&apos;s happening?</label>
+                    <label className="form-label">What&apos;s Happening?</label>
                     <textarea
                       className="form-textarea"
                       rows="3"
-                      placeholder="Share an update about this venue..."
+                      placeholder="Share An Update About This Venue..."
                       value={postContent}
                       onChange={function (e) { setPostContent(e.target.value); }}
                       required
@@ -1645,7 +1645,7 @@ export default function VenueDetailPage() {
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
                   </svg>
-                  <p>No updates yet. Follow this venue for the latest news!</p>
+                  <p>No Updates Yet. Follow This Venue For The Latest News!</p>
                 </div>
               )}
             </section>
@@ -1786,7 +1786,7 @@ export default function VenueDetailPage() {
                   </div>
                   <div className="claim-verified-text">
                     <span className="claim-verified-title">Verified Page</span>
-                    <span className="claim-verified-desc">This venue page is managed by verified staff.</span>
+                    <span className="claim-verified-desc">This Venue Page Is Managed By Verified Staff.</span>
                   </div>
                 </div>
               ) : claimStatus === 'pending' ? (
@@ -1799,14 +1799,14 @@ export default function VenueDetailPage() {
                   </div>
                   <div className="claim-pending-text">
                     <span className="claim-pending-title">Claim Pending Review</span>
-                    <span className="claim-pending-desc">Your claim for this page is being reviewed. We&apos;ll be in touch soon.</span>
+                    <span className="claim-pending-desc">Your Claim For This Page Is Being Reviewed. We&apos;ll Be In Touch Soon.</span>
                   </div>
                 </div>
               ) : (
                 <>
                   <div className="claim-cta-card">
                     <div className="claim-cta-content">
-                      <h3 className="claim-cta-title">Own or manage this venue?</h3>
+                      <h3 className="claim-cta-title">Own Or Manage This Venue?</h3>
                       <p className="claim-cta-desc">
                         Claim this page to update info, respond to reviews, and post updates.
                       </p>
@@ -1834,7 +1834,7 @@ export default function VenueDetailPage() {
                           <input
                             type="text"
                             className="form-input"
-                            placeholder="Full name"
+                            placeholder="Full Name"
                             value={claimForm.contact_name}
                             onChange={function (e) { setClaimForm(Object.assign({}, claimForm, { contact_name: e.target.value })); }}
                             required
@@ -1858,7 +1858,7 @@ export default function VenueDetailPage() {
                           <input
                             type="tel"
                             className="form-input"
-                            placeholder="Phone number"
+                            placeholder="Phone Number"
                             value={claimForm.contact_phone}
                             onChange={function (e) { setClaimForm(Object.assign({}, claimForm, { contact_phone: e.target.value })); }}
                           />
@@ -1881,7 +1881,7 @@ export default function VenueDetailPage() {
                         <textarea
                           className="form-textarea"
                           rows="3"
-                          placeholder="How can we verify your association with this venue?"
+                          placeholder="How Can We Verify Your Association With This Venue?"
                           value={claimForm.verification_notes}
                           onChange={function (e) { setClaimForm(Object.assign({}, claimForm, { verification_notes: e.target.value })); }}
                         />

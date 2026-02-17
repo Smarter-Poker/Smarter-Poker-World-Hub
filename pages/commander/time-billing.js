@@ -182,7 +182,7 @@ export default function TimeBilling() {
     <>
       <SEOHead
                 title="Commander — Time Billing"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
@@ -225,7 +225,7 @@ export default function TimeBilling() {
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#B0B3B8]" />
             <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search players..." className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-lg pl-9 pr-3 py-2.5 text-sm text-[#E4E6EB] placeholder-[#B0B3B8]/50 focus:outline-none focus:border-[#1877F2]" />
+              placeholder="Search Players..." className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-lg pl-9 pr-3 py-2.5 text-sm text-[#E4E6EB] placeholder-[#B0B3B8]/50 focus:outline-none focus:border-[#1877F2]" />
           </div>
           <button onClick={() => setFilter(filter === 'active' ? 'completed' : 'active')}
             className={`px-4 py-2.5 rounded-lg text-sm font-medium ${
@@ -309,7 +309,7 @@ export default function TimeBilling() {
             <div className="bg-[#242526] rounded-t-2xl w-full max-w-lg p-5 space-y-4" onClick={e => e.stopPropagation()}>
               <h3 className="text-lg font-bold text-white">Start Session</h3>
               <input type="text" value={newPlayer} onChange={e => setNewPlayer(e.target.value)}
-                placeholder="Player name" autoFocus
+                placeholder="Player Name" autoFocus
                 className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl px-4 py-3 text-[#E4E6EB] placeholder-[#B0B3B8]/50 focus:outline-none focus:border-[#1877F2]" />
               <div className="grid grid-cols-3 gap-3">
                 <div>

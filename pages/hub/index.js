@@ -53,7 +53,7 @@ export default function HubPage() {
         <>
             <SEOHead
                 title="Poker Hub — Your Command Center"
-                description="Access all Smarter.Poker features from one hub: GTO training, poker near me, bankroll tracking, trivia, news, social, and more."
+                description="Access All Smarter.Poker Features From One Hub: GTO Training, Poker Near Me, Bankroll Tracking, Trivia, News, Social, And More."
                 canonical="/hub"
             />
             <UniversalHeader

@@ -20,7 +20,7 @@ export default function NewsSources() {
         <>
             <SEOHead
                 title="News Sources — Poker Media Outlets"
-                description="Browse poker news sources and media outlets aggregated on Smarter.Poker."
+                description="Browse Poker News Sources And Media Outlets Aggregated On Smarter.Poker."
                 canonical="/hub/news/sources"
             />
 

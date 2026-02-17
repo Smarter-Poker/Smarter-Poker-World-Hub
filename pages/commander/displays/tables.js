@@ -169,8 +169,8 @@ export default function TablesDisplay() {
 
         {/* Footer */}
         <div className="border-t border-white/10 px-8 py-2 flex items-center justify-between">
-          <p className="text-sm text-white/20">See the front desk or join the waitlist for an open seat</p>
-          <p className="text-white/15 text-xs tracking-wider">Powered by Smarter.Poker</p>
+          <p className="text-sm text-white/20">See The Front Desk Or Join The Waitlist For An Open Seat</p>
+          <p className="text-white/15 text-xs tracking-wider">Powered By Smarter.Poker</p>
         </div>
       </div>
     </CommanderLayout>

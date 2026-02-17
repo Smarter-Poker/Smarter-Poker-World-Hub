@@ -133,7 +133,7 @@ export default function TableAssignments() {
     <>
       <SEOHead
                 title="Commander — Table Assignments"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">

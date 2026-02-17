@@ -136,7 +136,7 @@ export default function TournamentSettingsPage() {
         <CommanderLayout title={`Tournament Settings | ${venue?.name || 'Commander'}`}>
             <SEOHead
                 title="Commander — Tournament Settings"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
             <div className="cmd-page">
@@ -186,7 +186,7 @@ export default function TournamentSettingsPage() {
                                         {/* Stats Row */}
                                         <div className="grid grid-cols-4 gap-2 mt-3">
                                             <div className="text-center">
-                                                <p className="text-xs text-[#64748B]">Buy-in</p>
+                                                <p className="text-xs text-[#64748B]">Buy-In</p>
                                                 <p className="text-sm font-medium text-white">
                                                     {formatBuyin(template.buyin_amount, template.buyin_fee, 0)}
                                                 </p>
@@ -282,7 +282,7 @@ export default function TournamentSettingsPage() {
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium text-white">Tournament Manager</p>
-                                    <p className="text-xs text-[#64748B]">View, edit, and manage all tournaments</p>
+                                    <p className="text-xs text-[#64748B]">View, Edit, And Manage All Tournaments</p>
                                 </div>
                                 <ChevronRight className="w-4 h-4 text-[#64748B] ml-auto" />
                             </button>
@@ -296,7 +296,7 @@ export default function TournamentSettingsPage() {
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium text-white">Tournament Clock</p>
-                                    <p className="text-xs text-[#64748B]">Run the live tournament clock display</p>
+                                    <p className="text-xs text-[#64748B]">Run The Live Tournament Clock Display</p>
                                 </div>
                                 <ChevronRight className="w-4 h-4 text-[#64748B] ml-auto" />
                             </button>

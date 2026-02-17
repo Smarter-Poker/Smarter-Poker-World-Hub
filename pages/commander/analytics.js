@@ -79,7 +79,7 @@ function TopPlayersTable({ players }) {
             <th className="text-left py-3 px-4 text-sm font-medium text-[#B0B3B8]">Player</th>
             <th className="text-right py-3 px-4 text-sm font-medium text-[#B0B3B8]">Sessions</th>
             <th className="text-right py-3 px-4 text-sm font-medium text-[#B0B3B8]">Hours</th>
-            <th className="text-right py-3 px-4 text-sm font-medium text-[#B0B3B8]">Buy-ins</th>
+            <th className="text-right py-3 px-4 text-sm font-medium text-[#B0B3B8]">Buy-Ins</th>
           </tr>
         </thead>
         <tbody>
@@ -278,7 +278,7 @@ export default function AnalyticsPage() {
       <>
         <SEOHead
                 title="Commander — Analytics & Reports"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
 
@@ -340,7 +340,7 @@ export default function AnalyticsPage() {
                     color="#1877F2"
                   />
                   <StatCard
-                    title="Total Buy-ins"
+                    title="Total Buy-Ins"
                     value={`$${stats.totalBuyins.toLocaleString()}`}
                     change={stats.buyinsChange}
                     icon={DollarSign}
@@ -383,7 +383,7 @@ export default function AnalyticsPage() {
                     <p className="text-2xl font-bold text-white">
                       ${stats.totalSessions > 0 ? Math.round(stats.totalBuyins / stats.totalSessions) : 0}
                     </p>
-                    <p className="text-sm text-[#B0B3B8]">Avg Buy-in</p>
+                    <p className="text-sm text-[#B0B3B8]">Avg Buy-In</p>
                   </div>
                   <div className="cmd-panel p-4 text-center">
                     <p className="text-2xl font-bold text-white">

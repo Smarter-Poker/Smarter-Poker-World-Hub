@@ -85,7 +85,7 @@ export default function LivesPage() {
         const diff = touchStart - touchEnd;
 
         if (Math.abs(diff) > 50) {
-            if (diff > 0 && currentIndex < streams.length - 1) {
+            if (diff > 0 && CurrentIndex < streams.length - 1) {
                 // Swipe up - next video
                 setCurrentIndex(prev => prev + 1);
             } else if (diff < 0 && currentIndex > 0) {
@@ -98,7 +98,7 @@ export default function LivesPage() {
 
     // Handle wheel scroll
     const handleWheel = useCallback((e) => {
-        if (e.deltaY > 30 && currentIndex < streams.length - 1) {
+        if (e.deltaY > 30 && CurrentIndex < streams.length - 1) {
             setCurrentIndex(prev => prev + 1);
         } else if (e.deltaY < -30 && currentIndex > 0) {
             setCurrentIndex(prev => prev - 1);
@@ -200,11 +200,11 @@ export default function LivesPage() {
         <>
             <SEOHead
                 title="Live Streams — Watch Poker Live"
-                description="Watch live poker streams and events. Follow your favorite players and catch the action in real time."
+                description="Watch Live Poker Streams And Events. Follow Your Favorite Players And Catch The Action In Real Time."
                 canonical="/hub/lives"
             />
 
-            <FeatureGate featureKey="lives" userId={userId} cost={25} duration={24} featureName="Lives" description="Watch live poker streams and replays for 24 hours.">
+            <FeatureGate featureKey="lives" userId={userId} cost={25} duration={24} featureName="Lives" description="Watch Live Poker Streams And Replays For 24 Hours.">
                 <div
                     ref={containerRef}
                     onTouchStart={handleTouchStart}
@@ -251,7 +251,7 @@ export default function LivesPage() {
                             textAlign: 'center',
                         }}>
                             <div style={{ fontSize: 40, marginBottom: 16 }}>📺</div>
-                            <div>Loading streams...</div>
+                            <div>Loading Streams...</div>
                         </div>
                     )}
 
@@ -540,7 +540,7 @@ export default function LivesPage() {
                                     value={chatText}
                                     onChange={e => setChatText(e.target.value)}
                                     onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitChatMsg(); } }}
-                                    placeholder="Say something..."
+                                    placeholder="Say Something..."
                                     style={{
                                         flex: 1, padding: '10px 14px', background: 'rgba(255,255,255,0.1)',
                                         border: 'none', borderRadius: 20, fontSize: 14, color: 'white', outline: 'none'

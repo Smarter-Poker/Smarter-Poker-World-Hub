@@ -231,7 +231,7 @@ export default function CommanderDashboard() {
       <>
         <SEOHead
                 title="Commander Dashboard — Room Overview"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
 

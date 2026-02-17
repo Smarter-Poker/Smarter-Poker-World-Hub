@@ -427,7 +427,7 @@ function LinkPreviewCard({ url }) {
                     justifyContent: 'center',
                     color: 'white',
                     fontSize: 24
-                }}>⏳ Loading preview...</div>
+                }}>⏳ Loading Preview...</div>
             </div>
         );
     }
@@ -912,7 +912,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
             {hasClubPage && (
                 <div style={{ padding: '8px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: C.textSec }}>
-                        <span>Posting as</span>
+                        <span>Posting As</span>
                         <button
                             onClick={() => setShowIdentityPicker(!showIdentityPicker)}
                             style={{
@@ -1100,7 +1100,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                                 color: C.textSec
                             }}>
                                 <span style={{ fontSize: 24 }}>⏳</span>
-                                <div style={{ marginTop: 8 }}>Loading preview...</div>
+                                <div style={{ marginTop: 8 }}>Loading Preview...</div>
                             </div>
                         ) : linkPreview && (
                             <>
@@ -1563,7 +1563,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
             </div>
             {showComments && (
                 <div style={{ borderTop: `1px solid ${C.border}`, padding: 12 }}>
-                    {loadingComments && <div style={{ color: C.textSec, fontSize: 13 }}>Loading comments...</div>}
+                    {loadingComments && <div style={{ color: C.textSec, fontSize: 13 }}>Loading Comments...</div>}
                     {comments.map(c => (
                         <div key={c.id} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
                             <Avatar src={c.authorAvatar} name={c.authorName} size={28} />
@@ -1575,7 +1575,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                     ))}
                     <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                         <Avatar src={currentUserAvatar} name={currentUserName} size={28} />
-                        <input value={newComment} onChange={e => setNewComment(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleSubmitComment()} placeholder="Write a comment..." style={{ flex: 1, padding: '8px 14px', borderRadius: 18, border: 'none', background: C.bg, fontSize: 14, outline: 'none' }} />
+                        <input value={newComment} onChange={e => setNewComment(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleSubmitComment()} placeholder="Write A Comment..." style={{ flex: 1, padding: '8px 14px', borderRadius: 18, border: 'none', background: C.bg, fontSize: 14, outline: 'none' }} />
                         <button onClick={handleSubmitComment} disabled={!newComment.trim()} style={{ background: 'none', border: 'none', cursor: 'pointer', color: newComment.trim() ? C.blue : C.textSec, fontWeight: 600, fontSize: 13 }}>Post</button>
                     </div>
                 </div>
@@ -1649,7 +1649,7 @@ function ContactsSidebar({ contacts, onOpenChat, onSearch, searchResults }) {
                     <Avatar name={u.username} size={32} /><span style={{ fontSize: 13 }}>{u.username}</span>
                 </div>
             ))}
-            {contacts.length === 0 ? <p style={{ color: C.textSec, fontSize: 12, textAlign: 'left', margin: 0 }}>No contacts yet</p> : contacts.map(c => (
+            {contacts.length === 0 ? <p style={{ color: C.textSec, fontSize: 12, textAlign: 'left', margin: 0 }}>No Contacts Yet</p> : contacts.map(c => (
                 <div key={c.id} onClick={() => onOpenChat(c)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 4px', cursor: 'pointer', borderRadius: 6 }}>
                     <Avatar src={c.avatar} name={c.name} size={36} online={c.online} /><span style={{ fontSize: 13, fontWeight: 500 }}>{c.name}</span>
                 </div>
@@ -1713,10 +1713,10 @@ function ClubPageCreateModal({ C, commanderData, userId, onCreated, onClose }) {
             <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)' }} />
             <div style={{ position: 'relative', background: '#fff', borderRadius: 12, width: '90%', maxWidth: 480, padding: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }}>
                 <h2 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 800, color: C.text }}>Create Your Club Page</h2>
-                <p style={{ margin: '0 0 20px', fontSize: 14, color: C.textSec }}>Set up a public page for your venue on Smarter.Poker Social</p>
+                <p style={{ margin: '0 0 20px', fontSize: 14, color: C.textSec }}>Set Up A Public Page For Your Venue On Smarter.Poker Social</p>
 
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 4 }}>Page Name</label>
-                <input value={pageName} onChange={e => setPageName(e.target.value)} placeholder="Your venue name"
+                <input value={pageName} onChange={e => setPageName(e.target.value)} placeholder="Your Venue Name"
                     style={{ width: '100%', padding: '10px 14px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 15, outline: 'none', marginBottom: 14, boxSizing: 'border-box', fontFamily: 'inherit', color: '#050505', background: '#fff' }} />
 
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 4 }}>Category</label>
@@ -1726,7 +1726,7 @@ function ClubPageCreateModal({ C, commanderData, userId, onCreated, onClose }) {
                 </select>
 
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 4 }}>Description</label>
-                <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Tell people about your venue..."
+                <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Tell People About Your Venue..."
                     rows={3} style={{ width: '100%', padding: '10px 14px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 14, outline: 'none', resize: 'vertical', marginBottom: 14, boxSizing: 'border-box', fontFamily: 'inherit', color: '#050505', background: '#fff' }} />
 
                 {error && <p style={{ color: C.red, fontSize: 13, margin: '0 0 10px' }}>{error}</p>}
@@ -2155,7 +2155,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                         <input type="file" accept="image/*" ref={logoInputRef} onChange={handleLogoUpload} style={{ display: 'none' }} />
                         <div
                             onClick={() => logoInputRef.current?.click()}
-                            title="Click to upload logo"
+                            title="Click To Upload Logo"
                             style={{
                                 width: 80, height: 80, borderRadius: '50%', background: '#fff',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -2345,12 +2345,12 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                     {loadingPosts ? (
                         <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
                             <div style={{ width: 32, height: 32, border: '3px solid #E4E6EB', borderTopColor: '#1877F2', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
-                            <p>Loading posts...</p>
+                            <p>Loading Posts...</p>
                         </div>
                     ) : posts.length === 0 ? (
                         <div style={{ background: C.card, borderRadius: 12, padding: 40, textAlign: 'center' }}>
-                            <p style={{ fontSize: 16, fontWeight: 600, color: C.text, margin: '0 0 4px' }}>No posts yet</p>
-                            <p style={{ fontSize: 13, color: C.textSec, margin: 0 }}>Share your first update with your followers!</p>
+                            <p style={{ fontSize: 16, fontWeight: 600, color: C.text, margin: '0 0 4px' }}>No Posts Yet</p>
+                            <p style={{ fontSize: 13, color: C.textSec, margin: 0 }}>Share Your First Update With Your Followers!</p>
                         </div>
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -2405,8 +2405,8 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                     </div>
                     {photos.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
-                            <div style={{ fontSize: 24, marginBottom: 8, fontWeight: 700 }}>No photos yet</div>
-                            <p style={{ margin: 0, fontSize: 14 }}>No photos yet. Add photos to showcase your venue!</p>
+                            <div style={{ fontSize: 24, marginBottom: 8, fontWeight: 700 }}>No Photos Yet</div>
+                            <p style={{ margin: 0, fontSize: 14 }}>No Photos Yet. Add Photos To Showcase Your Venue!</p>
                         </div>
                     ) : (
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
@@ -2464,7 +2464,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                                 ))}
                                             </div>
                                             <div style={{ display: 'flex', gap: 6 }}>
-                                                <input value={newGame[day] || ''} onChange={e => setNewGame(prev => ({ ...prev, [day]: e.target.value }))} placeholder="Add game (e.g. 1/2 NLH)" onKeyDown={e => {
+                                                <input value={newGame[day] || ''} onChange={e => setNewGame(prev => ({ ...prev, [day]: e.target.value }))} placeholder="Add Game (e.g. 1/2 NLH)" onKeyDown={e => {
                                                     if (e.key === 'Enter' && (newGame[day] || '').trim()) {
                                                         setSchedule(prev => ({ ...prev, [day]: { ...prev[day], games: [...(prev[day].games || []), newGame[day].trim()] } }));
                                                         setNewGame(prev => ({ ...prev, [day]: '' }));
@@ -2495,14 +2495,14 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                     <div style={{ background: 'rgba(24,119,242,0.06)', border: '1px solid rgba(24,119,242,0.2)', borderRadius: 10, padding: '12px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
                         <span style={{ fontSize: 18 }}>&#9432;</span>
                         <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Tournament schedules are managed through Club Commander</div>
-                            <div style={{ fontSize: 12, color: C.textSec, marginTop: 2 }}>Tournaments added in Commander automatically appear here and on your public page.</div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Tournament Schedules Are Managed Through Club Commander</div>
+                            <div style={{ fontSize: 12, color: C.textSec, marginTop: 2 }}>Tournaments Added In Commander Automatically Appear Here And On Your Public Page.</div>
                         </div>
                         <button onClick={() => window.open('/commander/tournaments', '_blank')} style={{ ...btnPrimary, whiteSpace: 'nowrap', fontSize: 12 }}>Open Commander</button>
                     </div>
                     {/* Auto-published tournament list (read-only) */}
                     {tournaments.length === 0 ? (
-                        <div style={{ textAlign: 'center', padding: 30, color: C.textSec }}><div style={{ fontSize: 24, marginBottom: 8, fontWeight: 700 }}>No tournaments yet</div><p style={{ margin: 0, fontSize: 14 }}>Add tournaments through Club Commander to see them here.</p></div>
+                        <div style={{ textAlign: 'center', padding: 30, color: C.textSec }}><div style={{ fontSize: 24, marginBottom: 8, fontWeight: 700 }}>No Tournaments Yet</div><p style={{ margin: 0, fontSize: 14 }}>Add Tournaments Through Club Commander To See Them Here.</p></div>
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                             {tournaments.map((t, i) => {
@@ -2543,7 +2543,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                             </button>
                         </div>
                     </div>
-                    <p style={{ margin: '0 0 12px', fontSize: 13, color: C.textSec }}>Toggle the amenities your venue offers. Visitors will see these on your public page.</p>
+                    <p style={{ margin: '0 0 12px', fontSize: 13, color: C.textSec }}>Toggle The Amenities Your Venue Offers. Visitors Will See These On Your Public Page.</p>
                     {AMENITIES_LIST.map(cat => (
                         <div key={cat.cat} style={{ marginBottom: 12 }}>
                             <div style={{ fontSize: 13, fontWeight: 700, color: C.blue, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>{cat.cat}</div>
@@ -2591,7 +2591,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                 <div style={cardSt}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                         <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>Live Game Board</h3>
-                        <a href="/hub/commander" style={{ fontSize: 13, fontWeight: 600, color: C.blue, textDecoration: 'none' }}>Manage in Club Commander &rarr;</a>
+                        <a href="/hub/commander" style={{ fontSize: 13, fontWeight: 600, color: C.blue, textDecoration: 'none' }}>Manage In Club Commander &rarr;</a>
                     </div>
 
                     <div style={{ fontSize: 12, color: C.textSec, padding: '8px 12px', background: '#f0f7ff', borderRadius: 8, marginBottom: 12 }}>
@@ -2609,8 +2609,8 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                             <div style={{ fontSize: 48, marginBottom: 12, opacity: 0.4 }}>
                                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="M12 8v4l3 3" /></svg>
                             </div>
-                            <div style={{ fontSize: 18, marginBottom: 6, fontWeight: 700, color: C.text }}>No active games</div>
-                            <p style={{ margin: '0 0 12px', fontSize: 14 }}>Open Club Commander to create and manage live games</p>
+                            <div style={{ fontSize: 18, marginBottom: 6, fontWeight: 700, color: C.text }}>No Active Games</div>
+                            <p style={{ margin: '0 0 12px', fontSize: 14 }}>Open Club Commander To Create And Manage Live Games</p>
                             <a href="/hub/commander" style={{ display: 'inline-block', padding: '10px 24px', borderRadius: 8, background: C.blue, color: '#fff', fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>Open Club Commander</a>
                         </div>
                     ) : (
@@ -2919,13 +2919,13 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
 
                 {/* Follow Status Banner */}
                 {followLoading ? (
-                    <div style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.1)', fontSize: 13 }}>Checking access...</div>
+                    <div style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.1)', fontSize: 13 }}>Checking Access...</div>
                 ) : followStatus === 'none' ? (
                     <div style={{ padding: '10px 14px', borderRadius: 8, background: 'rgba(24,119,242,0.3)', border: '1px solid rgba(24,119,242,0.5)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                             <div>
-                                <div style={{ fontSize: 14, fontWeight: 700 }}>Follow to Play</div>
-                                <div style={{ fontSize: 12, opacity: 0.8 }}>You must follow this page before you can sign up for games.</div>
+                                <div style={{ fontSize: 14, fontWeight: 700 }}>Follow To Play</div>
+                                <div style={{ fontSize: 12, opacity: 0.8 }}>You Must Follow This Page Before You Can Sign Up For Games.</div>
                             </div>
                             <button onClick={handleFollow} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#1877F2', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
                                 {!userId ? '🔒 Sign In' : '➕ Follow Page'}
@@ -2935,13 +2935,13 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                 ) : followStatus === 'pending' ? (
                     <div style={{ padding: '10px 14px', borderRadius: 8, background: 'rgba(245,158,11,0.2)', border: '1px solid rgba(245,158,11,0.5)' }}>
                         <div style={{ fontSize: 14, fontWeight: 700 }}>⏳ Follow Request Pending</div>
-                        <div style={{ fontSize: 12, opacity: 0.85 }}>The host needs to approve your request before you can sign up for games. Check back soon!</div>
+                        <div style={{ fontSize: 12, opacity: 0.85 }}>The Host Needs To Approve Your Request Before You Can Sign Up For Games. Check Back Soon!</div>
                     </div>
                 ) : (
                     <>
                         {/* Player Name — locked to Smarter Poker profile name */}
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                            <label style={{ fontSize: 12, fontWeight: 600, opacity: 0.8 }}>Signed in as:</label>
+                            <label style={{ fontSize: 12, fontWeight: 600, opacity: 0.8 }}>Signed In As:</label>
                             <span style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.06)', color: '#fff', fontSize: 14, fontFamily: 'inherit' }}>{playerName || 'Player'}</span>
                         </div>
                     </>
@@ -2957,9 +2957,9 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                 </div>
             ) : games.length === 0 ? (
                 <div style={{ background: C.card, borderRadius: 12, padding: 40, textAlign: 'center' }}>
-                    <div style={{ fontSize: 24, marginBottom: 8, fontWeight: 700 }}>No live games</div>
-                    <p style={{ fontSize: 16, fontWeight: 600, color: C.text, margin: '0 0 4px' }}>No live games right now</p>
-                    <p style={{ fontSize: 13, color: C.textSec, margin: 0 }}>Check back soon for upcoming games!</p>
+                    <div style={{ fontSize: 24, marginBottom: 8, fontWeight: 700 }}>No Live Games</div>
+                    <p style={{ fontSize: 16, fontWeight: 600, color: C.text, margin: '0 0 4px' }}>No Live Games Right Now</p>
+                    <p style={{ fontSize: 13, color: C.textSec, margin: 0 }}>Check Back Soon For Upcoming Games!</p>
                 </div>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -3238,7 +3238,7 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                     <div>
                         <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: C.text }}>Club Pages</h2>
-                        <p style={{ margin: '2px 0 0', fontSize: 13, color: C.textSec }}>Follow venues, tours, series, home games & more</p>
+                        <p style={{ margin: '2px 0 0', fontSize: 13, color: C.textSec }}>Follow Venues, Tours, Series, Home Games & More</p>
                     </div>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                         {(() => { try { return !!JSON.parse(localStorage.getItem('commander_staff') || 'null'); } catch { return false; } })() && (
@@ -3252,7 +3252,7 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
                         <button onClick={onClose} style={{
                             background: '#E4E6EB', border: 'none', borderRadius: 20, padding: '8px 16px',
                             fontSize: 13, fontWeight: 600, cursor: 'pointer', color: C.text, fontFamily: 'inherit'
-                        }}>Back to Feed</button>
+                        }}>Back To Feed</button>
                     </div>
                 </div>
 
@@ -3260,7 +3260,7 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
                 <div style={{ position: 'relative', marginBottom: 10 }}>
                     <input
                         type="text"
-                        placeholder="Search pages..."
+                        placeholder="Search Pages..."
                         value={searchInput}
                         onChange={e => setSearchInput(e.target.value)}
                         style={{
@@ -3307,7 +3307,7 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
             {loading ? (
                 <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
                     <div style={{ width: 32, height: 32, border: '3px solid #E4E6EB', borderTopColor: '#1877F2', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
-                    <p>Loading pages...</p>
+                    <p>Loading Pages...</p>
                 </div>
             ) : pages.length === 0 ? (
                 <div style={{ background: C.card, borderRadius: 12, padding: 40, textAlign: 'center' }}>
@@ -4598,7 +4598,7 @@ export default function SocialMediaPage() {
             )}
             <SEOHead
                 title="Social Hub — Poker Community & Feed"
-                description="Connect with poker players worldwide. Share updates, follow friends, join discussions, and build your poker network on the Smarter.Poker social hub."
+                description="Connect With Poker Players Worldwide. Share Updates, Follow Friends, Join Discussions, And Build Your Poker Network On The Smarter.Poker Social Hub."
                 canonical="/hub/social-media"
             />
 
@@ -4639,7 +4639,7 @@ export default function SocialMediaPage() {
                         <Avatar src={user.avatar} name={user.name} size={48} />
                         <div style={{ flex: 1 }}>
                             <div style={{ fontWeight: 600, fontSize: 17 }}>{user.name}</div>
-                            <div style={{ fontSize: 13, color: C.textSec }}>View your profile</div>
+                            <div style={{ fontSize: 13, color: C.textSec }}>View Your Profile</div>
                         </div>
                         <div style={{
                             background: C.blue, color: 'white', borderRadius: '50%',
@@ -4699,7 +4699,7 @@ export default function SocialMediaPage() {
 
                 {/* Your Shortcuts */}
                 <div style={{ padding: '0 16px', marginBottom: 24 }}>
-                    <h4 style={{ fontSize: 14, fontWeight: 600, color: C.textSec, marginBottom: 12 }}>Your shortcuts</h4>
+                    <h4 style={{ fontSize: 14, fontWeight: 600, color: C.textSec, marginBottom: 12 }}>Your Shortcuts</h4>
                     <div style={{ display: 'flex', gap: 12 }}>
                         <Link href="/hub/club-arena" onClick={() => setSidebarOpen(false)} style={{ textAlign: 'center', textDecoration: 'none', color: 'inherit' }}>
                             <div style={{ width: 56, height: 56, borderRadius: 8, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -4883,7 +4883,7 @@ export default function SocialMediaPage() {
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#65676b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                             <circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" /><path d="M12 17h.01" />
                         </svg>
-                        <span style={{ flex: 1, fontSize: 15 }}>Help and support</span>
+                        <span style={{ flex: 1, fontSize: 15 }}>Help And Support</span>
                         <span style={{ color: C.textSec }}>›</span>
                     </Link>
                     <Link href="/hub/settings" onClick={() => setSidebarOpen(false)} style={{
@@ -5045,8 +5045,8 @@ export default function SocialMediaPage() {
                                 {notifications.length === 0 ? (
                                     <div style={{ padding: '60px 24px', textAlign: 'center', color: C.textSec }}>
                                         <div style={{ fontSize: 48, marginBottom: 12 }}>🔔</div>
-                                        <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>No notifications yet</div>
-                                        <div style={{ fontSize: 14 }}>When someone interacts with your posts or profile, you'll see it here.</div>
+                                        <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>No Notifications Yet</div>
+                                        <div style={{ fontSize: 14 }}>When Someone Interacts With Your Posts Or Profile, You'll See It Here.</div>
                                     </div>
                                 ) : (
                                     notifications.map(n => {
@@ -5195,7 +5195,7 @@ export default function SocialMediaPage() {
                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                             <div>
                                                 <span style={{ fontSize: 14, fontWeight: 700, color: '#050505' }}>Create Your Club Page</span>
-                                                <p style={{ margin: '2px 0 0', fontSize: 13, color: '#65676B' }}>Set up a public page for your venue</p>
+                                                <p style={{ margin: '2px 0 0', fontSize: 13, color: '#65676B' }}>Set Up A Public Page For Your Venue</p>
                                             </div>
                                             <button onClick={() => setShowCreatePage(true)} style={{
                                                 padding: '8px 20px', borderRadius: 8, border: 'none',
@@ -5235,7 +5235,7 @@ export default function SocialMediaPage() {
                         {/* Login prompt */}
                         {!user && (
                             <div style={{ background: C.card, borderRadius: 8, padding: 24, textAlign: 'center', marginBottom: 8 }}>
-                                <p style={{ color: C.textSec, marginBottom: 12 }}>Log in to post and interact!</p>
+                                <p style={{ color: C.textSec, marginBottom: 12 }}>Log In To Post And Interact!</p>
                                 <Link href="/auth/login" style={{
                                     display: 'inline-block', padding: '10px 24px', background: C.blue,
                                     color: 'white', borderRadius: 6, fontWeight: 600, textDecoration: 'none'
@@ -5266,8 +5266,8 @@ export default function SocialMediaPage() {
                         {posts.length === 0 ? (
                             <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
                                 <div style={{ fontSize: 48 }}></div>
-                                <h3 style={{ color: C.text }}>No posts yet</h3>
-                                <p>Be the first to share something!</p>
+                                <h3 style={{ color: C.text }}>No Posts Yet</h3>
+                                <p>Be The First To Share Something!</p>
                             </div>
                         ) : (
                             <>

@@ -148,7 +148,7 @@ export default function PlayerHistoryPage() {
     <>
       <SEOHead
                 title="Commander History"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
 
@@ -174,7 +174,7 @@ export default function PlayerHistoryPage() {
                 <p className="text-2xl font-bold text-white">{stats.totalHours}h</p>
               </div>
               <div className="cmd-inset rounded-lg p-3">
-                <p className="text-[#64748B] text-sm">Total Buy-ins</p>
+                <p className="text-[#64748B] text-sm">Total Buy-Ins</p>
                 <p className="text-2xl font-bold text-white">${stats.totalBuyins.toLocaleString()}</p>
               </div>
               <div className="cmd-inset rounded-lg p-3">
@@ -218,7 +218,7 @@ export default function PlayerHistoryPage() {
               <div className="cmd-icon-box mx-auto mb-3">
                 <History className="w-6 h-6" />
               </div>
-              <p className="text-[#64748B]">No sessions found</p>
+              <p className="text-[#64748B]">No Sessions Found</p>
               <p className="text-sm text-[#64748B] mt-1">
                 Check in at a venue to start tracking
               </p>

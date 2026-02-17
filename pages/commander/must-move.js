@@ -118,7 +118,7 @@ export default function MustMoveManager() {
     <>
       <SEOHead
                 title="Commander — Must-Move Tables"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
@@ -146,7 +146,7 @@ export default function MustMoveManager() {
             {/* Explanation */}
             <div className="bg-[#242526] border border-[#3A3B3C] rounded-2xl p-4">
               <p className="text-sm text-[#B0B3B8]">
-                When 2+ tables run the same game, the newer table becomes <span className="text-[#F59E0B] font-semibold">must-move</span>.
+                When 2+ tables run the same game, the newer table becomes <span className="text-[#F59E0B] font-semibold">Must-move</span>.
                 Players at the must-move table transfer to the main game as seats open.
               </p>
             </div>

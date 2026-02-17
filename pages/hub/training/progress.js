@@ -87,7 +87,7 @@ export default function TrainingProgress() {
                     accuracy: data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0,
                     total: data.total
                 }))
-                .filter(area => area.accuracy < 70 && area.total >= 5)
+                .filter(area => Area.accuracy < 70 && area.total >= 5)
                 .sort((a, b) => a.accuracy - b.accuracy);
 
             // Fetch streak data
@@ -126,7 +126,7 @@ export default function TrainingProgress() {
         return (
             <div style={styles.loadingContainer}>
                 <div style={styles.spinner}></div>
-                <p style={styles.loadingText}>Loading your progress...</p>
+                <p style={styles.loadingText}>Loading Your Progress...</p>
             </div>
         );
     }
@@ -137,7 +137,7 @@ export default function TrainingProgress() {
                 <div style={styles.container}>
                     <UniversalHeader pageDepth={2} />
                     <div style={styles.emptyState}>
-                        <h2>Sign in to view your progress</h2>
+                        <h2>Sign In To View Your Progress</h2>
                         <Link href="/login" style={styles.button}>Sign In</Link>
                     </div>
                 </div>
@@ -149,7 +149,7 @@ export default function TrainingProgress() {
         <PageTransition>
             <SEOHead
                 title="Training Progress — Your Journey"
-                description="Track your GTO training progress across all 100 games and categories."
+                description="Track Your GTO Training Progress Across All 100 Games And Categories."
                 canonical="/hub/training/progress"
                 noindex={true}
             />
@@ -214,7 +214,7 @@ export default function TrainingProgress() {
                     {/* Weak Areas */}
                     {stats.weakAreas.length > 0 && (
                         <section style={styles.section}>
-                            <h2 style={styles.sectionTitle}> Areas to Improve</h2>
+                            <h2 style={styles.sectionTitle}> Areas To Improve</h2>
                             <div style={styles.weakAreasList}>
                                 {stats.weakAreas.map(area => (
                                     <WeakAreaCard key={area.category} {...area} />

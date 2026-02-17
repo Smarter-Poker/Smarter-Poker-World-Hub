@@ -342,7 +342,7 @@ export default function Admin() {
         <>
             <SEOHead
                 title="Club Arena — Admin"
-                description="Club Arena administration panel."
+                description="Club Arena Administration Panel."
                 canonical="/hub/club-arena/admin"
                 noindex={true}
             />
@@ -362,7 +362,7 @@ export default function Admin() {
                     ) : !isAdmin ? (
                         <div style={S.noAccess}>
                             <span style={{ fontSize: '48px', display: 'block', marginBottom: '16px' }}>🔒</span>
-                            <p>You don't have admin access to this club</p>
+                            <p>You Don't Have Admin Access To This Club</p>
                         </div>
                     ) : (
                         <>
@@ -401,7 +401,7 @@ export default function Admin() {
                         </div>
                         <div style={S.modalBody}>
                             {members.length === 0 ? (
-                                <p style={{ color: FB.textSecondary, textAlign: 'center' }}>No members yet</p>
+                                <p style={{ color: FB.textSecondary, textAlign: 'center' }}>No Members Yet</p>
                             ) : members.map(member => (
                                 <div key={member.id} style={S.memberRow}>
                                     <div style={S.memberAvatar}>
@@ -459,7 +459,7 @@ export default function Admin() {
                                     value={selectedMember?.id || ''}
                                     onChange={e => setSelectedMember(members.find(m => m.id === e.target.value))}
                                 >
-                                    <option value="">Choose a member...</option>
+                                    <option value="">Choose A Member...</option>
                                     {members.map(m => (
                                         <option key={m.id} value={m.id}>
                                             {m.profiles?.alias || m.profiles?.username} ({(m.chip_balance || 0).toLocaleString()} chips)
@@ -467,13 +467,13 @@ export default function Admin() {
                                     ))}
                                 </select>
                             </div>
-                            <label style={S.formLabel}>Amount to Send</label>
+                            <label style={S.formLabel}>Amount To Send</label>
                             <input
                                 type="number"
                                 style={S.formInput}
                                 value={chipAmount}
                                 onChange={e => setChipAmount(e.target.value)}
-                                placeholder="Enter chip amount"
+                                placeholder="Enter Chip Amount"
                                 min="1"
                             />
                         </div>
@@ -541,14 +541,14 @@ export default function Admin() {
                                 style={S.formInput}
                                 value={clubName}
                                 onChange={e => setClubName(e.target.value)}
-                                placeholder="Enter club name"
+                                placeholder="Enter Club Name"
                             />
                             <label style={S.formLabel}>Description</label>
                             <textarea
                                 style={S.formTextarea}
                                 value={clubDescription}
                                 onChange={e => setClubDescription(e.target.value)}
-                                placeholder="Enter club description"
+                                placeholder="Enter Club Description"
                             />
                         </div>
                         <div style={S.modalFooter}>

@@ -37,7 +37,7 @@ export default function AvatarsPage() {
         <PageTransition>
             <SEOHead
                 title="Avatar Collection"
-                description="Browse and select from the Smarter.Poker avatar collection. Customize your player identity."
+                description="Browse And Select From The Smarter.Poker Avatar Collection. Customize Your Player Identity."
                 canonical="/hub/avatars"
                 noindex={true}
             />

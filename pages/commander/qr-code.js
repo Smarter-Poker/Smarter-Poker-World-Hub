@@ -104,7 +104,7 @@ export default function VenueQRCodePage() {
       <>
         <SEOHead
                 title="Commander — QR Code"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
 
@@ -150,7 +150,7 @@ export default function VenueQRCodePage() {
 
               {/* URL Display */}
               <div className="bg-[#3A3B3C] rounded-lg p-3 mb-6">
-                <p className="text-xs text-[#B0B3B8] mb-1">Check-in URL</p>
+                <p className="text-xs text-[#B0B3B8] mb-1">Check-In URL</p>
                 <p className="text-sm text-white font-mono break-all">{qrUrl}</p>
               </div>
 
@@ -177,10 +177,10 @@ export default function VenueQRCodePage() {
             <div className="mt-6 bg-[#1877F2]/5 rounded-xl p-4">
               <h3 className="font-medium text-[#1877F2] mb-2">Tips</h3>
               <ul className="text-sm text-[#B0B3B8] space-y-1">
-                <li>Display on a tablet near the entrance</li>
-                <li>Print and post at the check-in desk</li>
-                <li>Use fullscreen mode for TV displays</li>
-                <li>Players need to be logged in to check in</li>
+                <li>Display On A Tablet Near The Entrance</li>
+                <li>Print And Post At The Check-In Desk</li>
+                <li>Use Fullscreen Mode For TV Displays</li>
+                <li>Players Need To Be Logged In To Check In</li>
               </ul>
             </div>
           </main>

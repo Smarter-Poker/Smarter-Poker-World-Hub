@@ -24,7 +24,7 @@ export default function DiamondArenaLeaderboard() {
         <>
             <SEOHead
                 title="Diamond Arena Leaderboard"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 canonical="/hub/diamond-arena/leaderboard"
             />
 

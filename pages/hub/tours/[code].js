@@ -270,7 +270,7 @@ export default function TourDetailPage() {
     <>
       <SEOHead
                 title="Poker Tour Details"
-                description="View details for this poker tour on Smarter.Poker."
+                description="View Details For This Poker Tour On Smarter.Poker."
                 noindex={true}
             >
                 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -284,7 +284,7 @@ export default function TourDetailPage() {
         {loading && (
           <div className="loading-container">
             <div className="loading-spinner" />
-            <p className="loading-text">Loading tour details...</p>
+            <p className="loading-text">Loading Tour Details...</p>
           </div>
         )}
 
@@ -294,7 +294,7 @@ export default function TourDetailPage() {
             <h2 className="error-title">Tour Not Found</h2>
             <p className="error-text">{error}</p>
             <Link href="/hub/poker-near-me" legacyBehavior>
-              <a className="back-link-btn">Back to Poker Near Me</a>
+              <a className="back-link-btn">Back To Poker Near Me</a>
             </Link>
           </div>
         )}
@@ -402,7 +402,7 @@ export default function TourDetailPage() {
 
                 {tour.typical_buyins && (tour.typical_buyins.min || tour.typical_buyins.max) && (
                   <div className="about-item">
-                    <span className="about-label">Typical Buy-in Range</span>
+                    <span className="about-label">Typical Buy-In Range</span>
                     <span className="about-value">
                       {tour.typical_buyins.min && tour.typical_buyins.max
                         ? (formatMoney(tour.typical_buyins.min) + ' - ' + formatMoney(tour.typical_buyins.max))
@@ -453,8 +453,8 @@ export default function TourDetailPage() {
                     <line x1="8" y1="2" x2="8" y2="6" />
                     <line x1="3" y1="10" x2="21" y2="10" />
                   </svg>
-                  <p>No upcoming series announced yet.</p>
-                  <p className="empty-subtext">Check back soon for updates.</p>
+                  <p>No Upcoming Series Announced Yet.</p>
+                  <p className="empty-subtext">Check Back Soon For Updates.</p>
                 </div>
               )}
 
@@ -584,7 +584,7 @@ export default function TourDetailPage() {
                       <line x1="16" y1="13" x2="8" y2="13" />
                       <line x1="16" y1="17" x2="8" y2="17" />
                     </svg>
-                    <p>No updates yet.</p>
+                    <p>No Updates Yet.</p>
                   </div>
                 )}
                 {activities.length > 0 && (
@@ -629,7 +629,7 @@ export default function TourDetailPage() {
                       <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
                       <path d="M18 2H6v7a6 6 0 0012 0V2Z" />
                     </svg>
-                    <p>No results available yet.</p>
+                    <p>No Results Available Yet.</p>
                   </div>
                 )}
                 {results.length > 0 && (
@@ -681,7 +681,7 @@ export default function TourDetailPage() {
                     {'Get notified about new ' + tour.tour_name + ' events and results'}
                   </p>
                   {notifPermission === 'granted' ? (
-                    <span className="notif-enabled">Notifications enabled</span>
+                    <span className="notif-enabled">Notifications Enabled</span>
                   ) : (
                     <button className="notif-btn" onClick={handleEnableNotifications}>
                       Enable Notifications

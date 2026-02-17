@@ -57,7 +57,7 @@ export default function SystemInfoPage() {
     <>
       <SEOHead
                 title="Commander — System Info"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
@@ -80,7 +80,7 @@ export default function SystemInfoPage() {
           {loading ? (
             <div className="py-16 text-center"><Loader2 className="w-8 h-8 animate-spin text-[#1877F2] mx-auto" /></div>
           ) : !info ? (
-            <div className="py-16 text-center text-[#B0B3B8]">Failed to load system information</div>
+            <div className="py-16 text-center text-[#B0B3B8]">Failed To Load System Information</div>
           ) : (
             <>
               {/* Version & Platform */}

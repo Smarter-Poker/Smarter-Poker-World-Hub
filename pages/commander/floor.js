@@ -112,7 +112,7 @@ export default function FloorMap() {
     <>
       <SEOHead
                 title="Commander — Floor Management"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
@@ -237,7 +237,7 @@ export default function FloorMap() {
                   <div className="flex items-center gap-1 mb-1">
                     <Users className="w-3.5 h-3.5 text-[#B0B3B8]" />
                     <span className="text-sm text-white font-medium">{occupied}/{maxSeats}</span>
-                    {occupied > 0 && occupied < maxSeats && (
+                    {occupied > 0 && Occupied < maxSeats && (
                       <span className="text-[10px] text-[#31A24C] ml-1">{maxSeats - occupied} open</span>
                     )}
                   </div>

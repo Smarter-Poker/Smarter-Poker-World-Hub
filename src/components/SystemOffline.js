@@ -41,7 +41,7 @@ export default function SystemOffline({ bootState }) {
                             ))}
                         </ul>
                     ) : (
-                        <p style={styles.errorMessage}>Unknown initialization error</p>
+                        <p style={styles.errorMessage}>Unknown Initialization Error</p>
                     )}
                 </div>
 

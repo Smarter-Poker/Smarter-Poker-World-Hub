@@ -179,7 +179,7 @@ function PostCard({ post, user, onLike, onComment }) {
                                         <input
                                             type="text" value={commentText} onChange={e => setCommentText(e.target.value)}
                                             onKeyDown={e => e.key === 'Enter' && submitComment()}
-                                            placeholder="Write a comment..."
+                                            placeholder="Write A Comment..."
                                             style={{
                                                 flex: 1, padding: '8px 12px', borderRadius: 20,
                                                 border: `1px solid ${C.border}`, fontSize: 13,
@@ -359,7 +359,7 @@ export default function SocialPageDetail() {
                             borderTopColor: C.blue, borderRadius: '50%',
                             animation: 'spin 0.8s linear infinite', margin: '0 auto',
                         }}/>
-                        <p style={{ color: C.textSec, fontSize: 14, marginTop: 12 }}>Loading page...</p>
+                        <p style={{ color: C.textSec, fontSize: 14, marginTop: 12 }}>Loading Page...</p>
                     </div>
                 </div>
                 <style jsx global>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
@@ -377,8 +377,8 @@ export default function SocialPageDetail() {
                     fontFamily: "'Inter', -apple-system, sans-serif",
                 }}>
                     <div style={{ textAlign: 'center' }}>
-                        <h2 style={{ fontSize: 20, fontWeight: 700, color: C.text }}>Page not found</h2>
-                        <p style={{ color: C.textSec }}>This page may have been removed or the link is incorrect.</p>
+                        <h2 style={{ fontSize: 20, fontWeight: 700, color: C.text }}>Page Not Found</h2>
+                        <p style={{ color: C.textSec }}>This Page May Have Been Removed Or The Link Is Incorrect.</p>
                         <button onClick={() => router.push('/hub/social-pages')} style={{
                             marginTop: 16, padding: '10px 24px', background: C.blue, border: 'none',
                             borderRadius: 8, color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer',
@@ -398,7 +398,7 @@ export default function SocialPageDetail() {
         <>
             <SEOHead
                 title="Social Page"
-                description="View a community page on Smarter.Poker."
+                description="View A Community Page On Smarter.Poker."
                 noindex={true}
             />
             <UniversalHeader />
@@ -539,8 +539,8 @@ export default function SocialPageDetail() {
                                             textAlign: 'center', padding: '40px 20px', background: C.card,
                                             borderRadius: 12, border: `1px solid ${C.border}`,
                                         }}>
-                                            <p style={{ fontSize: 15, fontWeight: 600, color: C.text }}>No posts yet</p>
-                                            <p style={{ fontSize: 13, color: C.textSec }}>Be the first to share something!</p>
+                                            <p style={{ fontSize: 15, fontWeight: 600, color: C.text }}>No Posts Yet</p>
+                                            <p style={{ fontSize: 13, color: C.textSec }}>Be The First To Share Something!</p>
                                         </div>
                                     ) : (
                                         posts.map(post => (

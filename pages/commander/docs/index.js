@@ -67,7 +67,7 @@ export default function DocumentationIndexPage() {
     <>
       <SEOHead
                 title="Commander — Index"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
 
@@ -170,7 +170,7 @@ export default function DocumentationIndexPage() {
 
           {/* Need Help */}
           <div className="text-center mt-12">
-            <p className="text-[#B0B3B8] mb-4">Can't find what you're looking for?</p>
+            <p className="text-[#B0B3B8] mb-4">Can't Find What You're Looking For?</p>
             <a
               href="mailto:support@smarter.poker"
               className="cmd-btn cmd-btn-primary inline-flex items-center gap-2"

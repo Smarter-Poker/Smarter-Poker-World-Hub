@@ -904,7 +904,7 @@ export default function DiamondStorePage() {
                 )}
                 <SEOHead
                 title="Diamond Store — Premium Poker Gear & Merchandise"
-                description="Shop premium poker merchandise, gear, and accessories in the Smarter.Poker Diamond Store. Exclusive items for VIP members."
+                description="Shop Premium Poker Merchandise, Gear, And Accessories In The Smarter.Poker Diamond Store. Exclusive Items For VIP Members."
                 canonical="/hub/diamond-store"
             >
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -1561,7 +1561,7 @@ export default function DiamondStorePage() {
                         {/* Legal Note */}
                         <p style={styles.legalNote}>
                             Diamonds are virtual currency and have no real-world cash value.
-                            All purchases are final. See our <a href="/terms" style={styles.link}>Terms of Service</a> for details.
+                            All purchases are final. See our <a href="/terms" style={styles.link}>Terms Of Service</a> for details.
                         </p>
                     </div>
                 </div>

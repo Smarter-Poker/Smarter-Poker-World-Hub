@@ -174,7 +174,7 @@ export default function CompSystem() {
       <>
         <SEOHead
                 title="Commander — Comps & Rewards"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
         <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
@@ -201,7 +201,7 @@ export default function CompSystem() {
                     value={pinCode}
                     onChange={e => { setPinCode(e.target.value.replace(/\D/g, '')); setPinError(''); }}
                     onKeyDown={e => e.key === 'Enter' && verifyPinAndAward()}
-                    placeholder="Enter 4+ digit PIN"
+                    placeholder="Enter 4+ Digit PIN"
                     autoFocus
                     className="w-full px-4 py-4 bg-[#18191A] border border-[#4A4B4C] rounded-xl text-white text-center text-2xl tracking-[0.5em] placeholder:text-[#6A6B6D] placeholder:tracking-normal placeholder:text-base focus:outline-none focus:border-[#1877F2]"
                   />
@@ -327,7 +327,7 @@ export default function CompSystem() {
                       </div>
                       <input type="number" value={compAmount}
                         onChange={e => setCompAmount(e.target.value)}
-                        placeholder="Custom amount"
+                        placeholder="Custom Amount"
                         className="w-full mt-2 px-4 py-3 bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl text-[#E4E6EB] placeholder-[#6A6B6D] focus:outline-none focus:border-[#1877F2] text-center text-lg" />
                     </div>
 

@@ -63,7 +63,7 @@ export default function StructureDisplay() {
     <>
       <SEOHead
                 title="Commander — Structure Display"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
       <style jsx global>{`
@@ -139,10 +139,10 @@ export default function StructureDisplay() {
         <div className="border-t border-white/10 px-8 py-3 flex items-center justify-between flex-shrink-0">
           <div className="flex gap-6 text-sm text-white/40">
             {tournament?.rebuy_allowed && <span>Rebuys thru Level {tournament.rebuy_levels}</span>}
-            {tournament?.addon_allowed && <span>Add-on available at break</span>}
+            {tournament?.addon_allowed && <span>Add-On Available At Break</span>}
             {tournament?.late_reg_levels && <span>Late reg thru Level {tournament.late_reg_levels}</span>}
           </div>
-          <p className="text-white/15 text-xs tracking-wider">Powered by Smarter.Poker</p>
+          <p className="text-white/15 text-xs tracking-wider">Powered By Smarter.Poker</p>
         </div>
       </div>
     </>

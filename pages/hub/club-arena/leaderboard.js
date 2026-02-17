@@ -240,7 +240,7 @@ export default function Leaderboard() {
         <>
             <SEOHead
                 title="Club Arena — Leaderboard"
-                description="View Club Arena leaderboard rankings."
+                description="View Club Arena Leaderboard Rankings."
                 canonical="/hub/club-arena/leaderboard"
                 noindex={true}
             />
@@ -291,11 +291,11 @@ export default function Leaderboard() {
                     </div>
 
                     {isLoading ? (
-                        <div style={S.loading}>Loading rankings...</div>
+                        <div style={S.loading}>Loading Rankings...</div>
                     ) : members.length === 0 ? (
                         <div style={S.emptyState}>
                             <span style={{ fontSize: '48px', display: 'block', marginBottom: '12px' }}>🏆</span>
-                            <p>No players yet</p>
+                            <p>No Players Yet</p>
                         </div>
                     ) : (
                         <>

@@ -148,7 +148,7 @@ function RentEquipmentModal({ isOpen, onClose, equipment, venueId }) {
                 <textarea
                   value={formData.notes}
                   onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                  placeholder="Pickup location, special requirements..."
+                  placeholder="Pickup Location, Special Requirements..."
                   rows={2}
                   className="cmd-input w-full resize-none"
                 />
@@ -298,7 +298,7 @@ function BookDealerModal({ isOpen, onClose, dealer, venueId }) {
                 <textarea
                   value={formData.notes}
                   onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                  placeholder="Any special requirements..."
+                  placeholder="Any Special Requirements..."
                   rows={2}
                   className="cmd-input w-full resize-none"
                 />
@@ -535,7 +535,7 @@ export default function MarketplacePage() {
       <>
         <SEOHead
                 title="Commander — Marketplace"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
 

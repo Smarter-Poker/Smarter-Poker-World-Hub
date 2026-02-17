@@ -118,7 +118,7 @@ export default function OpenGame() {
     <>
       <SEOHead
                 title="Commander — Open Game"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
@@ -173,7 +173,7 @@ export default function OpenGame() {
                   </div>
                   <input type="text" value={customStakes}
                     onChange={e => { setCustomStakes(e.target.value); setSelectedStakes(null); }}
-                    placeholder="Custom stakes (e.g. $5/$10/$25)"
+                    placeholder="Custom Stakes (e.g. $5/$10/$25)"
                     className="w-full px-4 py-3 bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl text-[#E4E6EB] placeholder-[#6A6B6D] focus:outline-none focus:border-[#1877F2]" />
                 </>
               )}
@@ -201,7 +201,7 @@ export default function OpenGame() {
               ) : tables.length === 0 ? (
                 <div className="bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-xl p-4 text-center">
                   <AlertTriangle className="w-8 h-8 text-[#F59E0B] mx-auto mb-2" />
-                  <p className="text-[#F59E0B] font-medium">No available tables</p>
+                  <p className="text-[#F59E0B] font-medium">No Available Tables</p>
                   <p className="text-sm text-[#B0B3B8] mt-1">All Tables Are Currently In Use Or Need To Be Added In Table Management.</p>
                 </div>
               ) : (

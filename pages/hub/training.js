@@ -130,7 +130,7 @@ function TrainingHeader({ gamesPlayed = 0 }) {
                 {/* Games Played Counter */}
                 <div style={headerStyles.gamesChip}>
                     <span style={headerStyles.gamesValue}>{gamesPlayed}</span>
-                    <span style={headerStyles.gamesLabel}>of 100</span>
+                    <span style={headerStyles.gamesLabel}>Of 100</span>
                 </div>
 
                 {/* Diamond Wallet with + for top-up */}
@@ -258,7 +258,7 @@ function PromoSection({ onPlayFeatured }) {
             <div style={promoStyles.content}>
                 <span style={promoStyles.badge}>DAILY CHALLENGE</span>
                 <h2 style={promoStyles.title}>HIGH STAKES BLUFFS</h2>
-                <p style={promoStyles.subtitle}>Master river bluffing • 20 Hands • 85% to Pass</p>
+                <p style={promoStyles.subtitle}>Master River Bluffing • 20 Hands • 85% To Pass</p>
                 <motion.button
                     style={promoStyles.playButton}
                     onClick={onPlayFeatured}
@@ -746,7 +746,7 @@ export default function TrainingPage() {
         const challenges = [];
         CATEGORIES.forEach((cat, index) => {
             const catGames = getGamesByCategory(cat.id).filter(g =>
-                g.difficulty >= 3 && g.difficulty <= 5 && !g.name.startsWith('Level 10:')
+                g.difficulty >= 3 && G.difficulty <= 5 && !g.name.startsWith('Level 10:')
             );
             if (catGames.length > 0) {
                 // Pseudo-random selection based on date + category
@@ -879,7 +879,7 @@ export default function TrainingPage() {
                     animate={{ rotate: 360 }}
                     transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                 />
-                <p>Loading training library...</p>
+                <p>Loading Training Library...</p>
             </div>
         );
     }
@@ -946,8 +946,8 @@ export default function TrainingPage() {
                 </div>
             )}
             <SEOHead
-                title="GTO Poker Training — 100 Games to Master"
-                description="Interactive GTO poker training with 100+ scenario-based games. Master MTT, Cash, Spins, Mental Game, and Advanced Theory with AI coaching from Jarvis."
+                title="GTO Poker Training — 100 Games To Master"
+                description="Interactive GTO Poker Training With 100+ Scenario-based Games. Master MTT, Cash, Spins, Mental Game, And Advanced Theory With AI Coaching From Jarvis."
                 canonical="/hub/training"
             />
 
@@ -1133,7 +1133,7 @@ export default function TrainingPage() {
                             <span>•</span>
                             <span>2,000 Levels</span>
                             <span>•</span>
-                            <span>85% to Master</span>
+                            <span>85% To Master</span>
                         </div>
                     </div>
                 </>

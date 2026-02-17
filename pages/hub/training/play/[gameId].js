@@ -62,7 +62,7 @@ export default function TrainingPlayPage() {
         <>
             <SEOHead
                 title="Play Training Game"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
             <div className="training-play-page">

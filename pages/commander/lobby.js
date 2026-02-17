@@ -98,7 +98,7 @@ export default function LobbyDisplay() {
     <>
       <SEOHead
                 title="Commander — Player Lobby"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
       <style jsx global>{`
@@ -131,7 +131,7 @@ export default function LobbyDisplay() {
               <div className="h-full flex items-center justify-center">
                 <div className="text-center">
                   <p className="text-4xl font-bold text-white/20 mb-2">No Games Running</p>
-                  <p className="text-lg text-white/10">Check back soon</p>
+                  <p className="text-lg text-white/10">Check Back Soon</p>
                 </div>
               </div>
             ) : (
@@ -202,7 +202,7 @@ export default function LobbyDisplay() {
             <div className="p-4 border-b border-white/10">
               <h3 className="text-sm font-semibold text-white/40 uppercase tracking-wider mb-3">Waitlist</h3>
               {Object.keys(waitlists).length === 0 ? (
-                <p className="text-sm text-white/20">No one waiting</p>
+                <p className="text-sm text-white/20">No One Waiting</p>
               ) : (
                 <div className="space-y-2">
                   {Object.entries(waitlists).map(([game, count]) => (
@@ -213,7 +213,7 @@ export default function LobbyDisplay() {
                   ))}
                 </div>
               )}
-              <p className="text-xs text-white/15 mt-3">Sign up at the front desk or kiosk</p>
+              <p className="text-xs text-white/15 mt-3">Sign Up At The Front Desk Or Kiosk</p>
             </div>
 
             {/* Tournaments */}
@@ -258,8 +258,8 @@ export default function LobbyDisplay() {
 
         {/* Footer ticker */}
         <div className="border-t border-white/10 px-6 py-2 flex items-center justify-between flex-shrink-0">
-          <p className="text-white/10 text-xs">Ask staff for details — Scan your member QR code at the kiosk to check in</p>
-          <p className="text-white/10 text-xs tracking-wider">Powered by Smarter.Poker</p>
+          <p className="text-white/10 text-xs">Ask Staff For Details — Scan Your Member QR Code At The Kiosk To Check In</p>
+          <p className="text-white/10 text-xs tracking-wider">Powered By Smarter.Poker</p>
         </div>
       </div>
     </>

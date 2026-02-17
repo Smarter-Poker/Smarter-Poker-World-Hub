@@ -126,7 +126,7 @@ export default function LeaderboardPage() {
     <>
       <SEOHead
                 title="Venue Leaderboard"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
 
@@ -237,7 +237,7 @@ export default function LeaderboardPage() {
           ) : leaderboard.length === 0 ? (
             <div className="cmd-panel p-8 text-center">
               <Trophy className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
-              <p className="text-[#64748B]">No leaderboard data available</p>
+              <p className="text-[#64748B]">No Leaderboard Data Available</p>
             </div>
           ) : (
             <LeaderboardDisplay

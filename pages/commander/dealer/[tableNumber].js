@@ -343,13 +343,13 @@ export default function DealerTablet() {
 
   const maxSeats = table?.max_seats || 9;
   const seatPositions = getSeatPositions(maxSeats);
-  const lowTimePlayers = seatedPlayers.filter(p => p.time_remaining !== null && p.time_remaining > 0 && p.time_remaining <= 900);
+  const lowTimePlayers = seatedPlayers.filter(p => p.time_remaining !== null && p.time_remaining > 0 && P.time_remaining <= 900);
 
   return (
     <>
       <SEOHead
                 title="Commander — Details"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
       <style jsx global>{`
@@ -367,7 +367,7 @@ export default function DealerTablet() {
                 : table?.mode === 'cash'
                   ? <>{table?.game_type || 'NLH'} {table?.stakes || '$1/$2'} — {seatedPlayers.length}/{maxSeats}</>
                   : table?.mode === 'inactive' || !table?.mode
-                    ? <span className="text-[#6A6B6D]">Table not assigned — contact floor</span>
+                    ? <span className="text-[#6A6B6D]">Table Not Assigned — Contact Floor</span>
                     : <>{table?.game_type || 'NLH'} — {table?.stakes || '$1/$2'} — {seatedPlayers.length}/{maxSeats}</>
               }
             </p>
@@ -536,7 +536,7 @@ export default function DealerTablet() {
           {(!table?.mode || table?.mode === 'inactive') && (
             <div className="p-3 bg-[#3A3B3C]/50 border border-[#3A3B3C] rounded-xl text-center mb-2">
               <Power className="w-6 h-6 text-[#6A6B6D] mx-auto mb-1" />
-              <p className="text-xs text-[#6A6B6D]">Table not assigned — ask floor manager to assign via Table Assignments</p>
+              <p className="text-xs text-[#6A6B6D]">Table Not Assigned — Ask Floor Manager To Assign Via Table Assignments</p>
             </div>
           )}
 
@@ -604,12 +604,12 @@ export default function DealerTablet() {
           <div className="fixed inset-0 z-50 bg-black/80 flex items-end justify-center" onClick={closeScanner}>
             <div className="bg-[#242526] rounded-t-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
               <div className="sticky top-0 bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center justify-between z-10">
-                <div><h3 className="text-lg font-bold text-white">Scan Player — Seat {targetSeat}</h3><p className="text-xs text-[#B0B3B8]">Scan member QR code</p></div>
+                <div><h3 className="text-lg font-bold text-white">Scan Player — Seat {targetSeat}</h3><p className="text-xs text-[#B0B3B8]">Scan Member QR Code</p></div>
                 <button onClick={closeScanner} className="p-2 rounded-lg active:bg-[#3A3B3C]"><X className="w-5 h-5 text-[#B0B3B8]" /></button>
               </div>
               <div className="p-4 space-y-4">
                 {scanError && <div className="p-3 bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-xl flex items-center gap-2"><AlertCircle className="w-4 h-4 text-[#EF4444] flex-shrink-0" /><p className="text-sm text-[#EF4444]">{scanError}</p></div>}
-                {scanLoading && <div className="text-center py-8"><Loader2 className="w-8 h-8 text-[#1877F2] animate-spin mx-auto mb-2" /><p className="text-sm text-[#B0B3B8]">Checking membership...</p></div>}
+                {scanLoading && <div className="text-center py-8"><Loader2 className="w-8 h-8 text-[#1877F2] animate-spin mx-auto mb-2" /><p className="text-sm text-[#B0B3B8]">Checking Membership...</p></div>}
                 {scannedMember && !scanLoading && (
                   <div className="space-y-3">
                     <div className="bg-[#18191A] rounded-xl p-4">
@@ -641,13 +641,13 @@ export default function DealerTablet() {
                     </div>
                     {!scannedMember.membership_active ? (
                       <div className="bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-xl p-4 text-center">
-                        <p className="text-[#EF4444] font-medium">Membership not active</p>
-                        <p className="text-xs text-[#B0B3B8] mt-1">Player needs to renew at the front desk</p>
+                        <p className="text-[#EF4444] font-medium">Membership Not Active</p>
+                        <p className="text-xs text-[#B0B3B8] mt-1">Player Needs To Renew At The Front Desk</p>
                       </div>
                     ) : (scannedMember.time_balance_minutes || 0) <= 0 ? (
                       <div className="bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-xl p-4 text-center">
-                        <p className="text-[#F59E0B] font-medium">No time on card</p>
-                        <p className="text-xs text-[#B0B3B8] mt-1">Player needs to add time at the front desk</p>
+                        <p className="text-[#F59E0B] font-medium">No Time On Card</p>
+                        <p className="text-xs text-[#B0B3B8] mt-1">Player Needs To Add Time At The Front Desk</p>
                       </div>
                     ) : (
                       <button onClick={seatPlayer} className="w-full py-4 rounded-xl bg-[#31A24C] text-white text-lg font-semibold flex items-center justify-center gap-2 active:bg-[#28883F]">
@@ -665,17 +665,17 @@ export default function DealerTablet() {
                           <video ref={videoRef} autoPlay playsInline muted className="w-full aspect-[4/3]" />
                           <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><div className="w-48 h-48 border-2 border-[#1877F2] rounded-xl animate-pulse" /></div>
                         </div>
-                        <p className="text-center text-sm text-[#B0B3B8]">Hold QR code in view</p>
+                        <p className="text-center text-sm text-[#B0B3B8]">Hold QR Code In View</p>
                         <button onClick={stopCamera} className="w-full py-2.5 bg-[#3A3B3C] text-[#B0B3B8] rounded-lg text-sm font-medium active:bg-[#4A4B4C]">Stop Camera</button>
                       </div>
                     ) : (
                       <button onClick={startCamera} className="w-full py-10 border-2 border-dashed border-[#3A3B3C] rounded-xl flex flex-col items-center gap-3 active:border-[#1877F2]">
                         <Camera className="w-10 h-10 text-[#B0B3B8]" />
-                        <span className="text-sm font-medium text-[#E4E6EB]">Open Camera to Scan</span>
+                        <span className="text-sm font-medium text-[#E4E6EB]">Open Camera To Scan</span>
                       </button>
                     )}
                     <div className="border-t border-[#3A3B3C] pt-4">
-                      <p className="text-xs text-[#B0B3B8] mb-2">Or enter code manually:</p>
+                      <p className="text-xs text-[#B0B3B8] mb-2">Or Enter Code Manually:</p>
                       <div className="flex gap-2">
                         <input type="text" value={manualCode} onChange={e => setManualCode(e.target.value)} placeholder="CMD-1996-abc12345"
                           className="flex-1 px-3 py-2.5 bg-[#3A3B3C] border border-[#4A4B4C] rounded-lg text-[#E4E6EB] text-sm focus:border-[#1877F2] focus:outline-none"

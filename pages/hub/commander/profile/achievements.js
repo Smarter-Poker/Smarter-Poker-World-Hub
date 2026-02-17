@@ -56,7 +56,7 @@ export default function AchievementsPage() {
     <>
       <SEOHead
                 title="Player Achievements"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
       <div className="cmd-page" style={{ fontFamily: 'Inter, sans-serif' }}>
@@ -163,7 +163,7 @@ export default function AchievementsPage() {
             {filtered.length === 0 && (
               <div className="cmd-panel p-8 text-center">
                 <Award size={40} className="mx-auto text-[#4A5E78] mb-2" />
-                <p className="text-[#64748B]">No achievements found</p>
+                <p className="text-[#64748B]">No Achievements Found</p>
               </div>
             )}
           </div>

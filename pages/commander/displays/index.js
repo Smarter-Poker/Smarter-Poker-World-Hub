@@ -83,11 +83,11 @@ export default function DisplayManagement() {
               <div>
                 <h3 className="text-sm font-semibold text-[#1877F2] mb-1">Wireless HDMI Setup</h3>
                 <ol className="text-xs text-[#B0B3B8] space-y-1">
-                  <li>1. Connect HDMI transmitter to a laptop/tablet/Chromecast</li>
-                  <li>2. Connect HDMI receiver to the TV</li>
-                  <li>3. Open the display URL in Chrome on the source device</li>
-                  <li>4. Click anywhere to go fullscreen</li>
-                  <li>5. Display auto-refreshes — no interaction needed</li>
+                  <li>1. Connect HDMI Transmitter To A Laptop/tablet/Chromecast</li>
+                  <li>2. Connect HDMI Receiver To The TV</li>
+                  <li>3. Open The Display URL In Chrome On The Source Device</li>
+                  <li>4. Click Anywhere To Go Fullscreen</li>
+                  <li>5. Display Auto-refreshes — No Interaction Needed</li>
                 </ol>
               </div>
             </div>
@@ -102,7 +102,7 @@ export default function DisplayManagement() {
           <DisplayCard
             icon={Users}
             title="Waitlist Board"
-            description="Shows active games, open seats, waiting players with positions"
+            description="Shows Active Games, Open Seats, Waiting Players With Positions"
             url={`${getBaseUrl()}/commander/displays/waitlist`}
             path="/commander/displays/waitlist"
             copied={copied}
@@ -155,7 +155,7 @@ export default function DisplayManagement() {
             <DisplayCard
               icon={Megaphone}
               title="Promotions Board"
-              description="Active promotions, high hand leaderboard, jackpot amounts — auto-rotates"
+              description="Active Promotions, High Hand Leaderboard, Jackpot Amounts — Auto-rotates"
               url={`${getBaseUrl()}/commander/displays/promotions`}
               path="/commander/displays/promotions"
               copied={copied}
@@ -166,7 +166,7 @@ export default function DisplayManagement() {
             <DisplayCard
               icon={Monitor}
               title="Announcements"
-              description="Room-wide messages, priority alerts, room open/closed status"
+              description="Room-wide Messages, Priority Alerts, Room Open/closed Status"
               url={`${getBaseUrl()}/commander/displays/announcements`}
               path="/commander/displays/announcements"
               copied={copied}
@@ -177,7 +177,7 @@ export default function DisplayManagement() {
             <DisplayCard
               icon={Tv}
               title="Table Status"
-              description="All tables with game types, stakes, seat counts, open seats"
+              description="All Tables With Game Types, Stakes, Seat Counts, Open Seats"
               url={`${getBaseUrl()}/commander/displays/tables`}
               path="/commander/displays/tables"
               copied={copied}
@@ -223,7 +223,7 @@ export default function DisplayManagement() {
             <DisplayCard
               icon={Users}
               title="Dealer Rotation"
-              description="Current table assignments, break schedule, next rotation time"
+              description="Current Table Assignments, Break Schedule, Next Rotation Time"
               url={`${getBaseUrl()}/commander/displays/dealers`}
               path="/commander/displays/dealers"
               copied={copied}
@@ -243,7 +243,7 @@ export default function DisplayManagement() {
             <DisplayCard
               icon={Monitor}
               title="Lobby Display"
-              description="Walk-in player view: running games, open seats, waitlist counts, upcoming tournaments"
+              description="Walk-in Player View: Running Games, Open Seats, Waitlist Counts, Upcoming Tournaments"
               url={`${getBaseUrl()}/commander/lobby`}
               path="/commander/lobby"
               copied={copied}
@@ -254,7 +254,7 @@ export default function DisplayManagement() {
             <DisplayCard
               icon={Trophy}
               title="Leaderboard"
-              description="Player rankings, points leaders, tournament wins — auto-rotates between boards"
+              description="Player Rankings, Points Leaders, Tournament Wins — Auto-rotates Between Boards"
               url={`${getBaseUrl()}/commander/displays/leaderboard`}
               path="/commander/displays/leaderboard"
               copied={copied}
@@ -277,7 +277,7 @@ export default function DisplayManagement() {
                   <DisplayCard
                     icon={Tv}
                     title={`${t.name} — Structure`}
-                    description="Full blind schedule with current level highlighted and auto-scroll"
+                    description="Full Blind Schedule With Current Level Highlighted And Auto-scroll"
                     url={`${getBaseUrl()}/commander/tournaments/${t.id}/structure-display`}
                     path={`/commander/tournaments/${t.id}/structure-display`}
                     copied={copied}
@@ -289,7 +289,7 @@ export default function DisplayManagement() {
                   <DisplayCard
                     icon={Users}
                     title={`${t.name} — Seating Chart`}
-                    description="All tables with player seat assignments, chip counts"
+                    description="All Tables With Player Seat Assignments, Chip Counts"
                     url={`${getBaseUrl()}/commander/tournaments/${t.id}/seating-display`}
                     path={`/commander/tournaments/${t.id}/seating-display`}
                     copied={copied}
@@ -314,7 +314,7 @@ export default function DisplayManagement() {
                 <DisplayCard
                   icon={Tv}
                   title="Clock + Waitlist"
-                  description="Split-screen: tournament clock left, waitlist right"
+                  description="Split-screen: Tournament Clock Left, Waitlist Right"
                   url={`${getBaseUrl()}/commander/displays/combined?layout=clock+waitlist&tournament=${activeTournaments[0]?.id}`}
                   path={`/commander/displays/combined?layout=clock+waitlist&tournament=${activeTournaments[0]?.id}`}
                   copied={copied}
@@ -325,7 +325,7 @@ export default function DisplayManagement() {
                 <DisplayCard
                   icon={Tv}
                   title="Clock + Promotions"
-                  description="Split-screen: tournament clock left, promotions right"
+                  description="Split-screen: Tournament Clock Left, Promotions Right"
                   url={`${getBaseUrl()}/commander/displays/combined?layout=clock+promotions&tournament=${activeTournaments[0]?.id}`}
                   path={`/commander/displays/combined?layout=clock+promotions&tournament=${activeTournaments[0]?.id}`}
                   copied={copied}
@@ -336,7 +336,7 @@ export default function DisplayManagement() {
                 <DisplayCard
                   icon={Tv}
                   title="4-Panel: Everything"
-                  description="Clock + Waitlist + Promotions + Tables on one screen"
+                  description="Clock + Waitlist + Promotions + Tables On One Screen"
                   url={`${getBaseUrl()}/commander/displays/combined?layout=clock+waitlist+promotions+tables&tournament=${activeTournaments[0]?.id}`}
                   path={`/commander/displays/combined?layout=clock+waitlist+promotions+tables&tournament=${activeTournaments[0]?.id}`}
                   copied={copied}
@@ -349,7 +349,7 @@ export default function DisplayManagement() {
             <DisplayCard
               icon={Tv}
               title="Waitlist + Tables"
-              description="Split-screen: waitlist board left, table status right"
+              description="Split-screen: Waitlist Board Left, Table Status Right"
               url={`${getBaseUrl()}/commander/displays/combined?layout=waitlist+tables`}
               path="/commander/displays/combined?layout=waitlist+tables"
               copied={copied}
@@ -360,7 +360,7 @@ export default function DisplayManagement() {
             <DisplayCard
               icon={Tv}
               title="Waitlist + Promotions + Tables"
-              description="3-panel: waitlist, promotions, and table status"
+              description="3-panel: Waitlist, Promotions, And Table Status"
               url={`${getBaseUrl()}/commander/displays/combined?layout=waitlist+promotions+tables`}
               path="/commander/displays/combined?layout=waitlist+promotions+tables"
               copied={copied}

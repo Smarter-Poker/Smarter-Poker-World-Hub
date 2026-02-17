@@ -185,7 +185,7 @@ export default function LeagueDetailPage() {
   if (!league) {
     return (
       <div className="cmd-page flex items-center justify-center">
-        <p className="text-[#64748B]">League not found</p>
+        <p className="text-[#64748B]">League Not Found</p>
       </div>
     );
   }
@@ -194,7 +194,7 @@ export default function LeagueDetailPage() {
     <>
       <SEOHead
                 title="League Details"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
 
@@ -352,7 +352,7 @@ export default function LeagueDetailPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-[#64748B]">Scoring details not available</p>
+                <p className="text-[#64748B]">Scoring Details Not Available</p>
               )}
             </section>
           )}

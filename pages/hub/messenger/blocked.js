@@ -60,7 +60,7 @@ export default function BlockedUsers() {
         <PageTransition>
             <SEOHead
                 title="Blocked Users"
-                description="Manage blocked users in Messenger."
+                description="Manage Blocked Users In Messenger."
                 canonical="/hub/messenger/blocked"
                 noindex={true}
             />
@@ -74,17 +74,17 @@ export default function BlockedUsers() {
                     {loading ? (
                         <div style={styles.loadingContainer}>
                             <div style={styles.spinner}>🚫</div>
-                            <p style={styles.loadingText}>Loading blocked users...</p>
+                            <p style={styles.loadingText}>Loading Blocked Users...</p>
                         </div>
                     ) : blockedUsers.length === 0 ? (
                         <div style={styles.emptyState}>
                             <div style={styles.emptyIcon}>🚫</div>
-                            <h2 style={styles.emptyTitle}>No blocked users</h2>
-                            <p style={styles.emptyText}>Users you block will appear here. Blocked users cannot:</p>
+                            <h2 style={styles.emptyTitle}>No Blocked Users</h2>
+                            <p style={styles.emptyText}>Users You Block Will Appear Here. Blocked Users Cannot:</p>
                             <ul style={styles.infoList}>
-                                <li>Send you messages or friend requests</li>
-                                <li>See your online status</li>
-                                <li>View your profile or posts</li>
+                                <li>Send You Messages Or Friend Requests</li>
+                                <li>See Your Online Status</li>
+                                <li>View Your Profile Or Posts</li>
                             </ul>
                         </div>
                     ) : (

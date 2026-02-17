@@ -153,7 +153,7 @@ function PostCard({ post, onLike, onComment }) {
           <div className="flex items-center gap-2">
             <input
               type="text"
-              placeholder="Write a comment..."
+              placeholder="Write A Comment..."
               className="flex-1 h-10 px-4 bg-white border border-[#E5E7EB] rounded-full focus:outline-none focus:ring-2 focus:ring-[#1877F2] text-sm"
             />
             <button className="p-2 text-[#1877F2] hover:bg-[#1877F2]/10 rounded-full">
@@ -568,7 +568,7 @@ export default function ClubPage() {
     return (
       <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
         <div className="text-center">
-          <p className="text-[#6B7280] mb-4">Venue not found</p>
+          <p className="text-[#6B7280] mb-4">Venue Not Found</p>
           <Link href="/" className="text-[#1877F2] font-medium">
             Go Home
           </Link>
@@ -962,8 +962,8 @@ export default function ClubPage() {
                   {posts.length === 0 ? (
                     <div className="bg-white rounded-xl border border-[#E5E7EB] p-8 text-center">
                       <MessageCircle className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
-                      <p className="text-[#6B7280]">No posts yet</p>
-                      {user?.id && <p className="text-sm text-[#9CA3AF] mt-1">Be the first to post!</p>}
+                      <p className="text-[#6B7280]">No Posts Yet</p>
+                      {user?.id && <p className="text-sm text-[#9CA3AF] mt-1">Be The First To Post!</p>}
                     </div>
                   ) : (
                     posts.map((post) => (
@@ -1035,7 +1035,7 @@ export default function ClubPage() {
                   {photos.length === 0 ? (
                     <div className="p-8 text-center">
                       <ImageIcon className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
-                      <p className="text-[#6B7280]">No photos yet</p>
+                      <p className="text-[#6B7280]">No Photos Yet</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-3 gap-2">
@@ -1081,9 +1081,9 @@ export default function ClubPage() {
                   {reviews.length === 0 ? (
                     <div className="bg-white rounded-xl border border-[#E5E7EB] p-8 text-center">
                       <Star className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
-                      <p className="text-[#6B7280]">No reviews yet</p>
-                      <p className="text-sm text-[#9CA3AF] mt-1">Be the first to review!</p>
-                      <button onClick={handleWriteReviewClick} className="mt-3 px-4 py-2 bg-[#1877F2] text-white rounded-lg text-sm font-medium hover:bg-[#1664d9] transition-colors">Write a Review</button>
+                      <p className="text-[#6B7280]">No Reviews Yet</p>
+                      <p className="text-sm text-[#9CA3AF] mt-1">Be The First To Review!</p>
+                      <button onClick={handleWriteReviewClick} className="mt-3 px-4 py-2 bg-[#1877F2] text-white rounded-lg text-sm font-medium hover:bg-[#1664d9] transition-colors">Write A Review</button>
                     </div>
                   ) : (
                     reviews.map((review) => (
@@ -1101,13 +1101,13 @@ export default function ClubPage() {
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                   <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl">
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-semibold text-[#1F2937]">Write a Review</h3>
+                      <h3 className="text-lg font-semibold text-[#1F2937]">Write A Review</h3>
                       <button onClick={() => setShowReviewForm(false)} className="text-[#6B7280] hover:text-[#1F2937]">
                         <X className="w-5 h-5" />
                       </button>
                     </div>
 
-                    <p className="text-sm text-[#6B7280] mb-4">Reviewing as <strong>{user?.display_name || 'Player'}</strong></p>
+                    <p className="text-sm text-[#6B7280] mb-4">Reviewing As <strong>{user?.display_name || 'Player'}</strong></p>
 
                     {/* Star Rating */}
                     <div className="mb-4">
@@ -1142,7 +1142,7 @@ export default function ClubPage() {
                         type="text"
                         value={reviewTitle}
                         onChange={(e) => setReviewTitle(e.target.value)}
-                        placeholder="Sum up your experience"
+                        placeholder="Sum Up Your Experience"
                         maxLength={100}
                         className="w-full px-3 py-2 border border-[#D1D5DB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-transparent"
                       />
@@ -1154,7 +1154,7 @@ export default function ClubPage() {
                       <textarea
                         value={reviewContent}
                         onChange={(e) => setReviewContent(e.target.value)}
-                        placeholder="Tell others about your experience..."
+                        placeholder="Tell Others About Your Experience..."
                         rows={4}
                         maxLength={2000}
                         className="w-full px-3 py-2 border border-[#D1D5DB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1877F2] focus:border-transparent resize-none"
@@ -1192,7 +1192,7 @@ export default function ClubPage() {
                   {tournaments.length === 0 ? (
                     <div className="p-8 text-center">
                       <Calendar className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
-                      <p className="text-[#6B7280]">No upcoming tournaments</p>
+                      <p className="text-[#6B7280]">No Upcoming Tournaments</p>
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -1209,7 +1209,7 @@ export default function ClubPage() {
 
         {/* Footer */}
         <footer className="max-w-4xl mx-auto px-4 py-6 text-center text-sm text-[#6B7280]">
-          <p>Powered by <a href="https://smarter.poker" className="text-[#1877F2]">Smarter Poker</a></p>
+          <p>Powered By <a href="https://smarter.poker" className="text-[#1877F2]">Smarter Poker</a></p>
         </footer>
       </div>
     </>

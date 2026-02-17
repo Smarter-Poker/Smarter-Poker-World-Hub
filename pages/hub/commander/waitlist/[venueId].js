@@ -238,7 +238,7 @@ export default function PlayerWaitlistPage() {
             <MapPin className="w-6 h-6" />
           </div>
           <h1 className="text-xl font-semibold text-white">Venue Not Found</h1>
-          <p className="text-[#64748B] mt-2">This venue doesn't exist or isn't using Commander.</p>
+          <p className="text-[#64748B] mt-2">This Venue Doesn't Exist Or Isn't Using Commander.</p>
         </div>
       </div>
     );
@@ -248,7 +248,7 @@ export default function PlayerWaitlistPage() {
     <>
       <SEOHead
         title="Waitlist"
-        description="Smarter.Poker — The Future of the Game."
+        description="Smarter.Poker — The Future Of The Game."
         noindex={true}
       />
 
@@ -314,8 +314,8 @@ export default function PlayerWaitlistPage() {
                 <div className="cmd-icon-box mx-auto mb-3">
                   <Users className="w-6 h-6" />
                 </div>
-                <p className="text-[#64748B] font-medium">No games running</p>
-                <p className="text-sm text-[#64748B] mt-1">Check back later</p>
+                <p className="text-[#64748B] font-medium">No Games Running</p>
+                <p className="text-sm text-[#64748B] mt-1">Check Back Later</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -378,7 +378,7 @@ export default function PlayerWaitlistPage() {
                                 <div className="flex gap-2">
                                   <input
                                     type="text"
-                                    placeholder="Preferred seats (e.g. 1, 9)"
+                                    placeholder="Preferred Seats (e.g. 1, 9)"
                                     value={seatPrefs.preferred_seats}
                                     onChange={e => setSeatPrefs(p => ({ ...p, preferred_seats: e.target.value }))}
                                     className="flex-1 bg-[#161B22] border border-[#30363D] rounded-md px-3 py-2 text-sm text-white placeholder-[#484F58] focus:border-[#22D3EE] outline-none"
@@ -395,7 +395,7 @@ export default function PlayerWaitlistPage() {
                                 </label>
                                 <input
                                   type="text"
-                                  placeholder="Other notes..."
+                                  placeholder="Other Notes..."
                                   value={seatPrefs.notes}
                                   onChange={e => setSeatPrefs(p => ({ ...p, notes: e.target.value }))}
                                   className="w-full bg-[#161B22] border border-[#30363D] rounded-md px-3 py-2 text-sm text-white placeholder-[#484F58] focus:border-[#22D3EE] outline-none"
@@ -478,7 +478,7 @@ export default function PlayerWaitlistPage() {
               <div className="absolute top-3 right-3"><span className="cmd-rivet cmd-rivet-sm" /></div>
               <div className="absolute bottom-3 left-3"><span className="cmd-rivet cmd-rivet-sm" /></div>
               <div className="absolute bottom-3 right-3"><span className="cmd-rivet cmd-rivet-sm" /></div>
-              <h3 className="font-bold text-[#22D3EE] mb-3 uppercase tracking-wide text-sm">How it works</h3>
+              <h3 className="font-bold text-[#22D3EE] mb-3 uppercase tracking-wide text-sm">How It Works</h3>
               <div className="space-y-3">
                 {[
                   'Join the waitlist for your preferred game',
@@ -507,7 +507,7 @@ export default function PlayerWaitlistPage() {
 
           {/* Powered By */}
           <div className="text-center pb-6">
-            <p className="text-xs text-[#64748B] uppercase tracking-[0.3em] mb-2">Powered by</p>
+            <p className="text-xs text-[#64748B] uppercase tracking-[0.3em] mb-2">Powered By</p>
             <p className="text-xl font-extrabold cmd-text-chrome tracking-wider">CLUB COMMANDER</p>
           </div>
         </main>

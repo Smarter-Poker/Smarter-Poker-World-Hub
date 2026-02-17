@@ -72,7 +72,7 @@ export default function TrainingAchievements() {
         <PageTransition>
             <SEOHead
                 title="Training Achievements — Milestones Unlocked"
-                description="Track your GTO training achievements and milestones on Smarter.Poker."
+                description="Track Your GTO Training Achievements And Milestones On Smarter.Poker."
                 canonical="/hub/training/achievements"
             />
 
@@ -109,7 +109,7 @@ export default function TrainingAchievements() {
 
                     {/* Achievement List */}
                     {loading ? (
-                        <div style={styles.loading}>Loading achievements...</div>
+                        <div style={styles.loading}>Loading Achievements...</div>
                     ) : (
                         <div style={styles.grid}>
                             {filteredAchievements.map((ach, i) => (

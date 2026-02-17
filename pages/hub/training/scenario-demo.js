@@ -32,7 +32,7 @@ export default function ScenarioDemoPage() {
         <>
             <SEOHead
                 title="Training Scenario Demo"
-                description="Preview a GTO training scenario on Smarter.Poker."
+                description="Preview A GTO Training Scenario On Smarter.Poker."
                 noindex={true}
             />
 

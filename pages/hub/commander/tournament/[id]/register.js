@@ -161,7 +161,7 @@ export default function TournamentRegisterPage() {
     <>
       <SEOHead
                 title="Tournament Registration"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
 
@@ -286,7 +286,7 @@ export default function TournamentRegisterPage() {
               ) : isFull ? (
                 <div className="p-4 bg-[#F59E0B]/10 rounded-lg text-center">
                   <p className="font-medium text-[#F59E0B]">Tournament Full</p>
-                  <p className="text-sm text-[#F59E0B]/80 mt-1">Registration is closed</p>
+                  <p className="text-sm text-[#F59E0B]/80 mt-1">Registration Is Closed</p>
                 </div>
               ) : (
                 <div className="p-4 bg-[#0D192E] rounded-lg text-center">

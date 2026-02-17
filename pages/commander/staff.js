@@ -139,7 +139,7 @@ export default function CommanderStaffPage() {
     <>
       <SEOHead
                 title="Commander — Staff Management"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
 
@@ -414,7 +414,7 @@ function StaffModal({ staff, onClose, onSubmit }) {
               type="text"
               value={pinCode}
               onChange={(e) => setPinCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              placeholder="4-6 digits"
+              placeholder="4-6 Digits"
               className="w-full h-12 px-3 cmd-input"
             />
             <p className="text-xs text-[#B0B3B8] mt-1">Used For Terminal Login And Comp Authorization</p>

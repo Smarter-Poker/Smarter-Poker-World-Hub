@@ -103,7 +103,7 @@ export default function MembersPage() {
             <>
                 <SEOHead
                 title="Commander — Member Management"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
 
@@ -139,7 +139,7 @@ export default function MembersPage() {
                             <div className="flex-1 relative">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8A8D91]" />
                                 <input type="text" value={searchInput} onChange={e => setSearchInput(e.target.value)}
-                                    placeholder="Search by name, number, phone, or email..."
+                                    placeholder="Search By Name, Number, Phone, Or Email..."
                                     className="w-full pl-10 pr-4 py-2.5 bg-[#242526] border border-[#3A3B3C] rounded-lg text-[#E4E6EB] text-sm focus:border-[#1877F2] focus:outline-none placeholder-[#8A8D91]" />
                             </div>
                             <button onClick={() => setShowFilters(!showFilters)}

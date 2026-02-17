@@ -266,7 +266,7 @@ export default function Players() {
         <>
             <SEOHead
                 title="Club Arena — Players"
-                description="Search and view poker players in Club Arena."
+                description="Search And View Poker Players In Club Arena."
                 canonical="/hub/club-arena/players"
                 noindex={true}
             />
@@ -288,7 +288,7 @@ export default function Players() {
                         <input
                             type="text"
                             style={S.searchInput}
-                            placeholder="Search players..."
+                            placeholder="Search Players..."
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
                         />
@@ -321,7 +321,7 @@ export default function Players() {
                     </div>
 
                     {isLoading ? (
-                        <div style={S.loading}>Loading players...</div>
+                        <div style={S.loading}>Loading Players...</div>
                     ) : filteredMembers.length === 0 ? (
                         <div style={S.emptyState}>
                             <span style={{ fontSize: '48px', display: 'block', marginBottom: '12px' }}>👥</span>

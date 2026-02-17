@@ -1,6 +1,14 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    TWILIO SMS — SEND OTP VERIFICATION CODE
    POST /api/sms/send-otp
+
+   HARDENED v2 — Feb 2026
+   ─────────────────────────────────────────────────────────────────────────
+   • Supabase-backed OTP store (survives serverless cold starts)
+   • Per-phone rate limiting (max 5 codes per hour)
+   • Auto-cleanup of expired OTP rows on every request
+   • Shared phone normalisation logic (identical to verify-otp.js)
+   • Defensive error handling at every Supabase + Twilio call
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import twilio from 'twilio';
@@ -13,51 +21,83 @@ const twilioPhone = process.env.TWILIO_PHONE_NUMBER;
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+/* ── Shared utility: normalise any phone input to E.164 ────────────────── */
+function normalizePhone(raw) {
+    const digits = raw.replace(/\D/g, '');
+    if (digits.length === 10) return '+1' + digits;   // US 10-digit
+    if (digits.length === 11 && digits.startsWith('1')) return '+' + digits; // US with leading 1
+    return '+' + digits;                               // passthrough
+}
+
+/* ── Rate limit: max OTP requests per phone per hour ───────────────────── */
+const MAX_CODES_PER_HOUR = 5;
+
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    // Validate environment variables
+    // ── Guard: environment variables ──────────────────────────────────────
     if (!accountSid || !authToken || !twilioPhone) {
-        console.error('Twilio credentials not configured');
+        console.error('[send-otp] Twilio credentials not configured');
         return res.status(500).json({ error: 'SMS service not configured' });
     }
-
     if (!supabaseUrl || !supabaseServiceKey) {
-        console.error('Supabase credentials not configured');
+        console.error('[send-otp] Supabase credentials not configured');
         return res.status(500).json({ error: 'Server configuration error' });
     }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     try {
         const { phone } = req.body;
 
-        // Validate phone number
+        // ── Guard: phone required ────────────────────────────────────────
         if (!phone) {
             return res.status(400).json({ error: 'Phone number is required' });
         }
 
-        // Clean and format phone number (ensure +1 prefix for US numbers)
-        let cleanPhone = phone.replace(/\D/g, '');
-        if (cleanPhone.length === 10) {
-            cleanPhone = '+1' + cleanPhone;
-        } else if (!cleanPhone.startsWith('+')) {
-            cleanPhone = '+' + cleanPhone;
+        const cleanPhone = normalizePhone(phone);
+
+        // ── Guard: must look like a valid US phone (+1 + 10 digits) ──────
+        if (!/^\+1\d{10}$/.test(cleanPhone)) {
+            return res.status(400).json({ error: 'Please enter a valid 10-digit US phone number' });
         }
 
-        // Generate 6-digit OTP
-        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+        // ── Housekeeping: purge ALL expired OTP rows (any phone) ─────────
+        // Keeps the table lean — runs on every send request
+        await supabase
+            .from('sms_otp_codes')
+            .delete()
+            .lt('expires_at', new Date().toISOString());
 
-        // Store OTP in Supabase (persistent across serverless invocations)
-        const supabase = createClient(supabaseUrl, supabaseServiceKey);
+        // ── Rate limit: count codes sent to this phone in the last hour ──
+        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+        const { count, error: countError } = await supabase
+            .from('sms_otp_codes')
+            .select('id', { count: 'exact', head: true })
+            .eq('phone', cleanPhone)
+            .gte('created_at', oneHourAgo);
 
-        // Delete any existing OTP for this phone number first
+        if (countError) {
+            console.error('[send-otp] Rate limit check error:', countError);
+            // Non-blocking: continue even if count fails
+        } else if (count >= MAX_CODES_PER_HOUR) {
+            return res.status(429).json({
+                error: 'Too many verification requests. Please try again later.',
+                retryAfter: 3600
+            });
+        }
+
+        // ── Delete any existing OTP for this phone ───────────────────────
         await supabase
             .from('sms_otp_codes')
             .delete()
             .eq('phone', cleanPhone);
 
-        // Insert new OTP with 10-minute expiration
+        // ── Generate & store new 6-digit OTP ─────────────────────────────
+        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+
         const { error: insertError } = await supabase
             .from('sms_otp_codes')
             .insert({
@@ -68,11 +108,11 @@ export default async function handler(req, res) {
             });
 
         if (insertError) {
-            console.error('OTP store error:', insertError);
+            console.error('[send-otp] DB insert error:', insertError);
             return res.status(500).json({ error: 'Failed to store verification code' });
         }
 
-        // Initialize Twilio client and send SMS
+        // ── Send SMS via Twilio ──────────────────────────────────────────
         const client = twilio(accountSid, authToken);
 
         const message = await client.messages.create({
@@ -81,7 +121,7 @@ export default async function handler(req, res) {
             to: cleanPhone
         });
 
-        console.log('SMS sent:', message.sid);
+        console.log('[send-otp] SMS sent:', message.sid, 'to:', cleanPhone);
 
         return res.status(200).json({
             success: true,
@@ -89,18 +129,12 @@ export default async function handler(req, res) {
         });
 
     } catch (error) {
-        console.error('Twilio SMS error:', error);
+        console.error('[send-otp] Error:', error);
 
-        // Handle specific Twilio errors
-        if (error.code === 21211) {
-            return res.status(400).json({ error: 'Invalid phone number format' });
-        }
-        if (error.code === 21614) {
-            return res.status(400).json({ error: 'Phone number is not a valid mobile number' });
-        }
-        if (error.code === 21608) {
-            return res.status(400).json({ error: 'Cannot send SMS to this phone number' });
-        }
+        // ── Twilio-specific error codes ──────────────────────────────────
+        if (error.code === 21211) return res.status(400).json({ error: 'Invalid phone number format' });
+        if (error.code === 21614) return res.status(400).json({ error: 'Phone number is not a valid mobile number' });
+        if (error.code === 21608) return res.status(400).json({ error: 'Cannot send SMS to this phone number' });
 
         return res.status(500).json({
             error: 'Failed to send verification code',

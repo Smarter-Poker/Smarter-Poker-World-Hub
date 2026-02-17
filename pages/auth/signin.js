@@ -80,7 +80,7 @@ export default function SignInPage() {
         <>
             <SEOHead
                 title="Sign In — Smarter.Poker"
-                description="Sign in to Smarter.Poker — the future of poker. Training, trivia, tournaments, and more."
+                description="Sign In To Smarter.Poker — The Future Of Poker. Training, Trivia, Tournaments, And More."
                 canonical="/auth/signin"
                 noindex={true}
             />
@@ -108,7 +108,7 @@ export default function SignInPage() {
                             }}
                         />
                         <h1 style={styles.title}>Welcome Back</h1>
-                        <p style={styles.subtitle}>Sign in to continue your training</p>
+                        <p style={styles.subtitle}>Sign In To Continue Your Training</p>
                     </div>
 
                     {error && (
@@ -156,7 +156,7 @@ export default function SignInPage() {
 
                     <div style={styles.divider}>
                         <div style={styles.dividerLine} />
-                        <span style={styles.dividerText}>or continue with</span>
+                        <span style={styles.dividerText}>Or Continue With</span>
                         <div style={styles.dividerLine} />
                     </div>
 

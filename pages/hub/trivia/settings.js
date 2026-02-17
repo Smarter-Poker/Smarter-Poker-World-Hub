@@ -104,7 +104,7 @@ export default function TriviaSettings() {
         <>
             <SEOHead
                 title="Trivia Settings"
-                description="Customize your poker trivia experience with difficulty, sound, and display settings."
+                description="Customize Your Poker Trivia Experience With Difficulty, Sound, And Display Settings."
                 canonical="/hub/trivia/settings"
                 noindex={true}
             />
@@ -146,7 +146,7 @@ export default function TriviaSettings() {
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <div>
                                             <div style={{ color: '#e4e6eb', fontWeight: 'bold', marginBottom: '4px' }}>Sound Effects</div>
-                                            <div style={{ color: '#65676b', fontSize: '14px' }}>Play sounds for correct/incorrect answers</div>
+                                            <div style={{ color: '#65676b', fontSize: '14px' }}>Play Sounds For Correct/incorrect Answers</div>
                                         </div>
                                         <ToggleSwitch
                                             checked={preferences.soundEffects}
@@ -159,7 +159,7 @@ export default function TriviaSettings() {
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <div>
                                             <div style={{ color: '#e4e6eb', fontWeight: 'bold', marginBottom: '4px' }}>Timer</div>
-                                            <div style={{ color: '#65676b', fontSize: '14px' }}>Show countdown timer during questions</div>
+                                            <div style={{ color: '#65676b', fontSize: '14px' }}>Show Countdown Timer During Questions</div>
                                         </div>
                                         <ToggleSwitch
                                             checked={preferences.timerEnabled}
@@ -172,7 +172,7 @@ export default function TriviaSettings() {
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <div>
                                             <div style={{ color: '#e4e6eb', fontWeight: 'bold', marginBottom: '4px' }}>Show Hints</div>
-                                            <div style={{ color: '#65676b', fontSize: '14px' }}>Display hints for difficult questions</div>
+                                            <div style={{ color: '#65676b', fontSize: '14px' }}>Display Hints For Difficult Questions</div>
                                         </div>
                                         <ToggleSwitch
                                             checked={preferences.hintsEnabled}

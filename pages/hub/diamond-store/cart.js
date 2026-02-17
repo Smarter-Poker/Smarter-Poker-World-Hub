@@ -165,7 +165,7 @@ export default function ShoppingCart() {
         <PageTransition>
             <SEOHead
                 title="Shopping Cart — Diamond Store"
-                description="View and manage items in your Diamond Store shopping cart."
+                description="View And Manage Items In Your Diamond Store Shopping Cart."
                 canonical="/hub/diamond-store/cart"
                 noindex={true}
             />

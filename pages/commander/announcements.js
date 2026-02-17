@@ -116,7 +116,7 @@ export default function CommanderAnnouncementsPage() {
     <>
       <SEOHead
                 title="Commander — Announcements"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
 
@@ -205,7 +205,7 @@ export default function CommanderAnnouncementsPage() {
               <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                placeholder="Type your announcement..."
+                placeholder="Type Your Announcement..."
                 rows={3}
                 className="w-full px-3 py-2 cmd-input resize-none"
               />

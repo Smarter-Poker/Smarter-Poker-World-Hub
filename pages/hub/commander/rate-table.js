@@ -89,14 +89,14 @@ export default function RateTable() {
       <>
         <SEOHead
                 title="Rate Table"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
         <div style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: 'Inter, system-ui, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ textAlign: 'center', padding: 32 }}>
             <CheckCircle2 size={56} color="#31A24C" style={{ marginBottom: 16 }} />
-            <div style={{ fontSize: 22, fontWeight: 800, color: '#1C2526', marginBottom: 6 }}>Thanks for Rating!</div>
-            <div style={{ fontSize: 14, color: '#65676B', marginBottom: 24 }}>Your feedback helps other players find the right game.</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: '#1C2526', marginBottom: 6 }}>Thanks For Rating!</div>
+            <div style={{ fontSize: 14, color: '#65676B', marginBottom: 24 }}>Your Feedback Helps Other Players Find The Right Game.</div>
             <button onClick={() => router.back()}
               style={{ background: '#1877F2', color: 'white', border: 'none', borderRadius: 10, padding: '12px 32px', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
               Done
@@ -123,7 +123,7 @@ export default function RateTable() {
         </div>
 
         <div style={{ padding: 16, maxWidth: 480, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ fontSize: 14, color: '#65676B', textAlign: 'center' }}>How was the game?</div>
+          <div style={{ fontSize: 14, color: '#65676B', textAlign: 'center' }}>How Was The Game?</div>
 
           <RatingSlider label="Action Level" value={action} onChange={setAction} config={LABELS.action_level} />
           <RatingSlider label="Friendliness" value={friendly} onChange={setFriendly} config={LABELS.friendliness} />
@@ -132,7 +132,7 @@ export default function RateTable() {
           <div style={{ background: 'white', borderRadius: 12, padding: 16, border: '1px solid #E4E6EB' }}>
             <div style={{ fontWeight: 600, fontSize: 14, color: '#1C2526', marginBottom: 6 }}>Comment (optional)</div>
             <textarea value={comment} onChange={e => setComment(e.target.value)} rows={2}
-              placeholder="How was the table?"
+              placeholder="How Was The Table?"
               style={{ width: '100%', padding: '10px 12px', border: '1px solid #CED0D4', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }} />
           </div>
 

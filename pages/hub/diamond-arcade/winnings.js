@@ -19,7 +19,7 @@ export default function DiamondArcadeWinnings() {
         <>
             <SEOHead
                 title="Arcade Winnings — Your Earnings"
-                description="Track your Diamond Arcade winnings and prize history."
+                description="Track Your Diamond Arcade Winnings And Prize History."
                 canonical="/hub/diamond-arcade/winnings"
                 noindex={true}
             />

@@ -296,7 +296,7 @@ export default function SquadDetailPage() {
     <>
       <SEOHead
                 title="Squad Details"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
 
@@ -352,7 +352,7 @@ export default function SquadDetailPage() {
               {squad?.position && squad?.group_status === 'waiting' && (
                 <div className="text-right">
                   <p className="text-2xl font-bold text-[#22D3EE]">#{squad.position}</p>
-                  <p className="text-sm text-[#64748B]">in line</p>
+                  <p className="text-sm text-[#64748B]">In Line</p>
                 </div>
               )}
             </div>
@@ -368,7 +368,7 @@ export default function SquadDetailPage() {
           {/* Invite Code */}
           {squad?.group_status === 'forming' && (
             <div className="bg-[#22D3EE]/5 rounded-xl p-4">
-              <p className="text-sm text-[#64748B] mb-2">Share this code with friends</p>
+              <p className="text-sm text-[#64748B] mb-2">Share This Code With Friends</p>
               <div className="flex items-center gap-3">
                 <div className="flex-1 bg-[#0D192E] rounded-lg px-4 py-3 font-mono text-xl text-center text-white border border-[#4A5E78]">
                   {squad?.invite_code}
@@ -474,19 +474,19 @@ export default function SquadDetailPage() {
               <h3 className="font-medium text-white mb-2">Squad Preferences</h3>
               <ul className="space-y-2 text-sm text-[#64748B]">
                 <li className="flex items-center justify-between">
-                  <span>Prefer same table</span>
+                  <span>Prefer Same Table</span>
                   <span className={squad.prefer_same_table ? 'text-[#10B981]' : 'text-[#64748B]'}>
                     {squad.prefer_same_table ? 'Yes' : 'No'}
                   </span>
                 </li>
                 <li className="flex items-center justify-between">
-                  <span>Accept split seating</span>
+                  <span>Accept Split Seating</span>
                   <span className={squad.accept_split ? 'text-[#10B981]' : 'text-[#64748B]'}>
                     {squad.accept_split ? 'Yes' : 'No'}
                   </span>
                 </li>
                 <li className="flex items-center justify-between">
-                  <span>Max squad size</span>
+                  <span>Max Squad Size</span>
                   <span>{squad.max_size || 6}</span>
                 </li>
               </ul>

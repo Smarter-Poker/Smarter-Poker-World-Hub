@@ -418,7 +418,7 @@ export function MediaLibrary({
     // Lightbox navigation
     const handleLightboxNav = (direction) => {
         const newIndex = lightboxIndex + direction;
-        if (newIndex >= 0 && newIndex < media.length) {
+        if (newIndex >= 0 && NewIndex < media.length) {
             setLightboxIndex(newIndex);
             setLightboxMedia(media[newIndex]);
         }
@@ -490,7 +490,7 @@ export function MediaLibrary({
                     ) : media.length === 0 ? (
                         <div style={styles.emptyState}>
                             <div style={styles.emptyIcon}>📷</div>
-                            <div>No media yet</div>
+                            <div>No Media Yet</div>
                             <div style={{ fontSize: 14, marginTop: 8 }}>
                                 Upload photos and videos to build your library
                             </div>

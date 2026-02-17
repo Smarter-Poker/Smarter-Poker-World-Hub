@@ -139,7 +139,7 @@ function ApiKeysModal({ isOpen, onClose, venueId }) {
               type="text"
               value={newKeyName}
               onChange={(e) => setNewKeyName(e.target.value)}
-              placeholder="Key name (e.g., POS System)"
+              placeholder="Key Name (e.g., POS System)"
               className="cmd-input flex-1"
             />
             <button
@@ -160,7 +160,7 @@ function ApiKeysModal({ isOpen, onClose, venueId }) {
           ) : apiKeys.length === 0 ? (
             <div className="text-center py-8 text-[#B0B3B8]">
               <Key className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p>No API keys yet</p>
+              <p>No API Keys Yet</p>
             </div>
           ) : (
             <div className="space-y-2 max-h-60 overflow-y-auto">
@@ -289,7 +289,7 @@ function VenueSettingsModal({ isOpen, onClose, venue, onSave }) {
           <div className="flex items-center justify-between">
             <div>
               <p className="font-medium text-white">Auto Text Notifications</p>
-              <p className="text-sm text-[#B0B3B8]">Send automatic SMS to players when called</p>
+              <p className="text-sm text-[#B0B3B8]">Send Automatic SMS To Players When Called</p>
             </div>
             <label className="relative inline-flex cursor-pointer">
               <input
@@ -335,7 +335,7 @@ function VenueSettingsModal({ isOpen, onClose, venue, onSave }) {
                 />
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-[#B0B3B8]">Allow Remote Check-in</span>
+                <span className="text-sm text-[#B0B3B8]">Allow Remote Check-In</span>
                 <label className="relative inline-flex cursor-pointer">
                   <input
                     type="checkbox"
@@ -387,7 +387,7 @@ function VenueSettingsModal({ isOpen, onClose, venue, onSave }) {
                 </label>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-[#B0B3B8]">Show Player Names on Display</span>
+                <span className="text-sm text-[#B0B3B8]">Show Player Names On Display</span>
                 <label className="relative inline-flex cursor-pointer">
                   <input
                     type="checkbox"
@@ -564,7 +564,7 @@ export default function AdminDashboard() {
     <>
       <SEOHead
                 title="Commander — Index"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             >
                 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />

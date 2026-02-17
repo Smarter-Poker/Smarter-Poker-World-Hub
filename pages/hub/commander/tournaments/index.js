@@ -201,7 +201,7 @@ export default function PlayerTournamentsHub() {
     <>
       <SEOHead
                 title="Tournaments"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
 
@@ -226,7 +226,7 @@ export default function PlayerTournamentsHub() {
               </div>
               <div>
                 <h1 className="text-xl font-extrabold text-white tracking-wider cmd-text-glow">TOURNAMENTS</h1>
-                <p className="text-sm text-[#64748B] font-medium tracking-wide">Find and register for poker tournaments</p>
+                <p className="text-sm text-[#64748B] font-medium tracking-wide">Find And Register For Poker Tournaments</p>
               </div>
               {/* Rivets */}
               <div className="ml-auto flex gap-2">
@@ -280,7 +280,7 @@ export default function PlayerTournamentsHub() {
               <div className="cmd-icon-box mx-auto mb-4">
                 <Trophy className="w-8 h-8" />
               </div>
-              <h3 className="text-lg font-bold text-white">No tournaments found</h3>
+              <h3 className="text-lg font-bold text-white">No Tournaments Found</h3>
               <p className="text-[#64748B] mt-1">
                 {filter === 'registered'
                   ? 'You haven\'t registered for any tournaments yet'

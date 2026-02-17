@@ -115,7 +115,7 @@ export default function TournamentsPage() {
         <PageTransition>
             <SEOHead
                 title="Training Tournaments — Compete & Learn"
-                description="Enter GTO training tournaments. Compete against other students in scenario-based challenges."
+                description="Enter GTO Training Tournaments. Compete Against Other Students In Scenario-based Challenges."
                 canonical="/hub/training/tournaments"
             />
 
@@ -126,7 +126,7 @@ export default function TournamentsPage() {
                     {/* Header */}
                     <div style={styles.header}>
                         <h1 style={styles.title}>🏆 Training Tournaments</h1>
-                        <p style={styles.subtitle}>Compete against other players in timed GTO challenges</p>
+                        <p style={styles.subtitle}>Compete Against Other Players In Timed GTO Challenges</p>
                     </div>
 
                     {/* Tab Navigation */}
@@ -147,13 +147,13 @@ export default function TournamentsPage() {
 
                     {/* Tournament List */}
                     {loading ? (
-                        <div style={styles.loading}>Loading tournaments...</div>
+                        <div style={styles.loading}>Loading Tournaments...</div>
                     ) : tournaments.length === 0 ? (
                         <div style={styles.emptyState}>
                             <span style={styles.emptyIcon}>🏆</span>
                             <p>No {activeTab} tournaments</p>
                             {activeTab === 'live' && (
-                                <p style={styles.emptyHint}>Check upcoming tournaments or wait for the next one!</p>
+                                <p style={styles.emptyHint}>Check Upcoming Tournaments Or Wait For The Next One!</p>
                             )}
                         </div>
                     ) : (

@@ -6,6 +6,7 @@
  */
 import { useState } from 'react';
 import SEOHead from '../../src/components/seo/SEOHead';
+import Head from 'next/head';
 import Link from 'next/link';
 import {
   Building2,
@@ -122,7 +123,7 @@ export default function VenueOnboardingPage() {
       <>
         <SEOHead
           title="Club Commander — Onboarding"
-          description="Club Commander poker room management tool."
+          description="Club Commander Poker Room Management Tool."
           noindex={true}
         />
 
@@ -137,7 +138,7 @@ export default function VenueOnboardingPage() {
             </p>
 
             <div className="cmd-panel p-4 mb-6">
-              <h3 className="font-medium text-white mb-3">What happens next?</h3>
+              <h3 className="font-medium text-white mb-3">What Happens Next?</h3>
               <div className="space-y-3 text-left">
                 {STEPS.map((s, i) => (
                   <div key={s.id} className="flex items-center gap-3">
@@ -259,7 +260,7 @@ export default function VenueOnboardingPage() {
               </button>
 
               <div className="cmd-panel p-6">
-                <h2 className="text-xl font-bold text-white mb-6">Request a Demo</h2>
+                <h2 className="text-xl font-bold text-white mb-6">Request A Demo</h2>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                   {/* Venue Name */}
@@ -368,7 +369,7 @@ export default function VenueOnboardingPage() {
                         required
                         className="cmd-input w-full"
                       >
-                        <option value="">Select state...</option>
+                        <option value="">Select State...</option>
                         <option value="NV">Nevada</option>
                         <option value="CA">California</option>
                         <option value="TX">Texas</option>
@@ -393,12 +394,12 @@ export default function VenueOnboardingPage() {
                       onChange={handleChange}
                       className="cmd-input w-full"
                     >
-                      <option value="">Select range...</option>
-                      <option value="1-5">1-5 tables</option>
-                      <option value="6-10">6-10 tables</option>
-                      <option value="11-20">11-20 tables</option>
-                      <option value="21-40">21-40 tables</option>
-                      <option value="40+">40+ tables</option>
+                      <option value="">Select Range...</option>
+                      <option value="1-5">1-5 Tables</option>
+                      <option value="6-10">6-10 Tables</option>
+                      <option value="11-20">11-20 Tables</option>
+                      <option value="21-40">21-40 Tables</option>
+                      <option value="40+">40+ Tables</option>
                     </select>
                   </div>
 
@@ -413,7 +414,7 @@ export default function VenueOnboardingPage() {
                       onChange={handleChange}
                       className="cmd-input w-full"
                     >
-                      <option value="">Select current system...</option>
+                      <option value="">Select Current System...</option>
                       <option value="poker_atlas">PokerAtlas</option>
                       <option value="bravo">Bravo Poker Live</option>
                       <option value="paper">Paper/Whiteboard</option>
@@ -432,7 +433,7 @@ export default function VenueOnboardingPage() {
                       value={formData.notes}
                       onChange={handleChange}
                       rows={3}
-                      placeholder="Tell us about your needs or questions..."
+                      placeholder="Tell Us About Your Needs Or Questions..."
                       className="cmd-input w-full resize-none"
                     />
                   </div>
@@ -455,7 +456,7 @@ export default function VenueOnboardingPage() {
                         style={{ fontFamily: 'monospace', letterSpacing: '2px' }}
                       />
                     </div>
-                    <p className="text-xs text-[#B0B3B8] mt-1">Have a promo code? Enter it here for special pricing or perks.</p>
+                    <p className="text-xs text-[#B0B3B8] mt-1">Have A Promo Code? Enter It Here For Special Pricing Or Perks.</p>
                   </div>
 
                   {error && (

@@ -99,7 +99,7 @@ export default function PromotionsDisplay() {
           {promotions.length === 0 ? (
             <div className="text-center">
               <p className="text-5xl font-bold text-white/20 mb-4">No Active Promotions</p>
-              <p className="text-xl text-white/10">Check back soon!</p>
+              <p className="text-xl text-white/10">Check Back Soon!</p>
             </div>
           ) : current ? (
             <div key={currentIndex} className={`slide-in w-full max-w-4xl bg-gradient-to-br ${(promoTypeStyles[current.type] || promoTypeStyles.default).bg} rounded-3xl p-12 text-center border border-white/10`}>
@@ -167,7 +167,7 @@ export default function PromotionsDisplay() {
 
         {/* Branding */}
         <div className="absolute bottom-4 right-6">
-          <p className="text-white/15 text-xs tracking-wider">Powered by Smarter.Poker</p>
+          <p className="text-white/15 text-xs tracking-wider">Powered By Smarter.Poker</p>
         </div>
       </div>
     </CommanderLayout>

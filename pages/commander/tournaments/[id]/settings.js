@@ -322,7 +322,7 @@ export default function TournamentSettings() {
     <>
       <SEOHead
                 title="Commander — Settings"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter'] flex flex-col">
@@ -419,7 +419,7 @@ export default function TournamentSettings() {
                           onChange={e => updateLevel(i, 'duration', e.target.value)}
                           className="w-14 px-2 py-1 bg-[#3A3B3C] rounded text-center text-sm text-white"
                         />
-                        <span className="text-[10px] text-[#F59E0B]">min</span>
+                        <span className="text-[10px] text-[#F59E0B]">Min</span>
                         <button onClick={() => moveLevel(i, -1)} className="p-1"><ChevronUp className="w-3.5 h-3.5 text-[#B0B3B8]" /></button>
                         <button onClick={() => moveLevel(i, 1)} className="p-1"><ChevronDown className="w-3.5 h-3.5 text-[#B0B3B8]" /></button>
                         <button onClick={() => removeLevel(i)} className="p-1"><Trash2 className="w-3.5 h-3.5 text-[#EF4444]" /></button>
@@ -494,7 +494,7 @@ export default function TournamentSettings() {
               {/* Buy-in */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-[#B0B3B8] uppercase tracking-wider block mb-1">Buy-in ($)</label>
+                  <label className="text-xs text-[#B0B3B8] uppercase tracking-wider block mb-1">Buy-In ($)</label>
                   <input type="number" value={buyinAmount} onChange={e => setBuyinAmount(parseInt(e.target.value) || 0)}
                     className="w-full px-3 py-2.5 bg-[#3A3B3C] border border-[#4A4B4C] rounded-lg text-[#E4E6EB] focus:border-[#1877F2] focus:outline-none" />
                 </div>
@@ -568,7 +568,7 @@ export default function TournamentSettings() {
               {/* Add-ons */}
               <div className="bg-[#242526] rounded-xl p-4 border border-[#3A3B3C] space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-white">Add-on</span>
+                  <span className="text-sm font-medium text-white">Add-On</span>
                   <button onClick={() => setAddonAllowed(!addonAllowed)}
                     className={`w-12 h-6 rounded-full transition-colors ${addonAllowed ? 'bg-[#1877F2]' : 'bg-[#3A3B3C]'}`}>
                     <div className={`w-5 h-5 rounded-full bg-white transition-transform ${addonAllowed ? 'translate-x-6' : 'translate-x-0.5'}`} />

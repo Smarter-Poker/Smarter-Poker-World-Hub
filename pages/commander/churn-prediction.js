@@ -70,7 +70,7 @@ export default function ChurnPrediction() {
     <>
       <SEOHead
                 title="Commander — Churn Prediction"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
       <div style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -78,7 +78,7 @@ export default function ChurnPrediction() {
           <Brain size={22} />
           <div>
             <div style={{ fontWeight: 700, fontSize: 17 }}>Player Churn Prediction</div>
-            <div style={{ fontSize: 12, opacity: 0.85 }}>AI analysis of at-risk players</div>
+            <div style={{ fontSize: 12, opacity: 0.85 }}>AI Analysis Of At-Risk Players</div>
           </div>
         </div>
 

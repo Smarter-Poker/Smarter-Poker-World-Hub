@@ -190,7 +190,7 @@ export default function PokerPagesPage() {
         <>
             <SEOHead
                 title="Social Pages — Community Pages"
-                description="Discover community pages on Smarter.Poker. Follow pages for poker content, strategy, and community discussions."
+                description="Discover Community Pages On Smarter.Poker. Follow Pages For Poker Content, Strategy, And Community Discussions."
                 canonical="/hub/pages"
             />
 
@@ -203,7 +203,7 @@ export default function PokerPagesPage() {
                         <div className="header-top">
                             <div>
                                 <h1 className="page-title">Poker Pages</h1>
-                                <p className="page-subtitle">Follow venues, tours, and series for updates</p>
+                                <p className="page-subtitle">Follow Venues, Tours, And Series For Updates</p>
                             </div>
                             <Link href="/hub/social-media" legacyBehavior>
                                 <a className="back-to-social">
@@ -246,7 +246,7 @@ export default function PokerPagesPage() {
                             </svg>
                             <input
                                 type="text"
-                                placeholder="Search pages..."
+                                placeholder="Search Pages..."
                                 value={searchInput}
                                 onChange={e => setSearchInput(e.target.value)}
                                 className="search-input"
@@ -308,7 +308,7 @@ export default function PokerPagesPage() {
                     {loading ? (
                         <div className="loading-state">
                             <div className="spinner" />
-                            <p>Loading pages...</p>
+                            <p>Loading Pages...</p>
                         </div>
                     ) : pages.length === 0 ? (
                         <div className="empty-state">

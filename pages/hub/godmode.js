@@ -116,7 +116,7 @@ export default function GodModePage() {
         <div className="text-center">
           <Lightbulb className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
           <h2 className="text-lg font-bold text-white">No Hand Selected</h2>
-          <p className="text-[#64748B] mt-1">Select a hand from your history to analyze</p>
+          <p className="text-[#64748B] mt-1">Select A Hand From Your History To Analyze</p>
           <button
             onClick={() => router.push('/hub/commander/hand-history')}
             className="cmd-btn cmd-btn-primary mt-4"
@@ -132,7 +132,7 @@ export default function GodModePage() {
     <>
       <SEOHead
                 title="God Mode"
-                description="Admin page."
+                description="Admin Page."
                 noindex={true}
             />
 
@@ -152,7 +152,7 @@ export default function GodModePage() {
               </div>
               <div>
                 <h1 className="font-bold text-white tracking-wide">GODMODE ANALYSIS</h1>
-                <p className="text-sm text-[#64748B]">AI-powered hand review</p>
+                <p className="text-sm text-[#64748B]">AI-powered Hand Review</p>
               </div>
             </div>
           </div>
@@ -162,7 +162,7 @@ export default function GodModePage() {
           {loading ? (
             <div className="cmd-panel p-12 text-center">
               <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE] mx-auto mb-3" />
-              <p className="text-[#64748B]">Analyzing hand...</p>
+              <p className="text-[#64748B]">Analyzing Hand...</p>
             </div>
           ) : (
             <>
@@ -284,7 +284,7 @@ export default function GodModePage() {
                 <div className="cmd-panel p-8 text-center">
                   <AlertTriangle className="w-12 h-12 text-[#EF4444] mx-auto mb-3" />
                   <h3 className="text-lg font-bold text-white">{error}</h3>
-                  <p className="text-[#64748B] mt-1">Unable to load hand data for analysis</p>
+                  <p className="text-[#64748B] mt-1">Unable To Load Hand Data For Analysis</p>
                   <button
                     onClick={() => router.back()}
                     className="cmd-btn cmd-btn-primary mt-4"

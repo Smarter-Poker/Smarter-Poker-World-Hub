@@ -77,7 +77,7 @@ export default function TableVibes() {
     <>
       <SEOHead
                 title="Commander — Table Vibes"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
       <div style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: 'Inter, system-ui, sans-serif' }}>

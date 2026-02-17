@@ -51,7 +51,7 @@ export default function WaitlistMetrics() {
     <>
       <SEOHead
                 title="Commander — Waitlist Metrics"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
@@ -74,7 +74,7 @@ export default function WaitlistMetrics() {
             {/* Wait time hero */}
             <div className="bg-gradient-to-br from-[#1877F2]/20 to-[#A855F7]/10 border border-[#1877F2]/30 rounded-2xl p-5 text-center">
               <p className="text-xs text-[#B0B3B8] uppercase tracking-wider mb-1">Average Wait Time</p>
-              <p className="text-4xl font-bold text-white">{wt.average_minutes || 0}<span className="text-lg text-[#B0B3B8] ml-1">min</span></p>
+              <p className="text-4xl font-bold text-white">{wt.average_minutes || 0}<span className="text-lg text-[#B0B3B8] ml-1">Min</span></p>
               <p className="text-sm text-[#B0B3B8] mt-1">Median {wt.median_minutes || 0}m — Max {wt.max_minutes || 0}m</p>
             </div>
 

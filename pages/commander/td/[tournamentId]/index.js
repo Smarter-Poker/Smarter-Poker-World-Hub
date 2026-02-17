@@ -227,7 +227,7 @@ export default function TDControlCenter() {
     <>
       <SEOHead
                 title="Commander — Index"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
 
@@ -267,7 +267,7 @@ export default function TDControlCenter() {
               <button onClick={() => navigateTo('balance')}
                 className="w-full flex items-center gap-3 px-4 py-3 bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-xl">
                 <AlertTriangle className="w-5 h-5 text-[#EF4444] flex-shrink-0" />
-                <span className="text-[#EF4444] text-sm font-medium flex-1 text-left">Tables are imbalanced</span>
+                <span className="text-[#EF4444] text-sm font-medium flex-1 text-left">Tables Are Imbalanced</span>
                 <ChevronRight className="w-4 h-4 text-[#EF4444]" />
               </button>
             )}
@@ -275,7 +275,7 @@ export default function TDControlCenter() {
               <button onClick={() => navigateTo('balance')}
                 className="w-full flex items-center gap-3 px-4 py-3 bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-xl">
                 <LayoutGrid className="w-5 h-5 text-[#F59E0B] flex-shrink-0" />
-                <span className="text-[#F59E0B] text-sm font-medium flex-1 text-left">A table can be broken</span>
+                <span className="text-[#F59E0B] text-sm font-medium flex-1 text-left">A Table Can Be Broken</span>
                 <ChevronRight className="w-4 h-4 text-[#F59E0B]" />
               </button>
             )}
@@ -484,7 +484,7 @@ export default function TDControlCenter() {
               <textarea
                 value={messageText}
                 onChange={e => setMessageText(e.target.value)}
-                placeholder="Enter message for clock displays..."
+                placeholder="Enter Message For Clock Displays..."
                 rows={3}
                 className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl px-4 py-3 text-[#E4E6EB] text-base placeholder-[#B0B3B8]/50 focus:outline-none focus:border-[#1877F2] resize-none"
                 autoFocus

@@ -108,7 +108,7 @@ export default function MemoryGamesLeaderboard() {
         <>
             <SEOHead
                 title="Memory Games Leaderboard"
-                description="See who has the sharpest memory on the Smarter.Poker memory games leaderboard."
+                description="See Who Has The Sharpest Memory On The Smarter.Poker Memory Games Leaderboard."
                 canonical="/hub/memory-games/leaderboard"
             />
 

@@ -206,7 +206,7 @@ export default function RegisterPage() {
         {/* Logo */}
         <div className="text-center mb-6">
           <img src="/images/club-commander-logo.jpg" alt="Club Commander" className="w-full max-w-md mx-auto rounded-lg" />
-          <p className="text-[#B0B3B8] mt-4">Set up your poker room in minutes - 14-day free trial</p>
+          <p className="text-[#B0B3B8] mt-4">Set Up Your Poker Room In Minutes - 14-day Free Trial</p>
         </div>
 
         {/* Progress Steps */}
@@ -230,7 +230,7 @@ export default function RegisterPage() {
           {step === 1 && (
             <div className="space-y-4">
               <h2 className="text-xl font-bold text-[#E4E6EB] mb-6">Club Information</h2>
-              <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Club/Venue Name *</label><input type="text" name="name" value={clubInfo.name} onChange={handleClubInfoChange} className={inputClass} placeholder="Enter your venue name" /></div>
+              <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Club/Venue Name *</label><input type="text" name="name" value={clubInfo.name} onChange={handleClubInfoChange} className={inputClass} placeholder="Enter Your Venue Name" /></div>
               <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Street Address *</label><input type="text" name="address" value={clubInfo.address} onChange={handleClubInfoChange} className={inputClass} /></div>
               <div className="grid grid-cols-3 gap-4">
                 <div><label className="block text-sm text-[#B0B3B8] mb-1.5">City *</label><input type="text" name="city" value={clubInfo.city} onChange={handleClubInfoChange} className={inputClass} /></div>
@@ -239,31 +239,31 @@ export default function RegisterPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Phone *</label><input type="tel" name="phone" value={clubInfo.phone} onChange={handleClubInfoChange} className={inputClass} /></div>
-                <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Email *</label><input type="email" name="email" value={clubInfo.email} onChange={handleClubInfoChange} className={inputClass} placeholder="Also used for your login" /></div>
+                <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Email *</label><input type="email" name="email" value={clubInfo.email} onChange={handleClubInfoChange} className={inputClass} placeholder="Also Used For Your Login" /></div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Website</label><input type="url" name="website" value={clubInfo.website} onChange={handleClubInfoChange} className={inputClass} /></div>
-                <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Number of Tables</label><input type="number" name="tables" value={clubInfo.tables} onChange={handleClubInfoChange} className={inputClass} /></div>
+                <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Number Of Tables</label><input type="number" name="tables" value={clubInfo.tables} onChange={handleClubInfoChange} className={inputClass} /></div>
               </div>
               <div><label className="block text-sm text-[#B0B3B8] mb-2">Games Offered</label><div className="flex flex-wrap gap-2">{['NLH', 'PLO', 'PLO8', 'Limit HE', 'Stud', 'Mixed', 'Tournaments'].map(game => (<button key={game} type="button" onClick={() => handleGameToggle(game)} className={`px-4 py-2 rounded-full text-sm ${clubInfo.gamesOffered.includes(game) ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'}`}>{game}</button>))}</div></div>
 
               {/* Divider */}
               <div className="border-t border-[#3A3B3C] pt-6 mt-6">
                 <h2 className="text-xl font-bold text-[#E4E6EB] mb-4">Owner / Manager</h2>
-                <p className="text-sm text-[#8A8D91] mb-4">Your club email above will be used as your login. Just add your name and create a password.</p>
+                <p className="text-sm text-[#8A8D91] mb-4">Your Club Email Above Will Be Used As Your Login. Just Add Your Name And Create A Password.</p>
               </div>
 
-              <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Your Full Name *</label><input type="text" value={ownerName} onChange={e => setOwnerName(e.target.value)} className={inputClass} placeholder="Owner or manager name" /></div>
+              <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Your Full Name *</label><input type="text" value={ownerName} onChange={e => setOwnerName(e.target.value)} className={inputClass} placeholder="Owner Or Manager Name" /></div>
 
               {/* Existing account toggle */}
               <div className="flex items-center gap-3 p-4 bg-[#3A3B3C]/40 rounded-lg">
                 <input type="checkbox" id="existingAccount" checked={existingAccount} onChange={e => setExistingAccount(e.target.checked)} className="w-4 h-4 rounded" />
-                <label htmlFor="existingAccount" className="text-sm text-[#B0B3B8]">I already have a Smarter.Poker account with this email</label>
+                <label htmlFor="existingAccount" className="text-sm text-[#B0B3B8]">I Already Have A Smarter.Poker Account With This Email</label>
               </div>
 
               {!existingAccount && (
                 <div className="grid grid-cols-2 gap-4">
-                  <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Create Password *</label><input type="password" value={password} onChange={e => setPassword(e.target.value)} className={inputClass} placeholder="Min 8 characters" /></div>
+                  <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Create Password *</label><input type="password" value={password} onChange={e => setPassword(e.target.value)} className={inputClass} placeholder="Min 8 Characters" /></div>
                   <div><label className="block text-sm text-[#B0B3B8] mb-1.5">Confirm Password *</label><input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className={inputClass} /></div>
                 </div>
               )}
@@ -278,7 +278,7 @@ export default function RegisterPage() {
                       value={promoCode}
                       onChange={e => { setPromoCode(e.target.value); setPromoStatus(null); setPromoMessage(''); }}
                       className={inputClass}
-                      placeholder="Enter promo code"
+                      placeholder="Enter Promo Code"
                     />
                     {promoStatus === 'valid' && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#31A24C] text-lg">✓</span>}
                     {promoStatus === 'invalid' && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#F02849] text-lg">✗</span>}
@@ -320,8 +320,8 @@ export default function RegisterPage() {
                   </div>
                 ))}
               </div>
-              <div className="p-4 bg-[#31A24C]/10 border border-[#31A24C]/30 rounded-xl text-center text-[#E4E6EB]"><span className="font-semibold">14-day free trial</span> - No credit card required</div>
-              <div className="flex items-start gap-3"><input type="checkbox" id="terms" checked={agreedToTerms} onChange={e => setAgreedToTerms(e.target.checked)} className="mt-1 w-4 h-4 rounded" /><label htmlFor="terms" className="text-sm text-[#B0B3B8]">I agree to the <a href="/legal/terms" className="text-[#1877F2]">Terms</a> and <a href="/legal/privacy" className="text-[#1877F2]">Privacy Policy</a></label></div>
+              <div className="p-4 bg-[#31A24C]/10 border border-[#31A24C]/30 rounded-xl text-center text-[#E4E6EB]"><span className="font-semibold">14-day Free Trial</span> - No Credit Card Required</div>
+              <div className="flex items-start gap-3"><input type="checkbox" id="terms" checked={agreedToTerms} onChange={e => setAgreedToTerms(e.target.checked)} className="mt-1 w-4 h-4 rounded" /><label htmlFor="terms" className="text-sm text-[#B0B3B8]">I Agree To The <a href="/legal/terms" className="text-[#1877F2]">Terms</a> And <a href="/legal/privacy" className="text-[#1877F2]">Privacy Policy</a></label></div>
             </div>
           )}
 
@@ -329,17 +329,17 @@ export default function RegisterPage() {
           {step === 3 && (
             <div className="text-center space-y-6">
               <div className="w-20 h-20 bg-[#31A24C] rounded-full flex items-center justify-center mx-auto text-4xl text-white">✓</div>
-              <h2 className="text-2xl font-bold text-[#E4E6EB]">Welcome to Club Commander!</h2>
-              <p className="text-[#B0B3B8]">Your account has been created. Your 14-day trial starts now.</p>
+              <h2 className="text-2xl font-bold text-[#E4E6EB]">Welcome To Club Commander!</h2>
+              <p className="text-[#B0B3B8]">Your Account Has Been Created. Your 14-day Trial Starts Now.</p>
               {registrationResult && <div className="bg-[#3A3B3C] rounded-xl p-5 text-left"><div className="flex justify-between mb-2"><span className="text-[#8A8D91]">Venue ID:</span><span className="text-[#E4E6EB] font-mono">{registrationResult.venueId}</span></div><div className="flex justify-between"><span className="text-[#8A8D91]">Plan:</span><span className="text-[#E4E6EB]">{selectedTier} (14-day trial)</span></div></div>}
-              <button onClick={() => router.push('/commander/dashboard')} className="w-full py-4 bg-[#1877F2] hover:bg-[#1664d9] text-white rounded-xl font-semibold text-lg">Go to Dashboard</button>
+              <button onClick={() => router.push('/commander/dashboard')} className="w-full py-4 bg-[#1877F2] hover:bg-[#1664d9] text-white rounded-xl font-semibold text-lg">Go To Dashboard</button>
             </div>
           )}
 
           {/* Navigation Buttons */}
           {step === 1 && (
             <div className="flex justify-end mt-8">
-              <button onClick={nextStep} className="px-8 py-3 bg-[#1877F2] hover:bg-[#1664d9] text-white rounded-lg font-semibold">Continue to Plan Selection</button>
+              <button onClick={nextStep} className="px-8 py-3 bg-[#1877F2] hover:bg-[#1664d9] text-white rounded-lg font-semibold">Continue To Plan Selection</button>
             </div>
           )}
           {step === 2 && (
@@ -357,7 +357,7 @@ export default function RegisterPage() {
           </Link>
         </div>
 
-        <p className="text-center text-[#65676B] text-xs mt-6">Powered by SMARTER.POKER</p>
+        <p className="text-center text-[#65676B] text-xs mt-6">Powered By SMARTER.POKER</p>
       </div>
     </div>
   );

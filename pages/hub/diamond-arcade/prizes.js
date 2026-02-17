@@ -21,7 +21,7 @@ export default function DiamondArcadePrizes() {
         <>
             <SEOHead
                 title="Arcade Prizes — Rewards Catalog"
-                description="Browse available prizes and rewards in the Diamond Arcade."
+                description="Browse Available Prizes And Rewards In The Diamond Arcade."
                 canonical="/hub/diamond-arcade/prizes"
             />
 

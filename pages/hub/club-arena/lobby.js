@@ -144,7 +144,7 @@ export default function ClubLobby() {
         <>
             <SEOHead
                 title="Club Arena — Game Lobby"
-                description="Browse available poker games in Club Arena."
+                description="Browse Available Poker Games In Club Arena."
                 canonical="/hub/club-arena/lobby"
                 noindex={true}
             >
@@ -277,8 +277,8 @@ export default function ClubLobby() {
                             ) : (
                                 <div style={styles.emptyState}>
                                     <span style={{ fontSize: '40px', marginBottom: '12px' }}>🃏</span>
-                                    <p>No active tables</p>
-                                    <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>Check back later or start a new table!</p>
+                                    <p>No Active Tables</p>
+                                    <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>Check Back Later Or Start A New Table!</p>
                                     <button
                                         style={{ ...styles.primaryBtn, marginTop: '16px' }}
                                         onClick={() => setShowCreateTable(true)}

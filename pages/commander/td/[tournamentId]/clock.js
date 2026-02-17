@@ -170,7 +170,7 @@ export default function TDClock() {
     <>
       <SEOHead
                 title="Commander — Clock"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
       <div ref={containerRef} className={`min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter'] flex flex-col ${isFullscreen ? '' : 'pb-20'}`}>
@@ -199,7 +199,7 @@ export default function TDClock() {
           {/* H4H / Break banner */}
           {alerts.hand_for_hand && (
             <div className="px-6 py-2 rounded-full bg-[#EF4444]/20 border border-[#EF4444]/40 mb-4">
-              <span className="text-[#EF4444] text-lg font-bold uppercase tracking-wider">Hand for Hand</span>
+              <span className="text-[#EF4444] text-lg font-bold uppercase tracking-wider">Hand For Hand</span>
             </div>
           )}
           {alerts.on_break && (
@@ -244,10 +244,10 @@ export default function TDClock() {
 
           {/* Stats row */}
           <div className="flex items-center gap-6 text-sm text-[#B0B3B8] mb-8">
-            <span><strong className="text-white">{stats.players_remaining}</strong> players</span>
-            <span><strong className="text-white">{stats.tables_active}</strong> tables</span>
-            <span><strong className="text-white">{formatChips(stats.average_stack)}</strong> avg</span>
-            <span><strong className="text-white">${(stats.prize_pool || 0).toLocaleString()}</strong> pool</span>
+            <span><strong className="text-white">{stats.players_remaining}</strong> Players</span>
+            <span><strong className="text-white">{stats.tables_active}</strong> Tables</span>
+            <span><strong className="text-white">{formatChips(stats.average_stack)}</strong> Avg</span>
+            <span><strong className="text-white">${(stats.prize_pool || 0).toLocaleString()}</strong> Pool</span>
           </div>
 
           {/* Controls */}
@@ -311,9 +311,9 @@ export default function TDClock() {
           <div className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center p-4"
             onClick={() => setShowMessage(false)}>
             <div className="bg-[#242526] rounded-2xl w-full max-w-lg p-5 space-y-4" onClick={e => e.stopPropagation()}>
-              <h3 className="text-lg font-bold text-white">Broadcast to Displays</h3>
+              <h3 className="text-lg font-bold text-white">Broadcast To Displays</h3>
               <textarea value={messageText} onChange={e => setMessageText(e.target.value)}
-                placeholder="Message to show on clock displays..."
+                placeholder="Message To Show On Clock Displays..."
                 rows={2}
                 className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl px-4 py-3 text-[#E4E6EB] text-base placeholder-[#B0B3B8]/50 focus:outline-none focus:border-[#1877F2] resize-none"
                 autoFocus />

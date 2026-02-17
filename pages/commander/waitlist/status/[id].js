@@ -87,7 +87,7 @@ export default function WaitlistStatus() {
     <>
       <SEOHead
                 title="Commander — Details"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter'] flex flex-col items-center justify-center p-6">
@@ -106,7 +106,7 @@ export default function WaitlistStatus() {
             <div className="bg-[#31A24C] rounded-2xl p-6 text-center animate-pulse">
               <Bell className="w-12 h-12 text-white mx-auto mb-3" />
               <h2 className="text-3xl font-bold text-white mb-2">YOUR SEAT IS READY</h2>
-              <p className="text-white/80">Please report to the front desk immediately</p>
+              <p className="text-white/80">Please Report To The Front Desk Immediately</p>
               <p className="text-white/60 text-sm mt-3">
                 You have {entry?.call_timeout || 5} minutes to respond
               </p>
@@ -176,7 +176,7 @@ export default function WaitlistStatus() {
           )}
 
           <div className="text-center">
-            <p className="text-white/10 text-xs tracking-wider">Powered by Smarter.Poker</p>
+            <p className="text-white/10 text-xs tracking-wider">Powered By Smarter.Poker</p>
           </div>
         </div>
       </div>

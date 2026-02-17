@@ -144,7 +144,7 @@ export default function CommanderLogin() {
     <div className="min-h-screen bg-[#18191A] flex items-center justify-center p-4">
       <SEOHead
                 title="Club Commander — Sign In"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
 
@@ -244,7 +244,7 @@ export default function CommanderLogin() {
               <div className="w-full border-t border-[#3A3B3C]"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-[#242526] text-[#B0B3B8]">New to Club Commander?</span>
+              <span className="px-4 bg-[#242526] text-[#B0B3B8]">New To Club Commander?</span>
             </div>
           </div>
 

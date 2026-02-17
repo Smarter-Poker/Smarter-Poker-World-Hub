@@ -121,7 +121,7 @@ export default function TrainingArenaPage() {
         <>
             <SEOHead
                 title="Training Arena — Play Game"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
 

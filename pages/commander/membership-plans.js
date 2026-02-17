@@ -164,7 +164,7 @@ export default function MembershipPlansPage() {
     <>
       <SEOHead
                 title="Commander — Membership Plans"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
       <div className="cmd-page">
@@ -204,7 +204,7 @@ export default function MembershipPlansPage() {
                       <div>
                         <label className="text-xs text-[#B0B3B8] mb-1 block">Tier Code</label>
                         <input value={form.tier} onChange={e => f('tier', e.target.value.toLowerCase().replace(/\s/g, '_'))}
-                          placeholder="e.g. gold" className="w-full px-3 py-2 cmd-input text-sm" />
+                          placeholder="e.g. Gold" className="w-full px-3 py-2 cmd-input text-sm" />
                       </div>
                       <div>
                         <label className="text-xs text-[#B0B3B8] mb-1 block">Display Name</label>
@@ -269,7 +269,7 @@ export default function MembershipPlansPage() {
                         <div className="relative">
                           <span className="absolute left-3 top-2 text-[#6A6B6D] text-sm">$</span>
                           <input type="number" step="0.50" value={form.seat_fee_override} onChange={e => f('seat_fee_override', e.target.value)}
-                            placeholder="Use game rate" className="w-full pl-7 pr-3 py-2 cmd-input text-sm" />
+                            placeholder="Use Game Rate" className="w-full pl-7 pr-3 py-2 cmd-input text-sm" />
                         </div>
                       </div>
                       <div>
@@ -293,7 +293,7 @@ export default function MembershipPlansPage() {
                         <label className="text-xs text-[#B0B3B8] mb-1 block">Comp Multiplier</label>
                         <input type="number" step="0.25" min="0.5" max="5" value={form.comp_multiplier} onChange={e => f('comp_multiplier', e.target.value)}
                           className="w-full px-3 py-2 cmd-input text-sm" />
-                        <p className="text-[10px] text-[#6A6B6D] mt-1">1.0 = normal, 1.5 = 50% bonus comps</p>
+                        <p className="text-[10px] text-[#6A6B6D] mt-1">1.0 = Normal, 1.5 = 50% Bonus Comps</p>
                       </div>
                       <div>
                         <label className="text-xs text-[#B0B3B8] mb-1 block">Tournament Discount %</label>
@@ -346,7 +346,7 @@ export default function MembershipPlansPage() {
           {plans.length === 0 ? (
             <div className="cmd-panel p-8 text-center">
               <Crown className="w-12 h-12 text-[#F59E0B] mx-auto mb-3" />
-              <p className="text-white font-semibold mb-1">No membership plans yet</p>
+              <p className="text-white font-semibold mb-1">No Membership Plans Yet</p>
               <p className="text-sm text-[#B0B3B8] mb-4">Set Up Your Membership Tiers With Pricing And Perks</p>
               <button onClick={() => startEdit(null)} className="px-6 py-2 cmd-btn cmd-btn-primary">Create First Plan</button>
             </div>
@@ -461,7 +461,7 @@ export default function MembershipPlansPage() {
           {/* Info box */}
           <div className="cmd-panel p-4">
             <p className="text-xs text-[#6A6B6D] leading-relaxed">
-              <strong className="text-[#B0B3B8]">How it works:</strong> Set pricing at any interval you want — daily passes for tourists, monthly for regulars, yearly for VIPs.
+              <strong className="text-[#B0B3B8]">How It Works:</strong> Set pricing at any interval you want — daily passes for tourists, monthly for regulars, yearly for VIPs.
               Leave an interval blank if you don't offer it. Seat fee adjustments let you give members discounted or fixed hourly rates.
               Comp multipliers automatically apply when staff awards comps through the Comp System.
             </p>

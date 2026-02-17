@@ -1372,7 +1372,7 @@ export default function NewsHub() {
                 )}
                 <SEOHead
                 title="Poker News — Latest Headlines & Updates"
-                description="Stay up to date with the latest poker news, tournament results, industry updates, and strategy articles from top sources."
+                description="Stay Up To Date With The Latest Poker News, Tournament Results, Industry Updates, And Strategy Articles From Top Sources."
                 canonical="/hub/news"
             />
 
@@ -1468,7 +1468,7 @@ export default function NewsHub() {
                     {loading && (
                         <div className="loading">
                             <Loader className="spinner" size={32} />
-                            <span>Loading latest news...</span>
+                            <span>Loading Latest News...</span>
                         </div>
                     )}
 
@@ -1597,7 +1597,7 @@ export default function NewsHub() {
                                                 ))}
                                             </div>
                                         ) : (
-                                            <p style={{ color: '#888', padding: '20px', textAlign: 'center' }}>Loading reels...</p>
+                                            <p style={{ color: '#888', padding: '20px', textAlign: 'center' }}>Loading Reels...</p>
                                         )}
                                     </section>
 
@@ -1621,7 +1621,7 @@ export default function NewsHub() {
                                                 ))}
                                             </div>
                                         ) : (
-                                            <p style={{ color: '#888', padding: '20px', textAlign: 'center' }}>Loading videos...</p>
+                                            <p style={{ color: '#888', padding: '20px', textAlign: 'center' }}>Loading Videos...</p>
                                         )}
                                     </section>
                                 </>
@@ -1662,7 +1662,7 @@ export default function NewsHub() {
                                     {reels.length === 0 ? (
                                         <div className="no-results">
                                             <Film size={48} />
-                                            <p>No reels available yet. Check back soon!</p>
+                                            <p>No Reels Available Yet. Check Back Soon!</p>
                                         </div>
                                     ) : (
                                         <div className="reels-grid">
@@ -1734,7 +1734,7 @@ export default function NewsHub() {
 
                             {/* Player of the Year */}
                             <div className="widget leaderboard">
-                                <h4><Trophy size={14} /> Player of the Year</h4>
+                                <h4><Trophy size={14} /> Player Of The Year</h4>
                                 <ul>
                                     {leaderboard.map((player, i) => (
                                         <li key={player.id || i}>

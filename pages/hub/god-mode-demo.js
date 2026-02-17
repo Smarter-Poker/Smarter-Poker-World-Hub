@@ -81,7 +81,7 @@ export default function GodModeDemoPage() {
         <PageTransition>
             <SEOHead
                 title="God Mode Demo"
-                description="Demo page."
+                description="Demo Page."
                 noindex={true}
             />
 

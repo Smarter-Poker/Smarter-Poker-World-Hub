@@ -50,7 +50,7 @@ export default function MyReels() {
         <PageTransition>
             <SEOHead
                 title="My Reels"
-                description="Manage your posted poker reels and short clips."
+                description="Manage Your Posted Poker Reels And Short Clips."
                 canonical="/hub/reels/my-reels"
                 noindex={true}
             />
@@ -64,13 +64,13 @@ export default function MyReels() {
                     {loading ? (
                         <div style={styles.loadingContainer}>
                             <div style={styles.spinner}></div>
-                            <p style={styles.loadingText}>Loading reels...</p>
+                            <p style={styles.loadingText}>Loading Reels...</p>
                         </div>
                     ) : reels.length === 0 ? (
                         <div style={styles.emptyState}>
                             <div style={styles.emptyIcon}></div>
-                            <h2 style={styles.emptyTitle}>No reels yet</h2>
-                            <p style={styles.emptyText}>Upload your first reel to get started</p>
+                            <h2 style={styles.emptyTitle}>No Reels Yet</h2>
+                            <p style={styles.emptyText}>Upload Your First Reel To Get Started</p>
                         </div>
                     ) : (
                         <div style={styles.reelsGrid}>

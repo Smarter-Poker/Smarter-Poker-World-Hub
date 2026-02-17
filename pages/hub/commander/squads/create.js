@@ -146,7 +146,7 @@ export default function CreateSquadPage() {
     <>
       <SEOHead
                 title="Create Squad"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
 
@@ -196,7 +196,7 @@ export default function CreateSquadPage() {
           {/* Step 1: Choose Venue */}
           {step === 1 && (
             <div className="space-y-4">
-              <h2 className="font-semibold text-white">Where do you want to play?</h2>
+              <h2 className="font-semibold text-white">Where Do You Want To Play?</h2>
               <div className="space-y-2">
                 {venues.map(venue => (
                   <button
@@ -237,7 +237,7 @@ export default function CreateSquadPage() {
           {step === 2 && (
             <div className="space-y-6">
               <div className="cmd-panel p-4">
-                <p className="text-sm text-[#64748B]">Playing at</p>
+                <p className="text-sm text-[#64748B]">Playing At</p>
                 <p className="font-medium text-white">{selectedVenue?.name}</p>
               </div>
 
@@ -297,8 +297,8 @@ export default function CreateSquadPage() {
                     className="w-5 h-5 rounded border-[#4A5E78] text-[#22D3EE] focus:ring-[#22D3EE]"
                   />
                   <div>
-                    <p className="font-medium text-white">Prefer same table</p>
-                    <p className="text-sm text-[#64748B]">Wait longer to sit together</p>
+                    <p className="font-medium text-white">Prefer Same Table</p>
+                    <p className="text-sm text-[#64748B]">Wait Longer To Sit Together</p>
                   </div>
                 </label>
 
@@ -310,8 +310,8 @@ export default function CreateSquadPage() {
                     className="w-5 h-5 rounded border-[#4A5E78] text-[#22D3EE] focus:ring-[#22D3EE]"
                   />
                   <div>
-                    <p className="font-medium text-white">Accept split if needed</p>
-                    <p className="text-sm text-[#64748B]">Get seated faster at different tables</p>
+                    <p className="font-medium text-white">Accept Split If Needed</p>
+                    <p className="text-sm text-[#64748B]">Get Seated Faster At Different Tables</p>
                   </div>
                 </label>
               </div>
@@ -381,7 +381,7 @@ export default function CreateSquadPage() {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search friends..."
+                    placeholder="Search Friends..."
                     className="w-full h-12 pl-12 pr-4 cmd-input"
                   />
                 </div>

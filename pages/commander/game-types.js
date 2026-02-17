@@ -160,7 +160,7 @@ export default function GameTypesPage() {
       <>
         <SEOHead
                 title="Commander — Game Types"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
         <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
@@ -242,12 +242,12 @@ export default function GameTypesPage() {
                   {/* Row 2: Buy-in + Players */}
                   <div className="grid grid-cols-3 gap-3">
                     <div>
-                      <label className="text-xs text-[#B0B3B8] uppercase flex items-center gap-1"><DollarSign className="w-3 h-3" /> Min Buy-in</label>
+                      <label className="text-xs text-[#B0B3B8] uppercase flex items-center gap-1"><DollarSign className="w-3 h-3" /> Min Buy-In</label>
                       <input type="number" value={form.min_buyin} onChange={e => setForm(p => ({ ...p, min_buyin: parseInt(e.target.value) || 0 }))}
                         className="w-full mt-1 px-3 py-2.5 bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl text-sm text-white focus:outline-none focus:border-[#1877F2]" />
                     </div>
                     <div>
-                      <label className="text-xs text-[#B0B3B8] uppercase flex items-center gap-1"><DollarSign className="w-3 h-3" /> Max Buy-in (0=no cap)</label>
+                      <label className="text-xs text-[#B0B3B8] uppercase flex items-center gap-1"><DollarSign className="w-3 h-3" /> Max Buy-In (0=no Cap)</label>
                       <input type="number" value={form.max_buyin} onChange={e => setForm(p => ({ ...p, max_buyin: parseInt(e.target.value) || 0 }))}
                         className="w-full mt-1 px-3 py-2.5 bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl text-sm text-white focus:outline-none focus:border-[#1877F2]" />
                     </div>
@@ -304,7 +304,7 @@ export default function GameTypesPage() {
                   <div>
                     <label className="text-xs text-[#B0B3B8] uppercase">Notes (optional)</label>
                     <textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
-                      rows={2} placeholder="Special rules, house rules, etc."
+                      rows={2} placeholder="Special Rules, House Rules, etc."
                       className="w-full mt-1 px-3 py-2.5 bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl text-sm text-white placeholder-[#6A6B6D] focus:outline-none focus:border-[#1877F2] resize-none" />
                   </div>
 
@@ -327,7 +327,7 @@ export default function GameTypesPage() {
             ) : gameTypes.length === 0 ? (
               <div className="bg-[#242526] rounded-2xl border border-[#3A3B3C] p-12 text-center">
                 <DollarSign className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
-                <h3 className="text-lg font-medium text-white mb-1">No game types configured</h3>
+                <h3 className="text-lg font-medium text-white mb-1">No Game Types Configured</h3>
                 <p className="text-sm text-[#B0B3B8] mb-4">Add Your First Game Type To Get Started</p>
                 {canManage && (
                   <button onClick={() => { resetForm(); setShowForm(true); }}
@@ -363,7 +363,7 @@ export default function GameTypesPage() {
                           <span>{gt.max_players} max</span>
                           {gt.rake_type === 'pot' && <span>Rake: {gt.rake_percent}% / ${gt.rake_cap} cap</span>}
                           {gt.rake_type === 'time' && <span>${gt.time_rate}/hr</span>}
-                          {gt.rake_type === 'none' && <span>No rake</span>}
+                          {gt.rake_type === 'none' && <span>No Rake</span>}
                         </div>
                       </div>
 

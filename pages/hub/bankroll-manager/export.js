@@ -116,7 +116,7 @@ export default function BankrollExport() {
         <>
             <SEOHead
                 title="Export Bankroll Data"
-                description="Export your bankroll data for tax reporting or external analysis."
+                description="Export Your Bankroll Data For Tax Reporting Or External Analysis."
                 canonical="/hub/bankroll-manager/export"
                 noindex={true}
             />

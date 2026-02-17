@@ -307,14 +307,14 @@ export default function SeriesDetailPage() {
       <>
         <SEOHead
                 title="Poker Series Details"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
         <UniversalHeader pageDepth={2} />
         <div className="series-page">
           <div className="loading-container">
             <div className="loading-spinner" />
-            <p className="loading-text">Loading series details...</p>
+            <p className="loading-text">Loading Series Details...</p>
           </div>
         </div>
         <style jsx>{styles}</style>
@@ -333,7 +333,7 @@ export default function SeriesDetailPage() {
             <h2 className="error-title">Series Not Found</h2>
             <p className="error-text">{error || 'This tournament series could not be found.'}</p>
             <Link href="/hub/poker-near-me" legacyBehavior>
-              <a className="back-link-btn">Back to Poker Near Me</a>
+              <a className="back-link-btn">Back To Poker Near Me</a>
             </Link>
           </div>
         </div>
@@ -460,7 +460,7 @@ export default function SeriesDetailPage() {
             <div className="stat-value">{formatDateRange(series.start_date, series.end_date)}</div>
           </div>
           <div className="stat-card">
-            <div className="stat-label">Main Event Buy-in</div>
+            <div className="stat-label">Main Event Buy-In</div>
             <div className="stat-value gold">{series.main_event_buyin ? formatMoney(series.main_event_buyin) : 'TBD'}</div>
           </div>
           <div className="stat-card">
@@ -570,7 +570,7 @@ export default function SeriesDetailPage() {
                     <th>#</th>
                     <th>Event</th>
                     <th>Date</th>
-                    <th>Buy-in</th>
+                    <th>Buy-In</th>
                     <th>Game</th>
                     <th>Format</th>
                   </tr>
@@ -614,7 +614,7 @@ export default function SeriesDetailPage() {
                                   )}
                                   {evt.buy_in && (
                                     <div className="detail-field">
-                                      <span className="detail-label">Buy-in</span>
+                                      <span className="detail-label">Buy-In</span>
                                       <span className="detail-value detail-highlight">{formatMoney(evt.buy_in)}</span>
                                     </div>
                                   )}
@@ -677,8 +677,8 @@ export default function SeriesDetailPage() {
                 <rect x="5" y="8" width="30" height="24" rx="3" />
                 <path d="M5 16h30M13 5v6M27 5v6" />
               </svg>
-              <p>Event schedule not yet available</p>
-              <p className="no-events-sub">Check back closer to the series start date for the full schedule.</p>
+              <p>Event Schedule Not Yet Available</p>
+              <p className="no-events-sub">Check Back Closer To The Series Start Date For The Full Schedule.</p>
             </div>
           )}
         </div>
@@ -697,7 +697,7 @@ export default function SeriesDetailPage() {
                 <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
                 <path d="M18 2H6v7a6 6 0 0012 0V2Z" />
               </svg>
-              <p>Results will be posted as events complete.</p>
+              <p>Results Will Be Posted As Events Complete.</p>
             </div>
           )}
 
@@ -787,7 +787,7 @@ export default function SeriesDetailPage() {
                 <line x1="16" y1="13" x2="8" y2="13" />
                 <line x1="16" y1="17" x2="8" y2="17" />
               </svg>
-              <p>No updates yet.</p>
+              <p>No Updates Yet.</p>
             </div>
           )}
 

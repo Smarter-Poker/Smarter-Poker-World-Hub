@@ -125,7 +125,7 @@ export default function TriviaLeaderboard() {
         <>
             <SEOHead
                 title="Trivia Leaderboard — Top Players"
-                description="See who dominates the poker trivia leaderboard. Global rankings across all game modes."
+                description="See Who Dominates The Poker Trivia Leaderboard. Global Rankings Across All Game Modes."
                 canonical="/hub/trivia/leaderboard"
             />
 

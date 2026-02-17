@@ -95,7 +95,7 @@ export default function ResponsibleGaming() {
       <>
         <SEOHead
                 title="Commander — Responsible Gaming"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
         <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
@@ -139,7 +139,7 @@ export default function ResponsibleGaming() {
                   onChange={e => setSearchQuery(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSearch()}
                   className="flex-1 px-4 py-3 bg-[#3A3B3C] border border-[#4E4F50] rounded-xl text-white text-sm focus:border-[#1877F2] focus:outline-none"
-                  placeholder="Search by name, phone, or member #" />
+                  placeholder="Search By Name, Phone, Or Member #" />
                 <button onClick={handleSearch} disabled={searching || !searchQuery.trim()}
                   className="px-4 py-3 rounded-xl bg-[#1877F2] text-white font-medium flex items-center gap-1.5 active:bg-[#1565D8] disabled:opacity-50">
                   {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
@@ -169,7 +169,7 @@ export default function ResponsibleGaming() {
                               {p.exclusion?.expires_at && ` (until ${new Date(p.exclusion.expires_at).toLocaleDateString()})`}
                             </p>
                           ) : (
-                            <p className="text-xs text-[#31A24C]">Clear — OK to seat</p>
+                            <p className="text-xs text-[#31A24C]">Clear — OK To Seat</p>
                           )}
                         </div>
                         {p.is_excluded && (

@@ -166,7 +166,7 @@ export default function LeaguesPage() {
     <>
       <SEOHead
                 title="Poker Leagues"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
 
@@ -182,7 +182,7 @@ export default function LeaguesPage() {
                 <h1 className="text-xl font-extrabold text-white tracking-wider cmd-text-glow">
                   POKER LEAGUES
                 </h1>
-                <p className="text-sm text-[#64748B] font-medium tracking-wide">Compete for points and prizes</p>
+                <p className="text-sm text-[#64748B] font-medium tracking-wide">Compete For Points And Prizes</p>
               </div>
               {/* Rivets */}
               <div className="ml-auto flex gap-2">
@@ -219,7 +219,7 @@ export default function LeaguesPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search leagues..."
+                placeholder="Search Leagues..."
                 className="cmd-input pl-12"
               />
             </div>
@@ -269,7 +269,7 @@ export default function LeaguesPage() {
               <div className="cmd-icon-box mx-auto mb-3">
                 <Trophy className="w-7 h-7" />
               </div>
-              <p className="text-[#64748B]">No leagues found</p>
+              <p className="text-[#64748B]">No Leagues Found</p>
             </div>
           )}
         </main>

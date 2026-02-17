@@ -130,7 +130,7 @@ export default function StreaksPage() {
     if (loading) {
         return (
             <div style={styles.loadingContainer}>
-                <div style={styles.loadingText}>Loading your streak...</div>
+                <div style={styles.loadingText}>Loading Your Streak...</div>
             </div>
         );
     }
@@ -141,7 +141,7 @@ export default function StreaksPage() {
                 <div style={styles.container}>
                     <UniversalHeader pageDepth={2} />
                     <div style={styles.emptyState}>
-                        <h2>Sign in to view your streak</h2>
+                        <h2>Sign In To View Your Streak</h2>
                         <Link href="/login" style={styles.button}>Sign In</Link>
                     </div>
                 </div>
@@ -156,7 +156,7 @@ export default function StreaksPage() {
         <PageTransition>
             <SEOHead
                 title="Training Streaks — Stay Consistent"
-                description="Build and maintain your daily training streaks on Smarter.Poker."
+                description="Build And Maintain Your Daily Training Streaks On Smarter.Poker."
                 canonical="/hub/training/streaks"
                 noindex={true}
             />

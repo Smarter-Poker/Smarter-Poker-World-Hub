@@ -113,7 +113,7 @@ export default function DealerRotationDisplay() {
                 </div>
               ))}
               {dealing.length === 0 && (
-                <p className="text-xl text-white/20 col-span-2 text-center py-8">No dealers at tables</p>
+                <p className="text-xl text-white/20 col-span-2 text-center py-8">No Dealers At Tables</p>
               )}
             </div>
           </div>
@@ -126,7 +126,7 @@ export default function DealerRotationDisplay() {
                 On Break ({onBreak.length})
               </h2>
               {onBreak.length === 0 ? (
-                <p className="text-white/20 text-sm">No dealers on break</p>
+                <p className="text-white/20 text-sm">No Dealers On Break</p>
               ) : (
                 <div className="space-y-2">
                   {onBreak.map(d => (
@@ -152,7 +152,7 @@ export default function DealerRotationDisplay() {
                 Standby ({standby.length})
               </h2>
               {standby.length === 0 ? (
-                <p className="text-white/20 text-sm">No dealers on standby</p>
+                <p className="text-white/20 text-sm">No Dealers On Standby</p>
               ) : (
                 <div className="space-y-2">
                   {standby.map(d => (
@@ -169,8 +169,8 @@ export default function DealerRotationDisplay() {
 
         {/* Footer */}
         <div className="border-t border-white/10 px-8 py-2 flex items-center justify-between">
-          <p className="text-sm text-white/20">Rotation schedule managed from floor manager tablet</p>
-          <p className="text-white/15 text-xs tracking-wider">Powered by Smarter.Poker</p>
+          <p className="text-sm text-white/20">Rotation Schedule Managed From Floor Manager Tablet</p>
+          <p className="text-white/15 text-xs tracking-wider">Powered By Smarter.Poker</p>
         </div>
       </div>
     </CommanderLayout>

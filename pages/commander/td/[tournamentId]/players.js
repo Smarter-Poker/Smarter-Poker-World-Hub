@@ -161,7 +161,7 @@ export default function TDPlayers() {
     <>
       <SEOHead
                 title="Commander — Players"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] pb-20 font-['Inter']">
@@ -180,7 +180,7 @@ export default function TDPlayers() {
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search players..."
+              placeholder="Search Players..."
               className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl pl-10 pr-10 py-3 text-[#E4E6EB] text-base placeholder-[#B0B3B8]/50 focus:outline-none focus:border-[#1877F2]"
             />
             {search && (
@@ -301,7 +301,7 @@ export default function TDPlayers() {
                 type="number"
                 value={chipValue}
                 onChange={e => setChipValue(e.target.value)}
-                placeholder="Enter chip count"
+                placeholder="Enter Chip Count"
                 className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl px-4 py-3 text-white text-2xl font-mono text-center focus:outline-none focus:border-[#1877F2] mb-4"
                 autoFocus
               />

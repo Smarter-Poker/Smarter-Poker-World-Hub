@@ -606,7 +606,7 @@ function PressureCookerGame({ level = 1, onExit, onScoreUpdate, DiamondEngine, u
                         Answer 10 hands before time runs out!<br />
                         Correct = +3 seconds<br />
                         ✗ Wrong = -5 seconds<br />
-                        <span style={{ color: '#ff4444' }}>Clock is ticking... 💣</span>
+                        <span style={{ color: '#ff4444' }}>Clock Is Ticking... 💣</span>
                     </p>
                     <button onClick={startGame} style={{ padding: '16px 48px', fontSize: 18, fontWeight: 700, background: 'linear-gradient(135deg, #ff4444, #ff0066)', color: '#fff', border: 'none', borderRadius: 50, cursor: 'pointer' }}>
                         START [SPACE]
@@ -1517,7 +1517,7 @@ function DailyChallengeCard({ challenge, streak, completed, onPlay, loading }) {
                 border: '1px solid rgba(255, 107, 0, 0.3)',
                 textAlign: 'center',
             }}>
-                <div style={{ color: 'rgba(255,255,255,0.5)' }}>Loading daily challenge...</div>
+                <div style={{ color: 'rgba(255,255,255,0.5)' }}>Loading Daily Challenge...</div>
             </div>
         );
     }
@@ -2689,7 +2689,7 @@ export default function MemoryGamesPage() {
             )}
             <SEOHead
                 title="Poker Memory Games — Train Your Brain"
-                description="Sharpen your poker cognitive skills with memory matrix games. Train pattern recognition, recall speed, and mental agility."
+                description="Sharpen Your Poker Cognitive Skills With Memory Matrix Games. Train Pattern Recognition, Recall Speed, And Mental Agility."
                 canonical="/hub/memory-games"
             >
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -3044,7 +3044,7 @@ export default function MemoryGamesPage() {
                                     <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 20 }}>
                                         Answer 10 hands before the clock runs out!<br />
                                         Correct = +3 seconds | ✗ Wrong = -5 seconds<br />
-                                        <span style={{ color: '#ff4444' }}>Can you defuse the bomb? 💣</span>
+                                        <span style={{ color: '#ff4444' }}>Can You Defuse The Bomb? 💣</span>
                                     </p>
                                     <button
                                         onClick={async () => {
@@ -3196,7 +3196,7 @@ export default function MemoryGamesPage() {
                                     <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 20 }}>
                                         Head-to-head GTO challenges for ELO ranking!<br />
                                         Beat simulated opponents to climb the ladder.<br />
-                                        <span style={{ color: '#EC4899' }}>Win diamonds & bragging rights!</span>
+                                        <span style={{ color: '#EC4899' }}>Win Diamonds & Bragging Rights!</span>
                                     </p>
                                     <button
                                         onClick={async () => {
@@ -3660,7 +3660,7 @@ export default function MemoryGamesPage() {
                                                     alignItems: 'center',
                                                     gap: 6,
                                                 }}
-                                                title="Generate unique scenarios using Jarvis AI"
+                                                title="Generate Unique Scenarios Using Jarvis AI"
                                             >
                                                 {useAIGeneration ? 'AI ON' : 'AI Mode'}
                                             </button>

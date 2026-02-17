@@ -82,7 +82,7 @@ export default function ProfileRedirect() {
         }}>
             <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: 32, marginBottom: 16 }}>s</div>
-                <div style={{ opacity: 0.7 }}>Loading your profile...</div>
+                <div style={{ opacity: 0.7 }}>Loading Your Profile...</div>
             </div>
         </div>
     );

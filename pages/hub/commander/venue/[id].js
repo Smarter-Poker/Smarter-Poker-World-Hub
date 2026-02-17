@@ -125,7 +125,7 @@ export default function VenueDetail() {
             <div className="cmd-rivet cmd-rivet-bl" />
             <div className="cmd-rivet cmd-rivet-br" />
           </div>
-          <p className="text-[#64748B] mb-4">Venue not found</p>
+          <p className="text-[#64748B] mb-4">Venue Not Found</p>
           <Link
             href="/hub/commander"
             className="text-[#22D3EE] font-medium hover:underline"
@@ -141,7 +141,7 @@ export default function VenueDetail() {
     <>
       <SEOHead
                 title="Venue Details"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
 
@@ -215,7 +215,7 @@ export default function VenueDetail() {
                   <div className="cmd-rivet cmd-rivet-br" />
                 </div>
                 <Users className="w-8 h-8 mx-auto mb-2 text-[#64748B] opacity-50" />
-                <p className="text-[#64748B]">No live games right now</p>
+                <p className="text-[#64748B]">No Live Games Right Now</p>
               </div>
             ) : (
               <div className="space-y-3">

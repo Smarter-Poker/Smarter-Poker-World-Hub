@@ -276,7 +276,7 @@ export default function PlayerStats() {
         <>
             <SEOHead
                 title="Club Arena — Player Stats"
-                description="View player statistics in Club Arena."
+                description="View Player Statistics In Club Arena."
                 canonical="/hub/club-arena/player-stats"
                 noindex={true}
             />
@@ -313,9 +313,9 @@ export default function PlayerStats() {
                     </div>
 
                     {isLoading ? (
-                        <div style={S.loading}>Loading stats...</div>
+                        <div style={S.loading}>Loading Stats...</div>
                     ) : !user ? (
-                        <div style={S.emptyState}><p>Sign in to view your stats</p></div>
+                        <div style={S.emptyState}><p>Sign In To View Your Stats</p></div>
                     ) : (
                         <>
                             {/* Net Winnings Card */}
@@ -394,7 +394,7 @@ export default function PlayerStats() {
                             )) : (
                                 <div style={S.emptyState}>
                                     <span style={{ fontSize: '40px', display: 'block', marginBottom: '12px' }}>🎮</span>
-                                    <p>No activity yet. Play some hands to see your stats!</p>
+                                    <p>No Activity Yet. Play Some Hands To See Your Stats!</p>
                                 </div>
                             )}
                         </>

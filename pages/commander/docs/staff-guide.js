@@ -366,7 +366,7 @@ export default function StaffGuidePage() {
     <>
       <SEOHead
                 title="Commander — Staff Guide"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
 
@@ -384,7 +384,7 @@ export default function StaffGuidePage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#B0B3B8]" />
               <input
                 type="text"
-                placeholder="Search guide..."
+                placeholder="Search Guide..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="cmd-input w-full pl-10 h-9 text-sm"

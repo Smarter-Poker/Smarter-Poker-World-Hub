@@ -106,7 +106,7 @@ export default function TDBalance() {
     <>
       <SEOHead
                 title="Commander — Balance"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] pb-20 font-['Inter']">

@@ -93,7 +93,7 @@ export default function TriviaStats() {
         <>
             <SEOHead
                 title="Trivia Stats — Your Performance"
-                description="View your poker trivia performance stats, accuracy rates, and category breakdowns."
+                description="View Your Poker Trivia Performance Stats, Accuracy Rates, And Category Breakdowns."
                 canonical="/hub/trivia/stats"
                 noindex={true}
             />

@@ -786,7 +786,7 @@ export default function VideoLibraryPage() {
             const insight = insights[i];
             const timeSinceInsight = currentTime - insight.seconds;
             // Show insight if we're within 0-60 seconds past its timestamp
-            if (timeSinceInsight >= 0 && timeSinceInsight <= 60) {
+            if (timeSinceInsight >= 0 && TimeSinceInsight <= 60) {
                 return insight;
             }
         }
@@ -883,7 +883,7 @@ export default function VideoLibraryPage() {
             )}
             <SEOHead
                 title="Poker Video Library — Watch & Learn"
-                description="Curated poker video library with strategy content, tournament coverage, and training videos. Track your watch history and get AI tactical analysis."
+                description="Curated Poker Video Library With Strategy Content, Tournament Coverage, And Training Videos. Track Your Watch History And Get AI Tactical Analysis."
                 canonical="/hub/video-library"
             />
 
@@ -975,7 +975,7 @@ export default function VideoLibraryPage() {
                         }}>
                             <input
                                 type="text"
-                                placeholder="Search videos..."
+                                placeholder="Search Videos..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 style={{
@@ -1358,8 +1358,8 @@ export default function VideoLibraryPage() {
                         color: C.textSec,
                     }}>
                         <div style={{ fontSize: 64, marginBottom: 16 }}></div>
-                        <h3 style={{ color: C.text, marginBottom: 8 }}>No videos found</h3>
-                        <p>Try adjusting your search or filter</p>
+                        <h3 style={{ color: C.text, marginBottom: 8 }}>No Videos Found</h3>
+                        <p>Try Adjusting Your Search Or Filter</p>
                     </div>
                 )}
 
@@ -1676,7 +1676,7 @@ export default function VideoLibraryPage() {
                                         animation: 'pulse 1s infinite',
                                     }}
                                 />
-                                <span style={{ fontSize: 13 }}>Jarvis analyzing video...</span>
+                                <span style={{ fontSize: 13 }}>Jarvis Analyzing Video...</span>
                             </div>
                         )}
 
@@ -1933,11 +1933,11 @@ export default function VideoLibraryPage() {
                                         fontSize: 14,
                                         fontWeight: 600,
                                         marginBottom: 8
-                                    }}>Analyzing video...</p>
+                                    }}>Analyzing Video...</p>
                                     <p style={{
                                         color: 'rgba(255,255,255,0.5)',
                                         fontSize: 12
-                                    }}>Preparing strategic insights</p>
+                                    }}>Preparing Strategic Insights</p>
                                     {/* Shimmer loading bars */}
                                     <div style={{ marginTop: 24 }}>
                                         {[1, 0.8, 0.6].map((w, i) => (
@@ -2231,7 +2231,7 @@ export default function VideoLibraryPage() {
                             ) : (
                                 <div style={{ textAlign: 'center', padding: 40 }}>
                                     <div style={{ fontSize: 32, marginBottom: 16 }}>🎬</div>
-                                    <p style={{ color: 'rgba(255,255,255,0.7)' }}>No insights available</p>
+                                    <p style={{ color: 'rgba(255,255,255,0.7)' }}>No Insights Available</p>
                                 </div>
                             )}
                         </div>

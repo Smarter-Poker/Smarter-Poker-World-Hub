@@ -211,7 +211,7 @@ export function ProfilePictureHistory({
     if (loading) {
         return (
             <div style={styles.container}>
-                <div style={styles.emptyState}>Loading history...</div>
+                <div style={styles.emptyState}>Loading History...</div>
             </div>
         );
     }

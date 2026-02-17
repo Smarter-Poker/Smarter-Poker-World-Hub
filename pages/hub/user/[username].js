@@ -147,10 +147,10 @@ function PokerResumeBadge({ hendonData, isOwnProfile = false, onOpenResume }) {
                     </div>
                 </div>
             ) : hasHendon ? (
-                <div style={{ textAlign: 'center', padding: 16, opacity: 0.6 }}>Stats pending sync...</div>
+                <div style={{ textAlign: 'center', padding: 16, opacity: 0.6 }}>Stats Pending Sync...</div>
             ) : (
                 <div style={{ textAlign: 'center', padding: 20 }}>
-                    <div style={{ fontSize: 14, color: '#888', marginBottom: 8 }}>Resume not added yet</div>
+                    <div style={{ fontSize: 14, color: '#888', marginBottom: 8 }}>Resume Not Added Yet</div>
                     <div style={{ fontSize: 12, opacity: 0.5 }}>
                         {isOwnProfile
                             ? 'Link your HendonMob profile in settings to display your tournament stats'
@@ -336,7 +336,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId 
                             background: 'transparent', border: 'none', cursor: 'pointer',
                             fontSize: 18, color: C.textSec, padding: 8, borderRadius: 20
                         }}
-                        title="Delete post"
+                        title="Delete Post"
                     >🗑️</button>
                 )}
             </div>
@@ -399,7 +399,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId 
                         </div>
                     )}
                     {comments.length === 0 && (
-                        <div style={{ textAlign: 'center', padding: 16, color: C.textSec, fontSize: 13 }}>No comments yet. Be the first!</div>
+                        <div style={{ textAlign: 'center', padding: 16, color: C.textSec, fontSize: 13 }}>No Comments Yet. Be The First!</div>
                     )}
                     {currentUserId && (
                         <div style={{ display: 'flex', gap: 8 }}>
@@ -407,7 +407,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId 
                                 value={commentText}
                                 onChange={e => setCommentText(e.target.value)}
                                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitComment(); } }}
-                                placeholder="Write a comment..."
+                                placeholder="Write A Comment..."
                                 style={{
                                     flex: 1, padding: '10px 14px', background: '#f0f2f5', border: 'none',
                                     borderRadius: 20, fontSize: 14, outline: 'none', color: C.text
@@ -747,7 +747,7 @@ export default function UserProfilePage() {
             <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: 32, marginBottom: 16 }}>s</div>
-                    <div style={{ color: C.textSec }}>Loading profile...</div>
+                    <div style={{ color: C.textSec }}>Loading Profile...</div>
                 </div>
             </div>
         );
@@ -758,9 +758,9 @@ export default function UserProfilePage() {
             <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: 48, marginBottom: 16 }}></div>
-                    <h2 style={{ color: C.text, margin: '0 0 8px' }}>User not found</h2>
-                    <p style={{ color: C.textSec }}>The profile you're looking for doesn't exist.</p>
-                    <Link href="/hub/social-media" style={{ color: C.blue, fontWeight: 600 }}>Back to Social</Link>
+                    <h2 style={{ color: C.text, margin: '0 0 8px' }}>User Not Found</h2>
+                    <p style={{ color: C.textSec }}>The Profile You're Looking For Doesn't Exist.</p>
+                    <Link href="/hub/social-media" style={{ color: C.blue, fontWeight: 600 }}>Back To Social</Link>
                 </div>
             </div>
         );
@@ -774,7 +774,7 @@ export default function UserProfilePage() {
         <PageTransition>
             <SEOHead
                 title="Player Profile"
-                description="View a poker player profile, stats, and achievements on Smarter.Poker."
+                description="View A Poker Player Profile, Stats, And Achievements On Smarter.Poker."
                 noindex={true}
             />
 
@@ -819,9 +819,9 @@ export default function UserProfilePage() {
                         <div style={{ flex: 1, paddingBottom: 8 }}>
                             <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0, color: C.text }}>{displayName}</h1>
                             <div style={{ display: 'flex', gap: 8, fontSize: 14, color: C.textSec, marginTop: 4 }}>
-                                <span><strong>{stats.friends}</strong> friends</span>
+                                <span><strong>{stats.friends}</strong> Friends</span>
                                 <span>·</span>
-                                <span><strong>{stats.posts}</strong> posts</span>
+                                <span><strong>{stats.posts}</strong> Posts</span>
                             </div>
                         </div>
                     </div>
@@ -905,7 +905,7 @@ export default function UserProfilePage() {
                                                 width: '100%', padding: '10px 14px', background: 'transparent',
                                                 border: 'none', textAlign: 'left', cursor: 'pointer',
                                                 fontSize: 14, color: C.text, borderRadius: 6, display: 'flex', gap: 10
-                                            }}>🔗 Copy profile link</button>
+                                            }}>🔗 Copy Profile Link</button>
                                             <button onClick={() => {
                                                 window.open(window.location.href, '_blank');
                                                 setShowProfileMenu(false);
@@ -913,7 +913,7 @@ export default function UserProfilePage() {
                                                 width: '100%', padding: '10px 14px', background: 'transparent',
                                                 border: 'none', textAlign: 'left', cursor: 'pointer',
                                                 fontSize: 14, color: C.text, borderRadius: 6, display: 'flex', gap: 10
-                                            }}>↗️ Open in new tab</button>
+                                            }}>↗️ Open In New Tab</button>
                                             <div style={{ height: 1, background: C.border, margin: '4px 0' }} />
                                             <button onClick={async () => {
                                                 if (!currentUser) { setProfileMenuMsg('Log in to block'); return; }
@@ -934,7 +934,7 @@ export default function UserProfilePage() {
                                                 width: '100%', padding: '10px 14px', background: 'transparent',
                                                 border: 'none', textAlign: 'left', cursor: 'pointer',
                                                 fontSize: 14, color: '#F02849', borderRadius: 6, display: 'flex', gap: 10
-                                            }}>🚫 Block user</button>
+                                            }}>🚫 Block User</button>
                                             <button onClick={async () => {
                                                 if (!currentUser) { setProfileMenuMsg('Log in to report'); return; }
                                                 const reason = prompt('Why are you reporting this user?');
@@ -955,7 +955,7 @@ export default function UserProfilePage() {
                                                 width: '100%', padding: '10px 14px', background: 'transparent',
                                                 border: 'none', textAlign: 'left', cursor: 'pointer',
                                                 fontSize: 14, color: '#F02849', borderRadius: 6, display: 'flex', gap: 10
-                                            }}> Report user</button>
+                                            }}> Report User</button>
                                         </div>
                                     )}
                                     {profileMenuMsg && (
@@ -1005,12 +1005,12 @@ export default function UserProfilePage() {
 
                             {/* Personal Details Card */}
                             <div style={{ background: C.card, borderRadius: 12, padding: 16, marginBottom: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-                                <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 700, color: C.text }}>Personal details</h3>
+                                <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 700, color: C.text }}>Personal Details</h3>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                                     {profile.city && (
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 14, color: C.text }}>
                                             <span style={{ fontSize: 18 }}></span>
-                                            <span>Lives in <strong>{profile.city}{profile.state ? `, ${profile.state}` : ''}</strong></span>
+                                            <span>Lives In <strong>{profile.city}{profile.state ? `, ${profile.state}` : ''}</strong></span>
                                         </div>
                                     )}
                                     {profile.hometown && (
@@ -1022,25 +1022,25 @@ export default function UserProfilePage() {
                                     {profile.birth_year && (
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 14, color: C.text }}>
                                             <span style={{ fontSize: 18 }}>🎂</span>
-                                            <span>Born in <strong>{profile.birth_year}</strong></span>
+                                            <span>Born In <strong>{profile.birth_year}</strong></span>
                                         </div>
                                     )}
                                     {profile.favorite_game && (
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 14, color: C.text }}>
                                             <span style={{ fontSize: 18 }}></span>
-                                            <span>Favorite game: <strong>{profile.favorite_game}</strong></span>
+                                            <span>Favorite Game: <strong>{profile.favorite_game}</strong></span>
                                         </div>
                                     )}
                                     {profile.home_casino && (
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 14, color: C.text }}>
                                             <span style={{ fontSize: 18 }}>🏨</span>
-                                            <span>Home casino: <strong>{profile.home_casino}</strong></span>
+                                            <span>Home Casino: <strong>{profile.home_casino}</strong></span>
                                         </div>
                                     )}
                                     {profile.favorite_hand && (
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 14, color: C.text }}>
                                             <span style={{ fontSize: 18 }}></span>
-                                            <span>Favorite hand: <strong>{profile.favorite_hand}</strong></span>
+                                            <span>Favorite Hand: <strong>{profile.favorite_hand}</strong></span>
                                         </div>
                                     )}
                                 </div>
@@ -1054,7 +1054,7 @@ export default function UserProfilePage() {
                                             <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C.text }}>Friends</h3>
                                             <div style={{ fontSize: 14, color: C.textSec }}>{stats.friends} friends</div>
                                         </div>
-                                        <Link href="/hub/friends" style={{ color: C.blue, fontSize: 14, fontWeight: 500, textDecoration: 'none' }}>See all</Link>
+                                        <Link href="/hub/friends" style={{ color: C.blue, fontSize: 14, fontWeight: 500, textDecoration: 'none' }}>See All</Link>
                                     </div>
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
                                         {friends.slice(0, 8).map(friend => (
@@ -1066,7 +1066,7 @@ export default function UserProfilePage() {
 
                             {/* All Posts Section */}
                             <div style={{ marginTop: 16 }}>
-                                <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 700, color: C.text }}>All posts</h3>
+                                <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 700, color: C.text }}>All Posts</h3>
 
                                 {/* Post Composer (for own profile) */}
                                 {isOwnProfile && currentUser && (
@@ -1130,7 +1130,7 @@ export default function UserProfilePage() {
                                 ) : (
                                     <div style={{ background: C.card, borderRadius: 12, padding: 40, textAlign: 'center', color: C.textSec }}>
                                         <div style={{ fontSize: 32, marginBottom: 12 }}></div>
-                                        <p>No posts yet</p>
+                                        <p>No Posts Yet</p>
                                     </div>
                                 )}
                             </div>
@@ -1184,7 +1184,7 @@ export default function UserProfilePage() {
                                     </div>
                                 ) : (
                                     <div style={{ textAlign: 'center', padding: 20, color: C.textSec }}>
-                                        <p style={{ margin: 0 }}>No followed pages yet</p>
+                                        <p style={{ margin: 0 }}>No Followed Pages Yet</p>
                                         <Link href="/hub/pages" style={{ color: C.blue, fontWeight: 600, fontSize: 14, marginTop: 8, display: 'inline-block', textDecoration: 'none' }}>Browse Pages</Link>
                                     </div>
                                 )}
@@ -1192,7 +1192,7 @@ export default function UserProfilePage() {
 
                             {/* Recent Check-ins */}
                             <div style={{ background: C.card, borderRadius: 12, padding: 16, marginBottom: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-                                <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 700, color: C.text }}>Recent Check-ins</h3>
+                                <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 700, color: C.text }}>Recent Check-Ins</h3>
                                 {pokerCheckins.length > 0 ? (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                                         {pokerCheckins.slice(0, 10).map((c, i) => {
@@ -1225,7 +1225,7 @@ export default function UserProfilePage() {
                                     </div>
                                 ) : (
                                     <div style={{ textAlign: 'center', padding: 20, color: C.textSec }}>
-                                        <p style={{ margin: 0 }}>No check-ins yet</p>
+                                        <p style={{ margin: 0 }}>No Check-Ins Yet</p>
                                         <Link href="/hub/poker-near-me" style={{ color: C.blue, fontWeight: 600, fontSize: 14, marginTop: 8, display: 'inline-block', textDecoration: 'none' }}>Find Nearby Venues</Link>
                                     </div>
                                 )}
@@ -1273,7 +1273,7 @@ export default function UserProfilePage() {
                             ) : (
                                 <div style={{ background: C.card, borderRadius: 12, padding: 40, textAlign: 'center', color: C.textSec }}>
                                     <div style={{ fontSize: 32, marginBottom: 12 }}>📷</div>
-                                    <p>No photos yet</p>
+                                    <p>No Photos Yet</p>
                                 </div>
                             )}
                         </div>
@@ -1300,7 +1300,7 @@ export default function UserProfilePage() {
                             ) : (
                                 <div style={{ background: C.card, borderRadius: 12, padding: 40, textAlign: 'center', color: C.textSec }}>
                                     <div style={{ fontSize: 32, marginBottom: 12 }}>🎥</div>
-                                    <p>No videos yet</p>
+                                    <p>No Videos Yet</p>
                                 </div>
                             )}
                         </div>
@@ -1333,7 +1333,7 @@ export default function UserProfilePage() {
                             ) : (
                                 <div style={{ background: C.card, borderRadius: 12, padding: 40, textAlign: 'center', color: C.textSec }}>
                                     <div style={{ fontSize: 32, marginBottom: 12 }}></div>
-                                    <p>No reels yet</p>
+                                    <p>No Reels Yet</p>
                                 </div>
                             )}
                         </div>

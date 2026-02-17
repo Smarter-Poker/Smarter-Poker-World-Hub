@@ -185,7 +185,7 @@ export default function Cashier() {
     <>
       <SEOHead
                 title="Commander — Cashier Operations"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
@@ -298,7 +298,7 @@ export default function Cashier() {
               <div className="bg-[#242526] border border-[#3A3B3C] rounded-2xl p-8 text-center">
                 <Users className="w-10 h-10 text-[#3A3B3C] mx-auto mb-3" />
                 <p className="text-[#B0B3B8] text-sm">No Active Sessions</p>
-                <p className="text-[#6A6B6D] text-xs mt-1">Players need to be seated at a table first</p>
+                <p className="text-[#6A6B6D] text-xs mt-1">Players Need To Be Seated At A Table First</p>
               </div>
             )}
 
@@ -330,7 +330,7 @@ export default function Cashier() {
                       <span className={`text-sm font-bold ${tx.type === 'cash_out' ? 'text-[#EF4444]' : 'text-[#31A24C]'}`}>
                         {tx.type === 'cash_out' ? '-' : '+'}${parseFloat(tx.amount).toLocaleString()}
                       </span>
-                      <button onClick={() => printReceipt(tx)} className="ml-2 w-7 h-7 rounded-lg bg-[#3A3B3C] flex items-center justify-center active:bg-[#4A4B4C]" title="Print receipt">
+                      <button onClick={() => printReceipt(tx)} className="ml-2 w-7 h-7 rounded-lg bg-[#3A3B3C] flex items-center justify-center active:bg-[#4A4B4C]" title="Print Receipt">
                         <Receipt className="w-3.5 h-3.5 text-[#B0B3B8]" />
                       </button>
                     </div>
@@ -376,7 +376,7 @@ export default function Cashier() {
               <div className="relative mb-4">
                 <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#B0B3B8]" />
                 <input type="number" value={amount} onChange={e => setAmount(e.target.value)}
-                  placeholder="Custom amount"
+                  placeholder="Custom Amount"
                   className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl pl-10 pr-4 py-3 text-white text-lg font-bold outline-none focus:border-[#1877F2]" />
               </div>
 

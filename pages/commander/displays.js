@@ -237,7 +237,7 @@ export default function DisplaysManagementPage() {
     <>
       <SEOHead
                 title="Commander — Digital Displays"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
 

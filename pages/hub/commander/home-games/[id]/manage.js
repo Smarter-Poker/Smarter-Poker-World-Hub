@@ -151,7 +151,7 @@ function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
             <textarea
               value={eventData.notes}
               onChange={(e) => setEventData(prev => ({ ...prev, notes: e.target.value }))}
-              placeholder="Any special details for this game..."
+              placeholder="Any Special Details For This Game..."
               rows={2}
               className="w-full px-3 py-2 cmd-input resize-none"
             />
@@ -498,7 +498,7 @@ export default function ManageHomeGamePage() {
     <>
       <SEOHead
                 title="Manage Home Game"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
 
@@ -574,7 +574,7 @@ export default function ManageHomeGamePage() {
               {events.length === 0 ? (
                 <div className="cmd-panel p-8 text-center">
                   <Calendar className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
-                  <p className="text-[#64748B]">No games scheduled</p>
+                  <p className="text-[#64748B]">No Games Scheduled</p>
                   <button
                     onClick={() => setShowScheduleModal(true)}
                     className="mt-4 cmd-btn cmd-btn-primary"
@@ -769,7 +769,7 @@ export default function ManageHomeGamePage() {
                 {completedEscrow.length === 0 && pendingEscrow.length === 0 ? (
                   <div className="p-8 text-center">
                     <Wallet className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
-                    <p className="text-[#64748B]">No transactions yet</p>
+                    <p className="text-[#64748B]">No Transactions Yet</p>
                     <p className="text-sm text-[#4A5E78] mt-1">
                       Player buy-ins will appear here when escrow is enabled
                     </p>
@@ -889,7 +889,7 @@ export default function ManageHomeGamePage() {
                   <label className="flex items-center justify-between p-3 bg-[#0D192E] rounded-lg cursor-pointer">
                     <div>
                       <p className="font-medium text-white">Require Approval</p>
-                      <p className="text-sm text-[#64748B]">New members must be approved before joining</p>
+                      <p className="text-sm text-[#64748B]">New Members Must Be Approved Before Joining</p>
                     </div>
                     <input
                       type="checkbox"
@@ -906,9 +906,9 @@ export default function ManageHomeGamePage() {
                       onChange={(e) => handleUpdateSettings({ visibility: e.target.value })}
                       className="w-full h-10 px-3 cmd-input"
                     >
-                      <option value="private">Private - Invite only</option>
-                      <option value="friends">Friends - Visible to friends</option>
-                      <option value="public">Public - Anyone can find</option>
+                      <option value="private">Private - Invite Only</option>
+                      <option value="friends">Friends - Visible To Friends</option>
+                      <option value="public">Public - Anyone Can Find</option>
                     </select>
                   </div>
                 </div>
@@ -935,9 +935,9 @@ export default function ManageHomeGamePage() {
                   </button>
                 </div>
                 {copySuccess && (
-                  <p className="text-sm text-[#10B981] mt-2 font-medium">Invite code copied to clipboard</p>
+                  <p className="text-sm text-[#10B981] mt-2 font-medium">Invite Code Copied To Clipboard</p>
                 )}
-                <p className="text-sm text-[#64748B] mt-2">Share this code with players you want to invite</p>
+                <p className="text-sm text-[#64748B] mt-2">Share This Code With Players You Want To Invite</p>
               </div>
 
               {/* Danger Zone */}

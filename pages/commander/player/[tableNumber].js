@@ -488,7 +488,7 @@ export default function PlayerTableDisplay() {
     <>
       <SEOHead
                 title="Commander — Details"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
 
@@ -726,7 +726,7 @@ export default function PlayerTableDisplay() {
 
         {/* Branding */}
         <div className="flex-shrink-0 py-1 text-center">
-          <p className="text-white/10 text-[10px] tracking-wider">Powered by Smarter.Poker</p>
+          <p className="text-white/10 text-[10px] tracking-wider">Powered By Smarter.Poker</p>
         </div>
       </div>
 

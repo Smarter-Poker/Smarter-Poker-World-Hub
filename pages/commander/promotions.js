@@ -154,7 +154,7 @@ function RecordHighHandModal({ isOpen, onClose, onSubmit, venueId, staff }) {
               type="text"
               value={formData.hand_description}
               onChange={(e) => setFormData(prev => ({ ...prev, hand_description: e.target.value }))}
-              placeholder="e.g., Aces full of Kings, Quad Jacks"
+              placeholder="e.g., Aces Full Of Kings, Quad Jacks"
               className="cmd-input w-full"
             />
           </div>
@@ -192,7 +192,7 @@ function RecordHighHandModal({ isOpen, onClose, onSubmit, venueId, staff }) {
               className="w-5 h-5 text-[#1877F2] border-[#3A3B3C] rounded focus:ring-[#1877F2]"
             />
             <div>
-              <p className="font-medium text-white">Auto-verify this hand</p>
+              <p className="font-medium text-white">Auto-verify This Hand</p>
               <p className="text-sm text-[#B0B3B8]">Mark as verified by {staff?.display_name || 'you'}</p>
             </div>
           </label>
@@ -518,7 +518,7 @@ export default function PromotionsPage() {
       <>
         <SEOHead
                 title="Commander — Promotions"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
 

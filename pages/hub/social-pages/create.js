@@ -97,7 +97,7 @@ export default function CreateSocialPage() {
         <>
             <SEOHead
                 title="Create Social Page"
-                description="Create a new social page on Smarter.Poker to share content and build a community."
+                description="Create A New Social Page On Smarter.Poker To Share Content And Build A Community."
                 canonical="/hub/social-pages/create"
                 noindex={true}
             />
@@ -176,13 +176,13 @@ export default function CreateSocialPage() {
                                 <div>
                                     <label style={labelStyle}>Page Name *</label>
                                     <input type="text" value={form.name} onChange={e => update('name', e.target.value)}
-                                        placeholder="Enter page name" style={inputStyle} maxLength={100} />
+                                        placeholder="Enter Page Name" style={inputStyle} maxLength={100} />
                                 </div>
 
                                 <div>
                                     <label style={labelStyle}>Description</label>
                                     <textarea value={form.description} onChange={e => update('description', e.target.value)}
-                                        placeholder="Tell people about this page..."
+                                        placeholder="Tell People About This Page..."
                                         style={{ ...inputStyle, minHeight: 80, resize: 'vertical' }} maxLength={500} />
                                 </div>
 

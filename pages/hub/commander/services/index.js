@@ -203,7 +203,7 @@ function RequestModal({ type, session, onSubmit, onClose }) {
                 type="number"
                 value={chipAmount}
                 onChange={(e) => setChipAmount(e.target.value)}
-                placeholder="Custom amount"
+                placeholder="Custom Amount"
                 className="cmd-input h-12"
               />
             </div>
@@ -217,7 +217,7 @@ function RequestModal({ type, session, onSubmit, onClose }) {
               <textarea
                 value={details}
                 onChange={(e) => setDetails(e.target.value)}
-                placeholder="e.g., Coffee, black. Burger with fries."
+                placeholder="e.g., Coffee, Black. Burger With Fries."
                 rows={3}
                 className="w-full px-4 py-3 bg-[#0A1525] border-2 border-[#4A5E78] rounded-xl text-white placeholder-[#64748B] focus:outline-none focus:border-[#22D3EE] resize-none transition-colors"
               />
@@ -232,7 +232,7 @@ function RequestModal({ type, session, onSubmit, onClose }) {
               <textarea
                 value={details}
                 onChange={(e) => setDetails(e.target.value)}
-                placeholder="e.g., Prefer table near window, quieter table"
+                placeholder="e.g., Prefer Table Near Window, Quieter Table"
                 rows={2}
                 className="w-full px-4 py-3 bg-[#0A1525] border-2 border-[#4A5E78] rounded-xl text-white placeholder-[#64748B] focus:outline-none focus:border-[#22D3EE] resize-none transition-colors"
               />
@@ -247,7 +247,7 @@ function RequestModal({ type, session, onSubmit, onClose }) {
               <textarea
                 value={details}
                 onChange={(e) => setDetails(e.target.value)}
-                placeholder="Briefly describe the issue"
+                placeholder="Briefly Describe The Issue"
                 rows={3}
                 className="w-full px-4 py-3 bg-[#0A1525] border-2 border-[#4A5E78] rounded-xl text-white placeholder-[#64748B] focus:outline-none focus:border-[#22D3EE] resize-none transition-colors"
               />
@@ -256,7 +256,7 @@ function RequestModal({ type, session, onSubmit, onClose }) {
 
           {type === 'cashout' && (
             <div className="cmd-inset rounded-xl p-4">
-              <p className="text-[#10B981] font-medium">Ready to cash out?</p>
+              <p className="text-[#10B981] font-medium">Ready To Cash Out?</p>
               <p className="text-sm text-[#64748B] mt-1">
                 A chip runner will come to collect your chips and bring your cash.
               </p>
@@ -383,7 +383,7 @@ export default function ServicesPage() {
       <>
         <SEOHead
                 title="Commander Services"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
         <div className="cmd-page flex items-center justify-center px-4">

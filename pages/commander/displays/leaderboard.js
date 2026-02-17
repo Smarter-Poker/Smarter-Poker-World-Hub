@@ -108,7 +108,7 @@ export default function LeaderboardDisplay() {
         <div className="flex-1 overflow-hidden px-8 py-4">
           {!current || current.entries.length === 0 ? (
             <div className="h-full flex items-center justify-center">
-              <p className="text-3xl text-white/20">No leaderboard data</p>
+              <p className="text-3xl text-white/20">No Leaderboard Data</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -150,8 +150,8 @@ export default function LeaderboardDisplay() {
 
         {/* Footer */}
         <div className="border-t border-white/10 px-8 py-2 flex items-center justify-between flex-shrink-0">
-          <p className="text-white/10 text-xs">Updated every 30 seconds</p>
-          <p className="text-white/10 text-xs tracking-wider">Powered by Smarter.Poker</p>
+          <p className="text-white/10 text-xs">Updated Every 30 Seconds</p>
+          <p className="text-white/10 text-xs tracking-wider">Powered By Smarter.Poker</p>
         </div>
       </div>
     </CommanderLayout>

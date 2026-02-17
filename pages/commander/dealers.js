@@ -153,7 +153,7 @@ function AddDealerModal({ onSubmit, onClose, dealer = null }) {
               type="text"
               value={formData.name}
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              placeholder="Dealer name"
+              placeholder="Dealer Name"
               required
               className="w-full h-12 px-4 cmd-input"
             />
@@ -515,7 +515,7 @@ export default function DealersPage() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search dealers..."
+                  placeholder="Search Dealers..."
                   className="w-full h-12 pl-12 pr-4 cmd-input"
                 />
               </div>
@@ -649,9 +649,9 @@ export default function DealersPage() {
                 <div>
                   <p className="font-medium text-[#1877F2]">Rotation Best Practices</p>
                   <ul className="text-sm text-[#B0B3B8] mt-1 space-y-1">
-                    <li>Rotate dealers every 30 minutes to keep games fresh</li>
-                    <li>Match dealer certifications to game types</li>
-                    <li>Track down-time to ensure fair distribution</li>
+                    <li>Rotate Dealers Every 30 Minutes To Keep Games Fresh</li>
+                    <li>Match Dealer Certifications To Game Types</li>
+                    <li>Track Down-time To Ensure Fair Distribution</li>
                   </ul>
                 </div>
               </div>

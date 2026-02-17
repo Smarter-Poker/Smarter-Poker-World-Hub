@@ -79,7 +79,7 @@ export default function TrainingLeaderboard() {
         <PageTransition>
             <SEOHead
                 title="Training Leaderboard — Top Students"
-                description="See who leads the GTO training leaderboard on Smarter.Poker."
+                description="See Who Leads The GTO Training Leaderboard On Smarter.Poker."
                 canonical="/hub/training/leaderboard"
             />
 
@@ -127,7 +127,7 @@ export default function TrainingLeaderboard() {
                     {loading ? (
                         <div style={styles.loadingContainer}>
                             <div style={styles.spinner}>Trophy</div>
-                            <p style={styles.loadingText}>Loading leaderboard...</p>
+                            <p style={styles.loadingText}>Loading Leaderboard...</p>
                         </div>
                     ) : (
                         <div style={styles.leaderboardList}>
@@ -142,7 +142,7 @@ export default function TrainingLeaderboard() {
 
                             {leaderboard.length === 0 && (
                                 <div style={styles.emptyState}>
-                                    <p>No data yet for this timeframe</p>
+                                    <p>No Data Yet For This Timeframe</p>
                                     <Link href="/hub/training" style={styles.button}>Start Training</Link>
                                 </div>
                             )}
@@ -208,7 +208,7 @@ function LeaderboardEntry({ rank, username, avatarUrl, totalQuestions, correctAn
 
             <div style={styles.scoreSection}>
                 <div style={styles.score}>{Math.round(score)}</div>
-                <div style={styles.scoreLabel}>points</div>
+                <div style={styles.scoreLabel}>Points</div>
             </div>
         </motion.div>
     );

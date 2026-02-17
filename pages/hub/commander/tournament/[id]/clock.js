@@ -93,7 +93,7 @@ export default function TournamentClockDisplay() {
   if (!tournament) {
     return (
       <div className="min-h-screen bg-[#0B1426] flex items-center justify-center">
-        <p className="text-white text-xl">Tournament not found</p>
+        <p className="text-white text-xl">Tournament Not Found</p>
       </div>
     );
   }
@@ -102,7 +102,7 @@ export default function TournamentClockDisplay() {
     <>
       <SEOHead
                 title="Tournament Clock"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
 

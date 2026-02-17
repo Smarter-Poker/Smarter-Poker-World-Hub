@@ -107,7 +107,7 @@ export default function ClockDisplay() {
   const goFullscreen = () => { document.documentElement.requestFullscreen?.(); };
 
   if (!data) return (
-    <div style={S.loading}><p style={{ color: '#fff', fontSize: 24, fontFamily: 'Inter, sans-serif' }}>Loading tournament clock...</p></div>
+    <div style={S.loading}><p style={{ color: '#fff', fontSize: 24, fontFamily: 'Inter, sans-serif' }}>Loading Tournament Clock...</p></div>
   );
 
   const { tournament: t = {}, clock = {}, stats = {}, alerts = {} } = data;
@@ -133,14 +133,14 @@ export default function ClockDisplay() {
 
   // Pick 4 chip denoms relevant to blind level
   const maxBlind = (blinds.big_blind || 20) * 100;
-  let activeChips = CHIP_DENOMS.filter(c => c.value <= Math.max(maxBlind, 500)).slice(0, 4);
+  let activeChips = CHIP_DENOMS.filter(c => C.value <= Math.max(maxBlind, 500)).slice(0, 4);
   if (activeChips.length < 3) activeChips = CHIP_DENOMS.slice(0, 4);
 
   return (
     <>
       <SEOHead
                 title="Commander — Clock Display"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
 

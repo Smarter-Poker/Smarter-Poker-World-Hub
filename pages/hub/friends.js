@@ -141,7 +141,7 @@ function FriendRequestCard({ request, onAccept, onDecline }) {
                 <div style={{ fontWeight: 700, fontSize: 17, color: C.text, marginBottom: 4 }}>
                     {user?.full_name || user?.username || 'Poker Player'}
                 </div>
-                <span style={{ fontSize: 14, color: C.blue }}>Friend request pending</span>
+                <span style={{ fontSize: 14, color: C.blue }}>Friend Request Pending</span>
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
                 <button
@@ -753,7 +753,7 @@ export default function FriendsPage() {
         }}>
             <div style={{ textAlign: 'center' }}>
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" style={{ marginBottom: 16, animation: 'pulse 1.5s infinite' }}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-                <div>Loading connections...</div>
+                <div>Loading Connections...</div>
             </div>
         </div>
     );
@@ -761,7 +761,7 @@ export default function FriendsPage() {
     if (!user) return (
         <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ textAlign: 'center', color: C.text }}>
-                <h2>Please log in to view friends</h2>
+                <h2>Please Log In To View Friends</h2>
                 <Link href="/auth/login" style={{ color: C.blue }}>Log In</Link>
             </div>
         </div>
@@ -927,7 +927,7 @@ export default function FriendsPage() {
         <PageTransition>
             <SEOHead
                 title="Friends — Your Poker Network"
-                description="Manage your poker friends network. Add friends, view their stats, challenge them to games, and stay connected."
+                description="Manage Your Poker Friends Network. Add Friends, View Their Stats, Challenge Them To Games, And Stay Connected."
                 canonical="/hub/friends"
             />
             <div className="friends-page" style={{
@@ -986,7 +986,7 @@ export default function FriendsPage() {
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
                         <input
                             type="text"
-                            placeholder="Search for friends by name or username..."
+                            placeholder="Search For Friends By Name Or Username..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             style={{

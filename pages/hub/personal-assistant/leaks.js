@@ -302,7 +302,7 @@ function LeakDetailView({ leak, onPracticeSandbox, onTrainDrills }) {
   if (!leak) {
     return (
       <div style={detailStyles.placeholder}>
-        <p>Select a leak from the index to view details.</p>
+        <p>Select A Leak From The Index To View Details.</p>
       </div>
     );
   }
@@ -350,7 +350,7 @@ function LeakDetailView({ leak, onPracticeSandbox, onTrainDrills }) {
                 <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="#64b5f6" strokeWidth="2" fill="none" />
               </svg>
             </div>
-            <h5 style={detailStyles.fixSubtitle}>Practice in Sandbox</h5>
+            <h5 style={detailStyles.fixSubtitle}>Practice In Sandbox</h5>
             <p style={detailStyles.fixText}>
               Get comfortable calling wider on dry flops in mid-position. I'll set up a virtual sandbox where you can practice defending against c-bets.
             </p>
@@ -382,7 +382,7 @@ function LeakDetailView({ leak, onPracticeSandbox, onTrainDrills }) {
         <div style={detailStyles.autoGuidance}>
           <input type="checkbox" id="autoGuidance" style={detailStyles.checkbox} />
           <label htmlFor="autoGuidance" style={detailStyles.autoGuidanceLabel}>
-            Auto guidance OFF: <span style={{ color: 'rgba(255,255,255,0.5)' }}>Suggesting one fix at a time.</span>
+            Auto guidance OFF: <span style={{ color: 'rgba(255,255,255,0.5)' }}>Suggesting One Fix At A Time.</span>
           </label>
         </div>
       </div>
@@ -584,7 +584,7 @@ export default function LeakFinderPage() {
     <PageTransition>
       <SEOHead
                 title="Leak Finder — Fix Your Game"
-                description="Identify and fix leaks in your poker game with AI-powered analysis from Jarvis."
+                description="Identify And Fix Leaks In Your Poker Game With AI-powered Analysis From Jarvis."
                 canonical="/hub/personal-assistant/leaks"
             >
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -594,7 +594,7 @@ export default function LeakFinderPage() {
         <div style={styles.bgGrid} />
         <UniversalHeader pageDepth={2} />
 
-        <FeatureGate featureKey="personal_assistant" userId={userId} cost={100} duration={24} featureName="Leak Finder" description="Access Virtual Sandbox, Leak Finder, and Jarvis coaching tools for 24 hours.">
+        <FeatureGate featureKey="personal_assistant" userId={userId} cost={100} duration={24} featureName="Leak Finder" description="Access Virtual Sandbox, Leak Finder, And Jarvis Coaching Tools For 24 Hours.">
           {/* Top Bar */}
           <div style={styles.topBar}>
             <div style={styles.topBarLeft}>

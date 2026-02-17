@@ -19,8 +19,8 @@ export default function MemoryGamesTutorial() {
     return (
         <>
             <SEOHead
-                title="Memory Games Tutorial — How to Play"
-                description="Learn how to play the Smarter.Poker memory games with this step-by-step tutorial."
+                title="Memory Games Tutorial — How To Play"
+                description="Learn How To Play The Smarter.Poker Memory Games With This Step-by-step Tutorial."
                 canonical="/hub/memory-games/tutorial"
             />
 

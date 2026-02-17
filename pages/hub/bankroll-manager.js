@@ -576,7 +576,7 @@ export default function BankrollManagerPage() {
       )}
       <SEOHead
                 title="Bankroll Manager — Track Your Poker Profits"
-                description="Professional bankroll tracking for poker players. Monitor sessions, analyze leaks, track ROI, and visualize trends with detailed analytics and variance analysis."
+                description="Professional Bankroll Tracking For Poker Players. Monitor Sessions, Analyze Leaks, Track ROI, And Visualize Trends With Detailed Analytics And Variance Analysis."
                 canonical="/hub/bankroll-manager"
             >
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -586,7 +586,7 @@ export default function BankrollManagerPage() {
         <div style={styles.bgGrid} />
         <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
 
-        <FeatureGate featureKey="bankroll_manager" userId={userId} cost={25} duration={24} featureName="Bankroll Manager" description="Track sessions, analyze leaks, and manage your poker bankroll for 24 hours." hideBadge>
+        <FeatureGate featureKey="bankroll_manager" userId={userId} cost={25} duration={24} featureName="Bankroll Manager" description="Track Sessions, Analyze Leaks, And Manage Your Poker Bankroll For 24 Hours." hideBadge>
           {/* Hamburger Menu */}
           <HamburgerMenu
             isOpen={menuOpen}
@@ -1011,7 +1011,7 @@ export default function BankrollManagerPage() {
                       }}>
                         <div style={{ fontSize: 32 }}>👑</div>
                         <div style={{ fontSize: 16, fontWeight: 700, color: '#FFD700', textAlign: 'center' }}>VIP Only — Advanced Analytics</div>
-                        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', textAlign: 'center', maxWidth: 280 }}>Variance Analysis, Venue Intelligence & Historical Trends require VIP membership.</div>
+                        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', textAlign: 'center', maxWidth: 280 }}>Variance Analysis, Venue Intelligence & Historical Trends Require VIP Membership.</div>
                         <button
                           onClick={() => router.push('/hub/diamond-store')}
                           style={{
@@ -1182,7 +1182,7 @@ export default function BankrollManagerPage() {
                     <div style={{ padding: '40px 20px', textAlign: 'center' }}>
                       <div style={{ marginBottom: 16, opacity: 0.5, fontSize: 18, color: '#22c55e', fontWeight: 600 }}>All Clear</div>
                       <p style={{ fontSize: 16, fontWeight: 600, color: '#22c55e', margin: '0 0 8px' }}>No Leaks Detected</p>
-                      <p style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.5)', margin: 0 }}>Keep logging sessions to build your analysis history</p>
+                      <p style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.5)', margin: 0 }}>Keep Logging Sessions To Build Your Analysis History</p>
                     </div>
                   ) : (
                     <div>
@@ -1299,7 +1299,7 @@ export default function BankrollManagerPage() {
                     >
                       <span style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>CSV</span>
                       <div style={{ flex: 1, textAlign: 'left' }}>
-                        <div style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>Export to CSV</div>
+                        <div style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>Export To CSV</div>
                         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
                           Download all sessions for spreadsheet analysis
                         </div>
@@ -1342,7 +1342,7 @@ export default function BankrollManagerPage() {
                     >
                       <span style={{ fontSize: 14, color: '#65676b' }}>JSON</span>
                       <div style={{ flex: 1, textAlign: 'left' }}>
-                        <div style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>Export to JSON</div>
+                        <div style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>Export To JSON</div>
                         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
                           Full data export for backup or API use
                         </div>
@@ -1376,7 +1376,7 @@ export default function BankrollManagerPage() {
                     >
                       <span style={{ fontSize: 14, color: '#65676b' }}>PDF</span>
                       <div style={{ flex: 1, textAlign: 'left' }}>
-                        <div style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>Export to PDF</div>
+                        <div style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>Export To PDF</div>
                         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
                           Formatted report for printing or sharing
                         </div>
@@ -1394,7 +1394,7 @@ export default function BankrollManagerPage() {
                   <div style={{ padding: 16, background: 'rgba(255,255,255,0.03)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.06)', marginBottom: 16 }}>
                     <h3 style={{ fontSize: 14, fontWeight: 600, color: '#fff', margin: '0 0 16px' }}>Preferences</h3>
                     <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                      <span style={{ fontSize: 14, color: '#fff' }}>Auto-save sessions</span>
+                      <span style={{ fontSize: 14, color: '#fff' }}>Auto-save Sessions</span>
                       <input type="checkbox" checked={preferences.autoSave} onChange={(e) => updatePreference('autoSave', e.target.checked)} style={{ accentColor: '#2374e1' }} />
                     </label>
                     <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0' }}>
@@ -1440,7 +1440,7 @@ export default function BankrollManagerPage() {
                     <h2 style={{ fontSize: 16, fontWeight: 700, color: '#e4e6eb', margin: 0 }}>
                       Tax Reports
                     </h2>
-                    <p style={{ fontSize: 12, color: '#b0b3b8', margin: '4px 0 0' }}>Generate tax documents for your poker income</p>
+                    <p style={{ fontSize: 12, color: '#b0b3b8', margin: '4px 0 0' }}>Generate Tax Documents For Your Poker Income</p>
                   </div>
                   <BankrollProGate userId={userId}>
                     <div style={{ padding: 16 }}>
@@ -1467,7 +1467,7 @@ export default function BankrollManagerPage() {
                     <h2 style={{ fontSize: 16, fontWeight: 700, color: '#e4e6eb', margin: 0 }}>
                       Pro Tools
                     </h2>
-                    <p style={{ fontSize: 12, color: '#b0b3b8', margin: '4px 0 0' }}>Premium bankroll features for serious players</p>
+                    <p style={{ fontSize: 12, color: '#b0b3b8', margin: '4px 0 0' }}>Premium Bankroll Features For Serious Players</p>
                   </div>
 
                   <BankrollProGate userId={userId}>
@@ -1549,7 +1549,7 @@ export default function BankrollManagerPage() {
                       <span style={{ fontSize: 12, fontWeight: 600, color: '#4ade80' }}>NEW</span>
                       <div style={{ textAlign: 'left' }}>
                         <div style={{ fontWeight: 600, color: '#fff', fontSize: 15 }}>Create New Expense</div>
-                        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 2 }}>Log this as a new expense entry</div>
+                        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 2 }}>Log This As A New Expense Entry</div>
                       </div>
                     </button>
                     <button
@@ -1558,8 +1558,8 @@ export default function BankrollManagerPage() {
                     >
                       <span style={{ fontSize: 12, fontWeight: 600, color: '#60a5fa' }}>ATTACH</span>
                       <div style={{ textAlign: 'left' }}>
-                        <div style={{ fontWeight: 600, color: '#fff', fontSize: 15 }}>Attach to Existing Entry</div>
-                        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 2 }}>Add this receipt to a recent session or expense</div>
+                        <div style={{ fontWeight: 600, color: '#fff', fontSize: 15 }}>Attach To Existing Entry</div>
+                        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 2 }}>Add This Receipt To A Recent Session Or Expense</div>
                       </div>
                     </button>
                   </div>

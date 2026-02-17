@@ -95,7 +95,7 @@ export default function PlayerCard() {
     <>
       <SEOHead
                 title="Player Card"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
       <div style={{ minHeight: '100vh', background: '#111827', fontFamily: 'Inter, system-ui, sans-serif' }}>

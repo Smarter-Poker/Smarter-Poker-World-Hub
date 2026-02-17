@@ -20,7 +20,7 @@ export default function DiamondArcadeLeaderboard() {
         <>
             <SEOHead
                 title="Arcade Leaderboard — Top Scorers"
-                description="See who leads the Diamond Arcade with the highest scores and most wins."
+                description="See Who Leads The Diamond Arcade With The Highest Scores And Most Wins."
                 canonical="/hub/diamond-arcade/leaderboard"
             />
 

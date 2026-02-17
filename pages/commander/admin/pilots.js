@@ -113,7 +113,7 @@ export default function PilotVenuesPage() {
     <>
       <SEOHead
                 title="Commander — Pilots"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
 
@@ -248,11 +248,11 @@ export default function PilotVenuesPage() {
               </h2>
             </div>
             {loading ? (
-              <div className="p-8 text-center text-[#B0B3B8]">Loading pilots...</div>
+              <div className="p-8 text-center text-[#B0B3B8]">Loading Pilots...</div>
             ) : pilots.length === 0 ? (
               <div className="p-8 text-center">
                 <Building2 className="w-12 h-12 text-[#3A3B3C] mx-auto mb-4" />
-                <p className="text-[#B0B3B8]">No pilot venues yet</p>
+                <p className="text-[#B0B3B8]">No Pilot Venues Yet</p>
                 <button
                   onClick={() => setShowAddModal(true)}
                   className="cmd-btn cmd-btn-primary mt-4"
@@ -375,27 +375,27 @@ export default function PilotVenuesPage() {
               <ChecklistItem
                 checked={true}
                 label="Load tests pass"
-                description="k6 tests complete with passing thresholds"
+                description="K6 Tests Complete With Passing Thresholds"
               />
               <ChecklistItem
                 checked={true}
                 label="Security audit complete"
-                description="All security checks passing (90%+ score)"
+                description="All Security Checks Passing (90%+ Score)"
               />
               <ChecklistItem
                 checked={true}
                 label="Error monitoring active"
-                description="Sentry integration configured"
+                description="Sentry Integration Configured"
               />
               <ChecklistItem
                 checked={true}
                 label="Documentation complete"
-                description="Staff guide, manager guide, FAQ, troubleshooting"
+                description="Staff Guide, Manager Guide, FAQ, Troubleshooting"
               />
               <ChecklistItem
                 checked={true}
                 label="Onboarding flow tested"
-                description="Lead capture and pipeline management working"
+                description="Lead Capture And Pipeline Management Working"
               />
               <ChecklistItem
                 checked={activePilots.length >= 5}
@@ -403,9 +403,9 @@ export default function PilotVenuesPage() {
                 description={`${activePilots.length}/5 venues currently active`}
               />
               <ChecklistItem
-                checked={avgUptime >= 95 && avgTickets <= 5 && avgSatisfaction >= 4 && avgAdoption >= 50}
+                checked={avgUptime >= 95 && AvgTickets <= 5 && avgSatisfaction >= 4 && avgAdoption >= 50}
                 label="Success metrics met"
-                description="95% uptime, <5 tickets/week, 4+/5 satisfaction, 50%+ adoption"
+                description="95% Uptime, <5 Tickets/week, 4+/5 Satisfaction, 50%+ Adoption"
               />
             </div>
           </div>

@@ -472,7 +472,7 @@ export default function DiamondArcade() {
             )}
             <SEOHead
                 title="Diamond Arcade — Poker Arcade Games"
-                description="Play arcade-style poker games, earn diamonds, climb leaderboards, and win prizes in the Smarter.Poker Diamond Arcade."
+                description="Play Arcade-style Poker Games, Earn Diamonds, Climb Leaderboards, And Win Prizes In The Smarter.Poker Diamond Arcade."
                 canonical="/hub/diamond-arcade"
             >
                 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -623,7 +623,7 @@ export default function DiamondArcade() {
                                     <div style={styles.challengeContent}>
                                         <div style={styles.challengePrize}>Top 100 Split 10,000  Diamonds</div>
                                         <div style={styles.challengeStats}>
-                                            Your Rank: <span style={styles.highlight}>#234</span> • Best Score: <span style={styles.highlight}>847 pts</span> • Leader: <span style={styles.highlight}>1,203 pts</span>
+                                            Your Rank: <span style={styles.highlight}>#234</span> • Best Score: <span style={styles.highlight}>847 Pts</span> • Leader: <span style={styles.highlight}>1,203 Pts</span>
                                         </div>
                                     </div>
                                     <motion.button
@@ -741,7 +741,7 @@ export default function DiamondArcade() {
                                 <div style={styles.questionArea}>
                                     {activeGame.id === 'hand-snap' && (
                                         <>
-                                            <p style={styles.questionText}>Which hand wins?</p>
+                                            <p style={styles.questionText}>Which Hand Wins?</p>
                                             <div style={styles.handsContainer}>
                                                 {currentQuestion.hands.map((hand, idx) => (
                                                     <motion.button
@@ -790,7 +790,7 @@ export default function DiamondArcade() {
 
                                     {activeGame.id === 'board-nuts' && (
                                         <>
-                                            <p style={styles.questionText}>What's the nuts?</p>
+                                            <p style={styles.questionText}>What's The Nuts?</p>
                                             <div style={styles.boardDisplay}>
                                                 <span style={styles.boardLabel}>Board:</span>
                                                 {currentQuestion.board.map((card, idx) => (

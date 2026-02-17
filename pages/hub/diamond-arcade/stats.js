@@ -23,7 +23,7 @@ export default function DiamondArcadeStats() {
         <>
             <SEOHead
                 title="Arcade Stats — Your Performance"
-                description="View your Diamond Arcade game stats, win rates, and earnings."
+                description="View Your Diamond Arcade Game Stats, Win Rates, And Earnings."
                 canonical="/hub/diamond-arcade/stats"
                 noindex={true}
             />

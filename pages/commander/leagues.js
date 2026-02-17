@@ -132,7 +132,7 @@ export default function LeaguesManagement() {
     <>
       <SEOHead
                 title="Commander — Leagues"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
       <div style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -141,7 +141,7 @@ export default function LeaguesManagement() {
 <Trophy size={22} />
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 700, fontSize: 17 }}>Leagues</div>
-            <div style={{ fontSize: 12, opacity: 0.85 }}>Manage inter-club seasons and standings</div>
+            <div style={{ fontSize: 12, opacity: 0.85 }}>Manage Inter-club Seasons And Standings</div>
           </div>
           <button onClick={() => setShowCreate(!showCreate)}
             style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: 8, padding: '6px 12px', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600 }}>

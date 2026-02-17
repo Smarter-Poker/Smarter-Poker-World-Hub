@@ -340,7 +340,7 @@ function PokerTableCanvas({ heroHand, heroPosition, heroStack, villains, board, 
               {board.turn && renderCard(board.turn)}
               {board.river && renderCard(board.river)}
               {(!board.flop || board.flop.length === 0) && (
-                <span style={tableStyles.noBoardText}>Set board cards below</span>
+                <span style={tableStyles.noBoardText}>Set Board Cards Below</span>
               )}
             </div>
           </div>
@@ -526,7 +526,7 @@ function GTOResultsPanel({ results, isLoading }) {
   if (isLoading) {
     return (
       <div style={resultsStyles.container}>
-        <div style={resultsStyles.loading}>Analyzing scenario...</div>
+        <div style={resultsStyles.loading}>Analyzing Scenario...</div>
       </div>
     );
   }
@@ -855,8 +855,8 @@ export default function VirtualSandboxPage() {
   return (
     <PageTransition>
       <SEOHead
-                title="AI Sandbox — Practice with Jarvis"
-                description="Practice poker scenarios in the AI sandbox with Jarvis guidance."
+                title="AI Sandbox — Practice With Jarvis"
+                description="Practice Poker Scenarios In The AI Sandbox With Jarvis Guidance."
                 canonical="/hub/personal-assistant/sandbox"
                 noindex={true}
             >
@@ -867,7 +867,7 @@ export default function VirtualSandboxPage() {
         <div style={styles.bgGrid} />
         <UniversalHeader pageDepth={2} />
 
-        <FeatureGate featureKey="personal_assistant" userId={userId} cost={100} duration={24} featureName="Virtual Sandbox" description="Access Virtual Sandbox, Leak Finder, and Jarvis coaching tools for 24 hours.">
+        <FeatureGate featureKey="personal_assistant" userId={userId} cost={100} duration={24} featureName="Virtual Sandbox" description="Access Virtual Sandbox, Leak Finder, And Jarvis Coaching Tools For 24 Hours.">
           {/* Top Bar */}
           <div style={styles.topBar}>
             <div style={styles.topBarLeft}>

@@ -100,7 +100,7 @@ export default function CategoryPage() {
         <PageTransition>
             <SEOHead
                 title="Training Category"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
 

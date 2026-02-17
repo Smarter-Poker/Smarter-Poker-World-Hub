@@ -44,7 +44,7 @@ function LimitCard({ icon: Icon, label, value, onChange, max, unit = '$' }) {
         className="w-full h-2 bg-[#1A2E4A] rounded-lg appearance-none cursor-pointer accent-[#1877F2]"
       />
       <div className="flex justify-between text-xs text-[#64748B] mt-1">
-        <span>No limit</span>
+        <span>No Limit</span>
         <span>{unit}{max.toLocaleString()}</span>
       </div>
     </div>
@@ -221,7 +221,7 @@ export default function ResponsibleGamingPage() {
     <>
       <SEOHead
                 title="Responsible Gaming"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
 
@@ -254,7 +254,7 @@ export default function ResponsibleGamingPage() {
                   <Shield className="w-6 h-6 text-[#22D3EE]" />
                   Responsible Gaming
                 </h1>
-                <p className="text-sm text-[#64748B]">Manage your limits and controls</p>
+                <p className="text-sm text-[#64748B]">Manage Your Limits And Controls</p>
               </div>
             </div>
           </div>
@@ -369,7 +369,7 @@ export default function ResponsibleGamingPage() {
                 <Bell className="w-5 h-5 text-[#64748B]" />
                 <div>
                   <p className="font-medium text-white">Enable Alerts</p>
-                  <p className="text-sm text-[#64748B]">Get notified when approaching limits</p>
+                  <p className="text-sm text-[#64748B]">Get Notified When Approaching Limits</p>
                 </div>
               </div>
               <input
@@ -404,35 +404,35 @@ export default function ResponsibleGamingPage() {
                 <ExclusionOption
                   duration={1}
                   label="24-Hour Cool-Off"
-                  description="Take a day to reset"
+                  description="Take A Day To Reset"
                   selected={exclusion === 1}
                   onSelect={setExclusion}
                 />
                 <ExclusionOption
                   duration={7}
                   label="7-Day Break"
-                  description="Week-long exclusion"
+                  description="Week-long Exclusion"
                   selected={exclusion === 7}
                   onSelect={setExclusion}
                 />
                 <ExclusionOption
                   duration={30}
                   label="30-Day Exclusion"
-                  description="Month-long break from poker"
+                  description="Month-long Break From Poker"
                   selected={exclusion === 30}
                   onSelect={setExclusion}
                 />
                 <ExclusionOption
                   duration={90}
                   label="90-Day Exclusion"
-                  description="Extended break period"
+                  description="Extended Break Period"
                   selected={exclusion === 90}
                   onSelect={setExclusion}
                 />
                 <ExclusionOption
                   duration="permanent"
                   label="Permanent Self-Exclusion"
-                  description="Cannot be reversed"
+                  description="Cannot Be Reversed"
                   selected={exclusion === 'permanent'}
                   onSelect={setExclusion}
                 />
@@ -458,7 +458,7 @@ export default function ResponsibleGamingPage() {
             <div className="space-y-2 text-sm">
               <p className="text-[#22D3EE] font-medium">National Problem Gambling Helpline</p>
               <p className="text-white">1-800-522-4700 (24/7)</p>
-              <p className="text-[#64748B]">ncpgambling.org</p>
+              <p className="text-[#64748B]">Ncpgambling.org</p>
             </div>
           </section>
         </main>
@@ -484,7 +484,7 @@ export default function ResponsibleGamingPage() {
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-white">Confirm Self-Exclusion</h2>
-                  <p className="text-sm text-[#64748B]">This action cannot be undone early</p>
+                  <p className="text-sm text-[#64748B]">This Action Cannot Be Undone Early</p>
                 </div>
               </div>
 

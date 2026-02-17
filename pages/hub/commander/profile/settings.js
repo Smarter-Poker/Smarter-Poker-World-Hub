@@ -114,7 +114,7 @@ export default function ProfileSettingsPage() {
     <>
       <SEOHead
                 title="Profile Settings"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
       <div className="cmd-page" style={{ fontFamily: 'Inter, sans-serif' }}>
@@ -137,31 +137,31 @@ export default function ProfileSettingsPage() {
             <div className="divide-y divide-[#4A5E78]/50">
               <ToggleSetting
                 label="Waitlist Updates"
-                description="Get notified when your position changes"
+                description="Get Notified When Your Position Changes"
                 value={settings.notifications_waitlist}
                 onChange={(v) => updateSetting('notifications_waitlist', v)}
               />
               <ToggleSetting
                 label="Promotions"
-                description="High hand alerts, bonus notifications"
+                description="High Hand Alerts, Bonus Notifications"
                 value={settings.notifications_promotions}
                 onChange={(v) => updateSetting('notifications_promotions', v)}
               />
               <ToggleSetting
                 label="Tournaments"
-                description="Registration reminders, results"
+                description="Registration Reminders, Results"
                 value={settings.notifications_tournaments}
                 onChange={(v) => updateSetting('notifications_tournaments', v)}
               />
               <ToggleSetting
                 label="Push Notifications"
-                description="Receive push notifications on this device"
+                description="Receive Push Notifications On This Device"
                 value={settings.notifications_push}
                 onChange={(v) => updateSetting('notifications_push', v)}
               />
               <ToggleSetting
                 label="SMS Notifications"
-                description="Receive text messages for important updates"
+                description="Receive Text Messages For Important Updates"
                 value={settings.notifications_sms}
                 onChange={(v) => updateSetting('notifications_sms', v)}
               />
@@ -177,19 +177,19 @@ export default function ProfileSettingsPage() {
             <div className="divide-y divide-[#4A5E78]/50">
               <ToggleSetting
                 label="Show Stats on Profile"
-                description="Let others see your session stats"
+                description="Let Others See Your Session Stats"
                 value={settings.privacy_show_stats}
                 onChange={(v) => updateSetting('privacy_show_stats', v)}
               />
               <ToggleSetting
                 label="Show Recent Activity"
-                description="Show your recent check-ins to friends"
+                description="Show Your Recent Check-Ins To Friends"
                 value={settings.privacy_show_activity}
                 onChange={(v) => updateSetting('privacy_show_activity', v)}
               />
               <ToggleSetting
                 label="Show Favorite Venues"
-                description="Let others see where you play"
+                description="Let Others See Where You Play"
                 value={settings.privacy_show_venues}
                 onChange={(v) => updateSetting('privacy_show_venues', v)}
               />
@@ -205,7 +205,7 @@ export default function ProfileSettingsPage() {
             <div className="divide-y divide-[#4A5E78]/50">
               <ToggleSetting
                 label="Compact Mode"
-                description="Use smaller cards and tighter spacing"
+                description="Use Smaller Cards And Tighter Spacing"
                 value={settings.display_compact_mode}
                 onChange={(v) => updateSetting('display_compact_mode', v)}
               />

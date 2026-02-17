@@ -129,7 +129,7 @@ export default function ShiftHandoff() {
     <>
       <SEOHead
                 title="Commander — Shift Handoff"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
       <div style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -138,7 +138,7 @@ export default function ShiftHandoff() {
           <ArrowRightLeft size={22} />
           <div>
             <div style={{ fontWeight: 700, fontSize: 17 }}>Shift Handoff</div>
-            <div style={{ fontSize: 12, opacity: 0.85 }}>Pass floor context to incoming shift</div>
+            <div style={{ fontSize: 12, opacity: 0.85 }}>Pass Floor Context To Incoming Shift</div>
           </div>
           {pendingHandoffs.length > 0 && (
             <div style={{ marginLeft: 'auto', background: '#EF4444', borderRadius: 12, padding: '2px 10px', fontSize: 13, fontWeight: 700 }}>
@@ -188,7 +188,7 @@ export default function ShiftHandoff() {
                 </div>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 16, color: '#1C2526' }}>Create Handoff</div>
-                  <div style={{ fontSize: 13, color: '#65676B' }}>Document floor state and pass to next shift</div>
+                  <div style={{ fontSize: 13, color: '#65676B' }}>Document Floor State And Pass To Next Shift</div>
                 </div>
               </button>
 
@@ -199,7 +199,7 @@ export default function ShiftHandoff() {
                 </div>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 16, color: '#1C2526' }}>Handoff History</div>
-                  <div style={{ fontSize: 13, color: '#65676B' }}>View past shift handoffs and notes</div>
+                  <div style={{ fontSize: 13, color: '#65676B' }}>View Past Shift Handoffs And Notes</div>
                 </div>
               </button>
             </div>
@@ -229,7 +229,7 @@ export default function ShiftHandoff() {
                   <MessageSquare size={15} style={{ display: 'inline', verticalAlign: -2 }} /> Floor Notes *
                 </label>
                 <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={4}
-                  placeholder="General floor state — how the room is running, player mood, game quality, upcoming events..."
+                  placeholder="General Floor State — How The Room Is Running, Player Mood, Game Quality, Upcoming Events..."
                   style={{ width: '100%', padding: '10px 12px', border: '2px solid #CED0D4', borderRadius: 8, fontSize: 14, resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit' }} />
               </div>
 
@@ -239,7 +239,7 @@ export default function ShiftHandoff() {
                   <AlertTriangle size={15} style={{ display: 'inline', verticalAlign: -2 }} /> Active Issues
                 </label>
                 <textarea value={issues} onChange={e => setIssues(e.target.value)} rows={3}
-                  placeholder="Player disputes, equipment problems, short-staffed, anything needing attention..."
+                  placeholder="Player Disputes, Equipment Problems, Short-staffed, Anything Needing Attention..."
                   style={{ width: '100%', padding: '10px 12px', border: '2px solid #CED0D4', borderRadius: 8, fontSize: 14, resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit' }} />
               </div>
 
@@ -249,7 +249,7 @@ export default function ShiftHandoff() {
                   <Star size={15} style={{ display: 'inline', verticalAlign: -2 }} /> VIP / Player Alerts
                 </label>
                 <textarea value={vipAlerts} onChange={e => setVipAlerts(e.target.value)} rows={2}
-                  placeholder="VIPs in the room, player to watch, high rollers expected..."
+                  placeholder="VIPs In The Room, Player To Watch, High Rollers Expected..."
                   style={{ width: '100%', padding: '10px 12px', border: '2px solid #CED0D4', borderRadius: 8, fontSize: 14, resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit' }} />
               </div>
 
@@ -259,7 +259,7 @@ export default function ShiftHandoff() {
                   <ListChecks size={15} style={{ display: 'inline', verticalAlign: -2 }} /> Pending Actions
                 </label>
                 <textarea value={pendingActions} onChange={e => setPendingActions(e.target.value)} rows={2}
-                  placeholder="Table changes planned, games to open/close, promotions to run..."
+                  placeholder="Table Changes Planned, Games To Open/close, Promotions To Run..."
                   style={{ width: '100%', padding: '10px 12px', border: '2px solid #CED0D4', borderRadius: 8, fontSize: 14, resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit' }} />
               </div>
 
@@ -281,7 +281,7 @@ export default function ShiftHandoff() {
               {loading ? (
                 <div style={{ textAlign: 'center', padding: 40 }}><Loader2 size={28} color="#1877F2" className="spin" /></div>
               ) : handoffs.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: 40, color: '#65676B' }}>No handoffs recorded yet</div>
+                <div style={{ textAlign: 'center', padding: 40, color: '#65676B' }}>No Handoffs Recorded Yet</div>
               ) : handoffs.map(h => {
                 const isExpanded = expandedId === h.id;
                 const tables = h.table_snapshot || [];

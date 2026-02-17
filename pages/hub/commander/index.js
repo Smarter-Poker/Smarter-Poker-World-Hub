@@ -121,7 +121,7 @@ export default function CommanderHub() {
     <PushNotificationProvider>
       <SEOHead
                 title="Club Commander"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
 
@@ -135,7 +135,7 @@ export default function CommanderHub() {
               </div>
               <div>
                 <h1 className="text-2xl font-extrabold text-white tracking-wider cmd-text-glow">LIVE POKER</h1>
-                <p className="text-sm text-[#64748B] font-medium tracking-wide">Find games and join waitlists</p>
+                <p className="text-sm text-[#64748B] font-medium tracking-wide">Find Games And Join Waitlists</p>
               </div>
               {/* Rivets */}
               <div className="ml-auto flex gap-2">
@@ -263,7 +263,7 @@ export default function CommanderHub() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search venues..."
+                  placeholder="Search Venues..."
                   className="cmd-input pl-14"
                 />
               </div>
@@ -271,7 +271,7 @@ export default function CommanderHub() {
                 onClick={getUserLocation}
                 disabled={locationLoading}
                 className="cmd-btn cmd-btn-secondary"
-                title="Use my location"
+                title="Use My Location"
               >
                 {locationLoading ? (
                   <RefreshCw className="w-5 h-5 animate-spin" />
@@ -367,7 +367,7 @@ export default function CommanderHub() {
 
           {/* Footer */}
           <div className="text-center pb-8">
-            <p className="text-xs text-[#64748B] uppercase tracking-[0.3em] mb-2">Powered by</p>
+            <p className="text-xs text-[#64748B] uppercase tracking-[0.3em] mb-2">Powered By</p>
             <p className="text-xl font-extrabold cmd-text-chrome tracking-wider">CLUB COMMANDER</p>
           </div>
         </main>

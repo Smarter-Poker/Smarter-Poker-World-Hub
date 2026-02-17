@@ -116,8 +116,8 @@ export default function PlayerCheckInPage() {
       <div className="cmd-page flex items-center justify-center p-4">
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-[#EF4444] mx-auto mb-3" />
-          <p className="text-white font-medium">Venue not found</p>
-          <p className="text-sm text-[#64748B] mt-1">Please check the QR code and try again</p>
+          <p className="text-white font-medium">Venue Not Found</p>
+          <p className="text-sm text-[#64748B] mt-1">Please Check The QR Code And Try Again</p>
         </div>
       </div>
     );
@@ -128,7 +128,7 @@ export default function PlayerCheckInPage() {
       <>
         <SEOHead
                 title="Check In — Poker Venue"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
 
@@ -141,7 +141,7 @@ export default function PlayerCheckInPage() {
             <p className="text-[#64748B] mb-6">Welcome to {venue.name}</p>
 
             <div className="cmd-panel mb-6" style={{ borderColor: '#10B981', boxShadow: '0 0 20px rgba(16, 185, 129, 0.15), 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(16, 185, 129, 0.15), inset 0 -2px 0 rgba(0,0,0,0.3)' }}>
-              <p className="text-sm text-[#64748B] mb-1">Your session has started</p>
+              <p className="text-sm text-[#64748B] mb-1">Your Session Has Started</p>
               <p className="text-lg font-semibold text-[#10B981]" style={{ textShadow: '0 0 10px rgba(16, 185, 129, 0.4)' }}>{new Date().toLocaleTimeString()}</p>
             </div>
 
@@ -191,7 +191,7 @@ export default function PlayerCheckInPage() {
 
           {/* Check-in Button */}
           <div className="cmd-panel text-center">
-            <h2 className="font-bold text-white uppercase tracking-wide text-sm mb-2">Ready to Play?</h2>
+            <h2 className="font-bold text-white uppercase tracking-wide text-sm mb-2">Ready To Play?</h2>
             <p className="text-sm text-[#64748B] mb-4">
               Check in to start tracking your session and earn rewards
             </p>
@@ -235,7 +235,7 @@ export default function PlayerCheckInPage() {
                       <p className="font-medium text-white">
                         {game.player_count || 0}/{game.max_players}
                       </p>
-                      <p className="text-sm text-[#64748B]">players</p>
+                      <p className="text-sm text-[#64748B]">Players</p>
                     </div>
                   </div>
                 ))}
@@ -280,8 +280,8 @@ export default function PlayerCheckInPage() {
 
           {/* Info */}
           <div className="text-center text-sm text-[#64748B]">
-            <p>By checking in, you agree to the venue's terms and conditions.</p>
-            <p className="mt-1">Need help? Ask any staff member.</p>
+            <p>By Checking In, You Agree To The Venue's Terms And Conditions.</p>
+            <p className="mt-1">Need Help? Ask Any Staff Member.</p>
           </div>
         </main>
       </div>

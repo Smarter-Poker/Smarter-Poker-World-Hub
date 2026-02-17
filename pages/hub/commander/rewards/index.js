@@ -210,7 +210,7 @@ export default function PlayerRewardsPage() {
     <>
       <SEOHead
                 title="Rewards"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
 
@@ -350,9 +350,9 @@ export default function PlayerRewardsPage() {
             <h3 className="font-bold text-[#22D3EE] mb-3 uppercase tracking-wide text-sm">How It Works</h3>
             <ul className="text-sm text-[#CBD5E1] space-y-2">
               <li>Earn ${earnRate} for every hour you play</li>
-              <li>Bonus rewards during promotional hours</li>
-              <li>Redeem anytime for food, merchandise, or free play</li>
-              <li>Balance never expires</li>
+              <li>Bonus Rewards During Promotional Hours</li>
+              <li>Redeem Anytime For Food, Merchandise, Or Free Play</li>
+              <li>Balance Never Expires</li>
             </ul>
           </div>
         </main>

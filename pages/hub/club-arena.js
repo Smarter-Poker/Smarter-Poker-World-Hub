@@ -89,7 +89,7 @@ function CreateClubModal({ onClose, onCreated, user }) {
                     <input
                         value={clubName}
                         onChange={(e) => setClubName(e.target.value)}
-                        placeholder="Enter club name..."
+                        placeholder="Enter Club Name..."
                         style={inputStyle}
                     />
                 </div>
@@ -170,11 +170,11 @@ function JoinClubModal({ onClose, onJoined, user }) {
                     <button onClick={onClose} style={closeBtn}>×</button>
                 </div>
                 <div style={{ marginBottom: '20px' }}>
-                    <label style={labelStyle}>Club Code (5 digits)</label>
+                    <label style={labelStyle}>Club Code (5 Digits)</label>
                     <input
                         value={clubCode}
                         onChange={(e) => setClubCode(e.target.value.replace(/\D/g, '').slice(0, 5))}
-                        placeholder="Enter 5-digit club code..."
+                        placeholder="Enter 5-digit Club Code..."
                         style={inputStyle}
                         maxLength={5}
                     />
@@ -227,7 +227,7 @@ function FindPlayerModal({ onClose }) {
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                        placeholder="Search by username..."
+                        placeholder="Search By Username..."
                         style={{ ...inputStyle, flex: 1 }}
                     />
                     <button onClick={handleSearch} disabled={isSearching} style={{ ...actionBtnPrimary, padding: '12px 20px' }}>
@@ -383,7 +383,7 @@ export default function ClubArenaPage() {
         <>
             <SEOHead
                 title="Club Arena — Private Online Poker Clubs"
-                description="Create and join private online poker clubs. Real-time gameplay, tournaments, hand histories, player stats, and club management."
+                description="Create And Join Private Online Poker Clubs. Real-time Gameplay, Tournaments, Hand Histories, Player Stats, And Club Management."
                 canonical="/hub/club-arena"
             >
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -411,17 +411,17 @@ export default function ClubArenaPage() {
                         <button
                             onClick={() => user ? setShowCreateClub(true) : alert('Please sign in first')}
                             style={{ ...S.actionZone, left: '0%', width: '33%' }}
-                            aria-label="Create a Club"
+                            aria-label="Create A Club"
                         />
                         <button
                             onClick={() => setShowFindPlayer(true)}
                             style={{ ...S.actionZone, left: '33%', width: '34%' }}
-                            aria-label="Find a Player"
+                            aria-label="Find A Player"
                         />
                         <button
                             onClick={() => user ? setShowJoinClub(true) : alert('Please sign in first')}
                             style={{ ...S.actionZone, left: '67%', width: '33%' }}
-                            aria-label="Join a Club"
+                            aria-label="Join A Club"
                         />
                     </div>
 

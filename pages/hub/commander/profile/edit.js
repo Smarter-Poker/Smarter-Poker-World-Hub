@@ -98,7 +98,7 @@ export default function ProfileEditPage() {
     <>
       <SEOHead
                 title="Edit Profile"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
       <div className="cmd-page" style={{ fontFamily: 'Inter, sans-serif' }}>
@@ -139,7 +139,7 @@ export default function ProfileEditPage() {
                 value={formData.display_name}
                 onChange={(e) => setFormData(prev => ({ ...prev, display_name: e.target.value }))}
                 className="w-full cmd-input"
-                placeholder="Your display name"
+                placeholder="Your Display Name"
               />
             </div>
             <div>
@@ -168,7 +168,7 @@ export default function ProfileEditPage() {
                 value={formData.bio}
                 onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
                 className="w-full cmd-input min-h-[80px] resize-none"
-                placeholder="Tell us about yourself..."
+                placeholder="Tell Us About Yourself..."
                 maxLength={250}
               />
               <p className="text-xs text-[#4A5E78] mt-1 text-right">{formData.bio.length}/250</p>

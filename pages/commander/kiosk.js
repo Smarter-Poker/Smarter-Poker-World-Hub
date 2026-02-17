@@ -125,7 +125,7 @@ export default function MembershipKiosk() {
       <>
         <SEOHead
                 title="Commander — Player Kiosk"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
         <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter'] flex flex-col items-center justify-center p-6">
@@ -174,14 +174,14 @@ export default function MembershipKiosk() {
 
               <div className="flex items-center gap-3">
                 <div className="flex-1 h-px bg-[#3A3B3C]" />
-                <span className="text-xs text-[#B0B3B8]">or</span>
+                <span className="text-xs text-[#B0B3B8]">Or</span>
                 <div className="flex-1 h-px bg-[#3A3B3C]" />
               </div>
 
               <div>
                 <label className="text-sm text-[#B0B3B8] mb-1 block">Name</label>
                 <input type="text" value={name} onChange={e => setName(e.target.value)}
-                  placeholder="Your name"
+                  placeholder="Your Name"
                   className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl px-5 py-4 text-white text-xl text-center placeholder-[#B0B3B8]/50 focus:outline-none focus:border-[#1877F2]" />
               </div>
 
@@ -370,7 +370,7 @@ export default function MembershipKiosk() {
                 </div>
               </div>
               <div>
-                <label className="text-sm text-[#B0B3B8] mb-1 block">Phone (for waitlist texts)</label>
+                <label className="text-sm text-[#B0B3B8] mb-1 block">Phone (for Waitlist Texts)</label>
                 <input type="tel" value={newPhone} onChange={e => setNewPhone(e.target.value)}
                   placeholder="(555) 123-4567"
                   className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl px-4 py-3 text-white text-lg placeholder-[#B0B3B8]/50 focus:outline-none focus:border-[#1877F2]" />
@@ -407,7 +407,7 @@ export default function MembershipKiosk() {
 
           {/* Branding */}
           <div className="fixed bottom-4 right-6">
-            <p className="text-white/10 text-xs">Powered by Smarter.Poker</p>
+            <p className="text-white/10 text-xs">Powered By Smarter.Poker</p>
           </div>
         </div>
         <style jsx>{`

@@ -150,7 +150,7 @@ export default function TDRegister() {
     <>
       <SEOHead
                 title="Commander — Register"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] pb-20 font-['Inter']">
@@ -173,7 +173,7 @@ export default function TDRegister() {
           <div className="grid grid-cols-3 gap-2">
             <div className="bg-[#242526] rounded-xl border border-[#3A3B3C] p-3 text-center">
               <p className="text-lg font-bold text-white">{formatMoney(tournament.buyin_amount)}</p>
-              <p className="text-[10px] text-[#B0B3B8] uppercase">Buy-in</p>
+              <p className="text-[10px] text-[#B0B3B8] uppercase">Buy-In</p>
             </div>
             <div className="bg-[#242526] rounded-xl border border-[#3A3B3C] p-3 text-center">
               <p className="text-lg font-bold text-white">{formatMoney(tournament.rebuy_cost)}</p>
@@ -199,7 +199,7 @@ export default function TDRegister() {
                   type="text"
                   value={memberSearch}
                   onChange={e => handleMemberSearchChange(e.target.value)}
-                  placeholder="Search existing members..."
+                  placeholder="Search Existing Members..."
                   className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl pl-10 pr-4 py-3 text-[#E4E6EB] text-base placeholder-[#B0B3B8]/50 focus:outline-none focus:border-[#1877F2]"
                 />
               </div>
@@ -223,7 +223,7 @@ export default function TDRegister() {
                 type="text"
                 value={playerName}
                 onChange={e => setPlayerName(e.target.value)}
-                placeholder="Full name"
+                placeholder="Full Name"
                 className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl px-4 py-3 text-[#E4E6EB] text-base placeholder-[#B0B3B8]/50 focus:outline-none focus:border-[#1877F2]"
               />
             </div>
@@ -235,7 +235,7 @@ export default function TDRegister() {
                 type="tel"
                 value={playerPhone}
                 onChange={e => setPlayerPhone(e.target.value)}
-                placeholder="Phone number"
+                placeholder="Phone Number"
                 className="w-full bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl px-4 py-3 text-[#E4E6EB] text-base placeholder-[#B0B3B8]/50 focus:outline-none focus:border-[#1877F2]"
               />
             </div>
@@ -308,7 +308,7 @@ export default function TDRegister() {
                 className="flex-shrink-0 bg-[#242526] rounded-xl border border-[#3A3B3C] px-3 py-2 text-center min-w-[70px]">
                 <p className="text-xs text-[#B0B3B8]">T{t.table_number}</p>
                 <p className="text-sm font-bold text-white">{t.available_seats}</p>
-                <p className="text-[10px] text-[#B0B3B8]">open</p>
+                <p className="text-[10px] text-[#B0B3B8]">Open</p>
               </div>
             ))}
           </div>

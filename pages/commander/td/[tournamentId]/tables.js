@@ -121,7 +121,7 @@ export default function TDTablesMap() {
     <>
       <SEOHead
                 title="Commander — Tables"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] pb-20 font-['Inter']">
@@ -269,7 +269,7 @@ export default function TDTablesMap() {
           {tables.length === 0 && (
             <div className="text-center py-16">
               <LayoutGrid className="w-12 h-12 text-[#3A3B3C] mx-auto mb-3" />
-              <p className="text-[#B0B3B8]">No active tables</p>
+              <p className="text-[#B0B3B8]">No Active Tables</p>
             </div>
           )}
         </div>
@@ -342,7 +342,7 @@ export default function TDTablesMap() {
                           <button
                             onClick={() => router.push(`/commander/td/${tournamentId}/players?move=${player.entry_id}`)}
                             className="w-10 h-10 rounded-lg bg-[#3A3B3C] flex items-center justify-center active:bg-[#4A4B4C]"
-                            title="Move player"
+                            title="Move Player"
                           >
                             <ArrowRightLeft className="w-4 h-4 text-[#B0B3B8]" />
                           </button>

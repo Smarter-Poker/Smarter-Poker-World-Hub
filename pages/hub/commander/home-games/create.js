@@ -119,7 +119,7 @@ export default function CreateHomeGamePage() {
     <>
       <SEOHead
                 title="Create Home Game"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
 
@@ -134,7 +134,7 @@ export default function CreateHomeGamePage() {
               <ArrowLeft className="w-5 h-5 text-[#64748B]" />
             </button>
             <div>
-              <h1 className="font-bold text-white">Host a Home Game</h1>
+              <h1 className="font-bold text-white">Host A Home Game</h1>
               <p className="text-sm text-[#64748B]">{step <= 3 ? `Step ${step} of 3` : 'Schedule First Game'}</p>
             </div>
           </div>
@@ -191,7 +191,7 @@ export default function CreateHomeGamePage() {
                   <textarea
                     value={formData.description}
                     onChange={(e) => updateField('description', e.target.value)}
-                    placeholder="Tell players about your game..."
+                    placeholder="Tell Players About Your Game..."
                     rows={3}
                     className="cmd-input w-full px-4 py-3 resize-none"
                   />
@@ -213,7 +213,7 @@ export default function CreateHomeGamePage() {
                     >
                       <Lock className={`w-5 h-5 mb-2 ${formData.visibility === 'private' ? 'text-[#22D3EE]' : 'text-[#64748B]'}`} />
                       <p className="font-medium text-white">Private</p>
-                      <p className="text-sm text-[#64748B]">Invite only</p>
+                      <p className="text-sm text-[#64748B]">Invite Only</p>
                     </button>
                     <button
                       type="button"
@@ -226,7 +226,7 @@ export default function CreateHomeGamePage() {
                     >
                       <Globe className={`w-5 h-5 mb-2 ${formData.visibility === 'public' ? 'text-[#22D3EE]' : 'text-[#64748B]'}`} />
                       <p className="font-medium text-white">Public</p>
-                      <p className="text-sm text-[#64748B]">Anyone can find</p>
+                      <p className="text-sm text-[#64748B]">Anyone Can Find</p>
                     </button>
                   </div>
                 </div>
@@ -235,7 +235,7 @@ export default function CreateHomeGamePage() {
                   <div className="flex items-center justify-between p-4 bg-[#0D192E] rounded-lg">
                     <div>
                       <p className="font-medium text-white">Require Approval</p>
-                      <p className="text-sm text-[#64748B]">Review join requests before accepting</p>
+                      <p className="text-sm text-[#64748B]">Review Join Requests Before Accepting</p>
                     </div>
                     <button
                       type="button"
@@ -460,7 +460,7 @@ export default function CreateHomeGamePage() {
                 <div className="flex items-center justify-between p-4 bg-[#0D192E] rounded-lg">
                   <div>
                     <p className="font-medium text-white">Recurring Game</p>
-                    <p className="text-sm text-[#64748B]">Set a regular schedule</p>
+                    <p className="text-sm text-[#64748B]">Set A Regular Schedule</p>
                   </div>
                   <button
                     type="button"

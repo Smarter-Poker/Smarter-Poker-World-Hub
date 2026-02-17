@@ -116,7 +116,7 @@ export default function CloseDay() {
     <>
       <SEOHead
                 title="Commander — Close Day"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
@@ -124,7 +124,7 @@ export default function CloseDay() {
         {/* Header */}
         <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
           <div className="flex-1">
-            <h1 className="text-lg font-bold text-white">End of Day Close</h1>
+            <h1 className="text-lg font-bold text-white">End Of Day Close</h1>
             <p className="text-xs text-[#B0B3B8]">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
           </div>
           <div className="flex gap-1.5">
@@ -164,7 +164,7 @@ export default function CloseDay() {
                 <div className="bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-xl p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <AlertTriangle className="w-5 h-5 text-[#F59E0B]" />
-                    <p className="text-sm font-semibold text-[#F59E0B]">Items need attention</p>
+                    <p className="text-sm font-semibold text-[#F59E0B]">Items Need Attention</p>
                   </div>
                   <p className="text-xs text-[#B0B3B8] mb-3">Close All Open Tables And End Active Sessions Before Closing The Day.</p>
                   <button onClick={forceCloseAll} disabled={closing}
@@ -206,7 +206,7 @@ export default function CloseDay() {
               <div>
                 <label className="text-xs text-[#B0B3B8] uppercase tracking-wider block mb-1">Shift Notes (optional)</label>
                 <textarea value={notes} onChange={e => setNotes(e.target.value)}
-                  rows={3} placeholder="Any notes about the shift..."
+                  rows={3} placeholder="Any Notes About The Shift..."
                   className="w-full px-4 py-3 bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl text-[#E4E6EB] placeholder-[#6A6B6D] focus:outline-none focus:border-[#1877F2] resize-none" />
               </div>
 

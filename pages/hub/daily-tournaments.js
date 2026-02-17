@@ -131,7 +131,7 @@ export default function DailyTournaments() {
         <>
             <SEOHead
                 title="Daily Poker Tournaments — Compete Every Day"
-                description="Join daily poker tournaments on Smarter.Poker. Compete against players worldwide with daily challenges and prize pools."
+                description="Join Daily Poker Tournaments On Smarter.Poker. Compete Against Players Worldwide With Daily Challenges And Prize Pools."
                 canonical="/hub/daily-tournaments"
             >
                 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -185,7 +185,7 @@ export default function DailyTournaments() {
                             </svg>
                             <input
                                 type="text"
-                                placeholder="Search venue name"
+                                placeholder="Search Venue Name"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
@@ -238,7 +238,7 @@ export default function DailyTournaments() {
                             </div>
                         </div>
                         <div className="filter-group">
-                            <label>Buy-in Range</label>
+                            <label>Buy-In Range</label>
                             <div className="filter-chips">
                                 {BUYIN_RANGES.map((range, i) => (
                                     <button key={i} className={`chip ${selectedBuyin.label === range.label ? 'active' : ''}`}
@@ -274,7 +274,7 @@ export default function DailyTournaments() {
 
                         <div className="sidebar-section source-info">
                             <h3>Data Source</h3>
-                            <p>Tournament schedules from PokerAtlas for 163 verified venues with confirmed daily tournaments.</p>
+                            <p>Tournament Schedules From PokerAtlas For 163 Verified Venues With Confirmed Daily Tournaments.</p>
                             <div className="source-badge">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
@@ -308,7 +308,7 @@ export default function DailyTournaments() {
                         {loading ? (
                             <div className="loading-state">
                                 <div className="spinner"></div>
-                                <span>Finding tournaments...</span>
+                                <span>Finding Tournaments...</span>
                             </div>
                         ) : tournaments.length === 0 ? (
                             <div className="empty-state">
@@ -375,7 +375,7 @@ export default function DailyTournaments() {
                                     <span className="highlight-value">{stats.total || 0}</span>
                                 </div>
                                 <div className="highlight-card">
-                                    <span className="highlight-label">Average Buy-in</span>
+                                    <span className="highlight-label">Average Buy-In</span>
                                     <span className="highlight-value">${stats.avgBuyin || 0}</span>
                                 </div>
                             </div>

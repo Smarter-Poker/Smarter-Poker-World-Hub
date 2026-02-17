@@ -124,7 +124,7 @@ export default function HighHands() {
       <>
         <SEOHead
                 title="Commander — High Hands"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
         <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
@@ -245,7 +245,7 @@ export default function HighHands() {
                     <label className="text-xs text-[#B0B3B8] mb-1.5 block">Player Name *</label>
                     <input type="text" value={form.player_name} onChange={e => setForm({ ...form, player_name: e.target.value })}
                       className="w-full px-4 py-3 bg-[#3A3B3C] border border-[#4E4F50] rounded-xl text-white focus:border-[#1877F2] focus:outline-none"
-                      placeholder="Player name" />
+                      placeholder="Player Name" />
                   </div>
                   <div>
                     <label className="text-xs text-[#B0B3B8] mb-1.5 block">Hand Rank *</label>
@@ -261,7 +261,7 @@ export default function HighHands() {
                     <label className="text-xs text-[#B0B3B8] mb-1.5 block">Description (cards)</label>
                     <input type="text" value={form.hand_description} onChange={e => setForm({ ...form, hand_description: e.target.value })}
                       className="w-full px-4 py-3 bg-[#3A3B3C] border border-[#4E4F50] rounded-xl text-white focus:border-[#1877F2] focus:outline-none"
-                      placeholder="e.g., Aces full of Kings, Quad Jacks" />
+                      placeholder="e.g., Aces Full Of Kings, Quad Jacks" />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>

@@ -80,7 +80,7 @@ export default function ChallengesPage() {
             <PageTransition>
                 <SEOHead
                 title="Daily Training Challenges"
-                description="Complete daily GTO training challenges to sharpen your poker skills and earn rewards."
+                description="Complete Daily GTO Training Challenges To Sharpen Your Poker Skills And Earn Rewards."
                 canonical="/hub/training/challenges"
             />
                 <div style={styles.container}>
@@ -88,8 +88,8 @@ export default function ChallengesPage() {
                     <div style={styles.content}>
                         <div style={styles.signInPrompt}>
                             <span style={{ fontSize: 48 }}>🎯</span>
-                            <h2>Sign In to Track Goals</h2>
-                            <p>Complete weekly and monthly goals to earn diamonds!</p>
+                            <h2>Sign In To Track Goals</h2>
+                            <p>Complete Weekly And Monthly Goals To Earn Diamonds!</p>
                             <Link href="/signup" style={styles.signInBtn}>Sign In</Link>
                         </div>
                     </div>
@@ -111,17 +111,17 @@ export default function ChallengesPage() {
                     {/* Header */}
                     <div style={styles.header}>
                         <h1 style={styles.title}>🎯 Your Goals</h1>
-                        <p style={styles.subtitle}>Complete challenges to earn diamond rewards</p>
+                        <p style={styles.subtitle}>Complete Challenges To Earn Diamond Rewards</p>
                     </div>
 
                     {/* Loading */}
                     {loading ? (
-                        <div style={styles.loading}>Loading goals...</div>
+                        <div style={styles.loading}>Loading Goals...</div>
                     ) : challenges.length === 0 ? (
                         <div style={styles.emptyState}>
                             <span style={{ fontSize: 48 }}>🎯</span>
-                            <p>No active goals right now</p>
-                            <p style={styles.emptyHint}>Check back soon for new challenges!</p>
+                            <p>No Active Goals Right Now</p>
+                            <p style={styles.emptyHint}>Check Back Soon For New Challenges!</p>
                         </div>
                     ) : (
                         <div style={styles.challengeList}>

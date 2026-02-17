@@ -296,7 +296,7 @@ export default function NotificationsPage() {
         <PageTransition>
             <SEOHead
                 title="Notifications"
-                description="Stay updated with your latest activity, friend requests, game invitations, and community updates."
+                description="Stay Updated With Your Latest Activity, Friend Requests, Game Invitations, And Community Updates."
                 canonical="/hub/notifications"
                 noindex={true}
             />
@@ -329,7 +329,7 @@ export default function NotificationsPage() {
                                 background: 'none', border: 'none', color: C.blue,
                                 fontSize: 14, fontWeight: 600, cursor: 'pointer'
                             }}
-                        >Mark all as read</button>
+                        >Mark All As Read</button>
                     )}
                 </header>
 
@@ -338,8 +338,8 @@ export default function NotificationsPage() {
                     {notifications.length === 0 ? (
                         <div style={{ padding: 40, textAlign: 'center' }}>
                             <div style={{ fontSize: 48 }}></div>
-                            <h3 style={{ color: C.text, marginTop: 16 }}>No notifications yet</h3>
-                            <p style={{ color: C.textSec }}>When someone likes, comments, or tags you, you'll see it here.</p>
+                            <h3 style={{ color: C.text, marginTop: 16 }}>No Notifications Yet</h3>
+                            <p style={{ color: C.textSec }}>When Someone Likes, Comments, Or Tags You, You'll See It Here.</p>
                         </div>
                     ) : (
                         notifications.map(n => {

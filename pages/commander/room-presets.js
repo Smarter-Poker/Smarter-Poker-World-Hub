@@ -338,7 +338,7 @@ export default function DailyPresetsPage() {
       <>
         <SEOHead
                 title="Commander — Room Presets"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
         <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
@@ -497,7 +497,7 @@ export default function DailyPresetsPage() {
                     <div>
                       <label className="text-xs text-[#B0B3B8] uppercase">Description</label>
                       <input value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
-                        placeholder="Peak hours config" className="w-full mt-1 px-3 py-2.5 bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl text-sm text-white placeholder-[#6A6B6D] focus:outline-none focus:border-[#1877F2]" />
+                        placeholder="Peak Hours Config" className="w-full mt-1 px-3 py-2.5 bg-[#3A3B3C] border border-[#4A4B4C] rounded-xl text-sm text-white placeholder-[#6A6B6D] focus:outline-none focus:border-[#1877F2]" />
                     </div>
                   </div>
 
@@ -515,7 +515,7 @@ export default function DailyPresetsPage() {
                     </div>
                     <div className="p-3">
                       {form.tables.length === 0 ? (
-                        <p className="text-center text-sm text-[#B0B3B8] py-4">No tables configured</p>
+                        <p className="text-center text-sm text-[#B0B3B8] py-4">No Tables Configured</p>
                       ) : (
                         <div className="space-y-2">
                           {form.tables.map((row, idx) => (
@@ -552,7 +552,7 @@ export default function DailyPresetsPage() {
                     </div>
                     <div className="p-3">
                       {promotions.length === 0 ? (
-                        <p className="text-center text-sm text-[#B0B3B8] py-4">No promotions created yet. Create promotions first on the Promotions page.</p>
+                        <p className="text-center text-sm text-[#B0B3B8] py-4">No Promotions Created Yet. Create Promotions First On The Promotions Page.</p>
                       ) : (
                         <div className="space-y-1.5">
                           {promotions.map(promo => (
@@ -595,7 +595,7 @@ export default function DailyPresetsPage() {
                     </div>
                     <div className="p-3">
                       {form.tournaments.length === 0 ? (
-                        <p className="text-center text-sm text-[#B0B3B8] py-4">No tournaments configured</p>
+                        <p className="text-center text-sm text-[#B0B3B8] py-4">No Tournaments Configured</p>
                       ) : (
                         <div className="space-y-3">
                           {form.tournaments.map((tmpl, idx) => (
@@ -633,7 +633,7 @@ export default function DailyPresetsPage() {
                                   </select>
                                 </div>
                                 <div>
-                                  <label className="text-[10px] text-[#B0B3B8] uppercase">Buy-in $</label>
+                                  <label className="text-[10px] text-[#B0B3B8] uppercase">Buy-In $</label>
                                   <input type="number" value={tmpl.buyin_amount || ''} onChange={e => updateTournament(idx, 'buyin_amount', parseInt(e.target.value) || 0)}
                                     className="w-full mt-0.5 px-2 py-2 bg-[#3A3B3C] border border-[#4A4B4C] rounded-lg text-sm text-white text-center focus:outline-none focus:border-[#F59E0B]" />
                                 </div>

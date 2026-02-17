@@ -132,7 +132,7 @@ export default function ExportsHub() {
     <>
       <SEOHead
                 title="Commander — Data Exports"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
@@ -228,7 +228,7 @@ export default function ExportsHub() {
                   })}
                 </div>
               ) : (
-                <div className="py-8 text-center text-[#6A6B6D] text-sm">No exports yet</div>
+                <div className="py-8 text-center text-[#6A6B6D] text-sm">No Exports Yet</div>
               )}
             </div>
           </div>

@@ -330,7 +330,7 @@ export default function GoogleMapPicker({ value, onChange, approximateOnly = tru
                 <input
                     id="map-search-input"
                     type="text"
-                    placeholder="Search for a location..."
+                    placeholder="Search For A Location..."
                     value={searchInput}
                     onChange={e => setSearchInput(e.target.value)}
                     style={{
@@ -394,7 +394,7 @@ export function StaticMapDisplay({ lat, lng, city, state, height = 200 }) {
                 height, background: C.bg, borderRadius: 8, display: 'flex',
                 alignItems: 'center', justifyContent: 'center', border: `1px solid ${C.border}`,
             }}>
-                <span style={{ fontSize: 13, color: C.textSec }}>Location not available</span>
+                <span style={{ fontSize: 13, color: C.textSec }}>Location Not Available</span>
             </div>
         );
     }

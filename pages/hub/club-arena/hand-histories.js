@@ -288,7 +288,7 @@ export default function HandHistories() {
         <>
             <SEOHead
                 title="Club Arena — Hand Histories"
-                description="Review your poker hand histories in Club Arena."
+                description="Review Your Poker Hand Histories In Club Arena."
                 canonical="/hub/club-arena/hand-histories"
                 noindex={true}
             />
@@ -347,14 +347,14 @@ export default function HandHistories() {
                     </div>
 
                     {isLoading ? (
-                        <div style={S.loading}>Loading hands...</div>
+                        <div style={S.loading}>Loading Hands...</div>
                     ) : !user ? (
-                        <div style={S.emptyState}><p>Sign in to view your hands</p></div>
+                        <div style={S.emptyState}><p>Sign In To View Your Hands</p></div>
                     ) : hands.length === 0 ? (
                         <div style={S.emptyState}>
                             <span style={{ fontSize: '48px', display: 'block', marginBottom: '12px' }}>🃏</span>
-                            <p>No hands found</p>
-                            <p style={{ fontSize: '13px', marginTop: '8px' }}>Play some poker to see your history!</p>
+                            <p>No Hands Found</p>
+                            <p style={{ fontSize: '13px', marginTop: '8px' }}>Play Some Poker To See Your History!</p>
                         </div>
                     ) : (
                         <>

@@ -110,7 +110,7 @@ export default function LeadManagementPage() {
     <>
       <SEOHead
                 title="Commander — Leads"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
 
@@ -129,7 +129,7 @@ export default function LeadManagementPage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#B0B3B8]" />
                 <input
                   type="text"
-                  placeholder="Search leads..."
+                  placeholder="Search Leads..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="cmd-input w-full pl-10 h-9 text-sm"
@@ -199,7 +199,7 @@ export default function LeadManagementPage() {
           {/* Leads Table */}
           <div className="cmd-panel overflow-hidden">
             {loading ? (
-              <div className="p-8 text-center text-[#B0B3B8]">Loading leads...</div>
+              <div className="p-8 text-center text-[#B0B3B8]">Loading Leads...</div>
             ) : error ? (
               <div className="p-8 text-center text-red-400">{error}</div>
             ) : filteredLeads.length === 0 ? (

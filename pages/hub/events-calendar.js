@@ -493,7 +493,7 @@ export default function EventsCalendarPage() {
     <>
       <SEOHead
                 title="Poker Events Calendar — Tournaments & Series"
-                description="Find upcoming poker tournaments, series, and events. Live updates, schedules, and registration info for events worldwide."
+                description="Find Upcoming Poker Tournaments, Series, And Events. Live Updates, Schedules, And Registration Info For Events Worldwide."
                 canonical="/hub/events-calendar"
             />
       <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
@@ -561,7 +561,7 @@ export default function EventsCalendarPage() {
           {showFilters && (
             <div className="ec-filter-panel">
               <div className="ec-filter-group">
-                <label className="ec-filter-label">Buy-in Range</label>
+                <label className="ec-filter-label">Buy-In Range</label>
                 <select
                   className="ec-select"
                   value={buyInRange}
@@ -602,13 +602,13 @@ export default function EventsCalendarPage() {
           {loading && (
             <div className="ec-loading">
               <div className="ec-spinner" />
-              <p style={{ color: C.textSec, marginTop: '12px', fontSize: '14px' }}>Loading events...</p>
+              <p style={{ color: C.textSec, marginTop: '12px', fontSize: '14px' }}>Loading Events...</p>
             </div>
           )}
 
           {error && !loading && (
             <div className="ec-error">
-              <p style={{ color: '#dc3545', fontWeight: 500 }}>Failed to load events</p>
+              <p style={{ color: '#dc3545', fontWeight: 500 }}>Failed To Load Events</p>
               <p style={{ color: C.textSec, fontSize: '13px', marginTop: '4px' }}>{error}</p>
             </div>
           )}
@@ -618,8 +618,8 @@ export default function EventsCalendarPage() {
               {upcomingEvents.length === 0 ? (
                 <div className="ec-empty">
                   <CalendarIcon />
-                  <p style={{ color: C.textSec, marginTop: '12px', fontSize: '15px', fontWeight: 500 }}>No upcoming events found</p>
-                  <p style={{ color: C.textSec, fontSize: '13px', marginTop: '4px' }}>Try adjusting your filters or check back later.</p>
+                  <p style={{ color: C.textSec, marginTop: '12px', fontSize: '15px', fontWeight: 500 }}>No Upcoming Events Found</p>
+                  <p style={{ color: C.textSec, fontSize: '13px', marginTop: '4px' }}>Try Adjusting Your Filters Or Check Back Later.</p>
                 </div>
               ) : (
                 <>

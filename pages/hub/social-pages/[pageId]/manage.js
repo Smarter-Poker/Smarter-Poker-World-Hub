@@ -158,7 +158,7 @@ export default function ManageSocialPage() {
             <><UniversalHeader />
             <div style={{ minHeight: '100vh', background: C.bg, paddingTop: 80, textAlign: 'center',
                 fontFamily: "'Inter', -apple-system, sans-serif" }}>
-                <p style={{ color: C.textSec }}>Page not found or access denied.</p>
+                <p style={{ color: C.textSec }}>Page Not Found Or Access Denied.</p>
             </div></>
         );
     }
@@ -167,7 +167,7 @@ export default function ManageSocialPage() {
         <>
             <SEOHead
                 title="Manage Social Page"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
             <UniversalHeader />

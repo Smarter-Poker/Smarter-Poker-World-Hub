@@ -67,7 +67,7 @@ export default function SeatingDisplay() {
     <>
       <SEOHead
                 title="Commander — Seating Display"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
       <style jsx global>{`
@@ -132,8 +132,8 @@ export default function SeatingDisplay() {
 
         {/* Footer */}
         <div className="border-t border-white/10 px-8 py-2 flex items-center justify-between flex-shrink-0">
-          <p className="text-sm text-white/20">Find your name above for your table and seat assignment</p>
-          <p className="text-white/15 text-xs tracking-wider">Powered by Smarter.Poker</p>
+          <p className="text-sm text-white/20">Find Your Name Above For Your Table And Seat Assignment</p>
+          <p className="text-white/15 text-xs tracking-wider">Powered By Smarter.Poker</p>
         </div>
       </div>
     </>

@@ -340,7 +340,7 @@ export default function LeaderboardsPage() {
         <>
             <SEOHead
                 title="Poker Leaderboards — Global Rankings"
-                description="See who tops the charts across all Smarter.Poker games. Global rankings for training, trivia, memory games, and more."
+                description="See Who Tops The Charts Across All Smarter.Poker Games. Global Rankings For Training, Trivia, Memory Games, And More."
                 canonical="/hub/leaderboards"
             />
 

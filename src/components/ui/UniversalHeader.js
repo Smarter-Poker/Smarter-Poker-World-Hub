@@ -594,7 +594,7 @@ export default function UniversalHeader({
                         <button
                             onClick={onMenuClick}
                             className="orb-btn"
-                            aria-label="Open menu"
+                            aria-label="Open Menu"
                             style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
                         >
                             <img src="/images/btn-hamburger.png" alt="Menu" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '55%', left: '50%', transform: 'translate(-50%, -50%)' }} />
@@ -620,7 +620,7 @@ export default function UniversalHeader({
                         <button
                             onClick={() => setIsWalletOpen(true)}
                             style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: 0 }}
-                            title="View transaction history"
+                            title="View Transaction History"
                         >
                             <span>💎</span>
                             <span data-testid="header-diamonds" style={{ fontWeight: 700 }} title={stats.diamonds.toLocaleString() + ' diamonds'}>

@@ -102,7 +102,7 @@ export default function AnnouncementsDisplay() {
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
                 <p className="text-5xl font-bold text-white/15 mb-2">No Announcements</p>
-                <p className="text-xl text-white/10">Check back for updates</p>
+                <p className="text-xl text-white/10">Check Back For Updates</p>
               </div>
             </div>
           ) : (
@@ -142,8 +142,8 @@ export default function AnnouncementsDisplay() {
 
         {/* Bottom bar */}
         <div className="border-t border-white/10 px-8 py-3 flex items-center justify-between">
-          <p className="text-sm text-white/20">See the front desk for assistance</p>
-          <p className="text-white/15 text-xs tracking-wider">Powered by Smarter.Poker</p>
+          <p className="text-sm text-white/20">See The Front Desk For Assistance</p>
+          <p className="text-white/15 text-xs tracking-wider">Powered By Smarter.Poker</p>
         </div>
       </div>
     </CommanderLayout>

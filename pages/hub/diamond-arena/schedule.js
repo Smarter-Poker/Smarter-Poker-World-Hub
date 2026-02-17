@@ -64,7 +64,7 @@ export default function DiamondArenaSchedule() {
         <>
             <SEOHead
                 title="Diamond Arena Schedule"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 canonical="/hub/diamond-arena/schedule"
             />
 
@@ -171,8 +171,8 @@ export default function DiamondArenaSchedule() {
 
                         {filteredTournaments.length === 0 && (
                             <div style={{ textAlign: 'center', padding: '60px 20px', color: '#6b7280' }}>
-                                <p style={{ fontSize: '18px' }}>No tournaments found</p>
-                                <p style={{ fontSize: '14px', marginTop: '8px' }}>Try adjusting your filters</p>
+                                <p style={{ fontSize: '18px' }}>No Tournaments Found</p>
+                                <p style={{ fontSize: '14px', marginTop: '8px' }}>Try Adjusting Your Filters</p>
                             </div>
                         )}
                     </div>

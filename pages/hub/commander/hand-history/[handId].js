@@ -210,7 +210,7 @@ export default function HandDetailPage() {
     <>
       <SEOHead
                 title="Hand History"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
 

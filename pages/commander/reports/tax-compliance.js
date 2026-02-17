@@ -154,7 +154,7 @@ export default function TaxCompliance() {
         </div>
         <div class="row">
           <div class="box">
-            <div class="box-label">Box 3 — Type of Wager</div>
+            <div class="box-label">Box 3 — Type Of Wager</div>
             <div class="box-value">${w2g.box3_wager_type}</div>
           </div>
           <div class="box">
@@ -168,7 +168,7 @@ export default function TaxCompliance() {
             <div class="box-value" style="font-size:11px">${w2g.box5_transaction}</div>
           </div>
           <div class="box">
-            <div class="box-label">Box 7 — Winnings from Identical Wagers</div>
+            <div class="box-label">Box 7 — Winnings From Identical Wagers</div>
             <div class="box-value">$${parseFloat(w2g.box7_identical_winnings).toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
           </div>
         </div>
@@ -212,7 +212,7 @@ export default function TaxCompliance() {
     <>
       <SEOHead
                 title="Commander — Tax Compliance"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
       <div style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -221,7 +221,7 @@ export default function TaxCompliance() {
           <FileText size={22} />
           <div>
             <div style={{ fontWeight: 700, fontSize: 17 }}>Tax Compliance / W-2G</div>
-            <div style={{ fontSize: 12, opacity: 0.85 }}>Tournament wins reporting and withholding</div>
+            <div style={{ fontSize: 12, opacity: 0.85 }}>Tournament Wins Reporting And Withholding</div>
           </div>
         </div>
 
@@ -314,7 +314,7 @@ export default function TaxCompliance() {
                               <div style={{ fontSize: 16, fontWeight: 800, color: '#1C2526' }}>{formatMoney(evt.gross_amount)}</div>
                             </div>
                             <div style={{ padding: 10, background: '#F9FAFB', borderRadius: 8, textAlign: 'center' }}>
-                              <div style={{ fontSize: 11, color: '#65676B', fontWeight: 600 }}>BUY-IN</div>
+                              <div style={{ fontSize: 11, color: '#65676B', fontWeight: 600 }}>Buy-In</div>
                               <div style={{ fontSize: 16, fontWeight: 800, color: '#1C2526' }}>{formatMoney(evt.buy_in)}</div>
                             </div>
                             <div style={{ padding: 10, background: '#F9FAFB', borderRadius: 8, textAlign: 'center' }}>

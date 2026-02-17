@@ -113,7 +113,7 @@ export default function AnalyticsDailyReport() {
     <>
       <SEOHead
                 title="Commander — Analytics Daily"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
       <div style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -122,7 +122,7 @@ export default function AnalyticsDailyReport() {
 <BarChart3 size={22} />
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 700, fontSize: 17 }}>Analytics Daily</div>
-            <div style={{ fontSize: 12, opacity: 0.85 }}>Aggregated daily metrics (auto-runs at 4 AM)</div>
+            <div style={{ fontSize: 12, opacity: 0.85 }}>Aggregated Daily Metrics (auto-runs At 4 AM)</div>
           </div>
           <button onClick={handleManualRefresh} disabled={refreshing}
             style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: 8, padding: '6px 12px', color: 'white', cursor: refreshing ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600 }}>
@@ -151,7 +151,7 @@ export default function AnalyticsDailyReport() {
             <div style={{ textAlign: 'center', padding: 40 }}><Loader2 size={28} color="#1877F2" className="spin" /></div>
           ) : data.length === 0 ? (
             <div style={{ textAlign: 'center', padding: 40, color: '#65676B', background: 'white', borderRadius: 12 }}>
-              <div style={{ marginBottom: 10 }}>No analytics data for this period</div>
+              <div style={{ marginBottom: 10 }}>No Analytics Data For This Period</div>
               <button onClick={handleManualRefresh} style={{ background: '#1877F2', color: 'white', border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
                 Run Analytics Now
               </button>

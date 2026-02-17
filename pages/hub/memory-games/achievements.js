@@ -96,7 +96,7 @@ export default function MemoryGamesAchievements() {
         <>
             <SEOHead
                 title="Memory Games Achievements"
-                description="Track your memory game achievements and cognitive training progress."
+                description="Track Your Memory Game Achievements And Cognitive Training Progress."
                 canonical="/hub/memory-games/achievements"
             />
 

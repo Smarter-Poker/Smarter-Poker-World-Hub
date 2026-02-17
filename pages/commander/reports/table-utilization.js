@@ -44,13 +44,13 @@ export default function TableUtilization() {
 
   const s = data?.summary || {};
   const maxHeat = Math.max(...(data?.hourly_heatmap || [1]), 1);
-  const fmtHour = h => h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? '12p' : `${h - 12}p`;
+  const fmtHour = h => H === 0 ? ''12a' : H < 12 ? `${h}a` : h === 12 ? '12p' : `${h - 12}p`;
 
   return (
     <>
       <SEOHead
                 title="Commander — Table Utilization"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
@@ -110,7 +110,7 @@ export default function TableUtilization() {
                         </div>
                         <div className="text-right">
                           <p className="text-lg font-bold" style={{ color: uptimeColor }}>{t.uptime_percent}%</p>
-                          <p className="text-xs text-[#B0B3B8]">uptime</p>
+                          <p className="text-xs text-[#B0B3B8]">Uptime</p>
                         </div>
                       </div>
                       {/* Uptime bar */}

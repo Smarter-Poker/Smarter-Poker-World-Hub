@@ -184,7 +184,7 @@ export default function TournamentDetailPage() {
       <div className="cmd-page flex items-center justify-center">
         <div className="text-center">
           <Trophy className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
-          <p className="text-[#64748B]">Tournament not found</p>
+          <p className="text-[#64748B]">Tournament Not Found</p>
           <button
             onClick={() => router.push('/commander/tournaments')}
             className="mt-4 px-4 py-2 cmd-btn cmd-btn-primary rounded-lg"
@@ -201,7 +201,7 @@ export default function TournamentDetailPage() {
     <>
       <SEOHead
                 title="Commander — Details"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
 

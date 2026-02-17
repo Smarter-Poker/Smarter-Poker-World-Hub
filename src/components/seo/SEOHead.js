@@ -8,7 +8,7 @@
  * Usage:
  *   <SEOHead
  *     title="Poker Near Me"
- *     description="Find live poker rooms near you..."
+ *     description="Find Live Poker Rooms Near You..."
  *     canonical="/hub/poker-near-me"
  *     jsonLd={{ "@type": "WebApplication", ... }}
  *   />

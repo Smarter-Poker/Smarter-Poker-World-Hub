@@ -114,7 +114,7 @@ export default function PlayerCheckIn() {
     <div className="min-h-screen bg-[#18191A] flex items-center justify-center">
       <div className="text-center">
         <Loader2 className="w-10 h-10 text-[#1877F2] animate-spin mx-auto mb-4" />
-        <p className="text-[#B0B3B8] text-sm">Loading your account...</p>
+        <p className="text-[#B0B3B8] text-sm">Loading Your Account...</p>
       </div>
     </div>
   );
@@ -125,7 +125,7 @@ export default function PlayerCheckIn() {
         <XCircle className="w-16 h-16 text-[#EF4444] mx-auto mb-4" />
         <h2 className="text-xl font-bold text-white mb-2">Not Found</h2>
         <p className="text-[#B0B3B8]">{error}</p>
-        <p className="text-sm text-[#B0B3B8] mt-4">Show this screen to staff for help.</p>
+        <p className="text-sm text-[#B0B3B8] mt-4">Show This Screen To Staff For Help.</p>
       </div>
     </div>
   );
@@ -138,7 +138,7 @@ export default function PlayerCheckIn() {
     <>
       <SEOHead
                 title="Commander — Details"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter'] p-4 pb-12 max-w-md mx-auto">
@@ -170,7 +170,7 @@ export default function PlayerCheckIn() {
                 {membershipActive ? 'Membership Active' : 'Membership Inactive'}
               </p>
               {!membershipActive && (
-                <p className="text-xs text-[#EF4444]">See front desk to renew</p>
+                <p className="text-xs text-[#EF4444]">See Front Desk To Renew</p>
               )}
             </div>
           </div>
@@ -184,9 +184,9 @@ export default function PlayerCheckIn() {
         }`}>
           <Timer className="w-8 h-8 mx-auto mb-2" style={{ color: timeBalance > 0 ? '#1877F2' : '#F59E0B' }} />
           <p className="text-3xl font-bold text-white">{timeBalance} min</p>
-          <p className="text-sm text-[#B0B3B8]">Time Balance on Card</p>
+          <p className="text-sm text-[#B0B3B8]">Time Balance On Card</p>
           {timeBalance === 0 && (
-            <p className="text-xs text-[#F59E0B] mt-2">Visit the kiosk or front desk to add time</p>
+            <p className="text-xs text-[#F59E0B] mt-2">Visit The Kiosk Or Front Desk To Add Time</p>
           )}
         </div>
 
@@ -248,7 +248,7 @@ export default function PlayerCheckIn() {
 
         {/* Branding */}
         <div className="mt-8 text-center">
-          <p className="text-white/10 text-xs tracking-wider">Powered by Smarter.Poker</p>
+          <p className="text-white/10 text-xs tracking-wider">Powered By Smarter.Poker</p>
         </div>
       </div>
     </>

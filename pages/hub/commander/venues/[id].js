@@ -136,7 +136,7 @@ export default function VenueDetailPage() {
       <div className="cmd-page flex items-center justify-center p-4">
         <div className="text-center">
           <MapPin className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
-          <p className="text-[#64748B]">Venue not found</p>
+          <p className="text-[#64748B]">Venue Not Found</p>
         </div>
       </div>
     );
@@ -148,7 +148,7 @@ export default function VenueDetailPage() {
     <>
       <SEOHead
                 title="Venue Details"
-                description="Smarter.Poker — The Future of the Game."
+                description="Smarter.Poker — The Future Of The Game."
                 noindex={true}
             />
 
@@ -231,7 +231,7 @@ export default function VenueDetailPage() {
             {activeGames.length === 0 ? (
               <div className="p-8 text-center">
                 <Users className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
-                <p className="text-[#64748B]">No games running</p>
+                <p className="text-[#64748B]">No Games Running</p>
               </div>
             ) : (
               <div>
@@ -327,7 +327,7 @@ export default function VenueDetailPage() {
             {reviews.length === 0 ? (
               <div className="p-8 text-center">
                 <MessageSquare className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
-                <p className="text-[#64748B]">No reviews yet</p>
+                <p className="text-[#64748B]">No Reviews Yet</p>
               </div>
             ) : (
               <div className="divide-y divide-[#4A5E78]">

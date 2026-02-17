@@ -159,7 +159,7 @@ export default function CommanderSettingsPage() {
       <>
         <SEOHead
                 title="Commander — Settings"
-                description="Club Commander poker room management tool."
+                description="Club Commander Poker Room Management Tool."
                 noindex={true}
             />
 
@@ -226,14 +226,14 @@ export default function CommanderSettingsPage() {
               <div className="divide-y divide-[#3A3B3C]">
                 <SettingToggle
                   label="SMS Notifications"
-                  description="Send text messages when calling players"
+                  description="Send Text Messages When Calling Players"
                   enabled={settings.sms_notifications_enabled}
                   onChange={() => handleToggle('sms_notifications_enabled')}
                   disabled={!canManageSettings}
                 />
                 <SettingToggle
                   label="Push Notifications"
-                  description="Send app notifications to players"
+                  description="Send App Notifications To Players"
                   enabled={settings.push_notifications_enabled}
                   onChange={() => handleToggle('push_notifications_enabled')}
                   disabled={!canManageSettings}
@@ -254,7 +254,7 @@ export default function CommanderSettingsPage() {
               <div className="divide-y divide-[#3A3B3C]">
                 <SettingNumber
                   label="Call Timeout (minutes)"
-                  description="Time player has to respond after being called"
+                  description="Time Player Has To Respond After Being Called"
                   value={settings.call_timeout_minutes}
                   onChange={(v) => handleChange('call_timeout_minutes', v)}
                   min={1}
@@ -263,7 +263,7 @@ export default function CommanderSettingsPage() {
                 />
                 <SettingNumber
                   label="Max Waitlist Size"
-                  description="Maximum players per waitlist"
+                  description="Maximum Players Per Waitlist"
                   value={settings.max_waitlist_size}
                   onChange={(v) => handleChange('max_waitlist_size', v)}
                   min={10}
@@ -272,7 +272,7 @@ export default function CommanderSettingsPage() {
                 />
                 <SettingNumber
                   label="Est. Wait Per Player (min)"
-                  description="Used to calculate wait times"
+                  description="Used To Calculate Wait Times"
                   value={settings.default_wait_time_per_player}
                   onChange={(v) => handleChange('default_wait_time_per_player', v)}
                   min={5}
@@ -295,14 +295,14 @@ export default function CommanderSettingsPage() {
               <div className="divide-y divide-[#3A3B3C]">
                 <SettingToggle
                   label="Show Player Names"
-                  description="Display full names on public screens"
+                  description="Display Full Names On Public Screens"
                   enabled={settings.show_player_names_on_display}
                   onChange={() => handleToggle('show_player_names_on_display')}
                   disabled={!canManageSettings}
                 />
                 <SettingNumber
                   label="Auto-Refresh Interval (sec)"
-                  description="How often to refresh data"
+                  description="How Often To Refresh Data"
                   value={settings.auto_refresh_interval}
                   onChange={(v) => handleChange('auto_refresh_interval', v)}
                   min={10}

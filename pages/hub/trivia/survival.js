@@ -197,7 +197,7 @@ export default function SurvivalModePage() {
         <PageTransition>
             <SEOHead
                 title="Survival Trivia — One Life Challenge"
-                description="One wrong answer and you are out. Test your poker knowledge in Survival mode."
+                description="One Wrong Answer And You Are Out. Test Your Poker Knowledge In Survival Mode."
                 canonical="/hub/trivia/survival"
             />
 
@@ -216,7 +216,7 @@ export default function SurvivalModePage() {
                         <div style={{ background: '#1a1a2e', border: '1px solid rgba(0,212,255,0.3)', borderRadius: 16, padding: 32, textAlign: 'center', maxWidth: 360 }}>
                             <div style={{ fontSize: 48, marginBottom: 16 }}>💎</div>
                             <h3 style={{ color: '#fff', marginBottom: 8 }}>Not Enough Diamonds</h3>
-                            <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: 20 }}>Each game costs 10💎. Get more diamonds or upgrade to VIP for unlimited access!</p>
+                            <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: 20 }}>Each Game Costs 10💎. Get More Diamonds Or Upgrade To VIP For Unlimited Access!</p>
                             <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
                                 <button onClick={() => router.push('/hub/diamond-store')} style={{ padding: '10px 20px', background: 'linear-gradient(135deg, #00D4FF, #0088FF)', border: 'none', borderRadius: 8, color: '#fff', fontWeight: 600, cursor: 'pointer' }}>Get Diamonds</button>
                                 <button onClick={() => setShowOutOfDiamonds(false)} style={{ padding: '10px 20px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, color: '#fff', cursor: 'pointer' }}>Close</button>
