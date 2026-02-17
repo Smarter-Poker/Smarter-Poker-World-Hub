@@ -2624,18 +2624,19 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                 const occupiedCount = seatArr.filter(s => s.taken).length;
                                 const openSeats = game.max_seats - occupiedCount;
 
-                                // 9-max seat positions around oval table (percentage-based)
-                                const seatPositions = [
-                                    { top: '82%', left: '50%' },   // Seat 1 — bottom center (dealer)
-                                    { top: '72%', left: '12%' },   // Seat 2 — bottom-left
-                                    { top: '42%', left: '2%' },    // Seat 3 — mid-left
-                                    { top: '12%', left: '12%' },   // Seat 4 — top-left
-                                    { top: '2%', left: '35%' },    // Seat 5 — top-left-center
-                                    { top: '2%', left: '65%' },    // Seat 6 — top-right-center
-                                    { top: '12%', left: '88%' },   // Seat 7 — top-right
-                                    { top: '42%', left: '98%' },   // Seat 8 — mid-right
-                                    { top: '72%', left: '88%' },   // Seat 9 — bottom-right
-                                ];
+                                // 9-max seat positions on the table rail (ellipse edge)
+                                // Table ellipse: center=(50%,50%), rx=36%, ry=32%
+                                // Angles distributed for natural poker seating
+                                const seatAngles = [90, 135, 180, 215, 245, 295, 325, 0, 45]; // degrees, 0=right, 90=bottom
+                                const cx = 50, cy = 50, rx = 35, ry = 31;
+                                const seatPositions = seatAngles.map(deg => {
+                                    const rad = deg * Math.PI / 180;
+                                    return {
+                                        top: `${cy + ry * Math.sin(rad)}%`,
+                                        left: `${cx + rx * Math.cos(rad)}%`,
+                                    };
+                                });
+                                const dealerSeat = game.dealer_seat || 1;
 
                                 return (
                                     <div key={game.id} style={{ background: '#1a1a2e', borderRadius: 16, border: '1px solid #2d2d44', overflow: 'hidden' }}>
@@ -2686,7 +2687,31 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                                     </div>
                                                 </div>
 
-                                                {/* Seat chips around the table */}
+                                                {/* Dealer button */}
+                                                {(() => {
+                                                    const dIdx = dealerSeat - 1;
+                                                    if (dIdx >= 0 && dIdx < seatPositions.length) {
+                                                        const dPos = seatPositions[dIdx];
+                                                        const dRad = seatAngles[dIdx] * Math.PI / 180;
+                                                        // Place dealer button slightly inside from the seat
+                                                        const bx = cx + (rx - 9) * Math.cos(dRad);
+                                                        const by = cy + (ry - 8) * Math.sin(dRad);
+                                                        return (
+                                                            <div style={{
+                                                                position: 'absolute', top: `${by}%`, left: `${bx}%`,
+                                                                transform: 'translate(-50%, -50%)', zIndex: 5,
+                                                                width: 20, height: 20, borderRadius: '50%',
+                                                                background: '#fff', border: '2px solid #333',
+                                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                                boxShadow: '0 1px 4px rgba(0,0,0,0.5)',
+                                                                fontSize: 10, fontWeight: 900, color: '#111',
+                                                            }}>D</div>
+                                                        );
+                                                    }
+                                                    return null;
+                                                })()}
+
+                                                {/* Seat chips on the table rail */}
                                                 {seatArr.slice(0, seatPositions.length).map((seat, idx) => {
                                                     const pos = seatPositions[idx];
                                                     const isOccupied = !!seat.taken;
@@ -2694,11 +2719,11 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                                     return (
                                                         <div key={seat.number} style={{
                                                             position: 'absolute', top: pos.top, left: pos.left,
-                                                            transform: 'translate(-50%, -50%)', textAlign: 'center', width: 64,
+                                                            transform: 'translate(-50%, -50%)', textAlign: 'center', width: 56, zIndex: 2,
                                                         }}>
                                                             {/* Seat circle */}
                                                             <div style={{
-                                                                width: 38, height: 38, borderRadius: '50%', margin: '0 auto 3px',
+                                                                width: 34, height: 34, borderRadius: '50%', margin: '0 auto 2px',
                                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                                 background: isOccupied
                                                                     ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)'
@@ -2708,7 +2733,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                                                 transition: 'all 0.2s',
                                                             }}>
                                                                 {isOccupied ? (
-                                                                    <span style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>
+                                                                    <span style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>
                                                                         {firstName.charAt(0).toUpperCase()}
                                                                     </span>
                                                                 ) : (
@@ -2717,10 +2742,10 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                                             </div>
                                                             {/* Name label */}
                                                             <div style={{
-                                                                fontSize: 9, fontWeight: 600, lineHeight: 1.1,
+                                                                fontSize: 8, fontWeight: 600, lineHeight: 1.1,
                                                                 color: isOccupied ? '#93c5fd' : 'rgba(255,255,255,0.25)',
                                                                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                                                maxWidth: 64,
+                                                                maxWidth: 56,
                                                             }}>
                                                                 {isOccupied ? firstName : 'Open'}
                                                             </div>
@@ -2799,6 +2824,8 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
     const [games, setGames] = useState([]);
     const [loading, setLoading] = useState(true);
     const [playerName, setPlayerName] = useState(userName || '');
+    // Sync playerName when userName prop updates (arrives async after auth)
+    useEffect(() => { if (userName && !playerName) setPlayerName(userName); }, [userName]);
     const [actionMsg, setActionMsg] = useState('');
     const [followStatus, setFollowStatus] = useState(null); // null = not checked, 'none' | 'pending' | 'approved'
     const [followLoading, setFollowLoading] = useState(true);
@@ -2960,18 +2987,17 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                         const openSeats = game.max_seats - occupiedCount;
                         const myReservation = (game.seats || []).find(s => s.player_name === playerName.trim());
 
-                        // 9-max seat positions around oval table
-                        const seatPositions = [
-                            { top: '82%', left: '50%' },
-                            { top: '72%', left: '12%' },
-                            { top: '42%', left: '2%' },
-                            { top: '12%', left: '12%' },
-                            { top: '2%', left: '35%' },
-                            { top: '2%', left: '65%' },
-                            { top: '12%', left: '88%' },
-                            { top: '42%', left: '98%' },
-                            { top: '72%', left: '88%' },
-                        ];
+                        // 9-max seat positions on the table rail (ellipse edge)
+                        const seatAngles = [90, 135, 180, 215, 245, 295, 325, 0, 45];
+                        const cx = 50, cy = 50, rx = 35, ry = 31;
+                        const seatPositions = seatAngles.map(deg => {
+                            const rad = deg * Math.PI / 180;
+                            return {
+                                top: `${cy + ry * Math.sin(rad)}%`,
+                                left: `${cx + rx * Math.cos(rad)}%`,
+                            };
+                        });
+                        const dealerSeat = game.dealer_seat || 1;
 
                         return (
                             <div key={game.id} style={{ background: '#1a1a2e', borderRadius: 16, border: '1px solid #2d2d44', overflow: 'hidden' }}>
@@ -3035,7 +3061,29 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                             </div>
                                         </div>
 
-                                        {/* Seat chips */}
+                                        {/* Dealer button */}
+                                        {(() => {
+                                            const dIdx = dealerSeat - 1;
+                                            if (dIdx >= 0 && dIdx < seatPositions.length) {
+                                                const dRad = seatAngles[dIdx] * Math.PI / 180;
+                                                const bx = cx + (rx - 9) * Math.cos(dRad);
+                                                const by = cy + (ry - 8) * Math.sin(dRad);
+                                                return (
+                                                    <div style={{
+                                                        position: 'absolute', top: `${by}%`, left: `${bx}%`,
+                                                        transform: 'translate(-50%, -50%)', zIndex: 5,
+                                                        width: 20, height: 20, borderRadius: '50%',
+                                                        background: '#fff', border: '2px solid #333',
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                        boxShadow: '0 1px 4px rgba(0,0,0,0.5)',
+                                                        fontSize: 10, fontWeight: 900, color: '#111',
+                                                    }}>D</div>
+                                                );
+                                            }
+                                            return null;
+                                        })()}
+
+                                        {/* Seat chips on the table rail */}
                                         {seatArr.slice(0, seatPositions.length).map((seat, idx) => {
                                             const pos = seatPositions[idx];
                                             const isOccupied = !!seat.taken;
@@ -3046,13 +3094,13 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                             return (
                                                 <div key={seat.number} style={{
                                                     position: 'absolute', top: pos.top, left: pos.left,
-                                                    transform: 'translate(-50%, -50%)', textAlign: 'center', width: 64,
+                                                    transform: 'translate(-50%, -50%)', textAlign: 'center', width: 56, zIndex: 2,
                                                     cursor: canClick ? 'pointer' : 'default',
                                                 }}
                                                     onClick={() => canClick && handleTakeSeat(game.id, seat.number)}
                                                 >
                                                     <div style={{
-                                                        width: 38, height: 38, borderRadius: '50%', margin: '0 auto 3px',
+                                                        width: 34, height: 34, borderRadius: '50%', margin: '0 auto 2px',
                                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                         background: isMe
                                                             ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
@@ -3066,7 +3114,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                                         transition: 'all 0.2s',
                                                     }}>
                                                         {isOccupied ? (
-                                                            <span style={{ fontSize: isMe ? 11 : 14, fontWeight: 800, color: '#fff' }}>
+                                                            <span style={{ fontSize: isMe ? 10 : 13, fontWeight: 800, color: '#fff' }}>
                                                                 {isMe ? 'YOU' : firstName.charAt(0).toUpperCase()}
                                                             </span>
                                                         ) : (
@@ -3076,9 +3124,9 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                                         )}
                                                     </div>
                                                     <div style={{
-                                                        fontSize: 9, fontWeight: 600, lineHeight: 1.1,
+                                                        fontSize: 8, fontWeight: 600, lineHeight: 1.1,
                                                         color: isMe ? '#4ade80' : isOccupied ? '#93c5fd' : canClick ? 'rgba(34,197,94,0.5)' : 'rgba(255,255,255,0.25)',
-                                                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 64,
+                                                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 56,
                                                     }}>
                                                         {isMe ? 'You' : isOccupied ? firstName : canClick ? 'Join' : 'Open'}
                                                     </div>
@@ -3671,9 +3719,9 @@ export default function SocialMediaPage() {
                     if (notifsError) console.error('[Social] Failed to load notifications:', notifsError);
                     if (notifs && notifs.length > 0) {
                         // Collect actor IDs from notifications
-                        // The data is stored in the 'data' JSONB column: data.actor_id (social) or data.sender_id (friend requests)
+                        // The data is stored in the 'data' JSONB column: data.commenter_id (comments), data.sender_id (friend requests), data.actor_id (generic)
                         const actorIds = [...new Set(notifs.map(n =>
-                            n.data?.actor_id || n.data?.sender_id || n.actor_id
+                            n.data?.commenter_id || n.data?.actor_id || n.data?.sender_id || n.actor_id
                         ).filter(Boolean))];
 
                         // Also parse actor names from notification titles as fallback
@@ -3709,7 +3757,7 @@ export default function SocialMediaPage() {
                         // Merge actor profile data into notifications
                         const enrichedNotifs = notifs.map(n => {
                             // Get actor ID from the data JSONB column
-                            const actorId = n.data?.actor_id || n.data?.sender_id || n.actor_id;
+                            const actorId = n.data?.commenter_id || n.data?.actor_id || n.data?.sender_id || n.actor_id;
                             let profile = actorId ? profileById[actorId] : null;
 
                             // Fallback to name matching
@@ -3859,7 +3907,7 @@ export default function SocialMediaPage() {
 
                 // Enrich with actor profiles
                 const actorIds = [...new Set(notifs.map(n =>
-                    n.data?.actor_id || n.data?.sender_id || n.actor_id
+                    n.data?.commenter_id || n.data?.actor_id || n.data?.sender_id || n.actor_id
                 ).filter(Boolean))];
                 let profileById = {};
                 if (actorIds.length > 0) {
@@ -3869,7 +3917,7 @@ export default function SocialMediaPage() {
                     (profiles || []).forEach(p => { profileById[p.id] = p; });
                 }
                 const enriched = notifs.map(n => {
-                    const actorId = n.data?.actor_id || n.data?.sender_id || n.actor_id;
+                    const actorId = n.data?.commenter_id || n.data?.actor_id || n.data?.sender_id || n.actor_id;
                     const profile = actorId ? profileById[actorId] : null;
                     const displayName = n.data?.actor_name || n.data?.sender_name || n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/)?.[1] || n.title;
                     return {
